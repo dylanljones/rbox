@@ -1,7 +1,7 @@
 # rbox
 
 > **⚠️ Disclaimer**: This project is **not** affiliated with Pioneer DJ, AlphaTheta Corp., or any related entities.
-> Rekordbox-IO is an independent project released under the **MIT license**.
+> rbox is an independent project released under the **MIT license**.
 > The maintainers and contributors assume no liability for any data loss or damage to your Rekordbox library.
 > "Rekordbox" is a registered trademark of AlphaTheta Corporation.
 
