@@ -1,0 +1,21 @@
+[workspace]
+resolver = "3"
+members = [
+    "rbox",
+    "bindings/python",
+    "bindings/javascript",
+]
+
+[workspace.package]
+
+version = "0.1.0"
+authors = ["Dylan Jones <dylanljones@proton.me>"]
+description = "Library for interacting with the local and export data of Pioneers Rekordbox DJ software"
+license = "MIT"
+readme = "README.md"
+keywords = ["rekordbox", "dj", "database", "parser"]
+repository = "https://github.com/dylanljones/rbox"
+edition = "2021"
+
+[workspace.dependencies]
+rbox = { path = "rbox" }

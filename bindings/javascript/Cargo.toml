@@ -1,0 +1,25 @@
+[package]
+name = "js-rbox"
+description = "Javascript library for interacting with the local and export data of Pioneers Rekordbox DJ software"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+rbox            = { path = "../../rbox" }
+# Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
+napi            = { version = "2.16.17", default-features = false, features = ["napi4", "serde-json"] }
+napi-derive     = { version = "2.16.13" }
+
+[build-dependencies]
+napi-build = "2.0.1"
+
+[profile.release]
+lto = true
+strip = "symbols"

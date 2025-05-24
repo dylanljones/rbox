@@ -1,0 +1,47 @@
+# This workflow will run the Rust tests
+
+name: Rust tests
+
+on:
+  # push:
+  #   branches: [ "main" ]
+  # pull_request:
+  #   branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  cargo-fmt-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Check formatting
+        run: cargo fmt --check
+
+  test:
+    needs: cargo-fmt-check
+    strategy:
+      matrix:
+        os: ["ubuntu-latest", "windows-latest", "macos-latest", "macos-13"]
+    runs-on: ${{ matrix.os }}
+    continue-on-error: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set Windows OpenSSL env
+        if: runner.os == 'Windows'
+        run: echo "OPENSSL_DIR=C:\Program Files\OpenSSL" >> $env:GITHUB_ENV
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build
+
+      - name: Run tests
+        run: cargo test

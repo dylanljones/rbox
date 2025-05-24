@@ -1,0 +1,15 @@
+{
+  "name": "rbox-darwin-universal",
+  "version": "0.0.0",
+  "os": [
+    "darwin"
+  ],
+  "main": "rbox.darwin-universal.node",
+  "files": [
+    "rbox.darwin-universal.node"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">= 10"
+  }
+}

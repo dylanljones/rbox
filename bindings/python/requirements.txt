@@ -1,0 +1,7 @@
+# Development requirements, see pyproject.toml for the build dependencies
+
+maturin
+typing-extensions >=4.6.0,!=4.7.0
+hypothesis>=6.0.0
+pytest>=6.2.0
+pytest-cov

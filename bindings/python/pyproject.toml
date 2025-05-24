@@ -1,0 +1,122 @@
+
+# -- Project metadata ------------------------------------------------------------------
+
+[project]
+name = 'rbox'
+description = "rbox is a Python library for reading and writing Rekordbox files."
+requires-python = '>=3.9'
+classifiers = [
+    'Development Status :: 3 - Alpha',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3 :: Only',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
+    'Programming Language :: Rust',
+    'License :: OSI Approved :: MIT License',
+    'Operating System :: Microsoft :: Windows',
+    'Operating System :: MacOS',
+    'Topic :: Database',
+    'Topic :: Software Development :: Libraries',
+    'Topic :: Software Development :: Libraries :: Python Modules',
+    'Topic :: Database :: Database Engines/Servers',
+]
+dependencies = ['typing-extensions >=4.6.0,!=4.7.0']
+dynamic = ['readme', 'version']
+
+[project.optional-dependencies]
+test = [
+    "hypothesis>=6.0.0",
+    "pytest>=6.2.0",
+    "pytest-cov",
+    "maturin"
+]
+
+# -- Build -----------------------------------------------------------------------------
+
+[build-system]
+requires = ['maturin>=1,<2', 'typing_extensions']
+build-backend = 'maturin'
+
+[tool.maturin]
+bindings = 'pyo3'
+module-name = "rbox._rbox"
+features = ["pyo3/extension-module"]
+
+
+# -- Ruff ------------------------------------------------------------------------------
+
+
+[tool.ruff]
+exclude = [
+    ".git",
+    ".idea",
+    "__pycache__",
+    "build",
+    "dist",
+    ".ruff_cache",
+    "docs/*",
+]
+line-length = 100
+indent-width = 4
+
+[tool.ruff.lint]
+select = [
+    "F", # flake8
+    "E", # pycodestyle Errors
+    "W", # pycodestyle Warnings
+    "I", # isort
+    "NPY", # Numpy
+    "N", # pep8-naming
+    "D", # pydocstyle
+    "ANN", # types-annotations
+]
+ignore = [
+    "E203",  # Whitespace before ':'
+    "D100", # Missing docstring in public module
+    "D101", # Missing docstring in public class
+    "D102", # Missing docstring in public method
+    "D103", # Missing docstring in public function
+    "D104", # Missing docstring in public package
+    "D105", # Missing docstring in magic method
+    "D106", # Missing docstring in public nested class
+    "D107", # Missing docstring in __init__
+    "D401", # First line should be in imperative mood
+    "D403", # First word of the first line should be capitalized
+    "D404", # First word of the docstring should not be "This"
+    #"N802", # Function name should be lowercase
+    #"N803", # Argument name should be lowercase
+    "N813", # Camelcase imported as lowercase
+    #"N815", # Variable in class scope should not be mixedCase
+    "N818", # Exception name should be named with an Error suffix
+    "ANN003", # Missing type annotation for kwargs in method
+    "ANN204", # Missing return type for __init__
+    "ANN401", # Dynamically typed expressions (typing.Any) are disallowed
+]
+fixable = ["ALL"]  # Allow fix for all enabled rules (when `--fix`) is provided.
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+"*__init__.py" = ["F401", "F403"]
+"*__main__.py" = ["ANN"]
+"tests/*" = ["ANN"]
+"cli/*" = ["ANN"]
+"rbxml.py" = ["N803"]
+"models.py" = ["N802", "N815"]
+
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+length-sort = false
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
