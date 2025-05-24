@@ -6,6 +6,10 @@ from typing import Any, Dict, List, Optional
 
 Obj = Dict[str, Any]
 
+def is_rekordbox_running() -> bool:
+    """Check if Rekordbox is running."""
+    ...
+
 class PyMasterDb:
     def __init__(self, path: str) -> None: ...
     @classmethod

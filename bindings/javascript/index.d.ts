@@ -757,6 +757,7 @@ export interface UuidIDMap {
   targetUuid?: string
   currentId?: string
 }
+export declare function isRekordboxRunning(): boolean
 export type JsAnlz = Anlz
 export declare class Anlz {
   constructor(path: string)

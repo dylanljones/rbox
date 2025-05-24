@@ -310,7 +310,8 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { Anlz, MasterDb } = nativeBinding
+const { Anlz, MasterDb, isRekordboxRunning } = nativeBinding
 
 module.exports.Anlz = Anlz
 module.exports.MasterDb = MasterDb
+module.exports.isRekordboxRunning = isRekordboxRunning
