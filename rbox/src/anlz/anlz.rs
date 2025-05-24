@@ -282,17 +282,17 @@ impl SizedSection for ExtendedBeatGrid {
 #[brw(repr = u8)]
 pub enum CueType {
     /// Cue point.
-    Point = 0,
+    Point = 1,
     /// Loop.
-    Loop = 1,
+    Loop = 2,
 }
 
 impl CueType {
     /// Returns the tag type as a string.
     pub fn to_int(&self) -> i32 {
         match self {
-            CueType::Point => 0,
-            CueType::Loop => 1,
+            CueType::Point => 1,
+            CueType::Loop => 2,
         }
     }
 }
