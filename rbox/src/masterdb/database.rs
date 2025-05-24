@@ -5,7 +5,7 @@
 
 // #![allow(unused)]
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use diesel::dsl::{exists, select};
 use diesel::{connection::SimpleConnection, prelude::*, query_dsl::RunQueryDsl, SqliteConnection};
@@ -33,10 +33,11 @@ use super::{
 use crate::anlz::{find_anlz_files, Anlz, AnlzFiles, AnlzPaths};
 use crate::options::RekordboxOptions;
 use crate::pathlib::NormalizePath;
+use crate::util::is_rekordbox_running;
 
 const MAGIC: &str = "513ge593d49928d46ggb9ggc9d8e:4254c85:f8e426eg8b92843b2gg547195:8";
 
-fn open_connection(path: &str) -> anyhow::Result<SqliteConnection> {
+fn open_connection(path: &str) -> Result<SqliteConnection> {
     let key = String::from_utf8(MAGIC.as_bytes().iter().map(|&b| b - 1).collect())?;
 
     let mut conn = SqliteConnection::establish(path)?;
@@ -57,6 +58,8 @@ pub struct MasterDb {
     pub share_dir: Option<PathBuf>,
     /// The path of the masterPlaylist6 XML file located in the same directory as the DB
     pub plxml_path: Option<PathBuf>,
+    /// Flag if writes to the database are allowed if Rekordbox is running
+    unsafe_writes: bool,
 }
 
 impl MasterDb {
@@ -66,7 +69,7 @@ impl MasterDb {
     /// `share` directory and the `masterPlaylist6.xml` file in the same directory as the database
     /// file. If they are not found, the database can still be used, however, some features such as
     /// playlist management and locating analysis files will return errors.
-    pub fn new<P: AsRef<OsStr>>(path: P) -> anyhow::Result<Self> {
+    pub fn new<P: AsRef<OsStr>>(path: P) -> Result<Self> {
         let path_obj = Path::new(&path);
         if !path_obj.exists() {
             return Err(anyhow::anyhow!("Database file does not exist"));
@@ -89,6 +92,7 @@ impl MasterDb {
             conn,
             share_dir: share_dir_str,
             plxml_path: pl_xml_path_str,
+            unsafe_writes: false,
         })
     }
 
@@ -96,7 +100,7 @@ impl MasterDb {
     ///
     /// The options specified by the user must be valid. The `master.db` file, the `share` directory
     /// and the `masterPlaylist6.xml` file will be extracted from the options.
-    pub fn from_options(options: &RekordboxOptions) -> anyhow::Result<Self> {
+    pub fn from_options(options: &RekordboxOptions) -> Result<Self> {
         let share_dir = options.analysis_root.normalize();
         let plxml_path = options.get_db_dir()?.normalize();
         let conn = open_connection(options.db_path.to_str().unwrap())?;
@@ -105,25 +109,26 @@ impl MasterDb {
             conn,
             share_dir: Some(share_dir),
             plxml_path: Some(plxml_path),
+            unsafe_writes: false,
         })
     }
 
     /// Open the default Rekordbox `master.db` database.
     ///
     /// The default location of the `master.db` file is determined by the [`RekordboxOptions`] struct.
-    pub fn open() -> anyhow::Result<Self> {
+    pub fn open() -> Result<Self> {
         let options = RekordboxOptions::open()?;
         Self::from_options(&options)
     }
 
     // -- AgentRegistry ----------------------------------------------------------------------------
 
-    pub fn get_agent_registry(&mut self) -> anyhow::Result<Vec<AgentRegistry>> {
+    pub fn get_agent_registry(&mut self) -> Result<Vec<AgentRegistry>> {
         let results = agentRegistry.load::<AgentRegistry>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_agent_registry_by_id(&mut self, id: &str) -> anyhow::Result<Option<AgentRegistry>> {
+    pub fn get_agent_registry_by_id(&mut self, id: &str) -> Result<Option<AgentRegistry>> {
         let result = agentRegistry
             .filter(schema::agentRegistry::registry_id.eq(id))
             .first::<AgentRegistry>(&mut self.conn)
@@ -131,7 +136,7 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn get_local_usn(&mut self) -> anyhow::Result<i32> {
+    pub fn get_local_usn(&mut self) -> Result<i32> {
         let result = agentRegistry
             .filter(schema::agentRegistry::registry_id.eq("lastUpdateCount"))
             .select(schema::agentRegistry::int_1)
@@ -144,7 +149,7 @@ impl MasterDb {
         }
     }
 
-    // fn set_local_usn(&mut self, usn: i32) -> anyhow::Result<usize> {
+    // fn set_local_usn(&mut self, usn: i32) -> Result<usize> {
     //     let result = diesel::update(
     //         agentRegistry.filter(schema::agentRegistry::registry_id.eq("lastUpdateCount")),
     //     )
@@ -153,7 +158,7 @@ impl MasterDb {
     //     Ok(result)
     // }
 
-    fn increment_local_usn(&mut self, usn: i32) -> anyhow::Result<i32> {
+    fn increment_local_usn(&mut self, usn: i32) -> Result<i32> {
         let result = diesel::update(
             agentRegistry.filter(schema::agentRegistry::registry_id.eq("lastUpdateCount")),
         )
@@ -166,7 +171,7 @@ impl MasterDb {
 
     // -- CloudAgentRegistry -----------------------------------------------------------------------
 
-    pub fn get_cloud_agent_registry(&mut self) -> anyhow::Result<Vec<CloudAgentRegistry>> {
+    pub fn get_cloud_agent_registry(&mut self) -> Result<Vec<CloudAgentRegistry>> {
         let results = cloudAgentRegistry.load::<CloudAgentRegistry>(&mut self.conn)?;
         Ok(results)
     }
@@ -174,7 +179,7 @@ impl MasterDb {
     pub fn get_cloud_agent_registry_by_id(
         &mut self,
         id: &str,
-    ) -> anyhow::Result<Option<CloudAgentRegistry>> {
+    ) -> Result<Option<CloudAgentRegistry>> {
         let result = cloudAgentRegistry
             .filter(schema::cloudAgentRegistry::ID.eq(id))
             .first::<CloudAgentRegistry>(&mut self.conn)
@@ -184,7 +189,7 @@ impl MasterDb {
 
     // -- ContentActiveCensor ----------------------------------------------------------------------
 
-    pub fn get_content_active_censor(&mut self) -> anyhow::Result<Vec<ContentActiveCensor>> {
+    pub fn get_content_active_censor(&mut self) -> Result<Vec<ContentActiveCensor>> {
         let results = contentActiveCensor.load::<ContentActiveCensor>(&mut self.conn)?;
         Ok(results)
     }
@@ -192,7 +197,7 @@ impl MasterDb {
     pub fn get_content_active_censor_by_id(
         &mut self,
         id: &str,
-    ) -> anyhow::Result<Option<ContentActiveCensor>> {
+    ) -> Result<Option<ContentActiveCensor>> {
         let result = contentActiveCensor
             .filter(schema::contentActiveCensor::ID.eq(id))
             .first::<ContentActiveCensor>(&mut self.conn)
@@ -202,12 +207,12 @@ impl MasterDb {
 
     // -- ContentCue -------------------------------------------------------------------------------
 
-    pub fn get_content_cue(&mut self) -> anyhow::Result<Vec<ContentCue>> {
+    pub fn get_content_cue(&mut self) -> Result<Vec<ContentCue>> {
         let results = contentCue.load::<ContentCue>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_content_cue_by_id(&mut self, id: &str) -> anyhow::Result<Option<ContentCue>> {
+    pub fn get_content_cue_by_id(&mut self, id: &str) -> Result<Option<ContentCue>> {
         let result = contentCue
             .filter(schema::contentCue::ID.eq(id))
             .first::<ContentCue>(&mut self.conn)
@@ -217,12 +222,12 @@ impl MasterDb {
 
     // -- ContentFile ------------------------------------------------------------------------------
 
-    pub fn get_content_file(&mut self) -> anyhow::Result<Vec<ContentFile>> {
+    pub fn get_content_file(&mut self) -> Result<Vec<ContentFile>> {
         let results = contentFile.load::<ContentFile>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_content_file_by_id(&mut self, id: &str) -> anyhow::Result<Option<ContentFile>> {
+    pub fn get_content_file_by_id(&mut self, id: &str) -> Result<Option<ContentFile>> {
         let result = contentFile
             .filter(schema::contentFile::ID.eq(id))
             .first::<ContentFile>(&mut self.conn)
@@ -232,15 +237,12 @@ impl MasterDb {
 
     // -- ActiveCensor -----------------------------------------------------------------------------
 
-    pub fn get_active_censor(&mut self) -> anyhow::Result<Vec<DjmdActiveCensor>> {
+    pub fn get_active_censor(&mut self) -> Result<Vec<DjmdActiveCensor>> {
         let results = djmdActiveCensor.load::<DjmdActiveCensor>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_active_censor_by_id(
-        &mut self,
-        id: &str,
-    ) -> anyhow::Result<Option<DjmdActiveCensor>> {
+    pub fn get_active_censor_by_id(&mut self, id: &str) -> Result<Option<DjmdActiveCensor>> {
         let result = djmdActiveCensor
             .filter(schema::djmdActiveCensor::ID.eq(id))
             .first::<DjmdActiveCensor>(&mut self.conn)
@@ -250,12 +252,12 @@ impl MasterDb {
 
     // -- Album ------------------------------------------------------------------------------------
 
-    pub fn get_album(&mut self) -> anyhow::Result<Vec<DjmdAlbum>> {
+    pub fn get_album(&mut self) -> Result<Vec<DjmdAlbum>> {
         let results: Vec<DjmdAlbum> = djmdAlbum.load(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_album_by_id(&mut self, id: &str) -> anyhow::Result<Option<DjmdAlbum>> {
+    pub fn get_album_by_id(&mut self, id: &str) -> Result<Option<DjmdAlbum>> {
         let result: Option<DjmdAlbum> = djmdAlbum
             .filter(schema::djmdAlbum::ID.eq(id))
             .first(&mut self.conn)
@@ -263,7 +265,7 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn get_album_by_name(&mut self, name: &str) -> anyhow::Result<Option<DjmdAlbum>> {
+    pub fn get_album_by_name(&mut self, name: &str) -> Result<Option<DjmdAlbum>> {
         let results: Vec<DjmdAlbum> = djmdAlbum
             .filter(schema::djmdAlbum::Name.eq(name))
             .load(&mut self.conn)?;
@@ -279,13 +281,13 @@ impl MasterDb {
         }
     }
 
-    fn album_exists(&mut self, id: &String) -> anyhow::Result<bool> {
+    fn album_exists(&mut self, id: &String) -> Result<bool> {
         let id_exists: bool = select(exists(djmdAlbum.filter(schema::djmdAlbum::ID.eq(id))))
             .get_result(&mut self.conn)?;
         Ok(id_exists)
     }
 
-    fn generate_album_id(&mut self) -> anyhow::Result<String> {
+    fn generate_album_id(&mut self) -> Result<String> {
         let generator = RandomIdGenerator::new(true);
         let mut id: String = String::new();
         for id_result in generator {
@@ -306,7 +308,13 @@ impl MasterDb {
         artist_id: Option<String>,
         image_path: Option<String>,
         compilation: Option<i32>,
-    ) -> anyhow::Result<DjmdAlbum> {
+    ) -> Result<DjmdAlbum> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         // Generate ID/UUID
         let id: String = self.generate_album_id()?;
         let uuid: String = Uuid::new_v4().to_string();
@@ -325,7 +333,13 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn update_album(&mut self, item: &mut DjmdAlbum) -> anyhow::Result<DjmdAlbum> {
+    pub fn update_album(&mut self, item: &mut DjmdAlbum) -> Result<DjmdAlbum> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         // Count differences
         let existing: DjmdAlbum = self.get_album_by_id(&item.ID)?.unwrap();
         let mut n: i32 = 0;
@@ -361,7 +375,13 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn delete_album(&mut self, id: &str) -> anyhow::Result<usize> {
+    pub fn delete_album(&mut self, id: &str) -> Result<usize> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         let result = diesel::delete(djmdAlbum.filter(schema::djmdAlbum::ID.eq(id)))
             .execute(&mut self.conn)?;
 
@@ -376,12 +396,12 @@ impl MasterDb {
 
     // -- Artist -----------------------------------------------------------------------------------
 
-    pub fn get_artist(&mut self) -> anyhow::Result<Vec<DjmdArtist>> {
+    pub fn get_artist(&mut self) -> Result<Vec<DjmdArtist>> {
         let results: Vec<DjmdArtist> = djmdArtist.load(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_artist_by_id(&mut self, id: &str) -> anyhow::Result<Option<DjmdArtist>> {
+    pub fn get_artist_by_id(&mut self, id: &str) -> Result<Option<DjmdArtist>> {
         let result: Option<DjmdArtist> = djmdArtist
             .filter(schema::djmdArtist::ID.eq(id))
             .first(&mut self.conn)
@@ -389,7 +409,7 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn get_artist_by_name(&mut self, name: &str) -> anyhow::Result<Option<DjmdArtist>> {
+    pub fn get_artist_by_name(&mut self, name: &str) -> Result<Option<DjmdArtist>> {
         let results: Vec<DjmdArtist> = djmdArtist
             .filter(schema::djmdArtist::Name.eq(name))
             .load(&mut self.conn)?;
@@ -405,13 +425,13 @@ impl MasterDb {
         }
     }
 
-    fn artist_exists(&mut self, id: &String) -> anyhow::Result<bool> {
+    fn artist_exists(&mut self, id: &String) -> Result<bool> {
         let id_exists: bool = select(exists(djmdArtist.filter(schema::djmdArtist::ID.eq(id))))
             .get_result(&mut self.conn)?;
         Ok(id_exists)
     }
 
-    fn generate_artist_id(&mut self) -> anyhow::Result<String> {
+    fn generate_artist_id(&mut self) -> Result<String> {
         let generator = RandomIdGenerator::new(true);
         let mut id: String = String::new();
         for id_result in generator {
@@ -426,7 +446,13 @@ impl MasterDb {
         Ok(id)
     }
 
-    pub fn insert_artist(&mut self, name: String) -> anyhow::Result<DjmdArtist> {
+    pub fn insert_artist(&mut self, name: String) -> Result<DjmdArtist> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         // Generate ID/UUID
         let id: String = self.generate_artist_id()?;
         let uuid: String = Uuid::new_v4().to_string();
@@ -444,7 +470,13 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn update_artist(&mut self, item: &mut DjmdArtist) -> anyhow::Result<DjmdArtist> {
+    pub fn update_artist(&mut self, item: &mut DjmdArtist) -> Result<DjmdArtist> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         // Count differences
         let existing: DjmdArtist = self.get_artist_by_id(&item.ID)?.unwrap();
         let mut n: i32 = 0;
@@ -471,7 +503,13 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn delete_artist(&mut self, id: &str) -> anyhow::Result<usize> {
+    pub fn delete_artist(&mut self, id: &str) -> Result<usize> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         let result: usize = diesel::delete(djmdArtist.filter(schema::djmdArtist::ID.eq(id)))
             .execute(&mut self.conn)?;
         self.increment_local_usn(1)?;
@@ -494,14 +532,14 @@ impl MasterDb {
 
     // -- Category ---------------------------------------------------------------------------------
 
-    pub fn get_category(&mut self) -> anyhow::Result<Vec<DjmdCategory>> {
+    pub fn get_category(&mut self) -> Result<Vec<DjmdCategory>> {
         let results = djmdCategory
             .order_by(schema::djmdCategory::Seq)
             .load::<DjmdCategory>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_category_by_id(&mut self, id: &str) -> anyhow::Result<Option<DjmdCategory>> {
+    pub fn get_category_by_id(&mut self, id: &str) -> Result<Option<DjmdCategory>> {
         let result = djmdCategory
             .filter(schema::djmdCategory::ID.eq(id))
             .first::<DjmdCategory>(&mut self.conn)
@@ -511,14 +549,14 @@ impl MasterDb {
 
     // -- Color ------------------------------------------------------------------------------------
 
-    pub fn get_color(&mut self) -> anyhow::Result<Vec<DjmdColor>> {
+    pub fn get_color(&mut self) -> Result<Vec<DjmdColor>> {
         let results = djmdColor
             .order_by(schema::djmdColor::SortKey)
             .load::<DjmdColor>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_color_by_id(&mut self, id: &str) -> anyhow::Result<Option<DjmdColor>> {
+    pub fn get_color_by_id(&mut self, id: &str) -> Result<Option<DjmdColor>> {
         let result = djmdColor
             .filter(schema::djmdColor::ID.eq(id))
             .first::<DjmdColor>(&mut self.conn)
@@ -528,12 +566,12 @@ impl MasterDb {
 
     // -- Content ----------------------------------------------------------------------------------
 
-    pub fn get_content(&mut self) -> anyhow::Result<Vec<DjmdContent>> {
+    pub fn get_content(&mut self) -> Result<Vec<DjmdContent>> {
         let results = djmdContent.load::<DjmdContent>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_content_by_id(&mut self, id: &str) -> anyhow::Result<Option<DjmdContent>> {
+    pub fn get_content_by_id(&mut self, id: &str) -> Result<Option<DjmdContent>> {
         let result = djmdContent
             .filter(schema::djmdContent::ID.eq(id))
             .first::<DjmdContent>(&mut self.conn)
@@ -541,7 +579,7 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn get_contents_by_ids(&mut self, ids: Vec<&str>) -> anyhow::Result<Vec<DjmdContent>> {
+    pub fn get_contents_by_ids(&mut self, ids: Vec<&str>) -> Result<Vec<DjmdContent>> {
         let mut result: Vec<DjmdContent> = Vec::new();
         for id in ids {
             let content = djmdContent
@@ -556,7 +594,7 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn get_content_by_path(&mut self, path: &str) -> anyhow::Result<Option<DjmdContent>> {
+    pub fn get_content_by_path(&mut self, path: &str) -> Result<Option<DjmdContent>> {
         let result = djmdContent
             .filter(schema::djmdContent::FolderPath.eq(path))
             .first::<DjmdContent>(&mut self.conn)
@@ -564,25 +602,37 @@ impl MasterDb {
         Ok(result)
     }
 
-    fn content_exists(&mut self, id: &String) -> anyhow::Result<bool> {
+    fn content_exists(&mut self, id: &String) -> Result<bool> {
         let id_exists: bool = select(exists(djmdContent.filter(schema::djmdContent::ID.eq(id))))
             .get_result(&mut self.conn)?;
         Ok(id_exists)
     }
 
-    pub fn update_content(&mut self, item: &DjmdContent) -> anyhow::Result<usize> {
+    pub fn update_content(&mut self, item: &DjmdContent) -> Result<usize> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         let result = diesel::update(item).set(item).execute(&mut self.conn)?;
         Ok(result)
     }
 
-    pub fn delete_content(&mut self, id: &str) -> anyhow::Result<usize> {
+    pub fn delete_content(&mut self, id: &str) -> Result<usize> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         let result = diesel::delete(djmdContent.filter(schema::djmdContent::ID.eq(id)))
             .execute(&mut self.conn)?;
         Ok(result)
     }
 
     /// Returns the path to the corresponding ANLZxxxx.DAT file
-    fn get_content_analysis_data_path(&mut self, id: &str) -> anyhow::Result<PathBuf> {
+    fn get_content_analysis_data_path(&mut self, id: &str) -> Result<PathBuf> {
         if self.share_dir.is_none() {
             return Err(anyhow::anyhow!("Share dir not set!"));
         }
@@ -606,14 +656,14 @@ impl MasterDb {
     }
 
     /// Returns the path to the directory containing the ANLZxxxx.xxx files
-    pub fn get_content_anlz_dir(&mut self, id: &str) -> anyhow::Result<Option<PathBuf>> {
+    pub fn get_content_anlz_dir(&mut self, id: &str) -> Result<Option<PathBuf>> {
         let anlz_file = self.get_content_analysis_data_path(id)?;
         let root = anlz_file.parent().unwrap();
         return Ok(Some(root.to_path_buf()));
     }
 
     /// Returns a struct containing the  ANLZxxxx.DAT, ANLZxxxx.EXT, and ANLZxxxx.EX2 paths
-    pub fn get_content_anlz_paths(&mut self, id: &str) -> anyhow::Result<Option<AnlzPaths>> {
+    pub fn get_content_anlz_paths(&mut self, id: &str) -> Result<Option<AnlzPaths>> {
         let root = self.get_content_anlz_dir(id)?;
         if root.is_none() {
             return Ok(None);
@@ -622,7 +672,7 @@ impl MasterDb {
     }
 
     /// Returns a struct containing the loaded ANLZxxxx.DAT, ANLZxxxx.EXT, and ANLZxxxx.EX2 files
-    pub fn get_content_anlz_files(&mut self, id: &str) -> anyhow::Result<Option<AnlzFiles>> {
+    pub fn get_content_anlz_files(&mut self, id: &str) -> Result<Option<AnlzFiles>> {
         let paths = self.get_content_anlz_paths(id)?;
         if paths.is_none() {
             return Ok(None);
@@ -644,12 +694,12 @@ impl MasterDb {
 
     // -- Cue --------------------------------------------------------------------------------------
 
-    pub fn get_cue(&mut self) -> anyhow::Result<Vec<DjmdCue>> {
+    pub fn get_cue(&mut self) -> Result<Vec<DjmdCue>> {
         let results = djmdCue.load::<DjmdCue>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_cue_by_id(&mut self, id: &str) -> anyhow::Result<Option<DjmdCue>> {
+    pub fn get_cue_by_id(&mut self, id: &str) -> Result<Option<DjmdCue>> {
         let result = djmdCue
             .filter(schema::djmdCue::ID.eq(id))
             .first::<DjmdCue>(&mut self.conn)
@@ -659,12 +709,12 @@ impl MasterDb {
 
     // -- Device -----------------------------------------------------------------------------------
 
-    pub fn get_device(&mut self) -> anyhow::Result<Vec<DjmdDevice>> {
+    pub fn get_device(&mut self) -> Result<Vec<DjmdDevice>> {
         let results = djmdDevice.load::<DjmdDevice>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_device_by_id(&mut self, id: &str) -> anyhow::Result<Option<DjmdDevice>> {
+    pub fn get_device_by_id(&mut self, id: &str) -> Result<Option<DjmdDevice>> {
         let result = djmdDevice
             .filter(schema::djmdDevice::ID.eq(id))
             .first::<DjmdDevice>(&mut self.conn)
@@ -674,12 +724,12 @@ impl MasterDb {
 
     // -- Genre ------------------------------------------------------------------------------------
 
-    pub fn get_genre(&mut self) -> anyhow::Result<Vec<DjmdGenre>> {
+    pub fn get_genre(&mut self) -> Result<Vec<DjmdGenre>> {
         let results = djmdGenre.load::<DjmdGenre>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_genre_by_id(&mut self, id: &str) -> anyhow::Result<Option<DjmdGenre>> {
+    pub fn get_genre_by_id(&mut self, id: &str) -> Result<Option<DjmdGenre>> {
         let result = djmdGenre
             .filter(schema::djmdGenre::ID.eq(id))
             .first::<DjmdGenre>(&mut self.conn)
@@ -687,7 +737,7 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn get_genre_by_name(&mut self, name: &str) -> anyhow::Result<Option<DjmdGenre>> {
+    pub fn get_genre_by_name(&mut self, name: &str) -> Result<Option<DjmdGenre>> {
         let results: Vec<DjmdGenre> = djmdGenre
             .filter(schema::djmdGenre::Name.eq(name))
             .load(&mut self.conn)?;
@@ -703,13 +753,13 @@ impl MasterDb {
         }
     }
 
-    fn genre_exists(&mut self, id: &String) -> anyhow::Result<bool> {
+    fn genre_exists(&mut self, id: &String) -> Result<bool> {
         let id_exists: bool = select(exists(djmdGenre.filter(schema::djmdGenre::ID.eq(id))))
             .get_result(&mut self.conn)?;
         Ok(id_exists)
     }
 
-    fn generate_genre_id(&mut self) -> anyhow::Result<String> {
+    fn generate_genre_id(&mut self) -> Result<String> {
         let generator = RandomIdGenerator::new(true);
         let mut id: String = String::new();
         for id_result in generator {
@@ -724,7 +774,13 @@ impl MasterDb {
         Ok(id)
     }
 
-    pub fn insert_genre(&mut self, name: String) -> anyhow::Result<DjmdGenre> {
+    pub fn insert_genre(&mut self, name: String) -> Result<DjmdGenre> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         // Generate ID/UUID
         let id: String = self.generate_genre_id()?;
         let uuid: String = Uuid::new_v4().to_string();
@@ -742,7 +798,13 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn update_genre(&mut self, item: &mut DjmdGenre) -> anyhow::Result<DjmdGenre> {
+    pub fn update_genre(&mut self, item: &mut DjmdGenre) -> Result<DjmdGenre> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         // Count differences
         let existing: DjmdGenre = self.get_genre_by_id(&item.ID)?.unwrap();
         let mut n: i32 = 0;
@@ -766,7 +828,13 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn delete_genre(&mut self, id: &str) -> anyhow::Result<usize> {
+    pub fn delete_genre(&mut self, id: &str) -> Result<usize> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         let result = diesel::delete(djmdGenre.filter(schema::djmdGenre::ID.eq(id)))
             .execute(&mut self.conn)?;
         self.increment_local_usn(1)?;
@@ -781,14 +849,14 @@ impl MasterDb {
 
     // -- History ----------------------------------------------------------------------------------
 
-    pub fn get_history(&mut self) -> anyhow::Result<Vec<DjmdHistory>> {
+    pub fn get_history(&mut self) -> Result<Vec<DjmdHistory>> {
         let results = djmdHistory
             .order_by(schema::djmdHistory::Seq)
             .load::<DjmdHistory>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_history_by_id(&mut self, id: &str) -> anyhow::Result<Option<DjmdHistory>> {
+    pub fn get_history_by_id(&mut self, id: &str) -> Result<Option<DjmdHistory>> {
         let result = djmdHistory
             .filter(schema::djmdHistory::ID.eq(id))
             .first::<DjmdHistory>(&mut self.conn)
@@ -796,7 +864,7 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn get_history_songs(&mut self, id: &str) -> anyhow::Result<Vec<DjmdSongHistory>> {
+    pub fn get_history_songs(&mut self, id: &str) -> Result<Vec<DjmdSongHistory>> {
         let results = schema::djmdSongHistory::table
             .filter(schema::djmdSongHistory::HistoryID.eq(id))
             .order_by(schema::djmdSongHistory::TrackNo)
@@ -804,7 +872,7 @@ impl MasterDb {
         Ok(results)
     }
 
-    pub fn get_history_contents(&mut self, id: &str) -> anyhow::Result<Vec<DjmdContent>> {
+    pub fn get_history_contents(&mut self, id: &str) -> Result<Vec<DjmdContent>> {
         let songs = self.get_history_songs(id)?;
         let ids: Vec<&str> = songs
             .iter()
@@ -816,15 +884,12 @@ impl MasterDb {
 
     // -- HotCueBanklist ---------------------------------------------------------------------------
 
-    pub fn get_hot_cue_banklist(&mut self) -> anyhow::Result<Vec<DjmdHotCueBanklist>> {
+    pub fn get_hot_cue_banklist(&mut self) -> Result<Vec<DjmdHotCueBanklist>> {
         let results = djmdHotCueBanklist.load::<DjmdHotCueBanklist>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_hot_cue_banklist_by_id(
-        &mut self,
-        id: &str,
-    ) -> anyhow::Result<Option<DjmdHotCueBanklist>> {
+    pub fn get_hot_cue_banklist_by_id(&mut self, id: &str) -> Result<Option<DjmdHotCueBanklist>> {
         let result = djmdHotCueBanklist
             .filter(schema::djmdHotCueBanklist::ID.eq(id))
             .first::<DjmdHotCueBanklist>(&mut self.conn)
@@ -835,7 +900,7 @@ impl MasterDb {
     pub fn get_hot_cue_banklist_children(
         &mut self,
         parent_id: &str,
-    ) -> anyhow::Result<Vec<DjmdHotCueBanklist>> {
+    ) -> Result<Vec<DjmdHotCueBanklist>> {
         let results = djmdHotCueBanklist
             .filter(schema::djmdHotCueBanklist::ParentID.eq(parent_id))
             .order_by(schema::djmdHotCueBanklist::Seq)
@@ -843,10 +908,7 @@ impl MasterDb {
         Ok(results)
     }
 
-    pub fn get_hot_cue_banklist_songs(
-        &mut self,
-        id: &str,
-    ) -> anyhow::Result<Vec<DjmdSongHotCueBanklist>> {
+    pub fn get_hot_cue_banklist_songs(&mut self, id: &str) -> Result<Vec<DjmdSongHotCueBanklist>> {
         let results = schema::djmdSongHotCueBanklist::table
             .filter(schema::djmdSongHotCueBanklist::CueID.eq(id))
             .order_by(schema::djmdSongHotCueBanklist::TrackNo)
@@ -854,7 +916,7 @@ impl MasterDb {
         Ok(results)
     }
 
-    pub fn get_hot_cue_banklist_contents(&mut self, id: &str) -> anyhow::Result<Vec<DjmdContent>> {
+    pub fn get_hot_cue_banklist_contents(&mut self, id: &str) -> Result<Vec<DjmdContent>> {
         let songs = self.get_hot_cue_banklist_songs(id)?;
         let ids: Vec<&str> = songs
             .iter()
@@ -864,10 +926,7 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn get_hot_cue_banklist_cues(
-        &mut self,
-        id: &str,
-    ) -> anyhow::Result<Vec<HotCueBanklistCue>> {
+    pub fn get_hot_cue_banklist_cues(&mut self, id: &str) -> Result<Vec<HotCueBanklistCue>> {
         let results = schema::hotCueBanklistCue::table
             .filter(schema::hotCueBanklistCue::HotCueBanklistID.eq(id))
             .load::<HotCueBanklistCue>(&mut self.conn)?;
@@ -876,14 +935,14 @@ impl MasterDb {
 
     // -- Key --------------------------------------------------------------------------------------
 
-    pub fn get_key(&mut self) -> anyhow::Result<Vec<DjmdKey>> {
+    pub fn get_key(&mut self) -> Result<Vec<DjmdKey>> {
         let results = djmdKey
             .order_by(schema::djmdKey::Seq)
             .load::<DjmdKey>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_key_by_id(&mut self, id: &str) -> anyhow::Result<Option<DjmdKey>> {
+    pub fn get_key_by_id(&mut self, id: &str) -> Result<Option<DjmdKey>> {
         let result = djmdKey
             .filter(schema::djmdKey::ID.eq(id))
             .first::<DjmdKey>(&mut self.conn)
@@ -891,7 +950,7 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn get_key_by_name(&mut self, name: &str) -> anyhow::Result<Option<DjmdKey>> {
+    pub fn get_key_by_name(&mut self, name: &str) -> Result<Option<DjmdKey>> {
         let results: Vec<DjmdKey> = djmdKey
             .filter(schema::djmdKey::ScaleName.eq(name))
             .load(&mut self.conn)?;
@@ -907,13 +966,13 @@ impl MasterDb {
         }
     }
 
-    fn key_exists(&mut self, id: &String) -> anyhow::Result<bool> {
+    fn key_exists(&mut self, id: &String) -> Result<bool> {
         let id_exists: bool = select(exists(djmdKey.filter(schema::djmdKey::ID.eq(id))))
             .get_result(&mut self.conn)?;
         Ok(id_exists)
     }
 
-    fn generate_key_id(&mut self) -> anyhow::Result<String> {
+    fn generate_key_id(&mut self) -> Result<String> {
         let generator = RandomIdGenerator::new(true);
         let mut id: String = String::new();
         for id_result in generator {
@@ -928,7 +987,13 @@ impl MasterDb {
         Ok(id)
     }
 
-    pub fn insert_key(&mut self, name: String) -> anyhow::Result<DjmdKey> {
+    pub fn insert_key(&mut self, name: String) -> Result<DjmdKey> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         // Generate ID/UUID
         let id: String = self.generate_key_id()?;
         let uuid: String = Uuid::new_v4().to_string();
@@ -950,7 +1015,13 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn update_key(&mut self, item: &mut DjmdKey) -> anyhow::Result<DjmdKey> {
+    pub fn update_key(&mut self, item: &mut DjmdKey) -> Result<DjmdKey> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         // Count differences
         let existing: DjmdKey = self.get_key_by_id(&item.ID)?.unwrap();
         let mut n: i32 = 0;
@@ -977,7 +1048,13 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn delete_key(&mut self, id: &str) -> anyhow::Result<usize> {
+    pub fn delete_key(&mut self, id: &str) -> Result<usize> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         let result =
             diesel::delete(djmdKey.filter(schema::djmdKey::ID.eq(id))).execute(&mut self.conn)?;
         self.increment_local_usn(1)?;
@@ -992,12 +1069,12 @@ impl MasterDb {
 
     // -- Label ------------------------------------------------------------------------------------
 
-    pub fn get_label(&mut self) -> anyhow::Result<Vec<DjmdLabel>> {
+    pub fn get_label(&mut self) -> Result<Vec<DjmdLabel>> {
         let results = djmdLabel.load::<DjmdLabel>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_label_by_id(&mut self, id: &str) -> anyhow::Result<Option<DjmdLabel>> {
+    pub fn get_label_by_id(&mut self, id: &str) -> Result<Option<DjmdLabel>> {
         let result = djmdLabel
             .filter(schema::djmdLabel::ID.eq(id))
             .first::<DjmdLabel>(&mut self.conn)
@@ -1005,7 +1082,7 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn get_label_by_name(&mut self, name: &str) -> anyhow::Result<Option<DjmdLabel>> {
+    pub fn get_label_by_name(&mut self, name: &str) -> Result<Option<DjmdLabel>> {
         let results: Vec<DjmdLabel> = djmdLabel
             .filter(schema::djmdLabel::Name.eq(name))
             .load(&mut self.conn)?;
@@ -1021,13 +1098,13 @@ impl MasterDb {
         }
     }
 
-    fn label_exists(&mut self, id: &String) -> anyhow::Result<bool> {
+    fn label_exists(&mut self, id: &String) -> Result<bool> {
         let id_exists: bool = select(exists(djmdLabel.filter(schema::djmdLabel::ID.eq(id))))
             .get_result(&mut self.conn)?;
         Ok(id_exists)
     }
 
-    fn generate_label_id(&mut self) -> anyhow::Result<String> {
+    fn generate_label_id(&mut self) -> Result<String> {
         let generator = RandomIdGenerator::new(true);
         let mut id: String = String::new();
         for id_result in generator {
@@ -1042,7 +1119,13 @@ impl MasterDb {
         Ok(id)
     }
 
-    pub fn insert_label(&mut self, name: String) -> anyhow::Result<DjmdLabel> {
+    pub fn insert_label(&mut self, name: String) -> Result<DjmdLabel> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         // Generate ID/UUID
         let id: String = self.generate_label_id()?;
         let uuid: String = Uuid::new_v4().to_string();
@@ -1060,7 +1143,13 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn update_label(&mut self, item: &mut DjmdLabel) -> anyhow::Result<DjmdLabel> {
+    pub fn update_label(&mut self, item: &mut DjmdLabel) -> Result<DjmdLabel> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         // Count differences
         let existing: DjmdLabel = self.get_label_by_id(&item.ID)?.unwrap();
         let mut n: i32 = 0;
@@ -1084,7 +1173,13 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn delete_label(&mut self, id: &str) -> anyhow::Result<usize> {
+    pub fn delete_label(&mut self, id: &str) -> Result<usize> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         let result = diesel::delete(djmdLabel.filter(schema::djmdLabel::ID.eq(id)))
             .execute(&mut self.conn)?;
         self.increment_local_usn(1)?;
@@ -1099,12 +1194,12 @@ impl MasterDb {
 
     // -- MenuItems --------------------------------------------------------------------------------
 
-    pub fn get_menu_item(&mut self) -> anyhow::Result<Vec<DjmdMenuItems>> {
+    pub fn get_menu_item(&mut self) -> Result<Vec<DjmdMenuItems>> {
         let results = djmdMenuItems.load::<DjmdMenuItems>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_menu_item_by_id(&mut self, id: &str) -> anyhow::Result<Option<DjmdMenuItems>> {
+    pub fn get_menu_item_by_id(&mut self, id: &str) -> Result<Option<DjmdMenuItems>> {
         let result = djmdMenuItems
             .filter(schema::djmdMenuItems::ID.eq(id))
             .first::<DjmdMenuItems>(&mut self.conn)
@@ -1114,12 +1209,12 @@ impl MasterDb {
 
     // -- MixerParam -------------------------------------------------------------------------------
 
-    pub fn get_mixer_param(&mut self) -> anyhow::Result<Vec<DjmdMixerParam>> {
+    pub fn get_mixer_param(&mut self) -> Result<Vec<DjmdMixerParam>> {
         let results = djmdMixerParam.load::<DjmdMixerParam>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_mixer_param_by_id(&mut self, id: &str) -> anyhow::Result<Option<DjmdMixerParam>> {
+    pub fn get_mixer_param_by_id(&mut self, id: &str) -> Result<Option<DjmdMixerParam>> {
         let result = djmdMixerParam
             .filter(schema::djmdMixerParam::ID.eq(id))
             .first::<DjmdMixerParam>(&mut self.conn)
@@ -1129,12 +1224,12 @@ impl MasterDb {
 
     // -- MyTag ------------------------------------------------------------------------------------
 
-    pub fn get_my_tag(&mut self) -> anyhow::Result<Vec<DjmdMyTag>> {
+    pub fn get_my_tag(&mut self) -> Result<Vec<DjmdMyTag>> {
         let results = djmdMyTag.load::<DjmdMyTag>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_my_tag_children(&mut self, parent_id: &str) -> anyhow::Result<Vec<DjmdMyTag>> {
+    pub fn get_my_tag_children(&mut self, parent_id: &str) -> Result<Vec<DjmdMyTag>> {
         let results = djmdMyTag
             .filter(schema::djmdMyTag::ParentID.eq(parent_id))
             .order_by(schema::djmdMyTag::Seq)
@@ -1142,7 +1237,7 @@ impl MasterDb {
         Ok(results)
     }
 
-    pub fn get_my_tag_by_id(&mut self, id: &str) -> anyhow::Result<Option<DjmdMyTag>> {
+    pub fn get_my_tag_by_id(&mut self, id: &str) -> Result<Option<DjmdMyTag>> {
         let result = djmdMyTag
             .filter(schema::djmdMyTag::ID.eq(id))
             .first::<DjmdMyTag>(&mut self.conn)
@@ -1150,7 +1245,7 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn get_my_tag_songs(&mut self, id: &str) -> anyhow::Result<Vec<DjmdSongMyTag>> {
+    pub fn get_my_tag_songs(&mut self, id: &str) -> Result<Vec<DjmdSongMyTag>> {
         let results = schema::djmdSongMyTag::table
             .filter(schema::djmdSongMyTag::MyTagID.eq(id))
             .order_by(schema::djmdSongMyTag::TrackNo)
@@ -1158,7 +1253,7 @@ impl MasterDb {
         Ok(results)
     }
 
-    pub fn get_my_tag_contents(&mut self, id: &str) -> anyhow::Result<Vec<DjmdContent>> {
+    pub fn get_my_tag_contents(&mut self, id: &str) -> Result<Vec<DjmdContent>> {
         let songs = self.get_my_tag_songs(id)?;
         let ids: Vec<&str> = songs
             .iter()
@@ -1170,13 +1265,13 @@ impl MasterDb {
 
     // -- Playlist ---------------------------------------------------------------------------------
 
-    pub fn get_playlist(&mut self) -> anyhow::Result<Vec<DjmdPlaylist>> {
+    pub fn get_playlist(&mut self) -> Result<Vec<DjmdPlaylist>> {
         let results = djmdPlaylist.load::<DjmdPlaylist>(&mut self.conn)?;
         Ok(results)
     }
 
     /// Return a sorted tree of playlists
-    pub fn get_playlist_tree(&mut self) -> anyhow::Result<Vec<Rc<RefCell<PlaylistTreeItem>>>> {
+    pub fn get_playlist_tree(&mut self) -> Result<Vec<Rc<RefCell<PlaylistTreeItem>>>> {
         let playlists: Vec<PlaylistTreeItem> = self
             .get_playlist()?
             .iter()
@@ -1209,7 +1304,7 @@ impl MasterDb {
         Ok(roots)
     }
 
-    pub fn get_playlist_children(&mut self, parent_id: &str) -> anyhow::Result<Vec<DjmdPlaylist>> {
+    pub fn get_playlist_children(&mut self, parent_id: &str) -> Result<Vec<DjmdPlaylist>> {
         let results = djmdPlaylist
             .filter(schema::djmdPlaylist::ParentID.eq(parent_id))
             .order_by(schema::djmdPlaylist::Seq)
@@ -1217,7 +1312,7 @@ impl MasterDb {
         Ok(results)
     }
 
-    pub fn get_playlist_by_id(&mut self, id: &str) -> anyhow::Result<Option<DjmdPlaylist>> {
+    pub fn get_playlist_by_id(&mut self, id: &str) -> Result<Option<DjmdPlaylist>> {
         let result = djmdPlaylist
             .filter(schema::djmdPlaylist::ID.eq(id))
             .first::<DjmdPlaylist>(&mut self.conn)
@@ -1225,10 +1320,7 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn get_playlist_by_path(
-        &mut self,
-        path: Vec<&str>,
-    ) -> anyhow::Result<Option<DjmdPlaylist>> {
+    pub fn get_playlist_by_path(&mut self, path: Vec<&str>) -> Result<Option<DjmdPlaylist>> {
         let mut parent_id: String = "root".to_string();
         let mut playlist: Option<DjmdPlaylist> = None;
         for name in path {
@@ -1247,7 +1339,7 @@ impl MasterDb {
         Ok(playlist)
     }
 
-    pub fn get_playlist_songs(&mut self, id: &str) -> anyhow::Result<Vec<DjmdSongPlaylist>> {
+    pub fn get_playlist_songs(&mut self, id: &str) -> Result<Vec<DjmdSongPlaylist>> {
         let results = schema::djmdSongPlaylist::table
             .filter(schema::djmdSongPlaylist::PlaylistID.eq(id))
             .order_by(schema::djmdSongPlaylist::TrackNo)
@@ -1255,7 +1347,7 @@ impl MasterDb {
         Ok(results)
     }
 
-    pub fn get_playlist_contents(&mut self, id: &str) -> anyhow::Result<Vec<DjmdContent>> {
+    pub fn get_playlist_contents(&mut self, id: &str) -> Result<Vec<DjmdContent>> {
         let songs = self.get_playlist_songs(id)?;
         let ids: Vec<&str> = songs
             .iter()
@@ -1265,10 +1357,7 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn get_playlist_song_by_id(
-        &mut self,
-        id: &str,
-    ) -> anyhow::Result<Option<DjmdSongPlaylist>> {
+    pub fn get_playlist_song_by_id(&mut self, id: &str) -> Result<Option<DjmdSongPlaylist>> {
         let result = djmdSongPlaylist
             .filter(schema::djmdSongPlaylist::ID.eq(id))
             .first::<DjmdSongPlaylist>(&mut self.conn)
@@ -1276,7 +1365,7 @@ impl MasterDb {
         Ok(result)
     }
 
-    fn playlist_type(&mut self, id: &String) -> anyhow::Result<PlaylistType> {
+    fn playlist_type(&mut self, id: &String) -> Result<PlaylistType> {
         if id == "root" {
             return Ok(PlaylistType::Folder);
         }
@@ -1289,13 +1378,13 @@ impl MasterDb {
         Ok(ptype)
     }
 
-    fn playlist_exists(&mut self, id: &String) -> anyhow::Result<bool> {
+    fn playlist_exists(&mut self, id: &String) -> Result<bool> {
         let id_exists: bool = select(exists(djmdPlaylist.filter(schema::djmdPlaylist::ID.eq(id))))
             .get_result(&mut self.conn)?;
         Ok(id_exists)
     }
 
-    fn playlist_song_exists(&mut self, id: &String) -> anyhow::Result<bool> {
+    fn playlist_song_exists(&mut self, id: &String) -> Result<bool> {
         let id_exists: bool = select(exists(
             djmdSongPlaylist.filter(schema::djmdSongPlaylist::ID.eq(id)),
         ))
@@ -1303,7 +1392,7 @@ impl MasterDb {
         Ok(id_exists)
     }
 
-    fn generate_playlist_id(&mut self) -> anyhow::Result<String> {
+    fn generate_playlist_id(&mut self) -> Result<String> {
         let generator = RandomIdGenerator::new(true);
         let mut id: String = String::new();
         for id_result in generator {
@@ -1318,7 +1407,7 @@ impl MasterDb {
         Ok(id)
     }
 
-    fn generate_playlist_song_id(&mut self) -> anyhow::Result<String> {
+    fn generate_playlist_song_id(&mut self) -> Result<String> {
         let generator = RandomIdGenerator::new(true);
         let mut id: String = String::new();
         for id_result in generator {
@@ -1341,7 +1430,13 @@ impl MasterDb {
         seq: Option<i32>,
         image_path: Option<String>,
         smart_list: Option<String>,
-    ) -> anyhow::Result<DjmdPlaylist> {
+    ) -> Result<DjmdPlaylist> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         // Handle defaults
         let parent_id = parent_id.unwrap_or("root".to_string());
         if self.playlist_type(&parent_id)? != PlaylistType::Folder {
@@ -1425,7 +1520,13 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn rename_playlist(&mut self, id: &String, name: String) -> anyhow::Result<DjmdPlaylist> {
+    pub fn rename_playlist(&mut self, id: &String, name: String) -> Result<DjmdPlaylist> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         let utcnow = Utc::now();
         let now: String = format_datetime(utcnow.clone());
         let usn: i32 = self.increment_local_usn(1)?;
@@ -1454,7 +1555,13 @@ impl MasterDb {
         id: &String,
         seq: Option<i32>,
         parent_id: Option<String>,
-    ) -> anyhow::Result<DjmdPlaylist> {
+    ) -> Result<DjmdPlaylist> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         // Get playlist
         let playlist: DjmdPlaylist = self.get_playlist_by_id(id)?.expect("Playlist not found");
 
@@ -1582,7 +1689,13 @@ impl MasterDb {
         Ok(playlist)
     }
 
-    pub fn delete_playlist(&mut self, id: &str) -> anyhow::Result<usize> {
+    pub fn delete_playlist(&mut self, id: &str) -> Result<usize> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         let usn = self.increment_local_usn(1)?;
         // Generate date string
         let utcnow: DateTime<Utc> = Utc::now();
@@ -1649,7 +1762,13 @@ impl MasterDb {
         playlist_id: &String,
         content_id: &String,
         seq: Option<i32>,
-    ) -> anyhow::Result<DjmdSongPlaylist> {
+    ) -> Result<DjmdSongPlaylist> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         if self.playlist_type(&playlist_id)? != PlaylistType::Playlist {
             return Err(anyhow!(
                 "Playlist with ID {} must be a Playlist!",
@@ -1722,11 +1841,13 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn move_playlist_song(
-        &mut self,
-        id: &String,
-        seq: i32,
-    ) -> anyhow::Result<DjmdSongPlaylist> {
+    pub fn move_playlist_song(&mut self, id: &String, seq: i32) -> Result<DjmdSongPlaylist> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         // Get playlistID and seq number
         let song: DjmdSongPlaylist = self.get_playlist_song_by_id(id)?.expect("Song not found");
         if song.TrackNo.unwrap() == seq {
@@ -1785,7 +1906,13 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn delete_playlist_song(&mut self, id: &str) -> anyhow::Result<usize> {
+    pub fn delete_playlist_song(&mut self, id: &str) -> Result<usize> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
         let usn = self.increment_local_usn(1)?;
         let utcnow: DateTime<Utc> = Utc::now();
         let now: String = format_datetime(utcnow);
@@ -1816,12 +1943,12 @@ impl MasterDb {
 
     // -- Property ---------------------------------------------------------------------------------
 
-    pub fn get_property(&mut self) -> anyhow::Result<Vec<DjmdProperty>> {
+    pub fn get_property(&mut self) -> Result<Vec<DjmdProperty>> {
         let results = djmdProperty.load::<DjmdProperty>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_property_by_id(&mut self, id: &str) -> anyhow::Result<Option<DjmdProperty>> {
+    pub fn get_property_by_id(&mut self, id: &str) -> Result<Option<DjmdProperty>> {
         let result = djmdProperty
             .filter(schema::djmdProperty::DBID.eq(id))
             .first::<DjmdProperty>(&mut self.conn)
@@ -1831,15 +1958,12 @@ impl MasterDb {
 
     // -- CloudProperty ----------------------------------------------------------------------------
 
-    pub fn get_cloud_property(&mut self) -> anyhow::Result<Vec<DjmdCloudProperty>> {
+    pub fn get_cloud_property(&mut self) -> Result<Vec<DjmdCloudProperty>> {
         let results = djmdCloudProperty.load::<DjmdCloudProperty>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_cloud_property_by_id(
-        &mut self,
-        id: &str,
-    ) -> anyhow::Result<Option<DjmdCloudProperty>> {
+    pub fn get_cloud_property_by_id(&mut self, id: &str) -> Result<Option<DjmdCloudProperty>> {
         let result = djmdCloudProperty
             .filter(schema::djmdCloudProperty::ID.eq(id))
             .first::<DjmdCloudProperty>(&mut self.conn)
@@ -1849,15 +1973,12 @@ impl MasterDb {
 
     // -- RecommendLike ----------------------------------------------------------------------------
 
-    pub fn get_recommend_like(&mut self) -> anyhow::Result<Vec<DjmdRecommendLike>> {
+    pub fn get_recommend_like(&mut self) -> Result<Vec<DjmdRecommendLike>> {
         let results = djmdRecommendLike.load::<DjmdRecommendLike>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_recommend_like_by_id(
-        &mut self,
-        id: &str,
-    ) -> anyhow::Result<Option<DjmdRecommendLike>> {
+    pub fn get_recommend_like_by_id(&mut self, id: &str) -> Result<Option<DjmdRecommendLike>> {
         let result = djmdRecommendLike
             .filter(schema::djmdRecommendLike::ID.eq(id))
             .first::<DjmdRecommendLike>(&mut self.conn)
@@ -1867,7 +1988,7 @@ impl MasterDb {
 
     // -- RelatedTracks ----------------------------------------------------------------------------
 
-    pub fn get_related_tracks(&mut self) -> anyhow::Result<Vec<DjmdRelatedTracks>> {
+    pub fn get_related_tracks(&mut self) -> Result<Vec<DjmdRelatedTracks>> {
         let results = djmdRelatedTracks.load::<DjmdRelatedTracks>(&mut self.conn)?;
         Ok(results)
     }
@@ -1875,7 +1996,7 @@ impl MasterDb {
     pub fn get_related_tracks_children(
         &mut self,
         parent_id: &str,
-    ) -> anyhow::Result<Vec<DjmdRelatedTracks>> {
+    ) -> Result<Vec<DjmdRelatedTracks>> {
         let results = djmdRelatedTracks
             .filter(schema::djmdRelatedTracks::ParentID.eq(parent_id))
             .order_by(schema::djmdRelatedTracks::Seq)
@@ -1883,10 +2004,7 @@ impl MasterDb {
         Ok(results)
     }
 
-    pub fn get_related_tracks_by_id(
-        &mut self,
-        id: &str,
-    ) -> anyhow::Result<Option<DjmdRelatedTracks>> {
+    pub fn get_related_tracks_by_id(&mut self, id: &str) -> Result<Option<DjmdRelatedTracks>> {
         let result = djmdRelatedTracks
             .filter(schema::djmdRelatedTracks::ID.eq(id))
             .first::<DjmdRelatedTracks>(&mut self.conn)
@@ -1894,10 +2012,7 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn get_related_tracks_songs(
-        &mut self,
-        id: &str,
-    ) -> anyhow::Result<Vec<DjmdSongRelatedTracks>> {
+    pub fn get_related_tracks_songs(&mut self, id: &str) -> Result<Vec<DjmdSongRelatedTracks>> {
         let results = schema::djmdSongRelatedTracks::table
             .filter(schema::djmdSongRelatedTracks::RelatedTracksID.eq(id))
             .order_by(schema::djmdSongRelatedTracks::TrackNo)
@@ -1905,7 +2020,7 @@ impl MasterDb {
         Ok(results)
     }
 
-    pub fn get_related_tracks_contents(&mut self, id: &str) -> anyhow::Result<Vec<DjmdContent>> {
+    pub fn get_related_tracks_contents(&mut self, id: &str) -> Result<Vec<DjmdContent>> {
         let songs = self.get_related_tracks_songs(id)?;
         let ids: Vec<&str> = songs
             .iter()
@@ -1917,12 +2032,12 @@ impl MasterDb {
 
     // -- Sampler ----------------------------------------------------------------------------------
 
-    pub fn get_sampler(&mut self) -> anyhow::Result<Vec<DjmdSampler>> {
+    pub fn get_sampler(&mut self) -> Result<Vec<DjmdSampler>> {
         let results = djmdSampler.load::<DjmdSampler>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_sampler_children(&mut self, parent_id: &str) -> anyhow::Result<Vec<DjmdSampler>> {
+    pub fn get_sampler_children(&mut self, parent_id: &str) -> Result<Vec<DjmdSampler>> {
         let results = djmdSampler
             .filter(schema::djmdSampler::ParentID.eq(parent_id))
             .order_by(schema::djmdSampler::Seq)
@@ -1930,7 +2045,7 @@ impl MasterDb {
         Ok(results)
     }
 
-    pub fn get_sampler_by_id(&mut self, id: &str) -> anyhow::Result<Option<DjmdSampler>> {
+    pub fn get_sampler_by_id(&mut self, id: &str) -> Result<Option<DjmdSampler>> {
         let result = djmdSampler
             .filter(schema::djmdSampler::ID.eq(id))
             .first::<DjmdSampler>(&mut self.conn)
@@ -1938,7 +2053,7 @@ impl MasterDb {
         Ok(result)
     }
 
-    pub fn get_sampler_songs(&mut self, id: &str) -> anyhow::Result<Vec<DjmdSongSampler>> {
+    pub fn get_sampler_songs(&mut self, id: &str) -> Result<Vec<DjmdSongSampler>> {
         let results = schema::djmdSongSampler::table
             .filter(schema::djmdSongSampler::SamplerID.eq(id))
             .order_by(schema::djmdSongSampler::TrackNo)
@@ -1946,7 +2061,7 @@ impl MasterDb {
         Ok(results)
     }
 
-    pub fn get_sampler_contents(&mut self, id: &str) -> anyhow::Result<Vec<DjmdContent>> {
+    pub fn get_sampler_contents(&mut self, id: &str) -> Result<Vec<DjmdContent>> {
         let songs = self.get_sampler_songs(id)?;
         let ids: Vec<&str> = songs
             .iter()
@@ -1958,14 +2073,14 @@ impl MasterDb {
 
     // -- SongTagList ------------------------------------------------------------------------------
 
-    pub fn get_song_tag_list(&mut self) -> anyhow::Result<Vec<DjmdSongTagList>> {
+    pub fn get_song_tag_list(&mut self) -> Result<Vec<DjmdSongTagList>> {
         let results = djmdSongTagList
             .order_by(schema::djmdSongTagList::TrackNo)
             .load::<DjmdSongTagList>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_song_tag_list_by_id(&mut self, id: &str) -> anyhow::Result<Option<DjmdSongTagList>> {
+    pub fn get_song_tag_list_by_id(&mut self, id: &str) -> Result<Option<DjmdSongTagList>> {
         let result = djmdSongTagList
             .filter(schema::djmdSongTagList::ID.eq(id))
             .first::<DjmdSongTagList>(&mut self.conn)
@@ -1975,14 +2090,14 @@ impl MasterDb {
 
     // -- Sort -------------------------------------------------------------------------------------
 
-    pub fn get_sort(&mut self) -> anyhow::Result<Vec<DjmdSort>> {
+    pub fn get_sort(&mut self) -> Result<Vec<DjmdSort>> {
         let results = djmdSort
             .order_by(schema::djmdSort::Seq)
             .load::<DjmdSort>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_sort_by_id(&mut self, id: &str) -> anyhow::Result<Option<DjmdSort>> {
+    pub fn get_sort_by_id(&mut self, id: &str) -> Result<Option<DjmdSort>> {
         let result = djmdSort
             .filter(schema::djmdSort::ID.eq(id))
             .first::<DjmdSort>(&mut self.conn)
@@ -1992,12 +2107,12 @@ impl MasterDb {
 
     // -- ImageFile --------------------------------------------------------------------------------
 
-    pub fn get_image_file(&mut self) -> anyhow::Result<Vec<ImageFile>> {
+    pub fn get_image_file(&mut self) -> Result<Vec<ImageFile>> {
         let results = imageFile.load::<ImageFile>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_image_file_by_id(&mut self, id: &str) -> anyhow::Result<Option<ImageFile>> {
+    pub fn get_image_file_by_id(&mut self, id: &str) -> Result<Option<ImageFile>> {
         let result = imageFile
             .filter(schema::imageFile::ID.eq(id))
             .first::<ImageFile>(&mut self.conn)
@@ -2007,12 +2122,12 @@ impl MasterDb {
 
     // -- SettingFile ------------------------------------------------------------------------------
 
-    pub fn get_setting_file(&mut self) -> anyhow::Result<Vec<SettingFile>> {
+    pub fn get_setting_file(&mut self) -> Result<Vec<SettingFile>> {
         let results = settingFile.load::<SettingFile>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_setting_file_by_id(&mut self, id: &str) -> anyhow::Result<Option<SettingFile>> {
+    pub fn get_setting_file_by_id(&mut self, id: &str) -> Result<Option<SettingFile>> {
         let result = settingFile
             .filter(schema::settingFile::ID.eq(id))
             .first::<SettingFile>(&mut self.conn)
@@ -2022,12 +2137,12 @@ impl MasterDb {
 
     // -- UuidIDMap --------------------------------------------------------------------------------
 
-    pub fn get_uuid_id_map(&mut self) -> anyhow::Result<Vec<UuidIDMap>> {
+    pub fn get_uuid_id_map(&mut self) -> Result<Vec<UuidIDMap>> {
         let results = uuidIDMap.load::<UuidIDMap>(&mut self.conn)?;
         Ok(results)
     }
 
-    pub fn get_uuid_id_map_by_id(&mut self, id: &str) -> anyhow::Result<Option<UuidIDMap>> {
+    pub fn get_uuid_id_map_by_id(&mut self, id: &str) -> Result<Option<UuidIDMap>> {
         let result = uuidIDMap
             .filter(schema::uuidIDMap::ID.eq(id))
             .first::<UuidIDMap>(&mut self.conn)
