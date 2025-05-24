@@ -33,6 +33,7 @@ __all__ = [
     "DjmdSongMyTag",
     "DjmdPlaylist",
     "DjmdSongPlaylist",
+    "PlaylistTree",
     "DjmdProperty",
     "DjmdCloudProperty",
     "DjmdRecommendLike",
