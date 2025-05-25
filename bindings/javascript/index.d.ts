@@ -807,6 +807,14 @@ export declare class MasterDb {
   getContentAnlzPaths(id: string): AnlzPaths | null
   insertContent(path: string): DjmdContent
   updateContent(object: DjmdContent): number
+  updateContentAlbum(id: string, name: string): number
+  updateContentArtist(id: string, name: string): number
+  updateContentRemixer(id: string, name: string): number
+  updateContentOriginalArtist(id: string, name: string): number
+  updateContentComposer(id: string, name: string): number
+  updateContentGenre(id: string, name: string): number
+  updateContentLabel(id: string, name: string): number
+  updateContentKey(id: string, name: string): number
   getCue(): Array<DjmdCue>
   getCueById(id: string): DjmdCue | null
   getDevice(): Array<DjmdDevice>

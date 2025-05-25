@@ -333,6 +333,16 @@ impl MasterDb {
         Ok(result)
     }
 
+    fn insert_album_if_not_exists(&mut self, name: &str) -> Result<DjmdAlbum> {
+        let album = self.get_album_by_name(name)?;
+        if let Some(album) = album {
+            Ok(album)
+        } else {
+            let new = self.insert_album(name.to_string(), None, None, None)?;
+            Ok(new)
+        }
+    }
+
     pub fn update_album(&mut self, item: &mut DjmdAlbum) -> Result<DjmdAlbum> {
         // Check if Rekordbox is running
         if !self.unsafe_writes && is_rekordbox_running() {
@@ -468,6 +478,16 @@ impl MasterDb {
             .get_result(&mut self.conn)?;
 
         Ok(result)
+    }
+
+    fn insert_artist_if_not_exists(&mut self, name: &str) -> Result<DjmdArtist> {
+        let artist = self.get_artist_by_name(name)?;
+        if let Some(artist) = artist {
+            Ok(artist)
+        } else {
+            let new = self.insert_artist(name.to_string())?;
+            Ok(new)
+        }
     }
 
     pub fn update_artist(&mut self, item: &mut DjmdArtist) -> Result<DjmdArtist> {
@@ -805,6 +825,162 @@ impl MasterDb {
         Ok(result)
     }
 
+    /// Update the content album field.
+    ///
+    /// Sets the [DjmdContent.AlbumID] to the corresponding ID of the album.
+    /// If the album does not exist yet, a new [DjmdAlbum] row will be created.
+    pub fn update_content_album(&mut self, content_id: &str, name: &str) -> Result<usize> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
+        let album = self.insert_album_if_not_exists(name)?;
+
+        let result = diesel::update(djmdContent.filter(schema::djmdContent::ID.eq(content_id)))
+            .set(schema::djmdContent::AlbumID.eq(album.ID.clone()))
+            .execute(&mut self.conn)?;
+        Ok(result)
+    }
+
+    /// Update the content artist name.
+    ///
+    /// Sets the [DjmdContent.ArtistID] to the corresponding ID of the artist.
+    /// If the artist does not exist yet, a new [DjmdArtist] row will be created.
+    pub fn update_content_artist(&mut self, content_id: &str, name: &str) -> Result<usize> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
+        let artist = self.insert_artist_if_not_exists(name)?;
+
+        let result = diesel::update(djmdContent.filter(schema::djmdContent::ID.eq(content_id)))
+            .set(schema::djmdContent::ArtistID.eq(artist.ID.clone()))
+            .execute(&mut self.conn)?;
+        Ok(result)
+    }
+
+    /// Update the content remixer name.
+    ///
+    /// Sets the [DjmdContent.RemixerID] to the corresponding ID of the artist.
+    /// If the artist does not exist yet, a new [DjmdArtist] row will be created.
+    pub fn update_content_remixer(&mut self, content_id: &str, name: &str) -> Result<usize> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
+        let artist = self.insert_artist_if_not_exists(name)?;
+
+        let result = diesel::update(djmdContent.filter(schema::djmdContent::ID.eq(content_id)))
+            .set(schema::djmdContent::RemixerID.eq(artist.ID.clone()))
+            .execute(&mut self.conn)?;
+        Ok(result)
+    }
+
+    /// Update the content original artist name.
+    ///
+    /// Sets the [DjmdContent.OrgArtistID] to the corresponding ID of the artist.
+    /// If the artist does not exist yet, a new [DjmdArtist] row will be created.
+    pub fn update_content_original_artist(
+        &mut self,
+        content_id: &str,
+        name: &str,
+    ) -> Result<usize> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
+        let artist = self.insert_artist_if_not_exists(name)?;
+
+        let result = diesel::update(djmdContent.filter(schema::djmdContent::ID.eq(content_id)))
+            .set(schema::djmdContent::OrgArtistID.eq(artist.ID.clone()))
+            .execute(&mut self.conn)?;
+        Ok(result)
+    }
+
+    /// Update the content composer name.
+    ///
+    /// Sets the [DjmdContent.ComposerID] to the corresponding ID of the artist.
+    /// If the artist does not exist yet, a new [DjmdArtist] row will be created.
+    pub fn update_content_composer(&mut self, content_id: &str, name: &str) -> Result<usize> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
+        let artist = self.insert_artist_if_not_exists(name)?;
+
+        let result = diesel::update(djmdContent.filter(schema::djmdContent::ID.eq(content_id)))
+            .set(schema::djmdContent::ComposerID.eq(artist.ID.clone()))
+            .execute(&mut self.conn)?;
+        Ok(result)
+    }
+
+    /// Update the content genre name.
+    ///
+    /// Sets the [DjmdContent.GenreID] to the corresponding ID of the genre.
+    /// If the genre does not exist yet, a new [DjmdGenre] row will be created.
+    pub fn update_content_genre(&mut self, content_id: &str, name: &str) -> Result<usize> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
+        let genre = self.insert_genre_if_not_exists(name)?;
+
+        let result = diesel::update(djmdContent.filter(schema::djmdContent::ID.eq(content_id)))
+            .set(schema::djmdContent::GenreID.eq(genre.ID.clone()))
+            .execute(&mut self.conn)?;
+        Ok(result)
+    }
+
+    /// Update the content label name.
+    ///
+    /// Sets the [DjmdContent.LabelID] to the corresponding ID of the label.
+    /// If the label does not exist yet, a new [DjmdLabel] row will be created.
+    pub fn update_content_label(&mut self, content_id: &str, name: &str) -> Result<usize> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
+        let label = self.insert_label_if_not_exists(name)?;
+
+        let result = diesel::update(djmdContent.filter(schema::djmdContent::ID.eq(content_id)))
+            .set(schema::djmdContent::LabelID.eq(label.ID.clone()))
+            .execute(&mut self.conn)?;
+        Ok(result)
+    }
+
+    /// Update the content key name.
+    ///
+    /// Sets the [DjmdContent.KeyID] to the corresponding ID of the label.
+    /// If the key does not exist yet, a new [DjmdKey] row will be created.
+    pub fn update_content_key(&mut self, content_id: &str, name: &str) -> Result<usize> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
+        let key = self.insert_key_if_not_exists(name)?;
+
+        let result = diesel::update(djmdContent.filter(schema::djmdContent::ID.eq(content_id)))
+            .set(schema::djmdContent::KeyID.eq(key.ID.clone()))
+            .execute(&mut self.conn)?;
+        Ok(result)
+    }
+
     // pub fn delete_content(&mut self, id: &str) -> Result<usize> {
     //     // Check if Rekordbox is running
     //     if !self.unsafe_writes && is_rekordbox_running() {
@@ -921,6 +1097,16 @@ impl MasterDb {
             .get_result(&mut self.conn)?;
 
         Ok(result)
+    }
+
+    fn insert_genre_if_not_exists(&mut self, name: &str) -> Result<DjmdGenre> {
+        let genre = self.get_genre_by_name(name)?;
+        if let Some(genre) = genre {
+            Ok(genre)
+        } else {
+            let new = self.insert_genre(name.to_string())?;
+            Ok(new)
+        }
     }
 
     pub fn update_genre(&mut self, item: &mut DjmdGenre) -> Result<DjmdGenre> {
@@ -1140,6 +1326,16 @@ impl MasterDb {
         Ok(result)
     }
 
+    fn insert_key_if_not_exists(&mut self, name: &str) -> Result<DjmdKey> {
+        let key = self.get_key_by_name(name)?;
+        if let Some(key) = key {
+            Ok(key)
+        } else {
+            let new = self.insert_key(name.to_string())?;
+            Ok(new)
+        }
+    }
+
     pub fn update_key(&mut self, item: &mut DjmdKey) -> Result<DjmdKey> {
         // Check if Rekordbox is running
         if !self.unsafe_writes && is_rekordbox_running() {
@@ -1266,6 +1462,16 @@ impl MasterDb {
             .get_result(&mut self.conn)?;
 
         Ok(result)
+    }
+
+    fn insert_label_if_not_exists(&mut self, name: &str) -> Result<DjmdLabel> {
+        let label = self.get_label_by_name(name)?;
+        if let Some(label) = label {
+            Ok(label)
+        } else {
+            let new = self.insert_label(name.to_string())?;
+            Ok(new)
+        }
     }
 
     pub fn update_label(&mut self, item: &mut DjmdLabel) -> Result<DjmdLabel> {

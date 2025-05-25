@@ -384,6 +384,78 @@ impl JsMasterDb {
         result as i32
     }
 
+    #[napi]
+    pub fn update_content_album(&mut self, id: String, name: String) -> i32 {
+        let result = self
+            .db
+            .update_content_album(&id, &name)
+            .expect("Failed to update content album");
+        result as i32
+    }
+
+    #[napi]
+    pub fn update_content_artist(&mut self, id: String, name: String) -> i32 {
+        let result = self
+            .db
+            .update_content_artist(&id, &name)
+            .expect("Failed to update content artist");
+        result as i32
+    }
+
+    #[napi]
+    pub fn update_content_remixer(&mut self, id: String, name: String) -> i32 {
+        let result = self
+            .db
+            .update_content_remixer(&id, &name)
+            .expect("Failed to update content remixer");
+        result as i32
+    }
+
+    #[napi]
+    pub fn update_content_original_artist(&mut self, id: String, name: String) -> i32 {
+        let result = self
+            .db
+            .update_content_original_artist(&id, &name)
+            .expect("Failed to update content original artist");
+        result as i32
+    }
+
+    #[napi]
+    pub fn update_content_composer(&mut self, id: String, name: String) -> i32 {
+        let result = self
+            .db
+            .update_content_composer(&id, &name)
+            .expect("Failed to update content composer");
+        result as i32
+    }
+
+    #[napi]
+    pub fn update_content_genre(&mut self, id: String, name: String) -> i32 {
+        let result = self
+            .db
+            .update_content_genre(&id, &name)
+            .expect("Failed to update content genre");
+        result as i32
+    }
+
+    #[napi]
+    pub fn update_content_label(&mut self, id: String, name: String) -> i32 {
+        let result = self
+            .db
+            .update_content_label(&id, &name)
+            .expect("Failed to update content label");
+        result as i32
+    }
+
+    #[napi]
+    pub fn update_content_key(&mut self, id: String, name: String) -> i32 {
+        let result = self
+            .db
+            .update_content_key(&id, &name)
+            .expect("Failed to update content key");
+        result as i32
+    }
+
     // #[napi]
     // pub fn delete_content(&mut self, id: String) {
     //     self.db

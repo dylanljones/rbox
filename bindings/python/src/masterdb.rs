@@ -399,6 +399,62 @@ impl PyMasterDb {
         Ok(())
     }
 
+    pub fn update_content_album(&mut self, id: &str, name: &str) -> PyResult<()> {
+        self.db
+            .update_content_album(id, name)
+            .map_err(|e| PyErr::new::<DatabaseError, _>(e.to_string()))?;
+        Ok(())
+    }
+
+    pub fn update_content_artist(&mut self, id: &str, name: &str) -> PyResult<()> {
+        self.db
+            .update_content_artist(id, name)
+            .map_err(|e| PyErr::new::<DatabaseError, _>(e.to_string()))?;
+        Ok(())
+    }
+
+    pub fn update_content_remixer(&mut self, id: &str, name: &str) -> PyResult<()> {
+        self.db
+            .update_content_remixer(id, name)
+            .map_err(|e| PyErr::new::<DatabaseError, _>(e.to_string()))?;
+        Ok(())
+    }
+
+    pub fn update_content_original_artist(&mut self, id: &str, name: &str) -> PyResult<()> {
+        self.db
+            .update_content_original_artist(id, name)
+            .map_err(|e| PyErr::new::<DatabaseError, _>(e.to_string()))?;
+        Ok(())
+    }
+
+    pub fn update_content_composer(&mut self, id: &str, name: &str) -> PyResult<()> {
+        self.db
+            .update_content_composer(id, name)
+            .map_err(|e| PyErr::new::<DatabaseError, _>(e.to_string()))?;
+        Ok(())
+    }
+
+    pub fn update_content_genre(&mut self, id: &str, name: &str) -> PyResult<()> {
+        self.db
+            .update_content_genre(id, name)
+            .map_err(|e| PyErr::new::<DatabaseError, _>(e.to_string()))?;
+        Ok(())
+    }
+
+    pub fn update_content_label(&mut self, id: &str, name: &str) -> PyResult<()> {
+        self.db
+            .update_content_label(id, name)
+            .map_err(|e| PyErr::new::<DatabaseError, _>(e.to_string()))?;
+        Ok(())
+    }
+
+    pub fn update_content_key(&mut self, id: &str, name: &str) -> PyResult<()> {
+        self.db
+            .update_content_key(id, name)
+            .map_err(|e| PyErr::new::<DatabaseError, _>(e.to_string()))?;
+        Ok(())
+    }
+
     // pub fn delete_content(&mut self, id: &str) -> PyResult<()> {
     //     self.db
     //         .delete_content(id)

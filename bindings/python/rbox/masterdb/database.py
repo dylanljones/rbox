@@ -242,6 +242,30 @@ class MasterDb:
         """Update content in the database."""
         self._db.update_content(content.to_dict())
 
+    def update_content_album(self, content_id: str, name: str) -> None:
+        self._db.update_content_album(content_id, name)
+
+    def update_content_artist(self, content_id: str, name: str) -> None:
+        self._db.update_content_artist(content_id, name)
+
+    def update_content_remixer(self, content_id: str, name: str) -> None:
+        self._db.update_content_remixer(content_id, name)
+
+    def update_content_original_artist(self, content_id: str, name: str) -> None:
+        self._db.update_content_original_artist(content_id, name)
+
+    def update_content_composer(self, content_id: str, name: str) -> None:
+        self._db.update_content_composer(content_id, name)
+
+    def update_content_genre(self, content_id: str, name: str) -> None:
+        self._db.update_content_genre(content_id, name)
+
+    def update_content_label(self, content_id: str, name: str) -> None:
+        self._db.update_content_label(content_id, name)
+
+    def update_content_key(self, content_id: str, name: str) -> None:
+        self._db.update_content_key(content_id, name)
+
     # def delete_content(self, content_id: str) -> None:
     #     """Delete content from the database."""
     #     self._db.delete_content(content_id)
