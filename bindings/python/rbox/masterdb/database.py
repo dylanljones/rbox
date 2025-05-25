@@ -219,14 +219,6 @@ class MasterDb:
             return None
         return models.DjmdContent(**item)
 
-    def update_content(self, content: models.DjmdContent) -> None:
-        """Update content in the database."""
-        self._db.update_content(content.to_dict())
-
-    def delete_content(self, content_id: str) -> None:
-        """Delete content from the database."""
-        self._db.delete_content(content_id)
-
     def get_content_anlz_dir(self, content_id: str) -> Path:
         """Get the ANLZ directory for a content ID."""
         return Path(self._db.get_content_anlz_dir(content_id))
@@ -240,6 +232,19 @@ class MasterDb:
         """Get the ANLZ file handlers for a content ID."""
         paths = self._db.get_content_anlz_paths(content_id)
         return {ext: Anlz(p) for ext, p in paths.items()}
+
+    def insert_content(self, path: Union[Path, str]) -> models.DjmdContent:
+        """Insert a new content into the database."""
+        data = self._db.insert_content(str(path))
+        return models.DjmdContent(**data)
+
+    def update_content(self, content: models.DjmdContent) -> None:
+        """Update content in the database."""
+        self._db.update_content(content.to_dict())
+
+    # def delete_content(self, content_id: str) -> None:
+    #     """Delete content from the database."""
+    #     self._db.delete_content(content_id)
 
     # -- Cue --------------------------------------------------------------------------------------
 

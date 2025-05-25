@@ -803,10 +803,10 @@ export declare class MasterDb {
   getContent(): Array<DjmdContent>
   getContentById(id: string): DjmdContent | null
   getContentByPath(id: string): DjmdContent | null
-  updateContent(object: DjmdContent): number
-  deleteContent(id: string): void
   getContentAnlzDir(id: string): string | null
   getContentAnlzPaths(id: string): AnlzPaths | null
+  insertContent(path: string): DjmdContent
+  updateContent(object: DjmdContent): number
   getCue(): Array<DjmdCue>
   getCueById(id: string): DjmdCue | null
   getDevice(): Array<DjmdDevice>

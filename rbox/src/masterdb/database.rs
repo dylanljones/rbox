@@ -138,20 +138,20 @@ impl MasterDb {
 
     pub fn get_local_usn(&mut self) -> Result<i32> {
         let result = agentRegistry
-            .filter(schema::agentRegistry::registry_id.eq("lastUpdateCount"))
+            .filter(schema::agentRegistry::registry_id.eq("localUpdateCount"))
             .select(schema::agentRegistry::int_1)
             .first::<Option<i32>>(&mut self.conn)?;
         // Raise error if not found, otherwise return value
         if let Some(value) = result {
             Ok(value)
         } else {
-            Err(anyhow::anyhow!("lastUpdateCount not found"))
+            Err(anyhow::anyhow!("localUpdateCount not found"))
         }
     }
 
     // fn set_local_usn(&mut self, usn: i32) -> Result<usize> {
     //     let result = diesel::update(
-    //         agentRegistry.filter(schema::agentRegistry::registry_id.eq("lastUpdateCount")),
+    //         agentRegistry.filter(schema::agentRegistry::registry_id.eq("localUpdateCount")),
     //     )
     //     .set(schema::agentRegistry::int_1.eq(usn))
     //     .execute(&mut self.conn)?;
@@ -160,7 +160,7 @@ impl MasterDb {
 
     fn increment_local_usn(&mut self, usn: i32) -> Result<i32> {
         let result = diesel::update(
-            agentRegistry.filter(schema::agentRegistry::registry_id.eq("lastUpdateCount")),
+            agentRegistry.filter(schema::agentRegistry::registry_id.eq("localUpdateCount")),
         )
         .set(schema::agentRegistry::int_1.eq(schema::agentRegistry::int_1 + usn))
         .returning(schema::agentRegistry::int_1)
@@ -602,35 +602,6 @@ impl MasterDb {
         Ok(result)
     }
 
-    fn content_exists(&mut self, id: &String) -> Result<bool> {
-        let id_exists: bool = select(exists(djmdContent.filter(schema::djmdContent::ID.eq(id))))
-            .get_result(&mut self.conn)?;
-        Ok(id_exists)
-    }
-
-    pub fn update_content(&mut self, item: &DjmdContent) -> Result<usize> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
-        let result = diesel::update(item).set(item).execute(&mut self.conn)?;
-        Ok(result)
-    }
-
-    pub fn delete_content(&mut self, id: &str) -> Result<usize> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
-        let result = diesel::delete(djmdContent.filter(schema::djmdContent::ID.eq(id)))
-            .execute(&mut self.conn)?;
-        Ok(result)
-    }
-
     /// Returns the path to the corresponding ANLZxxxx.DAT file
     fn get_content_analysis_data_path(&mut self, id: &str) -> Result<PathBuf> {
         if self.share_dir.is_none() {
@@ -691,6 +662,160 @@ impl MasterDb {
         }
         Ok(Some(files))
     }
+
+    fn content_exists(&mut self, id: &String) -> Result<bool> {
+        let id_exists: bool = select(exists(djmdContent.filter(schema::djmdContent::ID.eq(id))))
+            .get_result(&mut self.conn)?;
+        Ok(id_exists)
+    }
+
+    fn content_path_exists(&mut self, path: &str) -> Result<bool> {
+        let exists: bool = select(exists(
+            djmdContent.filter(schema::djmdContent::FolderPath.eq(path)),
+        ))
+        .get_result(&mut self.conn)?;
+        Ok(exists)
+    }
+
+    fn content_file_id_exists(&mut self, id: &String) -> Result<bool> {
+        let id_exists: bool = select(exists(
+            djmdContent.filter(schema::djmdContent::rb_file_id.eq(id)),
+        ))
+        .get_result(&mut self.conn)?;
+        Ok(id_exists)
+    }
+
+    fn generate_content_id(&mut self) -> Result<String> {
+        let generator = RandomIdGenerator::new(true);
+        let mut id: String = String::new();
+        for id_result in generator {
+            if let Ok(tmp_id) = id_result {
+                let id_exists: bool = self.content_exists(&tmp_id)?;
+                if !id_exists {
+                    id = tmp_id;
+                    break;
+                }
+            }
+        }
+        Ok(id)
+    }
+
+    fn generate_content_file_id(&mut self) -> Result<String> {
+        let generator = RandomIdGenerator::new(true);
+        let mut id: String = String::new();
+        for id_result in generator {
+            if let Ok(tmp_id) = id_result {
+                let id_exists: bool = self.content_file_id_exists(&tmp_id)?;
+                if !id_exists {
+                    id = tmp_id;
+                    break;
+                }
+            }
+        }
+        Ok(id)
+    }
+
+    pub fn insert_content<P: AsRef<Path> + AsRef<OsStr>>(
+        &mut self,
+        path: P,
+    ) -> Result<DjmdContent> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
+        // prepare path and check if it exists
+        let path = Path::new(&path);
+        let rb_path = path.normalize_sep("/");
+        let rb_path_str = rb_path
+            .as_os_str()
+            .to_str()
+            .expect("Failed to convert path to string");
+        if !path.is_file() || !path.exists() {
+            return Err(anyhow::anyhow!(format!(
+                "File {} is not a file or doesn't exist!",
+                rb_path_str
+            )));
+        }
+        if self.content_path_exists(&rb_path_str)? {
+            return Err(anyhow::anyhow!(format!(
+                "Content with path {} already exists",
+                rb_path_str
+            )));
+        }
+        // Generate ID/UUID
+        let id: String = self.generate_content_id()?;
+        let file_id: String = self.generate_content_file_id()?;
+        let uuid: String = Uuid::new_v4().to_string();
+        // Get next USN
+        let usn: i32 = self.increment_local_usn(1)?;
+        // Generate date string
+        let utcnow: DateTime<Utc> = Utc::now();
+        let now: String = format_datetime(utcnow);
+        // Get file metadata
+        let meta = std::fs::metadata(&rb_path)?;
+        let file_size: u64 = meta.len();
+        let ext: &str = path.extension().unwrap().to_str().unwrap();
+        let file_type = FileType::try_from_extension(ext)?;
+        let file_name = path.file_name().unwrap().to_str().unwrap().to_string();
+        // Get master DB ID
+        let db_id = djmdDevice
+            .select(schema::djmdDevice::MasterDBID)
+            .first::<Option<String>>(&mut self.conn)?;
+        if db_id.is_none() {
+            return Err(anyhow::anyhow!("No master DB ID found in djmdDevice"));
+        }
+        // TODO: No clue what content link should be, for now we just choose the last value used
+        let content_link = djmdContent
+            .select(schema::djmdContent::ContentLink)
+            .order(schema::djmdContent::rb_local_usn.desc())
+            .limit(1)
+            .first::<Option<i32>>(&mut self.conn)?;
+
+        let item: DjmdContent = DjmdContent::new(
+            id,
+            uuid,
+            usn,
+            now,
+            rb_path_str.to_string(),
+            file_name,
+            file_type as i32,
+            file_size.try_into().unwrap(),
+            db_id.unwrap(),
+            file_id,
+            content_link,
+        )?;
+
+        let result: DjmdContent = diesel::insert_into(djmdContent)
+            .values(item)
+            .get_result(&mut self.conn)?;
+
+        Ok(result)
+    }
+
+    pub fn update_content(&mut self, item: &DjmdContent) -> Result<usize> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow::anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
+        let result = diesel::update(item).set(item).execute(&mut self.conn)?;
+        Ok(result)
+    }
+
+    // pub fn delete_content(&mut self, id: &str) -> Result<usize> {
+    //     // Check if Rekordbox is running
+    //     if !self.unsafe_writes && is_rekordbox_running() {
+    //         return Err(anyhow::anyhow!(
+    //             "Rekordbox is running, unsafe writes are not allowed!"
+    //         ));
+    //     }
+    //     let result = diesel::delete(djmdContent.filter(schema::djmdContent::ID.eq(id)))
+    //         .execute(&mut self.conn)?;
+    //     Ok(result)
+    // }
 
     // -- Cue --------------------------------------------------------------------------------------
 

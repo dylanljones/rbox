@@ -30,6 +30,20 @@ impl TryFrom<i32> for FileType {
     }
 }
 
+impl FileType {
+    pub fn try_from_extension(ext: &str) -> anyhow::Result<Self> {
+        match ext.to_lowercase().as_str() {
+            "mp3" => Ok(FileType::MP3),
+            "m4a" => Ok(FileType::M4A),
+            "flac" => Ok(FileType::FLAC),
+            "wav" => Ok(FileType::WAV),
+            "aiff" => Ok(FileType::AIFF),
+            "aif" => Ok(FileType::AIFF),
+            &_ => Err(anyhow::anyhow!("Unknown file type '{}'", ext)),
+        }
+    }
+}
+
 #[repr(i32)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Analyzed {

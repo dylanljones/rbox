@@ -342,23 +342,6 @@ impl JsMasterDb {
     }
 
     #[napi]
-    pub fn update_content(&mut self, object: JsDjmdContent) -> i32 {
-        let mut model: DjmdContent = DjmdContent::from(object);
-        let result = self
-            .db
-            .update_content(&mut model)
-            .expect("Failed to update DjmdContent");
-        result as i32
-    }
-
-    #[napi]
-    pub fn delete_content(&mut self, id: String) {
-        self.db
-            .delete_content(id.as_str())
-            .expect("Failed to delete DjmdContent");
-    }
-
-    #[napi]
     pub fn get_content_anlz_dir(&mut self, id: String) -> Option<String> {
         let dir = self
             .db
@@ -381,6 +364,32 @@ impl JsMasterDb {
         }
         None
     }
+
+    #[napi]
+    pub fn insert_content(&mut self, path: String) -> JsDjmdContent {
+        let model = self
+            .db
+            .insert_content(path)
+            .expect("Failed to insert DjmdContent");
+        JsDjmdContent::from(model)
+    }
+
+    #[napi]
+    pub fn update_content(&mut self, object: JsDjmdContent) -> i32 {
+        let mut model: DjmdContent = DjmdContent::from(object);
+        let result = self
+            .db
+            .update_content(&mut model)
+            .expect("Failed to update DjmdContent");
+        result as i32
+    }
+
+    // #[napi]
+    // pub fn delete_content(&mut self, id: String) {
+    //     self.db
+    //         .delete_content(id.as_str())
+    //         .expect("Failed to delete DjmdContent");
+    // }
 
     // -- Cue --------------------------------------------------------------------------------------
 

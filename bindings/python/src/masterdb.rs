@@ -349,21 +349,6 @@ impl PyMasterDb {
         Ok(result.into())
     }
 
-    pub fn update_content(&mut self, py: Python, dict: &Bound<'_, PyDict>) -> PyResult<()> {
-        let model = pydict_to_model::<DjmdContent>(py, dict)?;
-        self.db
-            .update_content(&model)
-            .map_err(|e| PyErr::new::<DatabaseError, _>(e.to_string()))?;
-        Ok(())
-    }
-
-    pub fn delete_content(&mut self, id: &str) -> PyResult<()> {
-        self.db
-            .delete_content(id)
-            .map_err(|e| PyErr::new::<DatabaseError, _>(e.to_string()))?;
-        Ok(())
-    }
-
     pub fn get_content_anlz_dir(&mut self, id: &str) -> PyResult<Option<String>> {
         let path = self
             .db
@@ -391,11 +376,35 @@ impl PyMasterDb {
             if let Some(ex2) = paths.ex2 {
                 result.set_item("EX2", ex2)?;
             }
-            return Ok(result.into());
+            Ok(result.into())
         } else {
-            return Ok(PyDict::new(py).into());
+            Ok(PyDict::new(py).into())
         }
     }
+
+    pub fn insert_content(&mut self, py: Python, path: &str) -> PyResult<Py<PyDict>> {
+        let model = self
+            .db
+            .insert_content(path)
+            .map_err(|e| PyErr::new::<DatabaseError, _>(e.to_string()))?;
+        let result = model_to_pydict(py, model)?;
+        Ok(result.into())
+    }
+
+    pub fn update_content(&mut self, py: Python, dict: &Bound<'_, PyDict>) -> PyResult<()> {
+        let model = pydict_to_model::<DjmdContent>(py, dict)?;
+        self.db
+            .update_content(&model)
+            .map_err(|e| PyErr::new::<DatabaseError, _>(e.to_string()))?;
+        Ok(())
+    }
+
+    // pub fn delete_content(&mut self, id: &str) -> PyResult<()> {
+    //     self.db
+    //         .delete_content(id)
+    //         .map_err(|e| PyErr::new::<DatabaseError, _>(e.to_string()))?;
+    //     Ok(())
+    // }
 
     // -- Cue --------------------------------------------------------------------------------------
 
