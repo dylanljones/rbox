@@ -13,11 +13,6 @@ rbox is available on PyPI:
 pip install rbox
 ```
 
-The Python bindings can also be built manually via [pyo3] and [maturin]:
-```bash
-maturin develop
-```
-
 ## 🚀 Quick-Start
 
 > [!CAUTION]
@@ -44,6 +39,4 @@ for content in contents:
     print(content)
 ```
 
-[pyo3]: https://github.com/PyO3/pyo3
-[maturin]: https://github.com/PyO3/maturin
 [sqlcipher]: https://www.zetetic.net/sqlcipher/open-source/

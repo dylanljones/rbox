@@ -13,11 +13,6 @@ rbox-js is available on npm:
 npm install rbox-js
 ```
 
-The JS bindings can also be built manually via [napi-rs]:
-```bash
-yarn build
-```
-
 ## 🚀 Quick-Start
 
 > [!CAUTION]
@@ -45,5 +40,4 @@ for (const content of contents) {
 }
 ```
 
-[napi-rs]: https://napi.rs/
 [sqlcipher]: https://www.zetetic.net/sqlcipher/open-source/

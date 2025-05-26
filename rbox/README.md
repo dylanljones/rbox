@@ -15,6 +15,13 @@ or add the following line to your Cargo.toml:
 ```bash
 rbox = "0.1.0"
 ```
+> [!NOTE]
+>
+> On Windows, you need an OpenSSL installation and have to set a environment variable to
+> the directory it is installed in:
+> ````
+> OPENSSL_DIR = C:\Program Files\OpenSSL-Win64
+> ````
 
 
 ## 🚀 Quick-Start
@@ -44,6 +51,5 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 ```
-
 
 [sqlcipher]: https://www.zetetic.net/sqlcipher/open-source/

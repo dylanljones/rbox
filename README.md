@@ -25,7 +25,14 @@ rbox is built with Rust for maximum performance and safety, with additional lang
 
 ## 🔧 Installation
 
-rbox can be used as a library in your Rust project or through its powerful command-line interface.
+> [!NOTE]
+>
+> On Windows, you need an OpenSSL installation and have to set a environment variable to
+> the directory it is installed in:
+> ````
+> OPENSSL_DIR = C:\Program Files\OpenSSL-Win64
+> ````
+
 
 <details>
 <summary>🦀 Rust</summary>
@@ -49,6 +56,11 @@ rbox is available on PyPI:
 ```bash
 pip install rbox
 ```
+The Python bindings can also be built manually via [pyo3] and [maturin]:
+```bash
+maturin develop
+```
+
 </details>
 
 <details>
@@ -57,13 +69,16 @@ pip install rbox
 rbox is available on npm:
 
 ```bash
-npm install rbox
+npm install rbox-js
+```
+The JS bindings can also be built manually via [napi-rs]:
+```bash
+yarn build
 ```
 
 </details>
 
-On Windows, you need an OpenSSL installation and have to set a environment variable to
-the directory it is installed in:
-````
-OPENSSL_DIR = C:\Program Files\OpenSSL-Win64
-````
+
+[pyo3]: https://github.com/PyO3/pyo3
+[maturin]: https://github.com/PyO3/maturin
+[napi-rs]: https://napi.rs/
