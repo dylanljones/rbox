@@ -18,10 +18,9 @@ multiple Rekordbox formats with speed and precision. ✨
 #### 🌐 Language support
 
 rbox is built with Rust for maximum performance and safety, with additional language bindings:
-- **🦀 Rust**: The core library, providing fast and efficient access to Rekordbox data
-- **🐍 Python**: Integrate with Python applications for easy data manipulation
-- **✨ JavaScript**: Integrate with electron applications and Node.js environments
-- **💻 Command Line**: Command line interface for quick access to your data (Comming soon!)
+- **🦀 [Rust](rbox/README.md)**: The core library, providing fast and efficient access to Rekordbox data
+- **🐍 [Python](bindings/python/README.md)**: Integrate with Python applications for easy data manipulation
+- **✨ [JavaScript](bindings/javascript/README.md)**: Integrate with electron applications and Node.js environments
 
 
 ## 🔧 Installation
@@ -39,6 +38,7 @@ or add the following line to your Cargo.toml:
 ```bash
 rbox = "0.1.0"
 ```
+
 </details>
 
 <details>
@@ -62,86 +62,8 @@ npm install rbox
 
 </details>
 
-<details>
-<summary>💻 Command Line</summary>
-
-Coming soon!
-
-</details>
-
-If you want to build the Rust library, you need a OpenSSL installation and have to set a environment variable to
+On Windows, you need an OpenSSL installation and have to set a environment variable to
 the directory it is installed in:
 ````
 OPENSSL_DIR = C:\Program Files\OpenSSL-Win64
 ````
-
-## 🚀 Quick-Start
-
-> [!CAUTION]
-> Please make sure to back up your Rekordbox collection before making changes to rekordbox data.
-> The backup dialog can be found under "File" > "Library" > "Backup Library"
-
-
-### Rekordbox 6/7 database
-
-Rekordbox 6 and 7 use a SQLite database for storing the collection content.
-Unfortunatly, the `master.db` SQLite database is encrypted using
-[SQLCipher][sqlcipher], which means it can't be used without the encryption key.
-However, since your data is stored and used locally, the key must be present on the
-machine running Rekordbox.
-
-rbox can unlock the new Rekordbox `master.db` SQLite database and provides
-an easy interface for accessing the data stored in it:
-
-<details>
-<summary>🦀 Rust</summary>
-
-```rust
-use rbox::masterdb::MasterDb;
-
-const PATH: &str = r"C:\Users\user\AppData\Roaming\Pioneer\rekordbox\master.db";
-
-fn main() -> anyhow::Result<()> {
-    let mut db = MasterDb::new(PATH)?;
-    let contents = db.get_content()?;
-    for content in contents {
-        println!("{:?}", content);
-    }
-    Ok(())
-}
-```
-</details>
-
-<details>
-<summary>🐍 Python</summary>
-
-```python
-from rbox.masterdb import MasterDb
-
-path = r"C:\Users\user\AppData\Roaming\Pioneer\rekordbox\master.db"
-
-db = MasterDb(path)
-contents = db.get_content()
-for content in contents:
-    print(content)
-```
-</details>
-
-<details>
-<summary>✨ JavaScript</summary>
-
-```javascript
-import { MasterDb } from 'rbox'
-
-const path = "C:\\Users\\user\\AppData\\Roaming\\Pioneer\\rekordbox\\master.db"
-
-const db = new MasterDb(path);
-const contents = db.getContent();
-for (const content of contents) {
-    console.log(content)
-}
-```
-</details>
-
-
-[sqlcipher]: https://www.zetetic.net/sqlcipher/open-source/

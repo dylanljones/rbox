@@ -18,5 +18,32 @@ The Python bindings can also be built manually via [pyo3] and [maturin]:
 maturin develop
 ```
 
+## 🚀 Quick-Start
+
+> [!CAUTION]
+> Please make sure to back up your Rekordbox collection before making changes to rekordbox data.
+> The backup dialog can be found under "File" > "Library" > "Backup Library"
+
+### Rekordbox 6/7 database
+
+Rekordbox 6 and 7 use a SQLite database for storing the collection content.
+Unfortunatly, the `master.db` SQLite database is encrypted using
+[SQLCipher][sqlcipher], which means it can't be used without the encryption key.
+However, since your data is stored and used locally, the key must be present on the
+machine running Rekordbox.
+
+rbox can unlock the new Rekordbox `master.db` SQLite database and provides
+an easy interface for accessing the data stored in it:
+
+```python
+from rbox import MasterDb
+
+db = MasterDb()
+contents = db.get_content()
+for content in contents:
+    print(content)
+```
+
 [pyo3]: https://github.com/PyO3/pyo3
 [maturin]: https://github.com/PyO3/maturin
+[sqlcipher]: https://www.zetetic.net/sqlcipher/open-source/
