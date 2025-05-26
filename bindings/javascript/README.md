@@ -1,4 +1,4 @@
-# rbox JavaScript binding
+# rbox-js
 
 > **⚠️ Disclaimer**: This project is **not** affiliated with Pioneer DJ, AlphaTheta Corp., or any related entities.
 > rbox is an independent project released under the **MIT license**.
