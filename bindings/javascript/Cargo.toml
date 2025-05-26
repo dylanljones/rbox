@@ -1,5 +1,5 @@
 [package]
-name = "js-rbox"
+name = "rbox-js"
 description = "Javascript library for interacting with the local and export data of Pioneers Rekordbox DJ software"
 version.workspace = true
 authors.workspace = true

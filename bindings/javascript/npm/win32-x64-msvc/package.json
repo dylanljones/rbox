@@ -1,5 +1,5 @@
 {
-  "name": "rbox-win32-x64-msvc",
+  "name": "rbox-js-win32-x64-msvc",
   "version": "0.0.0",
   "os": [
     "win32"
@@ -7,9 +7,9 @@
   "cpu": [
     "x64"
   ],
-  "main": "rbox.win32-x64-msvc.node",
+  "main": "rbox-js.win32-x64-msvc.node",
   "files": [
-    "rbox.win32-x64-msvc.node"
+    "rbox-js.win32-x64-msvc.node"
   ],
   "license": "MIT",
   "engines": {

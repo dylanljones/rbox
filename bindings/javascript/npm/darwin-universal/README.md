@@ -1,3 +1,3 @@
-# `rbox-darwin-universal`
+# `rbox-js-darwin-universal`
 
-This is the **universal-apple-darwin** binary for `rbox`
+This is the **universal-apple-darwin** binary for `rbox-js`

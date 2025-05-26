@@ -1,5 +1,5 @@
 {
-  "name": "rbox-linux-x64-gnu",
+  "name": "rbox-js-linux-x64-gnu",
   "version": "0.0.0",
   "os": [
     "linux"
@@ -7,9 +7,9 @@
   "cpu": [
     "x64"
   ],
-  "main": "rbox.linux-x64-gnu.node",
+  "main": "rbox-js.linux-x64-gnu.node",
   "files": [
-    "rbox.linux-x64-gnu.node"
+    "rbox-js.linux-x64-gnu.node"
   ],
   "license": "MIT",
   "engines": {

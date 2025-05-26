@@ -1,12 +1,12 @@
 {
-  "name": "rbox-darwin-universal",
+  "name": "rbox-js-darwin-universal",
   "version": "0.0.0",
   "os": [
     "darwin"
   ],
-  "main": "rbox.darwin-universal.node",
+  "main": "rbox-js.darwin-universal.node",
   "files": [
-    "rbox.darwin-universal.node"
+    "rbox-js.darwin-universal.node"
   ],
   "license": "MIT",
   "engines": {
