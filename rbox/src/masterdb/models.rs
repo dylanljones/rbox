@@ -5,13 +5,82 @@
 
 #![allow(non_snake_case)]
 
-use super::schema;
-
 use diesel::prelude::*;
+use diesel::{FromSqlRow, AsExpression};
+use diesel::backend::Backend;
+use diesel::deserialize::{FromSql, Result as DResult};
+use diesel::serialize::{ToSql, Result as SResult, Output};
+use diesel::sql_types::{Text, Nullable};
 use serde::{Deserialize, Serialize, Serializer};
+use chrono::{DateTime, Utc};
 
 use std::cell::RefCell;
 use std::rc::Rc;
+
+use super::schema;
+use super::util::{parse_datetime, format_datetime};
+
+/// Wrapper for DateTime<Utc> for diesel serialization/deserialization
+#[derive(Debug, FromSqlRow, AsExpression)]
+#[diesel(sql_type = Text)]
+pub struct DateStringWrapper(pub DateTime<Utc>);
+
+impl From<DateStringWrapper> for DateTime<Utc> {
+    fn from(s: DateStringWrapper) -> Self {
+        s.0
+    }
+}
+
+impl From<DateTime<Utc>> for DateStringWrapper {
+    fn from(dt: DateTime<Utc>) -> Self {
+        DateStringWrapper(dt)
+    }
+}
+
+impl<B> FromSql<Text, B> for DateStringWrapper
+where
+    B: Backend,
+    String: FromSql<Text, B>,
+{
+    fn from_sql(bytes: B::RawValue<'_>) -> DResult<Self> {
+        let s = <String as FromSql<Text, B>>::from_sql(bytes)?;
+        Ok(parse_datetime(&s)
+            .map(DateStringWrapper)
+            .map_err(|_| {
+                let msg = format!("Invalid datetime string: {}", s);
+                diesel::result::Error::DeserializationError(msg.into())
+            })?)
+    }
+}
+
+
+/// Wrapper for Optional DateTime<Utc> for diesel serialization/deserialization
+#[derive(Debug, FromSqlRow)]
+#[diesel(sql_type = Text)]
+pub struct NullableDateStringWrapper(pub Option<DateStringWrapper>);
+
+
+impl From<NullableDateStringWrapper> for Option<DateTime<Utc>> {
+    fn from(s: NullableDateStringWrapper) -> Self {
+        s.0.map(|w| w.0)
+    }
+}
+
+impl From<Option<DateTime<Utc>>> for NullableDateStringWrapper {
+    fn from(s: Option<DateTime<Utc>>) -> Self {
+        NullableDateStringWrapper(s.map(|dt| DateStringWrapper(dt)))
+    }
+}
+
+impl<B> FromSql<Nullable<Text>, B> for NullableDateStringWrapper
+where
+    B: Backend,
+    DateStringWrapper: FromSql<Text, B>,
+{
+    fn from_sql(bytes: B::RawValue<'_>) -> DResult<Self> {
+        Ok(NullableDateStringWrapper(<Option<DateStringWrapper>>::from_sql(bytes)?))
+    }
+}
 
 #[derive(
     Queryable,
