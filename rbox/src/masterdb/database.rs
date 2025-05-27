@@ -322,7 +322,7 @@ impl MasterDb {
         let usn: i32 = self.increment_local_usn(1)?;
         // Generate date string
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(utcnow);
+        let now: String = format_datetime(&utcnow);
         // Create and insert model
         let item: DjmdAlbum =
             DjmdAlbum::new(id, uuid, usn, now, name, artist_id, image_path, compilation)?;
@@ -373,7 +373,7 @@ impl MasterDb {
         }
         // Update update-time
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(utcnow);
+        let now: String = format_datetime(&utcnow);
         item.updated_at = Some(now);
         // Update USN
         let usn: i32 = self.increment_local_usn(n)?;
@@ -470,7 +470,7 @@ impl MasterDb {
         let usn: i32 = self.increment_local_usn(1)?;
         // Generate date string
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(utcnow);
+        let now: String = format_datetime(&utcnow);
         // Create and insert model
         let item: DjmdArtist = DjmdArtist::new(id, uuid, usn, now, name)?;
         let result: DjmdArtist = diesel::insert_into(djmdArtist)
@@ -511,7 +511,7 @@ impl MasterDb {
         }
         // Update update-time
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(utcnow);
+        let now: String = format_datetime(&utcnow);
         item.updated_at = Some(now);
         // Update USN
         let usn: i32 = self.increment_local_usn(n)?;
@@ -772,7 +772,7 @@ impl MasterDb {
         let usn: i32 = self.increment_local_usn(1)?;
         // Generate date string
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(utcnow);
+        let now: String = format_datetime(&utcnow);
         // Get file metadata
         let meta = std::fs::metadata(&rb_path)?;
         let file_size: u64 = meta.len();
@@ -1089,7 +1089,7 @@ impl MasterDb {
         let usn: i32 = self.increment_local_usn(1)?;
         // Generate date string
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(utcnow);
+        let now: String = format_datetime(&utcnow);
         // Create and insert model
         let item: DjmdGenre = DjmdGenre::new(id, uuid, usn, now, name)?;
         let result: DjmdGenre = diesel::insert_into(djmdGenre)
@@ -1127,7 +1127,7 @@ impl MasterDb {
         }
         // Update update-time
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(utcnow);
+        let now: String = format_datetime(&utcnow);
         item.updated_at = Some(now);
         // Update USN
         let usn: i32 = self.increment_local_usn(n)?;
@@ -1312,7 +1312,7 @@ impl MasterDb {
         let usn: i32 = self.increment_local_usn(1)?;
         // Generate date string
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(utcnow);
+        let now: String = format_datetime(&utcnow);
         // Count existing items for inserting at end
         let count = djmdKey.count().get_result::<i64>(&mut self.conn)? as i32;
         let seq: i32 = count + 1;
@@ -1357,7 +1357,7 @@ impl MasterDb {
         }
         // Update update-time
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(utcnow);
+        let now: String = format_datetime(&utcnow);
         item.updated_at = Some(now);
         // Update USN
         let usn: i32 = self.increment_local_usn(n)?;
@@ -1454,7 +1454,7 @@ impl MasterDb {
         let usn: i32 = self.increment_local_usn(1)?;
         // Generate date string
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(utcnow);
+        let now: String = format_datetime(&utcnow);
         // Create and insert model
         let item: DjmdLabel = DjmdLabel::new(id, uuid, usn, now, name)?;
         let result: DjmdLabel = diesel::insert_into(djmdLabel)
@@ -1492,7 +1492,7 @@ impl MasterDb {
         }
         // Update update-time
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(utcnow);
+        let now: String = format_datetime(&utcnow);
         item.updated_at = Some(now);
         // Update USN
         let usn: i32 = self.increment_local_usn(n)?;
@@ -1782,7 +1782,7 @@ impl MasterDb {
 
         // Generate date string
         let utcnow = Utc::now();
-        let now: String = format_datetime(utcnow.clone());
+        let now: String = format_datetime(&utcnow);
         // Count existing playlists with same parent
         let count = djmdPlaylist
             .filter(schema::djmdPlaylist::ParentID.eq(parent_id.clone()))
@@ -1859,7 +1859,7 @@ impl MasterDb {
             ));
         }
         let utcnow = Utc::now();
-        let now: String = format_datetime(utcnow.clone());
+        let now: String = format_datetime(&utcnow);
         let usn: i32 = self.increment_local_usn(1)?;
         let result: DjmdPlaylist =
             diesel::update(djmdPlaylist.filter(schema::djmdPlaylist::ID.eq(id)))
@@ -1905,7 +1905,7 @@ impl MasterDb {
         let usn = self.increment_local_usn(1)?;
         // Generate date string
         let utcnow = Utc::now();
-        let now: String = format_datetime(utcnow.clone());
+        let now: String = format_datetime(&utcnow);
 
         if parent_id != old_parent_id {
             let sequence: i32;
@@ -2030,7 +2030,7 @@ impl MasterDb {
         let usn = self.increment_local_usn(1)?;
         // Generate date string
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(utcnow);
+        let now: String = format_datetime(&utcnow);
 
         // Get parentID and seq number
         let playlist: DjmdPlaylist = self.get_playlist_by_id(id)?.expect("Playlist not found");
@@ -2117,7 +2117,7 @@ impl MasterDb {
         let id: String = self.generate_playlist_song_id()?;
         let uuid: String = Uuid::new_v4().to_string();
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(utcnow);
+        let now: String = format_datetime(&utcnow);
 
         // Count existing songs in playlist
         let count = djmdSongPlaylist
@@ -2191,7 +2191,7 @@ impl MasterDb {
 
         let usn = self.increment_local_usn(1)?;
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(utcnow);
+        let now: String = format_datetime(&utcnow);
         if seq > old_seq {
             // Seq is increased (move down in playlist):
             // Decrease seq of all songs with seq between old seq and new seq
@@ -2246,7 +2246,7 @@ impl MasterDb {
         }
         let usn = self.increment_local_usn(1)?;
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(utcnow);
+        let now: String = format_datetime(&utcnow);
 
         // Get playlist and seq number
         let song: DjmdSongPlaylist = self.get_playlist_song_by_id(id)?.expect("Song not found");

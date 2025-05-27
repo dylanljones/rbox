@@ -17,7 +17,7 @@ pub fn parse_datetime(s: &str) -> anyhow::Result<DateTime<Utc>> {
         .map_err(|e| anyhow::anyhow!("Failed to parse datetime: {}", e))
 }
 
-pub fn format_datetime<Tz: TimeZone>(dt: DateTime<Tz>) -> String {
+pub fn format_datetime<Tz: TimeZone>(dt: &DateTime<Tz>) -> String {
     dt.with_timezone(&Utc).format(DATEFMT).to_string()
 }
 
@@ -28,7 +28,7 @@ pub trait RekordboxDateString {
 
 impl RekordboxDateString for String {
     fn from_date<Tz: TimeZone>(dt: DateTime<Tz>) -> Self {
-        format_datetime(dt)
+        format_datetime(&dt)
     }
 
     fn into_date(self) -> anyhow::Result<DateTime<Utc>> {
