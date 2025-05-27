@@ -10,8 +10,8 @@ export interface AnlzPaths {
 }
 export interface AgentRegistry {
   registryId: string
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   id1?: string
   id2?: string
   int1?: number
@@ -32,8 +32,8 @@ export interface CloudAgentRegistry {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   int1?: number
   int2?: number
   str1?: string
@@ -52,8 +52,8 @@ export interface ContentActiveCensor {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   contentId?: string
   activeCensors?: string
   rbActivecensorCount?: number
@@ -67,8 +67,8 @@ export interface ContentCue {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   contentId?: string
   cues?: string
   rbCueCount?: number
@@ -82,8 +82,8 @@ export interface ContentFile {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   contentId?: string
   path?: string
   hash?: string
@@ -108,8 +108,8 @@ export interface DjmdActiveCensor {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   contentId?: string
   inMsec?: number
   outMsec?: number
@@ -126,8 +126,8 @@ export interface DjmdAlbum {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   name?: string
   albumArtistId?: string
   imagePath?: string
@@ -143,8 +143,8 @@ export interface DjmdArtist {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   name?: string
   searchStr?: string
 }
@@ -157,8 +157,8 @@ export interface DjmdCategory {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   menuItemId?: string
   seq?: number
   disable?: number
@@ -173,8 +173,8 @@ export interface DjmdColor {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   colorCode?: string
   sortKey?: number
   commnt?: string
@@ -188,8 +188,8 @@ export interface DjmdContent {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   folderPath?: string
   fileNameL?: string
   fileNameS?: string
@@ -268,8 +268,8 @@ export interface DjmdCue {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   contentId?: string
   inMsec?: number
   inFrame?: number
@@ -299,8 +299,8 @@ export interface DjmdDevice {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   masterDbid?: string
   name?: string
 }
@@ -313,8 +313,8 @@ export interface DjmdGenre {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   name?: string
 }
 export interface DjmdHistory {
@@ -326,8 +326,8 @@ export interface DjmdHistory {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   seq?: number
   name?: string
   attribute?: number
@@ -343,8 +343,8 @@ export interface DjmdSongHistory {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   historyId?: string
   contentId?: string
   trackNo?: number
@@ -358,8 +358,8 @@ export interface DjmdHotCueBanklist {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   seq?: number
   name?: string
   imagePath?: string
@@ -375,8 +375,8 @@ export interface DjmdSongHotCueBanklist {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   contentId?: string
   trackNo?: number
   cueId?: string
@@ -407,8 +407,8 @@ export interface HotCueBanklistCue {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   hotCueBanklistId?: string
   cues?: string
   rbCueCount?: number
@@ -422,8 +422,8 @@ export interface DjmdKey {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   scaleName?: string
   seq?: number
 }
@@ -436,8 +436,8 @@ export interface DjmdLabel {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   name?: string
 }
 export interface DjmdMenuItems {
@@ -449,8 +449,8 @@ export interface DjmdMenuItems {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   class?: number
   name?: string
 }
@@ -463,8 +463,8 @@ export interface DjmdMixerParam {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   contentId?: string
   gainHigh?: number
   gainLow?: number
@@ -480,8 +480,8 @@ export interface DjmdMyTag {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   seq?: number
   name?: string
   attribute?: number
@@ -496,8 +496,8 @@ export interface DjmdSongMyTag {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   myTagId?: string
   contentId?: string
   trackNo?: number
@@ -511,8 +511,8 @@ export interface DjmdPlaylist {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   seq?: number
   name?: string
   imagePath?: string
@@ -529,8 +529,8 @@ export interface PlaylistTreeItem {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   seq?: number
   name?: string
   imagePath?: string
@@ -548,8 +548,8 @@ export interface DjmdSongPlaylist {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   playlistId?: string
   contentId?: string
   trackNo?: number
@@ -565,8 +565,8 @@ export interface DjmdProperty {
   reserved3?: string
   reserved4?: string
   reserved5?: string
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
 }
 export interface DjmdCloudProperty {
   id: string
@@ -577,8 +577,8 @@ export interface DjmdCloudProperty {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   reserved1?: string
   reserved2?: string
   reserved3?: string
@@ -594,8 +594,8 @@ export interface DjmdRecommendLike {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   contentId1?: string
   contentId2?: string
   likeRate?: number
@@ -611,8 +611,8 @@ export interface DjmdRelatedTracks {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   seq?: number
   name?: string
   attribute?: number
@@ -628,8 +628,8 @@ export interface DjmdSongRelatedTracks {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   relatedTracksId?: string
   contentId?: string
   trackNo?: number
@@ -643,8 +643,8 @@ export interface DjmdSampler {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   seq?: number
   name?: string
   attribute?: number
@@ -659,8 +659,8 @@ export interface DjmdSongSampler {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   samplerId?: string
   contentId?: string
   trackNo?: number
@@ -674,8 +674,8 @@ export interface DjmdSongTagList {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   contentId?: string
   trackNo?: number
 }
@@ -688,8 +688,8 @@ export interface DjmdSort {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   menuItemId?: string
   seq?: number
   disable?: number
@@ -703,8 +703,8 @@ export interface ImageFile {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   tableName?: string
   targetUuid?: string
   targetId?: string
@@ -731,8 +731,8 @@ export interface SettingFile {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   path?: string
   hash?: string
   size?: number
@@ -751,8 +751,8 @@ export interface UuidIDMap {
   rbLocalSynced: number
   usn?: number
   rbLocalUsn?: number
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string
   tableName?: string
   targetUuid?: string
   currentId?: string

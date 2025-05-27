@@ -64,17 +64,17 @@ class StatsFull(Base):
     rb_local_data_status: int = field(repr=False)
     rb_local_deleted: int = field(repr=False)
     rb_local_synced: int = field(repr=False)
+    created_at: str = field(repr=False)
+    updated_at: str = field(repr=False)
     usn: Optional[int] = field(repr=False, default=None)
     rb_local_usn: Optional[int] = field(repr=False, default=None)
-    created_at: Optional[str] = field(repr=False, default=None)
-    updated_at: Optional[str] = field(repr=False, default=None)
 
 
 @dataclass
 class AgentRegistry(Base):
     registry_id: str
-    created_at: Optional[str] = field(repr=False, default=None)
-    updated_at: Optional[str] = field(repr=False, default=None)
+    created_at: str = field(repr=False)
+    updated_at: str = field(repr=False)
     id_1: Optional[str] = None
     id_2: Optional[str] = None
     int_1: Optional[int] = None
@@ -399,6 +399,8 @@ class DjmdSongPlaylist(StatsFull):
 @dataclass
 class DjmdProperty(Base):
     DBID: str
+    created_at: str = field(repr=False)
+    updated_at: str = field(repr=False)
     DBVersion: Optional[str] = None
     BaseDBDrive: Optional[str] = None
     CurrentDBDrive: Optional[str] = None
@@ -408,8 +410,6 @@ class DjmdProperty(Base):
     Reserved3: Optional[str] = None
     Reserved4: Optional[str] = None
     Reserved5: Optional[str] = None
-    created_at: Optional[str] = field(repr=False, default=None)
-    updated_at: Optional[str] = field(repr=False, default=None)
 
 
 @dataclass

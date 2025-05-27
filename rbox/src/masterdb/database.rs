@@ -374,7 +374,7 @@ impl MasterDb {
         // Update update-time
         let utcnow: DateTime<Utc> = Utc::now();
         let now: String = format_datetime(&utcnow);
-        item.updated_at = Some(now);
+        item.updated_at = now;
         // Update USN
         let usn: i32 = self.increment_local_usn(n)?;
         item.rb_local_usn = Some(usn);
@@ -512,7 +512,7 @@ impl MasterDb {
         // Update update-time
         let utcnow: DateTime<Utc> = Utc::now();
         let now: String = format_datetime(&utcnow);
-        item.updated_at = Some(now);
+        item.updated_at = now;
         // Update USN
         let usn: i32 = self.increment_local_usn(n)?;
         item.rb_local_usn = Some(usn);
@@ -1128,7 +1128,7 @@ impl MasterDb {
         // Update update-time
         let utcnow: DateTime<Utc> = Utc::now();
         let now: String = format_datetime(&utcnow);
-        item.updated_at = Some(now);
+        item.updated_at = now;
         // Update USN
         let usn: i32 = self.increment_local_usn(n)?;
         item.rb_local_usn = Some(usn);
@@ -1358,7 +1358,7 @@ impl MasterDb {
         // Update update-time
         let utcnow: DateTime<Utc> = Utc::now();
         let now: String = format_datetime(&utcnow);
-        item.updated_at = Some(now);
+        item.updated_at = now;
         // Update USN
         let usn: i32 = self.increment_local_usn(n)?;
         item.rb_local_usn = Some(usn);
@@ -1493,7 +1493,7 @@ impl MasterDb {
         // Update update-time
         let utcnow: DateTime<Utc> = Utc::now();
         let now: String = format_datetime(&utcnow);
-        item.updated_at = Some(now);
+        item.updated_at = now;
         // Update USN
         let usn: i32 = self.increment_local_usn(n)?;
         item.rb_local_usn = Some(usn);

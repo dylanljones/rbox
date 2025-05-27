@@ -62,50 +62,6 @@ where
     }
 }
 
-/// Wrapper for Optional DateTime<Utc> for diesel serialization/deserialization
-#[derive(Debug, FromSqlRow)]
-#[diesel(sql_type = Text)]
-pub struct NullableDateStringWrapper(pub Option<DateStringWrapper>);
-
-impl From<NullableDateStringWrapper> for Option<DateTime<Utc>> {
-    fn from(s: NullableDateStringWrapper) -> Self {
-        s.0.map(|w| w.0)
-    }
-}
-
-impl From<Option<DateTime<Utc>>> for NullableDateStringWrapper {
-    fn from(s: Option<DateTime<Utc>>) -> Self {
-        NullableDateStringWrapper(s.map(|dt| DateStringWrapper(dt)))
-    }
-}
-
-impl<B> FromSql<Nullable<Text>, B> for NullableDateStringWrapper
-where
-    B: Backend,
-    DateStringWrapper: FromSql<Text, B>,
-{
-    fn from_sql(bytes: B::RawValue<'_>) -> DResult<Self> {
-        Ok(NullableDateStringWrapper(
-            <Option<DateStringWrapper>>::from_sql(bytes)?,
-        ))
-    }
-}
-
-impl ToSql<Nullable<Text>, diesel::sqlite::Sqlite> for NullableDateStringWrapper
-where
-    str: ToSql<Text, diesel::sqlite::Sqlite>,
-{
-    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, diesel::sqlite::Sqlite>) -> SResult {
-        if let Some(ref dt) = self.0 {
-            let s = format_datetime(&dt.0); // Format the DateTime<Utc> as a string
-            out.set_value(s); // Set the value in the output buffer
-            Ok(IsNull::No)
-        } else {
-            Ok(IsNull::Yes) // Handle the null case
-        }
-    }
-}
-
 #[derive(
     Queryable,
     Selectable,
@@ -122,8 +78,8 @@ where
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct AgentRegistry {
     pub registry_id: String,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
     pub id_1: Option<String>,
     pub id_2: Option<String>,
     pub int_1: Option<i32>,
@@ -159,8 +115,8 @@ pub struct CloudAgentRegistry {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub int_1: Option<i32>,
     pub int_2: Option<i32>,
@@ -196,8 +152,8 @@ pub struct ContentActiveCensor {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub ContentID: Option<String>,
     pub ActiveCensors: Option<String>,
@@ -228,8 +184,8 @@ pub struct ContentCue {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub ContentID: Option<String>,
     pub Cues: Option<String>,
@@ -260,8 +216,8 @@ pub struct ContentFile {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub ContentID: Option<String>,
     pub Path: Option<String>,
@@ -303,8 +259,8 @@ pub struct DjmdActiveCensor {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub ContentID: Option<String>,
     pub InMsec: Option<i32>,
@@ -337,8 +293,8 @@ pub struct DjmdAlbum {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub Name: Option<String>,
     pub AlbumArtistID: Option<String>,
@@ -368,8 +324,8 @@ impl DjmdAlbum {
             rb_local_synced: 0,
             usn: None,
             rb_local_usn: Some(usn.clone()),
-            created_at: Some(now.clone()),
-            updated_at: Some(now.clone()),
+            created_at: now.clone(),
+            updated_at: now.clone(),
             Name: Some(name.clone()),
             AlbumArtistID: artist_id.clone(),
             ImagePath: image_path.clone(),
@@ -403,8 +359,8 @@ pub struct DjmdArtist {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub Name: Option<String>,
     pub SearchStr: Option<String>,
@@ -427,8 +383,8 @@ impl DjmdArtist {
             rb_local_synced: 0,
             usn: None,
             rb_local_usn: Some(usn.clone()),
-            created_at: Some(now.clone()),
-            updated_at: Some(now.clone()),
+            created_at: now.clone(),
+            updated_at: now.clone(),
             Name: Some(name.clone()),
             SearchStr: None,
         })
@@ -459,8 +415,8 @@ pub struct DjmdCategory {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub MenuItemID: Option<String>,
     pub Seq: Option<i32>,
@@ -492,8 +448,8 @@ pub struct DjmdColor {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub ColorCode: Option<String>,
     pub SortKey: Option<i32>,
@@ -524,8 +480,8 @@ pub struct DjmdContent {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub FolderPath: Option<String>,
     pub FileNameL: Option<String>,
@@ -622,8 +578,8 @@ impl DjmdContent {
             rb_local_synced: 0,
             usn: None,
             rb_local_usn: Some(usn.clone()),
-            created_at: Some(now.clone()),
-            updated_at: Some(now.clone()),
+            created_at: now.clone(),
+            updated_at: now.clone(),
 
             FolderPath: Some(path.clone()),
             FileNameL: Some(file_name.clone()),
@@ -721,8 +677,8 @@ pub struct DjmdCue {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub ContentID: Option<String>,
     pub InMsec: Option<i32>,
@@ -769,8 +725,8 @@ pub struct DjmdDevice {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub MasterDBID: Option<String>,
     pub Name: Option<String>,
@@ -800,8 +756,8 @@ pub struct DjmdGenre {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub Name: Option<String>,
 }
@@ -823,8 +779,8 @@ impl DjmdGenre {
             rb_local_synced: 0,
             usn: None,
             rb_local_usn: Some(usn.clone()),
-            created_at: Some(now.clone()),
-            updated_at: Some(now.clone()),
+            created_at: now.clone(),
+            updated_at: now.clone(),
             Name: Some(name.clone()),
         })
     }
@@ -854,8 +810,8 @@ pub struct DjmdHistory {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub Seq: Option<i32>,
     pub Name: Option<String>,
@@ -888,8 +844,8 @@ pub struct DjmdSongHistory {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub HistoryID: Option<String>,
     pub ContentID: Option<String>,
@@ -920,8 +876,8 @@ pub struct DjmdHotCueBanklist {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub Seq: Option<i32>,
     pub Name: Option<String>,
@@ -954,8 +910,8 @@ pub struct DjmdSongHotCueBanklist {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub ContentID: Option<String>,
     pub TrackNo: Option<i32>,
@@ -1003,8 +959,8 @@ pub struct HotCueBanklistCue {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub HotCueBanklistID: Option<String>,
     pub Cues: Option<String>,
@@ -1035,8 +991,8 @@ pub struct DjmdKey {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub ScaleName: Option<String>,
     pub Seq: Option<i32>,
@@ -1060,8 +1016,8 @@ impl DjmdKey {
             rb_local_synced: 0,
             usn: None,
             rb_local_usn: Some(usn.clone()),
-            created_at: Some(now.clone()),
-            updated_at: Some(now.clone()),
+            created_at: now.clone(),
+            updated_at: now.clone(),
             ScaleName: Some(name.clone()),
             Seq: Some(seq.clone()),
         })
@@ -1092,8 +1048,8 @@ pub struct DjmdLabel {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub Name: Option<String>,
 }
@@ -1115,8 +1071,8 @@ impl DjmdLabel {
             rb_local_synced: 0,
             usn: None,
             rb_local_usn: Some(usn.clone()),
-            created_at: Some(now.clone()),
-            updated_at: Some(now.clone()),
+            created_at: now.clone(),
+            updated_at: now.clone(),
             Name: Some(name.clone()),
         })
     }
@@ -1146,8 +1102,8 @@ pub struct DjmdMenuItems {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub Class: Option<i32>,
     pub Name: Option<String>,
@@ -1177,8 +1133,8 @@ pub struct DjmdMixerParam {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub ContentID: Option<String>,
     pub GainHigh: Option<i32>,
@@ -1211,8 +1167,8 @@ pub struct DjmdMyTag {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub Seq: Option<i32>,
     pub Name: Option<String>,
@@ -1244,8 +1200,8 @@ pub struct DjmdSongMyTag {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub MyTagID: Option<String>,
     pub ContentID: Option<String>,
@@ -1276,8 +1232,8 @@ pub struct DjmdPlaylist {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub Seq: Option<i32>,
     pub Name: Option<String>,
@@ -1309,8 +1265,8 @@ impl DjmdPlaylist {
             rb_local_synced: 0,
             usn: None,
             rb_local_usn: Some(usn.clone()),
-            created_at: Some(now.clone()),
-            updated_at: Some(now.clone()),
+            created_at: now.clone(),
+            updated_at: now.clone(),
             Seq: Some(seq.clone()),
             Name: Some(name.clone()),
             ImagePath: image_path.clone(),
@@ -1343,8 +1299,8 @@ pub struct PlaylistTreeItem {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub Seq: Option<i32>,
     pub Name: Option<String>,
@@ -1407,8 +1363,8 @@ pub struct DjmdSongPlaylist {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub PlaylistID: Option<String>,
     pub ContentID: Option<String>,
@@ -1434,8 +1390,8 @@ impl DjmdSongPlaylist {
             rb_local_synced: 0,
             usn: None,
             rb_local_usn: Some(usn.clone()),
-            created_at: Some(now.clone()),
-            updated_at: Some(now.clone()),
+            created_at: now.clone(),
+            updated_at: now.clone(),
             PlaylistID: Some(playlist_id.clone()),
             ContentID: Some(content_id.clone()),
             TrackNo: Some(seq.clone()),
@@ -1469,8 +1425,8 @@ pub struct DjmdProperty {
     pub Reserved3: Option<String>,
     pub Reserved4: Option<String>,
     pub Reserved5: Option<String>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 }
 
 #[derive(
@@ -1497,8 +1453,8 @@ pub struct DjmdCloudProperty {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub Reserved1: Option<String>,
     pub Reserved2: Option<String>,
@@ -1531,8 +1487,8 @@ pub struct DjmdRecommendLike {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub ContentID1: Option<String>,
     pub ContentID2: Option<String>,
@@ -1565,8 +1521,8 @@ pub struct DjmdRelatedTracks {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub Seq: Option<i32>,
     pub Name: Option<String>,
@@ -1599,8 +1555,8 @@ pub struct DjmdSongRelatedTracks {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub RelatedTracksID: Option<String>,
     pub ContentID: Option<String>,
@@ -1631,8 +1587,8 @@ pub struct DjmdSampler {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub Seq: Option<i32>,
     pub Name: Option<String>,
@@ -1664,8 +1620,8 @@ pub struct DjmdSongSampler {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub SamplerID: Option<String>,
     pub ContentID: Option<String>,
@@ -1696,8 +1652,8 @@ pub struct DjmdSongTagList {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub ContentID: Option<String>,
     pub TrackNo: Option<i32>,
@@ -1727,8 +1683,8 @@ pub struct DjmdSort {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub MenuItemID: Option<String>,
     pub Seq: Option<i32>,
@@ -1759,8 +1715,8 @@ pub struct ImageFile {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub TableName: Option<String>,
     pub TargetUUID: Option<String>,
@@ -1804,8 +1760,8 @@ pub struct SettingFile {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub Path: Option<String>,
     pub Hash: Option<String>,
@@ -1841,8 +1797,8 @@ pub struct UuidIDMap {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 
     pub TableName: Option<String>,
     pub TargetUUID: Option<String>,

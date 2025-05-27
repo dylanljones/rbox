@@ -2,8 +2,8 @@
 resolver = "3"
 members = [
     "rbox",
-    # "bindings/python",
-    # "bindings/javascript",
+    "bindings/python",
+    "bindings/javascript",
 ]
 
 [workspace.package]
