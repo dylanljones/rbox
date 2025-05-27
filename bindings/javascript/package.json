@@ -10,7 +10,7 @@
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
-    "name": "rbox",
+    "name": "rbox-js",
     "triples": {
       "defaults": false,
       "additional": [
