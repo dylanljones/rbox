@@ -5,20 +5,20 @@
 
 #![allow(non_snake_case)]
 
-use diesel::prelude::*;
-use diesel::{FromSqlRow, AsExpression};
+use chrono::{DateTime, Utc};
 use diesel::backend::Backend;
 use diesel::deserialize::{FromSql, Result as DResult};
-use diesel::serialize::{ToSql, Result as SResult, Output};
-use diesel::sql_types::{Text, Nullable};
+use diesel::prelude::*;
+use diesel::serialize::{IsNull, Output, Result as SResult, ToSql};
+use diesel::sql_types::{Nullable, Text};
+use diesel::{AsExpression, FromSqlRow};
 use serde::{Deserialize, Serialize, Serializer};
-use chrono::{DateTime, Utc};
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::schema;
-use super::util::{parse_datetime, format_datetime};
+use super::util::{format_datetime, parse_datetime};
 
 /// Wrapper for DateTime<Utc> for diesel serialization/deserialization
 #[derive(Debug, FromSqlRow, AsExpression)]
@@ -44,21 +44,28 @@ where
 {
     fn from_sql(bytes: B::RawValue<'_>) -> DResult<Self> {
         let s = <String as FromSql<Text, B>>::from_sql(bytes)?;
-        Ok(parse_datetime(&s)
-            .map(DateStringWrapper)
-            .map_err(|_| {
-                let msg = format!("Invalid datetime string: {}", s);
-                diesel::result::Error::DeserializationError(msg.into())
-            })?)
+        Ok(parse_datetime(&s).map(DateStringWrapper).map_err(|_| {
+            let msg = format!("Invalid datetime string: {}", s);
+            diesel::result::Error::DeserializationError(msg.into())
+        })?)
     }
 }
 
+impl ToSql<Text, diesel::sqlite::Sqlite> for DateStringWrapper
+where
+    str: ToSql<Text, diesel::sqlite::Sqlite>,
+{
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, diesel::sqlite::Sqlite>) -> SResult {
+        let s = format_datetime(&self.0); // Format the DateTime<Utc> as a string
+        out.set_value(s); // Set the value in the output buffer
+        Ok(IsNull::No)
+    }
+}
 
 /// Wrapper for Optional DateTime<Utc> for diesel serialization/deserialization
 #[derive(Debug, FromSqlRow)]
 #[diesel(sql_type = Text)]
 pub struct NullableDateStringWrapper(pub Option<DateStringWrapper>);
-
 
 impl From<NullableDateStringWrapper> for Option<DateTime<Utc>> {
     fn from(s: NullableDateStringWrapper) -> Self {
@@ -78,7 +85,24 @@ where
     DateStringWrapper: FromSql<Text, B>,
 {
     fn from_sql(bytes: B::RawValue<'_>) -> DResult<Self> {
-        Ok(NullableDateStringWrapper(<Option<DateStringWrapper>>::from_sql(bytes)?))
+        Ok(NullableDateStringWrapper(
+            <Option<DateStringWrapper>>::from_sql(bytes)?,
+        ))
+    }
+}
+
+impl ToSql<Nullable<Text>, diesel::sqlite::Sqlite> for NullableDateStringWrapper
+where
+    str: ToSql<Text, diesel::sqlite::Sqlite>,
+{
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, diesel::sqlite::Sqlite>) -> SResult {
+        if let Some(ref dt) = self.0 {
+            let s = format_datetime(&dt.0); // Format the DateTime<Utc> as a string
+            out.set_value(s); // Set the value in the output buffer
+            Ok(IsNull::No)
+        } else {
+            Ok(IsNull::Yes) // Handle the null case
+        }
     }
 }
 
