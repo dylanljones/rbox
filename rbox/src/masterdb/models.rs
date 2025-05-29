@@ -10,7 +10,7 @@ use diesel::backend::Backend;
 use diesel::deserialize::{FromSql, Result as DResult};
 use diesel::prelude::*;
 use diesel::serialize::{IsNull, Output, Result as SResult, ToSql};
-use diesel::sql_types::{Nullable, Text};
+use diesel::sql_types::Text;
 use diesel::{AsExpression, FromSqlRow};
 use serde::{Deserialize, Serialize, Serializer};
 
@@ -20,38 +20,40 @@ use std::rc::Rc;
 use super::schema;
 use super::util::{format_datetime, parse_datetime};
 
+type Date = DateTime<Utc>;
+
 /// Wrapper for DateTime<Utc> for diesel serialization/deserialization
 #[derive(Debug, FromSqlRow, AsExpression)]
 #[diesel(sql_type = Text)]
-pub struct DateStringWrapper(pub DateTime<Utc>);
+pub struct DateString(pub DateTime<Utc>);
 
-impl From<DateStringWrapper> for DateTime<Utc> {
-    fn from(s: DateStringWrapper) -> Self {
+impl From<DateString> for DateTime<Utc> {
+    fn from(s: DateString) -> Self {
         s.0
     }
 }
 
-impl From<DateTime<Utc>> for DateStringWrapper {
+impl From<DateTime<Utc>> for DateString {
     fn from(dt: DateTime<Utc>) -> Self {
-        DateStringWrapper(dt)
+        DateString(dt)
     }
 }
 
-impl<B> FromSql<Text, B> for DateStringWrapper
+impl<B> FromSql<Text, B> for DateString
 where
     B: Backend,
     String: FromSql<Text, B>,
 {
     fn from_sql(bytes: B::RawValue<'_>) -> DResult<Self> {
         let s = <String as FromSql<Text, B>>::from_sql(bytes)?;
-        Ok(parse_datetime(&s).map(DateStringWrapper).map_err(|_| {
+        Ok(parse_datetime(&s).map(DateString).map_err(|_| {
             let msg = format!("Invalid datetime string: {}", s);
             diesel::result::Error::DeserializationError(msg.into())
         })?)
     }
 }
 
-impl ToSql<Text, diesel::sqlite::Sqlite> for DateStringWrapper
+impl ToSql<Text, diesel::sqlite::Sqlite> for DateString
 where
     str: ToSql<Text, diesel::sqlite::Sqlite>,
 {
@@ -78,8 +80,12 @@ where
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct AgentRegistry {
     pub registry_id: String,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
     pub id_1: Option<String>,
     pub id_2: Option<String>,
     pub int_1: Option<i32>,
@@ -115,8 +121,12 @@ pub struct CloudAgentRegistry {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub int_1: Option<i32>,
     pub int_2: Option<i32>,
@@ -152,8 +162,12 @@ pub struct ContentActiveCensor {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub ContentID: Option<String>,
     pub ActiveCensors: Option<String>,
@@ -184,8 +198,12 @@ pub struct ContentCue {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub ContentID: Option<String>,
     pub Cues: Option<String>,
@@ -216,8 +234,12 @@ pub struct ContentFile {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub ContentID: Option<String>,
     pub Path: Option<String>,
@@ -259,8 +281,12 @@ pub struct DjmdActiveCensor {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub ContentID: Option<String>,
     pub InMsec: Option<i32>,
@@ -293,8 +319,12 @@ pub struct DjmdAlbum {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub Name: Option<String>,
     pub AlbumArtistID: Option<String>,
@@ -308,7 +338,7 @@ impl DjmdAlbum {
         id: String,
         uuid: String,
         usn: i32,
-        now: String,
+        now: Date,
         name: String,
         artist_id: Option<String>,
         image_path: Option<String>,
@@ -359,8 +389,12 @@ pub struct DjmdArtist {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub Name: Option<String>,
     pub SearchStr: Option<String>,
@@ -371,7 +405,7 @@ impl DjmdArtist {
         id: String,
         uuid: String,
         usn: i32,
-        now: String,
+        now: Date,
         name: String,
     ) -> anyhow::Result<Self> {
         Ok(Self {
@@ -415,8 +449,12 @@ pub struct DjmdCategory {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub MenuItemID: Option<String>,
     pub Seq: Option<i32>,
@@ -448,9 +486,12 @@ pub struct DjmdColor {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
-
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
     pub ColorCode: Option<String>,
     pub SortKey: Option<i32>,
     pub Commnt: Option<String>,
@@ -480,8 +521,12 @@ pub struct DjmdContent {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub FolderPath: Option<String>,
     pub FileNameL: Option<String>,
@@ -558,7 +603,7 @@ impl DjmdContent {
         id: String,
         uuid: String,
         usn: i32,
-        now: String,
+        now: Date,
         path: String,
         file_name: String,
         file_type: i32,
@@ -677,8 +722,12 @@ pub struct DjmdCue {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub ContentID: Option<String>,
     pub InMsec: Option<i32>,
@@ -725,8 +774,12 @@ pub struct DjmdDevice {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub MasterDBID: Option<String>,
     pub Name: Option<String>,
@@ -756,8 +809,12 @@ pub struct DjmdGenre {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub Name: Option<String>,
 }
@@ -767,7 +824,7 @@ impl DjmdGenre {
         id: String,
         uuid: String,
         usn: i32,
-        now: String,
+        now: Date,
         name: String,
     ) -> anyhow::Result<Self> {
         Ok(Self {
@@ -810,8 +867,12 @@ pub struct DjmdHistory {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub Seq: Option<i32>,
     pub Name: Option<String>,
@@ -844,8 +905,12 @@ pub struct DjmdSongHistory {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub HistoryID: Option<String>,
     pub ContentID: Option<String>,
@@ -876,8 +941,12 @@ pub struct DjmdHotCueBanklist {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub Seq: Option<i32>,
     pub Name: Option<String>,
@@ -910,8 +979,12 @@ pub struct DjmdSongHotCueBanklist {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub ContentID: Option<String>,
     pub TrackNo: Option<i32>,
@@ -959,8 +1032,12 @@ pub struct HotCueBanklistCue {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub HotCueBanklistID: Option<String>,
     pub Cues: Option<String>,
@@ -991,8 +1068,12 @@ pub struct DjmdKey {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub ScaleName: Option<String>,
     pub Seq: Option<i32>,
@@ -1003,7 +1084,7 @@ impl DjmdKey {
         id: String,
         uuid: String,
         usn: i32,
-        now: String,
+        now: Date,
         name: String,
         seq: i32,
     ) -> anyhow::Result<Self> {
@@ -1048,8 +1129,12 @@ pub struct DjmdLabel {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub Name: Option<String>,
 }
@@ -1059,7 +1144,7 @@ impl DjmdLabel {
         id: String,
         uuid: String,
         usn: i32,
-        now: String,
+        now: Date,
         name: String,
     ) -> anyhow::Result<Self> {
         Ok(Self {
@@ -1102,8 +1187,12 @@ pub struct DjmdMenuItems {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub Class: Option<i32>,
     pub Name: Option<String>,
@@ -1133,8 +1222,12 @@ pub struct DjmdMixerParam {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub ContentID: Option<String>,
     pub GainHigh: Option<i32>,
@@ -1167,8 +1260,12 @@ pub struct DjmdMyTag {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub Seq: Option<i32>,
     pub Name: Option<String>,
@@ -1200,8 +1297,12 @@ pub struct DjmdSongMyTag {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub MyTagID: Option<String>,
     pub ContentID: Option<String>,
@@ -1232,8 +1333,12 @@ pub struct DjmdPlaylist {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub Seq: Option<i32>,
     pub Name: Option<String>,
@@ -1248,7 +1353,7 @@ impl DjmdPlaylist {
         id: String,
         uuid: String,
         usn: i32,
-        now: String,
+        now: Date,
         name: String,
         attribute: i32,
         parent_id: String,
@@ -1299,8 +1404,8 @@ pub struct PlaylistTreeItem {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    pub created_at: Date,
+    pub updated_at: Date,
 
     pub Seq: Option<i32>,
     pub Name: Option<String>,
@@ -1363,8 +1468,12 @@ pub struct DjmdSongPlaylist {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub PlaylistID: Option<String>,
     pub ContentID: Option<String>,
@@ -1376,7 +1485,7 @@ impl DjmdSongPlaylist {
         id: String,
         uuid: String,
         usn: i32,
-        now: String,
+        now: Date,
         playlist_id: String,
         content_id: String,
         seq: i32,
@@ -1425,8 +1534,12 @@ pub struct DjmdProperty {
     pub Reserved3: Option<String>,
     pub Reserved4: Option<String>,
     pub Reserved5: Option<String>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 }
 
 #[derive(
@@ -1453,8 +1566,12 @@ pub struct DjmdCloudProperty {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub Reserved1: Option<String>,
     pub Reserved2: Option<String>,
@@ -1487,8 +1604,12 @@ pub struct DjmdRecommendLike {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub ContentID1: Option<String>,
     pub ContentID2: Option<String>,
@@ -1521,8 +1642,12 @@ pub struct DjmdRelatedTracks {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub Seq: Option<i32>,
     pub Name: Option<String>,
@@ -1555,8 +1680,12 @@ pub struct DjmdSongRelatedTracks {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub RelatedTracksID: Option<String>,
     pub ContentID: Option<String>,
@@ -1587,8 +1716,12 @@ pub struct DjmdSampler {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub Seq: Option<i32>,
     pub Name: Option<String>,
@@ -1620,8 +1753,12 @@ pub struct DjmdSongSampler {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub SamplerID: Option<String>,
     pub ContentID: Option<String>,
@@ -1652,8 +1789,12 @@ pub struct DjmdSongTagList {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub ContentID: Option<String>,
     pub TrackNo: Option<i32>,
@@ -1683,8 +1824,12 @@ pub struct DjmdSort {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub MenuItemID: Option<String>,
     pub Seq: Option<i32>,
@@ -1715,8 +1860,12 @@ pub struct ImageFile {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub TableName: Option<String>,
     pub TargetUUID: Option<String>,
@@ -1760,8 +1909,12 @@ pub struct SettingFile {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub Path: Option<String>,
     pub Hash: Option<String>,
@@ -1797,8 +1950,12 @@ pub struct UuidIDMap {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: String,
-    pub updated_at: String,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub created_at: Date,
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub updated_at: Date,
 
     pub TableName: Option<String>,
     pub TargetUUID: Option<String>,

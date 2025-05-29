@@ -320,12 +320,19 @@ impl MasterDb {
         let uuid: String = Uuid::new_v4().to_string();
         // Get next USN
         let usn: i32 = self.increment_local_usn(1)?;
-        // Generate date string
+        // Generate date
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(&utcnow);
         // Create and insert model
-        let item: DjmdAlbum =
-            DjmdAlbum::new(id, uuid, usn, now, name, artist_id, image_path, compilation)?;
+        let item: DjmdAlbum = DjmdAlbum::new(
+            id,
+            uuid,
+            usn,
+            utcnow,
+            name,
+            artist_id,
+            image_path,
+            compilation,
+        )?;
         let result: DjmdAlbum = diesel::insert_into(djmdAlbum)
             .values(item)
             .get_result(&mut self.conn)?;
@@ -372,15 +379,13 @@ impl MasterDb {
             return Ok(existing);
         }
         // Update update-time
-        let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(&utcnow);
-        item.updated_at = now;
+        item.updated_at = Utc::now();
         // Update USN
         let usn: i32 = self.increment_local_usn(n)?;
         item.rb_local_usn = Some(usn);
 
         let result: DjmdAlbum = diesel::update(&*item)
-            .set(&*item)
+            .set(item.clone())
             .get_result(&mut self.conn)?;
         Ok(result)
     }
@@ -468,11 +473,10 @@ impl MasterDb {
         let uuid: String = Uuid::new_v4().to_string();
         // Get next USN
         let usn: i32 = self.increment_local_usn(1)?;
-        // Generate date string
+        // Generate date
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(&utcnow);
         // Create and insert model
-        let item: DjmdArtist = DjmdArtist::new(id, uuid, usn, now, name)?;
+        let item: DjmdArtist = DjmdArtist::new(id, uuid, usn, utcnow, name)?;
         let result: DjmdArtist = diesel::insert_into(djmdArtist)
             .values(item)
             .get_result(&mut self.conn)?;
@@ -510,15 +514,13 @@ impl MasterDb {
             return Ok(existing);
         }
         // Update update-time
-        let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(&utcnow);
-        item.updated_at = now;
+        item.updated_at = Utc::now();
         // Update USN
         let usn: i32 = self.increment_local_usn(n)?;
         item.rb_local_usn = Some(usn);
 
         let result: DjmdArtist = diesel::update(&*item)
-            .set(&*item)
+            .set(item.clone())
             .get_result(&mut self.conn)?;
         Ok(result)
     }
@@ -770,9 +772,8 @@ impl MasterDb {
         let uuid: String = Uuid::new_v4().to_string();
         // Get next USN
         let usn: i32 = self.increment_local_usn(1)?;
-        // Generate date string
+        // Generate date
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(&utcnow);
         // Get file metadata
         let meta = std::fs::metadata(&rb_path)?;
         let file_size: u64 = meta.len();
@@ -797,7 +798,7 @@ impl MasterDb {
             id,
             uuid,
             usn,
-            now,
+            utcnow,
             rb_path_str.to_string(),
             file_name,
             file_type as i32,
@@ -821,7 +822,9 @@ impl MasterDb {
                 "Rekordbox is running, unsafe writes are not allowed!"
             ));
         }
-        let result = diesel::update(item).set(item).execute(&mut self.conn)?;
+        let result = diesel::update(&*item)
+            .set(item.clone())
+            .execute(&mut self.conn)?;
         Ok(result)
     }
 
@@ -1087,11 +1090,10 @@ impl MasterDb {
         let uuid: String = Uuid::new_v4().to_string();
         // Get next USN
         let usn: i32 = self.increment_local_usn(1)?;
-        // Generate date string
+        // Generate date
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(&utcnow);
         // Create and insert model
-        let item: DjmdGenre = DjmdGenre::new(id, uuid, usn, now, name)?;
+        let item: DjmdGenre = DjmdGenre::new(id, uuid, usn, utcnow, name)?;
         let result: DjmdGenre = diesel::insert_into(djmdGenre)
             .values(item)
             .get_result(&mut self.conn)?;
@@ -1126,15 +1128,13 @@ impl MasterDb {
             return Ok(existing);
         }
         // Update update-time
-        let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(&utcnow);
-        item.updated_at = now;
+        item.updated_at = Utc::now();
         // Update USN
         let usn: i32 = self.increment_local_usn(n)?;
         item.rb_local_usn = Some(usn);
 
         let result: DjmdGenre = diesel::update(&*item)
-            .set(&*item)
+            .set(item.clone())
             .get_result(&mut self.conn)?;
         Ok(result)
     }
@@ -1310,15 +1310,14 @@ impl MasterDb {
         let uuid: String = Uuid::new_v4().to_string();
         // Get next USN
         let usn: i32 = self.increment_local_usn(1)?;
-        // Generate date string
+        // Generate date
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(&utcnow);
         // Count existing items for inserting at end
         let count = djmdKey.count().get_result::<i64>(&mut self.conn)? as i32;
         let seq: i32 = count + 1;
 
         // Create and insert model
-        let item: DjmdKey = DjmdKey::new(id, uuid, usn, now, name, seq)?;
+        let item: DjmdKey = DjmdKey::new(id, uuid, usn, utcnow, name, seq)?;
         let result: DjmdKey = diesel::insert_into(djmdKey)
             .values(item)
             .get_result(&mut self.conn)?;
@@ -1356,15 +1355,13 @@ impl MasterDb {
             return Ok(existing);
         }
         // Update update-time
-        let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(&utcnow);
-        item.updated_at = now;
+        item.updated_at = Utc::now();
         // Update USN
         let usn: i32 = self.increment_local_usn(n)?;
         item.rb_local_usn = Some(usn);
 
         let result: DjmdKey = diesel::update(&*item)
-            .set(&*item)
+            .set(item.clone())
             .get_result(&mut self.conn)?;
         Ok(result)
     }
@@ -1452,11 +1449,10 @@ impl MasterDb {
         let uuid: String = Uuid::new_v4().to_string();
         // Get next USN
         let usn: i32 = self.increment_local_usn(1)?;
-        // Generate date string
+        // Generate date
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(&utcnow);
         // Create and insert model
-        let item: DjmdLabel = DjmdLabel::new(id, uuid, usn, now, name)?;
+        let item: DjmdLabel = DjmdLabel::new(id, uuid, usn, utcnow, name)?;
         let result: DjmdLabel = diesel::insert_into(djmdLabel)
             .values(item)
             .get_result(&mut self.conn)?;
@@ -1491,15 +1487,13 @@ impl MasterDb {
             return Ok(existing);
         }
         // Update update-time
-        let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(&utcnow);
-        item.updated_at = now;
+        item.updated_at = Utc::now();
         // Update USN
         let usn: i32 = self.increment_local_usn(n)?;
         item.rb_local_usn = Some(usn);
 
         let result: DjmdLabel = diesel::update(&*item)
-            .set(&*item)
+            .set(item.clone())
             .get_result(&mut self.conn)?;
         Ok(result)
     }
@@ -1779,10 +1773,8 @@ impl MasterDb {
         // Generate ID/UUID for new playlist
         let id: String = self.generate_playlist_id()?;
         let uuid: String = Uuid::new_v4().to_string();
-
-        // Generate date string
+        // Generate date
         let utcnow = Utc::now();
-        let now: String = format_datetime(&utcnow);
         // Count existing playlists with same parent
         let count = djmdPlaylist
             .filter(schema::djmdPlaylist::ParentID.eq(parent_id.clone()))
@@ -1808,7 +1800,7 @@ impl MasterDb {
             .set((
                 schema::djmdPlaylist::Seq.eq(schema::djmdPlaylist::Seq + 1),
                 schema::djmdPlaylist::rb_local_usn.eq(move_usn.clone()),
-                schema::djmdPlaylist::updated_at.eq(now.clone()),
+                schema::djmdPlaylist::updated_at.eq(format_datetime(&utcnow)),
             ))
             .execute(&mut self.conn)?;
             seq
@@ -1825,7 +1817,7 @@ impl MasterDb {
             id.clone(),
             uuid,
             usn,
-            now,
+            utcnow,
             name,
             attribute.clone() as i32,
             parent_id.clone(),
@@ -1859,14 +1851,13 @@ impl MasterDb {
             ));
         }
         let utcnow = Utc::now();
-        let now: String = format_datetime(&utcnow);
         let usn: i32 = self.increment_local_usn(1)?;
         let result: DjmdPlaylist =
             diesel::update(djmdPlaylist.filter(schema::djmdPlaylist::ID.eq(id)))
                 .set((
                     schema::djmdPlaylist::Name.eq(name),
                     schema::djmdPlaylist::rb_local_usn.eq(usn),
-                    schema::djmdPlaylist::updated_at.eq(now),
+                    schema::djmdPlaylist::updated_at.eq(format_datetime(&utcnow)),
                 ))
                 .get_result(&mut self.conn)?;
 
@@ -1905,7 +1896,7 @@ impl MasterDb {
         let usn = self.increment_local_usn(1)?;
         // Generate date string
         let utcnow = Utc::now();
-        let now: String = format_datetime(&utcnow);
+        let datestr: String = format_datetime(&utcnow);
 
         if parent_id != old_parent_id {
             let sequence: i32;
@@ -1927,7 +1918,7 @@ impl MasterDb {
             .set((
                 schema::djmdPlaylist::Seq.eq(schema::djmdPlaylist::Seq - 1),
                 schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
-                schema::djmdPlaylist::updated_at.eq(now.clone()),
+                schema::djmdPlaylist::updated_at.eq(datestr.clone()),
             ))
             .execute(&mut self.conn)?;
             if let Some(seq) = seq {
@@ -1940,7 +1931,7 @@ impl MasterDb {
                 .set((
                     schema::djmdPlaylist::Seq.eq(schema::djmdPlaylist::Seq + 1),
                     schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
-                    schema::djmdPlaylist::updated_at.eq(now.clone()),
+                    schema::djmdPlaylist::updated_at.eq(datestr.clone()),
                 ))
                 .execute(&mut self.conn)?;
 
@@ -1960,7 +1951,7 @@ impl MasterDb {
                     schema::djmdPlaylist::Seq.eq(sequence),
                     schema::djmdPlaylist::ParentID.eq(parent_id.clone()),
                     schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
-                    schema::djmdPlaylist::updated_at.eq(now.clone()),
+                    schema::djmdPlaylist::updated_at.eq(datestr.clone()),
                 ))
                 .execute(&mut self.conn)?;
         } else {
@@ -1978,7 +1969,7 @@ impl MasterDb {
                 .set((
                     schema::djmdPlaylist::Seq.eq(schema::djmdPlaylist::Seq - 1),
                     schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
-                    schema::djmdPlaylist::updated_at.eq(now.clone()),
+                    schema::djmdPlaylist::updated_at.eq(datestr.clone()),
                 ))
                 .execute(&mut self.conn)?;
             } else if seq < old_seq {
@@ -1993,7 +1984,7 @@ impl MasterDb {
                 .set((
                     schema::djmdPlaylist::Seq.eq(schema::djmdPlaylist::Seq + 1),
                     schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
-                    schema::djmdPlaylist::updated_at.eq(now.clone()),
+                    schema::djmdPlaylist::updated_at.eq(datestr.clone()),
                 ))
                 .execute(&mut self.conn)?;
             };
@@ -2002,7 +1993,7 @@ impl MasterDb {
                 .set((
                     schema::djmdPlaylist::Seq.eq(seq),
                     schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
-                    schema::djmdPlaylist::updated_at.eq(now.clone()),
+                    schema::djmdPlaylist::updated_at.eq(datestr.clone()),
                 ))
                 .execute(&mut self.conn)?;
         };
@@ -2028,9 +2019,8 @@ impl MasterDb {
             ));
         }
         let usn = self.increment_local_usn(1)?;
-        // Generate date string
+        // Generate date
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(&utcnow);
 
         // Get parentID and seq number
         let playlist: DjmdPlaylist = self.get_playlist_by_id(id)?.expect("Playlist not found");
@@ -2048,7 +2038,7 @@ impl MasterDb {
         .set((
             schema::djmdPlaylist::Seq.eq(schema::djmdPlaylist::Seq - 1),
             schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
-            schema::djmdPlaylist::updated_at.eq(now.clone()),
+            schema::djmdPlaylist::updated_at.eq(format_datetime(&utcnow)),
         ))
         .execute(&mut self.conn)?;
 
@@ -2117,7 +2107,6 @@ impl MasterDb {
         let id: String = self.generate_playlist_song_id()?;
         let uuid: String = Uuid::new_v4().to_string();
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(&utcnow);
 
         // Count existing songs in playlist
         let count = djmdSongPlaylist
@@ -2147,7 +2136,7 @@ impl MasterDb {
             .set((
                 schema::djmdSongPlaylist::TrackNo.eq(schema::djmdSongPlaylist::TrackNo + 1),
                 schema::djmdSongPlaylist::rb_local_usn.eq(move_usn.clone()),
-                schema::djmdSongPlaylist::updated_at.eq(now.clone()),
+                schema::djmdSongPlaylist::updated_at.eq(format_datetime(&utcnow)),
             ))
             .execute(&mut self.conn)?;
             seq
@@ -2160,7 +2149,7 @@ impl MasterDb {
             id,
             uuid,
             usn,
-            now,
+            utcnow,
             playlist_id.clone(),
             content_id.clone(),
             seq,
@@ -2191,7 +2180,7 @@ impl MasterDb {
 
         let usn = self.increment_local_usn(1)?;
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(&utcnow);
+        let datestr: String = format_datetime(&utcnow);
         if seq > old_seq {
             // Seq is increased (move down in playlist):
             // Decrease seq of all songs with seq between old seq and new seq
@@ -2204,7 +2193,7 @@ impl MasterDb {
             .set((
                 schema::djmdSongPlaylist::TrackNo.eq(schema::djmdSongPlaylist::TrackNo - 1),
                 schema::djmdSongPlaylist::rb_local_usn.eq(usn.clone()),
-                schema::djmdSongPlaylist::updated_at.eq(now.clone()),
+                schema::djmdSongPlaylist::updated_at.eq(datestr.clone()),
             ))
             .execute(&mut self.conn)?;
         } else {
@@ -2219,7 +2208,7 @@ impl MasterDb {
             .set((
                 schema::djmdSongPlaylist::TrackNo.eq(schema::djmdSongPlaylist::TrackNo + 1),
                 schema::djmdSongPlaylist::rb_local_usn.eq(usn.clone()),
-                schema::djmdSongPlaylist::updated_at.eq(now.clone()),
+                schema::djmdSongPlaylist::updated_at.eq(datestr.clone()),
             ))
             .execute(&mut self.conn)?;
         };
@@ -2228,7 +2217,7 @@ impl MasterDb {
             .set((
                 schema::djmdSongPlaylist::TrackNo.eq(seq),
                 schema::djmdSongPlaylist::rb_local_usn.eq(usn.clone()),
-                schema::djmdSongPlaylist::updated_at.eq(now.clone()),
+                schema::djmdSongPlaylist::updated_at.eq(datestr.clone()),
             ))
             .execute(&mut self.conn)?;
 
@@ -2246,7 +2235,7 @@ impl MasterDb {
         }
         let usn = self.increment_local_usn(1)?;
         let utcnow: DateTime<Utc> = Utc::now();
-        let now: String = format_datetime(&utcnow);
+        let datestr: String = format_datetime(&utcnow);
 
         // Get playlist and seq number
         let song: DjmdSongPlaylist = self.get_playlist_song_by_id(id)?.expect("Song not found");
@@ -2262,7 +2251,7 @@ impl MasterDb {
         .set((
             schema::djmdSongPlaylist::TrackNo.eq(schema::djmdSongPlaylist::TrackNo - 1),
             schema::djmdSongPlaylist::rb_local_usn.eq(usn.clone()),
-            schema::djmdSongPlaylist::updated_at.eq(now.clone()),
+            schema::djmdSongPlaylist::updated_at.eq(datestr),
         ))
         .execute(&mut self.conn)?;
 

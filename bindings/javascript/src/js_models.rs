@@ -3,7 +3,18 @@
 #![allow(non_snake_case)]
 
 use napi_derive::napi;
+// use napi::JsDate;
+use chrono::{DateTime, Utc};
 use rbox::masterdb::models::*;
+
+pub fn datetime_to_js_date(date: &DateTime<Utc>) -> String {
+    date.to_rfc3339()
+}
+
+pub fn js_date_to_datetime(date: String) -> DateTime<Utc> {
+    let dt = DateTime::parse_from_rfc3339(&date).expect("Failed to convert String to DateTime");
+    dt.with_timezone(&Utc)
+}
 
 #[napi(object, js_name = "AgentRegistry")]
 pub struct JsAgentRegistry {
@@ -24,10 +35,13 @@ pub struct JsAgentRegistry {
 
 impl From<AgentRegistry> for JsAgentRegistry {
     fn from(model: AgentRegistry) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsAgentRegistry {
             registry_id: model.registry_id,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             id_1: model.id_1,
             id_2: model.id_2,
             int_1: model.int_1,
@@ -44,10 +58,13 @@ impl From<AgentRegistry> for JsAgentRegistry {
 
 impl From<JsAgentRegistry> for AgentRegistry {
     fn from(js_model: JsAgentRegistry) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         AgentRegistry {
             registry_id: js_model.registry_id,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             id_1: js_model.id_1,
             id_2: js_model.id_2,
             int_1: js_model.int_1,
@@ -86,6 +103,9 @@ pub struct JsCloudAgentRegistry {
 
 impl From<CloudAgentRegistry> for JsCloudAgentRegistry {
     fn from(model: CloudAgentRegistry) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsCloudAgentRegistry {
             ID: model.ID,
             UUID: model.UUID,
@@ -95,8 +115,8 @@ impl From<CloudAgentRegistry> for JsCloudAgentRegistry {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             int_1: model.int_1,
             int_2: model.int_2,
             str_1: model.str_1,
@@ -111,6 +131,9 @@ impl From<CloudAgentRegistry> for JsCloudAgentRegistry {
 
 impl From<JsCloudAgentRegistry> for CloudAgentRegistry {
     fn from(js_model: JsCloudAgentRegistry) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         CloudAgentRegistry {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -120,8 +143,8 @@ impl From<JsCloudAgentRegistry> for CloudAgentRegistry {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             int_1: js_model.int_1,
             int_2: js_model.int_2,
             str_1: js_model.str_1,
@@ -153,6 +176,9 @@ pub struct JsContentActiveCensor {
 
 impl From<ContentActiveCensor> for JsContentActiveCensor {
     fn from(model: ContentActiveCensor) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsContentActiveCensor {
             ID: model.ID,
             UUID: model.UUID,
@@ -162,8 +188,8 @@ impl From<ContentActiveCensor> for JsContentActiveCensor {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ContentID: model.ContentID,
             ActiveCensors: model.ActiveCensors,
             rb_activecensor_count: model.rb_activecensor_count,
@@ -173,6 +199,9 @@ impl From<ContentActiveCensor> for JsContentActiveCensor {
 
 impl From<JsContentActiveCensor> for ContentActiveCensor {
     fn from(js_model: JsContentActiveCensor) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         ContentActiveCensor {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -182,8 +211,8 @@ impl From<JsContentActiveCensor> for ContentActiveCensor {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ContentID: js_model.ContentID,
             ActiveCensors: js_model.ActiveCensors,
             rb_activecensor_count: js_model.rb_activecensor_count,
@@ -210,6 +239,9 @@ pub struct JsContentCue {
 
 impl From<ContentCue> for JsContentCue {
     fn from(model: ContentCue) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsContentCue {
             ID: model.ID,
             UUID: model.UUID,
@@ -219,8 +251,8 @@ impl From<ContentCue> for JsContentCue {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ContentID: model.ContentID,
             Cues: model.Cues,
             rb_cue_count: model.rb_cue_count,
@@ -230,6 +262,9 @@ impl From<ContentCue> for JsContentCue {
 
 impl From<JsContentCue> for ContentCue {
     fn from(js_model: JsContentCue) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         ContentCue {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -239,8 +274,8 @@ impl From<JsContentCue> for ContentCue {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ContentID: js_model.ContentID,
             Cues: js_model.Cues,
             rb_cue_count: js_model.rb_cue_count,
@@ -278,6 +313,9 @@ pub struct JsContentFile {
 
 impl From<ContentFile> for JsContentFile {
     fn from(model: ContentFile) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsContentFile {
             ID: model.ID,
             UUID: model.UUID,
@@ -287,8 +325,8 @@ impl From<ContentFile> for JsContentFile {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ContentID: model.ContentID,
             Path: model.Path,
             Hash: model.Hash,
@@ -309,6 +347,9 @@ impl From<ContentFile> for JsContentFile {
 
 impl From<JsContentFile> for ContentFile {
     fn from(js_model: JsContentFile) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         ContentFile {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -318,8 +359,8 @@ impl From<JsContentFile> for ContentFile {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ContentID: js_model.ContentID,
             Path: js_model.Path,
             Hash: js_model.Hash,
@@ -360,6 +401,9 @@ pub struct JsDjmdActiveCensor {
 
 impl From<DjmdActiveCensor> for JsDjmdActiveCensor {
     fn from(model: DjmdActiveCensor) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdActiveCensor {
             ID: model.ID,
             UUID: model.UUID,
@@ -369,8 +413,8 @@ impl From<DjmdActiveCensor> for JsDjmdActiveCensor {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ContentID: model.ContentID,
             InMsec: model.InMsec,
             OutMsec: model.OutMsec,
@@ -383,6 +427,9 @@ impl From<DjmdActiveCensor> for JsDjmdActiveCensor {
 
 impl From<JsDjmdActiveCensor> for DjmdActiveCensor {
     fn from(js_model: JsDjmdActiveCensor) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdActiveCensor {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -392,8 +439,8 @@ impl From<JsDjmdActiveCensor> for DjmdActiveCensor {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ContentID: js_model.ContentID,
             InMsec: js_model.InMsec,
             OutMsec: js_model.OutMsec,
@@ -425,6 +472,9 @@ pub struct JsDjmdAlbum {
 
 impl From<DjmdAlbum> for JsDjmdAlbum {
     fn from(model: DjmdAlbum) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdAlbum {
             ID: model.ID,
             UUID: model.UUID,
@@ -434,8 +484,8 @@ impl From<DjmdAlbum> for JsDjmdAlbum {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Name: model.Name,
             AlbumArtistID: model.AlbumArtistID,
             ImagePath: model.ImagePath,
@@ -447,6 +497,9 @@ impl From<DjmdAlbum> for JsDjmdAlbum {
 
 impl From<JsDjmdAlbum> for DjmdAlbum {
     fn from(js_model: JsDjmdAlbum) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdAlbum {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -456,8 +509,8 @@ impl From<JsDjmdAlbum> for DjmdAlbum {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Name: js_model.Name,
             AlbumArtistID: js_model.AlbumArtistID,
             ImagePath: js_model.ImagePath,
@@ -485,6 +538,9 @@ pub struct JsDjmdArtist {
 
 impl From<DjmdArtist> for JsDjmdArtist {
     fn from(model: DjmdArtist) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdArtist {
             ID: model.ID,
             UUID: model.UUID,
@@ -494,8 +550,8 @@ impl From<DjmdArtist> for JsDjmdArtist {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Name: model.Name,
             SearchStr: model.SearchStr,
         }
@@ -504,6 +560,9 @@ impl From<DjmdArtist> for JsDjmdArtist {
 
 impl From<JsDjmdArtist> for DjmdArtist {
     fn from(js_model: JsDjmdArtist) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdArtist {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -513,8 +572,8 @@ impl From<JsDjmdArtist> for DjmdArtist {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Name: js_model.Name,
             SearchStr: js_model.SearchStr,
         }
@@ -541,6 +600,9 @@ pub struct JsDjmdCategory {
 
 impl From<DjmdCategory> for JsDjmdCategory {
     fn from(model: DjmdCategory) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdCategory {
             ID: model.ID,
             UUID: model.UUID,
@@ -550,8 +612,8 @@ impl From<DjmdCategory> for JsDjmdCategory {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             MenuItemID: model.MenuItemID,
             Seq: model.Seq,
             Disable: model.Disable,
@@ -562,6 +624,9 @@ impl From<DjmdCategory> for JsDjmdCategory {
 
 impl From<JsDjmdCategory> for DjmdCategory {
     fn from(js_model: JsDjmdCategory) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdCategory {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -571,8 +636,8 @@ impl From<JsDjmdCategory> for DjmdCategory {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             MenuItemID: js_model.MenuItemID,
             Seq: js_model.Seq,
             Disable: js_model.Disable,
@@ -600,6 +665,9 @@ pub struct JsDjmdColor {
 
 impl From<DjmdColor> for JsDjmdColor {
     fn from(model: DjmdColor) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdColor {
             ID: model.ID,
             UUID: model.UUID,
@@ -609,8 +677,8 @@ impl From<DjmdColor> for JsDjmdColor {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ColorCode: model.ColorCode,
             SortKey: model.SortKey,
             Commnt: model.Commnt,
@@ -620,6 +688,9 @@ impl From<DjmdColor> for JsDjmdColor {
 
 impl From<JsDjmdColor> for DjmdColor {
     fn from(js_model: JsDjmdColor) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdColor {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -629,8 +700,8 @@ impl From<JsDjmdColor> for DjmdColor {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ColorCode: js_model.ColorCode,
             SortKey: js_model.SortKey,
             Commnt: js_model.Commnt,
@@ -722,6 +793,9 @@ pub struct JsDjmdContent {
 
 impl From<DjmdContent> for JsDjmdContent {
     fn from(model: DjmdContent) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdContent {
             ID: model.ID,
             UUID: model.UUID,
@@ -731,8 +805,8 @@ impl From<DjmdContent> for JsDjmdContent {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             FolderPath: model.FolderPath,
             FileNameL: model.FileNameL,
             FileNameS: model.FileNameS,
@@ -807,6 +881,9 @@ impl From<DjmdContent> for JsDjmdContent {
 
 impl From<JsDjmdContent> for DjmdContent {
     fn from(js_model: JsDjmdContent) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdContent {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -816,8 +893,8 @@ impl From<JsDjmdContent> for DjmdContent {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             FolderPath: js_model.FolderPath,
             FileNameL: js_model.FileNameL,
             FileNameS: js_model.FileNameS,
@@ -925,6 +1002,9 @@ pub struct JsDjmdCue {
 
 impl From<DjmdCue> for JsDjmdCue {
     fn from(model: DjmdCue) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdCue {
             ID: model.ID,
             UUID: model.UUID,
@@ -934,8 +1014,8 @@ impl From<DjmdCue> for JsDjmdCue {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ContentID: model.ContentID,
             InMsec: model.InMsec,
             InFrame: model.InFrame,
@@ -961,6 +1041,9 @@ impl From<DjmdCue> for JsDjmdCue {
 
 impl From<JsDjmdCue> for DjmdCue {
     fn from(js_model: JsDjmdCue) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdCue {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -970,8 +1053,8 @@ impl From<JsDjmdCue> for DjmdCue {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ContentID: js_model.ContentID,
             InMsec: js_model.InMsec,
             InFrame: js_model.InFrame,
@@ -1013,6 +1096,9 @@ pub struct JsDjmdDevice {
 
 impl From<DjmdDevice> for JsDjmdDevice {
     fn from(model: DjmdDevice) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdDevice {
             ID: model.ID,
             UUID: model.UUID,
@@ -1022,8 +1108,8 @@ impl From<DjmdDevice> for JsDjmdDevice {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             MasterDBID: model.MasterDBID,
             Name: model.Name,
         }
@@ -1032,6 +1118,9 @@ impl From<DjmdDevice> for JsDjmdDevice {
 
 impl From<JsDjmdDevice> for DjmdDevice {
     fn from(js_model: JsDjmdDevice) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdDevice {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -1041,8 +1130,8 @@ impl From<JsDjmdDevice> for DjmdDevice {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             MasterDBID: js_model.MasterDBID,
             Name: js_model.Name,
         }
@@ -1066,6 +1155,9 @@ pub struct JsDjmdGenre {
 
 impl From<DjmdGenre> for JsDjmdGenre {
     fn from(model: DjmdGenre) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdGenre {
             ID: model.ID,
             UUID: model.UUID,
@@ -1075,8 +1167,8 @@ impl From<DjmdGenre> for JsDjmdGenre {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Name: model.Name,
         }
     }
@@ -1084,6 +1176,9 @@ impl From<DjmdGenre> for JsDjmdGenre {
 
 impl From<JsDjmdGenre> for DjmdGenre {
     fn from(js_model: JsDjmdGenre) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdGenre {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -1093,8 +1188,8 @@ impl From<JsDjmdGenre> for DjmdGenre {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Name: js_model.Name,
         }
     }
@@ -1121,6 +1216,9 @@ pub struct JsDjmdHistory {
 
 impl From<DjmdHistory> for JsDjmdHistory {
     fn from(model: DjmdHistory) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdHistory {
             ID: model.ID,
             UUID: model.UUID,
@@ -1130,8 +1228,8 @@ impl From<DjmdHistory> for JsDjmdHistory {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Seq: model.Seq,
             Name: model.Name,
             Attribute: model.Attribute,
@@ -1143,6 +1241,9 @@ impl From<DjmdHistory> for JsDjmdHistory {
 
 impl From<JsDjmdHistory> for DjmdHistory {
     fn from(js_model: JsDjmdHistory) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdHistory {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -1152,8 +1253,8 @@ impl From<JsDjmdHistory> for DjmdHistory {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Seq: js_model.Seq,
             Name: js_model.Name,
             Attribute: js_model.Attribute,
@@ -1182,6 +1283,9 @@ pub struct JsDjmdSongHistory {
 
 impl From<DjmdSongHistory> for JsDjmdSongHistory {
     fn from(model: DjmdSongHistory) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdSongHistory {
             ID: model.ID,
             UUID: model.UUID,
@@ -1191,8 +1295,8 @@ impl From<DjmdSongHistory> for JsDjmdSongHistory {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             HistoryID: model.HistoryID,
             ContentID: model.ContentID,
             TrackNo: model.TrackNo,
@@ -1202,6 +1306,9 @@ impl From<DjmdSongHistory> for JsDjmdSongHistory {
 
 impl From<JsDjmdSongHistory> for DjmdSongHistory {
     fn from(js_model: JsDjmdSongHistory) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdSongHistory {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -1211,8 +1318,8 @@ impl From<JsDjmdSongHistory> for DjmdSongHistory {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             HistoryID: js_model.HistoryID,
             ContentID: js_model.ContentID,
             TrackNo: js_model.TrackNo,
@@ -1241,6 +1348,9 @@ pub struct JsDjmdHotCueBanklist {
 
 impl From<DjmdHotCueBanklist> for JsDjmdHotCueBanklist {
     fn from(model: DjmdHotCueBanklist) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdHotCueBanklist {
             ID: model.ID,
             UUID: model.UUID,
@@ -1250,8 +1360,8 @@ impl From<DjmdHotCueBanklist> for JsDjmdHotCueBanklist {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Seq: model.Seq,
             Name: model.Name,
             ImagePath: model.ImagePath,
@@ -1263,6 +1373,9 @@ impl From<DjmdHotCueBanklist> for JsDjmdHotCueBanklist {
 
 impl From<JsDjmdHotCueBanklist> for DjmdHotCueBanklist {
     fn from(js_model: JsDjmdHotCueBanklist) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdHotCueBanklist {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -1272,8 +1385,8 @@ impl From<JsDjmdHotCueBanklist> for DjmdHotCueBanklist {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Seq: js_model.Seq,
             Name: js_model.Name,
             ImagePath: js_model.ImagePath,
@@ -1319,6 +1432,9 @@ pub struct JsDjmdSongHotCueBanklist {
 
 impl From<DjmdSongHotCueBanklist> for JsDjmdSongHotCueBanklist {
     fn from(model: DjmdSongHotCueBanklist) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdSongHotCueBanklist {
             ID: model.ID,
             UUID: model.UUID,
@@ -1328,8 +1444,8 @@ impl From<DjmdSongHotCueBanklist> for JsDjmdSongHotCueBanklist {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ContentID: model.ContentID,
             TrackNo: model.TrackNo,
             CueID: model.CueID,
@@ -1356,6 +1472,9 @@ impl From<DjmdSongHotCueBanklist> for JsDjmdSongHotCueBanklist {
 
 impl From<JsDjmdSongHotCueBanklist> for DjmdSongHotCueBanklist {
     fn from(js_model: JsDjmdSongHotCueBanklist) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdSongHotCueBanklist {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -1365,8 +1484,8 @@ impl From<JsDjmdSongHotCueBanklist> for DjmdSongHotCueBanklist {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ContentID: js_model.ContentID,
             TrackNo: js_model.TrackNo,
             CueID: js_model.CueID,
@@ -1410,6 +1529,9 @@ pub struct JsHotCueBanklistCue {
 
 impl From<HotCueBanklistCue> for JsHotCueBanklistCue {
     fn from(model: HotCueBanklistCue) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsHotCueBanklistCue {
             ID: model.ID,
             UUID: model.UUID,
@@ -1419,8 +1541,8 @@ impl From<HotCueBanklistCue> for JsHotCueBanklistCue {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             HotCueBanklistID: model.HotCueBanklistID,
             Cues: model.Cues,
             rb_cue_count: model.rb_cue_count,
@@ -1430,6 +1552,9 @@ impl From<HotCueBanklistCue> for JsHotCueBanklistCue {
 
 impl From<JsHotCueBanklistCue> for HotCueBanklistCue {
     fn from(js_model: JsHotCueBanklistCue) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         HotCueBanklistCue {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -1439,8 +1564,8 @@ impl From<JsHotCueBanklistCue> for HotCueBanklistCue {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             HotCueBanklistID: js_model.HotCueBanklistID,
             Cues: js_model.Cues,
             rb_cue_count: js_model.rb_cue_count,
@@ -1466,6 +1591,9 @@ pub struct JsDjmdKey {
 
 impl From<DjmdKey> for JsDjmdKey {
     fn from(model: DjmdKey) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdKey {
             ID: model.ID,
             UUID: model.UUID,
@@ -1475,8 +1603,8 @@ impl From<DjmdKey> for JsDjmdKey {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ScaleName: model.ScaleName,
             Seq: model.Seq,
         }
@@ -1485,6 +1613,9 @@ impl From<DjmdKey> for JsDjmdKey {
 
 impl From<JsDjmdKey> for DjmdKey {
     fn from(js_model: JsDjmdKey) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdKey {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -1494,8 +1625,8 @@ impl From<JsDjmdKey> for DjmdKey {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ScaleName: js_model.ScaleName,
             Seq: js_model.Seq,
         }
@@ -1519,6 +1650,9 @@ pub struct JsDjmdLabel {
 
 impl From<DjmdLabel> for JsDjmdLabel {
     fn from(model: DjmdLabel) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdLabel {
             ID: model.ID,
             UUID: model.UUID,
@@ -1528,8 +1662,8 @@ impl From<DjmdLabel> for JsDjmdLabel {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Name: model.Name,
         }
     }
@@ -1537,6 +1671,9 @@ impl From<DjmdLabel> for JsDjmdLabel {
 
 impl From<JsDjmdLabel> for DjmdLabel {
     fn from(js_model: JsDjmdLabel) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdLabel {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -1546,8 +1683,8 @@ impl From<JsDjmdLabel> for DjmdLabel {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Name: js_model.Name,
         }
     }
@@ -1571,6 +1708,9 @@ pub struct JsDjmdMenuItems {
 
 impl From<DjmdMenuItems> for JsDjmdMenuItems {
     fn from(model: DjmdMenuItems) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdMenuItems {
             ID: model.ID,
             UUID: model.UUID,
@@ -1580,8 +1720,8 @@ impl From<DjmdMenuItems> for JsDjmdMenuItems {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Class: model.Class,
             Name: model.Name,
         }
@@ -1590,6 +1730,9 @@ impl From<DjmdMenuItems> for JsDjmdMenuItems {
 
 impl From<JsDjmdMenuItems> for DjmdMenuItems {
     fn from(js_model: JsDjmdMenuItems) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdMenuItems {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -1599,8 +1742,8 @@ impl From<JsDjmdMenuItems> for DjmdMenuItems {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Class: js_model.Class,
             Name: js_model.Name,
         }
@@ -1628,6 +1771,9 @@ pub struct JsDjmdMixerParam {
 
 impl From<DjmdMixerParam> for JsDjmdMixerParam {
     fn from(model: DjmdMixerParam) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdMixerParam {
             ID: model.ID,
             UUID: model.UUID,
@@ -1637,8 +1783,8 @@ impl From<DjmdMixerParam> for JsDjmdMixerParam {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ContentID: model.ContentID,
             GainHigh: model.GainHigh,
             GainLow: model.GainLow,
@@ -1650,6 +1796,9 @@ impl From<DjmdMixerParam> for JsDjmdMixerParam {
 
 impl From<JsDjmdMixerParam> for DjmdMixerParam {
     fn from(js_model: JsDjmdMixerParam) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdMixerParam {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -1659,8 +1808,8 @@ impl From<JsDjmdMixerParam> for DjmdMixerParam {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ContentID: js_model.ContentID,
             GainHigh: js_model.GainHigh,
             GainLow: js_model.GainLow,
@@ -1690,6 +1839,9 @@ pub struct JsDjmdMyTag {
 
 impl From<DjmdMyTag> for JsDjmdMyTag {
     fn from(model: DjmdMyTag) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdMyTag {
             ID: model.ID,
             UUID: model.UUID,
@@ -1699,8 +1851,8 @@ impl From<DjmdMyTag> for JsDjmdMyTag {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Seq: model.Seq,
             Name: model.Name,
             Attribute: model.Attribute,
@@ -1711,6 +1863,9 @@ impl From<DjmdMyTag> for JsDjmdMyTag {
 
 impl From<JsDjmdMyTag> for DjmdMyTag {
     fn from(js_model: JsDjmdMyTag) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdMyTag {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -1720,8 +1875,8 @@ impl From<JsDjmdMyTag> for DjmdMyTag {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Seq: js_model.Seq,
             Name: js_model.Name,
             Attribute: js_model.Attribute,
@@ -1749,6 +1904,9 @@ pub struct JsDjmdSongMyTag {
 
 impl From<DjmdSongMyTag> for JsDjmdSongMyTag {
     fn from(model: DjmdSongMyTag) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdSongMyTag {
             ID: model.ID,
             UUID: model.UUID,
@@ -1758,8 +1916,8 @@ impl From<DjmdSongMyTag> for JsDjmdSongMyTag {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             MyTagID: model.MyTagID,
             ContentID: model.ContentID,
             TrackNo: model.TrackNo,
@@ -1769,6 +1927,9 @@ impl From<DjmdSongMyTag> for JsDjmdSongMyTag {
 
 impl From<JsDjmdSongMyTag> for DjmdSongMyTag {
     fn from(js_model: JsDjmdSongMyTag) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdSongMyTag {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -1778,8 +1939,8 @@ impl From<JsDjmdSongMyTag> for DjmdSongMyTag {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             MyTagID: js_model.MyTagID,
             ContentID: js_model.ContentID,
             TrackNo: js_model.TrackNo,
@@ -1809,6 +1970,9 @@ pub struct JsDjmdPlaylist {
 
 impl From<DjmdPlaylist> for JsDjmdPlaylist {
     fn from(model: DjmdPlaylist) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdPlaylist {
             ID: model.ID,
             UUID: model.UUID,
@@ -1818,8 +1982,8 @@ impl From<DjmdPlaylist> for JsDjmdPlaylist {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Seq: model.Seq,
             Name: model.Name,
             ImagePath: model.ImagePath,
@@ -1832,6 +1996,9 @@ impl From<DjmdPlaylist> for JsDjmdPlaylist {
 
 impl From<JsDjmdPlaylist> for DjmdPlaylist {
     fn from(js_model: JsDjmdPlaylist) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdPlaylist {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -1841,8 +2008,8 @@ impl From<JsDjmdPlaylist> for DjmdPlaylist {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Seq: js_model.Seq,
             Name: js_model.Name,
             ImagePath: js_model.ImagePath,
@@ -1877,6 +2044,9 @@ pub struct JsPlaylistTreeItem {
 
 impl From<PlaylistTreeItem> for JsPlaylistTreeItem {
     fn from(model: PlaylistTreeItem) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         let mut js_model = Self {
             ID: model.ID,
             UUID: model.UUID,
@@ -1886,8 +2056,8 @@ impl From<PlaylistTreeItem> for JsPlaylistTreeItem {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Seq: model.Seq,
             Name: model.Name,
             ImagePath: model.ImagePath,
@@ -1925,6 +2095,9 @@ pub struct JsDjmdSongPlaylist {
 
 impl From<DjmdSongPlaylist> for JsDjmdSongPlaylist {
     fn from(model: DjmdSongPlaylist) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdSongPlaylist {
             ID: model.ID,
             UUID: model.UUID,
@@ -1934,8 +2107,8 @@ impl From<DjmdSongPlaylist> for JsDjmdSongPlaylist {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             PlaylistID: model.PlaylistID,
             ContentID: model.ContentID,
             TrackNo: model.TrackNo,
@@ -1945,6 +2118,9 @@ impl From<DjmdSongPlaylist> for JsDjmdSongPlaylist {
 
 impl From<JsDjmdSongPlaylist> for DjmdSongPlaylist {
     fn from(js_model: JsDjmdSongPlaylist) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdSongPlaylist {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -1954,8 +2130,8 @@ impl From<JsDjmdSongPlaylist> for DjmdSongPlaylist {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             PlaylistID: js_model.PlaylistID,
             ContentID: js_model.ContentID,
             TrackNo: js_model.TrackNo,
@@ -1981,6 +2157,9 @@ pub struct JsDjmdProperty {
 
 impl From<DjmdProperty> for JsDjmdProperty {
     fn from(model: DjmdProperty) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdProperty {
             DBID: model.DBID,
             DBVersion: model.DBVersion,
@@ -1992,14 +2171,17 @@ impl From<DjmdProperty> for JsDjmdProperty {
             Reserved3: model.Reserved3,
             Reserved4: model.Reserved4,
             Reserved5: model.Reserved5,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
         }
     }
 }
 
 impl From<JsDjmdProperty> for DjmdProperty {
     fn from(js_model: JsDjmdProperty) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdProperty {
             DBID: js_model.DBID,
             DBVersion: js_model.DBVersion,
@@ -2011,8 +2193,8 @@ impl From<JsDjmdProperty> for DjmdProperty {
             Reserved3: js_model.Reserved3,
             Reserved4: js_model.Reserved4,
             Reserved5: js_model.Reserved5,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
         }
     }
 }
@@ -2038,6 +2220,9 @@ pub struct JsDjmdCloudProperty {
 
 impl From<DjmdCloudProperty> for JsDjmdCloudProperty {
     fn from(model: DjmdCloudProperty) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdCloudProperty {
             ID: model.ID,
             UUID: model.UUID,
@@ -2047,8 +2232,8 @@ impl From<DjmdCloudProperty> for JsDjmdCloudProperty {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Reserved1: model.Reserved1,
             Reserved2: model.Reserved2,
             Reserved3: model.Reserved3,
@@ -2060,6 +2245,9 @@ impl From<DjmdCloudProperty> for JsDjmdCloudProperty {
 
 impl From<JsDjmdCloudProperty> for DjmdCloudProperty {
     fn from(js_model: JsDjmdCloudProperty) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdCloudProperty {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -2069,8 +2257,8 @@ impl From<JsDjmdCloudProperty> for DjmdCloudProperty {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Reserved1: js_model.Reserved1,
             Reserved2: js_model.Reserved2,
             Reserved3: js_model.Reserved3,
@@ -2101,6 +2289,9 @@ pub struct JsDjmdRecommendLike {
 
 impl From<DjmdRecommendLike> for JsDjmdRecommendLike {
     fn from(model: DjmdRecommendLike) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdRecommendLike {
             ID: model.ID,
             UUID: model.UUID,
@@ -2110,8 +2301,8 @@ impl From<DjmdRecommendLike> for JsDjmdRecommendLike {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ContentID1: model.ContentID1,
             ContentID2: model.ContentID2,
             LikeRate: model.LikeRate,
@@ -2123,6 +2314,9 @@ impl From<DjmdRecommendLike> for JsDjmdRecommendLike {
 
 impl From<JsDjmdRecommendLike> for DjmdRecommendLike {
     fn from(js_model: JsDjmdRecommendLike) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdRecommendLike {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -2132,8 +2326,8 @@ impl From<JsDjmdRecommendLike> for DjmdRecommendLike {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ContentID1: js_model.ContentID1,
             ContentID2: js_model.ContentID2,
             LikeRate: js_model.LikeRate,
@@ -2164,6 +2358,9 @@ pub struct JsDjmdRelatedTracks {
 
 impl From<DjmdRelatedTracks> for JsDjmdRelatedTracks {
     fn from(model: DjmdRelatedTracks) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdRelatedTracks {
             ID: model.ID,
             UUID: model.UUID,
@@ -2173,8 +2370,8 @@ impl From<DjmdRelatedTracks> for JsDjmdRelatedTracks {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Seq: model.Seq,
             Name: model.Name,
             Attribute: model.Attribute,
@@ -2186,6 +2383,9 @@ impl From<DjmdRelatedTracks> for JsDjmdRelatedTracks {
 
 impl From<JsDjmdRelatedTracks> for DjmdRelatedTracks {
     fn from(js_model: JsDjmdRelatedTracks) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdRelatedTracks {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -2195,8 +2395,8 @@ impl From<JsDjmdRelatedTracks> for DjmdRelatedTracks {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Seq: js_model.Seq,
             Name: js_model.Name,
             Attribute: js_model.Attribute,
@@ -2225,6 +2425,9 @@ pub struct JsDjmdSongRelatedTracks {
 
 impl From<DjmdSongRelatedTracks> for JsDjmdSongRelatedTracks {
     fn from(model: DjmdSongRelatedTracks) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdSongRelatedTracks {
             ID: model.ID,
             UUID: model.UUID,
@@ -2234,8 +2437,8 @@ impl From<DjmdSongRelatedTracks> for JsDjmdSongRelatedTracks {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             RelatedTracksID: model.RelatedTracksID,
             ContentID: model.ContentID,
             TrackNo: model.TrackNo,
@@ -2245,6 +2448,9 @@ impl From<DjmdSongRelatedTracks> for JsDjmdSongRelatedTracks {
 
 impl From<JsDjmdSongRelatedTracks> for DjmdSongRelatedTracks {
     fn from(js_model: JsDjmdSongRelatedTracks) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdSongRelatedTracks {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -2254,8 +2460,8 @@ impl From<JsDjmdSongRelatedTracks> for DjmdSongRelatedTracks {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             RelatedTracksID: js_model.RelatedTracksID,
             ContentID: js_model.ContentID,
             TrackNo: js_model.TrackNo,
@@ -2283,6 +2489,9 @@ pub struct JsDjmdSampler {
 
 impl From<DjmdSampler> for JsDjmdSampler {
     fn from(model: DjmdSampler) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdSampler {
             ID: model.ID,
             UUID: model.UUID,
@@ -2292,8 +2501,8 @@ impl From<DjmdSampler> for JsDjmdSampler {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Seq: model.Seq,
             Name: model.Name,
             Attribute: model.Attribute,
@@ -2304,6 +2513,9 @@ impl From<DjmdSampler> for JsDjmdSampler {
 
 impl From<JsDjmdSampler> for DjmdSampler {
     fn from(js_model: JsDjmdSampler) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdSampler {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -2313,8 +2525,8 @@ impl From<JsDjmdSampler> for DjmdSampler {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Seq: js_model.Seq,
             Name: js_model.Name,
             Attribute: js_model.Attribute,
@@ -2342,6 +2554,9 @@ pub struct JsDjmdSongSampler {
 
 impl From<DjmdSongSampler> for JsDjmdSongSampler {
     fn from(model: DjmdSongSampler) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdSongSampler {
             ID: model.ID,
             UUID: model.UUID,
@@ -2351,8 +2566,8 @@ impl From<DjmdSongSampler> for JsDjmdSongSampler {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             SamplerID: model.SamplerID,
             ContentID: model.ContentID,
             TrackNo: model.TrackNo,
@@ -2362,6 +2577,9 @@ impl From<DjmdSongSampler> for JsDjmdSongSampler {
 
 impl From<JsDjmdSongSampler> for DjmdSongSampler {
     fn from(js_model: JsDjmdSongSampler) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdSongSampler {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -2371,8 +2589,8 @@ impl From<JsDjmdSongSampler> for DjmdSongSampler {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             SamplerID: js_model.SamplerID,
             ContentID: js_model.ContentID,
             TrackNo: js_model.TrackNo,
@@ -2398,6 +2616,9 @@ pub struct JsDjmdSongTagList {
 
 impl From<DjmdSongTagList> for JsDjmdSongTagList {
     fn from(model: DjmdSongTagList) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdSongTagList {
             ID: model.ID,
             UUID: model.UUID,
@@ -2407,8 +2628,8 @@ impl From<DjmdSongTagList> for JsDjmdSongTagList {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ContentID: model.ContentID,
             TrackNo: model.TrackNo,
         }
@@ -2417,6 +2638,9 @@ impl From<DjmdSongTagList> for JsDjmdSongTagList {
 
 impl From<JsDjmdSongTagList> for DjmdSongTagList {
     fn from(js_model: JsDjmdSongTagList) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdSongTagList {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -2426,8 +2650,8 @@ impl From<JsDjmdSongTagList> for DjmdSongTagList {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             ContentID: js_model.ContentID,
             TrackNo: js_model.TrackNo,
         }
@@ -2453,6 +2677,9 @@ pub struct JsDjmdSort {
 
 impl From<DjmdSort> for JsDjmdSort {
     fn from(model: DjmdSort) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsDjmdSort {
             ID: model.ID,
             UUID: model.UUID,
@@ -2462,8 +2689,8 @@ impl From<DjmdSort> for JsDjmdSort {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             MenuItemID: model.MenuItemID,
             Seq: model.Seq,
             Disable: model.Disable,
@@ -2473,6 +2700,9 @@ impl From<DjmdSort> for JsDjmdSort {
 
 impl From<JsDjmdSort> for DjmdSort {
     fn from(js_model: JsDjmdSort) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         DjmdSort {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -2482,8 +2712,8 @@ impl From<JsDjmdSort> for DjmdSort {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             MenuItemID: js_model.MenuItemID,
             Seq: js_model.Seq,
             Disable: js_model.Disable,
@@ -2523,6 +2753,9 @@ pub struct JsImageFile {
 
 impl From<ImageFile> for JsImageFile {
     fn from(model: ImageFile) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsImageFile {
             ID: model.ID,
             UUID: model.UUID,
@@ -2532,8 +2765,8 @@ impl From<ImageFile> for JsImageFile {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             TableName: model.TableName,
             TargetUUID: model.TargetUUID,
             TargetID: model.TargetID,
@@ -2556,6 +2789,9 @@ impl From<ImageFile> for JsImageFile {
 
 impl From<JsImageFile> for ImageFile {
     fn from(js_model: JsImageFile) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         ImageFile {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -2565,8 +2801,8 @@ impl From<JsImageFile> for ImageFile {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             TableName: js_model.TableName,
             TargetUUID: js_model.TargetUUID,
             TargetID: js_model.TargetID,
@@ -2611,6 +2847,9 @@ pub struct JsSettingFile {
 
 impl From<SettingFile> for JsSettingFile {
     fn from(model: SettingFile) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsSettingFile {
             ID: model.ID,
             UUID: model.UUID,
@@ -2620,8 +2859,8 @@ impl From<SettingFile> for JsSettingFile {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Path: model.Path,
             Hash: model.Hash,
             Size: model.Size,
@@ -2636,6 +2875,9 @@ impl From<SettingFile> for JsSettingFile {
 
 impl From<JsSettingFile> for SettingFile {
     fn from(js_model: JsSettingFile) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         SettingFile {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -2645,8 +2887,8 @@ impl From<JsSettingFile> for SettingFile {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             Path: js_model.Path,
             Hash: js_model.Hash,
             Size: js_model.Size,
@@ -2678,6 +2920,9 @@ pub struct JsUuidIDMap {
 
 impl From<UuidIDMap> for JsUuidIDMap {
     fn from(model: UuidIDMap) -> Self {
+        let created_at = datetime_to_js_date(&model.created_at);
+        let updated_at = datetime_to_js_date(&model.updated_at);
+
         JsUuidIDMap {
             ID: model.ID,
             UUID: model.UUID,
@@ -2687,8 +2932,8 @@ impl From<UuidIDMap> for JsUuidIDMap {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             TableName: model.TableName,
             TargetUUID: model.TargetUUID,
             CurrentID: model.CurrentID,
@@ -2698,6 +2943,9 @@ impl From<UuidIDMap> for JsUuidIDMap {
 
 impl From<JsUuidIDMap> for UuidIDMap {
     fn from(js_model: JsUuidIDMap) -> Self {
+        let created_at = js_date_to_datetime(js_model.created_at);
+        let updated_at = js_date_to_datetime(js_model.updated_at);
+
         UuidIDMap {
             ID: js_model.ID,
             UUID: js_model.UUID,
@@ -2707,8 +2955,8 @@ impl From<JsUuidIDMap> for UuidIDMap {
             rb_local_synced: js_model.rb_local_synced,
             usn: js_model.usn,
             rb_local_usn: js_model.rb_local_usn,
-            created_at: js_model.created_at,
-            updated_at: js_model.updated_at,
+            created_at: created_at,
+            updated_at: updated_at,
             TableName: js_model.TableName,
             TargetUUID: js_model.TargetUUID,
             CurrentID: js_model.CurrentID,
