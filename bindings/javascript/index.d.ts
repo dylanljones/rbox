@@ -771,6 +771,7 @@ export type JsMasterDb = MasterDb
 export declare class MasterDb {
   constructor(path: string)
   static open(): JsMasterDb
+  setUnsafeWrites(unsafeWrites: boolean): void
   getAgentRegistry(): Array<AgentRegistry>
   getAgentRegistryById(id: string): AgentRegistry | null
   getLocalUsn(): number
@@ -897,4 +898,13 @@ export declare class MasterDb {
   getSettingFileById(id: string): SettingFile | null
   getUuidIdMap(): Array<UuidIDMap>
   getUuidIdMapById(id: string): UuidIDMap | null
+}
+export type JsRekordboxOptions = RekordboxOptions
+export declare class RekordboxOptions {
+  constructor(dbPath: string, analysisRoot: string, settingsRoot: string)
+  static load(path: string): JsRekordboxOptions
+  static open(): JsRekordboxOptions
+  get dbPath(): string
+  get analysisRoot(): string
+  get settingsRoot(): string
 }

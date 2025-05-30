@@ -4,4 +4,5 @@
 mod anlz;
 mod js_models;
 mod masterdb;
+mod options;
 mod util;

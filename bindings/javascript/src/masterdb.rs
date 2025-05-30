@@ -29,6 +29,11 @@ impl JsMasterDb {
         }
     }
 
+    #[napi]
+    pub fn set_unsafe_writes(&mut self, unsafe_writes: bool) {
+        self.db.set_unsafe_writes(unsafe_writes);
+    }
+
     // -- AgentRegistry ----------------------------------------------------------------------------
 
     #[napi]
