@@ -27,6 +27,11 @@ impl PyMasterDb {
         Ok(PyMasterDb { db })
     }
 
+    pub fn set_unsafe_writes(&mut self, unsafe_writes: bool) -> PyResult<()> {
+        self.db.set_unsafe_writes(unsafe_writes);
+        Ok(())
+    }
+
     // -- AgentRegistry ----------------------------------------------------------------------------
 
     pub fn get_agent_registry(&mut self, py: Python) -> PyResult<Py<PyList>> {

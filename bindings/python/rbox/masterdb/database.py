@@ -21,6 +21,10 @@ class MasterDb:
             db = _PyMasterDb(str(path))
         self._db = db
 
+    def set_unsafe_writes(self, unsafe: bool) -> None:
+        """Set unsafe writes mode."""
+        self._db.set_unsafe_writes(unsafe)
+
     # -- AgentRegistry ----------------------------------------------------------------------------
 
     def get_agent_registry(self) -> List[models.AgentRegistry]:
