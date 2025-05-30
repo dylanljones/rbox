@@ -64,6 +64,34 @@ where
     }
 }
 
+/// Represents the `AgentRegistry` table in the Rekordbox database.
+///
+/// This struct maps to the `AgentRegistry` table in the SQLite database used by Rekordbox.
+/// It contains various fields representing metadata and attributes of the Rekordbox collection.
+/// Each entry has a unique name as `registry_id`. The local update sequence number (`USN`), for
+/// example, is used to track changes made to the entry locally and if stored in the entry
+/// with `registry_id="localUpdateCount"`.
+/// Some important fields include:
+/// * localUpdateCount
+/// * SyncAnalysisDataRootPath
+/// * SyncSettingsRootPath
+/// * LangPath
+///
+/// # Fields
+///
+/// * `registry_id` - A unique identifier for the registry entry.
+/// * `created_at` - The timestamp when the entry was created, serialized/deserialized as `DateString`.
+/// * `updated_at` - The timestamp when the entry was last updated, serialized/deserialized as `DateString`.
+/// * `id_1` - An optional string field for additional identifier data.
+/// * `id_2` - An optional string field for additional identifier data.
+/// * `int_1` - An optional integer field for numerical data.
+/// * `int_2` - An optional integer field for numerical data.
+/// * `str_1` - An optional string field for textual data.
+/// * `str_2` - An optional string field for textual data.
+/// * `date_1` - An optional string field for date-related data.
+/// * `date_2` - An optional string field for date-related data.
+/// * `text_1` - An optional string field for extended text data.
+/// * `text_2` - An optional string field for extended text data.
 #[derive(
     Queryable,
     Selectable,
@@ -98,6 +126,32 @@ pub struct AgentRegistry {
     pub text_2: Option<String>,
 }
 
+/// Represents the `CloudAgentRegistry` table in the Rekordbox database.
+///
+/// This struct maps to the `CloudAgentRegistry` table in the SQLite database used by Rekordbox.
+/// It contains similar fields as the [`AgentRegistry`], but is specifically used for cloud-related
+/// registry entries.
+///
+/// # Fields
+///
+/// * `ID` - A unique identifier for the entry.
+/// * `UUID` - A unique universal identifier for the entry.
+/// * `rb_data_status` - An integer representing the data status in Rekordbox.
+/// * `rb_local_data_status` - An integer representing the local data status in Rekordbox.
+/// * `rb_local_deleted` - An integer indicating whether the entry is locally deleted.
+/// * `rb_local_synced` - An integer indicating whether the entry is locally synced.
+/// * `usn` - An optional integer representing the update sequence number.
+/// * `rb_local_usn` - An optional integer representing the local update sequence number.
+/// * `created_at` - The timestamp when the entry was created, serialized/deserialized as `DateString`.
+/// * `updated_at` - The timestamp when the entry was last updated, serialized/deserialized as `DateString`.
+/// * `int_1` - An optional integer field for numerical data.
+/// * `int_2` - An optional integer field for numerical data.
+/// * `str_1` - An optional string field for textual data.
+/// * `str_2` - An optional string field for textual data.
+/// * `date_1` - An optional string field for date-related data.
+/// * `date_2` - An optional string field for date-related data.
+/// * `text_1` - An optional string field for extended text data.
+/// * `text_2` - An optional string field for extended text data.
 #[derive(
     Queryable,
     Selectable,
@@ -138,6 +192,26 @@ pub struct CloudAgentRegistry {
     pub text_2: Option<String>,
 }
 
+/// Represents the `ContentActiveCensor` table in the Rekordbox database.
+///
+/// This struct maps to the `ContentActiveCensor` table in the SQLite database used by Rekordbox.
+/// It contains the active censor entries [`DjmdActiveCensor`] of a file as stringified JSON data.
+///
+/// # Fields
+///
+/// * `ID` - A unique identifier for the entry.
+/// * `UUID` - A unique universal identifier for the entry.
+/// * `rb_data_status` - An integer representing the data status in Rekordbox.
+/// * `rb_local_data_status` - An integer representing the local data status in Rekordbox.
+/// * `rb_local_deleted` - An integer indicating whether the entry is locally deleted.
+/// * `rb_local_synced` - An integer indicating whether the entry is locally synced.
+/// * `usn` - An optional integer representing the update sequence number.
+/// * `rb_local_usn` - An optional integer representing the local update sequence number.
+/// * `created_at` - The timestamp when the entry was created, serialized/deserialized as `DateString`.
+/// * `updated_at` - The timestamp when the entry was last updated, serialized/deserialized as `DateString`.
+/// * `ContentID` - An optional string representing the ID of the associated [`DjmdContent`].
+/// * `ActiveCensors` - An optional string representing the active censors.
+/// * `rb_activecensor_count` - An optional integer representing the count of active censors.
 #[derive(
     Queryable,
     Selectable,
@@ -174,6 +248,26 @@ pub struct ContentActiveCensor {
     pub rb_activecensor_count: Option<i32>,
 }
 
+/// Represents the `ContentCue` table in the Rekordbox database.
+///
+/// This struct maps to the `ContentCue` table in the SQLite database used by Rekordbox.
+/// It contains the cue entry [`DjmdCue`] of a file as stringified JSON data.
+///
+/// # Fields
+///
+/// * `ID` - A unique identifier for the entry.
+/// * `UUID` - A unique universal identifier for the entry.
+/// * `rb_data_status` - An integer representing the data status in Rekordbox.
+/// * `rb_local_data_status` - An integer representing the local data status in Rekordbox.
+/// * `rb_local_deleted` - An integer indicating whether the entry is locally deleted.
+/// * `rb_local_synced` - An integer indicating whether the entry is locally synced.
+/// * `usn` - An optional integer representing the update sequence number.
+/// * `rb_local_usn` - An optional integer representing the local update sequence number.
+/// * `created_at` - The timestamp when the entry was created, serialized/deserialized as `DateString`.
+/// * `updated_at` - The timestamp when the entry was last updated, serialized/deserialized as `DateString`.
+/// * `ContentID` - An optional string representing the ID of the associated [`DjmdContent`].
+/// * `Cues` - An optional string representing the cues.
+/// * `rb_cue_count` - An optional integer representing the count of cues.
 #[derive(
     Queryable,
     Selectable,
@@ -210,6 +304,38 @@ pub struct ContentCue {
     pub rb_cue_count: Option<i32>,
 }
 
+/// Represents the `ContentFile` table in the Rekordbox database.
+///
+/// This struct maps to the `ContentFile` table in the SQLite database used by Rekordbox.
+/// It contains metadata and attributes of the additional file of contents. These include
+/// the analysis and artwork files linked to a track
+///
+/// # Fields
+///
+/// * `ID` - A unique identifier for the entry.
+/// * `UUID` - A unique universal identifier for the entry.
+/// * `rb_data_status` - An integer representing the data status in Rekordbox.
+/// * `rb_local_data_status` - An integer representing the local data status in Rekordbox.
+/// * `rb_local_deleted` - An integer indicating whether the entry is locally deleted.
+/// * `rb_local_synced` - An integer indicating whether the entry is locally synced.
+/// * `usn` - An optional integer representing the update sequence number.
+/// * `rb_local_usn` - An optional integer representing the local update sequence number.
+/// * `created_at` - The timestamp when the entry was created, serialized/deserialized as `DateString`.
+/// * `updated_at` - The timestamp when the entry was last updated, serialized/deserialized as `DateString`.
+/// * `ContentID` - An optional string representing the ID of the associated [`DjmdContent`].
+/// * `Path` - An optional string representing the file path.
+/// * `Hash` - An optional string representing the file hash.
+/// * `Size` - An optional integer representing the file size.
+/// * `rb_local_path` - An optional string representing the local file path.
+/// * `rb_insync_hash` - An optional string representing the in-sync file hash.
+/// * `rb_insync_local_usn` - An optional integer representing the in-sync local update sequence number.
+/// * `rb_file_hash_dirty` - An optional integer indicating whether the file hash is dirty.
+/// * `rb_local_file_status` - An optional integer representing the local file status.
+/// * `rb_in_progress` - An optional integer indicating whether the file is in progress.
+/// * `rb_process_type` - An optional integer representing the process type.
+/// * `rb_temp_path` - An optional string representing the temporary file path.
+/// * `rb_priority` - An optional integer representing the file priority.
+/// * `rb_file_size_dirty` - An optional integer indicating whether the file size is dirty.
 #[derive(
     Queryable,
     Selectable,
@@ -257,6 +383,32 @@ pub struct ContentFile {
     pub rb_file_size_dirty: Option<i32>,
 }
 
+/// Represents the `DjmdActiveCensor` table in the Rekordbox database.
+///
+/// This struct maps to the `DjmdActiveCensor` table in the SQLite database used by Rekordbox.
+/// It contains information for actively censoring explicit content of tracks in the Rekordbox
+/// collection. Active Censor items behave like two cue points, between which an effect is applied
+/// to the audio of a track.
+///
+/// # Fields
+///
+/// * `ID` - A unique identifier for the entry.
+/// * `UUID` - A unique universal identifier for the entry.
+/// * `rb_data_status` - An integer representing the data status in Rekordbox.
+/// * `rb_local_data_status` - An integer representing the local data status in Rekordbox.
+/// * `rb_local_deleted` - An integer indicating whether the entry is locally deleted.
+/// * `rb_local_synced` - An integer indicating whether the entry is locally synced.
+/// * `usn` - An optional integer representing the update sequence number.
+/// * `rb_local_usn` - An optional integer representing the local update sequence number.
+/// * `created_at` - The timestamp when the entry was created, serialized/deserialized as `DateString`.
+/// * `updated_at` - The timestamp when the entry was last updated, serialized/deserialized as `DateString`.
+/// * `ContentID` - An optional string representing the ID of the associated [`DjmdContent`].
+/// * `InMsec` - An optional integer representing the start time of the censor in milliseconds.
+/// * `OutMsec` - An optional integer representing the end time of the censor in milliseconds.
+/// * `Info` - An optional integer representing additional information about the censor.
+/// * `ParameterList` - An optional string representing the list of parameters for the censor.
+/// * `ContentUUID` - An optional string representing the UUID of the associated [`DjmdContent`].
+
 #[derive(
     Queryable,
     Selectable,
@@ -296,6 +448,29 @@ pub struct DjmdActiveCensor {
     pub ContentUUID: Option<String>,
 }
 
+/// Represents the `DjmdAlbum` table in the Rekordbox database.
+///
+/// This struct maps to the `DjmdAlbum` table in the SQLite database used by Rekordbox.
+/// It stores album-related data, allowing multiple tracks to be associated with the same album.
+/// This table includes metadata such as album name, artist, and compilation status.
+///
+/// # Fields
+///
+/// * `ID` - A unique identifier for the album.
+/// * `UUID` - A unique universal identifier for the album.
+/// * `rb_data_status` - An integer representing the data status in Rekordbox.
+/// * `rb_local_data_status` - An integer representing the local data status in Rekordbox.
+/// * `rb_local_deleted` - An integer indicating whether the album is locally deleted.
+/// * `rb_local_synced` - An integer indicating whether the album is locally synced.
+/// * `usn` - An optional integer representing the update sequence number.
+/// * `rb_local_usn` - An optional integer representing the local update sequence number.
+/// * `created_at` - The timestamp when the album was created, serialized/deserialized as `DateString`.
+/// * `updated_at` - The timestamp when the album was last updated, serialized/deserialized as `DateString`.
+/// * `Name` - An optional string representing the name of the album.
+/// * `AlbumArtistID` - An optional string representing the ID of the album artist [`DjmdArtist`].
+/// * `ImagePath` - An optional string representing the path to the album's image.
+/// * `Compilation` - An optional integer indicating whether the album is a compilation.
+/// * `SearchStr` - An optional string used for searching the album.
 #[derive(
     Queryable,
     Selectable,
@@ -334,6 +509,22 @@ pub struct DjmdAlbum {
 }
 
 impl DjmdAlbum {
+    /// Creates a new instance of [`DjmdAlbum`].
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - A unique identifier for the album.
+    /// * `uuid` - A unique universal identifier for the album.
+    /// * `usn` - The update sequence number.
+    /// * `now` - The current timestamp.
+    /// * `name` - The name of the album.
+    /// * `artist_id` - An optional identifier for the album artist.
+    /// * `image_path` - An optional path to the album's image.
+    /// * `compilation` - An optional integer indicating whether the album is a compilation.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Result` containing the new [`DjmdAlbum`] instance or an error.
     pub fn new(
         id: String,
         uuid: String,
@@ -365,6 +556,25 @@ impl DjmdAlbum {
     }
 }
 
+/// Represents the `DjmdArtist` table in the Rekordbox database.
+///
+/// This struct maps to the `DjmdArtist` table in the SQLite database used by Rekordbox.
+/// It stores artist-related data, allowing multiple tracks to be associated with the same artist.
+///
+/// # Fields
+///
+/// * `ID` - A unique identifier for the artist.
+/// * `UUID` - A unique universal identifier for the artist.
+/// * `rb_data_status` - An integer representing the data status in Rekordbox.
+/// * `rb_local_data_status` - An integer representing the local data status in Rekordbox.
+/// * `rb_local_deleted` - An integer indicating whether the artist is locally deleted.
+/// * `rb_local_synced` - An integer indicating whether the artist is locally synced.
+/// * `usn` - An optional integer representing the update sequence number.
+/// * `rb_local_usn` - An optional integer representing the local update sequence number.
+/// * `created_at` - The timestamp when the artist entry was created, serialized/deserialized as `DateString`.
+/// * `updated_at` - The timestamp when the artist entry was last updated, serialized/deserialized as `DateString`.
+/// * `Name` - An optional string representing the name of the artist.
+/// * `SearchStr` - An optional string used for searching the artist.
 #[derive(
     Queryable,
     Selectable,
@@ -401,6 +611,19 @@ pub struct DjmdArtist {
 }
 
 impl DjmdArtist {
+    /// Creates a new instance of [`DjmdArtist`].
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - A unique identifier for the artist.
+    /// * `uuid` - A unique universal identifier for the artist.
+    /// * `usn` - The update sequence number.
+    /// * `now` - The current timestamp.
+    /// * `name` - The name of the artist.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Result` containing the new [`DjmdArtist`] instance or an error.
     pub fn new(
         id: String,
         uuid: String,

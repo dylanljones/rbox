@@ -1,10 +1,12 @@
 // Author: Dylan Jones
 // Date:   2025-05-01
-//
-// Rekordbox master.db database handler
-
+/// This module serves as the handler for the Rekordbox `master.db` database.
+///
+/// # Purpose
+/// Provides functionality for interacting with the Rekordbox database, including
+/// querying, updating, and managing various database tables and entries.
+///
 // #![allow(unused)]
-
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use diesel::dsl::{exists, select};
@@ -37,6 +39,38 @@ use crate::util::is_rekordbox_running;
 
 const MAGIC: &str = "513ge593d49928d46ggb9ggc9d8e:4254c85:f8e426eg8b92843b2gg547195:8";
 
+/// Opens a connection to a SQLite database and configures it with specific settings.
+///
+/// # Arguments
+///
+/// * `path` - A string slice that holds the path to the SQLite database file.
+///
+/// # Returns
+///
+/// * `Result<SqliteConnection>` - Returns a `SqliteConnection` object if successful, or an error.
+///
+/// # Errors
+///
+/// * Returns an error if the database connection cannot be established or if any of the
+///   configuration commands fail.
+///
+/// # Configuration
+///
+/// The function applies the following settings to the SQLite connection:
+/// - Sets the encryption key using the `PRAGMA key` command.
+/// - Enables foreign key constraints using the `PRAGMA foreign_keys = ON` command.
+/// - Sets the journal mode to Write-Ahead Logging (WAL) using the `PRAGMA journal_mode = WAL` command.
+/// - Sets the synchronous mode to NORMAL using the `PRAGMA synchronous = NORMAL` command.
+///
+/// # Example
+///
+/// ```rust
+/// let connection = open_connection(":memory:");
+/// match connection {
+///     Ok(conn) => println!("Connection established successfully!"),
+///     Err(e) => println!("Failed to open connection: {}", e),
+/// }
+/// ```
 fn open_connection(path: &str) -> Result<SqliteConnection> {
     let key = String::from_utf8(MAGIC.as_bytes().iter().map(|&b| b - 1).collect())?;
 
@@ -52,13 +86,17 @@ fn open_connection(path: &str) -> Result<SqliteConnection> {
 }
 
 pub struct MasterDb {
-    /// The Sqlite database connection
+    /// Represents the SQLite database connection used for interacting with the database.
     pub conn: SqliteConnection,
-    /// The path of the PIONEER share directory located in the same directory as the DB
+    /// Stores the path to the PIONEER share directory, which contains analysis and other files.
+    /// This is optional and may not be set if the directory is not found.
     pub share_dir: Option<PathBuf>,
-    /// The path of the masterPlaylist6 XML file located in the same directory as the DB
+    /// Stores the path to the `masterPlaylist6.xml` file located in the same directory as the database.
+    /// This is optional and may not be set if the file is not found.
     pub plxml_path: Option<PathBuf>,
-    /// Flag if writes to the database are allowed if Rekordbox is running
+    /// Indicates whether unsafe writes to the database are allowed while Rekordbox is running.
+    /// - `true`: Unsafe writes are enabled, allowing modifications to the database.
+    /// - `false`: Unsafe writes are disabled, preventing modifications to the database.
     unsafe_writes: bool,
 }
 
@@ -121,13 +159,72 @@ impl MasterDb {
         Self::from_options(&options)
     }
 
+    /// Sets the unsafe writes flag for the database.
+    ///
+    /// # Arguments
+    ///
+    /// * `unsafe_writes` - A boolean value indicating whether unsafe writes are allowed.
+    ///   - `true`: Unsafe writes are enabled, allowing modifications to the database even if Rekordbox is running.
+    ///   - `false`: Unsafe writes are disabled, preventing modifications to the database while Rekordbox is running.
+    ///
+    /// This method is useful for controlling write operations to the database in scenarios
+    /// where Rekordbox may be actively using the database.
+    pub fn set_unsafe_writes(&mut self, unsafe_writes: bool) {
+        self.unsafe_writes = unsafe_writes;
+    }
+
     // -- AgentRegistry ----------------------------------------------------------------------------
 
+    /// Retrieves all entries from the [`AgentRegistry`] table in the database.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Vec<AgentRegistry>>` - A vector of [`AgentRegistry`] objects if the query is successful,
+    ///   or an error if the query fails.
+    ///
+    /// # Errors
+    ///
+    /// * Returns an error if the database query cannot be executed.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let mut db = MasterDb::open().unwrap();
+    /// let registries = db.get_agent_registry().unwrap();
+    /// for registry in registries {
+    ///     println!("{:?}", registry);
+    /// }
+    /// ```
     pub fn get_agent_registry(&mut self) -> Result<Vec<AgentRegistry>> {
         let results = agentRegistry.load::<AgentRegistry>(&mut self.conn)?;
         Ok(results)
     }
 
+    /// Retrieves an [`AgentRegistry`] entry by its unique identifier.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - A string slice representing the unique identifier of the agent registry entry.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Option<AgentRegistry>>` - Returns an `Option` containing the [`AgentRegistry`] object
+    ///   if found, or `None` if no entry matches the given identifier. Returns an error if the query fails.
+    ///
+    /// # Errors
+    ///
+    /// * Returns an error if the database query cannot be executed.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let mut db = MasterDb::open().unwrap();
+    /// let registry = db.get_agent_registry_by_id("some_id").unwrap();
+    /// match registry {
+    ///     Some(entry) => println!("{:?}", entry),
+    ///     None => println!("No entry found for the given ID"),
+    /// }
+    /// ```
     pub fn get_agent_registry_by_id(&mut self, id: &str) -> Result<Option<AgentRegistry>> {
         let result = agentRegistry
             .filter(schema::agentRegistry::registry_id.eq(id))
@@ -136,6 +233,25 @@ impl MasterDb {
         Ok(result)
     }
 
+    /// Retrieves the local update sequence number (USN) from the [`AgentRegistry`] table.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<i32>` - Returns the local USN as an integer if found, or an error if the entry
+    ///   does not exist.
+    ///
+    /// # Errors
+    ///
+    /// * Returns an error if the `localUpdateCount` entry is not found in the [`AgentRegistry`] table
+    ///   or if the database query fails.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let mut db = MasterDb::open().unwrap();
+    /// let local_usn = db.get_local_usn().unwrap();
+    /// println!("Local USN: {}", local_usn);
+    /// ```
     pub fn get_local_usn(&mut self) -> Result<i32> {
         let result = agentRegistry
             .filter(schema::agentRegistry::registry_id.eq("localUpdateCount"))
@@ -158,6 +274,27 @@ impl MasterDb {
     //     Ok(result)
     // }
 
+    /// Increments the local update sequence number (USN) in the [`AgentRegistry`] table.
+    ///
+    /// # Arguments
+    ///
+    /// * `usn` - An integer value representing the amount to increment the local USN.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<i32>` - Returns the updated USN as an integer if successful, or an error.
+    ///
+    /// # Errors
+    ///
+    /// * Returns an error if the database update operation fails or if the updated USN is not found.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let mut db = MasterDb::open().unwrap();
+    /// let new_usn = db.increment_local_usn(1).unwrap();
+    /// println!("Updated USN: {}", new_usn);
+    /// ```
     fn increment_local_usn(&mut self, usn: i32) -> Result<i32> {
         let result = diesel::update(
             agentRegistry.filter(schema::agentRegistry::registry_id.eq("localUpdateCount")),
@@ -171,11 +308,56 @@ impl MasterDb {
 
     // -- CloudAgentRegistry -----------------------------------------------------------------------
 
+    /// Retrieves all entries from the [`CloudAgentRegistry`] table in the database.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Vec<CloudAgentRegistry>>` - A vector of [`CloudAgentRegistry`] objects if the query is successful,
+    ///   or an error if the query fails.
+    ///
+    /// # Errors
+    ///
+    /// * Returns an error if the database query cannot be executed.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let mut db = MasterDb::open().unwrap();
+    /// let registries = db.get_cloud_agent_registry().unwrap();
+    /// for registry in registries {
+    ///     println!("{:?}", registry);
+    /// }
+    /// ```
     pub fn get_cloud_agent_registry(&mut self) -> Result<Vec<CloudAgentRegistry>> {
         let results = cloudAgentRegistry.load::<CloudAgentRegistry>(&mut self.conn)?;
         Ok(results)
     }
 
+    /// Retrieves a [`CloudAgentRegistry`] entry by its unique identifier.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - A string slice representing the unique identifier of the cloud agent registry entry.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Option<CloudAgentRegistry>>` - Returns an `Option` containing the [`CloudAgentRegistry`] object
+    ///   if found, or `None` if no entry matches the given identifier. Returns an error if the query fails.
+    ///
+    /// # Errors
+    ///
+    /// * Returns an error if the database query cannot be executed.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let mut db = MasterDb::open().unwrap();
+    /// let registry = db.get_cloud_agent_registry_by_id("some_id").unwrap();
+    /// match registry {
+    ///     Some(entry) => println!("{:?}", entry),
+    ///     None => println!("No entry found for the given ID"),
+    /// }
+    /// ```
     pub fn get_cloud_agent_registry_by_id(
         &mut self,
         id: &str,
@@ -189,11 +371,56 @@ impl MasterDb {
 
     // -- ContentActiveCensor ----------------------------------------------------------------------
 
+    /// Retrieves all entries from the [`ContentActiveCensor`] table in the database.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Vec<ContentActiveCensor>>` - A vector of [`ContentActiveCensor`] objects if the query is successful,
+    ///   or an error if the query fails.
+    ///
+    /// # Errors
+    ///
+    /// * Returns an error if the database query cannot be executed.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let mut db = MasterDb::open().unwrap();
+    /// let active_censors = db.get_content_active_censor().unwrap();
+    /// for censor in active_censors {
+    ///     println!("{:?}", censor);
+    /// }
+    /// ```
     pub fn get_content_active_censor(&mut self) -> Result<Vec<ContentActiveCensor>> {
         let results = contentActiveCensor.load::<ContentActiveCensor>(&mut self.conn)?;
         Ok(results)
     }
 
+    /// Retrieves a [`ContentActiveCensor`] entry by its unique identifier.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - A string slice representing the unique identifier of the content active censor entry.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Option<ContentActiveCensor>>` - Returns an `Option` containing the [`ContentActiveCensor`] object
+    ///   if found, or `None` if no entry matches the given identifier. Returns an error if the query fails.
+    ///
+    /// # Errors
+    ///
+    /// * Returns an error if the database query cannot be executed.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let mut db = MasterDb::open().unwrap();
+    /// let active_censor = db.get_content_active_censor_by_id("some_id").unwrap();
+    /// match active_censor {
+    ///     Some(censor) => println!("{:?}", censor),
+    ///     None => println!("No active censor found for the given ID"),
+    /// }
+    /// ```
     pub fn get_content_active_censor_by_id(
         &mut self,
         id: &str,
@@ -207,11 +434,56 @@ impl MasterDb {
 
     // -- ContentCue -------------------------------------------------------------------------------
 
+    /// Retrieves all entries from the `ContentCue` table in the database.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Vec<ContentCue>>` - A vector of [`ContentCue`] objects if the query is successful,
+    ///   or an error if the query fails.
+    ///
+    /// # Errors
+    ///
+    /// * Returns an error if the database query cannot be executed.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let mut db = MasterDb::open().unwrap();
+    /// let cues = db.get_content_cue().unwrap();
+    /// for cue in cues {
+    ///     println!("{:?}", cue);
+    /// }
+    /// ```
     pub fn get_content_cue(&mut self) -> Result<Vec<ContentCue>> {
         let results = contentCue.load::<ContentCue>(&mut self.conn)?;
         Ok(results)
     }
 
+    /// Retrieves a `ContentCue` entry by its unique identifier.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - A string slice representing the unique identifier of the content cue entry.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Option<ContentCue>>` - Returns an `Option` containing the [`ContentCue`] object
+    ///   if found, or `None` if no entry matches the given identifier. Returns an error if the query fails.
+    ///
+    /// # Errors
+    ///
+    /// * Returns an error if the database query cannot be executed.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let mut db = MasterDb::open().unwrap();
+    /// let cue = db.get_content_cue_by_id("some_id").unwrap();
+    /// match cue {
+    ///     Some(cue) => println!("{:?}", cue),
+    ///     None => println!("No cue found for the given ID"),
+    /// }
+    /// ```
     pub fn get_content_cue_by_id(&mut self, id: &str) -> Result<Option<ContentCue>> {
         let result = contentCue
             .filter(schema::contentCue::ID.eq(id))
@@ -222,11 +494,56 @@ impl MasterDb {
 
     // -- ContentFile ------------------------------------------------------------------------------
 
+    /// Retrieves all entries from the `contentFile` table in the database.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Vec<ContentFile>>` - A vector of [`ContentFile`] objects if the query is successful,
+    ///   or an error if the query fails.
+    ///
+    /// # Errors
+    ///
+    /// * Returns an error if the database query cannot be executed.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let mut db = MasterDb::open().unwrap();
+    /// let files = db.get_content_file().unwrap();
+    /// for file in files {
+    ///     println!("{:?}", file);
+    /// }
+    /// ```
     pub fn get_content_file(&mut self) -> Result<Vec<ContentFile>> {
         let results = contentFile.load::<ContentFile>(&mut self.conn)?;
         Ok(results)
     }
 
+    /// Retrieves a `ContentFile` entry by its unique identifier.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - A string slice representing the unique identifier of the content file entry.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Option<ContentFile>>` - Returns an `Option` containing the [`ContentFile`] object
+    ///   if found, or `None` if no entry matches the given identifier. Returns an error if the query fails.
+    ///
+    /// # Errors
+    ///
+    /// * Returns an error if the database query cannot be executed.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let mut db = MasterDb::open().unwrap();
+    /// let file = db.get_content_file_by_id("some_id").unwrap();
+    /// match file {
+    ///     Some(file) => println!("{:?}", file),
+    ///     None => println!("No file found for the given ID"),
+    /// }
+    /// ```
     pub fn get_content_file_by_id(&mut self, id: &str) -> Result<Option<ContentFile>> {
         let result = contentFile
             .filter(schema::contentFile::ID.eq(id))
@@ -237,11 +554,49 @@ impl MasterDb {
 
     // -- ActiveCensor -----------------------------------------------------------------------------
 
+    /// Retrieves all entries from the `DjmdActiveCensor` table in the database.
+    ///
+    /// # Returns
+    /// * `Result<Vec<DjmdActiveCensor>>` - A vector of [`DjmdActiveCensor`] objects if the query is successful,
+    ///   or an error if the query fails.
+    ///
+    /// # Errors
+    /// * Returns an error if the database query cannot be executed.
+    ///
+    /// # Example
+    /// ```rust
+    /// let mut db = MasterDb::open().unwrap();
+    /// let active_censors = db.get_active_censor().unwrap();
+    /// for censor in active_censors {
+    ///     println!("{:?}", censor);
+    /// }
+    /// ```
     pub fn get_active_censor(&mut self) -> Result<Vec<DjmdActiveCensor>> {
         let results = djmdActiveCensor.load::<DjmdActiveCensor>(&mut self.conn)?;
         Ok(results)
     }
 
+    /// Retrieves a `DjmdActiveCensor` entry by its unique identifier.
+    ///
+    /// # Arguments
+    /// * `id` - A string slice representing the unique identifier of the active censor entry.
+    ///
+    /// # Returns
+    /// * `Result<Option<DjmdActiveCensor>>` - Returns an `Option` containing the [`DjmdActiveCensor`] object
+    ///   if found, or `None` if no entry matches the given identifier. Returns an error if the query fails.
+    ///
+    /// # Errors
+    /// * Returns an error if the database query cannot be executed.
+    ///
+    /// # Example
+    /// ```rust
+    /// let mut db = MasterDb::open().unwrap();
+    /// let active_censor = db.get_active_censor_by_id("some_id").unwrap();
+    /// match active_censor {
+    ///     Some(censor) => println!("{:?}", censor),
+    ///     None => println!("No active censor found for the given ID"),
+    /// }
+    /// ```
     pub fn get_active_censor_by_id(&mut self, id: &str) -> Result<Option<DjmdActiveCensor>> {
         let result = djmdActiveCensor
             .filter(schema::djmdActiveCensor::ID.eq(id))
@@ -252,11 +607,49 @@ impl MasterDb {
 
     // -- Album ------------------------------------------------------------------------------------
 
+    /// Retrieves all entries from the `DjmdAlbum` table in the database.
+    ///
+    /// # Returns
+    /// * `Result<Vec<DjmdAlbum>>` - A vector of [`DjmdAlbum`] objects if the query is successful,
+    ///   or an error if the query fails.
+    ///
+    /// # Errors
+    /// * Returns an error if the database query cannot be executed.
+    ///
+    /// # Example
+    /// ```rust
+    /// let mut db = MasterDb::open().unwrap();
+    /// let albums = db.get_album().unwrap();
+    /// for album in albums {
+    ///     println!("{:?}", album);
+    /// }
+    /// ```
     pub fn get_album(&mut self) -> Result<Vec<DjmdAlbum>> {
         let results: Vec<DjmdAlbum> = djmdAlbum.load(&mut self.conn)?;
         Ok(results)
     }
 
+    /// Retrieves a `DjmdAlbum` entry by its unique identifier.
+    ///
+    /// # Arguments
+    /// * `id` - A string slice representing the unique identifier of the album.
+    ///
+    /// # Returns
+    /// * `Result<Option<DjmdAlbum>>` - Returns an `Option` containing the [`DjmdAlbum`] object
+    ///   if found, or `None` if no entry matches the given identifier. Returns an error if the query fails.
+    ///
+    /// # Errors
+    /// * Returns an error if the database query cannot be executed.
+    ///
+    /// # Example
+    /// ```rust
+    /// let mut db = MasterDb::open().unwrap();
+    /// let album = db.get_album_by_id("some_id").unwrap();
+    /// match album {
+    ///     Some(album) => println!("{:?}", album),
+    ///     None => println!("No album found for the given ID"),
+    /// }
+    /// ```
     pub fn get_album_by_id(&mut self, id: &str) -> Result<Option<DjmdAlbum>> {
         let result: Option<DjmdAlbum> = djmdAlbum
             .filter(schema::djmdAlbum::ID.eq(id))
@@ -265,6 +658,29 @@ impl MasterDb {
         Ok(result)
     }
 
+    /// Retrieves a `DjmdAlbum` entry by its name.
+    ///
+    /// # Arguments
+    /// * `name` - A string slice representing the name of the album.
+    ///
+    /// # Returns
+    /// * `Result<Option<DjmdAlbum>>` - Returns an `Option` containing the [`DjmdAlbum`] object
+    ///   if found, or `None` if no entry matches the given name. Returns an error if multiple entries
+    ///   match the given name.
+    ///
+    /// # Errors
+    /// * Returns an error if the database query cannot be executed or if more than one album
+    ///   matches the given name.
+    ///
+    /// # Example
+    /// ```rust
+    /// let mut db = MasterDb::open().unwrap();
+    /// let album = db.get_album_by_name("Album Name").unwrap();
+    /// match album {
+    ///     Some(album) => println!("{:?}", album),
+    ///     None => println!("No album found for the given name"),
+    /// }
+    /// ```
     pub fn get_album_by_name(&mut self, name: &str) -> Result<Option<DjmdAlbum>> {
         let results: Vec<DjmdAlbum> = djmdAlbum
             .filter(schema::djmdAlbum::Name.eq(name))
@@ -302,6 +718,36 @@ impl MasterDb {
         Ok(id)
     }
 
+    /// Inserts a new album into the `DjmdAlbum` table in the database.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the album.
+    /// * `artist_id` - An optional identifier for the album artist.
+    /// * `image_path` - An optional path to the album's image.
+    /// * `compilation` - An optional integer indicating whether the album is a compilation.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<DjmdAlbum>` - Returns the newly created [`DjmdAlbum`] object if successful, or an error.
+    ///
+    /// # Errors
+    ///
+    /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
+    /// * Returns an error if the database insertion fails.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let mut db = MasterDb::open().unwrap();
+    /// let album = db.insert_album(
+    ///     "Album Name".to_string(),
+    ///     Some("ArtistID".to_string()),
+    ///     Some("/path/to/image.jpg".to_string()),
+    ///     Some(1),
+    /// ).unwrap();
+    /// println!("{:?}", album);
+    /// ```
     pub fn insert_album(
         &mut self,
         name: String,
@@ -350,6 +796,34 @@ impl MasterDb {
         }
     }
 
+    /// Updates an existing `DjmdAlbum` entry in the database.
+    ///
+    /// # Arguments
+    /// * `item` - A mutable reference to the [`DjmdAlbum`] object to be updated.
+    ///
+    /// # Returns
+    /// * `Result<DjmdAlbum>` - Returns the updated [`DjmdAlbum`] object if successful, or an error.
+    ///
+    /// # Errors
+    /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
+    /// * Returns an error if the database update operation fails.
+    ///
+    /// # Behavior
+    /// * Compares the fields of the provided [`DjmdAlbum`] object with the existing entry in the database.
+    /// * If no differences are found, the existing entry is returned without making any updates.
+    /// * If differences are found:
+    ///   - Updates the `updated_at` timestamp to the current time.
+    ///   - Increments the local update sequence number (USN) based on the number of differences.
+    ///   - Updates the database entry with the modified fields.
+    ///
+    /// # Example
+    /// ```rust
+    /// let mut db = MasterDb::open().unwrap();
+    /// let mut album = db.get_album_by_id("some_id").unwrap().unwrap();
+    /// album.Name = "New Album Name".to_string();
+    /// let updated_album = db.update_album(&mut album).unwrap();
+    /// println!("{:?}", updated_album);
+    /// ```
     pub fn update_album(&mut self, item: &mut DjmdAlbum) -> Result<DjmdAlbum> {
         // Check if Rekordbox is running
         if !self.unsafe_writes && is_rekordbox_running() {
@@ -390,6 +864,29 @@ impl MasterDb {
         Ok(result)
     }
 
+    /// Deletes an album entry from the `DjmdAlbum` table in the database.
+    ///
+    /// # Arguments
+    /// * `id` - A string slice representing the unique identifier of the album to be deleted.
+    ///
+    /// # Returns
+    /// * `Result<usize>` - Returns the number of rows affected by the delete operation.
+    ///
+    /// # Errors
+    /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
+    /// * Returns an error if the database delete operation fails.
+    ///
+    /// # Behavior
+    /// * Deletes the album entry with the specified ID from the [`DjmdAlbum`] table.
+    /// * Removes any references to the album in the [`DjmdContent`] table by setting the `AlbumID` field to `None`.
+    /// * Increments the local update sequence number (USN) after the operation.
+    ///
+    /// # Example
+    /// ```rust
+    /// let mut db = MasterDb::open().unwrap();
+    /// let rows_deleted = db.delete_album("album_id").unwrap();
+    /// println!("Number of rows deleted: {}", rows_deleted);
+    /// ```
     pub fn delete_album(&mut self, id: &str) -> Result<usize> {
         // Check if Rekordbox is running
         if !self.unsafe_writes && is_rekordbox_running() {
