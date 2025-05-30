@@ -497,6 +497,10 @@ pub struct PlaylistNode {
     /// Only used for folder nodes
     #[serde(rename = "NODE")]
     pub nodes: Option<Vec<PlaylistNode>>,
+    /// Path of the playlist node from root
+    /// Only used internally
+    #[serde(skip)]
+    pub node_path: Vec<String>,
 }
 
 impl Serialize for PlaylistNode {
@@ -571,45 +575,71 @@ impl Serialize for PlaylistNode {
 }
 
 impl PlaylistNode {
-    pub fn playlist(name: &str, key_type: PlaylistKeyType) -> Self {
+    pub fn new(name: &str, node_type: PlaylistNodeType) -> Self {
         Self {
             name: name.to_string(),
-            node_type: PlaylistNodeType::Playlist,
-            key_type: Some(key_type),
-            tracks: Some(Vec::new()),
+            node_type: node_type,
+            key_type: None,
+            tracks: None,
             nodes: None,
+            node_path: Vec::new(),
         }
+    }
+
+    pub fn playlist(name: &str, key_type: PlaylistKeyType) -> Self {
+        let mut node = Self::new(name, PlaylistNodeType::Playlist);
+        node.tracks = Some(Vec::new());
+        node.key_type = Some(key_type);
+        node
     }
 
     pub fn folder(name: &str) -> Self {
-        Self {
-            name: name.to_string(),
-            node_type: PlaylistNodeType::Playlist,
-            key_type: None,
-            tracks: None,
-            nodes: Some(Vec::new()),
-        }
+        let mut node = Self::new(name, PlaylistNodeType::Folder);
+        node.nodes = Some(Vec::new());
+        node
     }
 
-    pub fn add_playlist(&mut self, name: &str, key_type: PlaylistKeyType) {
+    pub fn add_node(&mut self, mut node: PlaylistNode) {
+        node.node_path.extend_from_slice(self.node_path.as_slice());
+        node.node_path.push(self.name.clone());
+        self.nodes.as_mut().unwrap().push(node);
+    }
+
+    pub fn add_playlist(&mut self, name: &str, key_type: PlaylistKeyType) -> anyhow::Result<()> {
+        if self.node_type == PlaylistNodeType::Playlist {
+            return Err(anyhow::anyhow!("Cannot add child node to playlist node"));
+        };
         let node = Self::playlist(name, key_type);
-        self.nodes.as_mut().unwrap().push(node);
+        self.add_node(node);
+        Ok(())
     }
 
-    pub fn add_folder(&mut self, name: &str) {
+    pub fn add_folder(&mut self, name: &str) -> anyhow::Result<()> {
+        if self.node_type == PlaylistNodeType::Playlist {
+            return Err(anyhow::anyhow!("Cannot add child node to playlist node"));
+        };
         let node = Self::folder(name);
-        self.nodes.as_mut().unwrap().push(node);
+        self.add_node(node);
+        Ok(())
     }
 
-    pub fn add_track_key(&mut self, key: &str) {
+    pub fn add_track_key(&mut self, key: &str) -> anyhow::Result<()> {
+        if self.node_type == PlaylistNodeType::Folder {
+            return Err(anyhow::anyhow!("Cannot add track to folder node"));
+        };
         let track_item = PlaylistTrack::new(key);
         self.tracks.as_mut().unwrap().push(track_item);
+        Ok(())
     }
 
-    pub fn add_track(&mut self, track: &Track) {
+    pub fn add_track(&mut self, track: &Track) -> anyhow::Result<()> {
+        if self.node_type == PlaylistNodeType::Folder {
+            return Err(anyhow::anyhow!("Cannot get track of folder node"));
+        };
         let key_type = self.key_type.as_ref().unwrap();
         let track_item = PlaylistTrack::from_track(track, key_type);
         self.tracks.as_mut().unwrap().push(track_item);
+        Ok(())
     }
 
     pub fn get_child(&mut self, idx: usize) -> anyhow::Result<Option<&mut PlaylistNode>> {
@@ -629,12 +659,52 @@ impl PlaylistNode {
         Ok(node)
     }
 
-    pub fn get_track(&mut self, idx: usize) -> anyhow::Result<Option<&mut PlaylistTrack>> {
+    pub fn get_child_by_path(
+        &mut self,
+        path: Vec<String>,
+    ) -> anyhow::Result<Option<&mut PlaylistNode>> {
+        let mut parent = self;
+
+        for name in path {
+            let child = parent.find_child(&name)?;
+            if child.is_none() {
+                return Ok(None);
+            }
+            parent = child.unwrap();
+        }
+        Ok(Some(parent))
+    }
+
+    pub fn get_track(&mut self, idx: usize) -> anyhow::Result<Option<&PlaylistTrack>> {
         if self.node_type == PlaylistNodeType::Folder {
             return Err(anyhow::anyhow!("Cannot get track of folder node"));
         };
         let tracks = self.tracks.as_mut().unwrap();
-        Ok(tracks.get_mut(idx))
+        Ok(tracks.get(idx))
+    }
+
+    fn update_path(&mut self, parent_path: Vec<String>) {
+        // Set this node's path
+        let mut path = parent_path;
+        path.push(self.name.clone());
+        self.node_path = path;
+
+        // Recursively update paths for all children
+        if let Some(ref mut children) = self.nodes {
+            for child in children.iter_mut() {
+                child.update_path(self.node_path.clone());
+            }
+        }
+    }
+
+    fn set_path(&mut self, path: Vec<String>) {
+        self.node_path = path;
+        // Recursively update paths for all children
+        if let Some(ref mut children) = self.nodes {
+            for child in children.iter_mut() {
+                child.update_path(self.node_path.clone());
+            }
+        }
     }
 }
 
@@ -645,12 +715,14 @@ impl Debug for PlaylistNode {
                 .debug_struct("PlaylistNode")
                 .field("name", &self.name)
                 .field("key_type", &self.key_type.clone().unwrap())
-                .field("tracks", &self.tracks)
+                .field("node_path", &self.node_path)
+                // .field("tracks", &self.tracks)
                 .finish(),
             PlaylistNodeType::Folder => f
                 .debug_struct("PlaylistNode")
                 .field("name", &self.name)
-                .field("children", &self.nodes)
+                .field("node_path", &self.node_path)
+                // .field("children", &self.nodes)
                 .finish(),
         }
     }
@@ -737,7 +809,9 @@ impl RekordboxXml {
     pub fn new<P: AsRef<Path> + AsRef<OsStr>>(path: P) -> Self {
         let p = Path::new(&path).to_path_buf();
         let doc = Document::new();
-        RekordboxXml { path: p, doc }
+        let mut xml = RekordboxXml { path: p, doc };
+        xml.doc.playlists.node.set_path(Vec::new());
+        xml
     }
 
     /// Read a Rekordbox XML file.
@@ -746,7 +820,9 @@ impl RekordboxXml {
         let file = std::fs::File::open(&p).expect("File not found");
         let reader = std::io::BufReader::new(file);
         let doc: Document = quick_xml::de::from_reader(reader).expect("failed to deserialize XML");
-        RekordboxXml { path: p, doc }
+        let mut xml = RekordboxXml { path: p, doc };
+        xml.doc.playlists.node.set_path(Vec::new());
+        xml
     }
 
     /// Dump the XML document to a string.
@@ -868,17 +944,58 @@ impl RekordboxXml {
 
     pub fn get_playlist_by_path(
         &mut self,
-        path: Vec<&str>,
+        path: Vec<String>,
     ) -> anyhow::Result<Option<&mut PlaylistNode>> {
-        let mut parent = &mut self.doc.playlists.node;
-        for name in path {
-            let child = parent.find_child(name)?;
-            if child.is_none() {
-                return Ok(None);
-            }
-            parent = child.unwrap();
-        }
+        let root = &mut self.doc.playlists.node;
+        root.get_child_by_path(path)
+    }
 
-        Ok(Some(parent))
+    pub fn add_playlist(
+        &mut self,
+        name: &str,
+        key_type: PlaylistKeyType,
+        parent_path: Vec<String>,
+    ) -> anyhow::Result<()> {
+        let parent = self.get_playlist_by_path(parent_path)?;
+        if parent.is_none() {
+            return Err(anyhow::anyhow!("Parent playlist not found"));
+        }
+        parent.unwrap().add_playlist(name, key_type)?;
+        Ok(())
+    }
+
+    pub fn add_folder(&mut self, name: &str, parent_path: Vec<String>) -> anyhow::Result<()> {
+        let parent = self.get_playlist_by_path(parent_path)?;
+        if parent.is_none() {
+            return Err(anyhow::anyhow!("Parent playlist not found"));
+        }
+        parent.unwrap().add_folder(name)?;
+        Ok(())
+    }
+
+    pub fn add_track_key_to_playlist(
+        &mut self,
+        key: &str,
+        parent_path: Vec<String>,
+    ) -> anyhow::Result<()> {
+        let parent = self.get_playlist_by_path(parent_path)?;
+        if parent.is_none() {
+            return Err(anyhow::anyhow!("Parent playlist not found"));
+        }
+        parent.unwrap().add_track_key(key)?;
+        Ok(())
+    }
+
+    pub fn add_track_to_playlist(
+        &mut self,
+        track: &Track,
+        parent_path: Vec<String>,
+    ) -> anyhow::Result<()> {
+        let parent = self.get_playlist_by_path(parent_path)?;
+        if parent.is_none() {
+            return Err(anyhow::anyhow!("Parent playlist not found"));
+        }
+        parent.unwrap().add_track(track)?;
+        Ok(())
     }
 }
