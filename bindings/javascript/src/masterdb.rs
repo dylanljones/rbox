@@ -2,7 +2,9 @@
 // Date:   2025-05-04
 
 use crate::anlz::JsAnlzPaths;
+use crate::js_models::IntoJs;
 use crate::js_models::*;
+use napi::Env;
 use napi_derive::napi;
 use rbox::masterdb::{models::*, MasterDb, PlaylistType};
 
@@ -30,22 +32,21 @@ impl JsMasterDb {
     // -- AgentRegistry ----------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_agent_registry(&mut self) -> Vec<JsAgentRegistry> {
+    pub fn get_agent_registry(&mut self, env: Env) -> Vec<JsAgentRegistry> {
         let models = self
             .db
             .get_agent_registry()
             .expect("Could not fetch AgentRegistry");
-        let objects: Vec<JsAgentRegistry> = models.into_iter().map(JsAgentRegistry::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_agent_registry_by_id(&mut self, id: String) -> Option<JsAgentRegistry> {
+    pub fn get_agent_registry_by_id(&mut self, env: Env, id: String) -> Option<JsAgentRegistry> {
         let model = self
             .db
             .get_agent_registry_by_id(id.as_str())
             .expect("Failed to fetch AgentRegistry");
-        model.map(JsAgentRegistry::from)
+        model.map(|m| m.into_js(&env))
     }
 
     #[napi]
@@ -56,143 +57,141 @@ impl JsMasterDb {
     // -- CloudAgentRegistry -----------------------------------------------------------------------
 
     #[napi]
-    pub fn get_cloud_agent_registry(&mut self) -> Vec<JsCloudAgentRegistry> {
+    pub fn get_cloud_agent_registry(&mut self, env: Env) -> Vec<JsCloudAgentRegistry> {
         let models = self
             .db
             .get_cloud_agent_registry()
             .expect("Could not fetch CloudAgentRegistry");
-        let objects: Vec<JsCloudAgentRegistry> =
-            models.into_iter().map(JsCloudAgentRegistry::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_cloud_agent_registry_by_id(&mut self, id: String) -> Option<JsCloudAgentRegistry> {
+    pub fn get_cloud_agent_registry_by_id(
+        &mut self,
+        env: Env,
+        id: String,
+    ) -> Option<JsCloudAgentRegistry> {
         let model = self
             .db
             .get_cloud_agent_registry_by_id(id.as_str())
             .expect("Failed to fetch CloudAgentRegistry");
-        model.map(JsCloudAgentRegistry::from)
+        model.map(|m| m.into_js(&env))
     }
 
     // -- ContentActiveCensor ----------------------------------------------------------------------
 
     #[napi]
-    pub fn get_content_active_censor(&mut self) -> Vec<JsContentActiveCensor> {
+    pub fn get_content_active_censor(&mut self, env: Env) -> Vec<JsContentActiveCensor> {
         let models = self
             .db
             .get_content_active_censor()
             .expect("Could not fetch ContenActiveCensor");
-        let objects: Vec<JsContentActiveCensor> = models
-            .into_iter()
-            .map(JsContentActiveCensor::from)
-            .collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_content_active_censor_by_id(&mut self, id: String) -> Option<JsContentActiveCensor> {
+    pub fn get_content_active_censor_by_id(
+        &mut self,
+        env: Env,
+        id: String,
+    ) -> Option<JsContentActiveCensor> {
         let model = self
             .db
             .get_content_active_censor_by_id(id.as_str())
             .expect("Failed to fetch ContenActiveCensor");
-        model.map(JsContentActiveCensor::from)
+        model.map(|m| m.into_js(&env))
     }
 
     // -- ContentCue -------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_content_cue(&mut self) -> Vec<JsContentCue> {
+    pub fn get_content_cue(&mut self, env: Env) -> Vec<JsContentCue> {
         let models = self
             .db
             .get_content_cue()
             .expect("Could not fetch ContentCue");
-        let objects: Vec<JsContentCue> = models.into_iter().map(JsContentCue::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_content_cue_by_id(&mut self, id: String) -> Option<JsContentCue> {
+    pub fn get_content_cue_by_id(&mut self, env: Env, id: String) -> Option<JsContentCue> {
         let model = self
             .db
             .get_content_cue_by_id(id.as_str())
             .expect("Failed to fetch ContentCue");
-        model.map(JsContentCue::from)
+        model.map(|m| m.into_js(&env))
     }
 
     // -- ContentFile ------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_content_file(&mut self) -> Vec<JsContentFile> {
+    pub fn get_content_file(&mut self, env: Env) -> Vec<JsContentFile> {
         let models = self
             .db
             .get_content_file()
             .expect("Could not fetch ContentFile");
-        let objects: Vec<JsContentFile> = models.into_iter().map(JsContentFile::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_content_file_by_id(&mut self, id: String) -> Option<JsContentFile> {
+    pub fn get_content_file_by_id(&mut self, env: Env, id: String) -> Option<JsContentFile> {
         let model = self
             .db
             .get_content_file_by_id(id.as_str())
             .expect("Failed to fetch ContentFile");
-        model.map(JsContentFile::from)
+        model.map(|m| m.into_js(&env))
     }
 
     // -- ActiveCensor -----------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_active_censor(&mut self) -> Vec<JsDjmdActiveCensor> {
+    pub fn get_active_censor(&mut self, env: Env) -> Vec<JsDjmdActiveCensor> {
         let models = self
             .db
             .get_active_censor()
             .expect("Could not fetch DjmdActiveCensor");
-        let objects: Vec<JsDjmdActiveCensor> =
-            models.into_iter().map(JsDjmdActiveCensor::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_active_censor_by_id(&mut self, id: String) -> Option<JsDjmdActiveCensor> {
+    pub fn get_active_censor_by_id(&mut self, env: Env, id: String) -> Option<JsDjmdActiveCensor> {
         let model = self
             .db
             .get_active_censor_by_id(id.as_str())
             .expect("Failed to fetch DjmdActiveCensor");
-        model.map(JsDjmdActiveCensor::from)
+        model.map(|m| m.into_js(&env))
     }
 
     // -- Album ------------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_album(&mut self) -> Vec<JsDjmdAlbum> {
+    pub fn get_album(&mut self, env: Env) -> Vec<JsDjmdAlbum> {
         let models = self.db.get_album().expect("Could not fetch DjmdAlbum");
-        let objects: Vec<JsDjmdAlbum> = models.into_iter().map(JsDjmdAlbum::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_album_by_id(&mut self, id: String) -> Option<JsDjmdAlbum> {
+    pub fn get_album_by_id(&mut self, env: Env, id: String) -> Option<JsDjmdAlbum> {
         let model = self
             .db
             .get_album_by_id(id.as_str())
             .expect("Failed to fetch DjmdAlbum");
-        model.map(JsDjmdAlbum::from)
+        model.map(|m| m.into_js(&env))
     }
 
     #[napi]
-    pub fn get_album_by_name(&mut self, name: String) -> Option<JsDjmdAlbum> {
+    pub fn get_album_by_name(&mut self, env: Env, name: String) -> Option<JsDjmdAlbum> {
         let model = self
             .db
             .get_album_by_name(name.as_str())
             .expect("Failed to fetch DjmdAlbum");
-        model.map(JsDjmdAlbum::from)
+        model.map(|m| m.into_js(&env))
     }
 
     #[napi]
     pub fn insert_album(
         &mut self,
+        env: Env,
         name: String,
         artist_id: Option<String>,
         image_path: Option<String>,
@@ -202,17 +201,17 @@ impl JsMasterDb {
             .db
             .insert_album(name, artist_id, image_path, compilation)
             .expect("Failed to fetch DjmdAlbum");
-        JsDjmdAlbum::from(model)
+        model.into_js(&env)
     }
 
     #[napi]
-    pub fn update_album(&mut self, object: JsDjmdAlbum) -> JsDjmdAlbum {
+    pub fn update_album(&mut self, env: Env, object: JsDjmdAlbum) -> JsDjmdAlbum {
         let mut model: DjmdAlbum = DjmdAlbum::from(object);
         let updated_model = self
             .db
             .update_album(&mut model)
             .expect("Failed to update DjmdAlbum");
-        JsDjmdAlbum::from(updated_model)
+        updated_model.into_js(&env)
     }
 
     #[napi]
@@ -225,47 +224,46 @@ impl JsMasterDb {
     // -- Artist -----------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_artist(&mut self) -> Vec<JsDjmdArtist> {
+    pub fn get_artist(&mut self, env: Env) -> Vec<JsDjmdArtist> {
         let models = self.db.get_artist().expect("Could not fetch DjmdArtist");
-        let objects: Vec<JsDjmdArtist> = models.into_iter().map(JsDjmdArtist::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_artist_by_id(&mut self, id: String) -> Option<JsDjmdArtist> {
+    pub fn get_artist_by_id(&mut self, env: Env, id: String) -> Option<JsDjmdArtist> {
         let model = self
             .db
             .get_artist_by_id(id.as_str())
             .expect("Failed to fetch DjmdArtist");
-        model.map(JsDjmdArtist::from)
+        model.map(|m| m.into_js(&env))
     }
 
     #[napi]
-    pub fn get_artist_by_name(&mut self, name: String) -> Option<JsDjmdArtist> {
+    pub fn get_artist_by_name(&mut self, env: Env, name: String) -> Option<JsDjmdArtist> {
         let model = self
             .db
             .get_artist_by_name(name.as_str())
             .expect("Failed to fetch DjmdArtist");
-        model.map(JsDjmdArtist::from)
+        model.map(|m| m.into_js(&env))
     }
 
     #[napi]
-    pub fn insert_artist(&mut self, name: String) -> JsDjmdArtist {
+    pub fn insert_artist(&mut self, env: Env, name: String) -> JsDjmdArtist {
         let model = self
             .db
             .insert_artist(name)
             .expect("Failed to fetch DjmdArtist");
-        JsDjmdArtist::from(model)
+        model.into_js(&env)
     }
 
     #[napi]
-    pub fn update_artist(&mut self, object: JsDjmdArtist) -> JsDjmdArtist {
+    pub fn update_artist(&mut self, env: Env, object: JsDjmdArtist) -> JsDjmdArtist {
         let mut model: DjmdArtist = DjmdArtist::from(object);
         let updated_model = self
             .db
             .update_artist(&mut model)
             .expect("Failed to update DjmdArtist");
-        JsDjmdArtist::from(updated_model)
+        updated_model.into_js(&env)
     }
 
     #[napi]
@@ -278,67 +276,64 @@ impl JsMasterDb {
     // -- Category ---------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_category(&mut self) -> Vec<JsDjmdCategory> {
+    pub fn get_category(&mut self, env: Env) -> Vec<JsDjmdCategory> {
         let models = self
             .db
             .get_category()
             .expect("Could not fetch DjmdCategory");
-        let objects: Vec<JsDjmdCategory> = models.into_iter().map(JsDjmdCategory::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_category_by_id(&mut self, id: String) -> Option<JsDjmdCategory> {
+    pub fn get_category_by_id(&mut self, env: Env, id: String) -> Option<JsDjmdCategory> {
         let model = self
             .db
             .get_category_by_id(id.as_str())
             .expect("Failed to fetch DjmdCategory");
-        model.map(JsDjmdCategory::from)
+        model.map(|m| m.into_js(&env))
     }
 
     // -- Color ------------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_color(&mut self) -> Vec<JsDjmdColor> {
+    pub fn get_color(&mut self, env: Env) -> Vec<JsDjmdColor> {
         let models = self.db.get_color().expect("Could not fetch DjmdColor");
-        let objects: Vec<JsDjmdColor> = models.into_iter().map(JsDjmdColor::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_color_by_id(&mut self, id: String) -> Option<JsDjmdColor> {
+    pub fn get_color_by_id(&mut self, env: Env, id: String) -> Option<JsDjmdColor> {
         let model = self
             .db
             .get_color_by_id(id.as_str())
             .expect("Failed to fetch DjmdColor");
-        model.map(JsDjmdColor::from)
+        model.map(|m| m.into_js(&env))
     }
 
     // -- Content ----------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_content(&mut self) -> Vec<JsDjmdContent> {
+    pub fn get_content(&mut self, env: Env) -> Vec<JsDjmdContent> {
         let models = self.db.get_content().expect("Could not fetch DjmdContent");
-        let objects: Vec<JsDjmdContent> = models.into_iter().map(JsDjmdContent::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_content_by_id(&mut self, id: String) -> Option<JsDjmdContent> {
+    pub fn get_content_by_id(&mut self, env: Env, id: String) -> Option<JsDjmdContent> {
         let model = self
             .db
             .get_content_by_id(id.as_str())
             .expect("Failed to fetch DjmdContent");
-        model.map(JsDjmdContent::from)
+        model.map(|m| m.into_js(&env))
     }
 
     #[napi]
-    pub fn get_content_by_path(&mut self, id: String) -> Option<JsDjmdContent> {
+    pub fn get_content_by_path(&mut self, env: Env, id: String) -> Option<JsDjmdContent> {
         let model = self
             .db
             .get_content_by_path(id.as_str())
             .expect("Failed to fetch DjmdContent");
-        model.map(JsDjmdContent::from)
+        model.map(|m| m.into_js(&env))
     }
 
     #[napi]
@@ -366,12 +361,12 @@ impl JsMasterDb {
     }
 
     #[napi]
-    pub fn insert_content(&mut self, path: String) -> JsDjmdContent {
+    pub fn insert_content(&mut self, env: Env, path: String) -> JsDjmdContent {
         let model = self
             .db
             .insert_content(path)
             .expect("Failed to insert DjmdContent");
-        JsDjmdContent::from(model)
+        model.into_js(&env)
     }
 
     #[napi]
@@ -466,83 +461,80 @@ impl JsMasterDb {
     // -- Cue --------------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_cue(&mut self) -> Vec<JsDjmdCue> {
+    pub fn get_cue(&mut self, env: Env) -> Vec<JsDjmdCue> {
         let models = self.db.get_cue().expect("Could not fetch DjmdCue");
-        let objects: Vec<JsDjmdCue> = models.into_iter().map(JsDjmdCue::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_cue_by_id(&mut self, id: String) -> Option<JsDjmdCue> {
+    pub fn get_cue_by_id(&mut self, env: Env, id: String) -> Option<JsDjmdCue> {
         let model = self
             .db
             .get_cue_by_id(id.as_str())
             .expect("Failed to fetch DjmdCue");
-        model.map(JsDjmdCue::from)
+        model.map(|m| m.into_js(&env))
     }
 
     // -- Device -----------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_device(&mut self) -> Vec<JsDjmdDevice> {
+    pub fn get_device(&mut self, env: Env) -> Vec<JsDjmdDevice> {
         let models = self.db.get_device().expect("Could not fetch DjmdDevice");
-        let objects: Vec<JsDjmdDevice> = models.into_iter().map(JsDjmdDevice::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_device_by_id(&mut self, id: String) -> Option<JsDjmdDevice> {
+    pub fn get_device_by_id(&mut self, env: Env, id: String) -> Option<JsDjmdDevice> {
         let model = self
             .db
             .get_device_by_id(id.as_str())
             .expect("Failed to fetch DjmdDevice");
-        model.map(JsDjmdDevice::from)
+        model.map(|m| m.into_js(&env))
     }
 
     // -- Genre ------------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_genre(&mut self) -> Vec<JsDjmdGenre> {
+    pub fn get_genre(&mut self, env: Env) -> Vec<JsDjmdGenre> {
         let models = self.db.get_genre().expect("Could not fetch DjmdGenre");
-        let objects: Vec<JsDjmdGenre> = models.into_iter().map(JsDjmdGenre::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_genre_by_id(&mut self, id: String) -> Option<JsDjmdGenre> {
+    pub fn get_genre_by_id(&mut self, env: Env, id: String) -> Option<JsDjmdGenre> {
         let model = self
             .db
             .get_genre_by_id(id.as_str())
             .expect("Failed to fetch DjmdGenre");
-        model.map(JsDjmdGenre::from)
+        model.map(|m| m.into_js(&env))
     }
 
     #[napi]
-    pub fn get_genre_by_name(&mut self, name: String) -> Option<JsDjmdGenre> {
+    pub fn get_genre_by_name(&mut self, env: Env, name: String) -> Option<JsDjmdGenre> {
         let model = self
             .db
             .get_genre_by_name(name.as_str())
             .expect("Failed to fetch DjmdGenre");
-        model.map(JsDjmdGenre::from)
+        model.map(|m| m.into_js(&env))
     }
 
     #[napi]
-    pub fn insert_genre(&mut self, name: String) -> JsDjmdGenre {
+    pub fn insert_genre(&mut self, env: Env, name: String) -> JsDjmdGenre {
         let model = self
             .db
             .insert_genre(name)
             .expect("Failed to fetch DjmdGenre");
-        JsDjmdGenre::from(model)
+        model.into_js(&env)
     }
 
     #[napi]
-    pub fn update_genre(&mut self, object: JsDjmdGenre) -> JsDjmdGenre {
+    pub fn update_genre(&mut self, env: Env, object: JsDjmdGenre) -> JsDjmdGenre {
         let mut model: DjmdGenre = DjmdGenre::from(object);
         let updated_model = self
             .db
             .update_genre(&mut model)
             .expect("Failed to update DjmdGenre");
-        JsDjmdGenre::from(updated_model)
+        updated_model.into_js(&env)
     }
 
     #[napi]
@@ -555,150 +547,146 @@ impl JsMasterDb {
     // -- History ----------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_history(&mut self) -> Vec<JsDjmdHistory> {
+    pub fn get_history(&mut self, env: Env) -> Vec<JsDjmdHistory> {
         let models = self.db.get_history().expect("Could not fetch DjmdGenre");
-        let objects: Vec<JsDjmdHistory> = models.into_iter().map(JsDjmdHistory::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_history_by_id(&mut self, id: String) -> Option<JsDjmdHistory> {
+    pub fn get_history_by_id(&mut self, env: Env, id: String) -> Option<JsDjmdHistory> {
         let model = self
             .db
             .get_history_by_id(id.as_str())
             .expect("Failed to fetch DjmdGenre");
-        model.map(JsDjmdHistory::from)
+        model.map(|m| m.into_js(&env))
     }
 
     #[napi]
-    pub fn get_history_songs(&mut self, id: String) -> Vec<JsDjmdSongHistory> {
+    pub fn get_history_songs(&mut self, env: Env, id: String) -> Vec<JsDjmdSongHistory> {
         let models = self
             .db
             .get_history_songs(id.as_str())
             .expect("Could not fetch DjmdSongHistory");
-        let objects: Vec<JsDjmdSongHistory> =
-            models.into_iter().map(JsDjmdSongHistory::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_history_contents(&mut self, id: String) -> Vec<JsDjmdContent> {
+    pub fn get_history_contents(&mut self, env: Env, id: String) -> Vec<JsDjmdContent> {
         let models = self
             .db
             .get_history_contents(id.as_str())
             .expect("Could not fetch DjmdContent");
-        let objects: Vec<JsDjmdContent> = models.into_iter().map(JsDjmdContent::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     // -- HotCueBanklist ---------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_hot_cue_banklist(&mut self) -> Vec<JsDjmdHotCueBanklist> {
+    pub fn get_hot_cue_banklist(&mut self, env: Env) -> Vec<JsDjmdHotCueBanklist> {
         let models = self
             .db
             .get_hot_cue_banklist()
             .expect("Could not fetch DjmdHotCueBanklist");
-        let objects: Vec<JsDjmdHotCueBanklist> =
-            models.into_iter().map(JsDjmdHotCueBanklist::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_hot_cue_banklist_children(&mut self, id: String) -> Vec<JsDjmdHotCueBanklist> {
+    pub fn get_hot_cue_banklist_children(
+        &mut self,
+        env: Env,
+        id: String,
+    ) -> Vec<JsDjmdHotCueBanklist> {
         let models = self
             .db
             .get_hot_cue_banklist_children(id.as_str())
             .expect("Failed to fetch DjmdHotCueBanklist");
-        let objects: Vec<JsDjmdHotCueBanklist> =
-            models.into_iter().map(JsDjmdHotCueBanklist::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_hot_cue_banklist_by_id(&mut self, id: String) -> Option<JsDjmdHotCueBanklist> {
+    pub fn get_hot_cue_banklist_by_id(
+        &mut self,
+        env: Env,
+        id: String,
+    ) -> Option<JsDjmdHotCueBanklist> {
         let model = self
             .db
             .get_hot_cue_banklist_by_id(id.as_str())
             .expect("Failed to fetch DjmdHotCueBanklist");
-        model.map(JsDjmdHotCueBanklist::from)
+        model.map(|m| m.into_js(&env))
     }
 
     #[napi]
-    pub fn get_hot_cue_banklist_songs(&mut self, id: String) -> Vec<JsDjmdSongHotCueBanklist> {
+    pub fn get_hot_cue_banklist_songs(
+        &mut self,
+        env: Env,
+        id: String,
+    ) -> Vec<JsDjmdSongHotCueBanklist> {
         let models = self
             .db
             .get_hot_cue_banklist_songs(id.as_str())
             .expect("Could not fetch DjmdSongHistory");
-        let objects: Vec<JsDjmdSongHotCueBanklist> = models
-            .into_iter()
-            .map(JsDjmdSongHotCueBanklist::from)
-            .collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_hot_cue_banklist_contents(&mut self, id: String) -> Vec<JsDjmdContent> {
+    pub fn get_hot_cue_banklist_contents(&mut self, env: Env, id: String) -> Vec<JsDjmdContent> {
         let models = self
             .db
             .get_hot_cue_banklist_contents(id.as_str())
             .expect("Could not fetch DjmdContent");
-        let objects: Vec<JsDjmdContent> = models.into_iter().map(JsDjmdContent::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_hot_cue_banklist_cues(&mut self, id: String) -> Vec<JsHotCueBanklistCue> {
+    pub fn get_hot_cue_banklist_cues(&mut self, env: Env, id: String) -> Vec<JsHotCueBanklistCue> {
         let models = self
             .db
             .get_hot_cue_banklist_cues(id.as_str())
             .expect("Could not fetch HotCueBanklistCue");
-        let objects: Vec<JsHotCueBanklistCue> =
-            models.into_iter().map(JsHotCueBanklistCue::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     // -- Key --------------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_key(&mut self) -> Vec<JsDjmdKey> {
+    pub fn get_key(&mut self, env: Env) -> Vec<JsDjmdKey> {
         let models = self.db.get_key().expect("Could not fetch DjmdKey");
-        let objects: Vec<JsDjmdKey> = models.into_iter().map(JsDjmdKey::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_key_by_id(&mut self, id: String) -> Option<JsDjmdKey> {
+    pub fn get_key_by_id(&mut self, env: Env, id: String) -> Option<JsDjmdKey> {
         let model = self
             .db
             .get_key_by_id(id.as_str())
             .expect("Failed to fetch DjmdKey");
-        model.map(JsDjmdKey::from)
+        model.map(|m| m.into_js(&env))
     }
 
     #[napi]
-    pub fn get_key_by_name(&mut self, name: String) -> Option<JsDjmdKey> {
+    pub fn get_key_by_name(&mut self, env: Env, name: String) -> Option<JsDjmdKey> {
         let model = self
             .db
             .get_key_by_name(name.as_str())
             .expect("Failed to fetch DjmdKey");
-        model.map(JsDjmdKey::from)
+        model.map(|m| m.into_js(&env))
     }
 
     #[napi]
-    pub fn insert_key(&mut self, name: String) -> JsDjmdKey {
+    pub fn insert_key(&mut self, env: Env, name: String) -> JsDjmdKey {
         let model = self.db.insert_key(name).expect("Failed to fetch DjmdKey");
-        JsDjmdKey::from(model)
+        model.into_js(&env)
     }
 
     #[napi]
-    pub fn update_key(&mut self, object: JsDjmdKey) -> JsDjmdKey {
+    pub fn update_key(&mut self, env: Env, object: JsDjmdKey) -> JsDjmdKey {
         let mut model: DjmdKey = DjmdKey::from(object);
         let updated_model = self
             .db
             .update_key(&mut model)
             .expect("Failed to update DjmdKey");
-        JsDjmdKey::from(updated_model)
+        updated_model.into_js(&env)
     }
 
     #[napi]
@@ -711,47 +699,46 @@ impl JsMasterDb {
     // -- Label ------------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_label(&mut self) -> Vec<JsDjmdLabel> {
+    pub fn get_label(&mut self, env: Env) -> Vec<JsDjmdLabel> {
         let models = self.db.get_label().expect("Could not fetch DjmdLabel");
-        let objects: Vec<JsDjmdLabel> = models.into_iter().map(JsDjmdLabel::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_label_by_id(&mut self, id: String) -> Option<JsDjmdLabel> {
+    pub fn get_label_by_id(&mut self, env: Env, id: String) -> Option<JsDjmdLabel> {
         let model = self
             .db
             .get_label_by_id(id.as_str())
             .expect("Failed to fetch DjmdLabel");
-        model.map(JsDjmdLabel::from)
+        model.map(|m| m.into_js(&env))
     }
 
     #[napi]
-    pub fn get_label_by_name(&mut self, name: String) -> Option<JsDjmdLabel> {
+    pub fn get_label_by_name(&mut self, env: Env, name: String) -> Option<JsDjmdLabel> {
         let model = self
             .db
             .get_label_by_name(name.as_str())
             .expect("Failed to fetch DjmdLabel");
-        model.map(JsDjmdLabel::from)
+        model.map(|m| m.into_js(&env))
     }
 
     #[napi]
-    pub fn insert_label(&mut self, name: String) -> JsDjmdLabel {
+    pub fn insert_label(&mut self, env: Env, name: String) -> JsDjmdLabel {
         let model = self
             .db
             .insert_label(name)
             .expect("Failed to fetch DjmdLabel");
-        JsDjmdLabel::from(model)
+        model.into_js(&env)
     }
 
     #[napi]
-    pub fn update_label(&mut self, object: JsDjmdLabel) -> JsDjmdLabel {
+    pub fn update_label(&mut self, env: Env, object: JsDjmdLabel) -> JsDjmdLabel {
         let mut model: DjmdLabel = DjmdLabel::from(object);
         let updated_model = self
             .db
             .update_label(&mut model)
             .expect("Failed to update DjmdLabel");
-        JsDjmdLabel::from(updated_model)
+        updated_model.into_js(&env)
     }
 
     #[napi]
@@ -764,183 +751,169 @@ impl JsMasterDb {
     // -- MenuItems --------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_menu_item(&mut self) -> Vec<JsDjmdMenuItems> {
+    pub fn get_menu_item(&mut self, env: Env) -> Vec<JsDjmdMenuItems> {
         let models = self
             .db
             .get_menu_item()
             .expect("Could not fetch DjmdMenuItems");
-        let objects: Vec<JsDjmdMenuItems> = models.into_iter().map(JsDjmdMenuItems::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_menu_item_by_id(&mut self, id: String) -> Option<JsDjmdMenuItems> {
+    pub fn get_menu_item_by_id(&mut self, env: Env, id: String) -> Option<JsDjmdMenuItems> {
         let model = self
             .db
             .get_menu_item_by_id(id.as_str())
             .expect("Failed to fetch DjmdMenuItems");
-        model.map(JsDjmdMenuItems::from)
+        model.map(|m| m.into_js(&env))
     }
 
     // -- MixerParam -------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_mixer_param(&mut self) -> Vec<JsDjmdMixerParam> {
+    pub fn get_mixer_param(&mut self, env: Env) -> Vec<JsDjmdMixerParam> {
         let models = self
             .db
             .get_mixer_param()
             .expect("Could not fetch DjmdMixerParam");
-        let objects: Vec<JsDjmdMixerParam> =
-            models.into_iter().map(JsDjmdMixerParam::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_mixer_param_by_id(&mut self, id: String) -> Option<JsDjmdMixerParam> {
+    pub fn get_mixer_param_by_id(&mut self, env: Env, id: String) -> Option<JsDjmdMixerParam> {
         let model = self
             .db
             .get_mixer_param_by_id(id.as_str())
             .expect("Failed to fetch DjmdMixerParam");
-        model.map(JsDjmdMixerParam::from)
+        model.map(|m| m.into_js(&env))
     }
 
     // -- MyTag ------------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_my_tag(&mut self) -> Vec<JsDjmdMyTag> {
+    pub fn get_my_tag(&mut self, env: Env) -> Vec<JsDjmdMyTag> {
         let models = self.db.get_my_tag().expect("Could not fetch DjmdMyTag");
-        let objects: Vec<JsDjmdMyTag> = models.into_iter().map(JsDjmdMyTag::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_my_tag_children(&mut self, id: String) -> Vec<JsDjmdMyTag> {
+    pub fn get_my_tag_children(&mut self, env: Env, id: String) -> Vec<JsDjmdMyTag> {
         let models = self
             .db
             .get_my_tag_children(id.as_str())
             .expect("Failed to fetch DjmdMyTag");
-        let objects: Vec<JsDjmdMyTag> = models.into_iter().map(JsDjmdMyTag::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_my_tag_by_id(&mut self, id: String) -> Option<JsDjmdMyTag> {
+    pub fn get_my_tag_by_id(&mut self, env: Env, id: String) -> Option<JsDjmdMyTag> {
         let model = self
             .db
             .get_my_tag_by_id(id.as_str())
             .expect("Failed to fetch DjmdMyTag");
-        model.map(JsDjmdMyTag::from)
+        model.map(|m| m.into_js(&env))
     }
 
     #[napi]
-    pub fn get_my_tag_songs(&mut self, id: String) -> Vec<JsDjmdSongMyTag> {
+    pub fn get_my_tag_songs(&mut self, env: Env, id: String) -> Vec<JsDjmdSongMyTag> {
         let models = self
             .db
             .get_my_tag_songs(id.as_str())
             .expect("Could not fetch DjmdSongHistory");
-        let objects: Vec<JsDjmdSongMyTag> = models.into_iter().map(JsDjmdSongMyTag::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_my_tag_contents(&mut self, id: String) -> Vec<JsDjmdContent> {
+    pub fn get_my_tag_contents(&mut self, env: Env, id: String) -> Vec<JsDjmdContent> {
         let models = self
             .db
             .get_my_tag_contents(id.as_str())
             .expect("Could not fetch DjmdContent");
-        let objects: Vec<JsDjmdContent> = models.into_iter().map(JsDjmdContent::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     // -- Playlist ---------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_playlist(&mut self) -> Vec<JsDjmdPlaylist> {
+    pub fn get_playlist(&mut self, env: Env) -> Vec<JsDjmdPlaylist> {
         let models = self
             .db
             .get_playlist()
             .expect("Could not fetch DjmdPlaylist");
-        let objects: Vec<JsDjmdPlaylist> = models.into_iter().map(JsDjmdPlaylist::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_playlist_tree(&mut self) -> Vec<JsPlaylistTreeItem> {
+    pub fn get_playlist_tree(&mut self, env: Env) -> Vec<JsPlaylistTreeItem> {
         let models = self
             .db
             .get_playlist_tree()
             .expect("Could not fetch DjmdPlaylist");
-        let objects: Vec<JsPlaylistTreeItem> = models
-            .iter()
-            .map(|item| JsPlaylistTreeItem::from(item.borrow().clone()))
-            .collect();
-        objects
+        models
+            .into_iter()
+            .map(|m| m.borrow().clone().into_js(&env))
+            .collect()
     }
 
     #[napi]
-    pub fn get_playlist_children(&mut self, id: String) -> Vec<JsDjmdPlaylist> {
+    pub fn get_playlist_children(&mut self, env: Env, id: String) -> Vec<JsDjmdPlaylist> {
         let models = self
             .db
             .get_playlist_children(id.as_str())
             .expect("Failed to fetch DjmdPlaylist");
-        let objects: Vec<JsDjmdPlaylist> = models.into_iter().map(JsDjmdPlaylist::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_playlist_by_id(&mut self, id: String) -> Option<JsDjmdPlaylist> {
+    pub fn get_playlist_by_id(&mut self, env: Env, id: String) -> Option<JsDjmdPlaylist> {
         let model = self
             .db
             .get_playlist_by_id(id.as_str())
             .expect("Failed to fetch DjmdPlaylist");
-        model.map(JsDjmdPlaylist::from)
+        model.map(|m| m.into_js(&env))
     }
 
     #[napi]
-    pub fn get_playlist_by_path(&mut self, path: Vec<String>) -> Option<JsDjmdPlaylist> {
+    pub fn get_playlist_by_path(&mut self, env: Env, path: Vec<String>) -> Option<JsDjmdPlaylist> {
         let path_str: Vec<&str> = path.iter().map(|item| item.as_str()).collect();
         let model = self
             .db
             .get_playlist_by_path(path_str)
             .expect("Failed to fetch DjmdPlaylist");
-        model.map(JsDjmdPlaylist::from)
+        model.map(|m| m.into_js(&env))
     }
 
     #[napi]
-    pub fn get_playlist_songs(&mut self, id: String) -> Vec<JsDjmdSongPlaylist> {
+    pub fn get_playlist_songs(&mut self, env: Env, id: String) -> Vec<JsDjmdSongPlaylist> {
         let models = self
             .db
             .get_playlist_songs(id.as_str())
             .expect("Could not fetch DjmdSongHistory");
-        let objects: Vec<JsDjmdSongPlaylist> =
-            models.into_iter().map(JsDjmdSongPlaylist::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_playlist_contents(&mut self, id: String) -> Vec<JsDjmdContent> {
+    pub fn get_playlist_contents(&mut self, env: Env, id: String) -> Vec<JsDjmdContent> {
         let models = self
             .db
             .get_playlist_contents(id.as_str())
             .expect("Could not fetch DjmdContent");
-        let objects: Vec<JsDjmdContent> = models.into_iter().map(JsDjmdContent::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_playlist_song_by_id(&mut self, id: String) -> Vec<JsDjmdSongPlaylist> {
+    pub fn get_playlist_song_by_id(&mut self, env: Env, id: String) -> Vec<JsDjmdSongPlaylist> {
         let models = self
             .db
             .get_playlist_song_by_id(id.as_str())
             .expect("Could not fetch DjmdSongPlaylist");
-        let objects: Vec<JsDjmdSongPlaylist> =
-            models.into_iter().map(JsDjmdSongPlaylist::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
     pub fn insert_playlist(
         &mut self,
+        env: Env,
         name: String,
         attribute: i32,
         parent_id: Option<String>,
@@ -953,21 +926,22 @@ impl JsMasterDb {
             .db
             .insert_playlist(name, attr, parent_id, seq, image_path, smart_list)
             .expect("Failed to insert DjmdPlaylist");
-        JsDjmdPlaylist::from(model)
+        model.into_js(&env)
     }
 
     #[napi]
-    pub fn rename_playlist(&mut self, id: String, name: String) -> JsDjmdPlaylist {
+    pub fn rename_playlist(&mut self, env: Env, id: String, name: String) -> JsDjmdPlaylist {
         let model = self
             .db
             .rename_playlist(&id, name)
             .expect("Failed to rename DjmdPlaylist");
-        JsDjmdPlaylist::from(model)
+        model.into_js(&env)
     }
 
     #[napi]
     pub fn move_playlist(
         &mut self,
+        env: Env,
         id: String,
         seq: Option<i32>,
         parent_id: Option<String>,
@@ -976,7 +950,7 @@ impl JsMasterDb {
             .db
             .move_playlist(&id, seq, parent_id)
             .expect("Failed to move DjmdPlaylist");
-        JsDjmdPlaylist::from(model)
+        model.into_js(&env)
     }
 
     #[napi]
@@ -989,6 +963,7 @@ impl JsMasterDb {
     #[napi]
     pub fn insert_playlist_song(
         &mut self,
+        env: Env,
         playlist_id: String,
         content_id: String,
         seq: Option<i32>,
@@ -997,16 +972,16 @@ impl JsMasterDb {
             .db
             .insert_playlist_song(&playlist_id, &content_id, seq)
             .expect("Failed to insert DjmdSongPlaylist");
-        JsDjmdSongPlaylist::from(model)
+        model.into_js(&env)
     }
 
     #[napi]
-    pub fn move_playlist_song(&mut self, id: String, seq: i32) -> JsDjmdSongPlaylist {
+    pub fn move_playlist_song(&mut self, env: Env, id: String, seq: i32) -> JsDjmdSongPlaylist {
         let model = self
             .db
             .move_playlist_song(&id, seq)
             .expect("Failed to move DjmdSongPlaylist");
-        JsDjmdSongPlaylist::from(model)
+        model.into_js(&env)
     }
 
     #[napi]
@@ -1019,270 +994,265 @@ impl JsMasterDb {
     // -- Property ---------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_property(&mut self) -> Vec<JsDjmdProperty> {
+    pub fn get_property(&mut self, env: Env) -> Vec<JsDjmdProperty> {
         let models = self
             .db
             .get_property()
             .expect("Could not fetch DjmdProperty");
-        let objects: Vec<JsDjmdProperty> = models.into_iter().map(JsDjmdProperty::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_property_by_id(&mut self, id: String) -> Option<JsDjmdProperty> {
+    pub fn get_property_by_id(&mut self, env: Env, id: String) -> Option<JsDjmdProperty> {
         let model = self
             .db
             .get_property_by_id(id.as_str())
             .expect("Failed to fetch DjmdProperty");
-        model.map(JsDjmdProperty::from)
+        model.map(|m| m.into_js(&env))
     }
 
     // -- CloudProperty ----------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_cloud_property(&mut self) -> Vec<JsDjmdCloudProperty> {
+    pub fn get_cloud_property(&mut self, env: Env) -> Vec<JsDjmdCloudProperty> {
         let models = self
             .db
             .get_cloud_property()
             .expect("Could not fetch DjmdCloudProperty");
-        let objects: Vec<JsDjmdCloudProperty> =
-            models.into_iter().map(JsDjmdCloudProperty::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_cloud_property_by_id(&mut self, id: String) -> Option<JsDjmdCloudProperty> {
+    pub fn get_cloud_property_by_id(
+        &mut self,
+        env: Env,
+        id: String,
+    ) -> Option<JsDjmdCloudProperty> {
         let model = self
             .db
             .get_cloud_property_by_id(id.as_str())
             .expect("Failed to fetch DjmdCloudProperty");
-        model.map(JsDjmdCloudProperty::from)
+        model.map(|m| m.into_js(&env))
     }
 
     // -- RecommendLike ----------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_recommend_like(&mut self) -> Vec<JsDjmdRecommendLike> {
+    pub fn get_recommend_like(&mut self, env: Env) -> Vec<JsDjmdRecommendLike> {
         let models = self
             .db
             .get_recommend_like()
             .expect("Could not fetch DjmdRecommendLike");
-        let objects: Vec<JsDjmdRecommendLike> =
-            models.into_iter().map(JsDjmdRecommendLike::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_recommend_like_by_id(&mut self, id: String) -> Option<JsDjmdRecommendLike> {
+    pub fn get_recommend_like_by_id(
+        &mut self,
+        env: Env,
+        id: String,
+    ) -> Option<JsDjmdRecommendLike> {
         let model = self
             .db
             .get_recommend_like_by_id(id.as_str())
             .expect("Failed to fetch DjmdRecommendLike");
-        model.map(JsDjmdRecommendLike::from)
+        model.map(|m| m.into_js(&env))
     }
 
     // -- RelatedTracks ----------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_related_tracks(&mut self) -> Vec<JsDjmdRelatedTracks> {
+    pub fn get_related_tracks(&mut self, env: Env) -> Vec<JsDjmdRelatedTracks> {
         let models = self
             .db
             .get_related_tracks()
             .expect("Could not fetch DjmdRelatedTracks");
-        let objects: Vec<JsDjmdRelatedTracks> =
-            models.into_iter().map(JsDjmdRelatedTracks::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_related_tracks_children(&mut self, id: String) -> Vec<JsDjmdRelatedTracks> {
+    pub fn get_related_tracks_children(
+        &mut self,
+        env: Env,
+        id: String,
+    ) -> Vec<JsDjmdRelatedTracks> {
         let models = self
             .db
             .get_related_tracks_children(id.as_str())
             .expect("Failed to fetch DjmdRelatedTracks");
-        let objects: Vec<JsDjmdRelatedTracks> =
-            models.into_iter().map(JsDjmdRelatedTracks::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_related_tracks_by_id(&mut self, id: String) -> Option<JsDjmdRelatedTracks> {
+    pub fn get_related_tracks_by_id(
+        &mut self,
+        env: Env,
+        id: String,
+    ) -> Option<JsDjmdRelatedTracks> {
         let model = self
             .db
             .get_related_tracks_by_id(id.as_str())
             .expect("Failed to fetch DjmdRelatedTracks");
-        model.map(JsDjmdRelatedTracks::from)
+        model.map(|m| m.into_js(&env))
     }
 
     #[napi]
-    pub fn get_related_tracks_songs(&mut self, id: String) -> Vec<JsDjmdSongRelatedTracks> {
+    pub fn get_related_tracks_songs(
+        &mut self,
+        env: Env,
+        id: String,
+    ) -> Vec<JsDjmdSongRelatedTracks> {
         let models = self
             .db
             .get_related_tracks_songs(id.as_str())
             .expect("Could not fetch DjmdSongHistory");
-        let objects: Vec<JsDjmdSongRelatedTracks> = models
-            .into_iter()
-            .map(JsDjmdSongRelatedTracks::from)
-            .collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_related_tracks_contents(&mut self, id: String) -> Vec<JsDjmdContent> {
+    pub fn get_related_tracks_contents(&mut self, env: Env, id: String) -> Vec<JsDjmdContent> {
         let models = self
             .db
             .get_related_tracks_contents(id.as_str())
             .expect("Could not fetch DjmdContent");
-        let objects: Vec<JsDjmdContent> = models.into_iter().map(JsDjmdContent::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     // -- Sampler ----------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_sampler(&mut self) -> Vec<JsDjmdSampler> {
+    pub fn get_sampler(&mut self, env: Env) -> Vec<JsDjmdSampler> {
         let models = self.db.get_sampler().expect("Could not fetch DjmdSampler");
-        let objects: Vec<JsDjmdSampler> = models.into_iter().map(JsDjmdSampler::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_sampler_children(&mut self, id: String) -> Vec<JsDjmdSampler> {
+    pub fn get_sampler_children(&mut self, env: Env, id: String) -> Vec<JsDjmdSampler> {
         let models = self
             .db
             .get_sampler_children(id.as_str())
             .expect("Failed to fetch DjmdSampler");
-        let objects: Vec<JsDjmdSampler> = models.into_iter().map(JsDjmdSampler::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_sampler_by_id(&mut self, id: String) -> Option<JsDjmdSampler> {
+    pub fn get_sampler_by_id(&mut self, env: Env, id: String) -> Option<JsDjmdSampler> {
         let model = self
             .db
             .get_sampler_by_id(id.as_str())
             .expect("Failed to fetch DjmdSampler");
-        model.map(JsDjmdSampler::from)
+        model.map(|m| m.into_js(&env))
     }
 
     #[napi]
-    pub fn get_sampler_songs(&mut self, id: String) -> Vec<JsDjmdSongSampler> {
+    pub fn get_sampler_songs(&mut self, env: Env, id: String) -> Vec<JsDjmdSongSampler> {
         let models = self
             .db
             .get_sampler_songs(id.as_str())
             .expect("Could not fetch DjmdSongHistory");
-        let objects: Vec<JsDjmdSongSampler> =
-            models.into_iter().map(JsDjmdSongSampler::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_sampler_contents(&mut self, id: String) -> Vec<JsDjmdContent> {
+    pub fn get_sampler_contents(&mut self, env: Env, id: String) -> Vec<JsDjmdContent> {
         let models = self
             .db
             .get_sampler_contents(id.as_str())
             .expect("Could not fetch DjmdContent");
-        let objects: Vec<JsDjmdContent> = models.into_iter().map(JsDjmdContent::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     // -- SongTagList ------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_song_tag_list(&mut self) -> Vec<JsDjmdSongTagList> {
+    pub fn get_song_tag_list(&mut self, env: Env) -> Vec<JsDjmdSongTagList> {
         let models = self
             .db
             .get_song_tag_list()
             .expect("Could not fetch DjmdSongTagList");
-        let objects: Vec<JsDjmdSongTagList> =
-            models.into_iter().map(JsDjmdSongTagList::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_song_tag_list_by_id(&mut self, id: String) -> Option<JsDjmdSongTagList> {
+    pub fn get_song_tag_list_by_id(&mut self, env: Env, id: String) -> Option<JsDjmdSongTagList> {
         let model = self
             .db
             .get_song_tag_list_by_id(id.as_str())
             .expect("Failed to fetch DjmdSongTagList");
-        model.map(JsDjmdSongTagList::from)
+        model.map(|m| m.into_js(&env))
     }
 
     // -- Sort -------------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_sort(&mut self) -> Vec<JsDjmdSort> {
+    pub fn get_sort(&mut self, env: Env) -> Vec<JsDjmdSort> {
         let models = self.db.get_sort().expect("Could not fetch DjmdSort");
-        let objects: Vec<JsDjmdSort> = models.into_iter().map(JsDjmdSort::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_sort_by_id(&mut self, id: String) -> Option<JsDjmdSort> {
+    pub fn get_sort_by_id(&mut self, env: Env, id: String) -> Option<JsDjmdSort> {
         let model = self
             .db
             .get_sort_by_id(id.as_str())
             .expect("Failed to fetch DjmdSort");
-        model.map(JsDjmdSort::from)
+        model.map(|m| m.into_js(&env))
     }
 
     // -- ImageFile --------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_image_file(&mut self) -> Vec<JsImageFile> {
+    pub fn get_image_file(&mut self, env: Env) -> Vec<JsImageFile> {
         let models = self.db.get_image_file().expect("Could not fetch ImageFile");
-        let objects: Vec<JsImageFile> = models.into_iter().map(JsImageFile::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_image_file_by_id(&mut self, id: String) -> Option<JsImageFile> {
+    pub fn get_image_file_by_id(&mut self, env: Env, id: String) -> Option<JsImageFile> {
         let model = self
             .db
             .get_image_file_by_id(id.as_str())
             .expect("Failed to fetch ImageFile");
-        model.map(JsImageFile::from)
+        model.map(|m| m.into_js(&env))
     }
 
     // -- SettingFile ------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_setting_file(&mut self) -> Vec<JsSettingFile> {
+    pub fn get_setting_file(&mut self, env: Env) -> Vec<JsSettingFile> {
         let models = self
             .db
             .get_setting_file()
             .expect("Could not fetch SettingFile");
-        let objects: Vec<JsSettingFile> = models.into_iter().map(JsSettingFile::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_setting_file_by_id(&mut self, id: String) -> Option<JsSettingFile> {
+    pub fn get_setting_file_by_id(&mut self, env: Env, id: String) -> Option<JsSettingFile> {
         let model = self
             .db
             .get_setting_file_by_id(id.as_str())
             .expect("Failed to fetch SettingFile");
-        model.map(JsSettingFile::from)
+        model.map(|m| m.into_js(&env))
     }
 
     // -- UuidIDMap --------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_uuid_id_map(&mut self) -> Vec<JsUuidIDMap> {
+    pub fn get_uuid_id_map(&mut self, env: Env) -> Vec<JsUuidIDMap> {
         let models = self
             .db
             .get_uuid_id_map()
             .expect("Could not fetch UuidIDMap");
-        let objects: Vec<JsUuidIDMap> = models.into_iter().map(JsUuidIDMap::from).collect();
-        objects
+        models.into_iter().map(|m| m.into_js(&env)).collect()
     }
 
     #[napi]
-    pub fn get_uuid_id_map_by_id(&mut self, id: String) -> Option<JsUuidIDMap> {
+    pub fn get_uuid_id_map_by_id(&mut self, env: Env, id: String) -> Option<JsUuidIDMap> {
         let model = self
             .db
             .get_uuid_id_map_by_id(id.as_str())
             .expect("Failed to fetch UuidIDMap");
-        model.map(JsUuidIDMap::from)
+        model.map(|m| m.into_js(&env))
     }
 }
