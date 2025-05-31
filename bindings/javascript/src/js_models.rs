@@ -64,21 +64,21 @@ impl IntoJs<JsAgentRegistry> for AgentRegistry {
 }
 
 impl From<JsAgentRegistry> for AgentRegistry {
-    fn from(js_model: JsAgentRegistry) -> Self {
+    fn from(model: JsAgentRegistry) -> Self {
         AgentRegistry {
-            registry_id: js_model.registry_id,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            id_1: js_model.id_1,
-            id_2: js_model.id_2,
-            int_1: js_model.int_1,
-            int_2: js_model.int_2,
-            str_1: js_model.str_1,
-            str_2: js_model.str_2,
-            date_1: js_model.date_1,
-            date_2: js_model.date_2,
-            text_1: js_model.text_1,
-            text_2: js_model.text_2,
+            registry_id: model.registry_id,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            id_1: model.id_1,
+            id_2: model.id_2,
+            int_1: model.int_1,
+            int_2: model.int_2,
+            str_1: model.str_1,
+            str_2: model.str_2,
+            date_1: model.date_1,
+            date_2: model.date_2,
+            text_1: model.text_1,
+            text_2: model.text_2,
         }
     }
 }
@@ -131,26 +131,26 @@ impl IntoJs<JsCloudAgentRegistry> for CloudAgentRegistry {
 }
 
 impl From<JsCloudAgentRegistry> for CloudAgentRegistry {
-    fn from(js_model: JsCloudAgentRegistry) -> Self {
+    fn from(model: JsCloudAgentRegistry) -> Self {
         CloudAgentRegistry {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            int_1: js_model.int_1,
-            int_2: js_model.int_2,
-            str_1: js_model.str_1,
-            str_2: js_model.str_2,
-            date_1: js_model.date_1,
-            date_2: js_model.date_2,
-            text_1: js_model.text_1,
-            text_2: js_model.text_2,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            int_1: model.int_1,
+            int_2: model.int_2,
+            str_1: model.str_1,
+            str_2: model.str_2,
+            date_1: model.date_1,
+            date_2: model.date_2,
+            text_1: model.text_1,
+            text_2: model.text_2,
         }
     }
 }
@@ -193,21 +193,21 @@ impl IntoJs<JsContentActiveCensor> for ContentActiveCensor {
 }
 
 impl From<JsContentActiveCensor> for ContentActiveCensor {
-    fn from(js_model: JsContentActiveCensor) -> Self {
+    fn from(model: JsContentActiveCensor) -> Self {
         ContentActiveCensor {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            ContentID: js_model.ContentID,
-            ActiveCensors: js_model.ActiveCensors,
-            rb_activecensor_count: js_model.rb_activecensor_count,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            ContentID: model.ContentID,
+            ActiveCensors: model.ActiveCensors,
+            rb_activecensor_count: model.rb_activecensor_count,
         }
     }
 }
@@ -250,21 +250,21 @@ impl IntoJs<JsContentCue> for ContentCue {
 }
 
 impl From<JsContentCue> for ContentCue {
-    fn from(js_model: JsContentCue) -> Self {
+    fn from(model: JsContentCue) -> Self {
         ContentCue {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            ContentID: js_model.ContentID,
-            Cues: js_model.Cues,
-            rb_cue_count: js_model.rb_cue_count,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            ContentID: model.ContentID,
+            Cues: model.Cues,
+            rb_cue_count: model.rb_cue_count,
         }
     }
 }
@@ -329,32 +329,32 @@ impl IntoJs<JsContentFile> for ContentFile {
 }
 
 impl From<JsContentFile> for ContentFile {
-    fn from(js_model: JsContentFile) -> Self {
+    fn from(model: JsContentFile) -> Self {
         ContentFile {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            ContentID: js_model.ContentID,
-            Path: js_model.Path,
-            Hash: js_model.Hash,
-            Size: js_model.Size,
-            rb_local_path: js_model.rb_local_path,
-            rb_insync_hash: js_model.rb_insync_hash,
-            rb_insync_local_usn: js_model.rb_insync_local_usn,
-            rb_file_hash_dirty: js_model.rb_file_hash_dirty,
-            rb_local_file_status: js_model.rb_local_file_status,
-            rb_in_progress: js_model.rb_in_progress,
-            rb_process_type: js_model.rb_process_type,
-            rb_temp_path: js_model.rb_temp_path,
-            rb_priority: js_model.rb_priority,
-            rb_file_size_dirty: js_model.rb_file_size_dirty,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            ContentID: model.ContentID,
+            Path: model.Path,
+            Hash: model.Hash,
+            Size: model.Size,
+            rb_local_path: model.rb_local_path,
+            rb_insync_hash: model.rb_insync_hash,
+            rb_insync_local_usn: model.rb_insync_local_usn,
+            rb_file_hash_dirty: model.rb_file_hash_dirty,
+            rb_local_file_status: model.rb_local_file_status,
+            rb_in_progress: model.rb_in_progress,
+            rb_process_type: model.rb_process_type,
+            rb_temp_path: model.rb_temp_path,
+            rb_priority: model.rb_priority,
+            rb_file_size_dirty: model.rb_file_size_dirty,
         }
     }
 }
@@ -403,24 +403,24 @@ impl IntoJs<JsDjmdActiveCensor> for DjmdActiveCensor {
 }
 
 impl From<JsDjmdActiveCensor> for DjmdActiveCensor {
-    fn from(js_model: JsDjmdActiveCensor) -> Self {
+    fn from(model: JsDjmdActiveCensor) -> Self {
         DjmdActiveCensor {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            ContentID: js_model.ContentID,
-            InMsec: js_model.InMsec,
-            OutMsec: js_model.OutMsec,
-            Info: js_model.Info,
-            ParameterList: js_model.ParameterList,
-            ContentUUID: js_model.ContentUUID,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            ContentID: model.ContentID,
+            InMsec: model.InMsec,
+            OutMsec: model.OutMsec,
+            Info: model.Info,
+            ParameterList: model.ParameterList,
+            ContentUUID: model.ContentUUID,
         }
     }
 }
@@ -467,23 +467,23 @@ impl IntoJs<JsDjmdAlbum> for DjmdAlbum {
 }
 
 impl From<JsDjmdAlbum> for DjmdAlbum {
-    fn from(js_model: JsDjmdAlbum) -> Self {
+    fn from(model: JsDjmdAlbum) -> Self {
         DjmdAlbum {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            Name: js_model.Name,
-            AlbumArtistID: js_model.AlbumArtistID,
-            ImagePath: js_model.ImagePath,
-            Compilation: js_model.Compilation,
-            SearchStr: js_model.SearchStr,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            Name: model.Name,
+            AlbumArtistID: model.AlbumArtistID,
+            ImagePath: model.ImagePath,
+            Compilation: model.Compilation,
+            SearchStr: model.SearchStr,
         }
     }
 }
@@ -524,20 +524,20 @@ impl IntoJs<JsDjmdArtist> for DjmdArtist {
 }
 
 impl From<JsDjmdArtist> for DjmdArtist {
-    fn from(js_model: JsDjmdArtist) -> Self {
+    fn from(model: JsDjmdArtist) -> Self {
         DjmdArtist {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            Name: js_model.Name,
-            SearchStr: js_model.SearchStr,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            Name: model.Name,
+            SearchStr: model.SearchStr,
         }
     }
 }
@@ -582,22 +582,22 @@ impl IntoJs<JsDjmdCategory> for DjmdCategory {
 }
 
 impl From<JsDjmdCategory> for DjmdCategory {
-    fn from(js_model: JsDjmdCategory) -> Self {
+    fn from(model: JsDjmdCategory) -> Self {
         DjmdCategory {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            MenuItemID: js_model.MenuItemID,
-            Seq: js_model.Seq,
-            Disable: js_model.Disable,
-            InfoOrder: js_model.InfoOrder,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            MenuItemID: model.MenuItemID,
+            Seq: model.Seq,
+            Disable: model.Disable,
+            InfoOrder: model.InfoOrder,
         }
     }
 }
@@ -640,21 +640,21 @@ impl IntoJs<JsDjmdColor> for DjmdColor {
 }
 
 impl From<JsDjmdColor> for DjmdColor {
-    fn from(js_model: JsDjmdColor) -> Self {
+    fn from(model: JsDjmdColor) -> Self {
         DjmdColor {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            ColorCode: js_model.ColorCode,
-            SortKey: js_model.SortKey,
-            Commnt: js_model.Commnt,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            ColorCode: model.ColorCode,
+            SortKey: model.SortKey,
+            Commnt: model.Commnt,
         }
     }
 }
@@ -827,86 +827,86 @@ impl IntoJs<JsDjmdContent> for DjmdContent {
 }
 
 impl From<JsDjmdContent> for DjmdContent {
-    fn from(js_model: JsDjmdContent) -> Self {
+    fn from(model: JsDjmdContent) -> Self {
         DjmdContent {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            FolderPath: js_model.FolderPath,
-            FileNameL: js_model.FileNameL,
-            FileNameS: js_model.FileNameS,
-            Title: js_model.Title,
-            ArtistID: js_model.ArtistID,
-            AlbumID: js_model.AlbumID,
-            GenreID: js_model.GenreID,
-            BPM: js_model.BPM,
-            Length: js_model.Length,
-            TrackNo: js_model.TrackNo,
-            BitRate: js_model.BitRate,
-            BitDepth: js_model.BitDepth,
-            Commnt: js_model.Commnt,
-            FileType: js_model.FileType,
-            Rating: js_model.Rating,
-            ReleaseYear: js_model.ReleaseYear,
-            RemixerID: js_model.RemixerID,
-            LabelID: js_model.LabelID,
-            OrgArtistID: js_model.OrgArtistID,
-            KeyID: js_model.KeyID,
-            StockDate: js_model.StockDate,
-            ColorID: js_model.ColorID,
-            DJPlayCount: js_model.DJPlayCount,
-            ImagePath: js_model.ImagePath,
-            MasterDBID: js_model.MasterDBID,
-            MasterSongID: js_model.MasterSongID,
-            AnalysisDataPath: js_model.AnalysisDataPath,
-            SearchStr: js_model.SearchStr,
-            FileSize: js_model.FileSize,
-            DiscNo: js_model.DiscNo,
-            ComposerID: js_model.ComposerID,
-            Subtitle: js_model.Subtitle,
-            SampleRate: js_model.SampleRate,
-            DisableQuantize: js_model.DisableQuantize,
-            Analysed: js_model.Analysed,
-            ReleaseDate: js_model.ReleaseDate,
-            DateCreated: js_model.DateCreated,
-            ContentLink: js_model.ContentLink,
-            Tag: js_model.Tag,
-            ModifiedByRBM: js_model.ModifiedByRBM,
-            HotCueAutoLoad: js_model.HotCueAutoLoad,
-            DeliveryControl: js_model.DeliveryControl,
-            DeliveryComment: js_model.DeliveryComment,
-            CueUpdated: js_model.CueUpdated,
-            AnalysisUpdated: js_model.AnalysisUpdated,
-            TrackInfoUpdated: js_model.TrackInfoUpdated,
-            Lyricist: js_model.Lyricist,
-            ISRC: js_model.ISRC,
-            SamplerTrackInfo: js_model.SamplerTrackInfo,
-            SamplerPlayOffset: js_model.SamplerPlayOffset,
-            SamplerGain: js_model.SamplerGain,
-            VideoAssociate: js_model.VideoAssociate,
-            LyricStatus: js_model.LyricStatus,
-            ServiceID: js_model.ServiceID,
-            OrgFolderPath: js_model.OrgFolderPath,
-            Reserved1: js_model.Reserved1,
-            Reserved2: js_model.Reserved2,
-            Reserved3: js_model.Reserved3,
-            Reserved4: js_model.Reserved4,
-            ExtInfo: js_model.ExtInfo,
-            rb_file_id: js_model.rb_file_id,
-            DeviceID: js_model.DeviceID,
-            rb_LocalFolderPath: js_model.rb_LocalFolderPath,
-            SrcID: js_model.SrcID,
-            SrcTitle: js_model.SrcTitle,
-            SrcArtistName: js_model.SrcArtistName,
-            SrcAlbumName: js_model.SrcAlbumName,
-            SrcLength: js_model.SrcLength,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            FolderPath: model.FolderPath,
+            FileNameL: model.FileNameL,
+            FileNameS: model.FileNameS,
+            Title: model.Title,
+            ArtistID: model.ArtistID,
+            AlbumID: model.AlbumID,
+            GenreID: model.GenreID,
+            BPM: model.BPM,
+            Length: model.Length,
+            TrackNo: model.TrackNo,
+            BitRate: model.BitRate,
+            BitDepth: model.BitDepth,
+            Commnt: model.Commnt,
+            FileType: model.FileType,
+            Rating: model.Rating,
+            ReleaseYear: model.ReleaseYear,
+            RemixerID: model.RemixerID,
+            LabelID: model.LabelID,
+            OrgArtistID: model.OrgArtistID,
+            KeyID: model.KeyID,
+            StockDate: model.StockDate,
+            ColorID: model.ColorID,
+            DJPlayCount: model.DJPlayCount,
+            ImagePath: model.ImagePath,
+            MasterDBID: model.MasterDBID,
+            MasterSongID: model.MasterSongID,
+            AnalysisDataPath: model.AnalysisDataPath,
+            SearchStr: model.SearchStr,
+            FileSize: model.FileSize,
+            DiscNo: model.DiscNo,
+            ComposerID: model.ComposerID,
+            Subtitle: model.Subtitle,
+            SampleRate: model.SampleRate,
+            DisableQuantize: model.DisableQuantize,
+            Analysed: model.Analysed,
+            ReleaseDate: model.ReleaseDate,
+            DateCreated: model.DateCreated,
+            ContentLink: model.ContentLink,
+            Tag: model.Tag,
+            ModifiedByRBM: model.ModifiedByRBM,
+            HotCueAutoLoad: model.HotCueAutoLoad,
+            DeliveryControl: model.DeliveryControl,
+            DeliveryComment: model.DeliveryComment,
+            CueUpdated: model.CueUpdated,
+            AnalysisUpdated: model.AnalysisUpdated,
+            TrackInfoUpdated: model.TrackInfoUpdated,
+            Lyricist: model.Lyricist,
+            ISRC: model.ISRC,
+            SamplerTrackInfo: model.SamplerTrackInfo,
+            SamplerPlayOffset: model.SamplerPlayOffset,
+            SamplerGain: model.SamplerGain,
+            VideoAssociate: model.VideoAssociate,
+            LyricStatus: model.LyricStatus,
+            ServiceID: model.ServiceID,
+            OrgFolderPath: model.OrgFolderPath,
+            Reserved1: model.Reserved1,
+            Reserved2: model.Reserved2,
+            Reserved3: model.Reserved3,
+            Reserved4: model.Reserved4,
+            ExtInfo: model.ExtInfo,
+            rb_file_id: model.rb_file_id,
+            DeviceID: model.DeviceID,
+            rb_LocalFolderPath: model.rb_LocalFolderPath,
+            SrcID: model.SrcID,
+            SrcTitle: model.SrcTitle,
+            SrcArtistName: model.SrcArtistName,
+            SrcAlbumName: model.SrcAlbumName,
+            SrcLength: model.SrcLength,
         }
     }
 }
@@ -981,37 +981,37 @@ impl IntoJs<JsDjmdCue> for DjmdCue {
 }
 
 impl From<JsDjmdCue> for DjmdCue {
-    fn from(js_model: JsDjmdCue) -> Self {
+    fn from(model: JsDjmdCue) -> Self {
         DjmdCue {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            ContentID: js_model.ContentID,
-            InMsec: js_model.InMsec,
-            InFrame: js_model.InFrame,
-            InMpegFrame: js_model.InMpegFrame,
-            InMpegAbs: js_model.InMpegAbs,
-            OutMsec: js_model.OutMsec,
-            OutFrame: js_model.OutFrame,
-            OutMpegFrame: js_model.OutMpegFrame,
-            OutMpegAbs: js_model.OutMpegAbs,
-            Kind: js_model.Kind,
-            Color: js_model.Color,
-            ColorTableIndex: js_model.ColorTableIndex,
-            ActiveLoop: js_model.ActiveLoop,
-            Comment: js_model.Comment,
-            BeatLoopSize: js_model.BeatLoopSize,
-            CueMicrosec: js_model.CueMicrosec,
-            InPointSeekInfo: js_model.InPointSeekInfo,
-            OutPointSeekInfo: js_model.OutPointSeekInfo,
-            ContentUUID: js_model.ContentUUID,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            ContentID: model.ContentID,
+            InMsec: model.InMsec,
+            InFrame: model.InFrame,
+            InMpegFrame: model.InMpegFrame,
+            InMpegAbs: model.InMpegAbs,
+            OutMsec: model.OutMsec,
+            OutFrame: model.OutFrame,
+            OutMpegFrame: model.OutMpegFrame,
+            OutMpegAbs: model.OutMpegAbs,
+            Kind: model.Kind,
+            Color: model.Color,
+            ColorTableIndex: model.ColorTableIndex,
+            ActiveLoop: model.ActiveLoop,
+            Comment: model.Comment,
+            BeatLoopSize: model.BeatLoopSize,
+            CueMicrosec: model.CueMicrosec,
+            InPointSeekInfo: model.InPointSeekInfo,
+            OutPointSeekInfo: model.OutPointSeekInfo,
+            ContentUUID: model.ContentUUID,
         }
     }
 }
@@ -1052,20 +1052,20 @@ impl IntoJs<JsDjmdDevice> for DjmdDevice {
 }
 
 impl From<JsDjmdDevice> for DjmdDevice {
-    fn from(js_model: JsDjmdDevice) -> Self {
+    fn from(model: JsDjmdDevice) -> Self {
         DjmdDevice {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            MasterDBID: js_model.MasterDBID,
-            Name: js_model.Name,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            MasterDBID: model.MasterDBID,
+            Name: model.Name,
         }
     }
 }
@@ -1104,19 +1104,19 @@ impl IntoJs<JsDjmdGenre> for DjmdGenre {
 }
 
 impl From<JsDjmdGenre> for DjmdGenre {
-    fn from(js_model: JsDjmdGenre) -> Self {
+    fn from(model: JsDjmdGenre) -> Self {
         DjmdGenre {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            Name: js_model.Name,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            Name: model.Name,
         }
     }
 }
@@ -1163,23 +1163,23 @@ impl IntoJs<JsDjmdHistory> for DjmdHistory {
 }
 
 impl From<JsDjmdHistory> for DjmdHistory {
-    fn from(js_model: JsDjmdHistory) -> Self {
+    fn from(model: JsDjmdHistory) -> Self {
         DjmdHistory {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            Seq: js_model.Seq,
-            Name: js_model.Name,
-            Attribute: js_model.Attribute,
-            ParentID: js_model.ParentID,
-            DateCreated: js_model.DateCreated,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            Seq: model.Seq,
+            Name: model.Name,
+            Attribute: model.Attribute,
+            ParentID: model.ParentID,
+            DateCreated: model.DateCreated,
         }
     }
 }
@@ -1222,21 +1222,21 @@ impl IntoJs<JsDjmdSongHistory> for DjmdSongHistory {
 }
 
 impl From<JsDjmdSongHistory> for DjmdSongHistory {
-    fn from(js_model: JsDjmdSongHistory) -> Self {
+    fn from(model: JsDjmdSongHistory) -> Self {
         DjmdSongHistory {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            HistoryID: js_model.HistoryID,
-            ContentID: js_model.ContentID,
-            TrackNo: js_model.TrackNo,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            HistoryID: model.HistoryID,
+            ContentID: model.ContentID,
+            TrackNo: model.TrackNo,
         }
     }
 }
@@ -1283,23 +1283,23 @@ impl IntoJs<JsDjmdHotCueBanklist> for DjmdHotCueBanklist {
 }
 
 impl From<JsDjmdHotCueBanklist> for DjmdHotCueBanklist {
-    fn from(js_model: JsDjmdHotCueBanklist) -> Self {
+    fn from(model: JsDjmdHotCueBanklist) -> Self {
         DjmdHotCueBanklist {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            Seq: js_model.Seq,
-            Name: js_model.Name,
-            ImagePath: js_model.ImagePath,
-            Attribute: js_model.Attribute,
-            ParentID: js_model.ParentID,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            Seq: model.Seq,
+            Name: model.Name,
+            ImagePath: model.ImagePath,
+            Attribute: model.Attribute,
+            ParentID: model.ParentID,
         }
     }
 }
@@ -1376,38 +1376,38 @@ impl IntoJs<JsDjmdSongHotCueBanklist> for DjmdSongHotCueBanklist {
 }
 
 impl From<JsDjmdSongHotCueBanklist> for DjmdSongHotCueBanklist {
-    fn from(js_model: JsDjmdSongHotCueBanklist) -> Self {
+    fn from(model: JsDjmdSongHotCueBanklist) -> Self {
         DjmdSongHotCueBanklist {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            ContentID: js_model.ContentID,
-            TrackNo: js_model.TrackNo,
-            CueID: js_model.CueID,
-            InMsec: js_model.InMsec,
-            InFrame: js_model.InFrame,
-            InMpegFrame: js_model.InMpegFrame,
-            InMpegAbs: js_model.InMpegAbs,
-            OutMsec: js_model.OutMsec,
-            OutFrame: js_model.OutFrame,
-            OutMpegFrame: js_model.OutMpegFrame,
-            OutMpegAbs: js_model.OutMpegAbs,
-            Color: js_model.Color,
-            ColorTableIndex: js_model.ColorTableIndex,
-            ActiveLoop: js_model.ActiveLoop,
-            Comment: js_model.Comment,
-            BeatLoopSize: js_model.BeatLoopSize,
-            CueMicrosec: js_model.CueMicrosec,
-            InPointSeekInfo: js_model.InPointSeekInfo,
-            OutPointSeekInfo: js_model.OutPointSeekInfo,
-            HotCueBanklistUUID: js_model.HotCueBanklistUUID,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            ContentID: model.ContentID,
+            TrackNo: model.TrackNo,
+            CueID: model.CueID,
+            InMsec: model.InMsec,
+            InFrame: model.InFrame,
+            InMpegFrame: model.InMpegFrame,
+            InMpegAbs: model.InMpegAbs,
+            OutMsec: model.OutMsec,
+            OutFrame: model.OutFrame,
+            OutMpegFrame: model.OutMpegFrame,
+            OutMpegAbs: model.OutMpegAbs,
+            Color: model.Color,
+            ColorTableIndex: model.ColorTableIndex,
+            ActiveLoop: model.ActiveLoop,
+            Comment: model.Comment,
+            BeatLoopSize: model.BeatLoopSize,
+            CueMicrosec: model.CueMicrosec,
+            InPointSeekInfo: model.InPointSeekInfo,
+            OutPointSeekInfo: model.OutPointSeekInfo,
+            HotCueBanklistUUID: model.HotCueBanklistUUID,
         }
     }
 }
@@ -1450,21 +1450,21 @@ impl IntoJs<JsHotCueBanklistCue> for HotCueBanklistCue {
 }
 
 impl From<JsHotCueBanklistCue> for HotCueBanklistCue {
-    fn from(js_model: JsHotCueBanklistCue) -> Self {
+    fn from(model: JsHotCueBanklistCue) -> Self {
         HotCueBanklistCue {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            HotCueBanklistID: js_model.HotCueBanklistID,
-            Cues: js_model.Cues,
-            rb_cue_count: js_model.rb_cue_count,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            HotCueBanklistID: model.HotCueBanklistID,
+            Cues: model.Cues,
+            rb_cue_count: model.rb_cue_count,
         }
     }
 }
@@ -1505,20 +1505,20 @@ impl IntoJs<JsDjmdKey> for DjmdKey {
 }
 
 impl From<JsDjmdKey> for DjmdKey {
-    fn from(js_model: JsDjmdKey) -> Self {
+    fn from(model: JsDjmdKey) -> Self {
         DjmdKey {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            ScaleName: js_model.ScaleName,
-            Seq: js_model.Seq,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            ScaleName: model.ScaleName,
+            Seq: model.Seq,
         }
     }
 }
@@ -1557,19 +1557,19 @@ impl IntoJs<JsDjmdLabel> for DjmdLabel {
 }
 
 impl From<JsDjmdLabel> for DjmdLabel {
-    fn from(js_model: JsDjmdLabel) -> Self {
+    fn from(model: JsDjmdLabel) -> Self {
         DjmdLabel {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            Name: js_model.Name,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            Name: model.Name,
         }
     }
 }
@@ -1610,20 +1610,20 @@ impl IntoJs<JsDjmdMenuItems> for DjmdMenuItems {
 }
 
 impl From<JsDjmdMenuItems> for DjmdMenuItems {
-    fn from(js_model: JsDjmdMenuItems) -> Self {
+    fn from(model: JsDjmdMenuItems) -> Self {
         DjmdMenuItems {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            Class: js_model.Class,
-            Name: js_model.Name,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            Class: model.Class,
+            Name: model.Name,
         }
     }
 }
@@ -1670,23 +1670,23 @@ impl IntoJs<JsDjmdMixerParam> for DjmdMixerParam {
 }
 
 impl From<JsDjmdMixerParam> for DjmdMixerParam {
-    fn from(js_model: JsDjmdMixerParam) -> Self {
+    fn from(model: JsDjmdMixerParam) -> Self {
         DjmdMixerParam {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            ContentID: js_model.ContentID,
-            GainHigh: js_model.GainHigh,
-            GainLow: js_model.GainLow,
-            PeakHigh: js_model.PeakHigh,
-            PeakLow: js_model.PeakLow,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            ContentID: model.ContentID,
+            GainHigh: model.GainHigh,
+            GainLow: model.GainLow,
+            PeakHigh: model.PeakHigh,
+            PeakLow: model.PeakLow,
         }
     }
 }
@@ -1731,22 +1731,22 @@ impl IntoJs<JsDjmdMyTag> for DjmdMyTag {
 }
 
 impl From<JsDjmdMyTag> for DjmdMyTag {
-    fn from(js_model: JsDjmdMyTag) -> Self {
+    fn from(model: JsDjmdMyTag) -> Self {
         DjmdMyTag {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            Seq: js_model.Seq,
-            Name: js_model.Name,
-            Attribute: js_model.Attribute,
-            ParentID: js_model.ParentID,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            Seq: model.Seq,
+            Name: model.Name,
+            Attribute: model.Attribute,
+            ParentID: model.ParentID,
         }
     }
 }
@@ -1789,21 +1789,21 @@ impl IntoJs<JsDjmdSongMyTag> for DjmdSongMyTag {
 }
 
 impl From<JsDjmdSongMyTag> for DjmdSongMyTag {
-    fn from(js_model: JsDjmdSongMyTag) -> Self {
+    fn from(model: JsDjmdSongMyTag) -> Self {
         DjmdSongMyTag {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            MyTagID: js_model.MyTagID,
-            ContentID: js_model.ContentID,
-            TrackNo: js_model.TrackNo,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            MyTagID: model.MyTagID,
+            ContentID: model.ContentID,
+            TrackNo: model.TrackNo,
         }
     }
 }
@@ -1852,24 +1852,24 @@ impl IntoJs<JsDjmdPlaylist> for DjmdPlaylist {
 }
 
 impl From<JsDjmdPlaylist> for DjmdPlaylist {
-    fn from(js_model: JsDjmdPlaylist) -> Self {
+    fn from(model: JsDjmdPlaylist) -> Self {
         DjmdPlaylist {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            Seq: js_model.Seq,
-            Name: js_model.Name,
-            ImagePath: js_model.ImagePath,
-            Attribute: js_model.Attribute,
-            ParentID: js_model.ParentID,
-            SmartList: js_model.SmartList,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            Seq: model.Seq,
+            Name: model.Name,
+            ImagePath: model.ImagePath,
+            Attribute: model.Attribute,
+            ParentID: model.ParentID,
+            SmartList: model.SmartList,
         }
     }
 }
@@ -1898,7 +1898,7 @@ pub struct JsPlaylistTreeItem {
 
 impl IntoJs<JsPlaylistTreeItem> for PlaylistTreeItem {
     fn into_js(self, env: &Env) -> JsPlaylistTreeItem {
-        let mut js_model = JsPlaylistTreeItem {
+        let mut model = JsPlaylistTreeItem {
             ID: self.ID,
             UUID: self.UUID,
             rb_data_status: self.rb_data_status,
@@ -1920,10 +1920,10 @@ impl IntoJs<JsPlaylistTreeItem> for PlaylistTreeItem {
 
         for child in self.Children {
             let js_child = child.borrow().clone().into_js(env);
-            js_model.Children.push(js_child);
+            model.Children.push(js_child);
         }
 
-        js_model
+        model
     }
 }
 
@@ -1965,21 +1965,21 @@ impl IntoJs<JsDjmdSongPlaylist> for DjmdSongPlaylist {
 }
 
 impl From<JsDjmdSongPlaylist> for DjmdSongPlaylist {
-    fn from(js_model: JsDjmdSongPlaylist) -> Self {
+    fn from(model: JsDjmdSongPlaylist) -> Self {
         DjmdSongPlaylist {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            PlaylistID: js_model.PlaylistID,
-            ContentID: js_model.ContentID,
-            TrackNo: js_model.TrackNo,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            PlaylistID: model.PlaylistID,
+            ContentID: model.ContentID,
+            TrackNo: model.TrackNo,
         }
     }
 }
@@ -2020,20 +2020,20 @@ impl IntoJs<JsDjmdProperty> for DjmdProperty {
 }
 
 impl From<JsDjmdProperty> for DjmdProperty {
-    fn from(js_model: JsDjmdProperty) -> Self {
+    fn from(model: JsDjmdProperty) -> Self {
         DjmdProperty {
-            DBID: js_model.DBID,
-            DBVersion: js_model.DBVersion,
-            BaseDBDrive: js_model.BaseDBDrive,
-            CurrentDBDrive: js_model.CurrentDBDrive,
-            DeviceID: js_model.DeviceID,
-            Reserved1: js_model.Reserved1,
-            Reserved2: js_model.Reserved2,
-            Reserved3: js_model.Reserved3,
-            Reserved4: js_model.Reserved4,
-            Reserved5: js_model.Reserved5,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
+            DBID: model.DBID,
+            DBVersion: model.DBVersion,
+            BaseDBDrive: model.BaseDBDrive,
+            CurrentDBDrive: model.CurrentDBDrive,
+            DeviceID: model.DeviceID,
+            Reserved1: model.Reserved1,
+            Reserved2: model.Reserved2,
+            Reserved3: model.Reserved3,
+            Reserved4: model.Reserved4,
+            Reserved5: model.Reserved5,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
         }
     }
 }
@@ -2080,23 +2080,23 @@ impl IntoJs<JsDjmdCloudProperty> for DjmdCloudProperty {
 }
 
 impl From<JsDjmdCloudProperty> for DjmdCloudProperty {
-    fn from(js_model: JsDjmdCloudProperty) -> Self {
+    fn from(model: JsDjmdCloudProperty) -> Self {
         DjmdCloudProperty {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            Reserved1: js_model.Reserved1,
-            Reserved2: js_model.Reserved2,
-            Reserved3: js_model.Reserved3,
-            Reserved4: js_model.Reserved4,
-            Reserved5: js_model.Reserved5,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            Reserved1: model.Reserved1,
+            Reserved2: model.Reserved2,
+            Reserved3: model.Reserved3,
+            Reserved4: model.Reserved4,
+            Reserved5: model.Reserved5,
         }
     }
 }
@@ -2143,23 +2143,23 @@ impl IntoJs<JsDjmdRecommendLike> for DjmdRecommendLike {
 }
 
 impl From<JsDjmdRecommendLike> for DjmdRecommendLike {
-    fn from(js_model: JsDjmdRecommendLike) -> Self {
+    fn from(model: JsDjmdRecommendLike) -> Self {
         DjmdRecommendLike {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            ContentID1: js_model.ContentID1,
-            ContentID2: js_model.ContentID2,
-            LikeRate: js_model.LikeRate,
-            DataCreatedH: js_model.DataCreatedH,
-            DataCreatedL: js_model.DataCreatedL,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            ContentID1: model.ContentID1,
+            ContentID2: model.ContentID2,
+            LikeRate: model.LikeRate,
+            DataCreatedH: model.DataCreatedH,
+            DataCreatedL: model.DataCreatedL,
         }
     }
 }
@@ -2206,23 +2206,23 @@ impl IntoJs<JsDjmdRelatedTracks> for DjmdRelatedTracks {
 }
 
 impl From<JsDjmdRelatedTracks> for DjmdRelatedTracks {
-    fn from(js_model: JsDjmdRelatedTracks) -> Self {
+    fn from(model: JsDjmdRelatedTracks) -> Self {
         DjmdRelatedTracks {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            Seq: js_model.Seq,
-            Name: js_model.Name,
-            Attribute: js_model.Attribute,
-            ParentID: js_model.ParentID,
-            Criteria: js_model.Criteria,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            Seq: model.Seq,
+            Name: model.Name,
+            Attribute: model.Attribute,
+            ParentID: model.ParentID,
+            Criteria: model.Criteria,
         }
     }
 }
@@ -2265,21 +2265,21 @@ impl IntoJs<JsDjmdSongRelatedTracks> for DjmdSongRelatedTracks {
 }
 
 impl From<JsDjmdSongRelatedTracks> for DjmdSongRelatedTracks {
-    fn from(js_model: JsDjmdSongRelatedTracks) -> Self {
+    fn from(model: JsDjmdSongRelatedTracks) -> Self {
         DjmdSongRelatedTracks {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            RelatedTracksID: js_model.RelatedTracksID,
-            ContentID: js_model.ContentID,
-            TrackNo: js_model.TrackNo,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            RelatedTracksID: model.RelatedTracksID,
+            ContentID: model.ContentID,
+            TrackNo: model.TrackNo,
         }
     }
 }
@@ -2324,22 +2324,22 @@ impl IntoJs<JsDjmdSampler> for DjmdSampler {
 }
 
 impl From<JsDjmdSampler> for DjmdSampler {
-    fn from(js_model: JsDjmdSampler) -> Self {
+    fn from(model: JsDjmdSampler) -> Self {
         DjmdSampler {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            Seq: js_model.Seq,
-            Name: js_model.Name,
-            Attribute: js_model.Attribute,
-            ParentID: js_model.ParentID,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            Seq: model.Seq,
+            Name: model.Name,
+            Attribute: model.Attribute,
+            ParentID: model.ParentID,
         }
     }
 }
@@ -2382,21 +2382,21 @@ impl IntoJs<JsDjmdSongSampler> for DjmdSongSampler {
 }
 
 impl From<JsDjmdSongSampler> for DjmdSongSampler {
-    fn from(js_model: JsDjmdSongSampler) -> Self {
+    fn from(model: JsDjmdSongSampler) -> Self {
         DjmdSongSampler {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            SamplerID: js_model.SamplerID,
-            ContentID: js_model.ContentID,
-            TrackNo: js_model.TrackNo,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            SamplerID: model.SamplerID,
+            ContentID: model.ContentID,
+            TrackNo: model.TrackNo,
         }
     }
 }
@@ -2437,20 +2437,20 @@ impl IntoJs<JsDjmdSongTagList> for DjmdSongTagList {
 }
 
 impl From<JsDjmdSongTagList> for DjmdSongTagList {
-    fn from(js_model: JsDjmdSongTagList) -> Self {
+    fn from(model: JsDjmdSongTagList) -> Self {
         DjmdSongTagList {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            ContentID: js_model.ContentID,
-            TrackNo: js_model.TrackNo,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            ContentID: model.ContentID,
+            TrackNo: model.TrackNo,
         }
     }
 }
@@ -2493,21 +2493,21 @@ impl IntoJs<JsDjmdSort> for DjmdSort {
 }
 
 impl From<JsDjmdSort> for DjmdSort {
-    fn from(js_model: JsDjmdSort) -> Self {
+    fn from(model: JsDjmdSort) -> Self {
         DjmdSort {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            MenuItemID: js_model.MenuItemID,
-            Seq: js_model.Seq,
-            Disable: js_model.Disable,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            MenuItemID: model.MenuItemID,
+            Seq: model.Seq,
+            Disable: model.Disable,
         }
     }
 }
@@ -2576,34 +2576,34 @@ impl IntoJs<JsImageFile> for ImageFile {
 }
 
 impl From<JsImageFile> for ImageFile {
-    fn from(js_model: JsImageFile) -> Self {
+    fn from(model: JsImageFile) -> Self {
         ImageFile {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            TableName: js_model.TableName,
-            TargetUUID: js_model.TargetUUID,
-            TargetID: js_model.TargetID,
-            Path: js_model.Path,
-            Hash: js_model.Hash,
-            Size: js_model.Size,
-            rb_local_path: js_model.rb_local_path,
-            rb_insync_hash: js_model.rb_insync_hash,
-            rb_insync_local_usn: js_model.rb_insync_local_usn,
-            rb_file_hash_dirty: js_model.rb_file_hash_dirty,
-            rb_local_file_status: js_model.rb_local_file_status,
-            rb_in_progress: js_model.rb_in_progress,
-            rb_process_type: js_model.rb_process_type,
-            rb_temp_path: js_model.rb_temp_path,
-            rb_priority: js_model.rb_priority,
-            rb_file_size_dirty: js_model.rb_file_size_dirty,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            TableName: model.TableName,
+            TargetUUID: model.TargetUUID,
+            TargetID: model.TargetID,
+            Path: model.Path,
+            Hash: model.Hash,
+            Size: model.Size,
+            rb_local_path: model.rb_local_path,
+            rb_insync_hash: model.rb_insync_hash,
+            rb_insync_local_usn: model.rb_insync_local_usn,
+            rb_file_hash_dirty: model.rb_file_hash_dirty,
+            rb_local_file_status: model.rb_local_file_status,
+            rb_in_progress: model.rb_in_progress,
+            rb_process_type: model.rb_process_type,
+            rb_temp_path: model.rb_temp_path,
+            rb_priority: model.rb_priority,
+            rb_file_size_dirty: model.rb_file_size_dirty,
         }
     }
 }
@@ -2656,26 +2656,26 @@ impl IntoJs<JsSettingFile> for SettingFile {
 }
 
 impl From<JsSettingFile> for SettingFile {
-    fn from(js_model: JsSettingFile) -> Self {
+    fn from(model: JsSettingFile) -> Self {
         SettingFile {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            Path: js_model.Path,
-            Hash: js_model.Hash,
-            Size: js_model.Size,
-            rb_local_path: js_model.rb_local_path,
-            rb_insync_hash: js_model.rb_insync_hash,
-            rb_insync_local_usn: js_model.rb_insync_local_usn,
-            rb_file_hash_dirty: js_model.rb_file_hash_dirty,
-            rb_file_size_dirty: js_model.rb_file_size_dirty,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            Path: model.Path,
+            Hash: model.Hash,
+            Size: model.Size,
+            rb_local_path: model.rb_local_path,
+            rb_insync_hash: model.rb_insync_hash,
+            rb_insync_local_usn: model.rb_insync_local_usn,
+            rb_file_hash_dirty: model.rb_file_hash_dirty,
+            rb_file_size_dirty: model.rb_file_size_dirty,
         }
     }
 }
@@ -2718,21 +2718,21 @@ impl IntoJs<JsUuidIDMap> for UuidIDMap {
 }
 
 impl From<JsUuidIDMap> for UuidIDMap {
-    fn from(js_model: JsUuidIDMap) -> Self {
+    fn from(model: JsUuidIDMap) -> Self {
         UuidIDMap {
-            ID: js_model.ID,
-            UUID: js_model.UUID,
-            rb_data_status: js_model.rb_data_status,
-            rb_local_data_status: js_model.rb_local_data_status,
-            rb_local_deleted: js_model.rb_local_deleted,
-            rb_local_synced: js_model.rb_local_synced,
-            usn: js_model.usn,
-            rb_local_usn: js_model.rb_local_usn,
-            created_at: js_date_to_datetime(js_model.created_at),
-            updated_at: js_date_to_datetime(js_model.updated_at),
-            TableName: js_model.TableName,
-            TargetUUID: js_model.TargetUUID,
-            CurrentID: js_model.CurrentID,
+            ID: model.ID,
+            UUID: model.UUID,
+            rb_data_status: model.rb_data_status,
+            rb_local_data_status: model.rb_local_data_status,
+            rb_local_deleted: model.rb_local_deleted,
+            rb_local_synced: model.rb_local_synced,
+            usn: model.usn,
+            rb_local_usn: model.rb_local_usn,
+            created_at: js_date_to_datetime(model.created_at),
+            updated_at: js_date_to_datetime(model.updated_at),
+            TableName: model.TableName,
+            TargetUUID: model.TargetUUID,
+            CurrentID: model.CurrentID,
         }
     }
 }
