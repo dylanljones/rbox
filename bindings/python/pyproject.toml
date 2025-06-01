@@ -113,7 +113,7 @@ unfixable = []
 "tests/*" = ["ANN"]
 "cli/*" = ["ANN"]
 "rbxml.py" = ["N803"]
-"models.py" = ["N802", "N815"]
+"_rbox.pyi" = ["N815"]
 
 
 [tool.ruff.lint.pydocstyle]
