@@ -11,5 +11,4 @@ from ._rbox import (
 )
 from .anlz import Anlz, TagType
 from .masterdb import MasterDb
-from .models import *
 from .rbxml import RekordboxXml

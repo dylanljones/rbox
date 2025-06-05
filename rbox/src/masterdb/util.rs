@@ -1,7 +1,7 @@
 // Author: Dylan Jones
 // Date:   2025-05-15
 
-use super::models::PlaylistTreeItem;
+use super::models::DjmdPlaylistTreeItem;
 use chrono::{DateTime, TimeZone, Utc};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -36,7 +36,7 @@ impl RekordboxDateString for String {
     }
 }
 
-fn sort_tree(item: &mut Rc<RefCell<PlaylistTreeItem>>) {
+fn sort_tree(item: &mut Rc<RefCell<DjmdPlaylistTreeItem>>) {
     // Sort the current node's children by a chosen criterion (e.g., ID or name)
     item.borrow_mut().Children.sort_by(|a, b| {
         let a_seq = a.borrow().Seq;
@@ -49,7 +49,7 @@ fn sort_tree(item: &mut Rc<RefCell<PlaylistTreeItem>>) {
     }
 }
 
-pub fn sort_tree_list(tree: &mut Vec<Rc<RefCell<PlaylistTreeItem>>>) {
+pub fn sort_tree_list(tree: &mut Vec<Rc<RefCell<DjmdPlaylistTreeItem>>>) {
     // Sort the root nodes
     tree.sort_by(|a, b| {
         let a_seq = a.borrow().Seq;

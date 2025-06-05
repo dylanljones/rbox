@@ -49,7 +49,7 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<py_models::PyDjmdMyTag>()?;
     m.add_class::<py_models::PyDjmdSongMyTag>()?;
     m.add_class::<py_models::PyDjmdPlaylist>()?;
-    m.add_class::<py_models::PyPlaylistTreeItem>()?;
+    m.add_class::<py_models::PyDjmdPlaylistTreeItem>()?;
     m.add_class::<py_models::PyDjmdSongPlaylist>()?;
     m.add_class::<py_models::PyDjmdProperty>()?;
     m.add_class::<py_models::PyDjmdCloudProperty>()?;

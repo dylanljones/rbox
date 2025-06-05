@@ -3,13 +3,34 @@
 # Date:   2025-05-01
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 Obj = Dict[str, Any]
 
 def is_rekordbox_running() -> bool:
     """Check if Rekordbox is running."""
     ...
+
+class _Base:
+    def __len__(self) -> int:
+        """Return the number of items."""
+        ...
+
+    def __iter__(self) -> Iterable[str]:
+        """Return an iterator over the keys."""
+        ...
+
+    def __getitem__(self, key: str) -> Any:
+        """Get an item by key."""
+        ...
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        """Set an item by key."""
+        ...
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the object to a dictionary."""
+        ...
 
 class _StatsFull:
     ID: str
@@ -23,7 +44,7 @@ class _StatsFull:
     usn: Optional[int]
     rb_local_usn: Optional[int]
 
-class AgentRegistry:
+class AgentRegistry(_Base):
     registry_id: str
     created_at: str
     updated_at: str
@@ -38,7 +59,7 @@ class AgentRegistry:
     text_1: Optional[str]
     text_2: Optional[str]
 
-class CloudAgentRegistry(_StatsFull):
+class CloudAgentRegistry(_StatsFull, _Base):
     int_1: Optional[int]
     int_2: Optional[int]
     str_1: Optional[str]
@@ -48,17 +69,17 @@ class CloudAgentRegistry(_StatsFull):
     text_1: Optional[str]
     text_2: Optional[str]
 
-class ContentActiveCensor(_StatsFull):
+class ContentActiveCensor(_StatsFull, _Base):
     ContentID: Optional[str]
     ActiveCensors: Optional[str]
     rb_activecensor_count: Optional[int]
 
-class ContentCue(_StatsFull):
+class ContentCue(_StatsFull, _Base):
     ContentID: Optional[str]
     Cues: Optional[str]
     rb_cue_count: Optional[int]
 
-class ContentFile(_StatsFull):
+class ContentFile(_StatsFull, _Base):
     ContentID: Optional[str]
     Path: Optional[str]
     Hash: Optional[str]
@@ -74,7 +95,7 @@ class ContentFile(_StatsFull):
     rb_priority: Optional[int]
     rb_file_size_dirty: Optional[int]
 
-class DjmdActiveCensor(_StatsFull):
+class DjmdActiveCensor(_StatsFull, _Base):
     ContentID: Optional[str]
     InMsec: Optional[int]
     OutMsec: Optional[int]
@@ -82,29 +103,29 @@ class DjmdActiveCensor(_StatsFull):
     ParameterList: Optional[str]
     ContentUUID: Optional[str]
 
-class DjmdAlbum(_StatsFull):
+class DjmdAlbum(_StatsFull, _Base):
     Name: Optional[str]
     AlbumArtistID: Optional[str]
     ImagePath: Optional[str]
     Compilation: Optional[int]
     SearchStr: Optional[str]
 
-class DjmdArtist(_StatsFull):
+class DjmdArtist(_StatsFull, _Base):
     Name: Optional[str]
     SearchStr: Optional[str]
 
-class DjmdCategory(_StatsFull):
+class DjmdCategory(_StatsFull, _Base):
     MenuItemID: Optional[str]
     Seq: Optional[int]
     Disable: Optional[int]
     InfoOrder: Optional[int]
 
-class DjmdColor(_StatsFull):
+class DjmdColor(_StatsFull, _Base):
     ColorCode: Optional[str]
     SortKey: Optional[int]
     Commnt: Optional[str]
 
-class DjmdContent(_StatsFull):
+class DjmdContent(_StatsFull, _Base):
     FolderPath: Optional[str]
     FileNameL: Optional[str]
     FileNameS: Optional[str]
@@ -174,7 +195,7 @@ class DjmdContent(_StatsFull):
     SrcAlbumName: Optional[str]
     SrcLength: Optional[int]
 
-class DjmdCue(_StatsFull):
+class DjmdCue(_StatsFull, _Base):
     ContentID: Optional[str]
     InMsec: Optional[int]
     InFrame: Optional[int]
@@ -195,33 +216,33 @@ class DjmdCue(_StatsFull):
     OutPointSeekInfo: Optional[str]
     ContentUUID: Optional[str]
 
-class DjmdDevice(_StatsFull):
+class DjmdDevice(_StatsFull, _Base):
     MasterDBID: Optional[str]
     Name: Optional[str]
 
-class DjmdGenre(_StatsFull):
+class DjmdGenre(_StatsFull, _Base):
     Name: Optional[str]
 
-class DjmdHistory(_StatsFull):
+class DjmdHistory(_StatsFull, _Base):
     Seq: Optional[int]
     Name: Optional[str]
     Attribute: Optional[int]
     ParentID: Optional[str]
     DateCreated: Optional[str]
 
-class DjmdSongHistory(_StatsFull):
+class DjmdSongHistory(_StatsFull, _Base):
     HistoryID: Optional[str]
     ContentID: Optional[str]
     TrackNo: Optional[int]
 
-class DjmdHotCueBanklist(_StatsFull):
+class DjmdHotCueBanklist(_StatsFull, _Base):
     Seq: Optional[int]
     Name: Optional[str]
     ImagePath: Optional[str]
     Attribute: Optional[int]
     ParentID: Optional[str]
 
-class DjmdSongHotCueBanklist(_StatsFull):
+class DjmdSongHotCueBanklist(_StatsFull, _Base):
     ContentID: Optional[str]
     TrackNo: Optional[int]
     CueID: Optional[str]
@@ -243,36 +264,36 @@ class DjmdSongHotCueBanklist(_StatsFull):
     OutPointSeekInfo: Optional[str]
     HotCueBanklistUUID: Optional[str]
 
-class DjmdKey(_StatsFull):
+class DjmdKey(_StatsFull, _Base):
     ScaleName: Optional[str]
     Seq: Optional[int]
 
-class DjmdLabel(_StatsFull):
+class DjmdLabel(_StatsFull, _Base):
     Name: Optional[str]
 
-class DjmdMenuItems(_StatsFull):
+class DjmdMenuItems(_StatsFull, _Base):
     Class: Optional[int]
     Name: Optional[str]
 
-class DjmdMixerParam(_StatsFull):
+class DjmdMixerParam(_StatsFull, _Base):
     ContentID: Optional[str]
     GainHigh: Optional[int]
     GainLow: Optional[int]
     PeakHigh: Optional[int]
     PeakLow: Optional[int]
 
-class DjmdMyTag(_StatsFull):
+class DjmdMyTag(_StatsFull, _Base):
     Seq: Optional[int]
     Name: Optional[str]
     Attribute: Optional[int]
     ParentID: Optional[str]
 
-class DjmdSongMyTag(_StatsFull):
+class DjmdSongMyTag(_StatsFull, _Base):
     MyTagID: Optional[str]
     ContentID: Optional[str]
     TrackNo: Optional[int]
 
-class DjmdPlaylist(_StatsFull):
+class DjmdPlaylist(_StatsFull, _Base):
     Seq: Optional[int]
     Name: Optional[str]
     ImagePath: Optional[str]
@@ -280,7 +301,7 @@ class DjmdPlaylist(_StatsFull):
     ParentID: Optional[str]
     SmartList: Optional[str]
 
-class PlaylistTreeItem(_StatsFull):
+class DjmdPlaylistTreeItem(_StatsFull, _Base):
     Seq: Optional[int]
     Name: Optional[str]
     ImagePath: Optional[str]
@@ -288,14 +309,14 @@ class PlaylistTreeItem(_StatsFull):
     ParentID: Optional[str]
     SmartList: Optional[str]
 
-    Children: List["PlaylistTreeItem"]
+    Children: List["DjmdPlaylistTreeItem"]
 
-class DjmdSongPlaylist(_StatsFull):
+class DjmdSongPlaylist(_StatsFull, _Base):
     PlaylistID: Optional[str]
     ContentID: Optional[str]
     TrackNo: Optional[int]
 
-class DjmdProperty:
+class DjmdProperty(_Base):
     DBID: str
     created_at: str
     updated_at: str
@@ -309,58 +330,58 @@ class DjmdProperty:
     Reserved4: Optional[str]
     Reserved5: Optional[str]
 
-class DjmdCloudProperty(_StatsFull):
+class DjmdCloudProperty(_StatsFull, _Base):
     Reserved1: Optional[str]
     Reserved2: Optional[str]
     Reserved3: Optional[str]
     Reserved4: Optional[str]
     Reserved5: Optional[str]
 
-class DjmdRecommendLike(_StatsFull):
+class DjmdRecommendLike(_StatsFull, _Base):
     ContentID1: Optional[str]
     ContentID2: Optional[str]
     LikeRate: Optional[int]
     DataCreatedH: Optional[int]
     DataCreatedL: Optional[int]
 
-class DjmdRelatedTracks(_StatsFull):
+class DjmdRelatedTracks(_StatsFull, _Base):
     Seq: Optional[int]
     Name: Optional[str]
     Attribute: Optional[int]
     ParentID: Optional[str]
     Criteria: Optional[str]
 
-class DjmdSongRelatedTracks(_StatsFull):
+class DjmdSongRelatedTracks(_StatsFull, _Base):
     RelatedTracksID: Optional[str]
     ContentID: Optional[str]
     TrackNo: Optional[int]
 
-class DjmdSampler(_StatsFull):
+class DjmdSampler(_StatsFull, _Base):
     Seq: Optional[int]
     Name: Optional[str]
     Attribute: Optional[int]
     ParentID: Optional[str]
 
-class DjmdSongSampler(_StatsFull):
+class DjmdSongSampler(_StatsFull, _Base):
     SamplerID: Optional[str]
     ContentID: Optional[str]
     TrackNo: Optional[int]
 
-class DjmdSongTagList(_StatsFull):
+class DjmdSongTagList(_StatsFull, _Base):
     ContentID: Optional[str]
     TrackNo: Optional[int]
 
-class DjmdSort(_StatsFull):
+class DjmdSort(_StatsFull, _Base):
     MenuItemID: Optional[str]
     Seq: Optional[int]
     Disable: Optional[int]
 
-class HotCueBanklistCue(_StatsFull):
+class HotCueBanklistCue(_StatsFull, _Base):
     HotCueBanklistID: Optional[str]
     Cues: Optional[str]
     rb_cue_count: Optional[int]
 
-class ImageFile(_StatsFull):
+class ImageFile(_StatsFull, _Base):
     TableName: Optional[str]
     TargetUUID: Optional[str]
     TargetID: Optional[str]
@@ -378,7 +399,7 @@ class ImageFile(_StatsFull):
     rb_priority: Optional[int]
     rb_file_size_dirty: Optional[int]
 
-class SettingFile(_StatsFull):
+class SettingFile(_StatsFull, _Base):
     Path: Optional[str]
     Hash: Optional[str]
     Size: Optional[int]
@@ -388,7 +409,7 @@ class SettingFile(_StatsFull):
     rb_file_hash_dirty: Optional[int]
     rb_file_size_dirty: Optional[int]
 
-class UuidIDMap(_StatsFull):
+class UuidIDMap(_StatsFull, _Base):
     TableName: Optional[str]
     TargetUUID: Optional[str]
     CurrentID: Optional[str]
@@ -487,7 +508,7 @@ class PyMasterDb:
     def get_my_tag_songs(self, tag_id: str) -> List[DjmdSongMyTag]: ...
     def get_my_tag_contents(self, tag_id: str) -> List[DjmdContent]: ...
     def get_playlist(self) -> List[DjmdPlaylist]: ...
-    def get_playlist_tree(self) -> List[PlaylistTreeItem]: ...
+    def get_playlist_tree(self) -> List[DjmdPlaylistTreeItem]: ...
     def get_playlist_children(self, playlist_id: str) -> List[DjmdPlaylist]: ...
     def get_playlist_by_id(self, playlist_id: str) -> Optional[DjmdPlaylist]: ...
     def get_playlist_by_path(self, path: List[str]) -> Optional[DjmdPlaylist]: ...

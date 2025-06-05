@@ -41,7 +41,7 @@ from ._rbox import (
     DjmdSort,
     HotCueBanklistCue,
     ImageFile,
-    PlaylistTreeItem,
+    DjmdPlaylistTreeItem,
     SettingFile,
     UuidIDMap,
 )  # noqa

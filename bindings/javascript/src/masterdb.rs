@@ -849,7 +849,7 @@ impl JsMasterDb {
     }
 
     #[napi]
-    pub fn get_playlist_tree(&mut self, env: Env) -> Vec<JsPlaylistTreeItem> {
+    pub fn get_playlist_tree(&mut self, env: Env) -> Vec<JsDjmdPlaylistTreeItem> {
         let models = self
             .db
             .get_playlist_tree()

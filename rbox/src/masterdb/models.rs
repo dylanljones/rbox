@@ -1606,19 +1606,19 @@ impl DjmdPlaylist {
 }
 
 fn serialize_rc_vec<S>(
-    vec: &Vec<Rc<RefCell<PlaylistTreeItem>>>,
+    vec: &Vec<Rc<RefCell<DjmdPlaylistTreeItem>>>,
     serializer: S,
 ) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    let serializable_vec: Vec<PlaylistTreeItem> =
+    let serializable_vec: Vec<DjmdPlaylistTreeItem> =
         vec.iter().map(|item| item.borrow().clone()).collect();
     serializable_vec.serialize(serializer)
 }
 
 #[derive(Serialize, PartialEq, Debug, Clone)]
-pub struct PlaylistTreeItem {
+pub struct DjmdPlaylistTreeItem {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -1641,7 +1641,7 @@ pub struct PlaylistTreeItem {
     pub Children: Vec<Rc<RefCell<Self>>>,
 }
 
-impl PlaylistTreeItem {
+impl DjmdPlaylistTreeItem {
     pub fn from_playlist(playlist: DjmdPlaylist) -> Self {
         Self {
             ID: playlist.ID,

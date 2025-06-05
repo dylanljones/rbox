@@ -2093,14 +2093,14 @@ impl MasterDb {
     }
 
     /// Return a sorted tree of playlists
-    pub fn get_playlist_tree(&mut self) -> Result<Vec<Rc<RefCell<PlaylistTreeItem>>>> {
-        let playlists: Vec<PlaylistTreeItem> = self
+    pub fn get_playlist_tree(&mut self) -> Result<Vec<Rc<RefCell<DjmdPlaylistTreeItem>>>> {
+        let playlists: Vec<DjmdPlaylistTreeItem> = self
             .get_playlist()?
             .iter()
-            .map(|p: &DjmdPlaylist| PlaylistTreeItem::from_playlist(p.clone()))
+            .map(|p: &DjmdPlaylist| DjmdPlaylistTreeItem::from_playlist(p.clone()))
             .collect();
 
-        let mut map = HashMap::<String, Rc<RefCell<PlaylistTreeItem>>>::new();
+        let mut map = HashMap::<String, Rc<RefCell<DjmdPlaylistTreeItem>>>::new();
         let mut roots = Vec::new();
 
         // Populate the map with nodes
