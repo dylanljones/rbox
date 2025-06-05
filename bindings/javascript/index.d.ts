@@ -520,7 +520,7 @@ export interface DjmdPlaylist {
   parentId?: string
   smartList?: string
 }
-export interface PlaylistTreeItem {
+export interface DjmdPlaylistTreeItem {
   id: string
   uuid: string
   rbDataStatus: number
@@ -537,7 +537,7 @@ export interface PlaylistTreeItem {
   attribute?: number
   parentId?: string
   smartList?: string
-  children: Array<PlaylistTreeItem>
+  children: Array<DjmdPlaylistTreeItem>
 }
 export interface DjmdSongPlaylist {
   id: string
@@ -858,7 +858,7 @@ export declare class MasterDb {
   getMyTagSongs(id: string): Array<DjmdSongMyTag>
   getMyTagContents(id: string): Array<DjmdContent>
   getPlaylist(): Array<DjmdPlaylist>
-  getPlaylistTree(): Array<PlaylistTreeItem>
+  getPlaylistTree(): Array<DjmdPlaylistTreeItem>
   getPlaylistChildren(id: string): Array<DjmdPlaylist>
   getPlaylistById(id: string): DjmdPlaylist | null
   getPlaylistByPath(path: Array<string>): DjmdPlaylist | null
