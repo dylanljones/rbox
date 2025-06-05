@@ -12,7 +12,7 @@ on:
 env:
   working-directory: bindings/javascript
   DEBUG: napi:*
-  APP_NAME: rbox
+  APP_NAME: rbox-js
 
 jobs:
   build:
