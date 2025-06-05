@@ -97,6 +97,9 @@ jobs:
           cache: yarn
           architecture: x86
 
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
       - name: Build
         run: ${{ matrix.settings.build }}
         shell: bash
