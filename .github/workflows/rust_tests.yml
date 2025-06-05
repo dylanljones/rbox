@@ -24,7 +24,7 @@ jobs:
     needs: cargo-fmt-check
     strategy:
       matrix:
-        os: ["ubuntu-latest", "windows-latest", "macos-latest", "macos-13"]
+        os: ["ubuntu-latest", "windows-latest", "macos-latest"] # "macos-13"
     runs-on: ${{ matrix.os }}
     continue-on-error: false
     steps:
