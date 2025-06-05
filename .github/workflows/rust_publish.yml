@@ -1,6 +1,6 @@
 # This workflow will publish the Rust crate to crates-io
 
-name: Publish Rust Crate
+name: Rust publish
 
 on:
   # push:
