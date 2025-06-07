@@ -11,6 +11,7 @@ on:
 
 env:
   working-directory: bindings/python
+  interpreter: 3.9 3.10 3.11 3.12 3.13
   PIP_DISABLE_PIP_VERSION_CHECK: "true"
 
 jobs:
@@ -39,7 +40,7 @@ jobs:
         with:
           working-directory: ${{ env.working-directory }}
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter
+          args: --release --out dist --interpreter ${{ env.interpreter }}
           sccache: 'true'
           manylinux: auto
           container: 'off'
@@ -80,7 +81,7 @@ jobs:
         with:
           working-directory: ${{ env.working-directory }}
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter
+          args: --release --out dist --interpreter ${{ env.interpreter }}
           sccache: 'true'
 
       - name: Upload wheels
@@ -115,8 +116,8 @@ jobs:
         with:
           working-directory: ${{ env.working-directory }}
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter
-          sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
+          args: --release --out dist --interpreter ${{ env.interpreter }}
+          sccache: 'true'
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -178,4 +179,4 @@ jobs:
         with:
           working-directory: ${{ env.working-directory }}
           command: upload
-          args: --non-interactive --skip-existing wheels-*
+          args: --non-interactive --skip-existing dist/*
