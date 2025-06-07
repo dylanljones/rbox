@@ -19,18 +19,6 @@ pub fn model_to_pydict<T: Serialize>(py: Python, model: T) -> PyResult<Bound<'_,
     py_obj.extract()
 }
 
-pub fn model_option_to_pydict<T: Serialize>(
-    py: Python,
-    model: Option<T>,
-) -> PyResult<Bound<'_, PyDict>> {
-    if let Some(model) = model {
-        let dict = model_to_pydict(py, model)?;
-        Ok(dict)
-    } else {
-        Ok(PyDict::new(py).into())
-    }
-}
-
 pub fn models_to_pylist<T: Serialize>(py: Python, models: Vec<T>) -> PyResult<Py<PyList>> {
     let result = PyList::empty(py);
     for model in models {

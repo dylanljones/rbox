@@ -38,6 +38,7 @@ pub use models::DjmdMenuItems; // djmdMenuItems
 pub use models::DjmdMixerParam; // djmdMixerParam
 pub use models::DjmdMyTag; // djmdMyTag
 pub use models::DjmdPlaylist; // djmdPlaylist
+pub use models::DjmdPlaylistTreeItem; // djmdPlaylist
 pub use models::DjmdProperty; // djmdProperty
 pub use models::DjmdRecommendLike; // djmdRecommendLike
 pub use models::DjmdRelatedTracks; // djmdRelatedTracks
