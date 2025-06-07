@@ -166,21 +166,16 @@ jobs:
           pattern: wheels-*
           merge-multiple: true
 
-      - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-path: 'wheels-*/*'
-
       - name: List packages
         run: ls -R bindings/python/dist
         shell: bash
 
-#      - name: Publish to PyPI
-#        # if: ${{ startsWith(github.ref, 'refs/tags/') }}
-#        uses: PyO3/maturin-action@v1
-#        env:
-#          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-#        with:
-#          working-directory: ${{ env.working-directory }}
-#          command: upload
-#          args: --non-interactive --skip-existing wheels-*/*
+      - name: Publish to PyPI
+        # if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        uses: PyO3/maturin-action@v1
+        env:
+          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        with:
+          working-directory: ${{ env.working-directory }}
+          command: upload
+          args: --non-interactive --skip-existing wheels-*
