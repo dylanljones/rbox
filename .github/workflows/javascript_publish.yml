@@ -169,6 +169,9 @@ jobs:
       contents: read
       id-token: write
     needs: universal-macOS
+    defaults:
+      run:
+        working-directory: ${{ env.working-directory }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
