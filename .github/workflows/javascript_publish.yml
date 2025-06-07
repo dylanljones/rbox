@@ -203,6 +203,7 @@ jobs:
 
       - name: Publish
         run: |
+          npm config set provenance false
           echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
           npm publish
         env:
