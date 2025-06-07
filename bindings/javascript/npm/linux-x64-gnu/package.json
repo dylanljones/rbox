@@ -1,5 +1,5 @@
 {
-  "name": "rbox-js-linux-x64-gnu",
+  "name": "@dylanljones/rbox-js-linux-x64-gnu",
   "version": "0.0.0",
   "os": [
     "linux"
