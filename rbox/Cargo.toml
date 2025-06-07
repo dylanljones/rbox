@@ -1,10 +1,10 @@
 [package]
 name = "rbox"
 description = "Rust library for interacting with the local and export data of Pioneers Rekordbox DJ software"
+readme = "README.md"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
-readme.workspace = true
 keywords.workspace = true
 repository.workspace = true
 edition.workspace = true
