@@ -40,7 +40,7 @@ jobs:
           working-directory: ${{ env.working-directory }}
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter
-          sccache: 'false'
+          sccache: 'true'
           manylinux: auto
           container: 'off'
 
