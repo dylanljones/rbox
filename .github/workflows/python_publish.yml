@@ -57,8 +57,8 @@ jobs:
         platform:
           - runner: windows-latest
             target: x64
-          - runner: windows-latest
-            target: x86
+          # - runner: windows-latest
+          #   target: x86
     defaults:
       run:
         working-directory: ${{ env.working-directory }}
