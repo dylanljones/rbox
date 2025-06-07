@@ -28,8 +28,7 @@ classifiers = [
     'Topic :: Database :: Database Engines/Servers',
 ]
 dependencies = ['typing-extensions >=4.6.0,!=4.7.0']
-readme = "README.md"
-dynamic = ['version']
+dynamic = ['readme', 'version']
 
 [project.optional-dependencies]
 test = [

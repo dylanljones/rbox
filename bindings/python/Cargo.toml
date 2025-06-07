@@ -1,6 +1,7 @@
 [package]
 name = "rbox-py"
 description = "Python library for interacting with the local and export data of Pioneers Rekordbox DJ software"
+readme = "README.md"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
