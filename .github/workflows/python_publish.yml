@@ -46,8 +46,9 @@ jobs:
           working-directory: ${{ env.working-directory }}
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter
-          sccache: 'true'
-          manylinux: off
+          sccache: 'false'
+          manylinux: auto
+          container: 'off'
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
