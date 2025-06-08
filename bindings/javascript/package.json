@@ -10,7 +10,7 @@
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
-    "binaryName": "rbox-js",
+    "name": "rbox-js",
     "package": {
       "name": "@dylanljones/rbox-js"
     },
