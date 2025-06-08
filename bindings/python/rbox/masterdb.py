@@ -425,7 +425,7 @@ class MasterDb:
         """Get all playlists from the database."""
         return self._db.get_playlist()
 
-    def get_playlist_tree(self) -> List[models.PlaylistTreeItem]:
+    def get_playlist_tree(self) -> List[models.DjmdPlaylistTreeItem]:
         """Get all playlists from the database."""
         return self._db.get_playlist_tree()
 
