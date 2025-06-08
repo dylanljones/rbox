@@ -3,7 +3,7 @@
 <p align="center">
   <a title="Rust" target="_blank" href="https://crates.io/crates/rbox"><img alt="Crates.io" src="https://img.shields.io/crates/v/rbox?style=flat-square"></a>
   <a title="Python" target="_blank" href="https://pypi.org/project/rbox/"><img alt="PyPI" src="https://img.shields.io/pypi/v/rbox?style=flat-square"></a>
-  <a title="JavaScript" target="_blank" href="https://www.npmjs.com/package/rbox"><img alt="JS" src="https://img.shields.io/npm/v/rbox-js?style=flat-square"></a>
+  <a title="JavaScript" target="_blank" href="https://www.npmjs.com/package/rbox-js"><img alt="JS" src="https://img.shields.io/npm/v/rbox-js?style=flat-square"></a>
   <a title="MIT" target="_blank" href="https://github.com/dylanljones/rbox/blob/main/LICENSE"><img src="http://img.shields.io/badge/license-MIT-lightgrey.svg?style=flat-square"></a>
 </p>
 
