@@ -1,5 +1,11 @@
 # rbox
 
+![Crates.io Version](https://img.shields.io/crates/v/rbox?style=flat-square)
+![PyPI - Version](https://img.shields.io/pypi/v/rbox?style=flat-square)
+![NPM Version](https://img.shields.io/npm/v/rbox-js?style=flat-square)
+![License](http://img.shields.io/badge/license-MIT-lightgrey.svg?style=flat-square)
+
+
 > **⚠️ Disclaimer**: This project is **not** affiliated with Pioneer DJ, AlphaTheta Corp., or any related entities.
 > rbox is an independent project released under the **MIT license**.
 > The maintainers and contributors assume no liability for any data loss or damage to your Rekordbox library.
