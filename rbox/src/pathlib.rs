@@ -1,6 +1,33 @@
 // Author: Dylan Jones
 // Date:   2025-05-13
 
+//! Path normalization and manipulation utilities.
+//!
+//! This module provides functionality for normalizing, manipulating, and validating file system paths
+//! without performing any I/O operations. It includes utilities to handle path components, remove
+//! redundant separators, and collapse up-level references (like `.` and `..`).
+//!
+//! The main functionality is exposed through the `NormalizePath` trait, which extends
+//! the standard `Path` type with normalization methods.
+//!
+//! # Example
+//!
+//! ```no_run
+//! use std::path::Path;
+//! use rbox::pathlib::NormalizePath;
+//!
+//! let path = Path::new("./some/path/../with/./redundant/components");
+//! let normalized = path.normalize();
+//! assert_eq!(normalized.to_str().unwrap(), "some/with/redundant/components");
+//!
+//! // Normalize with a specific separator
+//! let windows_path = path.normalize_sep("\\");
+//! assert_eq!(windows_path.to_str().unwrap(), "some\\with\\redundant\\components");
+//! ```
+//!
+//! Unlike `std::fs::canonicalize`, these functions do not resolve symlinks and do not
+//! require the paths to actually exist on the filesystem.
+
 use std::ffi::OsStr;
 use std::path::{Component, Path, PathBuf};
 
