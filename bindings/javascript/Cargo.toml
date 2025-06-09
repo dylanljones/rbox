@@ -1,10 +1,11 @@
 [package]
 name = "rbox-js"
 description = "Javascript library for interacting with the local and export data of Pioneers Rekordbox DJ software"
-authors = ["Dylan Jones <dylanljones@proton.me>"]
-edition = "2021"
-version = "0.1.1"
-
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
 publish = false
 
 [lib]
