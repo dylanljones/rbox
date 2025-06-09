@@ -41,7 +41,8 @@ rbox is built with Rust for maximum performance and safety, with additional lang
 ## 🔧 Installation
 
 ### 🦀 Rust
-rbox is available on Cargo. Run the following Cargo command in your project directory:
+
+rbox is available on [crates.io]. Run the following Cargo command in your project directory:
 ```shell
 cargo add rbox
 ```
@@ -52,7 +53,7 @@ rbox = "0.1.2"
 
 ### 🐍 Python
 
-rbox is available on PyPI:
+rbox is available on [PyPI][pypi]. You can install it using pip:
 
 ```shell
 pip install rbox
@@ -65,6 +66,8 @@ maturin develop
 ```
 
 ### ✨ JavaScript
+
+rbox is available on [npm]:
 
 ```shell
 npm install rbox-js
@@ -80,6 +83,10 @@ cd bindings/javascript
 yarn install
 yarn build
 ```
+
+[crates.io]: https://crates.io/crates/rbox
+[pypi]: https://pypi.org/project/rbox/
+[npm]: https://www.npmjs.com/package/rbox-js
 
 [pyo3]: https://github.com/PyO3/pyo3
 [maturin]: https://github.com/PyO3/maturin
