@@ -18,7 +18,7 @@ rbox = "0.1.2"
 
 ## 🚀 Quick-Start
 
-> [!CAUTION]
+> **❗ Caution**:
 > Please make sure to back up your Rekordbox collection before making changes to rekordbox data.
 > The backup dialog can be found under "File" > "Library" > "Backup Library"
 
