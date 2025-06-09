@@ -1,4 +1,11 @@
-# rbox
+
+<p align="center">
+  <h1 align="center">rbox</h1>
+</p>
+
+<p align="center">
+  <i>rbox</i> gives you full control over your Rekordbox data.
+</p>
 
 <p align="center">
   <a title="Rust" target="_blank" href="https://crates.io/crates/rbox"><img alt="Crates.io" src="https://img.shields.io/crates/v/rbox?style=flat-square"></a>
@@ -7,6 +14,8 @@
   <a title="MIT" target="_blank" href="https://github.com/dylanljones/rbox/blob/main/LICENSE"><img src="http://img.shields.io/badge/license-MIT-lightgrey.svg?style=flat-square"></a>
 </p>
 
+---
+
 > **⚠️ Disclaimer**: This project is **not** affiliated with Pioneer DJ, AlphaTheta Corp., or any related entities.
 > rbox is an independent project released under the **MIT license**.
 > The maintainers and contributors assume no liability for any data loss or damage to your Rekordbox library.
@@ -14,13 +23,12 @@
 
 
 **rbox** is a high-performance Rust library for seamlessly interacting with Pioneer DJ's Rekordbox software data.
-It provides a comprehensive toolkit for DJs, developers, and music enthusiasts to read, analyze, and export data from
-multiple Rekordbox formats with speed and precision. ✨
+It supports the following Rekordbox files:
 
-- 💾 **Database Access**: Query and update the Rekordbox v6/v7 master.db database through a type-safe ORM
-- 📊 **XML Support**: Import and export data from Rekordbox XML collection files
-- 📈 **Analysis Files**: Read and write ANLZ files containing waveforms, beat grids, hot cues and more
-- ⚙️ **Settings Access**: Read and write My-Setting files (Coming soon!)
+- **Rekordbox database**: Query and update the Rekordbox v6/v7 master.db database through a type-safe ORM
+- **XML database**: Read and write Rekordbox XML database files
+- **Analysis Files**: Read and write ANLZ files containing waveforms, beat grids, hot cues and more
+- **Settings Access**: Read and write My-Setting files (Coming soon!)
 
 #### 🌐 Language support
 
