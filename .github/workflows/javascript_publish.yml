@@ -34,6 +34,7 @@ jobs:
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             build: yarn build --target x86_64-unknown-linux-gnu
+            # docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
           - host: macos-latest
             target: aarch64-apple-darwin
             build: yarn build --target aarch64-apple-darwin
@@ -49,18 +50,26 @@ jobs:
           fetch-depth: 0
 
       - name: Setup node
+        if: ${{ !matrix.settings.docker }}
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: yarn
           cache-dependency-path: bindings/javascript
 
-      - name: Set Windows OpenSSL env
+      # - name: Set Windows OpenSSL env
+      #   if: runner.os == 'Windows'
+      #   run: echo "OPENSSL_DIR=C:\Program Files\OpenSSL" >> $env:GITHUB_ENV
+
+      - name: Set Perl environment variables
         if: runner.os == 'Windows'
-        run: echo "OPENSSL_DIR=C:\Program Files\OpenSSL" >> $env:GITHUB_ENV
+        run: |
+          echo "PERL=$((where.exe perl)[0])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          echo "OPENSSL_SRC_PERL=$((where.exe perl)[0])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Install
         uses: dtolnay/rust-toolchain@stable
+        if: ${{ !matrix.settings.docker }}
         with:
           toolchain: stable
           targets: ${{ matrix.settings.target }}
@@ -106,6 +115,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Build
+        if: ${{ !matrix.settings.docker }}
         run: ${{ matrix.settings.build }}
         shell: bash
 
@@ -168,7 +178,9 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    needs: universal-macOS
+    needs:
+      - build
+      - universal-macOS
     defaults:
       run:
         working-directory: ${{ env.working-directory }}
