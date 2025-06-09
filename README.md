@@ -28,7 +28,7 @@ It supports the following Rekordbox files:
 - **Rekordbox database**: Query and update the Rekordbox v6/v7 master.db database through a type-safe ORM
 - **XML database**: Read and write Rekordbox XML database files
 - **Analysis Files**: Read and write ANLZ files containing waveforms, beat grids, hot cues and more
-- **Settings Access**: Read and write My-Setting files (Coming soon!)
+- **Settings Access**: Read and write My-Setting files
 
 #### 🌐 Language support
 
