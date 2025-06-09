@@ -1,6 +1,37 @@
 // Author: Dylan Jones
 // Date:   2025-05-05
 
+//! Rekordbox XML file handler.
+//!
+//! The Rekordbox XML database is used for importing (and exporting) Rekordbox collections
+//! including track metadata and playlists. They can also be used to share playlists between
+//! two databases.
+//!
+//! This module provides functionality to read, modify, and write Rekordbox XML files.
+//! It implements data structures for representing the XML elements of Rekordbox XML files
+//! like tracks, playlists, cue points and beat grids. The main entry point is the
+//! `RekordboxXml` struct which provides methods for loading, modifying, and saving XML files.
+//!
+//! # Example
+//!
+//! ```no_run
+//! use rbox::xml::RekordboxXml;
+//!
+//! // Load an existing XML file
+//! let mut xml = RekordboxXml::load("library.xml");
+//!
+//! // Access tracks
+//! let tracks = xml.get_tracks();
+//!
+//! // Find a track
+//! if let Some(track) = xml.get_track_by_id("1234") {
+//!     println!("Found track: {}", track);
+//! }
+//!
+//! // Save changes
+//! xml.dump().expect("Failed to save XML file");
+//! ```
+
 use chrono::NaiveDate;
 use lazy_regex::regex_replace_all;
 use quick_xml;
