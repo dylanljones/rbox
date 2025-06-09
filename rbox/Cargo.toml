@@ -14,7 +14,7 @@ name = "rbox"
 
 [dependencies]
 anyhow           = { version = "1.0.98" }
-libsqlite3-sys   = { version = "0.33.0", features = ["bundled-sqlcipher"] }
+libsqlite3-sys   = { version = "0.33.0", features = ["bundled-sqlcipher-vendored-openssl"] }
 diesel           = { version = "2.2.10", features = ["sqlite", "128-column-tables", "returning_clauses_for_sqlite_3_35"] }
 serde            = { version = "1.0", features = ["derive"] }
 serde_json       = { version = "1.0" }
