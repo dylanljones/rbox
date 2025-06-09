@@ -1,6 +1,8 @@
 // Author: Dylan Jones
 // Date:   2025-05-01
 
+//! 'rbox' gives you full control over your Rekordbox data.
+
 pub mod anlz;
 pub mod masterdb;
 mod options;
