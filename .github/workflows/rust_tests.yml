@@ -33,9 +33,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set Windows OpenSSL env
-        if: runner.os == 'Windows'
-        run: echo "OPENSSL_DIR=C:\Program Files\OpenSSL" >> $env:GITHUB_ENV
+      # - name: Set Windows OpenSSL env
+      #   if: runner.os == 'Windows'
+      #   run: echo "OPENSSL_DIR=C:\Program Files\OpenSSL" >> $env:GITHUB_ENV
 
       - name: Set Perl environment variables
         if: runner.os == 'Windows'
