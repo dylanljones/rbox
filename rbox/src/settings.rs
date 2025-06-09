@@ -1,19 +1,20 @@
 // Author: Dylan Jones
 // Date:   2025-06-09
 
+//! Rekordbox `*SETTING.DAT` file handler.
+//!
+//! These files are either present in the `%APPDATA%\Pioneer\rekordbox6` directory on the machine
+//! running Rekordbox, or in the `PIONEER` directory of a USB drive (device exports).
+//!
+//! Rekordbox stores the user settings in `*SETTING.DAT` files, which also get exported to USB
+//! devices. These files are either present in the `%APPDATA%\Pioneer\rekordbox6` directory on
+//! the machine running Rekordbox, or in the `PIONEER` directory of a USB drive (device exports).
+//!
+//! The setting files store the settings found on the "DJ System" > "My Settings" page of the
+//! Rekordbox preferences. These include language, LCD brightness, tempo fader range, crossfader
+//! curve and other settings for Pioneer professional DJ equipment.
+
 use anyhow::anyhow;
-/// Rekordbox `*SETTING.DAT` file handler.
-///
-/// These files are either present in the `%APPDATA%\Pioneer\rekordbox6` directory on the machine
-/// running Rekordbox, or in the `PIONEER` directory of a USB drive (device exports).
-///
-/// Rekordbox stores the user settings in `*SETTING.DAT` files, which also get exported to USB
-/// devices. These files are either present in the `%APPDATA%\Pioneer\rekordbox6` directory on
-/// the machine running Rekordbox, or in the `PIONEER` directory of a USB drive (device exports).
-///
-/// The setting files store the settings found on the "DJ System" > "My Settings" page of the
-/// Rekordbox preferences. These include language, LCD brightness, tempo fader range, crossfader
-/// curve and other settings for Pioneer professional DJ equipment.
 use binrw::{binrw, io::Cursor, BinRead, BinWrite, Endian, NullString};
 use parse_display::Display;
 use std::ffi::OsStr;
