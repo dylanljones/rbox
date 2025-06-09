@@ -11,16 +11,17 @@ on:
 
 env:
   working-directory: bindings/python
+  PIP_DISABLE_PIP_VERSION_CHECK: "true"
 
 jobs:
   tests:
     strategy:
+      fail-fast: false
       matrix:
         os: [ "ubuntu-latest", "windows-latest", "macos-latest" ]
         python-version: [ "3.9", "3.13" ]  # check oldest and latest supported version
         other-os: [ true ]
     runs-on: ${{ matrix.os }}
-    continue-on-error: true  # don't cancel due to OS specific failures
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
@@ -33,9 +34,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set Windows OpenSSL env
+      # - name: Set Windows OpenSSL env
+      #   if: runner.os == 'Windows'
+      #   run: echo "OPENSSL_DIR=C:\Program Files\OpenSSL" >> $env:GITHUB_ENV
+
+      - name: Set Perl environment variables
         if: runner.os == 'Windows'
-        run: echo "OPENSSL_DIR=C:\Program Files\OpenSSL" >> $env:GITHUB_ENV
+        run: |
+          echo "PERL=$((where.exe perl)[0])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          echo "OPENSSL_SRC_PERL=$((where.exe perl)[0])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Set up Rust (stable)
         uses: dtolnay/rust-toolchain@stable
