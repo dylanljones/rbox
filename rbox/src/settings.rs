@@ -1415,4 +1415,1723 @@ impl Setting {
         self.dump_copy(path)?;
         Ok(())
     }
+
+    // -- MySetting getters and setters ------------------------------------------------------------
+
+    /// Gets the value of the "ON AIR DISPLAY" setting.
+    ///
+    /// # Returns
+    /// - `Ok(OnAirDisplay)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_on_air_display(&self) -> anyhow::Result<OnAirDisplay> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.on_air_display)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "ON AIR DISPLAY" setting.
+    ///
+    /// # Parameters
+    /// - `on_air_display`: The new value of the `OnAirDisplay` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_on_air_display(&mut self, on_air_display: OnAirDisplay) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.on_air_display = on_air_display;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "LCD BRIGHTNESS" setting.
+    ///
+    /// # Returns
+    /// - `Ok(LCDBrightness)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_lcd_brightness(&self) -> anyhow::Result<LCDBrightness> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.lcd_brightness)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "LCD BRIGHTNESS" setting.
+    ///
+    /// # Parameters
+    /// - `lcd_brightness`: The new value of the `LCDBrightness` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_lcd_brightness(&mut self, lcd_brightness: LCDBrightness) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.lcd_brightness = lcd_brightness;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "QUANTIZE" setting.
+    ///
+    /// # Returns
+    /// - `Ok(Quantize)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_quantize(&self) -> anyhow::Result<Quantize> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.quantize)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "QUANTIZE" setting.
+    ///
+    /// # Parameters
+    /// - `quantize`: The new value of the `Quantize` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_quantize(&mut self, quantize: Quantize) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.quantize = quantize;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "AUTO CUE LEVEL" setting.
+    ///
+    /// # Returns
+    /// - `Ok(AutoCueLevel)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_auto_cue_level(&self) -> anyhow::Result<AutoCueLevel> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.auto_cue_level)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "AUTO CUE LEVEL" setting.
+    ///
+    /// # Parameters
+    /// - `auto_cue_level`: The new value of the `AutoCueLevel` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_auto_cue_level(&mut self, auto_cue_level: AutoCueLevel) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.auto_cue_level = auto_cue_level;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "LANGUAGE" setting.
+    ///
+    /// # Returns
+    /// - `Ok(Language)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_language(&self) -> anyhow::Result<Language> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.language)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "LANGUAGE" setting.
+    ///
+    /// # Parameters
+    /// - `language`: The new value of the `Language` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_language(&mut self, language: Language) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.language = language;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "JOG RING BRIGHTNESS" setting.
+    ///
+    /// # Returns
+    /// - `Ok(JogRingBrightness)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_jog_ring_brightness(&self) -> anyhow::Result<JogRingBrightness> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.jog_ring_brightness)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "JOG RING BRIGHTNESS" setting.
+    ///
+    /// # Parameters
+    /// - `jog_ring_brightness`: The new value of the `JogRingBrightness` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_jog_ring_brightness(
+        &mut self,
+        jog_ring_brightness: JogRingBrightness,
+    ) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.jog_ring_brightness = jog_ring_brightness;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "JOG RING INDICATOR" setting.
+    ///
+    /// # Returns
+    /// - `Ok(JogRingIndicator)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_jog_ring_indicator(&self) -> anyhow::Result<JogRingIndicator> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.jog_ring_indicator)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "JOG RING INDICATOR" setting.
+    ///
+    /// # Parameters
+    /// - `jog_ring_indicator`: The new value of the `JogRingIndicator` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_jog_ring_indicator(
+        &mut self,
+        jog_ring_indicator: JogRingIndicator,
+    ) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.jog_ring_indicator = jog_ring_indicator;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+    /// Gets the value of the "SLIP FLASHING" setting.
+    ///
+    /// # Returns
+    /// - `Ok(SlipFlashing)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_slip_flashing(&self) -> anyhow::Result<SlipFlashing> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.slip_flashing)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "SLIP FLASHING" setting.
+    ///
+    /// # Parameters
+    /// - `slip_flashing`: The new value of the `SlipFlashing` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_slip_flashing(&mut self, slip_flashing: SlipFlashing) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.slip_flashing = slip_flashing;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "DISC SLOT ILLUMINATION" setting.
+    ///
+    /// # Returns
+    /// - `Ok(DiscSlotIllumination)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_disc_slot_illumination(&self) -> anyhow::Result<DiscSlotIllumination> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.disc_slot_illumination)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "DISC SLOT ILLUMINATION" setting.
+    ///
+    /// # Parameters
+    /// - `disc_slot_illumination`: The new value of the `DiscSlotIllumination` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_disc_slot_illumination(
+        &mut self,
+        disc_slot_illumination: DiscSlotIllumination,
+    ) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.disc_slot_illumination = disc_slot_illumination;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "EJECT/LOAD LOCK" setting.
+    ///
+    /// # Returns
+    /// - `Ok(EjectLock)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_eject_lock(&self) -> anyhow::Result<EjectLock> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.eject_lock)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "EJECT/LOAD LOCK" setting.
+    ///
+    /// # Parameters
+    /// - `eject_lock`: The new value of the `EjectLock` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_eject_lock(&mut self, eject_lock: EjectLock) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.eject_lock = eject_lock;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "SYNC" setting.
+    ///
+    /// # Returns
+    /// - `Ok(Sync)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_sync(&self) -> anyhow::Result<Sync> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.sync)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "SYNC" setting.
+    ///
+    /// # Parameters
+    /// - `sync`: The new value of the `Sync` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_sync(&mut self, sync: Sync) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.sync = sync;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+    /// Gets the value of the "PLAY MODE" setting.
+    ///
+    /// # Returns
+    /// - `Ok(PlayMode)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_play_mode(&self) -> anyhow::Result<PlayMode> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.play_mode)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "PLAY MODE" setting.
+    ///
+    /// # Parameters
+    /// - `play_mode`: The new value of the `PlayMode` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_play_mode(&mut self, play_mode: PlayMode) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.play_mode = play_mode;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "QUANTIZE BEAT VALUE" setting.
+    ///
+    /// # Returns
+    /// - `Ok(QuantizeBeatValue)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_quantize_beat_value(&self) -> anyhow::Result<QuantizeBeatValue> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.quantize_beat_value)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "QUANTIZE BEAT VALUE" setting.
+    ///
+    /// # Parameters
+    /// - `quantize_beat_value`: The new value of the `QuantizeBeatValue` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_quantize_beat_value(
+        &mut self,
+        quantize_beat_value: QuantizeBeatValue,
+    ) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.quantize_beat_value = quantize_beat_value;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "HOT CUE AUTO LOAD" setting.
+    ///
+    /// # Returns
+    /// - `Ok(HotCueAutoLoad)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_hotcue_autoload(&self) -> anyhow::Result<HotCueAutoLoad> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.hotcue_autoload)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "HOT CUE AUTO LOAD" setting.
+    ///
+    /// # Parameters
+    /// - `hot_cue_autoload`: The new value of the `HotCueAutoLoad` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_hotcue_autoload(&mut self, hotcue_autoload: HotCueAutoLoad) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.hotcue_autoload = hotcue_autoload;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "HOT CUE COLOR" setting.
+    ///
+    /// # Returns
+    /// - `Ok(HotCueColor)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_hotcue_color(&self) -> anyhow::Result<HotCueColor> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.hotcue_color)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "HOT CUE COLOR" setting.
+    ///
+    /// # Parameters
+    /// - `hot_cue_color`: The new value of the `HotCueColor` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_hotcue_color(&mut self, hotcue_color: HotCueColor) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.hotcue_color = hotcue_color;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "NEEDLE LOCK" setting.
+    ///
+    /// # Returns
+    /// - `Ok(NeedleLock)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_needle_lock(&self) -> anyhow::Result<NeedleLock> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.needle_lock)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "NEEDLE LOCK" setting.
+    ///
+    /// # Parameters
+    /// - `needle_lock`: The new value of the `NeedleLock` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_needle_lock(&mut self, needle_lock: NeedleLock) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.needle_lock = needle_lock;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "TIME MODE" setting.
+    ///
+    /// # Returns
+    /// - `Ok(TimeMode)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_time_mode(&self) -> anyhow::Result<TimeMode> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.time_mode)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "TIME MODE" setting.
+    ///
+    /// # Parameters
+    /// - `time_mode`: The new value of the `TimeMode` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_time_mode(&mut self, time_mode: TimeMode) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.time_mode = time_mode;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "JOG MODE" setting.
+    ///
+    /// # Returns
+    /// - `Ok(JogMode)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_jog_mode(&self) -> anyhow::Result<JogMode> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.jog_mode)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "JOG MODE" setting.
+    ///
+    /// # Parameters
+    /// - `jog_mode`: The new value of the `JogMode` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_jog_mode(&mut self, jog_mode: JogMode) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.jog_mode = jog_mode;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "AUTO CUE" setting.
+    ///
+    /// # Returns
+    /// - `Ok(AutoCue)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_auto_cue(&self) -> anyhow::Result<AutoCue> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.auto_cue)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "AUTO CUE" setting.
+    ///
+    /// # Parameters
+    /// - `auto_cue`: The new value of the `AutoCue` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_auto_cue(&mut self, auto_cue: AutoCue) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.auto_cue = auto_cue;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "MASTER TEMPO" setting.
+    ///
+    /// # Returns
+    /// - `Ok(MasterTempo)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_master_tempo(&self) -> anyhow::Result<MasterTempo> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.master_tempo)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "MASTER TEMPO" setting.
+    ///
+    /// # Parameters
+    /// - `master_tempo`: The new value of the `MasterTempo` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_master_tempo(&mut self, master_tempo: MasterTempo) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.master_tempo = master_tempo;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "TEMPO RANGE" setting.
+    ///
+    /// # Returns
+    /// - `Ok(TempoRange)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_tempo_range(&self) -> anyhow::Result<TempoRange> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.tempo_range)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "TEMPO RANGE" setting.
+    ///
+    /// # Parameters
+    /// - `tempo_range`: The new value of the `TempoRange` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_tempo_range(&mut self, tempo_range: TempoRange) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.tempo_range = tempo_range;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "PHASE METER" setting.
+    ///
+    /// # Returns
+    /// - `Ok(PhaseMeter)` if the `SettingContent` is of type `MySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn get_phase_meter(&self) -> anyhow::Result<PhaseMeter> {
+        if let SettingContent::MySetting(content) = &self.data.content {
+            Ok(content.phase_meter)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "PHASE METER" setting.
+    ///
+    /// # Parameters
+    /// - `phase_meter`: The new value of the `PhaseMeter` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting` file.
+    pub fn set_phase_meter(&mut self, phase_meter: PhaseMeter) -> anyhow::Result<()> {
+        if let SettingContent::MySetting(content) = &mut self.data.content {
+            content.phase_meter = phase_meter;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+        }
+    }
+
+    // -- MySetting2 getters and setters --------------------------------------------------------------
+
+    /// Gets the value of the "VINYL SPEED ADJUST" setting.
+    ///
+    /// # Returns
+    /// - `Ok(VinylSpeedAdjust)` if the `SettingContent` is of type `MySetting2`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting2` file.
+    pub fn get_vinyl_speed_adjust(&self) -> anyhow::Result<VinylSpeedAdjust> {
+        if let SettingContent::MySetting2(content) = &self.data.content {
+            Ok(content.vinyl_speed_adjust)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+        }
+    }
+
+    /// Sets the value of the "VINYL SPEED ADJUST" setting.
+    ///
+    /// # Parameters
+    /// - `vinyl_speed_adjust`: The new value of the `VinylSpeedAdjust` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting2` file.
+    pub fn set_vinyl_speed_adjust(
+        &mut self,
+        vinyl_speed_adjust: VinylSpeedAdjust,
+    ) -> anyhow::Result<()> {
+        if let SettingContent::MySetting2(content) = &mut self.data.content {
+            content.vinyl_speed_adjust = vinyl_speed_adjust;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+        }
+    }
+
+    /// Gets the value of the "JOG DISPLAY MODE" setting.
+    ///
+    /// # Returns
+    /// - `Ok(JogDisplayMode)` if the `SettingContent` is of type `MySetting2`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting2` file.
+    pub fn get_jog_display_mode(&self) -> anyhow::Result<JogDisplayMode> {
+        if let SettingContent::MySetting2(content) = &self.data.content {
+            Ok(content.jog_display_mode)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+        }
+    }
+
+    /// Sets the value of the "JOG DISPLAY MODE" setting.
+    ///
+    /// # Parameters
+    /// - `jog_display_mode`: The new value of the `JogDisplayMode` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting2` file.
+    pub fn set_jog_display_mode(&mut self, jog_display_mode: JogDisplayMode) -> anyhow::Result<()> {
+        if let SettingContent::MySetting2(content) = &mut self.data.content {
+            content.jog_display_mode = jog_display_mode;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+        }
+    }
+
+    /// Gets the value of the "PAD/BUTTON BRIGHTNESS" setting.
+    ///
+    /// # Returns
+    /// - `Ok(PadButtonBrightness)` if the `SettingContent` is of type `MySetting2`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting2` file.
+    pub fn get_pad_button_brightness(&self) -> anyhow::Result<PadButtonBrightness> {
+        if let SettingContent::MySetting2(content) = &self.data.content {
+            Ok(content.pad_button_brightness)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+        }
+    }
+
+    /// Sets the value of the "PAD/BUTTON BRIGHTNESS" setting.
+    ///
+    /// # Parameters
+    /// - `pad_button_brightness`: The new value of the `PadButtonBrightness` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting2` file.
+    pub fn set_pad_button_brightness(
+        &mut self,
+        pad_button_brightness: PadButtonBrightness,
+    ) -> anyhow::Result<()> {
+        if let SettingContent::MySetting2(content) = &mut self.data.content {
+            content.pad_button_brightness = pad_button_brightness;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+        }
+    }
+
+    /// Gets the value of the "JOG LCD BRIGHTNESS" setting.
+    ///
+    /// # Returns
+    /// - `Ok(JogLCDBrightness)` if the `SettingContent` is of type `MySetting2`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting2` file.
+    pub fn get_jog_lcd_brightness(&self) -> anyhow::Result<JogLCDBrightness> {
+        if let SettingContent::MySetting2(content) = &self.data.content {
+            Ok(content.jog_lcd_brightness)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+        }
+    }
+
+    /// Sets the value of the "JOG LCD BRIGHTNESS" setting.
+    ///
+    /// # Parameters
+    /// - `jog_lcd_brightness`: The new value of the `JogLCDBrightness` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting2` file.
+    pub fn set_jog_lcd_brightness(
+        &mut self,
+        jog_lcd_brightness: JogLCDBrightness,
+    ) -> anyhow::Result<()> {
+        if let SettingContent::MySetting2(content) = &mut self.data.content {
+            content.jog_lcd_brightness = jog_lcd_brightness;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+        }
+    }
+
+    /// Gets the value of the "WAVEFORM DIVISIONS" setting.
+    ///
+    /// # Returns
+    /// - `Ok(WaveformDivisions)` if the `SettingContent` is of type `MySetting2`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting2` file.
+    pub fn get_waveform_divisions(&self) -> anyhow::Result<WaveformDivisions> {
+        if let SettingContent::MySetting2(content) = &self.data.content {
+            Ok(content.waveform_divisions)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+        }
+    }
+
+    /// Sets the value of the "WAVEFORM DIVISIONS" setting.
+    ///
+    /// # Parameters
+    /// - `waveform_divisions`: The new value of the `WaveformDivisions` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting2` file.
+    pub fn set_waveform_divisions(
+        &mut self,
+        waveform_divisions: WaveformDivisions,
+    ) -> anyhow::Result<()> {
+        if let SettingContent::MySetting2(content) = &mut self.data.content {
+            content.waveform_divisions = waveform_divisions;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+        }
+    }
+
+    /// Gets the value of the "WAVEFORM / PHASE METER" setting.
+    ///
+    /// # Returns
+    /// - `Ok(Waveform)` if the `SettingContent` is of type `MySetting2`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting2` file.
+    pub fn get_waveform(&self) -> anyhow::Result<Waveform> {
+        if let SettingContent::MySetting2(content) = &self.data.content {
+            Ok(content.waveform)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+        }
+    }
+
+    /// Sets the value of the "WAVEFORM / PHASE METER" setting.
+    ///
+    /// # Parameters
+    /// - `waveform`: The new value of the `Waveform` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting2` file.
+    pub fn set_waveform(&mut self, waveform: Waveform) -> anyhow::Result<()> {
+        if let SettingContent::MySetting2(content) = &mut self.data.content {
+            content.waveform = waveform;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+        }
+    }
+
+    /// Gets the value of the "BEAT JUMP BEAT VALUE" setting.
+    ///
+    /// # Returns
+    /// - `Ok(BeatJumpBeatValue)` if the `SettingContent` is of type `MySetting2`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting2` file.
+    pub fn get_beat_jump_beat_value(&self) -> anyhow::Result<BeatJumpBeatValue> {
+        if let SettingContent::MySetting2(content) = &self.data.content {
+            Ok(content.beat_jump_beat_value)
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+        }
+    }
+
+    /// Sets the value of the "BEAT JUMP BEAT VALUE" setting.
+    ///
+    /// # Parameters
+    /// - `beat_jump_beat_value`: The new value of the `BeatJumpBeatValue` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `MySetting2` file.
+    pub fn set_beat_jump_beat_value(
+        &mut self,
+        beat_jump_beat_value: BeatJumpBeatValue,
+    ) -> anyhow::Result<()> {
+        if let SettingContent::MySetting2(content) = &mut self.data.content {
+            content.beat_jump_beat_value = beat_jump_beat_value;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+        }
+    }
+
+    // -- DJMMySetting getters and setters -----------------------------------------------------------
+
+    /// Gets the value of the "CH FADER CURVE" setting.
+    ///
+    /// # Returns
+    /// - `Ok(ChannelFaderCurve)` if the `SettingContent` is of type `DJMMySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn get_channel_fader_curve(&self) -> anyhow::Result<ChannelFaderCurve> {
+        if let SettingContent::DJMMySetting(content) = &self.data.content {
+            Ok(content.channel_fader_curve)
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "CH FADER CURVE" setting.
+    ///
+    /// # Parameters
+    /// - `channel_fader_curve`: The new value of the `ChannelFaderCurve` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn set_channel_fader_curve(
+        &mut self,
+        channel_fader_curve: ChannelFaderCurve,
+    ) -> anyhow::Result<()> {
+        if let SettingContent::DJMMySetting(content) = &mut self.data.content {
+            content.channel_fader_curve = channel_fader_curve;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "CROSSFADER CURVE" setting.
+    ///
+    /// # Returns
+    /// - `Ok(CrossfaderCurve)` if the `SettingContent` is of type `DJMMySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn get_crossfader_curve(&self) -> anyhow::Result<CrossfaderCurve> {
+        if let SettingContent::DJMMySetting(content) = &self.data.content {
+            Ok(content.crossfader_curve)
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "CROSSFADER CURVE" setting.
+    ///
+    /// # Parameters
+    /// - `crossfader_curve`: The new value of the `CrossfaderCurve` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn set_crossfader_curve(
+        &mut self,
+        crossfader_curve: CrossfaderCurve,
+    ) -> anyhow::Result<()> {
+        if let SettingContent::DJMMySetting(content) = &mut self.data.content {
+            content.crossfader_curve = crossfader_curve;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "HEADPHONES PRE EQ" setting.
+    ///
+    /// # Returns
+    /// - `Ok(HeadphonesPreEQ)` if the `SettingContent` is of type `DJMMySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn get_headphones_pre_eq(&self) -> anyhow::Result<HeadphonesPreEQ> {
+        if let SettingContent::DJMMySetting(content) = &self.data.content {
+            Ok(content.headphones_pre_eq)
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "HEADPHONES PRE EQ" setting.
+    ///
+    /// # Parameters
+    /// - `headphones_pre_eq`: The new value of the `HeadphonesPreEQ` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn set_headphones_pre_eq(
+        &mut self,
+        headphones_pre_eq: HeadphonesPreEQ,
+    ) -> anyhow::Result<()> {
+        if let SettingContent::DJMMySetting(content) = &mut self.data.content {
+            content.headphones_pre_eq = headphones_pre_eq;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "HEADPHONES MONO SPLIT" setting.
+    ///
+    /// # Returns
+    /// - `Ok(HeadphonesMonoSplit)` if the `SettingContent` is of type `DJMMySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn get_headphones_mono_split(&self) -> anyhow::Result<HeadphonesMonoSplit> {
+        if let SettingContent::DJMMySetting(content) = &self.data.content {
+            Ok(content.headphones_mono_split)
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "HEADPHONES MONO SPLIT" setting.
+    ///
+    /// # Parameters
+    /// - `headphones_mono_split`: The new value of the `HeadphonesMonoSplit` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn set_headphones_mono_split(
+        &mut self,
+        headphones_mono_split: HeadphonesMonoSplit,
+    ) -> anyhow::Result<()> {
+        if let SettingContent::DJMMySetting(content) = &mut self.data.content {
+            content.headphones_mono_split = headphones_mono_split;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "BEAT FX QUANTIZE" setting.
+    ///
+    /// # Returns
+    /// - `Ok(BeatFXQuantize)` if the `SettingContent` is of type `DJMMySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn get_beat_fx_quantize(&self) -> anyhow::Result<BeatFXQuantize> {
+        if let SettingContent::DJMMySetting(content) = &self.data.content {
+            Ok(content.beat_fx_quantize)
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "BEAT FX QUANTIZE" setting.
+    ///
+    /// # Parameters
+    /// - `beat_fx_quantize`: The new value of the `BeatFXQuantize` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn set_beat_fx_quantize(&mut self, beat_fx_quantize: BeatFXQuantize) -> anyhow::Result<()> {
+        if let SettingContent::DJMMySetting(content) = &mut self.data.content {
+            content.beat_fx_quantize = beat_fx_quantize;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "MIC LOW CUT" setting.
+    ///
+    /// # Returns
+    /// - `Ok(MicLowCut)` if the `SettingContent` is of type `DJMMySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn get_mic_low_cut(&self) -> anyhow::Result<MicLowCut> {
+        if let SettingContent::DJMMySetting(content) = &self.data.content {
+            Ok(content.mic_low_cut)
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "MIC LOW CUT" setting.
+    ///
+    /// # Parameters
+    /// - `mic_low_cut`: The new value of the `MicLowCut` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn set_mic_low_cut(&mut self, mic_low_cut: MicLowCut) -> anyhow::Result<()> {
+        if let SettingContent::DJMMySetting(content) = &mut self.data.content {
+            content.mic_low_cut = mic_low_cut;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "TALK OVER MODE" setting.
+    ///
+    /// # Returns
+    /// - `Ok(TalkOverMode)` if the `SettingContent` is of type `DJMMySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn get_talk_over_mode(&self) -> anyhow::Result<TalkOverMode> {
+        if let SettingContent::DJMMySetting(content) = &self.data.content {
+            Ok(content.talk_over_mode)
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "TALK OVER MODE" setting.
+    ///
+    /// # Parameters
+    /// - `talk_over_mode`: The new value of the `TalkOverMode` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn set_talk_over_mode(&mut self, talk_over_mode: TalkOverMode) -> anyhow::Result<()> {
+        if let SettingContent::DJMMySetting(content) = &mut self.data.content {
+            content.talk_over_mode = talk_over_mode;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "TALK OVER LEVEL" setting.
+    ///
+    /// # Returns
+    /// - `Ok(TalkOverLevel)` if the `SettingContent` is of type `DJMMySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn get_talk_over_level(&self) -> anyhow::Result<TalkOverLevel> {
+        if let SettingContent::DJMMySetting(content) = &self.data.content {
+            Ok(content.talk_over_level)
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "TALK OVER LEVEL" setting.
+    ///
+    /// # Parameters
+    /// - `talk_over_level`: The new value of the `TalkOverLevel` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn set_talk_over_level(&mut self, talk_over_level: TalkOverLevel) -> anyhow::Result<()> {
+        if let SettingContent::DJMMySetting(content) = &mut self.data.content {
+            content.talk_over_level = talk_over_level;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "MIDI CH" setting.
+    ///
+    /// # Returns
+    /// - `Ok(MidiChannel)` if the `SettingContent` is of type `DJMMySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn get_midi_channel(&self) -> anyhow::Result<MidiChannel> {
+        if let SettingContent::DJMMySetting(content) = &self.data.content {
+            Ok(content.midi_channel)
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "MIDI CH" setting.
+    ///
+    /// # Parameters
+    /// - `midi_channel`: The new value of the `MidiChannel` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn set_midi_channel(&mut self, midi_channel: MidiChannel) -> anyhow::Result<()> {
+        if let SettingContent::DJMMySetting(content) = &mut self.data.content {
+            content.midi_channel = midi_channel;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "MIDI BUTTON TYPE" setting.
+    ///
+    /// # Returns
+    /// - `Ok(MidiButtonType)` if the `SettingContent` is of type `DJMMySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn get_midi_button_type(&self) -> anyhow::Result<MidiButtonType> {
+        if let SettingContent::DJMMySetting(content) = &self.data.content {
+            Ok(content.midi_button_type)
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "MIDI BUTTON TYPE" setting.
+    ///
+    /// # Parameters
+    /// - `midi_button_type`: The new value of the `MidiButtonType` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn set_midi_button_type(&mut self, midi_button_type: MidiButtonType) -> anyhow::Result<()> {
+        if let SettingContent::DJMMySetting(content) = &mut self.data.content {
+            content.midi_button_type = midi_button_type;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "MIXER DISPLAY BRIGHTNESS" setting.
+    ///
+    /// # Returns
+    /// - `Ok(MixerDisplayBrightness)` if the `SettingContent` is of type `DJMMySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn get_mixer_display_brightness(&self) -> anyhow::Result<MixerDisplayBrightness> {
+        if let SettingContent::DJMMySetting(content) = &self.data.content {
+            Ok(content.display_brightness)
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "MIXER DISPLAY BRIGHTNESS" setting.
+    ///
+    /// # Parameters
+    /// - `mixer_display_brightness`: The new value of the `MixerDisplayBrightness` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn set_mixer_display_brightness(
+        &mut self,
+        mixer_display_brightness: MixerDisplayBrightness,
+    ) -> anyhow::Result<()> {
+        if let SettingContent::DJMMySetting(content) = &mut self.data.content {
+            content.display_brightness = mixer_display_brightness;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "MIXER INDICATOR BRIGHTNESS" setting.
+    ///
+    /// # Returns
+    /// - `Ok(MixerIndicatorBrightness)` if the `SettingContent` is of type `DJMMySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn get_mixer_indicator_brightness(&self) -> anyhow::Result<MixerIndicatorBrightness> {
+        if let SettingContent::DJMMySetting(content) = &self.data.content {
+            Ok(content.indicator_brightness)
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "MIXER INDICATOR BRIGHTNESS" setting.
+    ///
+    /// # Parameters
+    /// - `mixer_indicator_brightness`: The new value of the `MixerIndicatorBrightness` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn set_mixer_indicator_brightness(
+        &mut self,
+        mixer_indicator_brightness: MixerIndicatorBrightness,
+    ) -> anyhow::Result<()> {
+        if let SettingContent::DJMMySetting(content) = &mut self.data.content {
+            content.indicator_brightness = mixer_indicator_brightness;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "CH FADER CURVE (LONG FADER)" setting.
+    ///
+    /// # Returns
+    /// - `Ok(ChannelFaderCurveLongFader)` if the `SettingContent` is of type `DJMMySetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn get_channel_fader_curve_long_fader(&self) -> anyhow::Result<ChannelFaderCurveLongFader> {
+        if let SettingContent::DJMMySetting(content) = &self.data.content {
+            Ok(content.channel_fader_curve_long_fader)
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "CH FADER CURVE (LONG FADER)" setting.
+    ///
+    /// # Parameters
+    /// - `channel_fader_curve_long_fader`: The new value of the `ChannelFaderCurveLongFader` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
+    pub fn set_channel_fader_curve_long_fader(
+        &mut self,
+        channel_fader_curve_long_fader: ChannelFaderCurveLongFader,
+    ) -> anyhow::Result<()> {
+        if let SettingContent::DJMMySetting(content) = &mut self.data.content {
+            content.channel_fader_curve_long_fader = channel_fader_curve_long_fader;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+        }
+    }
+
+    // -- DevSetting getters and setters --------------------------------------------------------------
+
+    /// Gets the value of the "Type of the overview Waveform" setting.
+    ///
+    /// # Returns
+    /// - `Ok(OverviewWaveformType)` if the `SettingContent` is of type `DevSetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DevSetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DevSetting` file.
+    pub fn get_overview_waveform_type(&self) -> anyhow::Result<OverviewWaveformType> {
+        if let SettingContent::DevSetting(content) = &self.data.content {
+            Ok(content.overview_waveform_type)
+        } else {
+            Err(anyhow!(format!("Not a {} file", DevSetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "Type of the overview Waveform" setting.
+    ///
+    /// # Parameters
+    /// - `overview_waveform_type`: The new value of the `OverviewWaveformType` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DevSetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DevSetting` file.
+    pub fn set_overview_waveform_type(
+        &mut self,
+        overview_waveform_type: OverviewWaveformType,
+    ) -> anyhow::Result<()> {
+        if let SettingContent::DevSetting(content) = &mut self.data.content {
+            content.overview_waveform_type = overview_waveform_type;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", DevSetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "Waveform color" setting.
+    ///
+    /// # Returns
+    /// - `Ok(WaveformColor)` if the `SettingContent` is of type `DevSetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DevSetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DevSetting` file.
+    pub fn get_waveform_color(&self) -> anyhow::Result<WaveformColor> {
+        if let SettingContent::DevSetting(content) = &self.data.content {
+            Ok(content.waveform_color)
+        } else {
+            Err(anyhow!(format!("Not a {} file", DevSetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "Waveform color" setting.
+    ///
+    /// # Parameters
+    /// - `waveform_color`: The new value of the `WaveformColor` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DevSetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DevSetting` file.
+    pub fn set_waveform_color(&mut self, waveform_color: WaveformColor) -> anyhow::Result<()> {
+        if let SettingContent::DevSetting(content) = &mut self.data.content {
+            content.waveform_color = waveform_color;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", DevSetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "Key display format" setting.
+    ///
+    /// # Returns
+    /// - `Ok(KeyDisplayFormat)` if the `SettingContent` is of type `DevSetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DevSetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DevSetting` file.
+    pub fn get_key_display_format(&self) -> anyhow::Result<KeyDisplayFormat> {
+        if let SettingContent::DevSetting(content) = &self.data.content {
+            Ok(content.key_display_format)
+        } else {
+            Err(anyhow!(format!("Not a {} file", DevSetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "Key display format" setting.
+    ///
+    /// # Parameters
+    /// - `key_display_format`: The new value of the `KeyDisplayFormat` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DevSetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DevSetting` file.
+    pub fn set_key_display_format(
+        &mut self,
+        key_display_format: KeyDisplayFormat,
+    ) -> anyhow::Result<()> {
+        if let SettingContent::DevSetting(content) = &mut self.data.content {
+            content.key_display_format = key_display_format;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", DevSetting::file_name())))
+        }
+    }
+
+    /// Gets the value of the "Waveform Current Position" setting.
+    ///
+    /// # Returns
+    /// - `Ok(WaveformCurrentPosition)` if the `SettingContent` is of type `DevSetting`.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DevSetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DevSetting` file.
+    pub fn get_waveform_current_position(&self) -> anyhow::Result<WaveformCurrentPosition> {
+        if let SettingContent::DevSetting(content) = &self.data.content {
+            Ok(content.waveform_current_position)
+        } else {
+            Err(anyhow!(format!("Not a {} file", DevSetting::file_name())))
+        }
+    }
+
+    /// Sets the value of the "Waveform Current Position" setting.
+    ///
+    /// # Parameters
+    /// - `waveform_current_position`: The new value of the `WaveformCurrentPosition` setting to be set.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the value is successfully set.
+    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DevSetting`.
+    ///
+    /// # Errors
+    /// Returns an error if the `SettingContent` is not a `DevSetting` file.
+    pub fn set_waveform_current_position(
+        &mut self,
+        waveform_current_position: WaveformCurrentPosition,
+    ) -> anyhow::Result<()> {
+        if let SettingContent::DevSetting(content) = &mut self.data.content {
+            content.waveform_current_position = waveform_current_position;
+            Ok(())
+        } else {
+            Err(anyhow!(format!("Not a {} file", DevSetting::file_name())))
+        }
+    }
 }
