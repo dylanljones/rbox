@@ -32,59 +32,46 @@ rbox is built with Rust for maximum performance and safety, with additional lang
 
 ## 🔧 Installation
 
-> [!NOTE]
->
-> On Windows, you need an OpenSSL installation and have to set a environment variable to
-> the directory it is installed in:
-> ````
-> OPENSSL_DIR = C:\Program Files\OpenSSL-Win64
-> ````
-
-
-<details>
-<summary>🦀 Rust</summary>
-
-Run the following Cargo command in your project directory:
-```bash
+### 🦀 Rust
+rbox is available on Cargo. Run the following Cargo command in your project directory:
+```shell
 cargo add rbox
 ```
 or add the following line to your Cargo.toml:
-```bash
-rbox = "0.1.0"
+```shell
+rbox = "0.1.2"
 ```
 
-</details>
-
-<details>
-<summary>🐍 Python</summary>
+### 🐍 Python
 
 rbox is available on PyPI:
 
-```bash
+```shell
 pip install rbox
 ```
+
 The Python bindings can also be built manually via [pyo3] and [maturin]:
-```bash
+```shell
+cd bindings/python
 maturin develop
 ```
 
-</details>
+### ✨ JavaScript
 
-<details>
-<summary>✨ JavaScript</summary>
-
-rbox is available on npm:
-
-```bash
+```shell
 npm install rbox-js
 ```
-The JS bindings can also be built manually via [napi-rs]:
-```bash
-yarn build
+or
+```shell
+yarn add rbox-js
 ```
 
-</details>
-
+The JS bindings can also be built manually via [napi-rs]:
+```shell
+cd bindings/javascript
+yarn install
+yarn build
+```
 
 [pyo3]: https://github.com/PyO3/pyo3
 [maturin]: https://github.com/PyO3/maturin

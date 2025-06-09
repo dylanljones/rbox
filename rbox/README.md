@@ -8,21 +8,13 @@
 ## 🔧 Installation
 
 rbox is available on Cargo. Run the following Cargo command in your project directory:
-```bash
+```shell
 cargo add rbox
 ```
 or add the following line to your Cargo.toml:
-```bash
-rbox = "0.1.0"
+```shell
+rbox = "0.1.2"
 ```
-> [!NOTE]
->
-> On Windows, you need an OpenSSL installation and have to set a environment variable to
-> the directory it is installed in:
-> ````
-> OPENSSL_DIR = C:\Program Files\OpenSSL-Win64
-> ````
-
 
 ## 🚀 Quick-Start
 

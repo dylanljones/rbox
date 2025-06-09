@@ -1,7 +1,7 @@
 # rbox-js
 
 > **⚠️ Disclaimer**: This project is **not** affiliated with Pioneer DJ, AlphaTheta Corp., or any related entities.
-> rbox is an independent project released under the **MIT license**.
+> rbox-js is an independent project released under the **MIT license**.
 > The maintainers and contributors assume no liability for any data loss or damage to your Rekordbox library.
 > "Rekordbox" is a registered trademark of AlphaTheta Corporation.
 
@@ -9,8 +9,12 @@
 
 rbox-js is available on npm:
 
-```bash
+```shell
 npm install rbox-js
+```
+or
+```shell
+yarn add rbox-js
 ```
 
 ## 🚀 Quick-Start
