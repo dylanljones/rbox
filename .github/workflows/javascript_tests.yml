@@ -13,6 +13,7 @@ env:
   working-directory: bindings/javascript
   DEBUG: napi:*
   APP_NAME: rbox-js
+  MACOSX_DEPLOYMENT_TARGET: '10.13'
 
 jobs:
   build:
@@ -29,6 +30,7 @@ jobs:
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             build: yarn build --target x86_64-unknown-linux-gnu
+            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
           - host: macos-latest
             target: aarch64-apple-darwin
             build: yarn build --target aarch64-apple-darwin
@@ -100,8 +102,17 @@ jobs:
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
 
+      - name: Build in docker
+        uses: addnab/docker-run-action@v3
+        if: ${{ matrix.settings.docker }}
+        with:
+          image: ${{ matrix.settings.docker }}
+          options: '--user 0:0 -v ${{ github.workspace }}/.cargo-cache/git/db:/usr/local/cargo/git/db -v ${{ github.workspace }}/.cargo/registry/cache:/usr/local/cargo/registry/cache -v ${{ github.workspace }}/.cargo/registry/index:/usr/local/cargo/registry/index -v ${{ github.workspace }}:/build -w /build/bindings/javascript'
+          run: ${{ matrix.settings.build }}
+
       - name: Build
         run: ${{ matrix.settings.build }}
+        if: ${{ !matrix.settings.docker }}
         shell: bash
 
       - name: Upload artifact
@@ -111,7 +122,7 @@ jobs:
           path: bindings/javascript/${{ env.APP_NAME }}.*.node
           if-no-files-found: error
 
-  test:
+  test-macOS-windows-binding:
     name: Test bindings on ${{ matrix.settings.target }} - node@${{ matrix.node }}
     needs: build
     strategy:
@@ -122,8 +133,8 @@ jobs:
             target: x86_64-apple-darwin
           - host: windows-latest
             target: x86_64-pc-windows-msvc
-          - host: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
+          # - host: ubuntu-latest
+          #   target: x86_64-unknown-linux-gnu
         node:
           - '18'
           - '20'
@@ -160,3 +171,44 @@ jobs:
 
       - name: Test bindings
         run: yarn test
+
+  test-linux-x64-gnu-binding:
+    name: Test bindings on Linux-x64-gnu - node@${{ matrix.node }}
+    needs:
+      - build
+    strategy:
+      fail-fast: false
+      matrix:
+        node:
+          - '18'
+          - '20'
+    defaults:
+      run:
+        working-directory: ${{ env.working-directory }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: yarn
+          cache-dependency-path: bindings/javascript
+          architecture: x64
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: bindings-x86_64-unknown-linux-gnu
+          path: bindings/javascript
+
+      - name: List packages
+        run: ls -R .
+        shell: bash
+
+      - name: Test bindings
+        run: docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim yarn test
