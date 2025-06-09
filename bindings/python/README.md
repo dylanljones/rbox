@@ -5,6 +5,15 @@
 > The maintainers and contributors assume no liability for any data loss or damage to your Rekordbox library.
 > "Rekordbox" is a registered trademark of AlphaTheta Corporation.
 
+**rbox** is a high-performance Rust library for seamlessly interacting with Pioneer DJ's Rekordbox software data.
+It supports the following Rekordbox files:
+
+- **Rekordbox database**: Query and update the Rekordbox v6/v7 master.db database through a type-safe ORM
+- **XML database**: Read and write Rekordbox XML database files
+- **Analysis Files**: Read and write ANLZ files containing waveforms, beat grids, hot cues and more
+- **Settings Access**: Read and write My-Setting files (Coming soon!)
+
+
 ## 🔧 Installation
 
 rbox is available on PyPI:
