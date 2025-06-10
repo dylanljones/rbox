@@ -84,6 +84,25 @@ yarn install
 yarn build
 ```
 
+
+## 💻 Development
+
+If you encounter an issue or want to contribute to rbox, please feel free to get in touch,
+[open an issue][issue] or create a new [pull request][pulls]! A guide for contributing to
+rbox and the commit-message style can be found in
+[LICENSE](LICENSE).
+For general questions or discussions about the library or Rekordbox,
+please use [GitHub Discussions][discussions] instead of opening an issue.
+
+rbox is tested on Windows, MacOS and Linux, however some features can't be tested in
+the CI setup since it requires a working Rekordbox installation.
+
+
+## 📝 License
+
+This project is licensed under the [MIT license][LICENSE].
+
+
 [crates.io]: https://crates.io/crates/rbox
 [pypi]: https://pypi.org/project/rbox/
 [npm]: https://www.npmjs.com/package/rbox-js
@@ -91,3 +110,10 @@ yarn build
 [pyo3]: https://github.com/PyO3/pyo3
 [maturin]: https://github.com/PyO3/maturin
 [napi-rs]: https://napi.rs/
+
+[issue]: https://github.com/dylanljones/rbox/issues
+[pulls]: https://github.com/dylanljones/rbox/pulls
+[discussions]: https://github.com/dylanljones/rbox/discussions
+[CONTRIBUTING]: https://github.com/dylanljones/pyrekordbox/blob/main/CONTRIBUTING.md
+[LICENSE]: https://github.com/dylanljones/pyrekordbox/blob/main/LICENSE
+[CHANGELOG]: https://github.com/dylanljones/pyrekordbox/blob/main/CHANGELOG.md
