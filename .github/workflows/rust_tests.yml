@@ -30,7 +30,7 @@ jobs:
             "LICENSE",
             "README.md",
             "CHANGELOG.md",
-            "CONTRIBUTING.md",
+            "CONTRIBUTING.md"
           ]'
     outputs:
       should_skip_rust: ${{ steps.skip_check.outputs.should_skip_rust }}
