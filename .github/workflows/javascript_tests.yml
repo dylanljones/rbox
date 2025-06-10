@@ -153,6 +153,9 @@ jobs:
           - '18'
           - '20'
     runs-on: ${{ matrix.settings.host }}
+    defaults:
+      run:
+        working-directory: ${{ env.working-directory }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -162,6 +165,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: yarn
+          cache-dependency-path: bindings/javascript
           architecture: ${{ matrix.settings.architecture }}
 
       - name: Install dependencies
@@ -171,7 +175,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: bindings-${{ matrix.settings.target }}
-          path: .
+          path: bindings/javascript
 
       - name: List packages
         run: ls -R .
@@ -191,6 +195,9 @@ jobs:
           - '20'
           - '22'
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.working-directory }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -208,7 +215,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: bindings-x86_64-unknown-linux-gnu
-          path: .
+          path: bindings/javascript
 
       - name: List packages
         run: ls -R .
