@@ -14,9 +14,22 @@ env:
 
 jobs:
 
+  cargo-fmt-check:
+    if: ${{ needs.code-change.outputs.should_skip != 'true'}}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check formatting
+        run: cargo fmt --check
+
   # -- Rust tests ----------------------------------------------------------------------------------
 
   code-change-rs:
+    needs: cargo-fmt-check
     runs-on: ubuntu-latest
     steps:
       - id: skip_check
@@ -39,20 +52,8 @@ jobs:
     outputs:
       should_skip: ${{ steps.skip_check.outputs.should_skip }}
 
-  cargo-fmt-check:
-    needs: code-change-rs
-    if: ${{ needs.code-change-rs.outputs.should_skip != 'true'}}
-    runs-on: ubuntu-latest
-    env:
-      CARGO_TERM_COLOR: always
-    steps:
-      - uses: actions/checkout@v3
-      - name: Check formatting
-        run: cargo fmt --check
-
   test-rust:
     needs:
-      - cargo-fmt-check
       - code-change-rs
     if: ${{ needs.code-change-rs.outputs.should_skip != 'true'}}
     strategy:
@@ -60,8 +61,6 @@ jobs:
         os: ["ubuntu-latest", "windows-latest", "macos-latest"]  # "macos-13"
     runs-on: ${{ matrix.os }}
     continue-on-error: false
-    env:
-      CARGO_TERM_COLOR: always
     defaults:
       run:
         working-directory: rbox
