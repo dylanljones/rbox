@@ -140,13 +140,13 @@ jobs:
       # - name: Set Windows OpenSSL env
       #   run: echo "OPENSSL_DIR=C:\Program Files\OpenSSL" >> $env:GITHUB_ENV
 
-      # - name: Set Perl environment variables
-      #   run: |
-      #     echo "PERL=$((where.exe perl)[0])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-      #     echo "OPENSSL_SRC_PERL=$((where.exe perl)[0])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Set Perl environment variables
+        run: |
+          echo "PERL=$((where.exe perl)[0])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          echo "OPENSSL_SRC_PERL=$((where.exe perl)[0])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      - name: Install OpenSSL
-        run: vcpkg install openssl:x64-windows-static-md
+      # - name: Install OpenSSL
+      #   run: vcpkg install openssl:x64-windows-static-md
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
