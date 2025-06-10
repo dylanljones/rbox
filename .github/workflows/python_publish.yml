@@ -85,6 +85,11 @@ jobs:
         with:
           python-version: 3.x
 
+      - name: Set Perl environment variables
+        run: |
+          echo "PERL=$(which perl)" >> $GITHUB_ENV
+          echo "OPENSSL_SRC_PERL=$(which perl)" >> $GITHUB_ENV
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
