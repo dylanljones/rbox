@@ -62,6 +62,9 @@ jobs:
     continue-on-error: false
     env:
       CARGO_TERM_COLOR: always
+    defaults:
+      run:
+        working-directory: rbox
     steps:
       - name: Checkout
         uses: actions/checkout@v4
