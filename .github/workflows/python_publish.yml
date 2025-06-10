@@ -93,7 +93,7 @@ jobs:
           args: --release --out dist --interpreter ${{ env.interpreter }}
           sccache: 'true'
           manylinux: auto
-          container: 'off'
+          # container: 'off'
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -229,12 +229,12 @@ jobs:
         run: ls -R bindings/python/dist
         shell: bash
 
-      - name: Publish to PyPI
-        # if: ${{ startsWith(github.ref, 'refs/tags/') }}
-        uses: PyO3/maturin-action@v1
-        env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-        with:
-          working-directory: ${{ env.working-directory }}
-          command: upload
-          args: --non-interactive --skip-existing dist/*
+#      - name: Publish to PyPI
+#        # if: ${{ startsWith(github.ref, 'refs/tags/') }}
+#        uses: PyO3/maturin-action@v1
+#        env:
+#          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+#        with:
+#          working-directory: ${{ env.working-directory }}
+#          command: upload
+#          args: --non-interactive --skip-existing dist/*
