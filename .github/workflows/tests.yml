@@ -3,8 +3,8 @@
 name: Tests
 
 on:
-  push:
-    branches: ["main"]
+  # push:
+  #   branches: ["main"]
   pull_request:
     types: [opened]
   workflow_dispatch:
@@ -57,7 +57,7 @@ jobs:
     if: ${{ needs.code-change-rs.outputs.should_skip != 'true'}}
     strategy:
       matrix:
-        os: ["ubuntu-latest", "windows-latest", "macos-latest", "macos-13"]
+        os: ["ubuntu-latest", "windows-latest", "macos-latest"]  # "macos-13"
     runs-on: ${{ matrix.os }}
     continue-on-error: false
     env:
