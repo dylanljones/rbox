@@ -1,12 +1,13 @@
-# This workflow will publish the Javascript bindings
+# This workflow will run the tests for the Javascript bindings and publish the package to npm.
 
-name: Javascript publish
+name: Javascript
 
 on:
-  # push:
-  #   branches: [ "main" ]
-  # pull_request:
-  #   branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "main" ]
   workflow_dispatch:
 
 env:
@@ -226,6 +227,7 @@ jobs:
     needs:
       - build
     runs-on: macos-latest
+    # if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
     defaults:
       run:
         working-directory: ${{ env.working-directory }}
@@ -270,6 +272,7 @@ jobs:
   publish:
     name: Publish
     runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
     permissions:
       contents: read
       id-token: write
@@ -310,6 +313,7 @@ jobs:
         shell: bash
 
       - name: Publish
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
         run: |
           npm config set provenance false
           echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
