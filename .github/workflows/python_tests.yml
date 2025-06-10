@@ -4,9 +4,9 @@ name: Python tests
 
 on:
   # push:
-  #   branches: [ "main" ]
-  # pull_request:
-  #   branches: [ "main" ]
+  #   branches: ["*"]
+  pull_request:
+    types: [opened]
   workflow_dispatch:
 
 env:
@@ -14,7 +14,35 @@ env:
   PIP_DISABLE_PIP_VERSION_CHECK: "true"
 
 jobs:
+  code-change-py:
+    runs-on: ubuntu-latest
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@master
+        with:
+          paths_ignore: '[
+          ".cargo/**",
+          ".github/**",
+          "bindings/javascript/**",
+          "bindings/python/pyproject.toml",
+          "bindings/python/requirements.txt",
+          "bindings/python/README.md",
+          "examples/**",
+          "rbox/README.md",
+          "scripts/**",
+          ".gitignore",
+          ".pre-commit-config.yaml",
+          "LICENSE",
+          "README.md",
+          "CHANGELOG.md",
+          "CONTRIBUTING.md"
+          ]'
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+
   tests:
+    needs: code-change-py
+    if: ${{ needs.code-change-py.outputs.should_skip != 'true'}}
     strategy:
       fail-fast: false
       matrix:

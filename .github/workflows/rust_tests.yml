@@ -13,7 +13,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  code-change-rust:
+  code-change-rs:
     runs-on: ubuntu-latest
     steps:
       - id: skip_check
@@ -37,8 +37,8 @@ jobs:
       should_skip: ${{ steps.skip_check.outputs.should_skip }}
 
   cargo-fmt-check:
-    needs: code-change-rust
-    if: ${{ needs.code-change-rust.outputs.should_skip != 'true'}}
+    needs: code-change-rs
+    if: ${{ needs.code-change-rs.outputs.should_skip != 'true'}}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -48,8 +48,8 @@ jobs:
   test:
     needs:
       - cargo-fmt-check
-      - code-change-rust
-    if: ${{ needs.code-change-rust.outputs.should_skip != 'true'}}
+      - code-change-rs
+    if: ${{ needs.code-change-rs.outputs.should_skip != 'true'}}
     strategy:
       matrix:
         os: ["ubuntu-latest", "windows-latest", "macos-latest", "macos-13"]

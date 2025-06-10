@@ -4,9 +4,9 @@ name: Javascript tests
 
 on:
   # push:
-  #   branches: [ "main" ]
-  # pull_request:
-  #   branches: [ "main" ]
+  #   branches: ["*"]
+  pull_request:
+    types: [opened]
   workflow_dispatch:
 
 env:
@@ -16,7 +16,38 @@ env:
   MACOSX_DEPLOYMENT_TARGET: '10.13'
 
 jobs:
+  code-change-js:
+    runs-on: ubuntu-latest
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@master
+        with:
+          paths_ignore: '[
+          ".cargo/**",
+          ".github/**",
+          "bindings/python/**",
+          "bindings/javascript/.yarn/**",
+          "bindings/javascript/.npmignore",
+          "bindings/javascript/.yarnrc.yml",
+          "bindings/javascript/README.md",
+          "bindings/javascript/rustfmt.toml",
+          "bindings/javascript/yarn.lock",
+          "examples/**",
+          "rbox/README.md",
+          "scripts/**",
+          ".gitignore",
+          ".pre-commit-config.yaml",
+          "LICENSE",
+          "README.md",
+          "CHANGELOG.md",
+          "CONTRIBUTING.md"
+          ]'
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+
   build:
+    needs: code-change-js
+    if: ${{ needs.code-change-js.outputs.should_skip != 'true'}}
     strategy:
       fail-fast: false
       matrix:
@@ -135,7 +166,10 @@ jobs:
 
   test-macOS-windows-binding:
     name: Test bindings on ${{ matrix.settings.target }} - node@${{ matrix.node }}
-    needs: build
+    needs:
+      - code-change-js
+      - build
+    if: ${{ needs.code-change-js.outputs.should_skip != 'true'}}
     strategy:
       fail-fast: false
       matrix:
@@ -187,7 +221,9 @@ jobs:
   test-linux-x64-gnu-binding:
     name: Test bindings on Linux-x64-gnu - node@${{ matrix.node }}
     needs:
+      - code-change-js
       - build
+    if: ${{ needs.code-change-js.outputs.should_skip != 'true'}}
     strategy:
       fail-fast: false
       matrix:
