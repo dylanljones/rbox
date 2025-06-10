@@ -24,6 +24,7 @@ jobs:
             ".github/**",
             "bindings/**",
             "examples/**",
+            "rbox/README.md",
             "scripts/**",
             ".gitignore",
             ".pre-commit-config.yaml",
@@ -33,11 +34,11 @@ jobs:
             "CONTRIBUTING.md"
           ]'
     outputs:
-      should_skip_rust: ${{ steps.skip_check.outputs.should_skip_rust }}
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
 
   cargo-fmt-check:
     needs: code-change-rust
-    if: ${{ needs.code-change.outputs.should_skip_rust != 'true'}}
+    if: ${{ needs.code-change-rust.outputs.should_skip != 'true'}}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -48,7 +49,7 @@ jobs:
     needs:
       - cargo-fmt-check
       - code-change-rust
-    if: ${{ needs.code-change.outputs.should_skip_rust != 'true'}}
+    if: ${{ needs.code-change-rust.outputs.should_skip != 'true'}}
     strategy:
       matrix:
         os: ["ubuntu-latest", "windows-latest", "macos-latest", "macos-13"]
