@@ -72,10 +72,6 @@ rbox is available on [npm]:
 ```shell
 npm install rbox-js
 ```
-or
-```shell
-yarn add rbox-js
-```
 
 The JS bindings can also be built manually via [napi-rs]:
 ```shell
