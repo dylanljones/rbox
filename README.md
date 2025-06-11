@@ -30,7 +30,7 @@ It supports the following Rekordbox files:
 - **Analysis Files**: Read and write ANLZ files containing waveforms, beat grids, hot cues and more
 - **Settings Access**: Read and write My-Setting files
 
-#### 🌐 Language support
+#### Language support
 
 rbox is built with Rust for maximum performance and safety, with additional language bindings:
 - **🦀 [Rust](rbox/README.md)**: The core library, providing fast and efficient access to Rekordbox data
@@ -38,7 +38,7 @@ rbox is built with Rust for maximum performance and safety, with additional lang
 - **✨ [JavaScript](bindings/javascript/README.md)**: Integrate with electron applications and Node.js environments
 
 
-## 🔧 Installation
+## Installation
 
 ### 🦀 Rust
 
@@ -85,20 +85,18 @@ yarn build
 ```
 
 
-## 💻 Development
+## Development
 
 If you encounter an issue or want to contribute to rbox, please feel free to get in touch,
 [open an issue][issue] or create a new [pull request][pulls]! A guide for contributing to
 rbox and the commit-message style can be found in
-[LICENSE](LICENSE).
+[CONTRIBUTING].
+
 For general questions or discussions about the library or Rekordbox,
 please use [GitHub Discussions][discussions] instead of opening an issue.
 
-rbox is tested on Windows, MacOS and Linux, however some features can't be tested in
-the CI setup since it requires a working Rekordbox installation.
 
-
-## 📝 License
+## License
 
 This project is licensed under the [MIT license][LICENSE].
 
