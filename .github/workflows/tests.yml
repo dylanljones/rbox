@@ -17,7 +17,6 @@ permissions:
   contents: read
 
 jobs:
-
   code-change:
     runs-on: ubuntu-latest
     steps:
@@ -109,7 +108,9 @@ jobs:
   # -- Python tests --------------------------------------------------------------------------------
 
   test-python:
-    needs: code-change
+    needs:
+      - code-change
+      - cargo-fmt-check
     if: ${{ !needs.code-change.outputs.should_skip_py}}
     strategy:
       fail-fast: false
@@ -163,7 +164,9 @@ jobs:
   # -- Javascript tests ----------------------------------------------------------------------------
 
   build-javascript:
-    needs: code-change
+    needs:
+      - code-change
+      - cargo-fmt-check
     if: ${{ !needs.code-change.outputs.should_skip_js}}
     strategy:
       fail-fast: false
@@ -287,10 +290,7 @@ jobs:
 
   test-macOS-windows-javascript:
     name: Test bindings on ${{ matrix.settings.target }} - node@${{ matrix.node }}
-    needs:
-      - code-change
-      - build-javascript
-    if: ${{ !needs.code-change.outputs.should_skip_js}}
+    needs: build-javascript
     strategy:
       fail-fast: false
       matrix:
@@ -345,10 +345,7 @@ jobs:
 
   test-linux-x64-gnu-javascript:
     name: Test bindings on Linux-x64-gnu - node@${{ matrix.node }}
-    needs:
-      - code-change
-      - build-javascript
-    if: ${{ !needs.code-change.outputs.should_skip_js}}
+    needs: build-javascript
     strategy:
       fail-fast: false
       matrix:
