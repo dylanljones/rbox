@@ -13,33 +13,26 @@ env:
   working-directory: rbox
   CARGO_TERM_COLOR: always
 
+permissions:
+  actions: write
+  contents: read
+
 jobs:
-  code-change-rs:
+
+  code-change:
     runs-on: ubuntu-latest
     steps:
       - id: skip_check
-        uses: fkirc/skip-duplicate-actions@master
+        uses: fkirc/skip-duplicate-actions@v5
         with:
-          paths_ignore: '[
-            ".cargo/**",
-            ".github/**",
-            "bindings/**",
-            "examples/**",
-            "rbox/README.md",
-            "scripts/**",
-            ".gitignore",
-            ".pre-commit-config.yaml",
-            "LICENSE",
-            "README.md",
-            "CHANGELOG.md",
-            "CONTRIBUTING.md"
-          ]'
+          paths: '["rbox/**"]'
+          paths_ignore: '["rbox/README.md"]'
     outputs:
-      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+      should_skip: fromJSON(steps.skip_check.outputs.should_skip)
 
   cargo-fmt-check:
-    needs: code-change-rs
-    if: ${{ needs.code-change-rs.outputs.should_skip != 'true'}}
+    needs: code-change
+    if: ${{ !needs.code-change.outputs.should_skip}}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -49,8 +42,8 @@ jobs:
   test:
     needs:
       - cargo-fmt-check
-      - code-change-rs
-    if: ${{ needs.code-change-rs.outputs.should_skip != 'true'}}
+      - code-change
+    if: ${{ !needs.code-change.outputs.should_skip}}
     strategy:
       matrix:
         os: ["ubuntu-latest", "windows-latest", "macos-latest", "macos-13"]

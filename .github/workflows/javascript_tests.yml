@@ -16,38 +16,29 @@ env:
   MACOSX_DEPLOYMENT_TARGET: '10.13'
 
 jobs:
-  code-change-js:
+
+  code-change:
     runs-on: ubuntu-latest
     steps:
       - id: skip_check
-        uses: fkirc/skip-duplicate-actions@master
+        uses: fkirc/skip-duplicate-actions@v5
         with:
+          paths: '["rbox/**", "bindings/javascript/**]'
           paths_ignore: '[
-          ".cargo/**",
-          ".github/**",
-          "bindings/python/**",
-          "bindings/javascript/.yarn/**",
-          "bindings/javascript/.npmignore",
-          "bindings/javascript/.yarnrc.yml",
-          "bindings/javascript/README.md",
-          "bindings/javascript/rustfmt.toml",
-          "bindings/javascript/yarn.lock",
-          "examples/**",
-          "rbox/README.md",
-          "scripts/**",
-          ".gitignore",
-          ".pre-commit-config.yaml",
-          "LICENSE",
-          "README.md",
-          "CHANGELOG.md",
-          "CONTRIBUTING.md"
+            "rbox/README.md",
+            "bindings/javascript/.yarn/**",
+            "bindings/javascript/.npmignore",
+            "bindings/javascript/.yarnrc.yml",
+            "bindings/javascript/README.md",
+            "bindings/javascript/rustfmt.toml",
+            "bindings/javascript/yarn.lock"
           ]'
     outputs:
-      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+      should_skip: fromJSON(steps.skip_check.outputs.should_skip)
 
   build:
-    needs: code-change-js
-    if: ${{ needs.code-change-js.outputs.should_skip != 'true'}}
+    needs: code-change
+    if: ${{ !needs.code-change.outputs.should_skip}}
     strategy:
       fail-fast: false
       matrix:
@@ -167,9 +158,9 @@ jobs:
   test-macOS-windows-binding:
     name: Test bindings on ${{ matrix.settings.target }} - node@${{ matrix.node }}
     needs:
-      - code-change-js
+      - code-change
       - build
-    if: ${{ needs.code-change-js.outputs.should_skip != 'true'}}
+    if: ${{ !needs.code-change.outputs.should_skip}}
     strategy:
       fail-fast: false
       matrix:
@@ -221,9 +212,9 @@ jobs:
   test-linux-x64-gnu-binding:
     name: Test bindings on Linux-x64-gnu - node@${{ matrix.node }}
     needs:
-      - code-change-js
+      - code-change
       - build
-    if: ${{ needs.code-change-js.outputs.should_skip != 'true'}}
+    if: ${{ !needs.code-change.outputs.should_skip}}
     strategy:
       fail-fast: false
       matrix:
