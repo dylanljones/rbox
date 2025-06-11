@@ -12,10 +12,54 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+permissions:
+  actions: write
+  contents: read
+
 jobs:
 
+  code-change:
+    runs-on: ubuntu-latest
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@v5
+        with:
+          paths_filter: |
+            rust:
+              paths:
+                - 'rbox/**'
+              paths_ignore:
+                - 'rbox/README.md'
+            python:
+              paths:
+                - 'rbox/**'
+                - 'bindings/python/**'
+              paths_ignore:
+                - 'rbox/README.md'
+                - 'bindings/python/pyproject.toml'
+                - 'bindings/python/requirements.txt'
+                - 'bindings/python/README.md'
+            javascript:
+              paths:
+                - 'rbox/**'
+                - 'bindings/javascript/**'
+              paths_ignore:
+                - 'rbox/README.md'
+                - 'bindings/javascript/.yarn/**'
+                - 'bindings/javascript/.npmignore'
+                - 'bindings/javascript/.yarnrc.yml'
+                - 'bindings/javascript/README.md'
+                - 'bindings/javascript/rustfmt.toml'
+                - 'bindings/javascript/yarn.lock'
+    outputs:
+      should_skip: fromJSON(steps.skip_check.outputs.should_skip)
+      should_skip_rs: fromJSON(steps.skip_check.outputs.paths_result).rust.should_skip
+      should_skip_py: fromJSON(steps.skip_check.outputs.paths_result).python.should_skip
+      should_skip_js: fromJSON(steps.skip_check.outputs.paths_result).javascript.should_skip
+
   cargo-fmt-check:
-    if: ${{ needs.code-change.outputs.should_skip != 'true'}}
+    needs: code-change
+    if: ${{ !needs.code-change.outputs.should_skip}}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,34 +72,11 @@ jobs:
 
   # -- Rust tests ----------------------------------------------------------------------------------
 
-  code-change-rs:
-    needs: cargo-fmt-check
-    runs-on: ubuntu-latest
-    steps:
-      - id: skip_check
-        uses: fkirc/skip-duplicate-actions@master
-        with:
-          paths_ignore: '[
-            ".cargo/**",
-            ".github/**",
-            "bindings/**",
-            "examples/**",
-            "rbox/README.md",
-            "scripts/**",
-            ".gitignore",
-            ".pre-commit-config.yaml",
-            "LICENSE",
-            "README.md",
-            "CHANGELOG.md",
-            "CONTRIBUTING.md"
-          ]'
-    outputs:
-      should_skip: ${{ steps.skip_check.outputs.should_skip }}
-
   test-rust:
     needs:
-      - code-change-rs
-    if: ${{ needs.code-change-rs.outputs.should_skip != 'true'}}
+      - cargo-fmt-check
+      - code-change
+    if: ${{ !needs.code-change.outputs.should_skip_rs}}
     strategy:
       matrix:
         os: ["ubuntu-latest", "windows-latest", "macos-latest"]  # "macos-13"
@@ -87,36 +108,9 @@ jobs:
 
   # -- Python tests --------------------------------------------------------------------------------
 
-  code-change-py:
-    needs: test-rust
-    runs-on: ubuntu-latest
-    steps:
-      - id: skip_check
-        uses: fkirc/skip-duplicate-actions@master
-        with:
-          paths_ignore: '[
-          ".cargo/**",
-          ".github/**",
-          "bindings/javascript/**",
-          "bindings/python/pyproject.toml",
-          "bindings/python/requirements.txt",
-          "bindings/python/README.md",
-          "examples/**",
-          "rbox/README.md",
-          "scripts/**",
-          ".gitignore",
-          ".pre-commit-config.yaml",
-          "LICENSE",
-          "README.md",
-          "CHANGELOG.md",
-          "CONTRIBUTING.md"
-          ]'
-    outputs:
-      should_skip: ${{ steps.skip_check.outputs.should_skip }}
-
   test-python:
-    needs: code-change-py
-    if: ${{ needs.code-change-py.outputs.should_skip != 'true'}}
+    needs: code-change
+    if: ${{ !needs.code-change.outputs.should_skip_py}}
     strategy:
       fail-fast: false
       matrix:
@@ -168,39 +162,9 @@ jobs:
 
   # -- Javascript tests ----------------------------------------------------------------------------
 
-  code-change-js:
-    needs: test-rust
-    runs-on: ubuntu-latest
-    steps:
-      - id: skip_check
-        uses: fkirc/skip-duplicate-actions@master
-        with:
-          paths_ignore: '[
-          ".cargo/**",
-          ".github/**",
-          "bindings/python/**",
-          "bindings/javascript/.yarn/**",
-          "bindings/javascript/.npmignore",
-          "bindings/javascript/.yarnrc.yml",
-          "bindings/javascript/README.md",
-          "bindings/javascript/rustfmt.toml",
-          "bindings/javascript/yarn.lock",
-          "examples/**",
-          "rbox/README.md",
-          "scripts/**",
-          ".gitignore",
-          ".pre-commit-config.yaml",
-          "LICENSE",
-          "README.md",
-          "CHANGELOG.md",
-          "CONTRIBUTING.md"
-          ]'
-    outputs:
-      should_skip: ${{ steps.skip_check.outputs.should_skip }}
-
   build-javascript:
-    needs: code-change-js
-    if: ${{ needs.code-change-js.outputs.should_skip != 'true'}}
+    needs: code-change
+    if: ${{ !needs.code-change.outputs.should_skip_js}}
     strategy:
       fail-fast: false
       matrix:
@@ -324,9 +288,9 @@ jobs:
   test-macOS-windows-javascript:
     name: Test bindings on ${{ matrix.settings.target }} - node@${{ matrix.node }}
     needs:
-      - code-change-js
+      - code-change
       - build-javascript
-    if: ${{ needs.code-change-js.outputs.should_skip != 'true'}}
+    if: ${{ !needs.code-change.outputs.should_skip_js}}
     strategy:
       fail-fast: false
       matrix:
@@ -382,9 +346,9 @@ jobs:
   test-linux-x64-gnu-javascript:
     name: Test bindings on Linux-x64-gnu - node@${{ matrix.node }}
     needs:
-      - code-change-js
+      - code-change
       - build-javascript
-    if: ${{ needs.code-change-js.outputs.should_skip != 'true'}}
+    if: ${{ !needs.code-change.outputs.should_skip_js}}
     strategy:
       fail-fast: false
       matrix:
