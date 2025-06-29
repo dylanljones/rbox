@@ -51,7 +51,7 @@ jobs:
                 - 'bindings/javascript/rustfmt.toml'
                 - 'bindings/javascript/yarn.lock'
     outputs:
-      should_skip: fromJSON(steps.skip_check.outputs.should_skip)
+      should_skip: ${{ fromJSON(steps.skip_check.outputs.should_skip) }}
       should_skip_rs: fromJSON(steps.skip_check.outputs.paths_result).rust.should_skip
       should_skip_py: fromJSON(steps.skip_check.outputs.paths_result).python.should_skip
       should_skip_js: fromJSON(steps.skip_check.outputs.paths_result).javascript.should_skip
