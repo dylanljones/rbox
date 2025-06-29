@@ -5,6 +5,7 @@ mod anlz;
 mod errors;
 mod masterdb;
 mod py_models;
+mod settings;
 mod util;
 mod xml;
 
@@ -22,6 +23,7 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<masterdb::PyMasterDb>()?;
     m.add_class::<anlz::PyAnlz>()?;
     m.add_class::<xml::PyRekordboxXml>()?;
+    m.add_class::<settings::PySetting>()?;
 
     m.add_class::<py_models::PyAgentRegistry>()?;
     m.add_class::<py_models::PyCloudAgentRegistry>()?;
@@ -68,5 +70,6 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add("DatabaseError", m.py().get_type::<errors::DatabaseError>())?;
     m.add("AnlzError", m.py().get_type::<errors::AnlzError>())?;
     m.add("XmlError", m.py().get_type::<errors::XmlError>())?;
+    m.add("SettingError", m.py().get_type::<errors::SettingError>())?;
     Ok(())
 }

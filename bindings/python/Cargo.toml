@@ -18,7 +18,6 @@ crate-type = ["cdylib"]
 extension-module = ["pyo3/extension-module"]
 
 [dependencies]
-# anyhow          = { version = "1.0.98" }
 rbox            = { path = "../../rbox" }
 pyo3            = { version = "0.24.0", features = ["anyhow", "serde", "chrono"] }
 serde_json      = { version = "1.0" }

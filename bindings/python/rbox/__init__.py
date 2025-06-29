@@ -6,6 +6,7 @@ from ._rbox import (
     AnlzError,
     DatabaseError,
     Error,
+    SettingError,
     XmlError,
     is_rekordbox_running,
 )
