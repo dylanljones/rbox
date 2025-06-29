@@ -56,17 +56,6 @@ jobs:
       should_skip_py: ${{ fromJSON(steps.skip_check.outputs.paths_result).python.should_skip }}
       should_skip_js: ${{ fromJSON(steps.skip_check.outputs.paths_result).javascript.should_skip }}
 
-  print_skip:
-    needs: code-change
-    runs-on: ubuntu-latest
-    steps:
-      - name: Print skip status
-        run: |
-          echo "should_skip: ${{ needs.code-change.outputs.should_skip }}"
-          echo "should_skip_rs: ${{ needs.code-change.outputs.should_skip_rs }}"
-          echo "should_skip_py: ${{ needs.code-change.outputs.should_skip_py }}"
-          echo "should_skip_js: ${{ needs.code-change.outputs.should_skip_js }}"
-
   cargo-fmt-check:
     # needs: code-change
     # if: ${{ !needs.code-change.outputs.should_skip}}
