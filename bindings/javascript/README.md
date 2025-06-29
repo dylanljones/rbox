@@ -1,7 +1,7 @@
 # rbox-js
 
 > **⚠️ Disclaimer**: This project is **not** affiliated with Pioneer DJ, AlphaTheta Corp., or any related entities.
-> rbox-js is an independent project released under the **MIT license**.
+> rbox is an independent project released under the **MIT license**.
 > The maintainers and contributors assume no liability for any data loss or damage to your Rekordbox library.
 > "Rekordbox" is a registered trademark of AlphaTheta Corporation.
 
@@ -11,12 +11,12 @@ It supports the following Rekordbox files:
 - **Rekordbox database**: Query and update the Rekordbox v6/v7 master.db database through a type-safe ORM
 - **XML database**: Read and write Rekordbox XML database files
 - **Analysis Files**: Read and write ANLZ files containing waveforms, beat grids, hot cues and more
-- **Settings Files**: Read and write My-Setting files
+- **Settings Access**: Read and write My-Setting files
+
 
 ## 🔧 Installation
 
 rbox-js is available on npm:
-
 ```shell
 npm install rbox-js
 ```
@@ -24,6 +24,7 @@ or
 ```shell
 yarn add rbox-js
 ```
+
 
 ## 🚀 Quick-Start
 
@@ -40,7 +41,7 @@ However, since your data is stored and used locally, the key must be present on 
 machine running Rekordbox.
 
 rbox can unlock the new Rekordbox `master.db` SQLite database and provides
-an easy interface for accessing the data stored in it:
+an easy interface for accessing and updating the data stored in it.
 
 ```javascript
 import { MasterDb } from 'rbox-js'
@@ -51,5 +52,43 @@ for (const content of contents) {
     console.log(content)
 }
 ```
+
+
+### Rekordbox XML
+
+The Rekordbox XML database is used for importing (and exporting) Rekordbox collections
+including track metadata and playlists. They can also be used to share playlists
+between two databases.
+
+rbox can read and write Rekordbox XML databases.
+
+
+
+### Rekordbox ANLZ files
+
+Rekordbox stores analysis information of the tracks in the collection in specific files,
+which also get exported to decives used by Pioneer professional DJ equipment. The files
+have names like `ANLZ0000` and come with the extensions `.DAT`, `.EXT` or `.2EX`.
+They include waveforms, beat grids (information about the precise time at which
+each beat occurs), time indices to allow efficient seeking to specific positions
+inside variable bit-rate audio streams, and lists of memory cues and loop points.
+
+rbox can parse and write all three analysis files.
+
+
+
+### Rekordbox My-Settings
+
+Rekordbox stores the user settings in `*SETTING.DAT` files, which get exported to USB
+devices. These files are either in the `PIONEER`directory of a USB drive
+(device exports), but are also present for on local installations of Rekordbox 6.
+The setting files store the settings found on the "DJ System" > "My Settings" page of
+the Rekordbox preferences. These include language, LCD brightness, tempo fader range,
+crossfader curve and other settings for Pioneer professional DJ equipment.
+
+rbox supports both parsing and writing of My-Setting files.
+
+
+
 
 [sqlcipher]: https://www.zetetic.net/sqlcipher/open-source/

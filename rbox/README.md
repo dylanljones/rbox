@@ -11,7 +11,8 @@ It supports the following Rekordbox files:
 - **Rekordbox database**: Query and update the Rekordbox v6/v7 master.db database through a type-safe ORM
 - **XML database**: Read and write Rekordbox XML database files
 - **Analysis Files**: Read and write ANLZ files containing waveforms, beat grids, hot cues and more
-- **Settings Files**: Read and write My-Setting files
+- **Settings Access**: Read and write My-Setting files
+
 
 ## 🔧 Installation
 
@@ -24,11 +25,14 @@ or add the following line to your Cargo.toml:
 rbox = "0.1.2"
 ```
 
+
 ## 🚀 Quick-Start
 
 > **❗ Caution**:
 > Please make sure to back up your Rekordbox collection before making changes to rekordbox data.
 > The backup dialog can be found under "File" > "Library" > "Backup Library"
+
+### Rekordbox 6/7 database
 
 Rekordbox 6 and 7 use a SQLite database for storing the collection content.
 Unfortunatly, the `master.db` SQLite database is encrypted using
@@ -37,7 +41,7 @@ However, since your data is stored and used locally, the key must be present on 
 machine running Rekordbox.
 
 rbox can unlock the new Rekordbox `master.db` SQLite database and provides
-an easy interface for accessing the data stored in it:
+an easy interface for accessing and updating the data stored in it.
 
 ```rust
 use rbox::prelude::*;
@@ -51,5 +55,78 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 ```
+
+
+### Rekordbox XML
+
+The Rekordbox XML database is used for importing (and exporting) Rekordbox collections
+including track metadata and playlists. They can also be used to share playlists
+between two databases.
+
+rbox can read and write Rekordbox XML databases.
+
+```rust
+use rbox::prelude::*;
+
+fn main() -> anyhow::Result<()> {
+    let mut xml = RekordboxXml::load("database.xml");
+    let tracks = xml.get_tracks();
+    for track in tracks {
+        println!("{:?}", track);
+    }
+    Ok(())
+}
+```
+
+### Rekordbox ANLZ files
+
+Rekordbox stores analysis information of the tracks in the collection in specific files,
+which also get exported to decives used by Pioneer professional DJ equipment. The files
+have names like `ANLZ0000` and come with the extensions `.DAT`, `.EXT` or `.2EX`.
+They include waveforms, beat grids (information about the precise time at which
+each beat occurs), time indices to allow efficient seeking to specific positions
+inside variable bit-rate audio streams, and lists of memory cues and loop points.
+
+rbox can parse and write all three analysis files.
+
+```rust
+use rbox::prelude::*;
+
+fn main() -> anyhow::Result<()> {
+    let mut anlz = Anlz::load("ANLZ0000.DAT")?;
+    let grid = anlz.get_beat_grid().unwrap();
+    for beat in grid {
+        println!("Beat: {} Tempo: {} Time: {}", beat.beat_number, beat.tempo, beat.time);
+    }
+    Ok(())
+}
+```
+
+
+### Rekordbox My-Settings
+
+Rekordbox stores the user settings in `*SETTING.DAT` files, which get exported to USB
+devices. These files are either in the `PIONEER`directory of a USB drive
+(device exports), but are also present for on local installations of Rekordbox 6.
+The setting files store the settings found on the "DJ System" > "My Settings" page of
+the Rekordbox preferences. These include language, LCD brightness, tempo fader range,
+crossfader curve and other settings for Pioneer professional DJ equipment.
+
+rbox supports both parsing and writing of My-Setting files.
+
+```rust
+use rbox::prelude::*;
+use rbox::settings::Quantize;
+
+fn main() -> anyhow::Result<()> {
+    let mut sett = Setting::load("MYSETTING.DAT")?;
+    println!("Quantize: {}", sett.get_quantize()?);
+    sett.set_quantize(Quantize::Off)?;
+    sett.dump()?;
+    Ok(())
+}
+```
+
+
 
 [sqlcipher]: https://www.zetetic.net/sqlcipher/open-source/

@@ -11,16 +11,16 @@ It supports the following Rekordbox files:
 - **Rekordbox database**: Query and update the Rekordbox v6/v7 master.db database through a type-safe ORM
 - **XML database**: Read and write Rekordbox XML database files
 - **Analysis Files**: Read and write ANLZ files containing waveforms, beat grids, hot cues and more
-- **Settings Files**: Read and write My-Setting files
+- **Settings Access**: Read and write My-Setting files
 
 
 ## 🔧 Installation
 
 rbox is available on PyPI:
-
 ```bash
 pip install rbox
 ```
+
 
 ## 🚀 Quick-Start
 
@@ -37,7 +37,7 @@ However, since your data is stored and used locally, the key must be present on 
 machine running Rekordbox.
 
 rbox can unlock the new Rekordbox `master.db` SQLite database and provides
-an easy interface for accessing the data stored in it:
+an easy interface for accessing and updating the data stored in it.
 
 ```python
 from rbox import MasterDb
@@ -47,5 +47,67 @@ contents = db.get_content()
 for content in contents:
     print(content)
 ```
+
+
+### Rekordbox XML
+
+The Rekordbox XML database is used for importing (and exporting) Rekordbox collections
+including track metadata and playlists. They can also be used to share playlists
+between two databases.
+
+rbox can read and write Rekordbox XML databases.
+
+```python
+from rbox import RekordboxXml
+
+xml = RekordboxXml(path)
+tracks = xml.get_tracks()
+for track in tracks:
+    print(track)
+```
+
+
+### Rekordbox ANLZ files
+
+Rekordbox stores analysis information of the tracks in the collection in specific files,
+which also get exported to decives used by Pioneer professional DJ equipment. The files
+have names like `ANLZ0000` and come with the extensions `.DAT`, `.EXT` or `.2EX`.
+They include waveforms, beat grids (information about the precise time at which
+each beat occurs), time indices to allow efficient seeking to specific positions
+inside variable bit-rate audio streams, and lists of memory cues and loop points.
+
+rbox can parse and write all three analysis files.
+
+```python
+from rbox import Anlz
+
+anlz = Anlz("ANLZ0000.DAT")
+grid = anlz.get_beat_grid()
+for beat in grid:
+    print(f"Beat: {beat.beat_number} Tempo: {beat.tempo} Time: {beat.time}")
+```
+
+
+### Rekordbox My-Settings
+
+Rekordbox stores the user settings in `*SETTING.DAT` files, which get exported to USB
+devices. These files are either in the `PIONEER`directory of a USB drive
+(device exports), but are also present for on local installations of Rekordbox 6.
+The setting files store the settings found on the "DJ System" > "My Settings" page of
+the Rekordbox preferences. These include language, LCD brightness, tempo fader range,
+crossfader curve and other settings for Pioneer professional DJ equipment.
+
+rbox supports both parsing and writing of My-Setting files.
+
+```python
+from rbox import Setting
+
+sett = Setting(path)
+print(f"Quantize: {sett.get_quantize()}")
+sett.set_quantize("Off")
+sett.dump()
+```
+
+
 
 [sqlcipher]: https://www.zetetic.net/sqlcipher/open-source/
