@@ -4,17 +4,39 @@ name: Python tests
 
 on:
   # push:
-  #   branches: [ "main" ]
-  # pull_request:
-  #   branches: [ "main" ]
+  #   branches: ["*"]
+  pull_request:
+    types: [opened]
   workflow_dispatch:
 
 env:
   working-directory: bindings/python
   PIP_DISABLE_PIP_VERSION_CHECK: "true"
 
+permissions:
+  actions: write
+  contents: read
+
 jobs:
+  code-change:
+    runs-on: ubuntu-latest
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@v5
+        with:
+          paths: '["rbox/**", "bindings/python/**]'
+          paths_ignore: '[
+            "rbox/README.md",
+            "bindings/python/pyproject.toml",
+            "bindings/python/requirements.txt",
+            "bindings/python/README.md"
+          ]'
+    outputs:
+      should_skip: fromJSON(steps.skip_check.outputs.should_skip)
+
   tests:
+    needs: code-change
+    if: ${{ !needs.code-change.outputs.should_skip}}
     strategy:
       fail-fast: false
       matrix:

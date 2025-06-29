@@ -4,16 +4,35 @@ name: Rust tests
 
 on:
   # push:
-  #   branches: [ "main" ]
-  # pull_request:
-  #   branches: [ "main" ]
+  #   branches: ["*"]
+  pull_request:
+    types: [opened]
   workflow_dispatch:
 
 env:
+  working-directory: rbox
   CARGO_TERM_COLOR: always
 
+permissions:
+  actions: write
+  contents: read
+
 jobs:
+
+  code-change:
+    runs-on: ubuntu-latest
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@v5
+        with:
+          paths: '["rbox/**"]'
+          paths_ignore: '["rbox/README.md"]'
+    outputs:
+      should_skip: fromJSON(steps.skip_check.outputs.should_skip)
+
   cargo-fmt-check:
+    needs: code-change
+    if: ${{ !needs.code-change.outputs.should_skip}}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -21,21 +40,23 @@ jobs:
         run: cargo fmt --check
 
   test:
-    needs: cargo-fmt-check
+    needs:
+      - cargo-fmt-check
+      - code-change
+    if: ${{ !needs.code-change.outputs.should_skip}}
     strategy:
       matrix:
-        os: ["ubuntu-latest", "windows-latest", "macos-latest"] # "macos-13"
+        os: ["ubuntu-latest", "windows-latest", "macos-latest", "macos-13"]
     runs-on: ${{ matrix.os }}
     continue-on-error: false
+    defaults:
+      run:
+        working-directory: ${{ env.working-directory }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      # - name: Set Windows OpenSSL env
-      #   if: runner.os == 'Windows'
-      #   run: echo "OPENSSL_DIR=C:\Program Files\OpenSSL" >> $env:GITHUB_ENV
 
       - name: Set Perl environment variables
         if: runner.os == 'Windows'

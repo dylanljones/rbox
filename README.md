@@ -29,7 +29,7 @@ It supports the following Rekordbox files:
 - **Analysis Files**: Read and write ANLZ files containing waveforms, beat grids, hot cues and more
 - **Settings Access**: Read and write My-Setting files
 
-#### 🌐 Language support
+#### Language support
 
 rbox is built with Rust for maximum performance and safety, with additional language bindings:
 - **🦀 [Rust](rbox/README.md)**: The core library, providing fast and efficient access to Rekordbox data
@@ -37,7 +37,7 @@ rbox is built with Rust for maximum performance and safety, with additional lang
 - **✨ [JavaScript](bindings/javascript/README.md)**: Integrate with electron applications and Node.js environments
 
 
-## 🔧 Installation
+## Installation
 
 ### 🦀 Rust
 
@@ -72,10 +72,6 @@ rbox is available on [npm]:
 ```shell
 npm install rbox-js
 ```
-or
-```shell
-yarn add rbox-js
-```
 
 The JS bindings can also be built manually via [napi-rs]:
 ```shell
@@ -84,6 +80,23 @@ yarn install
 yarn build
 ```
 
+
+## Development
+
+If you encounter an issue or want to contribute to rbox, please feel free to get in touch,
+[open an issue][issue] or create a new [pull request][pulls]! A guide for contributing to
+rbox and the commit-message style can be found in
+[CONTRIBUTING].
+
+For general questions or discussions about the library or Rekordbox,
+please use [GitHub Discussions][discussions] instead of opening an issue.
+
+
+## License
+
+This project is licensed under the [MIT license][LICENSE].
+
+
 [crates.io]: https://crates.io/crates/rbox
 [pypi]: https://pypi.org/project/rbox/
 [npm]: https://www.npmjs.com/package/rbox-js
@@ -91,3 +104,10 @@ yarn build
 [pyo3]: https://github.com/PyO3/pyo3
 [maturin]: https://github.com/PyO3/maturin
 [napi-rs]: https://napi.rs/
+
+[issue]: https://github.com/dylanljones/rbox/issues
+[pulls]: https://github.com/dylanljones/rbox/pulls
+[discussions]: https://github.com/dylanljones/rbox/discussions
+[CONTRIBUTING]: https://github.com/dylanljones/pyrekordbox/blob/main/CONTRIBUTING.md
+[LICENSE]: https://github.com/dylanljones/pyrekordbox/blob/main/LICENSE
+[CHANGELOG]: https://github.com/dylanljones/pyrekordbox/blob/main/CHANGELOG.md
