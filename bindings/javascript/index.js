@@ -310,9 +310,56 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { Anlz, MasterDb, RekordboxOptions, isRekordboxRunning } = nativeBinding
+const { Anlz, MasterDb, RekordboxOptions, OnAirDisplay, LCDBrightness, Quantize, AutoCueLevel, Language, JogRingBrightness, JogRingIndicator, SlipFlashing, DiscSlotIllumination, EjectLock, Sync, PlayMode, QuantizeBeatValue, HotCueAutoLoad, HotCueColor, NeedleLock, TimeMode, JogMode, AutoCue, MasterTempo, TempoRange, PhaseMeter, VinylSpeedAdjust, JogDisplayMode, PadButtonBrightness, JogLCDBrightness, WaveformDivisions, Waveform, BeatJumpBeatValue, ChannelFaderCurve, CrossfaderCurve, HeadphonesPreEQ, HeadphonesMonoSplit, BeatFXQuantize, MicLowCut, TalkOverMode, TalkOverLevel, MidiChannel, MidiButtonType, MixerDisplayBrightness, MixerIndicatorBrightness, ChannelFaderCurveLongFader, OverviewWaveformType, WaveformColor, KeyDisplayFormat, WaveformCurrentPosition, Setting, isRekordboxRunning } = nativeBinding
 
 module.exports.Anlz = Anlz
 module.exports.MasterDb = MasterDb
 module.exports.RekordboxOptions = RekordboxOptions
+module.exports.OnAirDisplay = OnAirDisplay
+module.exports.LCDBrightness = LCDBrightness
+module.exports.Quantize = Quantize
+module.exports.AutoCueLevel = AutoCueLevel
+module.exports.Language = Language
+module.exports.JogRingBrightness = JogRingBrightness
+module.exports.JogRingIndicator = JogRingIndicator
+module.exports.SlipFlashing = SlipFlashing
+module.exports.DiscSlotIllumination = DiscSlotIllumination
+module.exports.EjectLock = EjectLock
+module.exports.Sync = Sync
+module.exports.PlayMode = PlayMode
+module.exports.QuantizeBeatValue = QuantizeBeatValue
+module.exports.HotCueAutoLoad = HotCueAutoLoad
+module.exports.HotCueColor = HotCueColor
+module.exports.NeedleLock = NeedleLock
+module.exports.TimeMode = TimeMode
+module.exports.JogMode = JogMode
+module.exports.AutoCue = AutoCue
+module.exports.MasterTempo = MasterTempo
+module.exports.TempoRange = TempoRange
+module.exports.PhaseMeter = PhaseMeter
+module.exports.VinylSpeedAdjust = VinylSpeedAdjust
+module.exports.JogDisplayMode = JogDisplayMode
+module.exports.PadButtonBrightness = PadButtonBrightness
+module.exports.JogLCDBrightness = JogLCDBrightness
+module.exports.WaveformDivisions = WaveformDivisions
+module.exports.Waveform = Waveform
+module.exports.BeatJumpBeatValue = BeatJumpBeatValue
+module.exports.ChannelFaderCurve = ChannelFaderCurve
+module.exports.CrossfaderCurve = CrossfaderCurve
+module.exports.HeadphonesPreEQ = HeadphonesPreEQ
+module.exports.HeadphonesMonoSplit = HeadphonesMonoSplit
+module.exports.BeatFXQuantize = BeatFXQuantize
+module.exports.MicLowCut = MicLowCut
+module.exports.TalkOverMode = TalkOverMode
+module.exports.TalkOverLevel = TalkOverLevel
+module.exports.MidiChannel = MidiChannel
+module.exports.MidiButtonType = MidiButtonType
+module.exports.MixerDisplayBrightness = MixerDisplayBrightness
+module.exports.MixerIndicatorBrightness = MixerIndicatorBrightness
+module.exports.ChannelFaderCurveLongFader = ChannelFaderCurveLongFader
+module.exports.OverviewWaveformType = OverviewWaveformType
+module.exports.WaveformColor = WaveformColor
+module.exports.KeyDisplayFormat = KeyDisplayFormat
+module.exports.WaveformCurrentPosition = WaveformCurrentPosition
+module.exports.Setting = Setting
 module.exports.isRekordboxRunning = isRekordboxRunning

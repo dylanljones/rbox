@@ -757,6 +757,262 @@ export interface UuidIDMap {
   targetUuid?: string
   currentId?: string
 }
+export const enum OnAirDisplay {
+  Off = 0,
+  On = 1
+}
+export const enum LCDBrightness {
+  One = 0,
+  Two = 1,
+  Three = 2,
+  Four = 3,
+  Five = 4
+}
+export const enum Quantize {
+  Off = 0,
+  On = 1
+}
+export const enum AutoCueLevel {
+  Minus78dB = 0,
+  Minus72dB = 1,
+  Minus66dB = 2,
+  Minus60dB = 3,
+  Minus54dB = 4,
+  Minus48dB = 5,
+  Minus42dB = 6,
+  Minus36dB = 7,
+  Memory = 8
+}
+export const enum Language {
+  English = 0,
+  French = 1,
+  German = 2,
+  Italian = 3,
+  Dutch = 4,
+  Spanish = 5,
+  Russian = 6,
+  Korean = 7,
+  ChineseSimplified = 8,
+  ChineseTraditional = 9,
+  Japanese = 10,
+  Portuguese = 11,
+  Swedish = 12,
+  Czech = 13,
+  Hungarian = 14,
+  Danish = 15,
+  Greek = 16,
+  Turkish = 17
+}
+export const enum JogRingBrightness {
+  Off = 0,
+  Dark = 1,
+  Bright = 2
+}
+export const enum JogRingIndicator {
+  Off = 0,
+  On = 1
+}
+export const enum SlipFlashing {
+  Off = 0,
+  On = 1
+}
+export const enum DiscSlotIllumination {
+  Off = 0,
+  Dark = 1,
+  Bright = 2
+}
+export const enum EjectLock {
+  Unlock = 0,
+  Lock = 1
+}
+export const enum Sync {
+  Off = 0,
+  On = 1
+}
+export const enum PlayMode {
+  Continue = 0,
+  Single = 1
+}
+export const enum QuantizeBeatValue {
+  EighthBeat = 0,
+  QuarterBeat = 1,
+  HalfBeat = 2,
+  FullBeat = 3
+}
+export const enum HotCueAutoLoad {
+  Off = 0,
+  RekordboxSetting = 1,
+  On = 2
+}
+export const enum HotCueColor {
+  Off = 0,
+  On = 1
+}
+export const enum NeedleLock {
+  Unlock = 0,
+  Lock = 1
+}
+export const enum TimeMode {
+  Elapsed = 0,
+  Remain = 1
+}
+export const enum JogMode {
+  Vinyl = 0,
+  CDJ = 1
+}
+export const enum AutoCue {
+  Off = 0,
+  On = 1
+}
+export const enum MasterTempo {
+  Off = 0,
+  On = 1
+}
+export const enum TempoRange {
+  SixPercent = 0,
+  TenPercent = 1,
+  SixteenPercent = 2,
+  Wide = 3
+}
+export const enum PhaseMeter {
+  Type1 = 0,
+  Type2 = 1
+}
+export const enum VinylSpeedAdjust {
+  TouchRelease = 0,
+  Touch = 1,
+  Release = 2
+}
+export const enum JogDisplayMode {
+  Auto = 0,
+  Info = 1,
+  Simple = 2,
+  Artwork = 3
+}
+export const enum PadButtonBrightness {
+  One = 0,
+  Two = 1,
+  Three = 2,
+  Four = 3
+}
+export const enum JogLCDBrightness {
+  One = 0,
+  Two = 1,
+  Three = 2,
+  Four = 3,
+  Five = 4
+}
+export const enum WaveformDivisions {
+  TimeScale = 0,
+  Phrase = 1
+}
+export const enum Waveform {
+  Waveform = 0,
+  PhaseMeter = 1
+}
+export const enum BeatJumpBeatValue {
+  HalfBeat = 0,
+  OneBeat = 1,
+  TwoBeat = 2,
+  FourBeat = 3,
+  EightBeat = 4,
+  SixteenBeat = 5,
+  ThirtytwoBeat = 6,
+  SixtyfourBeat = 7
+}
+export const enum ChannelFaderCurve {
+  SteepTop = 0,
+  Linear = 1,
+  SteepBottom = 2
+}
+export const enum CrossfaderCurve {
+  ConstantPower = 0,
+  SlowCut = 1,
+  FastCut = 2
+}
+export const enum HeadphonesPreEQ {
+  PostEQ = 0,
+  PreEQ = 1
+}
+export const enum HeadphonesMonoSplit {
+  MonoSplit = 0,
+  Stereo = 1
+}
+export const enum BeatFXQuantize {
+  Off = 0,
+  On = 1
+}
+export const enum MicLowCut {
+  Off = 0,
+  On = 1
+}
+export const enum TalkOverMode {
+  Advanced = 0,
+  Normal = 1
+}
+export const enum TalkOverLevel {
+  Minus24dB = 0,
+  Minus18dB = 1,
+  Minus12dB = 2,
+  Minus6dB = 3
+}
+export const enum MidiChannel {
+  One = 0,
+  Two = 1,
+  Three = 2,
+  Four = 3,
+  Five = 4,
+  Six = 5,
+  Seven = 6,
+  Eight = 7,
+  Nine = 8,
+  Ten = 9,
+  Eleven = 10,
+  Twelve = 11,
+  Thirteen = 12,
+  Fourteen = 13,
+  Fifteen = 14,
+  Sixteen = 15
+}
+export const enum MidiButtonType {
+  Toggle = 0,
+  Trigger = 1
+}
+export const enum MixerDisplayBrightness {
+  White = 0,
+  One = 1,
+  Two = 2,
+  Three = 3,
+  Four = 4,
+  Five = 5
+}
+export const enum MixerIndicatorBrightness {
+  One = 0,
+  Two = 1,
+  Three = 2
+}
+export const enum ChannelFaderCurveLongFader {
+  Exponential = 0,
+  Smooth = 1,
+  Linear = 2
+}
+export const enum OverviewWaveformType {
+  HalfWaveform = 0,
+  FullWaveform = 1
+}
+export const enum WaveformColor {
+  Blue = 0,
+  Rgb = 1,
+  TriBand = 2
+}
+export const enum KeyDisplayFormat {
+  Classic = 0,
+  Alphanumeric = 1
+}
+export const enum WaveformCurrentPosition {
+  Left = 0,
+  Center = 1
+}
 export declare function isRekordboxRunning(): boolean
 export type JsAnlz = Anlz
 export declare class Anlz {
@@ -907,4 +1163,107 @@ export declare class RekordboxOptions {
   get dbPath(): string
   get analysisRoot(): string
   get settingsRoot(): string
+}
+export type JsSetting = Setting
+export declare class Setting {
+  constructor(path: string)
+  static newMysetting(path: string): JsSetting
+  static newMysetting2(path: string): JsSetting
+  static newDjmmysetting(path: string): JsSetting
+  static newDevsetting(path: string): JsSetting
+  static load(path: string): JsSetting
+  dumpCopy(path: string): void
+  dump(): void
+  getOnAirDisplay(): OnAirDisplay
+  setOnAirDisplay(onAirDisplay: OnAirDisplay): void
+  getLcdBrightness(): LCDBrightness
+  setLcdBrightness(lcdBrightness: LCDBrightness): void
+  getQuantize(): Quantize
+  setQuantize(quantize: Quantize): void
+  getAutoCueLevel(): AutoCueLevel
+  setAutoCueLevel(autoCueLevel: AutoCueLevel): void
+  getLanguage(): Language
+  setLanguage(language: Language): void
+  getJogRingBrightness(): JogRingBrightness
+  setJogRingBrightness(jogRingBrightness: JogRingBrightness): void
+  getJogRingIndicator(): JogRingIndicator
+  setJogRingIndicator(jogRingIndicator: JogRingIndicator): void
+  getSlipFlashing(): SlipFlashing
+  setSlipFlashing(slipFlashing: SlipFlashing): void
+  getDiscSlotIllumination(): DiscSlotIllumination
+  setDiscSlotIllumination(discSlotIllumination: DiscSlotIllumination): void
+  getEjectLock(): EjectLock
+  setEjectLock(ejectLock: EjectLock): void
+  getSync(): Sync
+  setSync(sync: Sync): void
+  getPlayMode(): PlayMode
+  setPlayMode(playMode: PlayMode): void
+  getQuantizeBeatValue(): QuantizeBeatValue
+  setQuantizeBeatValue(quantizeBeatValue: QuantizeBeatValue): void
+  getHotcueAutoload(): HotCueAutoLoad
+  setHotcueAutoload(hotcueAutoload: HotCueAutoLoad): void
+  getHotcueColor(): HotCueColor
+  setHotcueColor(hotcueColor: HotCueColor): void
+  getNeedleLock(): NeedleLock
+  setNeedleLock(needleLock: NeedleLock): void
+  getTimeMode(): TimeMode
+  setTimeMode(timeMode: TimeMode): void
+  getJogMode(): JogMode
+  setJogMode(jogMode: JogMode): void
+  getAutoCue(): AutoCue
+  setAutoCue(autoCue: AutoCue): void
+  getMasterTempo(): MasterTempo
+  setMasterTempo(masterTempo: MasterTempo): void
+  getTempoRange(): TempoRange
+  setTempoRange(tempoRange: TempoRange): void
+  getPhaseMeter(): PhaseMeter
+  setPhaseMeter(phaseMeter: PhaseMeter): void
+  getVinylSpeedAdjust(): VinylSpeedAdjust
+  setVinylSpeedAdjust(vinylSpeedAdjust: VinylSpeedAdjust): void
+  getJogDisplayMode(): JogDisplayMode
+  setJogDisplayMode(jogDisplayMode: JogDisplayMode): void
+  getPadButtonBrightness(): PadButtonBrightness
+  setPadButtonBrightness(padButtonBrightness: PadButtonBrightness): void
+  getJogLcdBrightness(): JogLCDBrightness
+  setJogLcdBrightness(jogLcdBrightness: JogLCDBrightness): void
+  getWaveformDivisions(): WaveformDivisions
+  setWaveformDivisions(waveformDivisions: WaveformDivisions): void
+  getWaveform(): Waveform
+  setWaveform(waveform: Waveform): void
+  getBeatJumpBeatValue(): BeatJumpBeatValue
+  setBeatJumpBeatValue(beatJumpBeatValue: BeatJumpBeatValue): void
+  getChannelFaderCurve(): ChannelFaderCurve
+  setChannelFaderCurve(channelFaderCurve: ChannelFaderCurve): void
+  getCrossfaderCurve(): CrossfaderCurve
+  setCrossfaderCurve(crossfaderCurve: CrossfaderCurve): void
+  getHeadphonesPreEq(): HeadphonesPreEQ
+  setHeadphonesPreEq(headphonesPreEq: HeadphonesPreEQ): void
+  getHeadphonesMonoSplit(): HeadphonesMonoSplit
+  setHeadphonesMonoSplit(headphonesMonoSplit: HeadphonesMonoSplit): void
+  getBeatFxQuantize(): BeatFXQuantize
+  setBeatFxQuantize(beatFxQuantize: BeatFXQuantize): void
+  getMicLowCut(): MicLowCut
+  setMicLowCut(micLowCut: MicLowCut): void
+  getTalkOverMode(): TalkOverMode
+  setTalkOverMode(talkOverMode: TalkOverMode): void
+  getTalkOverLevel(): TalkOverLevel
+  setTalkOverLevel(talkOverLevel: TalkOverLevel): void
+  getMidiChannel(): MidiChannel
+  setMidiChannel(midiChannel: MidiChannel): void
+  getMidiButtonType(): MidiButtonType
+  setMidiButtonType(midiButtonType: MidiButtonType): void
+  getMixerDisplayBrightness(): MixerDisplayBrightness
+  setMixerDisplayBrightness(mixerDisplayBrightness: MixerDisplayBrightness): void
+  getMixerIndicatorBrightness(): MixerIndicatorBrightness
+  setMixerIndicatorBrightness(mixerIndicatorBrightness: MixerIndicatorBrightness): void
+  getChannelFaderCurveLongFader(): ChannelFaderCurveLongFader
+  setChannelFaderCurveLongFader(channelFaderCurveLongFader: ChannelFaderCurveLongFader): void
+  getOverviewWaveformType(): OverviewWaveformType
+  setOverviewWaveformType(overviewWaveformType: OverviewWaveformType): void
+  getWaveformColor(): WaveformColor
+  setWaveformColor(waveformColor: WaveformColor): void
+  getKeyDisplayFormat(): KeyDisplayFormat
+  setKeyDisplayFormat(keyDisplayFormat: KeyDisplayFormat): void
+  getWaveformCurrentPosition(): WaveformCurrentPosition
+  setWaveformCurrentPosition(waveformCurrentPosition: WaveformCurrentPosition): void
 }

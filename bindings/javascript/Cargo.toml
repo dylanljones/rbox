@@ -14,12 +14,12 @@ crate-type = ["cdylib"]
 [dependencies]
 rbox            = { path = "../../rbox" }
 # Default enable napi5 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
-napi            = { version = "2", default-features = false, features = ["napi5", "serde-json"] }
-napi-derive     = { version = "2", default-features = false}
+napi            = { version = "2.16.17", default-features = false, features = ["napi5", "serde-json"] }
+napi-derive     = { version = "2.16.13"}
 chrono          = { version = "0.4.41", features = ["serde"] }
 
 [build-dependencies]
-napi-build = "2"
+napi-build = "2.2.1"
 
 [profile.release]
 lto = true
