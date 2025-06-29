@@ -21,7 +21,6 @@
 > The maintainers and contributors assume no liability for any data loss or damage to your Rekordbox library.
 > "Rekordbox" is a registered trademark of AlphaTheta Corporation.
 
-
 **rbox** is a high-performance Rust library for seamlessly interacting with Pioneer DJ's Rekordbox software data.
 It supports the following Rekordbox files:
 
@@ -62,6 +61,7 @@ pip install rbox
 The Python bindings can also be built manually via [pyo3] and [maturin]:
 ```shell
 cd bindings/python
+pip install -r requirements.txt
 maturin develop
 ```
 
