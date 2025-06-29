@@ -35,6 +35,18 @@ pub enum OnAirDisplay {
     On,
 }
 
+impl TryFrom<String> for OnAirDisplay {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<OnAirDisplay, Self::Error> {
+        match value.as_str() {
+            "Off" => Ok(Self::Off),
+            "On" => Ok(Self::On),
+            _ => Err(format!("Invalid OnAirDisplay value: {}", value)),
+        }
+    }
+}
+
 /// Found at "PLAYER > DISPLAY(LCD) > LCD BRIGHTNESS" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -59,6 +71,21 @@ pub enum LCDBrightness {
     Five,
 }
 
+impl TryFrom<String> for LCDBrightness {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<LCDBrightness, Self::Error> {
+        match value.as_str() {
+            "One" => Ok(Self::One),
+            "Two" => Ok(Self::Two),
+            "Three" => Ok(Self::Three),
+            "Four" => Ok(Self::Four),
+            "Five" => Ok(Self::Five),
+            _ => Err(format!("Invalid LCDBrightness value: {}", value)),
+        }
+    }
+}
+
 /// Found at "PLAYER > DJ SETTING > QUANTIZE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -70,6 +97,18 @@ pub enum Quantize {
     /// Named "ON" in the Rekordbox preferences.
     #[default]
     On,
+}
+
+impl TryFrom<String> for Quantize {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Quantize, Self::Error> {
+        match value.as_str() {
+            "Off" => Ok(Self::Off),
+            "On" => Ok(Self::On),
+            _ => Err(format!("Invalid Quantize value: {}", value)),
+        }
+    }
 }
 
 /// Found at "PLAYER > DJ SETTING > AUTO CUE LEVEL" of the "My Settings" page in the Rekordbox
@@ -105,6 +144,37 @@ pub enum AutoCueLevel {
     /// Named "MEMORY" in the Rekordbox preferences.
     #[default]
     Memory = 0x88,
+}
+
+impl TryFrom<String> for AutoCue {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<AutoCue, Self::Error> {
+        match value.as_str() {
+            "Off" => Ok(Self::Off),
+            "On" => Ok(Self::On),
+            _ => Err(format!("Invalid AutoCue value: {}", value)),
+        }
+    }
+}
+
+impl TryFrom<String> for AutoCueLevel {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<AutoCueLevel, Self::Error> {
+        match value.as_str() {
+            "Minus78dB" => Ok(Self::Minus78dB),
+            "Minus72dB" => Ok(Self::Minus72dB),
+            "Minus66dB" => Ok(Self::Minus66dB),
+            "Minus60dB" => Ok(Self::Minus60dB),
+            "Minus54dB" => Ok(Self::Minus54dB),
+            "Minus48dB" => Ok(Self::Minus48dB),
+            "Minus42dB" => Ok(Self::Minus42dB),
+            "Minus36dB" => Ok(Self::Minus36dB),
+            "Memory" => Ok(Self::Memory),
+            _ => Err(format!("Invalid AutoCueLevel value: {}", value)),
+        }
+    }
 }
 
 /// Found at "PLAYER > DISPLAY(LCD) > LANGUAGE" of the "My Settings" page in the Rekordbox
@@ -169,6 +239,34 @@ pub enum Language {
     Turkish,
 }
 
+impl TryFrom<String> for Language {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Language, Self::Error> {
+        match value.as_str() {
+            "English" => Ok(Self::English),
+            "French" => Ok(Self::French),
+            "German" => Ok(Self::German),
+            "Italian" => Ok(Self::Italian),
+            "Dutch" => Ok(Self::Dutch),
+            "Spanish" => Ok(Self::Spanish),
+            "Russian" => Ok(Self::Russian),
+            "Korean" => Ok(Self::Korean),
+            "ChineseSimplified" => Ok(Self::ChineseSimplified),
+            "ChineseTraditional" => Ok(Self::ChineseTraditional),
+            "Japanese" => Ok(Self::Japanese),
+            "Portuguese" => Ok(Self::Portuguese),
+            "Swedish" => Ok(Self::Swedish),
+            "Czech" => Ok(Self::Czech),
+            "Hungarian" => Ok(Self::Hungarian),
+            "Danish" => Ok(Self::Danish),
+            "Greek" => Ok(Self::Greek),
+            "Turkish" => Ok(Self::Turkish),
+            _ => Err(format!("Invalid Language value: {}", value)),
+        }
+    }
+}
+
 /// Found at "PLAYER > DISPLAY(INDICATOR) > JOG RING BRIGHTNESS" of the "My Settings" page in the
 /// Rekordbox preferences.
 #[binrw]
@@ -186,6 +284,19 @@ pub enum JogRingBrightness {
     Bright,
 }
 
+impl TryFrom<String> for JogRingBrightness {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<JogRingBrightness, Self::Error> {
+        match value.as_str() {
+            "Off" => Ok(Self::Off),
+            "Dark" => Ok(Self::Dark),
+            "Bright" => Ok(Self::Bright),
+            _ => Err(format!("Invalid JogRingBrightness value: {}", value)),
+        }
+    }
+}
+
 /// Found at "PLAYER > DISPLAY(INDICATOR) > JOG RING INDICATOR" of the "My Settings" page in the
 /// Rekordbox preferences.
 #[binrw]
@@ -199,6 +310,18 @@ pub enum JogRingIndicator {
     On,
 }
 
+impl TryFrom<String> for JogRingIndicator {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<JogRingIndicator, Self::Error> {
+        match value.as_str() {
+            "Off" => Ok(Self::Off),
+            "On" => Ok(Self::On),
+            _ => Err(format!("Invalid JogRingIndicator value: {}", value)),
+        }
+    }
+}
+
 /// Found at "PLAYER > DISPLAY(INDICATOR) > SLIP FLASHING" of the "My Settings" page in the
 /// Rekordbox preferences.
 #[binrw]
@@ -210,6 +333,18 @@ pub enum SlipFlashing {
     /// Named "ON" in the Rekordbox preferences.
     #[default]
     On,
+}
+
+impl TryFrom<String> for SlipFlashing {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<SlipFlashing, Self::Error> {
+        match value.as_str() {
+            "Off" => Ok(Self::Off),
+            "On" => Ok(Self::On),
+            _ => Err(format!("Invalid SlipFlashing value: {}", value)),
+        }
+    }
 }
 
 /// Found at "PLAYER > DISPLAY(INDICATOR) > DISC SLOT ILLUMINATION" of the "My Settings" page in the
@@ -229,6 +364,19 @@ pub enum DiscSlotIllumination {
     Bright,
 }
 
+impl TryFrom<String> for DiscSlotIllumination {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<DiscSlotIllumination, Self::Error> {
+        match value.as_str() {
+            "Off" => Ok(Self::Off),
+            "Dark" => Ok(Self::Dark),
+            "Bright" => Ok(Self::Bright),
+            _ => Err(format!("Invalid DiscSlotIllumination value: {}", value)),
+        }
+    }
+}
+
 /// Found at "PLAYER > DJ SETTING > EJECT/LOAD LOCK" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -240,6 +388,18 @@ pub enum EjectLock {
     Unlock = 0x80,
     /// Named "LOCK" in the Rekordbox preferences.
     Lock,
+}
+
+impl TryFrom<String> for EjectLock {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<EjectLock, Self::Error> {
+        match value.as_str() {
+            "Unlock" => Ok(Self::Unlock),
+            "Lock" => Ok(Self::Lock),
+            _ => Err(format!("Invalid EjectLock value: {}", value)),
+        }
+    }
 }
 
 /// Found at "PLAYER > DJ SETTING > SYNC" of the "My Settings" page in the Rekordbox
@@ -255,6 +415,18 @@ pub enum Sync {
     On,
 }
 
+impl TryFrom<String> for Sync {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Sync, Self::Error> {
+        match value.as_str() {
+            "Off" => Ok(Self::Off),
+            "On" => Ok(Self::On),
+            _ => Err(format!("Invalid Sync value: {}", value)),
+        }
+    }
+}
+
 /// Found at "PLAYER > DJ SETTING > PLAY MODE / AUTO PLAY MODE" of the "My Settings" page in the
 /// Rekordbox preferences.
 #[binrw]
@@ -268,6 +440,18 @@ pub enum PlayMode {
     #[display("Single / Off")]
     #[default]
     Single,
+}
+
+impl TryFrom<String> for PlayMode {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<PlayMode, Self::Error> {
+        match value.as_str() {
+            "Continue" => Ok(Self::Continue),
+            "Single" => Ok(Self::Single),
+            _ => Err(format!("Invalid PlayMode value: {}", value)),
+        }
+    }
 }
 
 /// Found at "PLAYER > DJ SETTING > QUANTIZE BEAT VALUE" of the "My Settings" page in the Rekordbox
@@ -291,6 +475,20 @@ pub enum QuantizeBeatValue {
     FullBeat = 0x80,
 }
 
+impl TryFrom<String> for QuantizeBeatValue {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<QuantizeBeatValue, Self::Error> {
+        match value.as_str() {
+            "EighthBeat" => Ok(Self::EighthBeat),
+            "QuarterBeat" => Ok(Self::QuarterBeat),
+            "HalfBeat" => Ok(Self::HalfBeat),
+            "FullBeat" => Ok(Self::FullBeat),
+            _ => Err(format!("Invalid QuantizeBeatValue value: {}", value)),
+        }
+    }
+}
+
 /// Found at "PLAYER > DJ SETTING > HOT CUE AUTO LOAD" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -307,6 +505,19 @@ pub enum HotCueAutoLoad {
     On = 0x81,
 }
 
+impl TryFrom<String> for HotCueAutoLoad {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<HotCueAutoLoad, Self::Error> {
+        match value.as_str() {
+            "Off" => Ok(Self::Off),
+            "RekordboxSetting" => Ok(Self::RekordboxSetting),
+            "On" => Ok(Self::On),
+            _ => Err(format!("Invalid HotCueAutoLoad value: {}", value)),
+        }
+    }
+}
+
 /// Found at "PLAYER > DJ SETTING > HOT CUE COLOR" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -318,6 +529,18 @@ pub enum HotCueColor {
     Off = 0x80,
     /// Named "On" in the Rekordbox preferences.
     On,
+}
+
+impl TryFrom<String> for HotCueColor {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<HotCueColor, Self::Error> {
+        match value.as_str() {
+            "Off" => Ok(Self::Off),
+            "On" => Ok(Self::On),
+            _ => Err(format!("Invalid HotCueColor value: {}", value)),
+        }
+    }
 }
 
 /// Found at "PLAYER > DJ SETTING > NEEDLE LOCK" of the "My Settings" page in the Rekordbox
@@ -333,6 +556,18 @@ pub enum NeedleLock {
     Lock,
 }
 
+impl TryFrom<String> for NeedleLock {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<NeedleLock, Self::Error> {
+        match value.as_str() {
+            "Unlock" => Ok(Self::Unlock),
+            "Lock" => Ok(Self::Lock),
+            _ => Err(format!("Invalid NeedleLock value: {}", value)),
+        }
+    }
+}
+
 /// Found at "PLAYER > DJ SETTING > TIME MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -346,6 +581,18 @@ pub enum TimeMode {
     Remain,
 }
 
+impl TryFrom<String> for TimeMode {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<TimeMode, Self::Error> {
+        match value.as_str() {
+            "Elapsed" => Ok(Self::Elapsed),
+            "Remain" => Ok(Self::Remain),
+            _ => Err(format!("Invalid TimeMode value: {}", value)),
+        }
+    }
+}
+
 /// Found at "PLAYER > DJ SETTING > JOG MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -357,6 +604,18 @@ pub enum JogMode {
     Vinyl = 0x81,
     /// Named "CDJ" in the Rekordbox preferences.
     CDJ = 0x80,
+}
+
+impl TryFrom<String> for JogMode {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<JogMode, Self::Error> {
+        match value.as_str() {
+            "Vinyl" => Ok(Self::Vinyl),
+            "CDJ" => Ok(Self::CDJ),
+            _ => Err(format!("Invalid JogMode value: {}", value)),
+        }
+    }
 }
 
 /// Found at "PLAYER > DJ SETTING > AUTO CUE" of the "My Settings" page in the Rekordbox
@@ -385,6 +644,18 @@ pub enum MasterTempo {
     On,
 }
 
+impl TryFrom<String> for MasterTempo {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<MasterTempo, Self::Error> {
+        match value.as_str() {
+            "Off" => Ok(Self::Off),
+            "On" => Ok(Self::On),
+            _ => Err(format!("Invalid MasterTempo value: {}", value)),
+        }
+    }
+}
+
 /// Found at "PLAYER > DJ SETTING > TEMPO RANGE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -405,6 +676,20 @@ pub enum TempoRange {
     Wide,
 }
 
+impl TryFrom<String> for TempoRange {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<TempoRange, Self::Error> {
+        match value.as_str() {
+            "SixPercent" => Ok(Self::SixPercent),
+            "TenPercent" => Ok(Self::TenPercent),
+            "SixteenPercent" => Ok(Self::SixteenPercent),
+            "Wide" => Ok(Self::Wide),
+            _ => Err(format!("Invalid TempoRange value: {}", value)),
+        }
+    }
+}
+
 /// Found at "PLAYER > DJ SETTING > PHASE METER" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -418,6 +703,18 @@ pub enum PhaseMeter {
     /// Named "TYPE 2" in the Rekordbox preferences.
     #[display("Type 2")]
     Type2,
+}
+
+impl TryFrom<String> for PhaseMeter {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<PhaseMeter, Self::Error> {
+        match value.as_str() {
+            "Type1" => Ok(Self::Type1),
+            "Type2" => Ok(Self::Type2),
+            _ => Err(format!("Invalid PhaseMeter value: {}", value)),
+        }
+    }
 }
 
 /// Payload of a `MYSETTING.DAT` file (40 bytes).
@@ -545,6 +842,19 @@ pub enum VinylSpeedAdjust {
     Release,
 }
 
+impl TryFrom<String> for VinylSpeedAdjust {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<VinylSpeedAdjust, Self::Error> {
+        match value.as_str() {
+            "TouchRelease" => Ok(Self::TouchRelease),
+            "Touch" => Ok(Self::Touch),
+            "Release" => Ok(Self::Release),
+            _ => Err(format!("Invalid VinylSpeedAdjust value: {}", value)),
+        }
+    }
+}
+
 /// Found at "PLAYER > DISPLAY(LCD) > JOG DISPLAY MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -560,6 +870,20 @@ pub enum JogDisplayMode {
     Simple,
     /// Named "ARTWORK" in the Rekordbox preferences.
     Artwork,
+}
+
+impl TryFrom<String> for JogDisplayMode {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<JogDisplayMode, Self::Error> {
+        match value.as_str() {
+            "Auto" => Ok(Self::Auto),
+            "Info" => Ok(Self::Info),
+            "Simple" => Ok(Self::Simple),
+            "Artwork" => Ok(Self::Artwork),
+            _ => Err(format!("Invalid JogDisplayMode value: {}", value)),
+        }
+    }
 }
 
 /// Found at "PLAYER > DISPLAY(INDICATOR) > PAD/BUTTON BRIGHTNESS" of the "My Settings" page in the Rekordbox
@@ -581,6 +905,20 @@ pub enum PadButtonBrightness {
     /// Named "4" in the Rekordbox preferences.
     #[display("4")]
     Four,
+}
+
+impl TryFrom<String> for PadButtonBrightness {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<PadButtonBrightness, Self::Error> {
+        match value.as_str() {
+            "One" => Ok(Self::One),
+            "Two" => Ok(Self::Two),
+            "Three" => Ok(Self::Three),
+            "Four" => Ok(Self::Four),
+            _ => Err(format!("Invalid PadButtonBrightness value: {}", value)),
+        }
+    }
 }
 
 /// Found at "PLAYER > DISPLAY(LCD) > JOG LCD BRIGHTNESS" of the "My Settings" page in the Rekordbox
@@ -607,6 +945,21 @@ pub enum JogLCDBrightness {
     Five,
 }
 
+impl TryFrom<String> for JogLCDBrightness {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<JogLCDBrightness, Self::Error> {
+        match value.as_str() {
+            "One" => Ok(Self::One),
+            "Two" => Ok(Self::Two),
+            "Three" => Ok(Self::Three),
+            "Four" => Ok(Self::Four),
+            "Five" => Ok(Self::Five),
+            _ => Err(format!("Invalid JogLCDBrightness value: {}", value)),
+        }
+    }
+}
+
 /// Found at "PLAYER > DJ SETTING > WAVEFORM DIVISIONS" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -619,6 +972,30 @@ pub enum WaveformDivisions {
     /// Named "PHRASE" in the Rekordbox preferences.
     #[default]
     Phrase,
+}
+
+impl TryFrom<String> for Waveform {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Waveform, Self::Error> {
+        match value.as_str() {
+            "Waveform" => Ok(Self::Waveform),
+            "PhaseMeter" => Ok(Self::PhaseMeter),
+            _ => Err(format!("Invalid Waveform value: {}", value)),
+        }
+    }
+}
+
+impl TryFrom<String> for WaveformDivisions {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<WaveformDivisions, Self::Error> {
+        match value.as_str() {
+            "TimeScale" => Ok(Self::TimeScale),
+            "Phrase" => Ok(Self::Phrase),
+            _ => Err(format!("Invalid WaveformDivisions value: {}", value)),
+        }
+    }
 }
 
 /// Found at "PLAYER > DJ SETTING > WAVEFORM / PHASE METER" of the "My Settings" page in the Rekordbox
@@ -666,6 +1043,24 @@ pub enum BeatJumpBeatValue {
     /// Named "64 BEAT" in the Rekordbox preferences.
     #[display("64 Beat")]
     SixtyfourBeat,
+}
+
+impl TryFrom<String> for BeatJumpBeatValue {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<BeatJumpBeatValue, Self::Error> {
+        match value.as_str() {
+            "HalfBeat" => Ok(Self::HalfBeat),
+            "OneBeat" => Ok(Self::OneBeat),
+            "TwoBeat" => Ok(Self::TwoBeat),
+            "FourBeat" => Ok(Self::FourBeat),
+            "EightBeat" => Ok(Self::EightBeat),
+            "SixteenBeat" => Ok(Self::SixteenBeat),
+            "ThirtytwoBeat" => Ok(Self::ThirtytwoBeat),
+            "SixtyfourBeat" => Ok(Self::SixtyfourBeat),
+            _ => Err(format!("Invalid BeatJumpBeatValue value: {}", value)),
+        }
+    }
 }
 
 /// Payload of a `MYSETTING2.DAT` file (40 bytes).
@@ -740,6 +1135,19 @@ pub enum ChannelFaderCurve {
     SteepBottom,
 }
 
+impl TryFrom<String> for ChannelFaderCurve {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<ChannelFaderCurve, Self::Error> {
+        match value.as_str() {
+            "SteepTop" => Ok(Self::SteepTop),
+            "Linear" => Ok(Self::Linear),
+            "SteepBottom" => Ok(Self::SteepBottom),
+            _ => Err(format!("Invalid ChannelFaderCurve value: {}", value)),
+        }
+    }
+}
+
 /// Found at "MIXER > DJ SETTING > CROSSFADER CURVE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -760,6 +1168,19 @@ pub enum CrossfaderCurve {
     FastCut,
 }
 
+impl TryFrom<String> for CrossfaderCurve {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<CrossfaderCurve, Self::Error> {
+        match value.as_str() {
+            "ConstantPower" => Ok(Self::ConstantPower),
+            "SlowCut" => Ok(Self::SlowCut),
+            "FastCut" => Ok(Self::FastCut),
+            _ => Err(format!("Invalid CrossfaderCurve value: {}", value)),
+        }
+    }
+}
+
 /// Found at "MIXER > DJ SETTING > HEADPHONES PRE EQ" of the "My Settings" page in the
 /// Rekordbox preferences.
 #[binrw]
@@ -773,6 +1194,18 @@ pub enum HeadphonesPreEQ {
     /// Named "PRE EQ" in the Rekordbox preferences.
     #[display("Pre EQ")]
     PreEQ,
+}
+
+impl TryFrom<String> for HeadphonesPreEQ {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<HeadphonesPreEQ, Self::Error> {
+        match value.as_str() {
+            "PostEQ" => Ok(Self::PostEQ),
+            "PreEQ" => Ok(Self::PreEQ),
+            _ => Err(format!("Invalid HeadphonesPreEQ value: {}", value)),
+        }
+    }
 }
 
 /// Found at "MIXER > DJ SETTING > HEADPHONES MONO SPLIT" of the "My Settings" page in the
@@ -789,6 +1222,18 @@ pub enum HeadphonesMonoSplit {
     Stereo = 0x80,
 }
 
+impl TryFrom<String> for HeadphonesMonoSplit {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<HeadphonesMonoSplit, Self::Error> {
+        match value.as_str() {
+            "MonoSplit" => Ok(Self::MonoSplit),
+            "Stereo" => Ok(Self::Stereo),
+            _ => Err(format!("Invalid HeadphonesMonoSplit value: {}", value)),
+        }
+    }
+}
+
 /// Found at "MIXER > DJ SETTING > BEAT FX QUANTIZE" of the "My Settings" page in the
 /// Rekordbox preferences.
 #[binrw]
@@ -800,6 +1245,18 @@ pub enum BeatFXQuantize {
     /// Named "ON" in the Rekordbox preferences.
     #[default]
     On,
+}
+
+impl TryFrom<String> for BeatFXQuantize {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<BeatFXQuantize, Self::Error> {
+        match value.as_str() {
+            "Off" => Ok(Self::Off),
+            "On" => Ok(Self::On),
+            _ => Err(format!("Invalid BeatFXQuantize value: {}", value)),
+        }
+    }
 }
 
 /// Found at "MIXER > DJ SETTING > MIC LOW CUT" of the "My Settings" page in the
@@ -815,6 +1272,18 @@ pub enum MicLowCut {
     On,
 }
 
+impl TryFrom<String> for MicLowCut {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<MicLowCut, Self::Error> {
+        match value.as_str() {
+            "Off" => Ok(Self::Off),
+            "On" => Ok(Self::On),
+            _ => Err(format!("Invalid MicLowCut value: {}", value)),
+        }
+    }
+}
+
 /// Found at "MIXER > DJ SETTING > TALK OVER MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -826,6 +1295,18 @@ pub enum TalkOverMode {
     Advanced = 0x80,
     /// Named "NORMAL" in the Rekordbox preferences.
     Normal,
+}
+
+impl TryFrom<String> for TalkOverMode {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<TalkOverMode, Self::Error> {
+        match value.as_str() {
+            "Advanced" => Ok(Self::Advanced),
+            "Normal" => Ok(Self::Normal),
+            _ => Err(format!("Invalid TalkOverMode value: {}", value)),
+        }
+    }
 }
 
 /// Found at "MIXER > DJ SETTING > TALK OVER LEVEL" of the "My Settings" page in the Rekordbox
@@ -847,6 +1328,20 @@ pub enum TalkOverLevel {
     /// Named "-6dB" in the Rekordbox preferences.
     #[display("-6dB")]
     Minus6dB,
+}
+
+impl TryFrom<String> for TalkOverLevel {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<TalkOverLevel, Self::Error> {
+        match value.as_str() {
+            "Minus24dB" => Ok(Self::Minus24dB),
+            "Minus18dB" => Ok(Self::Minus18dB),
+            "Minus12dB" => Ok(Self::Minus12dB),
+            "Minus6dB" => Ok(Self::Minus6dB),
+            _ => Err(format!("Invalid TalkOverLevel value: {}", value)),
+        }
+    }
 }
 
 /// Found at "MIXER > DJ SETTING > MIDI CH" of the "My Settings" page in the Rekordbox
@@ -906,6 +1401,32 @@ pub enum MidiChannel {
     Sixteen,
 }
 
+impl TryFrom<String> for MidiChannel {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<MidiChannel, Self::Error> {
+        match value.as_str() {
+            "One" => Ok(Self::One),
+            "Two" => Ok(Self::Two),
+            "Three" => Ok(Self::Three),
+            "Four" => Ok(Self::Four),
+            "Five" => Ok(Self::Five),
+            "Six" => Ok(Self::Six),
+            "Seven" => Ok(Self::Seven),
+            "Eight" => Ok(Self::Eight),
+            "Nine" => Ok(Self::Nine),
+            "Ten" => Ok(Self::Ten),
+            "Eleven" => Ok(Self::Eleven),
+            "Twelve" => Ok(Self::Twelve),
+            "Thirteen" => Ok(Self::Thirteen),
+            "Fourteen" => Ok(Self::Fourteen),
+            "Fifteen" => Ok(Self::Fifteen),
+            "Sixteen" => Ok(Self::Sixteen),
+            _ => Err(format!("Invalid MidiChannel value: {}", value)),
+        }
+    }
+}
+
 /// Found at "MIXER > DJ SETTING > MIDI BUTTON TYPE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -917,6 +1438,18 @@ pub enum MidiButtonType {
     Toggle = 0x80,
     /// Named "TRIGGER" in the Rekordbox preferences.
     Trigger,
+}
+
+impl TryFrom<String> for MidiButtonType {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<MidiButtonType, Self::Error> {
+        match value.as_str() {
+            "Toggle" => Ok(Self::Toggle),
+            "Trigger" => Ok(Self::Trigger),
+            _ => Err(format!("Invalid MidiButtonType value: {}", value)),
+        }
+    }
 }
 
 /// Found at "MIXER > BRIGHTNESS > DISPLAY" of the "My Settings" page in the Rekordbox
@@ -945,6 +1478,22 @@ pub enum MixerDisplayBrightness {
     Five,
 }
 
+impl TryFrom<String> for MixerDisplayBrightness {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<MixerDisplayBrightness, Self::Error> {
+        match value.as_str() {
+            "White" => Ok(Self::White),
+            "One" => Ok(Self::One),
+            "Two" => Ok(Self::Two),
+            "Three" => Ok(Self::Three),
+            "Four" => Ok(Self::Four),
+            "Five" => Ok(Self::Five),
+            _ => Err(format!("Invalid MixerDisplayBrightness value: {}", value)),
+        }
+    }
+}
+
 /// Found at "MIXER > BRIGHTNESS > INDICATOR" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -963,6 +1512,19 @@ pub enum MixerIndicatorBrightness {
     Three,
 }
 
+impl TryFrom<String> for MixerIndicatorBrightness {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<MixerIndicatorBrightness, Self::Error> {
+        match value.as_str() {
+            "One" => Ok(Self::One),
+            "Two" => Ok(Self::Two),
+            "Three" => Ok(Self::Three),
+            _ => Err(format!("Invalid MixerIndicatorBrightness value: {}", value)),
+        }
+    }
+}
+
 /// Found at "MIXER > DJ SETTING > CH FADER CURVE (LONG FADER)" of the "My Settings" page in the
 /// Rekordbox preferences.
 #[binrw]
@@ -976,6 +1538,22 @@ pub enum ChannelFaderCurveLongFader {
     Smooth,
     /// Linear volume raise when the fader is moved (e.g. y = k * x).
     Linear,
+}
+
+impl TryFrom<String> for ChannelFaderCurveLongFader {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<ChannelFaderCurveLongFader, Self::Error> {
+        match value.as_str() {
+            "Exponential" => Ok(Self::Exponential),
+            "Smooth" => Ok(Self::Smooth),
+            "Linear" => Ok(Self::Linear),
+            _ => Err(format!(
+                "Invalid ChannelFaderCurveLongFader value: {}",
+                value
+            )),
+        }
+    }
 }
 
 /// Payload of a `DJMMYSETTING.DAT` file (52 bytes).
@@ -1064,6 +1642,18 @@ pub enum OverviewWaveformType {
     FullWaveform,
 }
 
+impl TryFrom<String> for OverviewWaveformType {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<OverviewWaveformType, Self::Error> {
+        match value.as_str() {
+            "HalfWaveform" => Ok(Self::HalfWaveform),
+            "FullWaveform" => Ok(Self::FullWaveform),
+            _ => Err(format!("Invalid OverviewWaveformType value: {}", value)),
+        }
+    }
+}
+
 /// Waveform color displayed on the CDJ.
 ///
 /// Found on the "General" page in the Rekordbox preferences.
@@ -1082,6 +1672,19 @@ pub enum WaveformColor {
     TriBand = 0x04,
 }
 
+impl TryFrom<String> for WaveformColor {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<WaveformColor, Self::Error> {
+        match value.as_str() {
+            "Blue" => Ok(Self::Blue),
+            "Rgb" => Ok(Self::Rgb),
+            "TriBand" => Ok(Self::TriBand),
+            _ => Err(format!("Invalid WaveformColor value: {}", value)),
+        }
+    }
+}
+
 /// The key display format displayed on the CDJ.
 ///
 /// Found on the "General" page in the Rekordbox preferences.
@@ -1096,6 +1699,18 @@ pub enum KeyDisplayFormat {
     Alphanumeric,
 }
 
+impl TryFrom<String> for KeyDisplayFormat {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<KeyDisplayFormat, Self::Error> {
+        match value.as_str() {
+            "Classic" => Ok(Self::Classic),
+            "Alphanumeric" => Ok(Self::Alphanumeric),
+            _ => Err(format!("Invalid KeyDisplayFormat value: {}", value)),
+        }
+    }
+}
+
 /// Waveform Current Position displayed on the CDJ.
 ///
 /// Found on the "General" page in the Rekordbox preferences.
@@ -1108,6 +1723,18 @@ pub enum WaveformCurrentPosition {
     /// Named "CENTER" in the Rekordbox preferences.
     #[default]
     Center = 0x01,
+}
+
+impl TryFrom<String> for WaveformCurrentPosition {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<WaveformCurrentPosition, Self::Error> {
+        match value.as_str() {
+            "Left" => Ok(Self::Left),
+            "Center" => Ok(Self::Center),
+            _ => Err(format!("Invalid WaveformCurrentPosition value: {}", value)),
+        }
+    }
 }
 
 /// Payload of a `DEVSETTING.DAT` file (32 bytes).
