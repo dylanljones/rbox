@@ -758,260 +758,260 @@ export interface UuidIDMap {
   currentId?: string
 }
 export const enum OnAirDisplay {
-  Off = 0,
-  On = 1
+  Off = 'Off',
+  On = 'On'
 }
 export const enum LCDBrightness {
-  One = 0,
-  Two = 1,
-  Three = 2,
-  Four = 3,
-  Five = 4
+  One = 'One',
+  Two = 'Two',
+  Three = 'Three',
+  Four = 'Four',
+  Five = 'Five'
 }
 export const enum Quantize {
-  Off = 0,
-  On = 1
+  Off = 'Off',
+  On = 'On'
 }
 export const enum AutoCueLevel {
-  Minus78dB = 0,
-  Minus72dB = 1,
-  Minus66dB = 2,
-  Minus60dB = 3,
-  Minus54dB = 4,
-  Minus48dB = 5,
-  Minus42dB = 6,
-  Minus36dB = 7,
-  Memory = 8
+  Minus78dB = 'Minus78dB',
+  Minus72dB = 'Minus72dB',
+  Minus66dB = 'Minus66dB',
+  Minus60dB = 'Minus60dB',
+  Minus54dB = 'Minus54dB',
+  Minus48dB = 'Minus48dB',
+  Minus42dB = 'Minus42dB',
+  Minus36dB = 'Minus36dB',
+  Memory = 'Memory'
 }
 export const enum Language {
-  English = 0,
-  French = 1,
-  German = 2,
-  Italian = 3,
-  Dutch = 4,
-  Spanish = 5,
-  Russian = 6,
-  Korean = 7,
-  ChineseSimplified = 8,
-  ChineseTraditional = 9,
-  Japanese = 10,
-  Portuguese = 11,
-  Swedish = 12,
-  Czech = 13,
-  Hungarian = 14,
-  Danish = 15,
-  Greek = 16,
-  Turkish = 17
+  English = 'English',
+  French = 'French',
+  German = 'German',
+  Italian = 'Italian',
+  Dutch = 'Dutch',
+  Spanish = 'Spanish',
+  Russian = 'Russian',
+  Korean = 'Korean',
+  ChineseSimplified = 'ChineseSimplified',
+  ChineseTraditional = 'ChineseTraditional',
+  Japanese = 'Japanese',
+  Portuguese = 'Portuguese',
+  Swedish = 'Swedish',
+  Czech = 'Czech',
+  Hungarian = 'Hungarian',
+  Danish = 'Danish',
+  Greek = 'Greek',
+  Turkish = 'Turkish'
 }
 export const enum JogRingBrightness {
-  Off = 0,
-  Dark = 1,
-  Bright = 2
+  Off = 'Off',
+  Dark = 'Dark',
+  Bright = 'Bright'
 }
 export const enum JogRingIndicator {
-  Off = 0,
-  On = 1
+  Off = 'Off',
+  On = 'On'
 }
 export const enum SlipFlashing {
-  Off = 0,
-  On = 1
+  Off = 'Off',
+  On = 'On'
 }
 export const enum DiscSlotIllumination {
-  Off = 0,
-  Dark = 1,
-  Bright = 2
+  Off = 'Off',
+  Dark = 'Dark',
+  Bright = 'Bright'
 }
 export const enum EjectLock {
-  Unlock = 0,
-  Lock = 1
+  Unlock = 'Unlock',
+  Lock = 'Lock'
 }
 export const enum Sync {
-  Off = 0,
-  On = 1
+  Off = 'Off',
+  On = 'On'
 }
 export const enum PlayMode {
-  Continue = 0,
-  Single = 1
+  Continue = 'Continue',
+  Single = 'Single'
 }
 export const enum QuantizeBeatValue {
-  EighthBeat = 0,
-  QuarterBeat = 1,
-  HalfBeat = 2,
-  FullBeat = 3
+  EighthBeat = 'EighthBeat',
+  QuarterBeat = 'QuarterBeat',
+  HalfBeat = 'HalfBeat',
+  FullBeat = 'FullBeat'
 }
 export const enum HotCueAutoLoad {
-  Off = 0,
-  RekordboxSetting = 1,
-  On = 2
+  Off = 'Off',
+  RekordboxSetting = 'RekordboxSetting',
+  On = 'On'
 }
 export const enum HotCueColor {
-  Off = 0,
-  On = 1
+  Off = 'Off',
+  On = 'On'
 }
 export const enum NeedleLock {
-  Unlock = 0,
-  Lock = 1
+  Unlock = 'Unlock',
+  Lock = 'Lock'
 }
 export const enum TimeMode {
-  Elapsed = 0,
-  Remain = 1
+  Elapsed = 'Elapsed',
+  Remain = 'Remain'
 }
 export const enum JogMode {
-  Vinyl = 0,
-  CDJ = 1
+  Vinyl = 'Vinyl',
+  CDJ = 'CDJ'
 }
 export const enum AutoCue {
-  Off = 0,
-  On = 1
+  Off = 'Off',
+  On = 'On'
 }
 export const enum MasterTempo {
-  Off = 0,
-  On = 1
+  Off = 'Off',
+  On = 'On'
 }
 export const enum TempoRange {
-  SixPercent = 0,
-  TenPercent = 1,
-  SixteenPercent = 2,
-  Wide = 3
+  SixPercent = 'SixPercent',
+  TenPercent = 'TenPercent',
+  SixteenPercent = 'SixteenPercent',
+  Wide = 'Wide'
 }
 export const enum PhaseMeter {
-  Type1 = 0,
-  Type2 = 1
+  Type1 = 'Type1',
+  Type2 = 'Type2'
 }
 export const enum VinylSpeedAdjust {
-  TouchRelease = 0,
-  Touch = 1,
-  Release = 2
+  TouchRelease = 'TouchRelease',
+  Touch = 'Touch',
+  Release = 'Release'
 }
 export const enum JogDisplayMode {
-  Auto = 0,
-  Info = 1,
-  Simple = 2,
-  Artwork = 3
+  Auto = 'Auto',
+  Info = 'Info',
+  Simple = 'Simple',
+  Artwork = 'Artwork'
 }
 export const enum PadButtonBrightness {
-  One = 0,
-  Two = 1,
-  Three = 2,
-  Four = 3
+  One = 'One',
+  Two = 'Two',
+  Three = 'Three',
+  Four = 'Four'
 }
 export const enum JogLCDBrightness {
-  One = 0,
-  Two = 1,
-  Three = 2,
-  Four = 3,
-  Five = 4
+  One = 'One',
+  Two = 'Two',
+  Three = 'Three',
+  Four = 'Four',
+  Five = 'Five'
 }
 export const enum WaveformDivisions {
-  TimeScale = 0,
-  Phrase = 1
+  TimeScale = 'TimeScale',
+  Phrase = 'Phrase'
 }
 export const enum Waveform {
-  Waveform = 0,
-  PhaseMeter = 1
+  Waveform = 'Waveform',
+  PhaseMeter = 'PhaseMeter'
 }
 export const enum BeatJumpBeatValue {
-  HalfBeat = 0,
-  OneBeat = 1,
-  TwoBeat = 2,
-  FourBeat = 3,
-  EightBeat = 4,
-  SixteenBeat = 5,
-  ThirtytwoBeat = 6,
-  SixtyfourBeat = 7
+  HalfBeat = 'HalfBeat',
+  OneBeat = 'OneBeat',
+  TwoBeat = 'TwoBeat',
+  FourBeat = 'FourBeat',
+  EightBeat = 'EightBeat',
+  SixteenBeat = 'SixteenBeat',
+  ThirtytwoBeat = 'ThirtytwoBeat',
+  SixtyfourBeat = 'SixtyfourBeat'
 }
 export const enum ChannelFaderCurve {
-  SteepTop = 0,
-  Linear = 1,
-  SteepBottom = 2
+  SteepTop = 'SteepTop',
+  Linear = 'Linear',
+  SteepBottom = 'SteepBottom'
 }
 export const enum CrossfaderCurve {
-  ConstantPower = 0,
-  SlowCut = 1,
-  FastCut = 2
+  ConstantPower = 'ConstantPower',
+  SlowCut = 'SlowCut',
+  FastCut = 'FastCut'
 }
 export const enum HeadphonesPreEQ {
-  PostEQ = 0,
-  PreEQ = 1
+  PostEQ = 'PostEQ',
+  PreEQ = 'PreEQ'
 }
 export const enum HeadphonesMonoSplit {
-  MonoSplit = 0,
-  Stereo = 1
+  MonoSplit = 'MonoSplit',
+  Stereo = 'Stereo'
 }
 export const enum BeatFXQuantize {
-  Off = 0,
-  On = 1
+  Off = 'Off',
+  On = 'On'
 }
 export const enum MicLowCut {
-  Off = 0,
-  On = 1
+  Off = 'Off',
+  On = 'On'
 }
 export const enum TalkOverMode {
-  Advanced = 0,
-  Normal = 1
+  Advanced = 'Advanced',
+  Normal = 'Normal'
 }
 export const enum TalkOverLevel {
-  Minus24dB = 0,
-  Minus18dB = 1,
-  Minus12dB = 2,
-  Minus6dB = 3
+  Minus24dB = 'Minus24dB',
+  Minus18dB = 'Minus18dB',
+  Minus12dB = 'Minus12dB',
+  Minus6dB = 'Minus6dB'
 }
 export const enum MidiChannel {
-  One = 0,
-  Two = 1,
-  Three = 2,
-  Four = 3,
-  Five = 4,
-  Six = 5,
-  Seven = 6,
-  Eight = 7,
-  Nine = 8,
-  Ten = 9,
-  Eleven = 10,
-  Twelve = 11,
-  Thirteen = 12,
-  Fourteen = 13,
-  Fifteen = 14,
-  Sixteen = 15
+  One = 'One',
+  Two = 'Two',
+  Three = 'Three',
+  Four = 'Four',
+  Five = 'Five',
+  Six = 'Six',
+  Seven = 'Seven',
+  Eight = 'Eight',
+  Nine = 'Nine',
+  Ten = 'Ten',
+  Eleven = 'Eleven',
+  Twelve = 'Twelve',
+  Thirteen = 'Thirteen',
+  Fourteen = 'Fourteen',
+  Fifteen = 'Fifteen',
+  Sixteen = 'Sixteen'
 }
 export const enum MidiButtonType {
-  Toggle = 0,
-  Trigger = 1
+  Toggle = 'Toggle',
+  Trigger = 'Trigger'
 }
 export const enum MixerDisplayBrightness {
-  White = 0,
-  One = 1,
-  Two = 2,
-  Three = 3,
-  Four = 4,
-  Five = 5
+  White = 'White',
+  One = 'One',
+  Two = 'Two',
+  Three = 'Three',
+  Four = 'Four',
+  Five = 'Five'
 }
 export const enum MixerIndicatorBrightness {
-  One = 0,
-  Two = 1,
-  Three = 2
+  One = 'One',
+  Two = 'Two',
+  Three = 'Three'
 }
 export const enum ChannelFaderCurveLongFader {
-  Exponential = 0,
-  Smooth = 1,
-  Linear = 2
+  Exponential = 'Exponential',
+  Smooth = 'Smooth',
+  Linear = 'Linear'
 }
 export const enum OverviewWaveformType {
-  HalfWaveform = 0,
-  FullWaveform = 1
+  HalfWaveform = 'HalfWaveform',
+  FullWaveform = 'FullWaveform'
 }
 export const enum WaveformColor {
-  Blue = 0,
-  Rgb = 1,
-  TriBand = 2
+  Blue = 'Blue',
+  Rgb = 'Rgb',
+  TriBand = 'TriBand'
 }
 export const enum KeyDisplayFormat {
-  Classic = 0,
-  Alphanumeric = 1
+  Classic = 'Classic',
+  Alphanumeric = 'Alphanumeric'
 }
 export const enum WaveformCurrentPosition {
-  Left = 0,
-  Center = 1
+  Left = 'Left',
+  Center = 'Center'
 }
 export declare function isRekordboxRunning(): boolean
 export type JsAnlz = Anlz

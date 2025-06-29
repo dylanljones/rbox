@@ -3,7 +3,7 @@
 use napi_derive::napi;
 use rbox::settings::*;
 
-#[napi(js_name = "OnAirDisplay")]
+#[napi(string_enum, js_name = "OnAirDisplay")]
 pub enum JsOnAirDisplay {
     Off,
     On,
@@ -27,7 +27,7 @@ impl From<JsOnAirDisplay> for OnAirDisplay {
     }
 }
 
-#[napi(js_name = "LCDBrightness")]
+#[napi(string_enum, js_name = "LCDBrightness")]
 pub enum JsLCDBrightness {
     One,
     Two,
@@ -60,7 +60,7 @@ impl From<JsLCDBrightness> for LCDBrightness {
     }
 }
 
-#[napi(js_name = "Quantize")]
+#[napi(string_enum, js_name = "Quantize")]
 pub enum JsQuantize {
     Off,
     On,
@@ -84,7 +84,7 @@ impl From<JsQuantize> for Quantize {
     }
 }
 
-#[napi(js_name = "AutoCueLevel")]
+#[napi(string_enum, js_name = "AutoCueLevel")]
 pub enum JsAutoCueLevel {
     Minus78dB,
     Minus72dB,
@@ -129,7 +129,7 @@ impl From<JsAutoCueLevel> for AutoCueLevel {
     }
 }
 
-#[napi(js_name = "Language")]
+#[napi(string_enum, js_name = "Language")]
 pub enum JsLanguage {
     English,
     French,
@@ -201,7 +201,7 @@ impl From<JsLanguage> for Language {
     }
 }
 
-#[napi(js_name = "JogRingBrightness")]
+#[napi(string_enum, js_name = "JogRingBrightness")]
 pub enum JsJogRingBrightness {
     Off,
     Dark,
@@ -228,7 +228,7 @@ impl From<JsJogRingBrightness> for JogRingBrightness {
     }
 }
 
-#[napi(js_name = "JogRingIndicator")]
+#[napi(string_enum, js_name = "JogRingIndicator")]
 pub enum JsJogRingIndicator {
     Off,
     On,
@@ -252,7 +252,7 @@ impl From<JsJogRingIndicator> for JogRingIndicator {
     }
 }
 
-#[napi(js_name = "SlipFlashing")]
+#[napi(string_enum, js_name = "SlipFlashing")]
 pub enum JsSlipFlashing {
     Off,
     On,
@@ -276,7 +276,7 @@ impl From<JsSlipFlashing> for SlipFlashing {
     }
 }
 
-#[napi(js_name = "DiscSlotIllumination")]
+#[napi(string_enum, js_name = "DiscSlotIllumination")]
 pub enum JsDiscSlotIllumination {
     Off,
     Dark,
@@ -303,7 +303,7 @@ impl From<JsDiscSlotIllumination> for DiscSlotIllumination {
     }
 }
 
-#[napi(js_name = "EjectLock")]
+#[napi(string_enum, js_name = "EjectLock")]
 pub enum JsEjectLock {
     Unlock,
     Lock,
@@ -327,7 +327,7 @@ impl From<JsEjectLock> for EjectLock {
     }
 }
 
-#[napi(js_name = "Sync")]
+#[napi(string_enum, js_name = "Sync")]
 pub enum JsSync {
     Off,
     On,
@@ -351,7 +351,7 @@ impl From<JsSync> for Sync {
     }
 }
 
-#[napi(js_name = "PlayMode")]
+#[napi(string_enum, js_name = "PlayMode")]
 pub enum JsPlayMode {
     Continue,
     Single,
@@ -375,7 +375,7 @@ impl From<JsPlayMode> for PlayMode {
     }
 }
 
-#[napi(js_name = "QuantizeBeatValue")]
+#[napi(string_enum, js_name = "QuantizeBeatValue")]
 pub enum JsQuantizeBeatValue {
     EighthBeat,
     QuarterBeat,
@@ -405,7 +405,7 @@ impl From<JsQuantizeBeatValue> for QuantizeBeatValue {
     }
 }
 
-#[napi(js_name = "HotCueAutoLoad")]
+#[napi(string_enum, js_name = "HotCueAutoLoad")]
 pub enum JsHotCueAutoLoad {
     Off,
     RekordboxSetting,
@@ -432,7 +432,7 @@ impl From<JsHotCueAutoLoad> for HotCueAutoLoad {
     }
 }
 
-#[napi(js_name = "HotCueColor")]
+#[napi(string_enum, js_name = "HotCueColor")]
 pub enum JsHotCueColor {
     Off,
     On,
@@ -456,7 +456,7 @@ impl From<JsHotCueColor> for HotCueColor {
     }
 }
 
-#[napi(js_name = "NeedleLock")]
+#[napi(string_enum, js_name = "NeedleLock")]
 pub enum JsNeedleLock {
     Unlock,
     Lock,
@@ -480,7 +480,7 @@ impl From<JsNeedleLock> for NeedleLock {
     }
 }
 
-#[napi(js_name = "TimeMode")]
+#[napi(string_enum, js_name = "TimeMode")]
 pub enum JsTimeMode {
     Elapsed,
     Remain,
@@ -504,7 +504,7 @@ impl From<JsTimeMode> for TimeMode {
     }
 }
 
-#[napi(js_name = "JogMode")]
+#[napi(string_enum, js_name = "JogMode")]
 pub enum JsJogMode {
     Vinyl,
     CDJ,
@@ -528,7 +528,7 @@ impl From<JsJogMode> for JogMode {
     }
 }
 
-#[napi(js_name = "AutoCue")]
+#[napi(string_enum, js_name = "AutoCue")]
 pub enum JsAutoCue {
     Off,
     On,
@@ -552,7 +552,7 @@ impl From<JsAutoCue> for AutoCue {
     }
 }
 
-#[napi(js_name = "MasterTempo")]
+#[napi(string_enum, js_name = "MasterTempo")]
 pub enum JsMasterTempo {
     Off,
     On,
@@ -576,7 +576,7 @@ impl From<JsMasterTempo> for MasterTempo {
     }
 }
 
-#[napi(js_name = "TempoRange")]
+#[napi(string_enum, js_name = "TempoRange")]
 pub enum JsTempoRange {
     SixPercent,
     TenPercent,
@@ -606,7 +606,7 @@ impl From<JsTempoRange> for TempoRange {
     }
 }
 
-#[napi(js_name = "PhaseMeter")]
+#[napi(string_enum, js_name = "PhaseMeter")]
 pub enum JsPhaseMeter {
     Type1,
     Type2,
@@ -630,7 +630,7 @@ impl From<JsPhaseMeter> for PhaseMeter {
     }
 }
 
-#[napi(js_name = "VinylSpeedAdjust")]
+#[napi(string_enum, js_name = "VinylSpeedAdjust")]
 pub enum JsVinylSpeedAdjust {
     TouchRelease,
     Touch,
@@ -657,7 +657,7 @@ impl From<JsVinylSpeedAdjust> for VinylSpeedAdjust {
     }
 }
 
-#[napi(js_name = "JogDisplayMode")]
+#[napi(string_enum, js_name = "JogDisplayMode")]
 pub enum JsJogDisplayMode {
     Auto,
     Info,
@@ -687,7 +687,7 @@ impl From<JsJogDisplayMode> for JogDisplayMode {
     }
 }
 
-#[napi(js_name = "PadButtonBrightness")]
+#[napi(string_enum, js_name = "PadButtonBrightness")]
 pub enum JsPadButtonBrightness {
     One,
     Two,
@@ -717,7 +717,7 @@ impl From<JsPadButtonBrightness> for PadButtonBrightness {
     }
 }
 
-#[napi(js_name = "JogLCDBrightness")]
+#[napi(string_enum, js_name = "JogLCDBrightness")]
 pub enum JsJogLCDBrightness {
     One,
     Two,
@@ -750,7 +750,7 @@ impl From<JsJogLCDBrightness> for JogLCDBrightness {
     }
 }
 
-#[napi(js_name = "WaveformDivisions")]
+#[napi(string_enum, js_name = "WaveformDivisions")]
 pub enum JsWaveformDivisions {
     TimeScale,
     Phrase,
@@ -774,7 +774,7 @@ impl From<JsWaveformDivisions> for WaveformDivisions {
     }
 }
 
-#[napi(js_name = "Waveform")]
+#[napi(string_enum, js_name = "Waveform")]
 pub enum JsWaveform {
     Waveform,
     PhaseMeter,
@@ -798,7 +798,7 @@ impl From<JsWaveform> for Waveform {
     }
 }
 
-#[napi(js_name = "BeatJumpBeatValue")]
+#[napi(string_enum, js_name = "BeatJumpBeatValue")]
 pub enum JsBeatJumpBeatValue {
     HalfBeat,
     OneBeat,
@@ -840,7 +840,7 @@ impl From<JsBeatJumpBeatValue> for BeatJumpBeatValue {
     }
 }
 
-#[napi(js_name = "ChannelFaderCurve")]
+#[napi(string_enum, js_name = "ChannelFaderCurve")]
 pub enum JsChannelFaderCurve {
     SteepTop,
     Linear,
@@ -867,7 +867,7 @@ impl From<JsChannelFaderCurve> for ChannelFaderCurve {
     }
 }
 
-#[napi(js_name = "CrossfaderCurve")]
+#[napi(string_enum, js_name = "CrossfaderCurve")]
 pub enum JsCrossfaderCurve {
     ConstantPower,
     SlowCut,
@@ -894,7 +894,7 @@ impl From<JsCrossfaderCurve> for CrossfaderCurve {
     }
 }
 
-#[napi(js_name = "HeadphonesPreEQ")]
+#[napi(string_enum, js_name = "HeadphonesPreEQ")]
 pub enum JsHeadphonesPreEQ {
     PostEQ,
     PreEQ,
@@ -918,7 +918,7 @@ impl From<JsHeadphonesPreEQ> for HeadphonesPreEQ {
     }
 }
 
-#[napi(js_name = "HeadphonesMonoSplit")]
+#[napi(string_enum, js_name = "HeadphonesMonoSplit")]
 pub enum JsHeadphonesMonoSplit {
     MonoSplit,
     Stereo,
@@ -942,7 +942,7 @@ impl From<JsHeadphonesMonoSplit> for HeadphonesMonoSplit {
     }
 }
 
-#[napi(js_name = "BeatFXQuantize")]
+#[napi(string_enum, js_name = "BeatFXQuantize")]
 pub enum JsBeatFXQuantize {
     Off,
     On,
@@ -966,7 +966,7 @@ impl From<JsBeatFXQuantize> for BeatFXQuantize {
     }
 }
 
-#[napi(js_name = "MicLowCut")]
+#[napi(string_enum, js_name = "MicLowCut")]
 pub enum JsMicLowCut {
     Off,
     On,
@@ -990,7 +990,7 @@ impl From<JsMicLowCut> for MicLowCut {
     }
 }
 
-#[napi(js_name = "TalkOverMode")]
+#[napi(string_enum, js_name = "TalkOverMode")]
 pub enum JsTalkOverMode {
     Advanced,
     Normal,
@@ -1014,7 +1014,7 @@ impl From<JsTalkOverMode> for TalkOverMode {
     }
 }
 
-#[napi(js_name = "TalkOverLevel")]
+#[napi(string_enum, js_name = "TalkOverLevel")]
 pub enum JsTalkOverLevel {
     Minus24dB,
     Minus18dB,
@@ -1044,7 +1044,7 @@ impl From<JsTalkOverLevel> for TalkOverLevel {
     }
 }
 
-#[napi(js_name = "MidiChannel")]
+#[napi(string_enum, js_name = "MidiChannel")]
 pub enum JsMidiChannel {
     One,
     Two,
@@ -1110,7 +1110,7 @@ impl From<JsMidiChannel> for MidiChannel {
     }
 }
 
-#[napi(js_name = "MidiButtonType")]
+#[napi(string_enum, js_name = "MidiButtonType")]
 pub enum JsMidiButtonType {
     Toggle,
     Trigger,
@@ -1134,7 +1134,7 @@ impl From<JsMidiButtonType> for MidiButtonType {
     }
 }
 
-#[napi(js_name = "MixerDisplayBrightness")]
+#[napi(string_enum, js_name = "MixerDisplayBrightness")]
 pub enum JsMixerDisplayBrightness {
     White,
     One,
@@ -1170,7 +1170,7 @@ impl From<JsMixerDisplayBrightness> for MixerDisplayBrightness {
     }
 }
 
-#[napi(js_name = "MixerIndicatorBrightness")]
+#[napi(string_enum, js_name = "MixerIndicatorBrightness")]
 pub enum JsMixerIndicatorBrightness {
     One,
     Two,
@@ -1197,7 +1197,7 @@ impl From<JsMixerIndicatorBrightness> for MixerIndicatorBrightness {
     }
 }
 
-#[napi(js_name = "ChannelFaderCurveLongFader")]
+#[napi(string_enum, js_name = "ChannelFaderCurveLongFader")]
 pub enum JsChannelFaderCurveLongFader {
     Exponential,
     Smooth,
@@ -1224,7 +1224,7 @@ impl From<JsChannelFaderCurveLongFader> for ChannelFaderCurveLongFader {
     }
 }
 
-#[napi(js_name = "OverviewWaveformType")]
+#[napi(string_enum, js_name = "OverviewWaveformType")]
 pub enum JsOverviewWaveformType {
     HalfWaveform,
     FullWaveform,
@@ -1248,7 +1248,7 @@ impl From<JsOverviewWaveformType> for OverviewWaveformType {
     }
 }
 
-#[napi(js_name = "WaveformColor")]
+#[napi(string_enum, js_name = "WaveformColor")]
 pub enum JsWaveformColor {
     Blue,
     Rgb,
@@ -1275,7 +1275,7 @@ impl From<JsWaveformColor> for WaveformColor {
     }
 }
 
-#[napi(js_name = "KeyDisplayFormat")]
+#[napi(string_enum, js_name = "KeyDisplayFormat")]
 pub enum JsKeyDisplayFormat {
     Classic,
     Alphanumeric,
@@ -1299,7 +1299,7 @@ impl From<JsKeyDisplayFormat> for KeyDisplayFormat {
     }
 }
 
-#[napi(js_name = "WaveformCurrentPosition")]
+#[napi(string_enum, js_name = "WaveformCurrentPosition")]
 pub enum JsWaveformCurrentPosition {
     Left,
     Center,
