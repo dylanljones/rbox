@@ -73,7 +73,7 @@ jobs:
     needs:
       - cargo-fmt-check
       - code-change
-    if: ${{ !needs.code-change.outputs.should_skip_rs}}
+    if: ${{ !needs.code-change.outputs.should_skip_rs }}
     strategy:
       matrix:
         os: ["ubuntu-latest", "windows-latest", "macos-latest"]  # "macos-13"
@@ -109,7 +109,7 @@ jobs:
     needs:
       - code-change
       - cargo-fmt-check
-    if: ${{ !needs.code-change.outputs.should_skip_py}}
+    if: ${{ !needs.code-change.outputs.should_skip_py }}
     strategy:
       fail-fast: false
       matrix:
@@ -165,7 +165,7 @@ jobs:
     needs:
       - code-change
       - cargo-fmt-check
-    if: ${{ !needs.code-change.outputs.should_skip_js}}
+    if: ${{ !needs.code-change.outputs.should_skip_js }}
     strategy:
       fail-fast: false
       matrix:
