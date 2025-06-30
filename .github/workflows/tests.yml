@@ -22,9 +22,9 @@ jobs:
     outputs:
       should_skip: ${{ steps.skip_check.outputs.should_skip }}
       paths_result: ${{ steps.skip_check.outputs.paths_result }}
-      run_rs: ${{ fromJSON(steps.skip_check.outputs.paths_result).rust.should_skip }}
-      run_py: ${{ fromJSON(steps.skip_check.outputs.paths_result).python.should_skip }}
-      run_js: ${{ fromJSON(steps.skip_check.outputs.paths_result).javascript.should_skip }}
+      run_rs: ${{ !fromJSON(steps.skip_check.outputs.paths_result).rust.should_skip }}
+      run_py: ${{ !fromJSON(steps.skip_check.outputs.paths_result).python.should_skip }}
+      run_js: ${{ !fromJSON(steps.skip_check.outputs.paths_result).javascript.should_skip }}
     steps:
       - id: skip_check
         uses: fkirc/skip-duplicate-actions@v5
