@@ -69,6 +69,17 @@ jobs:
 
   # -- Rust tests ----------------------------------------------------------------------------------
 
+  change:
+    runs-on: ubuntu-latest
+    needs: code-change
+    steps:
+      - name: Print
+        run: |
+          echo " rs = ${{ !needs.code-change.outputs.should_skip_rs }}"
+          echo " py = ${{ !needs.code-change.outputs.should_skip_py }}"
+          echo " js = ${{ !needs.code-change.outputs.should_skip_js }}"
+
+
   test-rust:
     needs:
       - cargo-fmt-check
