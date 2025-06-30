@@ -201,7 +201,7 @@ pub struct BeatGrid {
     #[bw(calc = 24)]
     header_size: u32,
     /// Length of the section (including the header).
-    pub total_size: u32,
+    total_size: u32,
     /// Unknown field.
     u1: u32,
     /// Unknown field: Seems to always be `0x80000`.
@@ -245,7 +245,7 @@ pub struct ExtendedBeatGrid {
     #[bw(calc = 56)]
     header_size: u32,
     /// Length of the section (including the header).
-    pub total_size: u32,
+    total_size: u32,
     /// Padding: 4bytes.
     pad1: u32,
     /// Unknown field: Seems to always be `0x01000002`.
@@ -289,7 +289,7 @@ pub enum CueType {
 
 impl CueType {
     /// Returns the tag type as a string.
-    pub fn to_int(&self) -> i32 {
+    pub fn to_int(&self) -> u16 {
         match self {
             CueType::Point => 1,
             CueType::Loop => 2,
@@ -306,6 +306,16 @@ pub enum CueListType {
     MemoryCues = 0,
     /// Hot cues or loops.
     HotCues = 1,
+}
+
+impl CueListType {
+    /// Returns the tag type as a string.
+    pub fn to_int(&self) -> u16 {
+        match self {
+            CueListType::MemoryCues => 0,
+            CueListType::HotCues => 1,
+        }
+    }
 }
 
 /// Indicates if the cue is point or a loop.
@@ -325,7 +335,7 @@ pub enum CueStatus {
 #[brw(big)]
 pub struct Cue {
     /// Cue entry header.
-    pub header: Header,
+    header: Header,
     /// Hot cue number.
     pub hot_cue: u32,
     /// Loop status. `4` if this cue is an active loop, `0` otherwise.
@@ -364,7 +374,7 @@ pub struct Cue {
 #[brw(big)]
 pub struct ExtendedCue {
     /// Cue entry header.
-    pub header: Header,
+    header: Header,
     /// Hot cue number.
     pub hot_cue: u32,
     /// Type of this cue (`2` if this cue is a loop).
@@ -431,7 +441,7 @@ pub struct CueList {
     #[bw(calc = 24)]
     header_size: u32,
     /// Length of the section (including the header).
-    pub total_size: u32,
+    total_size: u32,
     /// The types of cues (memory or hot) that this list contains.
     pub list_type: CueListType,
     /// Unknown field
@@ -468,7 +478,7 @@ pub struct ExtendedCueList {
     #[bw(calc = 20)]
     header_size: u32,
     /// Length of the section (including the header).
-    pub total_size: u32,
+    total_size: u32,
     /// The types of cues (memory or hot) that this list contains.
     pub list_type: CueListType,
     /// Number of cues.
@@ -504,7 +514,7 @@ pub struct Path {
     #[bw(calc = 16)]
     header_size: u32,
     /// Length of the section (including the header).
-    pub total_size: u32,
+    total_size: u32,
     /// Length of the path field in bytes.
     #[br(temp)]
     #[br(assert(len_path == total_size - header_size))]
@@ -552,9 +562,9 @@ impl Path {
 pub struct VBR {
     /// Length of the header data (including `kind`, `size` and `total_size`).
     #[br(assert(header_size == 16))]
-    pub header_size: u32,
+    header_size: u32,
     /// Length of the section (including the header).
-    pub total_size: u32,
+    total_size: u32,
     /// Unknown field.
     i2: u32,
     /// Unknown data.
@@ -601,7 +611,7 @@ pub struct TinyWaveformPreview {
     #[bw(calc = 20)]
     header_size: u32,
     /// Length of the section (including the header).
-    pub total_size: u32,
+    total_size: u32,
     /// Unknown field.
     #[br(temp)]
     #[br(assert(len_preview == total_size - header_size))]
@@ -647,7 +657,7 @@ pub struct WaveformPreview {
     #[bw(calc = 20)]
     header_size: u32,
     /// Length of the section (including the header).
-    pub total_size: u32,
+    total_size: u32,
     /// Unknown field.
     #[br(temp)]
     #[br(assert(len_preview == total_size - header_size))]
@@ -679,7 +689,7 @@ pub struct WaveformDetail {
     #[bw(calc = 24)]
     header_size: u32,
     /// Length of the section (including the header).
-    pub total_size: u32,
+    total_size: u32,
     /// Size of a single entry, always 1.
     #[br(temp)]
     #[br(assert(len_entry_bytes == 1))]
@@ -741,7 +751,7 @@ pub struct WaveformColorPreview {
     #[bw(calc = 24)]
     header_size: u32,
     /// Length of the section (including the header).
-    pub total_size: u32,
+    total_size: u32,
     /// Size of a single entry, always 6.
     #[br(temp)]
     #[br(assert(len_entry_bytes == 6))]
@@ -802,7 +812,7 @@ pub struct WaveformColorDetail {
     #[bw(calc = 24)]
     header_size: u32,
     /// Length of the section (including the header).
-    pub total_size: u32,
+    total_size: u32,
     /// Size of a single entry, always 2.
     #[br(temp)]
     #[br(assert(len_entry_bytes == 2))]
@@ -855,7 +865,7 @@ pub struct Waveform3BandPreview {
     #[bw(calc = 20)]
     header_size: u32,
     /// Length of the section (including the header).
-    pub total_size: u32,
+    total_size: u32,
     /// Size of a single entry, always 3.
     #[br(temp)]
     #[br(assert(len_entry_bytes == 3))]
@@ -890,7 +900,7 @@ pub struct Waveform3BandDetail {
     #[bw(calc = 24)]
     header_size: u32,
     /// Length of the section (including the header).
-    pub total_size: u32,
+    total_size: u32,
     /// Size of a single entry, always 2.
     #[br(temp)]
     #[br(assert(len_entry_bytes == 3))]
@@ -1115,7 +1125,7 @@ pub struct SongStructure {
     #[bw(calc = 32)]
     header_size: u32,
     /// Length of the section (including the header).
-    pub total_size: u32,
+    total_size: u32,
     /// Size of a single entry, always 24.
     #[br(temp)]
     #[br(assert(len_entry_bytes == 24))]
