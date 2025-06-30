@@ -19,6 +19,9 @@ permissions:
 jobs:
   code-change:
     runs-on: ubuntu-latest
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+      paths_result: ${{ steps.skip_check.outputs.paths_result }}
     steps:
       - id: skip_check
         uses: fkirc/skip-duplicate-actions@v5
@@ -51,11 +54,6 @@ jobs:
                 - 'bindings/javascript/README.md'
                 - 'bindings/javascript/rustfmt.toml'
                 - 'bindings/javascript/yarn.lock'
-    outputs:
-      should_skip: ${{ fromJSON(steps.skip_check.outputs.should_skip) }}
-      should_skip_rs: ${{ fromJSON(steps.skip_check.outputs.paths_result).rust.should_skip }}
-      should_skip_py: ${{ fromJSON(steps.skip_check.outputs.paths_result).python.should_skip }}
-      should_skip_js: ${{ fromJSON(steps.skip_check.outputs.paths_result).javascript.should_skip }}
 
   cargo-fmt-check:
     runs-on: ubuntu-latest
@@ -76,16 +74,14 @@ jobs:
     steps:
       - name: Print
         run: |
-          echo " rs = ${{ !needs.code-change.outputs.should_skip_rs }}"
-          echo " py = ${{ !needs.code-change.outputs.should_skip_py }}"
-          echo " js = ${{ !needs.code-change.outputs.should_skip_js }}"
+          echo "${{ needs.code-change.outputs.paths_result }}"
 
 
   test-rust:
     needs:
       - cargo-fmt-check
       - code-change
-    if: ${{ !needs.code-change.outputs.should_skip_rs }}
+    if: ${{ !fromJSON(needs.code-change.outputs.paths_result).rust.should_skip }}
     strategy:
       matrix:
         os: ["ubuntu-latest", "windows-latest", "macos-latest"]  # "macos-13"
@@ -121,7 +117,7 @@ jobs:
     needs:
       - code-change
       - cargo-fmt-check
-    if: ${{ !needs.code-change.outputs.should_skip_py }}
+    if: ${{ !fromJSON(needs.code-change.outputs.paths_result).python.should_skip }}
     strategy:
       fail-fast: false
       matrix:
@@ -177,7 +173,7 @@ jobs:
     needs:
       - code-change
       - cargo-fmt-check
-    if: ${{ !needs.code-change.outputs.should_skip_js }}
+    if: ${{ !fromJSON(needs.code-change.outputs.paths_result).javascript.should_skip }}
     strategy:
       fail-fast: false
       matrix:
