@@ -57,8 +57,6 @@ jobs:
       should_skip_js: ${{ fromJSON(steps.skip_check.outputs.paths_result).javascript.should_skip }}
 
   cargo-fmt-check:
-    needs: code-change
-    if: ${{ !needs.code-change.outputs.should_skip}}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
