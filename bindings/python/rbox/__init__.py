@@ -6,7 +6,6 @@ from ._rbox import (
     AnlzError,
     DatabaseError,
     Error,
-    PySetting as Setting,
     SettingError,
     XmlError,
     is_rekordbox_running,
@@ -14,3 +13,4 @@ from ._rbox import (
 from .anlz import Anlz, TagType
 from .masterdb import MasterDb
 from .rbxml import RekordboxXml
+from .settings import Setting
