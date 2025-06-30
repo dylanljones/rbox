@@ -32,7 +32,6 @@ jobs:
           paths_filter: |
             rust:
               paths:
-                - '.github/workflows/**'
                 - 'rbox/**'
               paths_ignore:
                 - 'rbox/README.md'
@@ -111,7 +110,7 @@ jobs:
     needs:
       - code-change
       - cargo-fmt-check
-    if: ${{ !fromJSON(needs.code-change.outputs.paths_result).python.should_skip }}
+    if: needs.code-change.outputs.run_py == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -167,7 +166,7 @@ jobs:
     needs:
       - code-change
       - cargo-fmt-check
-    if: ${{ !fromJSON(needs.code-change.outputs.paths_result).javascript.should_skip }}
+    if: needs.code-change.outputs.run_js == 'true'
     strategy:
       fail-fast: false
       matrix:
