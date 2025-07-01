@@ -6,6 +6,7 @@ mod errors;
 mod masterdb;
 mod py_models;
 mod settings;
+mod traits;
 mod util;
 mod xml;
 

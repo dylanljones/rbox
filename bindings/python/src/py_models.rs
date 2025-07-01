@@ -2,19 +2,11 @@
 
 #![allow(non_snake_case)]
 
+use super::traits::{FromPy, IntoPy};
 use chrono::{DateTime, Utc};
 use pyo3::prelude::*;
 use pyo3::types::{PyDateTime, PyDict, PyList};
-use pyo3::PyClass;
 use rbox::masterdb::models::*;
-
-pub trait IntoPy<T> {
-    fn into_py(self, py: Python) -> PyResult<T>;
-}
-
-pub trait FromPy<T: PyClass> {
-    fn from_py(py: Python, model: PyRef<'_, T>) -> Self;
-}
 
 #[pyclass]
 struct Iter {

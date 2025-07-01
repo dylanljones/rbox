@@ -6,7 +6,8 @@ use pyo3::types::{PyDict, PyList, PyString, PyType};
 use rbox::masterdb::{enums::PlaylistType, models::*, MasterDb};
 
 use super::errors::DatabaseError;
-use super::py_models::{FromPy, IntoPy, *};
+use super::py_models::*;
+use super::traits::{FromPy, IntoPy};
 
 #[pyclass(unsendable)]
 pub struct PyMasterDb {
