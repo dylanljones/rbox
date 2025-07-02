@@ -177,7 +177,7 @@ trait SizedSection {
 
 /// Single beat grid entry inside a `BeatGrid` section.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(big)]
 pub struct Beat {
     /// Beat number inside the bar (1-4).
@@ -193,7 +193,7 @@ pub struct Beat {
 /// Identifier: PQTZ
 /// Used in `.DAT` files.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct BeatGrid {
     /// Length of the header data (including `kind`, `header_size` and `total_size`).
     #[br(temp)]
@@ -223,7 +223,7 @@ impl SizedSection for BeatGrid {
 
 /// Single beat grid entry inside a `BeatGridExtended` section.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(big)]
 pub struct ExtBeat {
     /// Beat number inside the bar (1-4).
@@ -237,7 +237,7 @@ pub struct ExtBeat {
 /// Identifier: PQT2
 /// Used in `.DAT` files.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct ExtendedBeatGrid {
     /// Length of the header data (including `kind`, `header_size` and `total_size`).
     #[br(temp)]
@@ -278,7 +278,7 @@ impl SizedSection for ExtendedBeatGrid {
 
 /// Indicates if the cue is point or a loop.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(repr = u8)]
 pub enum CueType {
     /// Cue point.
@@ -287,9 +287,8 @@ pub enum CueType {
     Loop = 2,
 }
 
-impl CueType {
-    /// Returns the tag type as a string.
-    pub fn to_int(&self) -> u16 {
+impl Into<u16> for CueType {
+    fn into(self) -> u16 {
         match self {
             CueType::Point => 1,
             CueType::Loop => 2,
@@ -299,7 +298,7 @@ impl CueType {
 
 /// Describes the types of entries found in a Cue List section.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(big, repr = u32)]
 pub enum CueListType {
     /// Memory cues or loops.
@@ -308,9 +307,8 @@ pub enum CueListType {
     HotCues = 1,
 }
 
-impl CueListType {
-    /// Returns the tag type as a string.
-    pub fn to_int(&self) -> u16 {
+impl Into<u16> for CueListType {
+    fn into(self) -> u16 {
         match self {
             CueListType::MemoryCues => 0,
             CueListType::HotCues => 1,
@@ -320,7 +318,7 @@ impl CueListType {
 
 /// Indicates if the cue is point or a loop.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(repr = u32)]
 pub enum CueStatus {
     /// Cue point diabled.
@@ -329,9 +327,18 @@ pub enum CueStatus {
     Active = 4,
 }
 
+impl Into<u16> for CueStatus {
+    fn into(self) -> u16 {
+        match self {
+            CueStatus::Disabled => 0,
+            CueStatus::Active => 4,
+        }
+    }
+}
+
 /// A memory or hot cue (or loop).
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(big)]
 pub struct Cue {
     /// Cue entry header.
@@ -370,7 +377,7 @@ pub struct Cue {
 
 /// A extended memory or hot cue (or loop).
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(big)]
 pub struct ExtendedCue {
     /// Cue entry header.
@@ -433,7 +440,7 @@ pub struct ExtendedCue {
 /// Identifier: PCOB
 /// Used in `.DAT` files.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct CueList {
     /// Length of the header data (including `kind`, `header_size` and `total_size`).
     #[br(temp)]
@@ -470,7 +477,7 @@ impl SizedSection for CueList {
 /// Variation of the original `CueList` that also adds support for more metadata such as
 /// comments and colors. Introduces with the Nexus 2 series players.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct ExtendedCueList {
     /// Length of the header data (including `kind`, `header_size` and `total_size`).
     #[br(temp)]
@@ -506,7 +513,7 @@ impl SizedSection for ExtendedCueList {
 /// Identifier: PPTH
 /// Used in `.DAT`, `.EXT` and `.2EX` files.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Path {
     /// Length of the header data (including `kind`, `header_size` and `total_size`).
     #[br(temp)]
@@ -558,7 +565,7 @@ impl Path {
 /// Identifier: PVBR
 /// Used in `.DAT` files.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct VBR {
     /// Length of the header data (including `kind`, `size` and `total_size`).
     #[br(assert(header_size == 16))]
@@ -603,7 +610,7 @@ impl Default for TinyWaveformColumn {
 /// Identifier: PWAV
 /// Used in `.DAT` files.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct TinyWaveformPreview {
     /// Length of the header data (including `kind`, `header_size` and `total_size`).
     #[br(temp)]
@@ -649,7 +656,7 @@ pub struct WaveformColumn {
 /// Identifier: PWV2
 /// Used in `.DAT` files.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct WaveformPreview {
     /// Length of the header data (including `kind`, `header_size` and `total_size`).
     #[br(temp)]
@@ -681,7 +688,7 @@ impl SizedSection for WaveformPreview {
 /// Identifier: PWV3
 /// Used in `.EXT` files.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct WaveformDetail {
     /// Length of the header data (including `kind`, `header_size` and `total_size`).
     #[br(temp)]
@@ -743,7 +750,7 @@ pub struct WaveformColorPreviewColumn {
 /// Identifier: PWV4
 /// Used in `.EXT` files.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct WaveformColorPreview {
     /// Length of the header data (including `kind`, `header_size` and `total_size`).
     #[br(temp)]
@@ -804,7 +811,7 @@ pub struct WaveformColorDetailColumn {
 /// Identifier: PWV5
 /// Used in `.EXT` files.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct WaveformColorDetail {
     /// Length of the header data (including `kind`, `header_size` and `total_size`).
     #[br(temp)]
@@ -857,7 +864,7 @@ pub struct Waveform3BandColumn {
 /// Identifier: PWV6
 /// Used in `.2EX` files.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Waveform3BandPreview {
     /// Length of the header data (including `kind`, `header_size` and `total_size`).
     #[br(temp)]
@@ -892,7 +899,7 @@ impl SizedSection for Waveform3BandPreview {
 /// Identifier: PWV7
 /// Used in `.2EX` files.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Waveform3BandDetail {
     /// Length of the header data (including `kind`, `header_size` and `total_size`).
     #[br(temp)]
@@ -946,6 +953,16 @@ pub enum Mood {
     Low,
 }
 
+impl Into<u16> for Mood {
+    fn into(self) -> u16 {
+        match self {
+            Mood::High => 1,
+            Mood::Mid => 2,
+            Mood::Low => 3,
+        }
+    }
+}
+
 /// Stylistic track bank for Lightning mode.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -971,6 +988,21 @@ pub enum Bank {
     Club2,
 }
 
+impl Into<u16> for Bank {
+    fn into(self) -> u16 {
+        match self {
+            Bank::Default => 0,
+            Bank::Cool => 1,
+            Bank::Natural => 2,
+            Bank::Hot => 3,
+            Bank::Subtle => 4,
+            Bank::Warm => 5,
+            Bank::Vivid => 6,
+            Bank::Club1 => 7,
+            Bank::Club2 => 8,
+        }
+    }
+}
 /// A song structure entry that represents a phrase in the track.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -1117,7 +1149,7 @@ impl SongStructureData {
 /// Identifier: PSSI
 /// Used in `.EXT` files.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct SongStructure {
     /// Length of the header data (including `kind`, `header_size` and `total_size`).
     #[br(temp)]
@@ -1141,11 +1173,11 @@ pub struct SongStructure {
     /// This is a virtual field and not actually present in the file.
     #[br(restore_position, map = |raw_mood: [u8; 2]| SongStructureData::check_if_encrypted(raw_mood, len_entries))]
     #[bw(ignore)]
-    is_encrypted: bool,
+    pub is_encrypted: bool,
     /// Song structure data.
     #[br(args(is_encrypted, len_entries), parse_with = SongStructureData::read_encrypted)]
     #[bw(args(*is_encrypted, len_entries), write_with = SongStructureData::write_encrypted)]
-    data: SongStructureData,
+    pub data: SongStructureData,
 }
 
 impl SizedSection for SongStructure {
@@ -1158,7 +1190,7 @@ impl SizedSection for SongStructure {
 
 /// Unknown content.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Unknown {
     /// Length of the header data (including `kind`, `size` and `total_size`).
     header_size: u32,
@@ -1182,7 +1214,7 @@ impl SizedSection for Unknown {
 
 /// Section content which differs depending on the section type.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[br(import(tag: AnlzTag))]
 pub enum Content {
     /// All beats in the track.
@@ -1259,7 +1291,7 @@ impl SizedSection for Content {
 
 /// ANLZ Section.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Section {
     /// Kind of content in this item.
     pub tag: AnlzTag,
@@ -1270,7 +1302,7 @@ pub struct Section {
 
 /// ANLZ file contents
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(big)]
 pub struct AnlzData {
     /// The file header.
@@ -1376,34 +1408,37 @@ impl Anlz {
     }
 
     /// Return the beat grid entries (PQTZ) if present
-    pub fn get_beat_grid(&mut self) -> Option<Vec<&mut Beat>> {
+    pub fn get_beat_grid(&mut self) -> Option<&mut BeatGrid> {
         let section = self.find_section_by_tag(AnlzTag::BeatGrid);
         if let Some(section) = section {
             if let Content::BeatGrid(content) = &mut section.content {
-                return Some(content.beats.iter_mut().collect());
+                return Some(content);
+                // return Some(content.beats.iter_mut().collect());
             }
         }
         None
     }
 
     /// Return the extended beat grid entries (PQT2) if present
-    pub fn get_extended_beat_grid(&mut self) -> Option<Vec<&mut ExtBeat>> {
+    pub fn get_extended_beat_grid(&mut self) -> Option<&mut ExtendedBeatGrid> {
         let section = self.find_section_by_tag(AnlzTag::ExtendedBeatGrid);
         if let Some(section) = section {
             if let Content::ExtendedBeatGrid(content) = &mut section.content {
-                return Some(content.beats.iter_mut().collect());
+                // return Some(content.beats.iter_mut().collect());
+                return Some(content);
             }
         }
         None
     }
 
     /// Return the hot cue list entries (PCOB) if present
-    pub fn get_hot_cues(&mut self) -> Option<Vec<&mut Cue>> {
+    pub fn get_hot_cues(&mut self) -> Option<&mut CueList> {
         let sections = self.find_sections_by_tag(AnlzTag::CueList);
         for section in sections {
             if let Content::CueList(content) = &mut section.content {
                 if content.list_type == CueListType::HotCues {
-                    return Some(content.cues.iter_mut().collect());
+                    // return Some(content.cues.iter_mut().collect());
+                    return Some(content);
                 }
             }
         }
@@ -1411,12 +1446,13 @@ impl Anlz {
     }
 
     /// Return the memory cue list entries (PCOB) if present
-    pub fn get_memory_cues(&mut self) -> Option<Vec<&mut Cue>> {
+    pub fn get_memory_cues(&mut self) -> Option<&mut CueList> {
         let sections = self.find_sections_by_tag(AnlzTag::CueList);
         for section in sections {
             if let Content::CueList(content) = &mut section.content {
                 if content.list_type == CueListType::MemoryCues {
-                    return Some(content.cues.iter_mut().collect());
+                    // return Some(content.cues.iter_mut().collect());
+                    return Some(content);
                 }
             }
         }
@@ -1424,12 +1460,13 @@ impl Anlz {
     }
 
     /// Return the extended hot cue list entries (PCOB) if present
-    pub fn get_extended_hot_cues(&mut self) -> Option<Vec<&mut ExtendedCue>> {
+    pub fn get_extended_hot_cues(&mut self) -> Option<&mut ExtendedCueList> {
         let sections = self.find_sections_by_tag(AnlzTag::ExtendedCueList);
         for section in sections {
             if let Content::ExtendedCueList(content) = &mut section.content {
                 if content.list_type == CueListType::HotCues {
-                    return Some(content.cues.iter_mut().collect());
+                    // return Some(content.cues.iter_mut().collect());
+                    return Some(content);
                 }
             }
         }
@@ -1437,12 +1474,13 @@ impl Anlz {
     }
 
     /// Return the extended memory cue list entries (PCOB) if present
-    pub fn get_extended_memory_cues(&mut self) -> Option<Vec<&mut ExtendedCue>> {
+    pub fn get_extended_memory_cues(&mut self) -> Option<&mut ExtendedCueList> {
         let sections = self.find_sections_by_tag(AnlzTag::ExtendedCueList);
         for section in sections {
             if let Content::ExtendedCueList(content) = &mut section.content {
                 if content.list_type == CueListType::MemoryCues {
-                    return Some(content.cues.iter_mut().collect());
+                    // return Some(content.cues.iter_mut().collect());
+                    return Some(content);
                 }
             }
         }
@@ -1500,77 +1538,77 @@ impl Anlz {
     }
 
     /// Returns the tiny waveform columns (PWAV) if present
-    pub fn get_tiny_waveform_preview(&mut self) -> Option<Vec<TinyWaveformColumn>> {
+    pub fn get_tiny_waveform_preview(&mut self) -> Option<&mut TinyWaveformPreview> {
         let section = self.find_section_by_tag(AnlzTag::TinyWaveformPreview);
         if let Some(section) = section {
-            if let Content::TinyWaveformPreview(content) = &section.content {
-                return Some(content.data.clone());
+            if let Content::TinyWaveformPreview(content) = &mut section.content {
+                return Some(content);
             }
         }
         None
     }
 
     /// Returns the fixed-width monochrome waveform preview columns (PWV2) if present
-    pub fn get_waveform_preview(&mut self) -> Option<Vec<WaveformColumn>> {
+    pub fn get_waveform_preview(&mut self) -> Option<&mut WaveformPreview> {
         let section = self.find_section_by_tag(AnlzTag::WaveformPreview);
         if let Some(section) = section {
-            if let Content::WaveformPreview(content) = &section.content {
-                return Some(content.data.clone());
+            if let Content::WaveformPreview(content) = &mut section.content {
+                return Some(content);
             }
         }
         None
     }
 
     /// Returns the variable-width monochrome waveform columns (PWV3) if present
-    pub fn get_waveform_detail(&mut self) -> Option<Vec<WaveformColumn>> {
+    pub fn get_waveform_detail(&mut self) -> Option<&mut WaveformDetail> {
         let section = self.find_section_by_tag(AnlzTag::WaveformDetail);
         if let Some(section) = section {
-            if let Content::WaveformDetail(content) = &section.content {
-                return Some(content.data.clone());
+            if let Content::WaveformDetail(content) = &mut section.content {
+                return Some(content);
             }
         }
         None
     }
 
     /// Returns the variable-width color waveform preview columns (PWV4) if present
-    pub fn get_waveform_color_preview(&mut self) -> Option<Vec<WaveformColorPreviewColumn>> {
+    pub fn get_waveform_color_preview(&mut self) -> Option<&mut WaveformColorPreview> {
         let section = self.find_section_by_tag(AnlzTag::WaveformColorPreview);
         if let Some(section) = section {
-            if let Content::WaveformColorPreview(content) = &section.content {
-                return Some(content.data.clone());
+            if let Content::WaveformColorPreview(content) = &mut section.content {
+                return Some(content);
             }
         }
         None
     }
 
     /// Returns the variable-width color waveform columns (PWV5) if present
-    pub fn get_waveform_color_detail(&mut self) -> Option<Vec<WaveformColorDetailColumn>> {
+    pub fn get_waveform_color_detail(&mut self) -> Option<&mut WaveformColorDetail> {
         let section = self.find_section_by_tag(AnlzTag::WaveformColorDetail);
         if let Some(section) = section {
-            if let Content::WaveformColorDetail(content) = &section.content {
-                return Some(content.data.clone());
+            if let Content::WaveformColorDetail(content) = &mut section.content {
+                return Some(content);
             }
         }
         None
     }
 
     /// Returns the fixed-width three-band waveform preview columns (PWV6) if present
-    pub fn get_waveform_3band_preview(&mut self) -> Option<Vec<Waveform3BandColumn>> {
+    pub fn get_waveform_3band_preview(&mut self) -> Option<&mut Waveform3BandPreview> {
         let section = self.find_section_by_tag(AnlzTag::Waveform3BandPreview);
         if let Some(section) = section {
-            if let Content::Waveform3BandPreview(content) = &section.content {
-                return Some(content.data.clone());
+            if let Content::Waveform3BandPreview(content) = &mut section.content {
+                return Some(content);
             }
         }
         None
     }
 
     /// Returns the fixed-width three-band waveform columns (PWV7) if present
-    pub fn get_waveform_3band_detail(&mut self) -> Option<Vec<Waveform3BandColumn>> {
+    pub fn get_waveform_3band_detail(&mut self) -> Option<&mut Waveform3BandDetail> {
         let section = self.find_section_by_tag(AnlzTag::Waveform3BandDetail);
         if let Some(section) = section {
-            if let Content::Waveform3BandDetail(content) = &section.content {
-                return Some(content.data.clone());
+            if let Content::Waveform3BandDetail(content) = &mut section.content {
+                return Some(content);
             }
         }
         None
@@ -1580,8 +1618,9 @@ impl Anlz {
     pub fn get_song_structure(&mut self) -> Option<SongStructureData> {
         let section = self.find_section_by_tag(AnlzTag::SongStructure);
         if let Some(section) = section {
-            if let Content::SongStructure(content) = &section.content {
-                return Some(content.data.clone());
+            if let Content::SongStructure(content) = &mut section.content {
+                let data = content.data.clone();
+                return Some(data);
             }
         }
         None
