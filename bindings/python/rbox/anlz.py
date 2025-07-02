@@ -7,7 +7,21 @@ from enum import Enum
 from pathlib import Path
 from typing import List, Optional, Union
 
-from ._rbox import BeatGrid, CueList, ExtendedBeatGrid, ExtendedCueList, PyAnlz as _PyAnlz
+from ._rbox import (
+    BeatGrid,
+    CueList,
+    ExtendedBeatGrid,
+    ExtendedCueList,
+    PyAnlz as _PyAnlz,
+    SongStructureData,
+    TinyWaveformPreview,
+    Waveform3BandDetail,
+    Waveform3BandPreview,
+    WaveformColorDetail,
+    WaveformColorPreview,
+    WaveformDetail,
+    WaveformPreview,
+)
 
 
 class TagType(Enum):
@@ -110,3 +124,30 @@ class Anlz:
 
     def set_path(self, path: Union[str, Path]) -> None:
         self._anlz.set_path(str(path))
+
+    def get_vbr_data(self) -> List[int]:
+        return self._anlz.get_vbr_data()
+
+    def get_tiny_waveform_preview(self) -> TinyWaveformPreview:
+        return self._anlz.get_tiny_waveform_preview()
+
+    def get_waveform_preview(self) -> WaveformPreview:
+        return self._anlz.get_waveform_preview()
+
+    def get_waveform_detail(self) -> WaveformDetail:
+        return self._anlz.get_waveform_detail()
+
+    def get_waveform_color_preview(self) -> WaveformColorPreview:
+        return self._anlz.get_waveform_color_preview()
+
+    def get_waveform_color_detail(self) -> WaveformColorDetail:
+        return self._anlz.get_waveform_color_detail()
+
+    def get_waveform_3band_preview(self) -> Waveform3BandPreview:
+        return self._anlz.get_waveform_3band_preview()
+
+    def get_waveform_3band_detail(self) -> Waveform3BandDetail:
+        return self._anlz.get_waveform_3band_detail()
+
+    def get_song_structure(self) -> SongStructureData:
+        return self._anlz.get_song_structure()
