@@ -190,6 +190,274 @@ impl IntoPy<PyExtendedCueList> for ExtendedCueList {
     }
 }
 
+#[pyclass(name = "TinyWaveformColumn", unsendable, get_all, set_all)]
+pub struct PyTinyWaveformColumn {
+    pub height: u8,
+}
+
+impl IntoPy<PyTinyWaveformColumn> for TinyWaveformColumn {
+    fn into_py(self, _py: Python) -> PyResult<PyTinyWaveformColumn> {
+        let model = PyTinyWaveformColumn {
+            height: self.height(),
+        };
+        Ok(model)
+    }
+}
+
+#[pyclass(name = "TinyWaveformPreview", unsendable, get_all, set_all)]
+pub struct PyTinyWaveformPreview {
+    pub data: Py<PyList>,
+}
+
+impl IntoPy<PyTinyWaveformPreview> for TinyWaveformPreview {
+    fn into_py(self, py: Python) -> PyResult<PyTinyWaveformPreview> {
+        let data = PyList::empty(py);
+        for column in self.data {
+            let item = column.clone().into_py(py)?;
+            let _ = data.append(item);
+        }
+        let model = PyTinyWaveformPreview { data: data.into() };
+        Ok(model)
+    }
+}
+
+#[pyclass(name = "WaveformColumn", unsendable, get_all, set_all)]
+pub struct PyWaveformColumn {
+    pub height: u8,
+    pub whiteness: u8,
+}
+
+impl IntoPy<PyWaveformColumn> for WaveformColumn {
+    fn into_py(self, _py: Python) -> PyResult<PyWaveformColumn> {
+        let model = PyWaveformColumn {
+            height: self.height(),
+            whiteness: self.whiteness(),
+        };
+        Ok(model)
+    }
+}
+
+#[pyclass(name = "WaveformPreview", unsendable, get_all, set_all)]
+pub struct PyWaveformPreview {
+    pub data: Py<PyList>,
+}
+
+impl IntoPy<PyWaveformPreview> for WaveformPreview {
+    fn into_py(self, py: Python) -> PyResult<PyWaveformPreview> {
+        let data = PyList::empty(py);
+        for column in self.data {
+            let item = column.clone().into_py(py)?;
+            let _ = data.append(item);
+        }
+        let model = PyWaveformPreview { data: data.into() };
+        Ok(model)
+    }
+}
+
+#[pyclass(name = "WaveformDetail", unsendable, get_all, set_all)]
+pub struct PyWaveformDetail {
+    pub data: Py<PyList>,
+}
+
+impl IntoPy<PyWaveformDetail> for WaveformDetail {
+    fn into_py(self, py: Python) -> PyResult<PyWaveformDetail> {
+        let data = PyList::empty(py);
+        for column in self.data {
+            let item = column.clone().into_py(py)?;
+            let _ = data.append(item);
+        }
+        let model = PyWaveformDetail { data: data.into() };
+        Ok(model)
+    }
+}
+
+#[pyclass(name = "WaveformColorPreviewColumn", unsendable, get_all, set_all)]
+pub struct PyWaveformColorPreviewColumn {
+    pub energy_bottom_half_freq: u8,
+    pub energy_bottom_third_freq: u8,
+    pub energy_mid_third_freq: u8,
+    pub energy_top_third_freq: u8,
+}
+
+impl IntoPy<PyWaveformColorPreviewColumn> for WaveformColorPreviewColumn {
+    fn into_py(self, _py: Python) -> PyResult<PyWaveformColorPreviewColumn> {
+        let model = PyWaveformColorPreviewColumn {
+            energy_bottom_half_freq: self.energy_bottom_half_freq,
+            energy_bottom_third_freq: self.energy_bottom_third_freq,
+            energy_mid_third_freq: self.energy_mid_third_freq,
+            energy_top_third_freq: self.energy_top_third_freq,
+        };
+        Ok(model)
+    }
+}
+
+#[pyclass(name = "WaveformColorPreview", unsendable, get_all, set_all)]
+pub struct PyWaveformColorPreview {
+    pub data: Py<PyList>,
+}
+
+impl IntoPy<PyWaveformColorPreview> for WaveformColorPreview {
+    fn into_py(self, py: Python) -> PyResult<PyWaveformColorPreview> {
+        let data = PyList::empty(py);
+        for column in self.data {
+            let item = column.clone().into_py(py)?;
+            let _ = data.append(item);
+        }
+        let model = PyWaveformColorPreview { data: data.into() };
+        Ok(model)
+    }
+}
+
+#[pyclass(name = "WaveformColorDetailColumn", unsendable, get_all, set_all)]
+pub struct PyWaveformColorDetailColumn {
+    pub red: u8,
+    pub green: u8,
+    pub blue: u8,
+    pub height: u8,
+}
+
+impl IntoPy<PyWaveformColorDetailColumn> for WaveformColorDetailColumn {
+    fn into_py(self, _py: Python) -> PyResult<PyWaveformColorDetailColumn> {
+        let model = PyWaveformColorDetailColumn {
+            red: self.red(),
+            green: self.green(),
+            blue: self.blue(),
+            height: self.height(),
+        };
+        Ok(model)
+    }
+}
+
+#[pyclass(name = "WaveformColorDetail", unsendable, get_all, set_all)]
+pub struct PyWaveformColorDetail {
+    pub data: Py<PyList>,
+}
+
+impl IntoPy<PyWaveformColorDetail> for WaveformColorDetail {
+    fn into_py(self, py: Python) -> PyResult<PyWaveformColorDetail> {
+        let data = PyList::empty(py);
+        for column in self.data {
+            let item = column.clone().into_py(py)?;
+            let _ = data.append(item);
+        }
+        let model = PyWaveformColorDetail { data: data.into() };
+        Ok(model)
+    }
+}
+
+#[pyclass(name = "Waveform3BandColumn", unsendable, get_all, set_all)]
+pub struct PyWaveform3BandColumn {
+    pub mid: u8,
+    pub high: u8,
+    pub low: u8,
+}
+
+impl IntoPy<PyWaveform3BandColumn> for Waveform3BandColumn {
+    fn into_py(self, _py: Python) -> PyResult<PyWaveform3BandColumn> {
+        let model = PyWaveform3BandColumn {
+            mid: self.mid(),
+            high: self.high(),
+            low: self.low(),
+        };
+        Ok(model)
+    }
+}
+
+#[pyclass(name = "Waveform3BandPreview", unsendable, get_all, set_all)]
+pub struct PyWaveform3BandPreview {
+    pub data: Py<PyList>,
+}
+
+impl IntoPy<PyWaveform3BandPreview> for Waveform3BandPreview {
+    fn into_py(self, py: Python) -> PyResult<PyWaveform3BandPreview> {
+        let data = PyList::empty(py);
+        for column in self.data {
+            let item = column.clone().into_py(py)?;
+            let _ = data.append(item);
+        }
+        let model = PyWaveform3BandPreview { data: data.into() };
+        Ok(model)
+    }
+}
+
+#[pyclass(name = "Waveform3BandDetail", unsendable, get_all, set_all)]
+pub struct PyWaveform3BandDetail {
+    pub data: Py<PyList>,
+}
+
+impl IntoPy<PyWaveform3BandDetail> for Waveform3BandDetail {
+    fn into_py(self, py: Python) -> PyResult<PyWaveform3BandDetail> {
+        let data = PyList::empty(py);
+        for column in self.data {
+            let item = column.clone().into_py(py)?;
+            let _ = data.append(item);
+        }
+        let model = PyWaveform3BandDetail { data: data.into() };
+        Ok(model)
+    }
+}
+
+#[pyclass(name = "Phrase", unsendable, get_all, set_all)]
+pub struct PyPhrase {
+    pub index: u16,
+    pub beat: u16,
+    pub kind: u16,
+    pub k1: u8,
+    pub k2: u8,
+    pub b: u8,
+    pub beat2: u16,
+    pub beat3: u16,
+    pub beat4: u16,
+    pub k3: u8,
+    pub fill: u8,
+    pub beat_fill: u16,
+}
+
+impl IntoPy<PyPhrase> for Phrase {
+    fn into_py(self, _py: Python) -> PyResult<PyPhrase> {
+        let model = PyPhrase {
+            index: self.index,
+            beat: self.beat,
+            kind: self.kind,
+            k1: self.k1,
+            k2: self.k2,
+            b: self.b,
+            beat2: self.beat2,
+            beat3: self.beat3,
+            beat4: self.beat4,
+            k3: self.k3,
+            fill: self.fill,
+            beat_fill: self.beat_fill,
+        };
+        Ok(model)
+    }
+}
+
+#[pyclass(name = "SongStructureData", unsendable, get_all, set_all)]
+pub struct PySongStructureData {
+    pub mood: u16,
+    pub end_beat: u16,
+    pub bank: u16,
+    pub phrases: Py<PyList>,
+}
+
+impl IntoPy<PySongStructureData> for SongStructureData {
+    fn into_py(self, py: Python) -> PyResult<PySongStructureData> {
+        let phrases = PyList::empty(py);
+        for phrase in self.phrases {
+            let item = phrase.clone().into_py(py)?;
+            let _ = phrases.append(item);
+        }
+        let model = PySongStructureData {
+            mood: self.mood.into(),
+            end_beat: self.end_beat,
+            bank: self.bank.into(),
+            phrases: phrases.into(),
+        };
+        Ok(model)
+    }
+}
+
 #[pyclass(unsendable)]
 pub struct PyAnlz {
     anlz: Anlz,

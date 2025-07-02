@@ -639,6 +639,71 @@ class ExtendedCueList:
     list_type: int
     cues: List[ExtendedCue]
 
+class TinyWaveformColumn:
+    height: int
+
+class TinyWaveformPreview:
+    data: List[TinyWaveformColumn]
+
+class WaveformColumn:
+    height: int
+    whiteness: int
+
+class WaveformPreview:
+    data: List[WaveformColumn]
+
+class WaveformDetail:
+    data: List[WaveformColumn]
+
+class WaveformColorPreviewColumn:
+    energy_bottom_half_freq: int
+    energy_bottom_third_freq: int
+    energy_mid_third_freq: int
+    energy_top_third_freq: int
+
+class WaveformColorPreview:
+    data: List[WaveformColorPreviewColumn]
+
+class WaveformColorDetailColumn:
+    red: int
+    green: int
+    blue: int
+    height: int
+
+class WaveformColorDetail:
+    data: List[WaveformColorDetailColumn]
+
+class Waveform3BandColumn:
+    mid: int
+    high: int
+    low: int
+
+class Waveform3BandPreview:
+    data: List[Waveform3BandColumn]
+
+class Waveform3BandDetail:
+    data: List[Waveform3BandColumn]
+
+class Phrase:
+    index: int
+    beat: int
+    kind: int
+    k1: int
+    k2: int
+    b: int
+    beat2: int
+    beat3: int
+    beat4: int
+    k3: int
+    fill: int
+    beat_fill: int
+
+class SongStructureData:
+    mood: int
+    end_beat: int
+    bank: int
+    phrases: List[Phrase]
+
 class PyAnlz:
     def __init__(self, path: str) -> None: ...
     def dump_copy(self, path: str) -> None: ...

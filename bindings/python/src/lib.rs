@@ -72,6 +72,20 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<anlz::PyExtendedCue>()?;
     m.add_class::<anlz::PyCueList>()?;
     m.add_class::<anlz::PyExtendedCueList>()?;
+    m.add_class::<anlz::PyTinyWaveformColumn>()?;
+    m.add_class::<anlz::PyTinyWaveformPreview>()?;
+    m.add_class::<anlz::PyWaveformColumn>()?;
+    m.add_class::<anlz::PyWaveformPreview>()?;
+    m.add_class::<anlz::PyWaveformDetail>()?;
+    m.add_class::<anlz::PyWaveformColorPreviewColumn>()?;
+    m.add_class::<anlz::PyWaveformColorPreview>()?;
+    m.add_class::<anlz::PyWaveformColorDetailColumn>()?;
+    m.add_class::<anlz::PyWaveformColorDetail>()?;
+    m.add_class::<anlz::PyWaveform3BandColumn>()?;
+    m.add_class::<anlz::PyWaveform3BandPreview>()?;
+    m.add_class::<anlz::PyWaveform3BandDetail>()?;
+    m.add_class::<anlz::PyPhrase>()?;
+    m.add_class::<anlz::PySongStructureData>()?;
 
     m.add_class::<xml::PyRekordboxXml>()?;
     m.add_class::<settings::PySetting>()?;
