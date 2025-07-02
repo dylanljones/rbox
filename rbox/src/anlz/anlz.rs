@@ -209,7 +209,7 @@ pub struct BeatGrid {
     u1: u32,
     /// Unknown field: Seems to always be `0x80000`.
     #[br(temp)]
-    #[br(assert(u1 == 0x80000))]
+    #[br(assert(u2 == 0x80000))]
     #[bw(calc = 0x80000)]
     u2: u32,
     /// Number of beats
@@ -235,13 +235,13 @@ pub struct ExtBeat {
     /// Beat number inside the bar (1-4).
     pub beat_number: u8,
     /// Unknown field.
-    u: u8,
+    unknown: u8,
 }
 
 /// Extended Beat Grid Tag (PQT2) containing all extended beats in the track
 ///
 /// Identifier: PQT2
-/// Used in `.DAT` files.
+/// Used in `.EXT` files.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct ExtendedBeatGrid {
@@ -275,7 +275,7 @@ pub struct ExtendedBeatGrid {
     #[bw(calc = beats.len() as u32)]
     n_beats: u32,
     /// Unknow field
-    pub u2: u32,
+    u2: u32,
     /// Unknow field: Seems to always be `0`
     #[br(temp)]
     #[br(assert(u3 == 0))]
@@ -371,6 +371,9 @@ pub struct Cue {
     /// Loop status. `4` if this cue is an active loop, `0` otherwise.
     pub status: CueStatus,
     /// Unknown field. Seems to always have the value `0x10000`.
+    #[br(temp)]
+    #[br(assert(u1 == 0x10000))]
+    #[bw(calc = 0x10000)]
     u1: u32,
     /// Somehow used for sorting cues.
     /// 0xffff for first cue, 0,1,2 for next
@@ -381,8 +384,14 @@ pub struct Cue {
     /// Type of this cue
     pub cue_type: CueType,
     /// Unknown field. Seems always have the value `0`.
+    #[br(temp)]
+    #[br(assert(u2 == 0))]
+    #[bw(calc = 0)]
     u2: u8,
     /// Unknown field. Seems always have the value `0x03E8` (= decimal 1000).
+    #[br(temp)]
+    #[br(assert(u3 == 1000))]
+    #[bw(calc = 1000)]
     u3: u16,
     /// Time in milliseconds after which this cue would occur (at normal playback speed).
     pub time: u32,
@@ -410,8 +419,14 @@ pub struct ExtendedCue {
     /// Type of this cue (`2` if this cue is a loop).
     pub cue_type: CueType,
     /// Unknown field. Seems always have the value `0`.
+    #[br(temp)]
+    #[br(assert(u1 == 0))]
+    #[bw(calc = 0)]
     u1: u8,
     /// Unknown field. Seems always have the value `0x03E8` (= decimal 1000).
+    #[br(temp)]
+    #[br(assert(u2 == 1000))]
+    #[bw(calc = 1000)]
     u2: u16,
     /// Time in milliseconds after which this cue would occur (at normal playback speed).
     pub time: u32,
@@ -474,14 +489,20 @@ pub struct CueList {
     total_size: u32,
     /// The types of cues (memory or hot) that this list contains.
     pub list_type: CueListType,
-    /// Unknown field
-    unknown: u16,
+    /// Unknown field: Seems to always be `0`.
+    #[br(temp)]
+    #[br(assert(u1 == 0))]
+    #[bw(calc = 0)]
+    u1: u16,
     /// Number of cues.
     #[br(temp)]
     #[bw(calc = cues.len() as u16)]
     len_cues: u16,
-    /// Unknown field.
-    memory_count: u32,
+    /// Unknown field: Seems to always be `0xFFFFFFFF`
+    #[br(temp)]
+    #[br(assert(u2 == 0xFFFFFFFF))]
+    #[bw(calc = 0xFFFFFFFF)]
+    u2: u32,
     /// Cues
     #[br(count = usize::from(len_cues))]
     pub cues: Vec<Cue>,
@@ -515,9 +536,11 @@ pub struct ExtendedCueList {
     #[br(temp)]
     #[bw(calc = cues.len() as u16)]
     len_cues: u16,
-    /// Unknown field
-    #[br(assert(unknown == 0))]
-    unknown: u16,
+    /// Unknown field (apparently always `0`)
+    #[br(temp)]
+    #[br(assert(u1 == 0))]
+    #[bw(calc = 0)]
+    u1: u16,
     /// Cues
     #[br(count = usize::from(len_cues))]
     pub cues: Vec<ExtendedCue>,
@@ -595,8 +618,11 @@ pub struct VBR {
     header_size: u32,
     /// Length of the section (including the header).
     total_size: u32,
-    /// Unknown field.
-    i2: u32,
+    /// Unknown field (apparently always `0`)
+    #[br(temp)]
+    #[br(assert(unknown == 0))]
+    #[bw(calc = 0)]
+    unknown: u32,
     /// Unknown data.
     #[br(count = total_size - header_size)]
     pub data: Vec<u8>,
@@ -647,8 +673,11 @@ pub struct TinyWaveformPreview {
     #[br(assert(len_preview == total_size - header_size))]
     #[bw(calc = data.len() as u32)]
     len_preview: u32,
-    /// Unknown field (apparently always `0x00100000`)
-    u1: u32,
+    /// Unknown field (apparently always `0x000100000`)
+    #[br(temp)]
+    #[br(assert(unknown == 0x00010000))]
+    #[bw(calc = 0x00010000)]
+    unknown: u32,
     /// Waveform preview column data.
     #[br(count = len_preview)]
     pub data: Vec<TinyWaveformColumn>,
@@ -693,8 +722,11 @@ pub struct WaveformPreview {
     #[br(assert(len_preview == total_size - header_size))]
     #[bw(calc = data.len() as u32)]
     len_preview: u32,
-    /// Unknown field (apparently always `0x00100000`)
-    u1: u32,
+    /// Unknown field (apparently always `0x00010000`)
+    #[br(temp)]
+    #[br(assert(unknown == 0x00010000))]
+    #[bw(calc = 0x00010000)]
+    unknown: u32,
     /// Waveform preview column data.
     #[br(count = len_preview)]
     pub data: Vec<WaveformColumn>,
@@ -731,8 +763,10 @@ pub struct WaveformDetail {
     #[br(assert((len_entry_bytes * len_entries) == total_size - header_size))]
     len_entries: u32,
     /// Unknown field (apparently always `0x00960000`)
-    #[br(assert(u1 == 0x00960000))]
-    u1: u32,
+    #[br(temp)]
+    #[br(assert(unknown == 0x00960000))]
+    #[bw(calc = 0x00960000)]
+    unknown: u32,
     /// Waveform preview column data.
     ///
     /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
@@ -792,7 +826,10 @@ pub struct WaveformColorPreview {
     #[bw(calc = data.len() as u32)]
     #[br(assert((len_entry_bytes * len_entries) == total_size - header_size))]
     len_entries: u32,
-    /// Unknown field.
+    /// Unknown field (apparently always `0`)
+    #[br(temp)]
+    #[br(assert(unknown == 0))]
+    #[bw(calc = 0)]
     unknown: u32,
     /// Waveform preview column data.
     ///
@@ -853,7 +890,10 @@ pub struct WaveformColorDetail {
     #[bw(calc = data.len() as u32)]
     #[br(assert((len_entry_bytes * len_entries) == total_size - header_size))]
     len_entries: u32,
-    /// Unknown field.
+    /// Unknown field (apparently always `0x00960305`)
+    #[br(temp)]
+    #[br(assert(unknown == 0x00960305))]
+    #[bw(calc = 0x00960305)]
     unknown: u32,
     /// Waveform detail column data.
     #[br(count = len_entries)]
@@ -941,7 +981,10 @@ pub struct Waveform3BandDetail {
     #[bw(calc = data.len() as u32)]
     #[br(assert((len_entry_bytes * len_entries) == total_size - header_size))]
     len_entries: u32,
-    /// Unknown field.
+    /// Unknown field (apparently always `0x00960000`)
+    #[br(temp)]
+    #[br(assert(unknown == 0x00960000))]
+    #[bw(calc = 0x00960000)]
     unknown: u32,
     /// Waveform detail column data.
     #[br(count = len_entries)]
