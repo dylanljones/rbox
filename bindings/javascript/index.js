@@ -310,8 +310,13 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { Anlz, MasterDb, RekordboxOptions, OnAirDisplay, LCDBrightness, Quantize, AutoCueLevel, Language, JogRingBrightness, JogRingIndicator, SlipFlashing, DiscSlotIllumination, EjectLock, Sync, PlayMode, QuantizeBeatValue, HotCueAutoLoad, HotCueColor, NeedleLock, TimeMode, JogMode, AutoCue, MasterTempo, TempoRange, PhaseMeter, VinylSpeedAdjust, JogDisplayMode, PadButtonBrightness, JogLCDBrightness, WaveformDivisions, Waveform, BeatJumpBeatValue, ChannelFaderCurve, CrossfaderCurve, HeadphonesPreEQ, HeadphonesMonoSplit, BeatFXQuantize, MicLowCut, TalkOverMode, TalkOverLevel, MidiChannel, MidiButtonType, MixerDisplayBrightness, MixerIndicatorBrightness, ChannelFaderCurveLongFader, OverviewWaveformType, WaveformColor, KeyDisplayFormat, WaveformCurrentPosition, Setting, isRekordboxRunning } = nativeBinding
+const { CueType, CueListType, CueStatus, Mood, Bank, Anlz, MasterDb, RekordboxOptions, OnAirDisplay, LCDBrightness, Quantize, AutoCueLevel, Language, JogRingBrightness, JogRingIndicator, SlipFlashing, DiscSlotIllumination, EjectLock, Sync, PlayMode, QuantizeBeatValue, HotCueAutoLoad, HotCueColor, NeedleLock, TimeMode, JogMode, AutoCue, MasterTempo, TempoRange, PhaseMeter, VinylSpeedAdjust, JogDisplayMode, PadButtonBrightness, JogLCDBrightness, WaveformDivisions, Waveform, BeatJumpBeatValue, ChannelFaderCurve, CrossfaderCurve, HeadphonesPreEQ, HeadphonesMonoSplit, BeatFXQuantize, MicLowCut, TalkOverMode, TalkOverLevel, MidiChannel, MidiButtonType, MixerDisplayBrightness, MixerIndicatorBrightness, ChannelFaderCurveLongFader, OverviewWaveformType, WaveformColor, KeyDisplayFormat, WaveformCurrentPosition, Setting, isRekordboxRunning } = nativeBinding
 
+module.exports.CueType = CueType
+module.exports.CueListType = CueListType
+module.exports.CueStatus = CueStatus
+module.exports.Mood = Mood
+module.exports.Bank = Bank
 module.exports.Anlz = Anlz
 module.exports.MasterDb = MasterDb
 module.exports.RekordboxOptions = RekordboxOptions

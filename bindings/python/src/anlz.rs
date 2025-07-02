@@ -4,7 +4,6 @@
 use pyo3::prelude::*;
 use pyo3::types::PyList;
 use rbox::anlz::anlz::*;
-use rbox::anlz::{Anlz, AnlzTag};
 
 use super::errors::AnlzError;
 use super::traits::IntoPy;
@@ -89,7 +88,7 @@ impl IntoPy<PyExtendedBeatGrid> for ExtendedBeatGrid {
 #[pyclass(name = "Cue", unsendable, get_all, set_all)]
 pub struct PyCue {
     pub hot_cue: u32,
-    pub status: u32,
+    pub status: u16,
     pub order_first: u16,
     pub order_last: u16,
     pub cue_type: u16,
@@ -101,7 +100,7 @@ impl IntoPy<PyCue> for Cue {
     fn into_py(self, _py: Python) -> PyResult<PyCue> {
         let model = PyCue {
             hot_cue: self.hot_cue,
-            status: self.status,
+            status: self.status.into(),
             order_first: self.order_first,
             order_last: self.order_last,
             cue_type: self.cue_type.into(),
@@ -505,56 +504,52 @@ impl PyAnlz {
         Ok(py_tags.into())
     }
 
-    pub fn get_beat_grid(&mut self, py: Python) -> PyResult<PyBeatGrid> {
-        let mut beat_grid = self.anlz.get_beat_grid();
-        if let Some(beat_grid) = &mut beat_grid {
-            return Ok(beat_grid.clone().into_py(py)?);
+    pub fn get_beat_grid(&mut self, py: Python) -> PyResult<Option<PyBeatGrid>> {
+        let data = self.anlz.get_beat_grid();
+        if let Some(data) = data {
+            return Ok(Some(data.clone().into_py(py)?));
         }
-        Err(PyErr::new::<AnlzError, _>("No beat grid tag found"))
+        Ok(None)
     }
 
-    pub fn get_extended_beat_grid(&mut self, py: Python) -> PyResult<PyExtendedBeatGrid> {
-        let beat_grid = self.anlz.get_extended_beat_grid();
-        if let Some(beat_grid) = beat_grid {
-            return Ok(beat_grid.clone().into_py(py)?);
+    pub fn get_extended_beat_grid(&mut self, py: Python) -> PyResult<Option<PyExtendedBeatGrid>> {
+        let data = self.anlz.get_extended_beat_grid();
+        if let Some(data) = data {
+            return Ok(Some(data.clone().into_py(py)?));
         }
-        Err(PyErr::new::<AnlzError, _>(
-            "No extended beat grid tag found",
-        ))
+        Ok(None)
     }
 
-    pub fn get_hot_cues(&mut self, py: Python) -> PyResult<PyCueList> {
-        let cues = self.anlz.get_hot_cues();
-        if let Some(cues) = cues {
-            return Ok(cues.clone().into_py(py)?);
+    pub fn get_hot_cues(&mut self, py: Python) -> PyResult<Option<PyCueList>> {
+        let data = self.anlz.get_hot_cues();
+        if let Some(data) = data {
+            return Ok(Some(data.clone().into_py(py)?));
         }
-        Err(PyErr::new::<AnlzError, _>("No hot cue tag found"))
+        Ok(None)
     }
 
-    pub fn get_memory_cues(&mut self, py: Python) -> PyResult<PyCueList> {
-        let cues = self.anlz.get_memory_cues();
-        if let Some(cues) = cues {
-            return Ok(cues.clone().into_py(py)?);
+    pub fn get_memory_cues(&mut self, py: Python) -> PyResult<Option<PyCueList>> {
+        let data = self.anlz.get_memory_cues();
+        if let Some(data) = data {
+            return Ok(Some(data.clone().into_py(py)?));
         }
-        Err(PyErr::new::<AnlzError, _>("No memory cue tag found"))
+        Ok(None)
     }
 
-    pub fn get_extended_hot_cues(&mut self, py: Python) -> PyResult<PyExtendedCueList> {
-        let cues = self.anlz.get_extended_hot_cues();
-        if let Some(cues) = cues {
-            return Ok(cues.clone().into_py(py)?);
+    pub fn get_extended_hot_cues(&mut self, py: Python) -> PyResult<Option<PyExtendedCueList>> {
+        let data = self.anlz.get_extended_hot_cues();
+        if let Some(data) = data {
+            return Ok(Some(data.clone().into_py(py)?));
         }
-        Err(PyErr::new::<AnlzError, _>("No extended hot cue tag found"))
+        Ok(None)
     }
 
-    pub fn get_extended_memory_cues(&mut self, py: Python) -> PyResult<PyExtendedCueList> {
-        let cues = self.anlz.get_extended_memory_cues();
-        if let Some(cues) = cues {
-            return Ok(cues.clone().into_py(py)?);
+    pub fn get_extended_memory_cues(&mut self, py: Python) -> PyResult<Option<PyExtendedCueList>> {
+        let data = self.anlz.get_extended_memory_cues();
+        if let Some(data) = data {
+            return Ok(Some(data.clone().into_py(py)?));
         }
-        Err(PyErr::new::<AnlzError, _>(
-            "No extended memory cue tag found",
-        ))
+        Ok(None)
     }
 
     pub fn get_path(&mut self) -> PyResult<Option<String>> {
@@ -562,7 +557,7 @@ impl PyAnlz {
         if let Some(path) = path {
             return Ok(Some(path));
         }
-        Err(PyErr::new::<AnlzError, _>("No path tag found"))
+        Ok(None)
     }
 
     pub fn set_path(&mut self, path: &str) -> PyResult<()> {
@@ -570,89 +565,94 @@ impl PyAnlz {
         Ok(())
     }
 
-    pub fn get_vbr_data(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_vbr_data(&mut self, py: Python) -> PyResult<Option<Py<PyList>>> {
         let vbr = self.anlz.get_vbr_data();
         if let Some(vbr) = vbr {
             let items = PyList::empty(py);
             for x in vbr {
                 let _ = items.append(x);
             }
-            return Ok(items.into());
+            return Ok(Some(items.into()));
         }
-        Err(PyErr::new::<AnlzError, _>("No vbr tag found"))
+        Ok(None)
     }
 
-    pub fn get_tiny_waveform_preview(&mut self, py: Python) -> PyResult<PyTinyWaveformPreview> {
-        let cues = self.anlz.get_tiny_waveform_preview();
-        if let Some(cues) = cues {
-            return Ok(cues.clone().into_py(py)?);
+    pub fn get_tiny_waveform_preview(
+        &mut self,
+        py: Python,
+    ) -> PyResult<Option<PyTinyWaveformPreview>> {
+        let data = self.anlz.get_tiny_waveform_preview();
+        if let Some(data) = data {
+            return Ok(Some(data.clone().into_py(py)?));
         }
-        Err(PyErr::new::<AnlzError, _>(
-            "No tiny waveform preview tag found",
-        ))
+        Ok(None)
     }
 
-    pub fn get_waveform_preview(&mut self, py: Python) -> PyResult<PyWaveformPreview> {
-        let cues = self.anlz.get_waveform_preview();
-        if let Some(cues) = cues {
-            return Ok(cues.clone().into_py(py)?);
+    pub fn get_waveform_preview(&mut self, py: Python) -> PyResult<Option<PyWaveformPreview>> {
+        let data = self.anlz.get_waveform_preview();
+        if let Some(data) = data {
+            return Ok(Some(data.clone().into_py(py)?));
         }
-        Err(PyErr::new::<AnlzError, _>("No waveform preview tag found"))
+        Ok(None)
     }
 
-    pub fn get_waveform_detail(&mut self, py: Python) -> PyResult<PyWaveformDetail> {
-        let cues = self.anlz.get_waveform_detail();
-        if let Some(cues) = cues {
-            return Ok(cues.clone().into_py(py)?);
+    pub fn get_waveform_detail(&mut self, py: Python) -> PyResult<Option<PyWaveformDetail>> {
+        let data = self.anlz.get_waveform_detail();
+        if let Some(data) = data {
+            return Ok(Some(data.clone().into_py(py)?));
         }
-        Err(PyErr::new::<AnlzError, _>("No waveform detail tag found"))
+        Ok(None)
     }
 
-    pub fn get_waveform_color_preview(&mut self, py: Python) -> PyResult<PyWaveformColorPreview> {
-        let cues = self.anlz.get_waveform_color_preview();
-        if let Some(cues) = cues {
-            return Ok(cues.clone().into_py(py)?);
+    pub fn get_waveform_color_preview(
+        &mut self,
+        py: Python,
+    ) -> PyResult<Option<PyWaveformColorPreview>> {
+        let data = self.anlz.get_waveform_color_preview();
+        if let Some(data) = data {
+            return Ok(Some(data.clone().into_py(py)?));
         }
-        Err(PyErr::new::<AnlzError, _>(
-            "No waveform color preview tag found",
-        ))
+        Ok(None)
     }
 
-    pub fn get_waveform_color_detail(&mut self, py: Python) -> PyResult<PyWaveformColorDetail> {
-        let cues = self.anlz.get_waveform_color_detail();
-        if let Some(cues) = cues {
-            return Ok(cues.clone().into_py(py)?);
+    pub fn get_waveform_color_detail(
+        &mut self,
+        py: Python,
+    ) -> PyResult<Option<PyWaveformColorDetail>> {
+        let data = self.anlz.get_waveform_color_detail();
+        if let Some(data) = data {
+            return Ok(Some(data.clone().into_py(py)?));
         }
-        Err(PyErr::new::<AnlzError, _>(
-            "No waveform color detail tag found",
-        ))
+        Ok(None)
     }
 
-    pub fn get_waveform_3band_preview(&mut self, py: Python) -> PyResult<PyWaveform3BandPreview> {
-        let cues = self.anlz.get_waveform_3band_preview();
-        if let Some(cues) = cues {
-            return Ok(cues.clone().into_py(py)?);
+    pub fn get_waveform_3band_preview(
+        &mut self,
+        py: Python,
+    ) -> PyResult<Option<PyWaveform3BandPreview>> {
+        let data = self.anlz.get_waveform_3band_preview();
+        if let Some(data) = data {
+            return Ok(Some(data.clone().into_py(py)?));
         }
-        Err(PyErr::new::<AnlzError, _>(
-            "No waveform 3-band preview tag found",
-        ))
+        Ok(None)
     }
 
-    pub fn get_waveform_3band_detail(&mut self, py: Python) -> PyResult<PyWaveform3BandDetail> {
-        let cues = self.anlz.get_waveform_3band_detail();
-        if let Some(cues) = cues {
-            return Ok(cues.clone().into_py(py)?);
+    pub fn get_waveform_3band_detail(
+        &mut self,
+        py: Python,
+    ) -> PyResult<Option<PyWaveform3BandDetail>> {
+        let data = self.anlz.get_waveform_3band_detail();
+        if let Some(data) = data {
+            return Ok(Some(data.clone().into_py(py)?));
         }
-        Err(PyErr::new::<AnlzError, _>(
-            "No waveform 3-band detail tag found",
-        ))
+        Ok(None)
     }
 
-    pub fn get_song_structure(&mut self, py: Python) -> PyResult<PySongStructureData> {
-        let cues = self.anlz.get_song_structure();
-        if let Some(cues) = cues {
-            return Ok(cues.clone().into_py(py)?);
+    pub fn get_song_structure(&mut self, py: Python) -> PyResult<Option<PySongStructureData>> {
+        let data = self.anlz.get_song_structure();
+        if let Some(data) = data {
+            return Ok(Some(data.clone().into_py(py)?));
         }
-        Err(PyErr::new::<AnlzError, _>("No song structure tag found"))
+        Ok(None)
     }
 }

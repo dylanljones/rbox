@@ -95,29 +95,29 @@ class Anlz:
     def dump(self) -> None:
         self._anlz.dump()
 
+    def get_tags(self) -> List[str]:
+        return self._anlz.get_tags()
+
     def contains(self, tag: TagType) -> bool:
         return self._anlz.contains(tag.value)
 
-    def get_beat_grid(self) -> BeatGrid:
+    def get_beat_grid(self) -> Optional[BeatGrid]:
         return self._anlz.get_beat_grid()
 
-    def get_extended_beat_grid(self) -> ExtendedBeatGrid:
+    def get_extended_beat_grid(self) -> Optional[ExtendedBeatGrid]:
         return self._anlz.get_extended_beat_grid()
 
-    def get_hot_cues(self) -> CueList:
+    def get_hot_cues(self) -> Optional[CueList]:
         return self._anlz.get_hot_cues()
 
-    def get_memory_cues(self) -> CueList:
+    def get_memory_cues(self) -> Optional[CueList]:
         return self._anlz.get_memory_cues()
 
-    def get_extended_hot_cues(self) -> ExtendedCueList:
+    def get_extended_hot_cues(self) -> Optional[ExtendedCueList]:
         return self._anlz.get_extended_hot_cues()
 
-    def get_extended_memory_cues(self) -> ExtendedCueList:
+    def get_extended_memory_cues(self) -> Optional[ExtendedCueList]:
         return self._anlz.get_extended_memory_cues()
-
-    def get_tags(self) -> List[str]:
-        return self._anlz.get_tags()
 
     def get_path(self) -> Optional[str]:
         return self._anlz.get_path()
@@ -125,29 +125,29 @@ class Anlz:
     def set_path(self, path: Union[str, Path]) -> None:
         self._anlz.set_path(str(path))
 
-    def get_vbr_data(self) -> List[int]:
+    def get_vbr_data(self) -> Optional[List[int]]:
         return self._anlz.get_vbr_data()
 
-    def get_tiny_waveform_preview(self) -> TinyWaveformPreview:
+    def get_tiny_waveform_preview(self) -> Optional[TinyWaveformPreview]:
         return self._anlz.get_tiny_waveform_preview()
 
-    def get_waveform_preview(self) -> WaveformPreview:
+    def get_waveform_preview(self) -> Optional[WaveformPreview]:
         return self._anlz.get_waveform_preview()
 
-    def get_waveform_detail(self) -> WaveformDetail:
+    def get_waveform_detail(self) -> Optional[WaveformDetail]:
         return self._anlz.get_waveform_detail()
 
-    def get_waveform_color_preview(self) -> WaveformColorPreview:
+    def get_waveform_color_preview(self) -> Optional[WaveformColorPreview]:
         return self._anlz.get_waveform_color_preview()
 
-    def get_waveform_color_detail(self) -> WaveformColorDetail:
+    def get_waveform_color_detail(self) -> Optional[WaveformColorDetail]:
         return self._anlz.get_waveform_color_detail()
 
-    def get_waveform_3band_preview(self) -> Waveform3BandPreview:
+    def get_waveform_3band_preview(self) -> Optional[Waveform3BandPreview]:
         return self._anlz.get_waveform_3band_preview()
 
-    def get_waveform_3band_detail(self) -> Waveform3BandDetail:
+    def get_waveform_3band_detail(self) -> Optional[Waveform3BandDetail]:
         return self._anlz.get_waveform_3band_detail()
 
-    def get_song_structure(self) -> SongStructureData:
+    def get_song_structure(self) -> Optional[SongStructureData]:
         return self._anlz.get_song_structure()

@@ -202,11 +202,17 @@ pub struct BeatGrid {
     header_size: u32,
     /// Length of the section (including the header).
     total_size: u32,
-    /// Unknown field.
+    /// Unknown field: Seems to always be `0`.
+    #[br(temp)]
+    #[br(assert(u1 == 0))]
+    #[bw(calc = 0)]
     u1: u32,
     /// Unknown field: Seems to always be `0x80000`.
+    #[br(temp)]
+    #[br(assert(u1 == 0x80000))]
+    #[bw(calc = 0x80000)]
     u2: u32,
-    // Number of beats
+    /// Number of beats
     #[br(temp)]
     #[bw(calc = beats.len() as u32)]
     n_beats: u32,
@@ -247,10 +253,19 @@ pub struct ExtendedBeatGrid {
     /// Length of the section (including the header).
     total_size: u32,
     /// Padding: 4bytes.
+    #[br(temp)]
+    #[br(assert(pad1 == 0))]
+    #[bw(calc = 0)]
     pad1: u32,
     /// Unknown field: Seems to always be `0x01000002`.
+    #[br(temp)]
+    #[br(assert(u1 == 0x01000002))]
+    #[bw(calc = 0x01000002)]
     u1: u32,
     /// Padding: 4bytes.
+    #[br(temp)]
+    #[br(assert(pad2 == 0))]
+    #[bw(calc = 0)]
     pad2: u32,
     /// Two 'normal' beats for BPM
     #[br(count = 2)]
@@ -259,9 +274,17 @@ pub struct ExtendedBeatGrid {
     #[br(temp)]
     #[bw(calc = beats.len() as u32)]
     n_beats: u32,
-    /// Unknow fields
-    u2: u32,
+    /// Unknow field
+    pub u2: u32,
+    /// Unknow field: Seems to always be `0`
+    #[br(temp)]
+    #[br(assert(u3 == 0))]
+    #[bw(calc = 0)]
     u3: u32,
+    /// Unknow field: Seems to always be `0`
+    #[br(temp)]
+    #[br(assert(u4 == 0))]
+    #[bw(calc = 0)]
     u4: u32,
     /// Beats in this beatgrid.
     #[br(count = n_beats)]
@@ -346,7 +369,7 @@ pub struct Cue {
     /// Hot cue number.
     pub hot_cue: u32,
     /// Loop status. `4` if this cue is an active loop, `0` otherwise.
-    pub status: u32,
+    pub status: CueStatus,
     /// Unknown field. Seems to always have the value `0x10000`.
     u1: u32,
     /// Somehow used for sorting cues.
