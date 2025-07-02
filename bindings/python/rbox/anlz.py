@@ -7,7 +7,7 @@ from enum import Enum
 from pathlib import Path
 from typing import List, Optional, Union
 
-from ._rbox import PyAnlz as _PyAnlz
+from ._rbox import BeatGrid, CueList, ExtendedBeatGrid, ExtendedCueList, PyAnlz as _PyAnlz
 
 
 class TagType(Enum):
@@ -84,23 +84,23 @@ class Anlz:
     def contains(self, tag: TagType) -> bool:
         return self._anlz.contains(tag.value)
 
-    def get_beat_grid(self) -> List[Beat]:
-        return [Beat(**data) for data in self._anlz.get_beat_grid()]
+    def get_beat_grid(self) -> BeatGrid:
+        return self._anlz.get_beat_grid()
 
-    def get_extended_beat_grid(self) -> List[ExtBeat]:
-        return [ExtBeat(**data) for data in self._anlz.get_extended_beat_grid()]
+    def get_extended_beat_grid(self) -> ExtendedBeatGrid:
+        return self._anlz.get_extended_beat_grid()
 
-    def get_hot_cues(self) -> List[Cue]:
-        return [Cue(**data) for data in self._anlz.get_hot_cues()]
+    def get_hot_cues(self) -> CueList:
+        return self._anlz.get_hot_cues()
 
-    def get_memory_cues(self) -> List[Cue]:
-        return [Cue(**data) for data in self._anlz.get_memory_cues()]
+    def get_memory_cues(self) -> CueList:
+        return self._anlz.get_memory_cues()
 
-    def get_extended_hot_cues(self) -> List[ExtendedCue]:
-        return [ExtendedCue(**data) for data in self._anlz.get_extended_hot_cues()]
+    def get_extended_hot_cues(self) -> ExtendedCueList:
+        return self._anlz.get_extended_hot_cues()
 
-    def get_extended_memory_cues(self) -> List[ExtendedCue]:
-        return [ExtendedCue(**data) for data in self._anlz.get_extended_memory_cues()]
+    def get_extended_memory_cues(self) -> ExtendedCueList:
+        return self._anlz.get_extended_memory_cues()
 
     def get_tags(self) -> List[str]:
         return self._anlz.get_tags()

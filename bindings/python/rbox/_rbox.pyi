@@ -7,6 +7,36 @@ from typing import Any, Dict, Iterable, List, Optional
 
 Obj = Dict[str, Any]
 
+class Error(Exception):
+    """The base class of the other exceptions in this module.
+
+    Use this to catch all errors with one single except statement
+    """
+
+    ...
+
+class DatabaseError(Exception):
+    """Exception raised for errors that are related to the master.db database."""
+
+    ...
+
+class AnlzError(Exception):
+    """Exception raised for errors that are related to the ANLZ files."""
+
+    ...
+
+class XmlError(Exception):
+    """Exception raised for errors that are related to the Rekordbox XML handler."""
+
+    ...
+
+class SettingError(Exception):
+    """Exception raised for errors that are related to the Rekordbox MySetting handler."""
+
+    ...
+
+# ---- MasterDb ------------------------------------------------------------------------------------
+
 def is_rekordbox_running() -> bool:
     """Check if Rekordbox is running."""
     ...
@@ -561,20 +591,70 @@ class PyMasterDb:
     def get_uuid_id_map(self) -> List[UuidIDMap]: ...
     def get_uuid_id_map_by_id(self, uuid_id: str) -> Optional[UuidIDMap]: ...
 
+# ---- ANLZ ----------------------------------------------------------------------------------------
+
+class Beat:
+    beat_number: int
+    tempo: int
+    time: int
+
+class ExtBeat:
+    beat_number: int
+
+class BeatGrid:
+    beats: List[Beat]
+
+class ExtendedBeatGrid:
+    bpm: List[Beat]
+    beats: List[Beat]
+
+class Cue:
+    hot_cue: int
+    status: int
+    order_first: int
+    order_last: int
+    cue_type: int
+    time: int
+    loop_time: int
+
+class ExtendedCue:
+    hot_cue: int
+    cue_type: int
+    time: int
+    loop_time: int
+    color: int
+    loop_numerator: int
+    loop_denominator: int
+    comment: str
+    hot_cue_color_index: int
+    hot_cue_color_red: int
+    hot_cue_color_green: int
+    hot_cue_color_blue: int
+
+class CueList:
+    list_type: int
+    cues: List[Cue]
+
+class ExtendedCueList:
+    list_type: int
+    cues: List[ExtendedCue]
+
 class PyAnlz:
     def __init__(self, path: str) -> None: ...
     def dump_copy(self, path: str) -> None: ...
     def dump(self) -> None: ...
-    def contains(self, tag_type: str) -> bool: ...
-    def get_beat_grid(self) -> List[Obj]: ...
-    def get_extended_beat_grid(self) -> List[Obj]: ...
-    def get_hot_cues(self) -> List[Obj]: ...
-    def get_memory_cues(self) -> List[Obj]: ...
-    def get_extended_hot_cues(self) -> List[Obj]: ...
-    def get_extended_memory_cues(self) -> List[Obj]: ...
     def get_tags(self) -> List[str]: ...
+    def contains(self, tag_type: str) -> bool: ...
+    def get_beat_grid(self) -> BeatGrid: ...
+    def get_extended_beat_grid(self) -> ExtendedBeatGrid: ...
+    def get_hot_cues(self) -> CueList: ...
+    def get_memory_cues(self) -> CueList: ...
+    def get_extended_hot_cues(self) -> ExtendedCueList: ...
+    def get_extended_memory_cues(self) -> ExtendedCueList: ...
     def get_path(self) -> Optional[str]: ...
     def set_path(self, path: str) -> None: ...
+
+# ---- XML -----------------------------------------------------------------------------------------
 
 class PyRekordboxXml:
     def __init__(self, path: str) -> None: ...
@@ -589,6 +669,8 @@ class PyRekordboxXml:
     def add_track(self, track: Obj) -> None: ...
     def update_track(self, track: Obj) -> None: ...
     def remove_track(self, track_id: str) -> None: ...
+
+# ---- Settings ------------------------------------------------------------------------------------
 
 class PySetting:
     def __init__(self, path: str) -> None: ...
@@ -696,31 +778,3 @@ class PySetting:
     def set_key_display_format(self, key_display_format: str) -> None: ...
     def get_waveform_current_position(self) -> str: ...
     def set_waveform_current_position(self, waveform_current_position: str) -> None: ...
-
-class Error(Exception):
-    """The base class of the other exceptions in this module.
-
-    Use this to catch all errors with one single except statement
-    """
-
-    ...
-
-class DatabaseError(Exception):
-    """Exception raised for errors that are related to the master.db database."""
-
-    ...
-
-class AnlzError(Exception):
-    """Exception raised for errors that are related to the ANLZ files."""
-
-    ...
-
-class XmlError(Exception):
-    """Exception raised for errors that are related to the Rekordbox XML handler."""
-
-    ...
-
-class SettingError(Exception):
-    """Exception raised for errors that are related to the Rekordbox MySetting handler."""
-
-    ...

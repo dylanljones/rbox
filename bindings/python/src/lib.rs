@@ -22,10 +22,6 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     let _ = m.add_function(wrap_pyfunction!(is_rekordbox_running, m)?);
 
     m.add_class::<masterdb::PyMasterDb>()?;
-    m.add_class::<anlz::PyAnlz>()?;
-    m.add_class::<xml::PyRekordboxXml>()?;
-    m.add_class::<settings::PySetting>()?;
-
     m.add_class::<py_models::PyAgentRegistry>()?;
     m.add_class::<py_models::PyCloudAgentRegistry>()?;
     m.add_class::<py_models::PyContentActiveCensor>()?;
@@ -66,6 +62,19 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<py_models::PyImageFile>()?;
     m.add_class::<py_models::PySettingFile>()?;
     m.add_class::<py_models::PyUuidIDMap>()?;
+    m.add_class::<anlz::PyAnlz>()?;
+
+    m.add_class::<anlz::PyBeat>()?;
+    m.add_class::<anlz::PyExtBeat>()?;
+    m.add_class::<anlz::PyBeatGrid>()?;
+    m.add_class::<anlz::PyExtendedBeatGrid>()?;
+    m.add_class::<anlz::PyCue>()?;
+    m.add_class::<anlz::PyExtendedCue>()?;
+    m.add_class::<anlz::PyCueList>()?;
+    m.add_class::<anlz::PyExtendedCueList>()?;
+
+    m.add_class::<xml::PyRekordboxXml>()?;
+    m.add_class::<settings::PySetting>()?;
 
     m.add("Error", m.py().get_type::<errors::Error>())?;
     m.add("DatabaseError", m.py().get_type::<errors::DatabaseError>())?;

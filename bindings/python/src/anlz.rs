@@ -2,10 +2,193 @@
 // Date:   2025-05-10
 
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyList};
+use pyo3::types::PyList;
+use rbox::anlz::anlz::*;
 use rbox::anlz::{Anlz, AnlzTag};
 
 use super::errors::AnlzError;
+use super::traits::IntoPy;
+
+#[pyclass(name = "Beat", unsendable, get_all, set_all)]
+pub struct PyBeat {
+    pub beat_number: u16,
+    pub tempo: u16,
+    pub time: u32,
+}
+
+impl IntoPy<PyBeat> for Beat {
+    fn into_py(self, _py: Python) -> PyResult<PyBeat> {
+        let model = PyBeat {
+            beat_number: self.beat_number,
+            tempo: self.tempo,
+            time: self.time,
+        };
+        Ok(model)
+    }
+}
+
+#[pyclass(name = "ExtBeat", unsendable, get_all, set_all)]
+pub struct PyExtBeat {
+    pub beat_number: u8,
+}
+
+impl IntoPy<PyExtBeat> for ExtBeat {
+    fn into_py(self, _py: Python) -> PyResult<PyExtBeat> {
+        let model = PyExtBeat {
+            beat_number: self.beat_number,
+        };
+        Ok(model)
+    }
+}
+
+#[pyclass(name = "BeatGrid", unsendable, get_all, set_all)]
+pub struct PyBeatGrid {
+    pub beats: Py<PyList>,
+}
+
+impl IntoPy<PyBeatGrid> for BeatGrid {
+    fn into_py(self, py: Python) -> PyResult<PyBeatGrid> {
+        let beats = PyList::empty(py);
+        for beat in self.beats {
+            let item = beat.clone().into_py(py)?;
+            let _ = beats.append(item);
+        }
+        let model = PyBeatGrid {
+            beats: beats.into(),
+        };
+        Ok(model)
+    }
+}
+
+#[pyclass(name = "ExtendedBeatGrid", unsendable, get_all, set_all)]
+pub struct PyExtendedBeatGrid {
+    pub bpm: Py<PyList>,
+    pub beats: Py<PyList>,
+}
+
+impl IntoPy<PyExtendedBeatGrid> for ExtendedBeatGrid {
+    fn into_py(self, py: Python) -> PyResult<PyExtendedBeatGrid> {
+        let bpm = PyList::empty(py);
+        for beat in self.bpm {
+            let item = beat.clone().into_py(py)?;
+            let _ = bpm.append(item);
+        }
+        let beats = PyList::empty(py);
+        for beat in self.beats {
+            let item = beat.clone().into_py(py)?;
+            let _ = beats.append(item);
+        }
+        let model = PyExtendedBeatGrid {
+            bpm: bpm.into(),
+            beats: beats.into(),
+        };
+        Ok(model)
+    }
+}
+
+#[pyclass(name = "Cue", unsendable, get_all, set_all)]
+pub struct PyCue {
+    pub hot_cue: u32,
+    pub status: u32,
+    pub order_first: u16,
+    pub order_last: u16,
+    pub cue_type: u16,
+    pub time: u32,
+    pub loop_time: u32,
+}
+
+impl IntoPy<PyCue> for Cue {
+    fn into_py(self, _py: Python) -> PyResult<PyCue> {
+        let model = PyCue {
+            hot_cue: self.hot_cue,
+            status: self.status,
+            order_first: self.order_first,
+            order_last: self.order_last,
+            cue_type: self.cue_type.into(),
+            time: self.time,
+            loop_time: self.loop_time,
+        };
+        Ok(model)
+    }
+}
+
+#[pyclass(name = "ExtendedCue", unsendable, get_all, set_all)]
+pub struct PyExtendedCue {
+    pub hot_cue: u32,
+    pub cue_type: u16,
+    pub time: u32,
+    pub loop_time: u32,
+    pub color: u8,
+    pub loop_numerator: u16,
+    pub loop_denominator: u16,
+    pub comment: String,
+    pub hot_cue_color_index: u8,
+    pub hot_cue_color_red: u8,
+    pub hot_cue_color_green: u8,
+    pub hot_cue_color_blue: u8,
+}
+
+impl IntoPy<PyExtendedCue> for ExtendedCue {
+    fn into_py(self, _py: Python) -> PyResult<PyExtendedCue> {
+        let model = PyExtendedCue {
+            hot_cue: self.hot_cue,
+            cue_type: self.cue_type.into(),
+            time: self.time,
+            loop_time: self.loop_time,
+            color: self.color,
+            loop_numerator: self.loop_numerator,
+            loop_denominator: self.loop_denominator,
+            comment: self.comment.to_string(),
+            hot_cue_color_index: self.hot_cue_color_index,
+            hot_cue_color_red: self.hot_cue_color_rgb.0,
+            hot_cue_color_green: self.hot_cue_color_rgb.1,
+            hot_cue_color_blue: self.hot_cue_color_rgb.2,
+        };
+        Ok(model)
+    }
+}
+
+#[pyclass(name = "CueList", unsendable, get_all, set_all)]
+pub struct PyCueList {
+    pub list_type: u16,
+    pub cues: Py<PyList>,
+}
+
+impl IntoPy<PyCueList> for CueList {
+    fn into_py(self, py: Python) -> PyResult<PyCueList> {
+        let cues = PyList::empty(py);
+        for cue in self.cues {
+            let item = cue.clone().into_py(py)?;
+            let _ = cues.append(item);
+        }
+        let model = PyCueList {
+            list_type: self.list_type.into(),
+            cues: cues.into(),
+        };
+        Ok(model)
+    }
+}
+
+#[pyclass(name = "ExtendedCueList", unsendable, get_all, set_all)]
+pub struct PyExtendedCueList {
+    pub list_type: u16,
+    pub cues: Py<PyList>,
+}
+
+impl IntoPy<PyExtendedCueList> for ExtendedCueList {
+    fn into_py(self, py: Python) -> PyResult<PyExtendedCueList> {
+        let cues = PyList::empty(py);
+        for cue in self.cues {
+            let item = cue.clone().into_py(py)?;
+            let _ = cues.append(item);
+        }
+        let model = PyExtendedCueList {
+            list_type: self.list_type.into(),
+            cues: cues.into(),
+        };
+        Ok(model)
+    }
+}
 
 #[pyclass(unsendable)]
 pub struct PyAnlz {
@@ -54,16 +237,80 @@ impl PyAnlz {
         Ok(py_tags.into())
     }
 
+    pub fn get_beat_grid(&mut self, py: Python) -> PyResult<PyBeatGrid> {
+        let mut beat_grid = self.anlz.get_beat_grid();
+        if let Some(beat_grid) = &mut beat_grid {
+            return Ok(beat_grid.clone().into_py(py)?);
+        }
+        Err(PyErr::new::<AnlzError, _>("No beat grid tag found"))
+    }
+
+    pub fn get_extended_beat_grid(&mut self, py: Python) -> PyResult<PyExtendedBeatGrid> {
+        let beat_grid = self.anlz.get_extended_beat_grid();
+        if let Some(beat_grid) = beat_grid {
+            return Ok(beat_grid.clone().into_py(py)?);
+        }
+        Err(PyErr::new::<AnlzError, _>(
+            "No extended beat grid tag found",
+        ))
+    }
+
+    pub fn get_hot_cues(&mut self, py: Python) -> PyResult<PyCueList> {
+        let cues = self.anlz.get_hot_cues();
+        if let Some(cues) = cues {
+            return Ok(cues.clone().into_py(py)?);
+        }
+        Err(PyErr::new::<AnlzError, _>("No hot cue tag found"))
+    }
+
+    pub fn get_memory_cues(&mut self, py: Python) -> PyResult<PyCueList> {
+        let cues = self.anlz.get_memory_cues();
+        if let Some(cues) = cues {
+            return Ok(cues.clone().into_py(py)?);
+        }
+        Err(PyErr::new::<AnlzError, _>("No memory cue tag found"))
+    }
+
+    pub fn get_extended_hot_cues(&mut self, py: Python) -> PyResult<PyExtendedCueList> {
+        let cues = self.anlz.get_extended_hot_cues();
+        if let Some(cues) = cues {
+            return Ok(cues.clone().into_py(py)?);
+        }
+        Err(PyErr::new::<AnlzError, _>("No extended hot cue tag found"))
+    }
+
+    pub fn get_extended_memory_cues(&mut self, py: Python) -> PyResult<PyExtendedCueList> {
+        let cues = self.anlz.get_extended_memory_cues();
+        if let Some(cues) = cues {
+            return Ok(cues.clone().into_py(py)?);
+        }
+        Err(PyErr::new::<AnlzError, _>(
+            "No extended memory cue tag found",
+        ))
+    }
+
     pub fn get_path(&mut self) -> PyResult<Option<String>> {
         let path = self.anlz.get_path();
         if let Some(path) = path {
             return Ok(Some(path));
         }
-        Err(PyErr::new::<AnlzError, _>("No path tag not found"))
+        Err(PyErr::new::<AnlzError, _>("No path tag found"))
     }
 
     pub fn set_path(&mut self, path: &str) -> PyResult<()> {
         self.anlz.set_path(path)?;
         Ok(())
+    }
+
+    pub fn get_vbr_data(&mut self, py: Python) -> PyResult<Py<PyList>> {
+        let vbr = self.anlz.get_vbr_data();
+        if let Some(vbr) = vbr {
+            let items = PyList::empty(py);
+            for x in vbr {
+                let _ = items.append(x);
+            }
+            return Ok(items.into());
+        }
+        Err(PyErr::new::<AnlzError, _>("No vbr tag found"))
     }
 }
