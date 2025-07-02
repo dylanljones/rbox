@@ -581,4 +581,78 @@ impl PyAnlz {
         }
         Err(PyErr::new::<AnlzError, _>("No vbr tag found"))
     }
+
+    pub fn get_tiny_waveform_preview(&mut self, py: Python) -> PyResult<PyTinyWaveformPreview> {
+        let cues = self.anlz.get_tiny_waveform_preview();
+        if let Some(cues) = cues {
+            return Ok(cues.clone().into_py(py)?);
+        }
+        Err(PyErr::new::<AnlzError, _>(
+            "No tiny waveform preview tag found",
+        ))
+    }
+
+    pub fn get_waveform_preview(&mut self, py: Python) -> PyResult<PyWaveformPreview> {
+        let cues = self.anlz.get_waveform_preview();
+        if let Some(cues) = cues {
+            return Ok(cues.clone().into_py(py)?);
+        }
+        Err(PyErr::new::<AnlzError, _>("No waveform preview tag found"))
+    }
+
+    pub fn get_waveform_detail(&mut self, py: Python) -> PyResult<PyWaveformDetail> {
+        let cues = self.anlz.get_waveform_detail();
+        if let Some(cues) = cues {
+            return Ok(cues.clone().into_py(py)?);
+        }
+        Err(PyErr::new::<AnlzError, _>("No waveform detail tag found"))
+    }
+
+    pub fn get_waveform_color_preview(&mut self, py: Python) -> PyResult<PyWaveformColorPreview> {
+        let cues = self.anlz.get_waveform_color_preview();
+        if let Some(cues) = cues {
+            return Ok(cues.clone().into_py(py)?);
+        }
+        Err(PyErr::new::<AnlzError, _>(
+            "No waveform color preview tag found",
+        ))
+    }
+
+    pub fn get_waveform_color_detail(&mut self, py: Python) -> PyResult<PyWaveformColorDetail> {
+        let cues = self.anlz.get_waveform_color_detail();
+        if let Some(cues) = cues {
+            return Ok(cues.clone().into_py(py)?);
+        }
+        Err(PyErr::new::<AnlzError, _>(
+            "No waveform color detail tag found",
+        ))
+    }
+
+    pub fn get_waveform_3band_preview(&mut self, py: Python) -> PyResult<PyWaveform3BandPreview> {
+        let cues = self.anlz.get_waveform_3band_preview();
+        if let Some(cues) = cues {
+            return Ok(cues.clone().into_py(py)?);
+        }
+        Err(PyErr::new::<AnlzError, _>(
+            "No waveform 3-band preview tag found",
+        ))
+    }
+
+    pub fn get_waveform_3band_detail(&mut self, py: Python) -> PyResult<PyWaveform3BandDetail> {
+        let cues = self.anlz.get_waveform_3band_detail();
+        if let Some(cues) = cues {
+            return Ok(cues.clone().into_py(py)?);
+        }
+        Err(PyErr::new::<AnlzError, _>(
+            "No waveform 3-band detail tag found",
+        ))
+    }
+
+    pub fn get_song_structure(&mut self, py: Python) -> PyResult<PySongStructureData> {
+        let cues = self.anlz.get_song_structure();
+        if let Some(cues) = cues {
+            return Ok(cues.clone().into_py(py)?);
+        }
+        Err(PyErr::new::<AnlzError, _>("No song structure tag found"))
+    }
 }
