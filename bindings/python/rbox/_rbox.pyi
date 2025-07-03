@@ -5,8 +5,6 @@
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional
 
-Obj = Dict[str, Any]
-
 class Error(Exception):
     """The base class of the other exceptions in this module.
 
@@ -730,18 +728,63 @@ class PyAnlz:
 
 # ---- XML -----------------------------------------------------------------------------------------
 
+class Tempo:
+    inizio: float
+    bpm: float
+    metro: str
+    battito: int
+
+class PositionMark:
+    name: str
+    mark_type: int
+    num: int
+    start: float
+    end: Optional[float]
+
+class Track:
+    trackid: str
+    location: str
+    tempos: List[Tempo]
+    position_marks: List[PositionMark]
+    name: Optional[str] = None
+    artist: Optional[str] = None
+    composer: Optional[str] = None
+    album: Optional[str] = None
+    grouping: Optional[str] = None
+    genre: Optional[str] = None
+    kind: Optional[str] = None
+    size: Optional[int] = None
+    totaltime: Optional[float] = None
+    discnumber: Optional[int] = None
+    tracknumber: Optional[int] = None
+    year: Optional[int] = None
+    averagebpm: Optional[float] = None
+    datemodified: Optional[datetime] = None
+    dateadded: Optional[datetime] = None
+    bitrate: Optional[int] = None
+    samplerate: Optional[float] = None
+    comments: Optional[str] = None
+    playcount: Optional[int] = None
+    lastplayed: Optional[datetime] = None
+    rating: Optional[int] = None
+    remixer: Optional[str] = None
+    tonality: Optional[str] = None
+    label: Optional[str] = None
+    mix: Optional[str] = None
+    color: Optional[str] = None
+
 class PyRekordboxXml:
     def __init__(self, path: str) -> None: ...
     @classmethod
     def load(cls, path: str) -> "PyRekordboxXml": ...
     def dump_copy(self, path: str) -> None: ...
     def dump(self) -> None: ...
-    def get_tracks(self) -> List[Obj]: ...
-    def get_track_by_id(self, track_id: str) -> Optional[Obj]: ...
-    def get_track_by_location(self, location: str) -> Optional[Obj]: ...
-    def get_track_by_key(self, key: str, key_type: int) -> Optional[Obj]: ...
-    def add_track(self, track: Obj) -> None: ...
-    def update_track(self, track: Obj) -> None: ...
+    def get_tracks(self) -> List[Track]: ...
+    def get_track_by_id(self, track_id: str) -> Optional[Track]: ...
+    def get_track_by_location(self, location: str) -> Optional[Track]: ...
+    def get_track_by_key(self, key: str, key_type: int) -> Optional[Track]: ...
+    def add_track(self, track: Track) -> None: ...
+    def update_track(self, track: Track) -> None: ...
     def remove_track(self, track_id: str) -> None: ...
 
 # ---- Settings ------------------------------------------------------------------------------------

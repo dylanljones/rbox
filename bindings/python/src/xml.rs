@@ -1,17 +1,15 @@
 // Author: Dylan Jones
 // Date:   2025-05-15
 
-use chrono::NaiveDate;
+use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyList, PyType};
+use pyo3::types::{PyDateTime, PyList, PyType};
 use rbox::xml::{PlaylistKeyType, PositionMark, RekordboxXml, Tempo, Track};
-use serde::{Deserialize, Serialize};
 
 use super::errors::XmlError;
-use super::util::{model_to_pydict, models_to_pylist, pydict_to_model};
+use super::traits::{FromPy, IntoPy};
 
-/// Tempo element representing the beat grid of a track.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[pyclass(name = "Tempo", unsendable, get_all, set_all)]
 pub struct PyTempo {
     pub inizio: f64,
     pub bpm: f64,
@@ -19,30 +17,31 @@ pub struct PyTempo {
     pub battito: i32,
 }
 
-impl From<&Tempo> for PyTempo {
-    fn from(tempo: &Tempo) -> Self {
-        Self {
-            inizio: tempo.inizio,
-            bpm: tempo.bpm,
-            metro: tempo.metro.clone(),
-            battito: tempo.battito,
-        }
-    }
-}
-
-impl Into<Tempo> for PyTempo {
-    fn into(self) -> Tempo {
-        Tempo {
+impl IntoPy<PyTempo> for Tempo {
+    fn into_py(self, _py: Python) -> PyResult<PyTempo> {
+        let model = PyTempo {
             inizio: self.inizio,
             bpm: self.bpm,
             metro: self.metro,
             battito: self.battito,
+        };
+        Ok(model)
+    }
+}
+
+impl FromPy<PyTempo> for Tempo {
+    fn from_py(_py: Python, model: PyRef<'_, PyTempo>) -> Self {
+        Self {
+            inizio: model.inizio,
+            bpm: model.bpm,
+            metro: model.metro.clone(),
+            battito: model.battito,
         }
     }
 }
 
 /// Position element for storing position markers like cue points of a track
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[pyclass(name = "PositionMark", unsendable, get_all, set_all)]
 pub struct PyPositionMark {
     pub name: String,
     pub mark_type: i32,
@@ -51,31 +50,32 @@ pub struct PyPositionMark {
     pub num: i32,
 }
 
-impl From<&PositionMark> for PyPositionMark {
-    fn from(mark: &PositionMark) -> Self {
-        Self {
-            name: mark.name.clone(),
-            mark_type: mark.mark_type,
-            start: mark.start,
-            end: mark.end,
-            num: mark.num,
-        }
-    }
-}
-
-impl Into<PositionMark> for PyPositionMark {
-    fn into(self) -> PositionMark {
-        PositionMark {
+impl IntoPy<PyPositionMark> for PositionMark {
+    fn into_py(self, _py: Python) -> PyResult<PyPositionMark> {
+        let model = PyPositionMark {
             name: self.name,
             mark_type: self.mark_type,
             start: self.start,
             end: self.end,
             num: self.num,
+        };
+        Ok(model)
+    }
+}
+
+impl FromPy<PyPositionMark> for PositionMark {
+    fn from_py(_py: Python, model: PyRef<'_, PyPositionMark>) -> Self {
+        Self {
+            name: model.name.clone(),
+            mark_type: model.mark_type,
+            start: model.start,
+            end: model.end,
+            num: model.num,
         }
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[pyclass(name = "Track", unsendable, get_all, set_all)]
 pub struct PyTrack {
     pub trackid: String,
     pub name: Option<String>,
@@ -91,110 +91,167 @@ pub struct PyTrack {
     pub tracknumber: Option<i32>,
     pub year: Option<i32>,
     pub averagebpm: Option<f64>,
-    pub datemodified: Option<NaiveDate>,
-    pub dateadded: Option<NaiveDate>,
+    pub datemodified: Option<Py<PyDateTime>>,
+    pub dateadded: Option<Py<PyDateTime>>,
     pub bitrate: Option<i32>,
     pub samplerate: Option<f64>,
     pub comments: Option<String>,
     pub playcount: Option<i32>,
-    pub lastplayed: Option<NaiveDate>,
+    pub lastplayed: Option<Py<PyDateTime>>,
     pub rating: Option<i32>,
     pub location: String,
     pub remixer: Option<String>,
     pub tonality: Option<String>,
     pub label: Option<String>,
     pub mix: Option<String>,
-    pub colour: Option<String>,
-    pub tempos: Vec<PyTempo>,
-    pub position_marks: Vec<PyPositionMark>,
+    pub color: Option<String>,
+    pub tempos: Vec<Py<PyTempo>>,
+    pub position_marks: Vec<Py<PyPositionMark>>,
 }
 
-impl From<&Track> for PyTrack {
-    fn from(track: &Track) -> Self {
-        let tempos: Vec<PyTempo> = track.tempos.iter().map(|tempo| tempo.into()).collect();
-        let marks: Vec<PyPositionMark> = track
-            .position_marks
-            .iter()
-            .map(|mark| mark.into())
-            .collect();
-        Self {
-            trackid: track.trackid.clone(),
-            name: track.name.clone(),
-            artist: track.artist.clone(),
-            composer: track.composer.clone(),
-            album: track.album.clone(),
-            grouping: track.grouping.clone(),
-            genre: track.genre.clone(),
-            kind: track.kind.clone(),
-            size: track.size,
-            totaltime: track.totaltime,
-            discnumber: track.discnumber,
-            tracknumber: track.tracknumber,
-            year: track.year,
-            averagebpm: track.averagebpm,
-            datemodified: track.datemodified,
-            dateadded: track.dateadded,
-            bitrate: track.bitrate,
-            samplerate: track.samplerate,
-            comments: track.comments.clone(),
-            playcount: track.playcount,
-            lastplayed: track.lastplayed,
-            rating: track.rating,
-            location: track.location.clone(),
-            remixer: track.remixer.clone(),
-            tonality: track.tonality.clone(),
-            label: track.label.clone(),
-            mix: track.mix.clone(),
-            colour: track.colour.clone(),
-            tempos: tempos,
-            position_marks: marks,
+impl IntoPy<PyTrack> for Track {
+    fn into_py(self, py: Python) -> PyResult<PyTrack> {
+        const MIDNIGHT: NaiveTime = NaiveTime::from_hms_opt(0, 0, 0).unwrap();
+
+        let mut tempos = Vec::new();
+        let mut position_marks = Vec::new();
+        for item in self.tempos {
+            let py_item = item.clone().into_py(py)?;
+            tempos.push(Py::new(py, py_item)?);
         }
-    }
-}
+        for item in self.position_marks {
+            let py_item = item.clone().into_py(py)?;
+            position_marks.push(Py::new(py, py_item)?);
+        }
 
-impl Into<Track> for PyTrack {
-    fn into(self) -> Track {
-        let tempos: Vec<Tempo> = self
-            .tempos
-            .iter()
-            .map(|tempo| tempo.clone().into())
-            .collect();
-        let marks: Vec<PositionMark> = self
-            .position_marks
-            .iter()
-            .map(|mark| mark.clone().into())
-            .collect();
-        Track {
-            trackid: self.trackid.clone(),
-            name: self.name.clone(),
-            artist: self.artist.clone(),
-            composer: self.composer.clone(),
-            album: self.album.clone(),
-            grouping: self.grouping.clone(),
-            genre: self.genre.clone(),
-            kind: self.kind.clone(),
+        let datemodified: Option<Py<PyDateTime>> = if let Some(dt) = self.datemodified {
+            let date = dt
+                .and_time(MIDNIGHT)
+                .and_local_timezone(Utc)
+                .earliest()
+                .unwrap();
+            Some(date.into_pyobject(py)?.into())
+        } else {
+            None
+        };
+        let dateadded: Option<Py<PyDateTime>> = if let Some(dt) = self.dateadded {
+            let date = dt
+                .and_time(MIDNIGHT)
+                .and_local_timezone(Utc)
+                .earliest()
+                .unwrap();
+            Some(date.into_pyobject(py)?.into())
+        } else {
+            None
+        };
+        let lastplayed: Option<Py<PyDateTime>> = if let Some(dt) = self.lastplayed {
+            let date = dt
+                .and_time(MIDNIGHT)
+                .and_local_timezone(Utc)
+                .earliest()
+                .unwrap();
+            Some(date.into_pyobject(py)?.into())
+        } else {
+            None
+        };
+
+        let model = PyTrack {
+            trackid: self.trackid,
+            name: self.name,
+            artist: self.artist,
+            composer: self.composer,
+            album: self.album,
+            grouping: self.grouping,
+            genre: self.genre,
+            kind: self.kind,
             size: self.size,
             totaltime: self.totaltime,
             discnumber: self.discnumber,
             tracknumber: self.tracknumber,
             year: self.year,
             averagebpm: self.averagebpm,
-            datemodified: self.datemodified,
-            dateadded: self.dateadded,
+            datemodified,
+            dateadded,
             bitrate: self.bitrate,
             samplerate: self.samplerate,
-            comments: self.comments.clone(),
+            comments: self.comments,
             playcount: self.playcount,
-            lastplayed: self.lastplayed,
+            lastplayed,
             rating: self.rating,
-            location: self.location.clone(),
-            remixer: self.remixer.clone(),
-            tonality: self.tonality.clone(),
-            label: self.label.clone(),
-            mix: self.mix.clone(),
-            colour: self.colour.clone(),
-            tempos: tempos,
-            position_marks: marks,
+            location: self.location,
+            remixer: self.remixer,
+            tonality: self.tonality,
+            label: self.label,
+            mix: self.mix,
+            color: self.color,
+            tempos,
+            position_marks,
+        };
+        Ok(model)
+    }
+}
+
+impl FromPy<PyTrack> for Track {
+    fn from_py(py: Python, model: PyRef<'_, PyTrack>) -> Self {
+        let mut tempos: Vec<Tempo> = Vec::new();
+        let mut position_marks: Vec<PositionMark> = Vec::new();
+        for item in &model.tempos {
+            tempos.push(Tempo::from_py(py, item.borrow(py)));
+        }
+        for item in &model.position_marks {
+            position_marks.push(PositionMark::from_py(py, item.borrow(py)));
+        }
+
+        let datemodified: Option<NaiveDate> = if let Some(dt) = &model.datemodified {
+            let date: DateTime<Utc> = dt.extract::<DateTime<Utc>>(py).unwrap();
+            Some(date.date_naive())
+        } else {
+            None
+        };
+        let dateadded: Option<NaiveDate> = if let Some(dt) = &model.dateadded {
+            let date: DateTime<Utc> = dt.extract::<DateTime<Utc>>(py).unwrap();
+            Some(date.date_naive())
+        } else {
+            None
+        };
+        let lastplayed: Option<NaiveDate> = if let Some(dt) = &model.lastplayed {
+            let date: DateTime<Utc> = dt.extract::<DateTime<Utc>>(py).unwrap();
+            Some(date.date_naive())
+        } else {
+            None
+        };
+
+        Self {
+            trackid: model.trackid.clone(),
+            name: model.name.clone(),
+            artist: model.artist.clone(),
+            composer: model.composer.clone(),
+            album: model.album.clone(),
+            grouping: model.grouping.clone(),
+            genre: model.genre.clone(),
+            kind: model.kind.clone(),
+            size: model.size,
+            totaltime: model.totaltime,
+            discnumber: model.discnumber,
+            tracknumber: model.tracknumber,
+            year: model.year,
+            averagebpm: model.averagebpm,
+            datemodified,
+            dateadded,
+            bitrate: model.bitrate,
+            samplerate: model.samplerate,
+            comments: model.comments.clone(),
+            playcount: model.playcount,
+            lastplayed,
+            rating: model.rating,
+            location: model.location.clone(),
+            remixer: model.remixer.clone(),
+            tonality: model.tonality.clone(),
+            label: model.label.clone(),
+            mix: model.mix.clone(),
+            color: model.color.clone(),
+            tempos,
+            position_marks,
         }
     }
 }
@@ -235,22 +292,18 @@ impl PyRekordboxXml {
     // -- Track handling --------------------------------------------------------------------------
 
     pub fn get_tracks(&mut self, py: Python) -> PyResult<Py<PyList>> {
-        let models: Vec<PyTrack> = self
-            .xml
-            .get_tracks()
-            .iter()
-            .map(|track| track.into())
-            .collect();
-        let result = models_to_pylist(py, models.to_vec())?;
-        Ok(result.into())
+        let data = PyList::empty(py);
+        for item in self.xml.get_tracks() {
+            let py_item = item.clone().into_py(py)?;
+            let _ = data.append(py_item);
+        }
+        Ok(data.into())
     }
 
-    pub fn get_track_by_id(&mut self, py: Python, track_id: &str) -> PyResult<Option<Py<PyDict>>> {
-        let model = self.xml.get_track_by_id(track_id);
-        if let Some(model) = model {
-            let item: PyTrack = (&model).into();
-            let result = model_to_pydict(py, item)?;
-            Ok(Some(result.into()))
+    pub fn get_track_by_id(&mut self, py: Python, track_id: &str) -> PyResult<Option<PyTrack>> {
+        let data = self.xml.get_track_by_id(track_id);
+        if let Some(data) = data {
+            Ok(Some(data.clone().into_py(py)?))
         } else {
             Ok(None)
         }
@@ -260,12 +313,10 @@ impl PyRekordboxXml {
         &mut self,
         py: Python,
         location: &str,
-    ) -> PyResult<Option<Py<PyDict>>> {
-        let model = self.xml.get_track_by_location(location);
-        if let Some(model) = model {
-            let item: PyTrack = (&model).into();
-            let result = model_to_pydict(py, item)?;
-            Ok(Some(result.into()))
+    ) -> PyResult<Option<PyTrack>> {
+        let data = self.xml.get_track_by_location(location);
+        if let Some(data) = data {
+            Ok(Some(data.clone().into_py(py)?))
         } else {
             Ok(None)
         }
@@ -276,30 +327,25 @@ impl PyRekordboxXml {
         py: Python,
         key: &str,
         key_type: i32,
-    ) -> PyResult<Option<Py<PyDict>>> {
+    ) -> PyResult<Option<PyTrack>> {
         let key_type: PlaylistKeyType = key_type.try_into().expect("invalid key type");
-        let model = self.xml.get_track_by_key(key, key_type);
-        if let Some(model) = model {
-            let item: PyTrack = (&model).into();
-            let result = model_to_pydict(py, item)?;
-            Ok(Some(result.into()))
+        let data = self.xml.get_track_by_key(key, key_type);
+        if let Some(data) = data {
+            Ok(Some(data.clone().into_py(py)?))
         } else {
             Ok(None)
         }
     }
 
-    pub fn add_track(&mut self, py: Python, track: &Bound<'_, PyDict>) -> PyResult<()> {
-        let track: PyTrack = pydict_to_model(py, track)?;
-        let track_data: Track = track.into();
-        self.xml.add_track(track_data);
+    pub fn add_track(&mut self, py: Python, track: PyRef<'_, PyTrack>) -> PyResult<()> {
+        self.xml.add_track(Track::from_py(py, track));
         Ok(())
     }
 
-    pub fn update_track(&mut self, py: Python, track: &Bound<'_, PyDict>) -> PyResult<()> {
-        let track: PyTrack = pydict_to_model(py, track)?;
-        let track_data: Track = track.into();
+    pub fn update_track(&mut self, py: Python, track: PyRef<'_, PyTrack>) -> PyResult<()> {
+        let data = Track::from_py(py, track);
         self.xml
-            .update_track(track_data)
+            .update_track(data)
             .map_err(|e| PyErr::new::<XmlError, _>(e.to_string()))?;
         Ok(())
     }

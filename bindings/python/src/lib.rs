@@ -7,7 +7,6 @@ mod masterdb;
 mod py_models;
 mod settings;
 mod traits;
-mod util;
 mod xml;
 
 use pyo3::prelude::*;
@@ -87,7 +86,11 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<anlz::PyPhrase>()?;
     m.add_class::<anlz::PySongStructureData>()?;
 
+    m.add_class::<xml::PyTempo>()?;
+    m.add_class::<xml::PyPositionMark>()?;
+    m.add_class::<xml::PyTrack>()?;
     m.add_class::<xml::PyRekordboxXml>()?;
+
     m.add_class::<settings::PySetting>()?;
 
     m.add("Error", m.py().get_type::<errors::Error>())?;

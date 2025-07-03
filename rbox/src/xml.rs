@@ -302,7 +302,7 @@ pub struct Track {
     /// RGB format (3 bytes) ; rekordbox : Rose(0xFF007F), Red(0xFF0000), Orange(0xFFA500), Lemon(0xFFFF00), Green(0x00FF00), Turquoise(0x25FDE9),  Blue(0x0000FF), Violet(0x660099)
     #[serde(rename = "@Colour")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub colour: Option<String>,
+    pub color: Option<String>,
     #[serde(rename = "TEMPO")]
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default)]
@@ -353,7 +353,7 @@ impl Default for Track {
             tonality: None,
             label: None,
             mix: None,
-            colour: None,
+            color: None,
             tempos: Vec::new(),
             position_marks: Vec::new(),
         }
