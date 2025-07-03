@@ -4,7 +4,9 @@
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use pyo3::prelude::*;
 use pyo3::types::{PyDateTime, PyList, PyType};
-use rbox::xml::{PlaylistKeyType, PositionMark, RekordboxXml, Tempo, Track};
+use rbox::xml::{
+    PlaylistKeyType, PlaylistNode, PlaylistTrack, PositionMark, RekordboxXml, Tempo, Track,
+};
 
 use super::errors::XmlError;
 use super::traits::{FromPy, IntoPy};
@@ -256,6 +258,105 @@ impl FromPy<PyTrack> for Track {
     }
 }
 
+#[pyclass(name = "PlaylistTrack", unsendable, get_all, set_all)]
+pub struct PyPlaylistTrack {
+    pub key: String,
+}
+
+impl IntoPy<PyPlaylistTrack> for PlaylistTrack {
+    fn into_py(self, _py: Python) -> PyResult<PyPlaylistTrack> {
+        Ok(PyPlaylistTrack { key: self.key })
+    }
+}
+
+impl FromPy<PyPlaylistTrack> for PlaylistTrack {
+    fn from_py(_py: Python, model: PyRef<'_, PyPlaylistTrack>) -> Self {
+        Self {
+            key: model.key.clone(),
+        }
+    }
+}
+
+#[pyclass(name = "PlaylistNode", unsendable, get_all, set_all)]
+pub struct PyPlaylistNode {
+    pub name: String,
+    pub node_type: u16,
+    pub key_type: Option<u16>,
+    pub tracks: Option<Vec<Py<PyPlaylistTrack>>>,
+    pub nodes: Option<Vec<Py<PyPlaylistNode>>>,
+    pub node_path: Vec<String>,
+}
+
+impl IntoPy<PyPlaylistNode> for PlaylistNode {
+    fn into_py(self, py: Python) -> PyResult<PyPlaylistNode> {
+        let tracks = if let Some(items) = self.tracks {
+            let mut vec = Vec::new();
+            for item in items {
+                let py_item = item.clone().into_py(py)?;
+                vec.push(Py::new(py, py_item)?);
+            }
+            Some(vec)
+        } else {
+            None
+        };
+        let nodes = if let Some(items) = self.nodes {
+            let mut vec = Vec::new();
+            for item in items {
+                let py_item = item.clone().into_py(py)?;
+                vec.push(Py::new(py, py_item)?);
+            }
+            Some(vec)
+        } else {
+            None
+        };
+
+        let model = PyPlaylistNode {
+            name: self.name,
+            node_type: self.node_type.into(),
+            key_type: self.key_type.map_or(None, |key| Some(key.into())),
+            tracks,
+            nodes,
+            node_path: self.node_path,
+        };
+        Ok(model)
+    }
+}
+
+impl FromPy<PyPlaylistNode> for PlaylistNode {
+    fn from_py(py: Python, model: PyRef<'_, PyPlaylistNode>) -> Self {
+        let tracks: Option<Vec<PlaylistTrack>> = if let Some(items) = &model.tracks {
+            let mut data: Vec<PlaylistTrack> = Vec::new();
+            for item in items {
+                data.push(PlaylistTrack::from_py(py, item.borrow(py)));
+            }
+            Some(data)
+        } else {
+            None
+        };
+
+        let nodes: Option<Vec<PlaylistNode>> = if let Some(items) = &model.nodes {
+            let mut data: Vec<PlaylistNode> = Vec::new();
+            for item in items {
+                data.push(PlaylistNode::from_py(py, item.borrow(py)));
+            }
+            Some(data)
+        } else {
+            None
+        };
+
+        Self {
+            name: model.name.clone(),
+            node_type: model.node_type.try_into().expect("invalid node type"),
+            key_type: model
+                .key_type
+                .map_or(None, |key| Some(key.try_into().expect("invalid key type"))),
+            tracks,
+            nodes,
+            node_path: model.node_path.clone(),
+        }
+    }
+}
+
 #[pyclass(unsendable)]
 pub struct PyRekordboxXml {
     xml: RekordboxXml,
@@ -358,4 +459,9 @@ impl PyRekordboxXml {
     }
 
     // -- Playlist handling -----------------------------------------------------------------------
+
+    pub fn get_playlist_root(&mut self, py: Python) -> PyResult<PyPlaylistNode> {
+        let data = self.xml.get_playlist_root();
+        data.clone().into_py(py)
+    }
 }

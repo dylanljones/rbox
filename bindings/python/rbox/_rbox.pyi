@@ -741,6 +741,17 @@ class PositionMark:
     start: float
     end: Optional[float]
 
+class PlaylistTrack:
+    key: str
+
+class PlaylistNode:
+    name: str
+    node_type: int
+    key_type: Optional[int]
+    tracks: Optional[List[PlaylistTrack]]
+    nodes: Optional[List[PlaylistNode]]
+    node_path: List[str]
+
 class Track:
     trackid: str
     location: str
@@ -786,6 +797,7 @@ class PyRekordboxXml:
     def add_track(self, track: Track) -> None: ...
     def update_track(self, track: Track) -> None: ...
     def remove_track(self, track_id: str) -> None: ...
+    def get_playlist_root(self) -> PlaylistNode: ...
 
 # ---- Settings ------------------------------------------------------------------------------------
 

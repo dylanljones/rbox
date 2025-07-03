@@ -435,6 +435,27 @@ pub enum PlaylistNodeType {
     Folder,   // Type="0"
 }
 
+impl Into<u16> for PlaylistNodeType {
+    fn into(self) -> u16 {
+        match self {
+            PlaylistNodeType::Folder => 0,
+            PlaylistNodeType::Playlist => 1,
+        }
+    }
+}
+
+impl TryFrom<u16> for PlaylistNodeType {
+    type Error = String;
+
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(PlaylistNodeType::Folder),
+            1 => Ok(PlaylistNodeType::Playlist),
+            _ => Err(format!("Invalid PlaylistNodeType value: {}", value)),
+        }
+    }
+}
+
 impl<'de> Deserialize<'de> for PlaylistNodeType {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -467,6 +488,27 @@ impl Serialize for PlaylistNodeType {
 pub enum PlaylistKeyType {
     TrackID = 0,  // KeyType="0"
     Location = 1, // KeyType="1"
+}
+
+impl Into<u16> for PlaylistKeyType {
+    fn into(self) -> u16 {
+        match self {
+            PlaylistKeyType::TrackID => 0,
+            PlaylistKeyType::Location => 1,
+        }
+    }
+}
+
+impl TryFrom<u16> for PlaylistKeyType {
+    type Error = String;
+
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(PlaylistKeyType::TrackID),
+            1 => Ok(PlaylistKeyType::Location),
+            _ => Err(format!("Invalid PlaylistKeyType value: {}", value)),
+        }
+    }
 }
 
 impl<'de> Deserialize<'de> for PlaylistKeyType {

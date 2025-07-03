@@ -89,6 +89,8 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<xml::PyTempo>()?;
     m.add_class::<xml::PyPositionMark>()?;
     m.add_class::<xml::PyTrack>()?;
+    m.add_class::<xml::PyPlaylistTrack>()?;
+    m.add_class::<xml::PyPlaylistNode>()?;
     m.add_class::<xml::PyRekordboxXml>()?;
 
     m.add_class::<settings::PySetting>()?;

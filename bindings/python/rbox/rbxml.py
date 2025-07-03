@@ -5,7 +5,7 @@
 from pathlib import Path
 from typing import List, Optional, Union
 
-from ._rbox import PyRekordboxXml as _PyRekordboxXml, Track
+from ._rbox import PlaylistNode, PyRekordboxXml as _PyRekordboxXml, Track
 
 
 class RekordboxXml:
@@ -44,3 +44,6 @@ class RekordboxXml:
 
     def remove_track(self, track_id: str) -> None:
         self._xml.remove_track(track_id)
+
+    def get_playlist_root(self) -> PlaylistNode:
+        return self._xml.get_playlist_root()
