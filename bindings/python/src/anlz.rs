@@ -2,7 +2,6 @@
 // Date:   2025-05-10
 
 use pyo3::prelude::*;
-use pyo3::types::PyList;
 use rbox::anlz::anlz::*;
 
 use super::errors::AnlzError;
@@ -42,45 +41,38 @@ impl IntoPy<PyExtBeat> for ExtBeat {
 
 #[pyclass(name = "BeatGrid", unsendable, get_all, set_all)]
 pub struct PyBeatGrid {
-    pub beats: Py<PyList>,
+    pub beats: Vec<Py<PyBeat>>,
 }
 
 impl IntoPy<PyBeatGrid> for BeatGrid {
     fn into_py(self, py: Python) -> PyResult<PyBeatGrid> {
-        let beats = PyList::empty(py);
-        for beat in self.beats {
-            let item = beat.clone().into_py(py)?;
-            let _ = beats.append(item);
+        let mut beats = Vec::new();
+        for item in self.beats {
+            beats.push(Py::new(py, item.clone().into_py(py)?)?)
         }
-        let model = PyBeatGrid {
-            beats: beats.into(),
-        };
+        let model = PyBeatGrid { beats };
         Ok(model)
     }
 }
 
 #[pyclass(name = "ExtendedBeatGrid", unsendable, get_all, set_all)]
 pub struct PyExtendedBeatGrid {
-    pub bpm: Py<PyList>,
-    pub beats: Py<PyList>,
+    pub bpm: Vec<Py<PyBeat>>,
+    pub beats: Vec<Py<PyExtBeat>>,
 }
 
 impl IntoPy<PyExtendedBeatGrid> for ExtendedBeatGrid {
     fn into_py(self, py: Python) -> PyResult<PyExtendedBeatGrid> {
-        let bpm = PyList::empty(py);
-        for beat in self.bpm {
-            let item = beat.clone().into_py(py)?;
-            let _ = bpm.append(item);
+        let mut bpm = Vec::new();
+        let mut beats = Vec::new();
+        for item in self.bpm {
+            bpm.push(Py::new(py, item.clone().into_py(py)?)?)
         }
-        let beats = PyList::empty(py);
-        for beat in self.beats {
-            let item = beat.clone().into_py(py)?;
-            let _ = beats.append(item);
+        for item in self.beats {
+            beats.push(Py::new(py, item.clone().into_py(py)?)?)
         }
-        let model = PyExtendedBeatGrid {
-            bpm: bpm.into(),
-            beats: beats.into(),
-        };
+
+        let model = PyExtendedBeatGrid { bpm, beats };
         Ok(model)
     }
 }
@@ -150,19 +142,18 @@ impl IntoPy<PyExtendedCue> for ExtendedCue {
 #[pyclass(name = "CueList", unsendable, get_all, set_all)]
 pub struct PyCueList {
     pub list_type: u16,
-    pub cues: Py<PyList>,
+    pub cues: Vec<Py<PyCue>>,
 }
 
 impl IntoPy<PyCueList> for CueList {
     fn into_py(self, py: Python) -> PyResult<PyCueList> {
-        let cues = PyList::empty(py);
-        for cue in self.cues {
-            let item = cue.clone().into_py(py)?;
-            let _ = cues.append(item);
+        let mut cues = Vec::new();
+        for item in self.cues {
+            cues.push(Py::new(py, item.clone().into_py(py)?)?)
         }
         let model = PyCueList {
             list_type: self.list_type.into(),
-            cues: cues.into(),
+            cues,
         };
         Ok(model)
     }
@@ -171,19 +162,18 @@ impl IntoPy<PyCueList> for CueList {
 #[pyclass(name = "ExtendedCueList", unsendable, get_all, set_all)]
 pub struct PyExtendedCueList {
     pub list_type: u16,
-    pub cues: Py<PyList>,
+    pub cues: Vec<Py<PyExtendedCue>>,
 }
 
 impl IntoPy<PyExtendedCueList> for ExtendedCueList {
     fn into_py(self, py: Python) -> PyResult<PyExtendedCueList> {
-        let cues = PyList::empty(py);
-        for cue in self.cues {
-            let item = cue.clone().into_py(py)?;
-            let _ = cues.append(item);
+        let mut cues = Vec::new();
+        for item in self.cues {
+            cues.push(Py::new(py, item.clone().into_py(py)?)?)
         }
         let model = PyExtendedCueList {
             list_type: self.list_type.into(),
-            cues: cues.into(),
+            cues,
         };
         Ok(model)
     }
@@ -205,17 +195,16 @@ impl IntoPy<PyTinyWaveformColumn> for TinyWaveformColumn {
 
 #[pyclass(name = "TinyWaveformPreview", unsendable, get_all, set_all)]
 pub struct PyTinyWaveformPreview {
-    pub data: Py<PyList>,
+    pub data: Vec<Py<PyTinyWaveformColumn>>,
 }
 
 impl IntoPy<PyTinyWaveformPreview> for TinyWaveformPreview {
     fn into_py(self, py: Python) -> PyResult<PyTinyWaveformPreview> {
-        let data = PyList::empty(py);
-        for column in self.data {
-            let item = column.clone().into_py(py)?;
-            let _ = data.append(item);
+        let mut data = Vec::new();
+        for item in self.data {
+            data.push(Py::new(py, item.clone().into_py(py)?)?)
         }
-        let model = PyTinyWaveformPreview { data: data.into() };
+        let model = PyTinyWaveformPreview { data };
         Ok(model)
     }
 }
@@ -238,34 +227,32 @@ impl IntoPy<PyWaveformColumn> for WaveformColumn {
 
 #[pyclass(name = "WaveformPreview", unsendable, get_all, set_all)]
 pub struct PyWaveformPreview {
-    pub data: Py<PyList>,
+    pub data: Vec<Py<PyWaveformColumn>>,
 }
 
 impl IntoPy<PyWaveformPreview> for WaveformPreview {
     fn into_py(self, py: Python) -> PyResult<PyWaveformPreview> {
-        let data = PyList::empty(py);
-        for column in self.data {
-            let item = column.clone().into_py(py)?;
-            let _ = data.append(item);
+        let mut data = Vec::new();
+        for item in self.data {
+            data.push(Py::new(py, item.clone().into_py(py)?)?)
         }
-        let model = PyWaveformPreview { data: data.into() };
+        let model = PyWaveformPreview { data };
         Ok(model)
     }
 }
 
 #[pyclass(name = "WaveformDetail", unsendable, get_all, set_all)]
 pub struct PyWaveformDetail {
-    pub data: Py<PyList>,
+    pub data: Vec<Py<PyWaveformColumn>>,
 }
 
 impl IntoPy<PyWaveformDetail> for WaveformDetail {
     fn into_py(self, py: Python) -> PyResult<PyWaveformDetail> {
-        let data = PyList::empty(py);
-        for column in self.data {
-            let item = column.clone().into_py(py)?;
-            let _ = data.append(item);
+        let mut data = Vec::new();
+        for item in self.data {
+            data.push(Py::new(py, item.clone().into_py(py)?)?)
         }
-        let model = PyWaveformDetail { data: data.into() };
+        let model = PyWaveformDetail { data };
         Ok(model)
     }
 }
@@ -292,17 +279,16 @@ impl IntoPy<PyWaveformColorPreviewColumn> for WaveformColorPreviewColumn {
 
 #[pyclass(name = "WaveformColorPreview", unsendable, get_all, set_all)]
 pub struct PyWaveformColorPreview {
-    pub data: Py<PyList>,
+    pub data: Vec<Py<PyWaveformColorPreviewColumn>>,
 }
 
 impl IntoPy<PyWaveformColorPreview> for WaveformColorPreview {
     fn into_py(self, py: Python) -> PyResult<PyWaveformColorPreview> {
-        let data = PyList::empty(py);
-        for column in self.data {
-            let item = column.clone().into_py(py)?;
-            let _ = data.append(item);
+        let mut data = Vec::new();
+        for item in self.data {
+            data.push(Py::new(py, item.clone().into_py(py)?)?)
         }
-        let model = PyWaveformColorPreview { data: data.into() };
+        let model = PyWaveformColorPreview { data };
         Ok(model)
     }
 }
@@ -329,17 +315,16 @@ impl IntoPy<PyWaveformColorDetailColumn> for WaveformColorDetailColumn {
 
 #[pyclass(name = "WaveformColorDetail", unsendable, get_all, set_all)]
 pub struct PyWaveformColorDetail {
-    pub data: Py<PyList>,
+    pub data: Vec<Py<PyWaveformColorDetailColumn>>,
 }
 
 impl IntoPy<PyWaveformColorDetail> for WaveformColorDetail {
     fn into_py(self, py: Python) -> PyResult<PyWaveformColorDetail> {
-        let data = PyList::empty(py);
-        for column in self.data {
-            let item = column.clone().into_py(py)?;
-            let _ = data.append(item);
+        let mut data = Vec::new();
+        for item in self.data {
+            data.push(Py::new(py, item.clone().into_py(py)?)?)
         }
-        let model = PyWaveformColorDetail { data: data.into() };
+        let model = PyWaveformColorDetail { data };
         Ok(model)
     }
 }
@@ -364,34 +349,32 @@ impl IntoPy<PyWaveform3BandColumn> for Waveform3BandColumn {
 
 #[pyclass(name = "Waveform3BandPreview", unsendable, get_all, set_all)]
 pub struct PyWaveform3BandPreview {
-    pub data: Py<PyList>,
+    pub data: Vec<Py<PyWaveform3BandColumn>>,
 }
 
 impl IntoPy<PyWaveform3BandPreview> for Waveform3BandPreview {
     fn into_py(self, py: Python) -> PyResult<PyWaveform3BandPreview> {
-        let data = PyList::empty(py);
-        for column in self.data {
-            let item = column.clone().into_py(py)?;
-            let _ = data.append(item);
+        let mut data = Vec::new();
+        for item in self.data {
+            data.push(Py::new(py, item.clone().into_py(py)?)?)
         }
-        let model = PyWaveform3BandPreview { data: data.into() };
+        let model = PyWaveform3BandPreview { data };
         Ok(model)
     }
 }
 
 #[pyclass(name = "Waveform3BandDetail", unsendable, get_all, set_all)]
 pub struct PyWaveform3BandDetail {
-    pub data: Py<PyList>,
+    pub data: Vec<Py<PyWaveform3BandColumn>>,
 }
 
 impl IntoPy<PyWaveform3BandDetail> for Waveform3BandDetail {
     fn into_py(self, py: Python) -> PyResult<PyWaveform3BandDetail> {
-        let data = PyList::empty(py);
-        for column in self.data {
-            let item = column.clone().into_py(py)?;
-            let _ = data.append(item);
+        let mut data = Vec::new();
+        for item in self.data {
+            data.push(Py::new(py, item.clone().into_py(py)?)?)
         }
-        let model = PyWaveform3BandDetail { data: data.into() };
+        let model = PyWaveform3BandDetail { data };
         Ok(model)
     }
 }
@@ -437,21 +420,20 @@ pub struct PySongStructureData {
     pub mood: u16,
     pub end_beat: u16,
     pub bank: u16,
-    pub phrases: Py<PyList>,
+    pub phrases: Vec<Py<PyPhrase>>,
 }
 
 impl IntoPy<PySongStructureData> for SongStructureData {
     fn into_py(self, py: Python) -> PyResult<PySongStructureData> {
-        let phrases = PyList::empty(py);
-        for phrase in self.phrases {
-            let item = phrase.clone().into_py(py)?;
-            let _ = phrases.append(item);
+        let mut phrases = Vec::new();
+        for item in self.phrases {
+            phrases.push(Py::new(py, item.clone().into_py(py)?)?)
         }
         let model = PySongStructureData {
             mood: self.mood.into(),
             end_beat: self.end_beat,
             bank: self.bank.into(),
-            phrases: phrases.into(),
+            phrases,
         };
         Ok(model)
     }
@@ -490,18 +472,12 @@ impl PyAnlz {
         Ok(contains)
     }
 
-    pub fn get_tags(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_tags(&mut self) -> PyResult<Vec<String>> {
         let tags = self
             .anlz
             .get_tags()
             .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?;
-        let py_tags = PyList::empty(py);
-        for tag in tags {
-            py_tags
-                .append(tag.to_string())
-                .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?;
-        }
-        Ok(py_tags.into())
+        Ok(tags.clone())
     }
 
     pub fn get_beat_grid(&mut self, py: Python) -> PyResult<Option<PyBeatGrid>> {
@@ -565,16 +541,9 @@ impl PyAnlz {
         Ok(())
     }
 
-    pub fn get_vbr_data(&mut self, py: Python) -> PyResult<Option<Py<PyList>>> {
+    pub fn get_vbr_data(&mut self) -> PyResult<Option<Vec<u8>>> {
         let vbr = self.anlz.get_vbr_data();
-        if let Some(vbr) = vbr {
-            let items = PyList::empty(py);
-            for x in vbr {
-                let _ = items.append(x);
-            }
-            return Ok(Some(items.into()));
-        }
-        Ok(None)
+        Ok(vbr)
     }
 
     pub fn get_tiny_waveform_preview(
