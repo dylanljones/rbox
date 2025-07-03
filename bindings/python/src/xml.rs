@@ -3,7 +3,7 @@
 
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use pyo3::prelude::*;
-use pyo3::types::{PyDateTime, PyList, PyType};
+use pyo3::types::{PyDateTime, PyType};
 use rbox::xml::{
     PlaylistKeyType, PlaylistNode, PlaylistTrack, PositionMark, RekordboxXml, Tempo, Track,
 };
@@ -392,13 +392,13 @@ impl PyRekordboxXml {
 
     // -- Track handling --------------------------------------------------------------------------
 
-    pub fn get_tracks(&mut self, py: Python) -> PyResult<Py<PyList>> {
-        let data = PyList::empty(py);
+    pub fn get_tracks(&mut self, py: Python) -> PyResult<Vec<Py<PyTrack>>> {
+        let mut data = Vec::new();
         for item in self.xml.get_tracks() {
             let py_item = item.clone().into_py(py)?;
-            let _ = data.append(py_item);
+            data.push(Py::new(py, py_item)?);
         }
-        Ok(data.into())
+        Ok(data)
     }
 
     pub fn get_track_by_id(&mut self, py: Python, track_id: &str) -> PyResult<Option<PyTrack>> {
