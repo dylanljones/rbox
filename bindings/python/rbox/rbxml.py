@@ -16,6 +16,13 @@ class RekordboxXml:
         else:
             self._xml = _PyRekordboxXml(str(path))
 
+    @property
+    def root_playlist(self) -> PlaylistNode:
+        return self._xml.root_playlist
+
+    def to_string(self) -> str:
+        return self._xml.to_string()
+
     def dump_copy(self, path: Union[str, Path]) -> None:
         self._xml.dump_copy(str(path))
 
@@ -24,6 +31,9 @@ class RekordboxXml:
 
     def get_tracks(self) -> List[Track]:
         return self._xml.get_tracks()
+
+    def get_track(self, index: str) -> List[Track]:
+        return self._xml.get_track(index)
 
     def get_track_by_id(self, track_id: str) -> Optional[Track]:
         return self._xml.get_track_by_id(track_id)
@@ -39,11 +49,14 @@ class RekordboxXml:
     def add_track(self, track: Track) -> None:
         self._xml.add_track(track)
 
+    def new_track(self, track_id: str, location: str) -> Track:
+        return self._xml.new_track(track_id, location)
+
     def update_track(self, track: Track) -> None:
         self._xml.update_track(track)
 
     def remove_track(self, track_id: str) -> None:
         self._xml.remove_track(track_id)
 
-    def get_playlist_root(self) -> PlaylistNode:
-        return self._xml.get_playlist_root()
+    def clear_tracks(self) -> None:
+        self._xml.clear_tracks()

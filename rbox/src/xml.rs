@@ -148,11 +148,11 @@ pub struct Tempo {
     /// Beat number in the bar
     /// If the value of "Metro" is 4/ 4, the value should be 1, 2, 3 or 4.
     #[serde(rename = "@Battito")]
-    pub battito: i32,
+    pub battito: u16,
 }
 
 impl Tempo {
-    pub fn new(inizio: f64, bpm: f64, metro: &str, battito: i32) -> Self {
+    pub fn new(inizio: f64, bpm: f64, metro: &str, battito: u16) -> Self {
         Self {
             inizio,
             bpm,
@@ -171,7 +171,7 @@ pub struct PositionMark {
     /// Type of position mark
     /// Cue = "@0", Fade- In = "1", Fade- Out = "2", Load = "3",  Loop = " 4"
     #[serde(rename = "@Type")]
-    pub mark_type: i32,
+    pub mark_type: u16,
     /// Start position of position mark
     /// Unit : Second (with decimal numbers)
     #[serde(rename = "@Start")]
@@ -188,7 +188,7 @@ pub struct PositionMark {
 }
 
 impl PositionMark {
-    pub fn new(name: &str, mark_type: i32, start: f64, end: Option<f64>, num: i32) -> Self {
+    pub fn new(name: &str, mark_type: u16, num: i32, start: f64, end: Option<f64>) -> Self {
         Self {
             name: name.to_string(),
             mark_type,
@@ -431,8 +431,8 @@ impl PlaylistTrack {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum PlaylistNodeType {
-    Playlist, // Type="1"
     Folder,   // Type="0"
+    Playlist, // Type="1"
 }
 
 impl Into<u16> for PlaylistNodeType {
@@ -651,7 +651,7 @@ impl PlaylistNode {
     pub fn new(name: &str, node_type: PlaylistNodeType) -> Self {
         Self {
             name: name.to_string(),
-            node_type: node_type,
+            node_type,
             key_type: None,
             tracks: None,
             nodes: None,
@@ -678,7 +678,7 @@ impl PlaylistNode {
         self.nodes.as_mut().unwrap().push(node);
     }
 
-    pub fn add_playlist(&mut self, name: &str, key_type: PlaylistKeyType) -> anyhow::Result<()> {
+    pub fn new_playlist(&mut self, name: &str, key_type: PlaylistKeyType) -> anyhow::Result<()> {
         if self.node_type == PlaylistNodeType::Playlist {
             return Err(anyhow::anyhow!("Cannot add child node to playlist node"));
         };
@@ -687,7 +687,7 @@ impl PlaylistNode {
         Ok(())
     }
 
-    pub fn add_folder(&mut self, name: &str) -> anyhow::Result<()> {
+    pub fn new_folder(&mut self, name: &str) -> anyhow::Result<()> {
         if self.node_type == PlaylistNodeType::Playlist {
             return Err(anyhow::anyhow!("Cannot add child node to playlist node"));
         };
@@ -696,22 +696,19 @@ impl PlaylistNode {
         Ok(())
     }
 
-    pub fn add_track_key(&mut self, key: &str) -> anyhow::Result<()> {
-        if self.node_type == PlaylistNodeType::Folder {
-            return Err(anyhow::anyhow!("Cannot add track to folder node"));
+    pub fn remove_node(&mut self, index: usize) -> anyhow::Result<()> {
+        if self.node_type == PlaylistNodeType::Playlist {
+            return Err(anyhow::anyhow!("Cannot add child node to playlist node"));
         };
-        let track_item = PlaylistTrack::new(key);
-        self.tracks.as_mut().unwrap().push(track_item);
+        self.nodes.as_mut().unwrap().remove(index);
         Ok(())
     }
 
-    pub fn add_track(&mut self, track: &Track) -> anyhow::Result<()> {
-        if self.node_type == PlaylistNodeType::Folder {
-            return Err(anyhow::anyhow!("Cannot get track of folder node"));
+    pub fn clear_nodes(&mut self) -> anyhow::Result<()> {
+        if self.node_type == PlaylistNodeType::Playlist {
+            return Err(anyhow::anyhow!("Cannot add child node to playlist node"));
         };
-        let key_type = self.key_type.as_ref().unwrap();
-        let track_item = PlaylistTrack::from_track(track, key_type);
-        self.tracks.as_mut().unwrap().push(track_item);
+        self.nodes.as_mut().unwrap().clear();
         Ok(())
     }
 
@@ -754,6 +751,57 @@ impl PlaylistNode {
         };
         let tracks = self.tracks.as_mut().unwrap();
         Ok(tracks.get(idx))
+    }
+
+    pub fn new_track(&mut self, key: &str) -> anyhow::Result<()> {
+        if self.node_type == PlaylistNodeType::Folder {
+            return Err(anyhow::anyhow!("Cannot add track to folder node"));
+        };
+        let track_item = PlaylistTrack::new(key);
+        self.tracks.as_mut().unwrap().push(track_item);
+        Ok(())
+    }
+    pub fn add_track_key(&mut self, key: &str) -> anyhow::Result<()> {
+        if self.node_type == PlaylistNodeType::Folder {
+            return Err(anyhow::anyhow!("Cannot add track to folder node"));
+        };
+        let track_item = PlaylistTrack::new(key);
+        self.tracks.as_mut().unwrap().push(track_item);
+        Ok(())
+    }
+    pub fn add_track(&mut self, track: &Track) -> anyhow::Result<()> {
+        if self.node_type == PlaylistNodeType::Folder {
+            return Err(anyhow::anyhow!("Cannot add track to folder node"));
+        };
+        let key_type = self.key_type.as_ref().unwrap();
+        let track_item = PlaylistTrack::from_track(track, key_type);
+        self.tracks.as_mut().unwrap().push(track_item);
+        Ok(())
+    }
+
+    pub fn remove_track(&mut self, key: &str) -> anyhow::Result<()> {
+        if self.node_type == PlaylistNodeType::Folder {
+            return Err(anyhow::anyhow!("Cannot remove track frpm folder node"));
+        };
+        let mut index: Option<usize> = None;
+        for (i, track) in self.tracks.as_mut().unwrap().iter_mut().enumerate() {
+            if track.key == key {
+                index = Some(i);
+            }
+        }
+        if index.is_none() {
+            return Err(anyhow::anyhow!("Track not found"));
+        }
+        self.tracks.as_mut().unwrap().remove(index.unwrap());
+        Ok(())
+    }
+
+    pub fn clear_tracks(&mut self) -> anyhow::Result<()> {
+        if self.node_type == PlaylistNodeType::Folder {
+            return Err(anyhow::anyhow!("Cannot clear tracks of a folder node"));
+        };
+        self.nodes.as_mut().unwrap().clear();
+        Ok(())
     }
 
     fn update_path(&mut self, parent_path: Vec<String>) {
@@ -842,9 +890,9 @@ pub struct Document {
 impl Document {
     pub fn new() -> Self {
         let version = "1.0.0";
-        let product_name = "rekordbox-io";
+        let product_name = "rbox";
         let product_version = "0.1.0";
-        let product_company = "rekordbox-io";
+        let product_company = "rbox";
         Document {
             version: version.to_string(),
             product: Product {
@@ -940,35 +988,43 @@ impl RekordboxXml {
         &mut self.doc.collection.tracks
     }
 
-    pub fn get_track_by_id(&self, track_id: &str) -> Option<Track> {
+    pub fn set_tracks(&mut self, tracks: Vec<Track>) {
+        self.doc.collection.tracks = tracks;
+    }
+
+    pub fn get_track(&mut self, index: usize) -> Option<&mut Track> {
+        self.doc.collection.tracks.get_mut(index)
+    }
+
+    pub fn get_track_by_id(&mut self, track_id: &str) -> Option<&mut Track> {
         let item = self
             .doc
             .collection
             .tracks
-            .iter()
+            .iter_mut()
             .find(|t| &t.trackid == track_id);
         if let Some(item) = item {
-            Some(item.clone())
+            Some(item)
         } else {
             None
         }
     }
 
-    pub fn get_track_by_location(&self, location: &str) -> Option<Track> {
+    pub fn get_track_by_location(&mut self, location: &str) -> Option<&mut Track> {
         let item = self
             .doc
             .collection
             .tracks
-            .iter()
+            .iter_mut()
             .find(|t| t.location == location);
         if let Some(item) = item {
-            Some(item.clone())
+            Some(item)
         } else {
             None
         }
     }
 
-    pub fn get_track_by_key(&self, key: &str, key_type: PlaylistKeyType) -> Option<Track> {
+    pub fn get_track_by_key(&mut self, key: &str, key_type: PlaylistKeyType) -> Option<&mut Track> {
         match key_type {
             PlaylistKeyType::TrackID => self.get_track_by_id(key),
             PlaylistKeyType::Location => self.get_track_by_location(key),
@@ -977,6 +1033,13 @@ impl RekordboxXml {
 
     pub fn add_track(&mut self, track: Track) {
         self.doc.collection.tracks.push(track);
+    }
+
+    pub fn new_track(&mut self, trackid: &str, location: &str) -> &mut Track {
+        let track = Track::new(trackid, location);
+        let index = self.doc.collection.tracks.len();
+        self.doc.collection.tracks.push(track);
+        self.doc.collection.tracks.get_mut(index).unwrap()
     }
 
     pub fn update_track(&mut self, track: Track) -> anyhow::Result<()> {
@@ -1009,10 +1072,18 @@ impl RekordboxXml {
         Ok(())
     }
 
+    pub fn clear_tracks(&mut self) {
+        self.doc.collection.tracks.clear()
+    }
+
     // -- Playlist handling -----------------------------------------------------------------------
 
     pub fn get_playlist_root(&mut self) -> &mut PlaylistNode {
         &mut self.doc.playlists.node
+    }
+
+    pub fn set_playlist_root(&mut self, node: PlaylistNode) {
+        self.doc.playlists.node = node;
     }
 
     pub fn get_playlist_by_path(
@@ -1023,7 +1094,7 @@ impl RekordboxXml {
         root.get_child_by_path(path)
     }
 
-    pub fn add_playlist(
+    pub fn new_playlist(
         &mut self,
         name: &str,
         key_type: PlaylistKeyType,
@@ -1033,16 +1104,16 @@ impl RekordboxXml {
         if parent.is_none() {
             return Err(anyhow::anyhow!("Parent playlist not found"));
         }
-        parent.unwrap().add_playlist(name, key_type)?;
+        parent.unwrap().new_playlist(name, key_type)?;
         Ok(())
     }
 
-    pub fn add_folder(&mut self, name: &str, parent_path: Vec<String>) -> anyhow::Result<()> {
+    pub fn new_folder(&mut self, name: &str, parent_path: Vec<String>) -> anyhow::Result<()> {
         let parent = self.get_playlist_by_path(parent_path)?;
         if parent.is_none() {
             return Err(anyhow::anyhow!("Parent playlist not found"));
         }
-        parent.unwrap().add_folder(name)?;
+        parent.unwrap().new_folder(name)?;
         Ok(())
     }
 
@@ -1055,7 +1126,7 @@ impl RekordboxXml {
         if parent.is_none() {
             return Err(anyhow::anyhow!("Parent playlist not found"));
         }
-        parent.unwrap().add_track_key(key)?;
+        parent.unwrap().new_track(key)?;
         Ok(())
     }
 
