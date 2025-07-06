@@ -17,6 +17,10 @@ class RekordboxXml:
             self._xml = _PyRekordboxXml(str(path))
 
     @property
+    def tracks(self) -> list[Track]:
+        return self._xml.tracks
+
+    @property
     def root_playlist(self) -> PlaylistNode:
         return self._xml.root_playlist
 
@@ -30,9 +34,9 @@ class RekordboxXml:
         self._xml.dump()
 
     def get_tracks(self) -> List[Track]:
-        return self._xml.get_tracks()
+        return self._xml.tracks
 
-    def get_track(self, index: str) -> List[Track]:
+    def get_track(self, index: int) -> Optional[Track]:
         return self._xml.get_track(index)
 
     def get_track_by_id(self, track_id: str) -> Optional[Track]:

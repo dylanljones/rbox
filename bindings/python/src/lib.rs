@@ -3,6 +3,7 @@
 
 mod anlz;
 mod errors;
+mod iter;
 mod masterdb;
 mod py_models;
 mod settings;

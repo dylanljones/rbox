@@ -3,12 +3,12 @@
 
 use super::errors::XmlError;
 use super::traits::{FromPy, IntoPy};
+use crate::iter::PyStrIter;
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use pyo3::prelude::*;
 use pyo3::types::{PyDateTime, PyType};
 use rbox::xml::{
-    PlaylistKeyType, PlaylistNode, PlaylistNodeType, PlaylistTrack, PositionMark, RekordboxXml,
-    Tempo, Track,
+    PlaylistNode, PlaylistNodeType, PlaylistTrack, PositionMark, RekordboxXml, Tempo, Track,
 };
 
 #[derive(Debug, Clone)]
@@ -30,6 +30,50 @@ impl PyTempo {
             metro: metro.to_string(),
             battito,
         }
+    }
+
+    fn __len__(&self) -> usize {
+        4
+    }
+
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
+        let keys: Vec<String> = vec![
+            "inizio".to_string(),
+            "bpm".to_string(),
+            "metro".to_string(),
+            "battito".to_string(),
+        ];
+        let iter = PyStrIter::new(keys);
+        Py::new(slf.py(), iter)
+    }
+
+    fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        match key {
+            "inizio" => Ok(self.inizio.clone().into_pyobject(py)?.into()),
+            "bpm" => Ok(self.bpm.clone().into_pyobject(py)?.into()),
+            "metro" => Ok(self.metro.clone().into_pyobject(py)?.into()),
+            "battito" => Ok(self.battito.clone().into_pyobject(py)?.into()),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
+                "Key '{}' not found",
+                key
+            ))),
+        }
+    }
+
+    fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        match key {
+            "inizio" => self.inizio = value.extract::<f64>(py)?,
+            "bpm" => self.bpm = value.extract::<f64>(py)?,
+            "metro" => self.metro = value.extract::<String>(py)?,
+            "battito" => self.battito = value.extract::<u16>(py)?,
+            _ => {
+                return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
+                    "Key '{}' not found",
+                    key
+                )))
+            }
+        }
+        Ok(())
     }
 
     fn __repr__(&self) -> PyResult<String> {
@@ -87,11 +131,65 @@ impl PyPositionMark {
         }
     }
 
+    fn __len__(&self) -> usize {
+        5
+    }
+
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
+        let keys: Vec<String> = vec![
+            "name".to_string(),
+            "mark_type".to_string(),
+            "start".to_string(),
+            "end".to_string(),
+            "num".to_string(),
+        ];
+        let iter = PyStrIter::new(keys);
+        Py::new(slf.py(), iter)
+    }
+
+    fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        match key {
+            "name" => Ok(self.name.clone().into_pyobject(py)?.into()),
+            "mark_type" => Ok(self.mark_type.clone().into_pyobject(py)?.into()),
+            "start" => Ok(self.start.clone().into_pyobject(py)?.into()),
+            "end" => Ok(self.end.clone().into_pyobject(py)?.into()),
+            "num" => Ok(self.num.clone().into_pyobject(py)?.into()),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
+                "Key '{}' not found",
+                key
+            ))),
+        }
+    }
+
+    fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        match key {
+            "name" => self.name = value.extract::<String>(py)?,
+            "mark_type" => self.mark_type = value.extract::<u16>(py)?,
+            "start" => self.start = value.extract::<f64>(py)?,
+            "end" => self.end = value.extract::<Option<f64>>(py)?,
+            "num" => self.num = value.extract::<i32>(py)?,
+            _ => {
+                return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
+                    "Key '{}' not found",
+                    key
+                )))
+            }
+        }
+        Ok(())
+    }
+
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!(
-            "PositionMark(name: {}, type: {}, start: {}, end: {:?}, num: {})",
-            self.name, self.mark_type, self.start, self.end, self.num
-        ))
+        if let Some(end) = self.end {
+            Ok(format!(
+                "PositionMark(name: {}, type: {}, start: {}, end: {}, num: {})",
+                self.name, self.mark_type, self.start, end, self.num
+            ))
+        } else {
+            Ok(format!(
+                "PositionMark(name: {}, type: {}, start: {}, num: {})",
+                self.name, self.mark_type, self.start, self.num
+            ))
+        }
     }
 }
 
@@ -170,6 +268,39 @@ impl PyTrack {
             position_marks.push(pyitem);
         }
 
+        let datemodified: Option<Py<PyDateTime>> = if let Some(dt) = &self.datemodified {
+            let date: DateTime<Utc> = dt.extract::<DateTime<Utc>>(py).unwrap();
+            Some(
+                date.into_pyobject(py)
+                    .expect("Failed to convert date")
+                    .into(),
+            )
+        } else {
+            None
+        };
+
+        let dateadded: Option<Py<PyDateTime>> = if let Some(dt) = &self.dateadded {
+            let date: DateTime<Utc> = dt.extract::<DateTime<Utc>>(py).unwrap();
+            Some(
+                date.into_pyobject(py)
+                    .expect("Failed to convert date")
+                    .into(),
+            )
+        } else {
+            None
+        };
+
+        let lastplayed: Option<Py<PyDateTime>> = if let Some(dt) = &self.lastplayed {
+            let date: DateTime<Utc> = dt.extract::<DateTime<Utc>>(py).unwrap();
+            Some(
+                date.into_pyobject(py)
+                    .expect("Failed to convert date")
+                    .into(),
+            )
+        } else {
+            None
+        };
+
         Self {
             tempos,
             position_marks,
@@ -188,13 +319,13 @@ impl PyTrack {
             tracknumber: self.tracknumber,
             year: self.year,
             averagebpm: self.averagebpm,
-            datemodified: None,
-            dateadded: None,
+            datemodified: datemodified,
+            dateadded: dateadded,
             bitrate: self.bitrate,
             samplerate: self.samplerate,
             comments: self.comments.clone(),
             playcount: self.playcount,
-            lastplayed: None,
+            lastplayed: lastplayed,
             rating: self.rating,
             remixer: self.remixer.clone(),
             tonality: self.tonality.clone(),
@@ -242,6 +373,142 @@ impl PyTrack {
             position_marks: Vec::new(),
         };
         Ok(track)
+    }
+
+    fn __len__(&self) -> usize {
+        28
+    }
+
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
+        let keys: Vec<String> = vec![
+            "trackid".to_string(),
+            "name".to_string(),
+            "artist".to_string(),
+            "composer".to_string(),
+            "album".to_string(),
+            "grouping".to_string(),
+            "genre".to_string(),
+            "kind".to_string(),
+            "size".to_string(),
+            "totaltime".to_string(),
+            "discnumber".to_string(),
+            "tracknumber".to_string(),
+            "year".to_string(),
+            "averagebpm".to_string(),
+            "datemodified".to_string(),
+            "dateadded".to_string(),
+            "bitrate".to_string(),
+            "samplerate".to_string(),
+            "comments".to_string(),
+            "playcount".to_string(),
+            "lastplayed".to_string(),
+            "rating".to_string(),
+            "location".to_string(),
+            "remixer".to_string(),
+            "tonality".to_string(),
+            "label".to_string(),
+            "mix".to_string(),
+            "color".to_string(),
+        ];
+        let iter = PyStrIter::new(keys);
+        Py::new(slf.py(), iter)
+    }
+
+    fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        let datemodified: PyObject = if let Some(dt) = &self.datemodified {
+            dt.clone_ref(py).into()
+        } else {
+            let val: Option<String> = None;
+            val.into_pyobject(py)?.into()
+        };
+        let dateadded: PyObject = if let Some(dt) = &self.dateadded {
+            dt.clone_ref(py).into()
+        } else {
+            let val: Option<String> = None;
+            val.into_pyobject(py)?.into()
+        };
+        let lastplayed: PyObject = if let Some(dt) = &self.lastplayed {
+            dt.clone_ref(py).into()
+        } else {
+            let val: Option<String> = None;
+            val.into_pyobject(py)?.into()
+        };
+        match key {
+            "trackid" => Ok(self.trackid.clone().into_pyobject(py)?.into()),
+            "name" => Ok(self.name.clone().into_pyobject(py)?.into()),
+            "artist" => Ok(self.artist.clone().into_pyobject(py)?.into()),
+            "composer" => Ok(self.composer.clone().into_pyobject(py)?.into()),
+            "album" => Ok(self.album.clone().into_pyobject(py)?.into()),
+            "grouping" => Ok(self.grouping.clone().into_pyobject(py)?.into()),
+            "genre" => Ok(self.genre.clone().into_pyobject(py)?.into()),
+            "kind" => Ok(self.kind.clone().into_pyobject(py)?.into()),
+            "size" => Ok(self.size.clone().into_pyobject(py)?.into()),
+            "totaltime" => Ok(self.totaltime.clone().into_pyobject(py)?.into()),
+            "discnumber" => Ok(self.discnumber.clone().into_pyobject(py)?.into()),
+            "tracknumber" => Ok(self.tracknumber.clone().into_pyobject(py)?.into()),
+            "year" => Ok(self.year.clone().into_pyobject(py)?.into()),
+            "averagebpm" => Ok(self.averagebpm.clone().into_pyobject(py)?.into()),
+            "datemodified" => Ok(datemodified),
+            "dateadded" => Ok(dateadded),
+            "bitrate" => Ok(self.bitrate.clone().into_pyobject(py)?.into()),
+            "samplerate" => Ok(self.samplerate.clone().into_pyobject(py)?.into()),
+            "comments" => Ok(self.comments.clone().into_pyobject(py)?.into()),
+            "playcount" => Ok(self.playcount.clone().into_pyobject(py)?.into()),
+            "lastplayed" => Ok(lastplayed),
+            "rating" => Ok(self.rating.clone().into_pyobject(py)?.into()),
+            "location" => Ok(self.location.clone().into_pyobject(py)?.into()),
+            "remixer" => Ok(self.remixer.clone().into_pyobject(py)?.into()),
+            "tonality" => Ok(self.tonality.clone().into_pyobject(py)?.into()),
+            "label" => Ok(self.label.clone().into_pyobject(py)?.into()),
+            "mix" => Ok(self.mix.clone().into_pyobject(py)?.into()),
+            "color" => Ok(self.color.clone().into_pyobject(py)?.into()),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
+                "Key '{}' not found",
+                key
+            ))),
+        }
+    }
+
+    fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        match key {
+            "trackid" => self.trackid = value.extract::<String>(py)?,
+            "name" => self.name = value.extract::<Option<String>>(py)?,
+            "artist" => self.artist = value.extract::<Option<String>>(py)?,
+            "composer" => self.composer = value.extract::<Option<String>>(py)?,
+            "album" => self.album = value.extract::<Option<String>>(py)?,
+            "grouping" => self.grouping = value.extract::<Option<String>>(py)?,
+            "genre" => self.genre = value.extract::<Option<String>>(py)?,
+            "kind" => self.kind = value.extract::<Option<String>>(py)?,
+            "size" => self.size = value.extract::<Option<i64>>(py)?,
+            "totaltime" => self.totaltime = value.extract::<Option<f64>>(py)?,
+            "discnumber" => self.discnumber = value.extract::<Option<i32>>(py)?,
+            "tracknumber" => self.tracknumber = value.extract::<Option<i32>>(py)?,
+            "year" => self.year = value.extract::<Option<i32>>(py)?,
+            "averagebpm" => self.averagebpm = value.extract::<Option<f64>>(py)?,
+            "datemodified" => {
+                self.datemodified = value.extract::<Option<Py<PyDateTime>>>(py).unwrap()
+            }
+            "dateadded" => self.dateadded = value.extract::<Option<Py<PyDateTime>>>(py).unwrap(),
+            "bitrate" => self.bitrate = value.extract::<Option<i32>>(py)?,
+            "samplerate" => self.samplerate = value.extract::<Option<f64>>(py)?,
+            "comments" => self.comments = value.extract::<Option<String>>(py)?,
+            "playcount" => self.playcount = value.extract::<Option<i32>>(py)?,
+            "lastplayed" => self.lastplayed = value.extract::<Option<Py<PyDateTime>>>(py).unwrap(),
+            "rating" => self.rating = value.extract::<Option<i32>>(py)?,
+            "location" => self.location = value.extract::<String>(py)?,
+            "remixer" => self.remixer = value.extract::<Option<String>>(py)?,
+            "tonality" => self.tonality = value.extract::<Option<String>>(py)?,
+            "label" => self.label = value.extract::<Option<String>>(py)?,
+            "mix" => self.mix = value.extract::<Option<String>>(py)?,
+            "color" => self.color = value.extract::<Option<String>>(py)?,
+            _ => {
+                return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
+                    "Key '{}' not found",
+                    key
+                )))
+            }
+        }
+        Ok(())
     }
 
     fn __repr__(&self) -> PyResult<String> {
@@ -526,9 +793,9 @@ impl PyPlaylistNode {
         key_type: u16,
     ) -> PyResult<&Py<PyPlaylistNode>> {
         if self.node_type != 0 {
-            return Err(PyErr::new::<XmlError, _>(format!(
-                "Cannot add child node to playlist node"
-            )));
+            return Err(PyErr::new::<XmlError, _>(
+                "Cannot add child node to playlist node",
+            ));
         }
         let node = Self {
             name: name.to_string(),
@@ -551,9 +818,9 @@ impl PyPlaylistNode {
 
     pub fn new_folder(&mut self, py: Python, name: &str) -> PyResult<&Py<PyPlaylistNode>> {
         if self.node_type != 0 {
-            return Err(PyErr::new::<XmlError, _>(format!(
-                "Cannot add child node to playlist node"
-            )));
+            return Err(PyErr::new::<XmlError, _>(
+                "Cannot add child node to playlist node",
+            ));
         }
         let node = Self {
             name: name.to_string(),
@@ -576,18 +843,18 @@ impl PyPlaylistNode {
 
     pub fn remove_node(&mut self, index: usize) -> PyResult<()> {
         if self.node_type == 1 {
-            return Err(PyErr::new::<XmlError, _>(format!(
-                "Cannot add child node to playlist node"
-            )));
+            return Err(PyErr::new::<XmlError, _>(
+                "Cannot add child node to playlist node",
+            ));
         };
         self.nodes.as_mut().unwrap().remove(index);
         Ok(())
     }
     pub fn clear_nodes(&mut self) -> PyResult<()> {
         if self.node_type == 1 {
-            return Err(PyErr::new::<XmlError, _>(format!(
-                "Cannot clear children of playlist node"
-            )));
+            return Err(PyErr::new::<XmlError, _>(
+                "Cannot clear children of playlist node",
+            ));
         };
         self.nodes.as_mut().unwrap().clear();
         Ok(())
@@ -595,9 +862,9 @@ impl PyPlaylistNode {
 
     pub fn get_child(&mut self, index: usize) -> PyResult<&Py<PyPlaylistNode>> {
         if self.node_type != 0 {
-            return Err(PyErr::new::<XmlError, _>(format!(
-                "Cannot get child of playlist node"
-            )));
+            return Err(PyErr::new::<XmlError, _>(
+                "Cannot get child of playlist node",
+            ));
         }
         let item = self.nodes.as_ref().unwrap().get(index).unwrap();
         Ok(item)
@@ -605,9 +872,9 @@ impl PyPlaylistNode {
 
     pub fn find_child(&mut self, py: Python, name: &str) -> PyResult<Option<&Py<PyPlaylistNode>>> {
         if self.node_type != 0 {
-            return Err(PyErr::new::<XmlError, _>(format!(
-                "Cannot get child of playlist node"
-            )));
+            return Err(PyErr::new::<XmlError, _>(
+                "Cannot get child of playlist node",
+            ));
         }
         let nodes = self.nodes.as_mut().unwrap();
         let item = nodes.iter().find(|n| n.borrow(py).name == name);
@@ -616,9 +883,7 @@ impl PyPlaylistNode {
 
     pub fn get_track(&mut self, index: usize) -> PyResult<&Py<PyPlaylistTrack>> {
         if self.node_type != 0 {
-            return Err(PyErr::new::<XmlError, _>(format!(
-                "Cannot get track of folder node"
-            )));
+            return Err(PyErr::new::<XmlError, _>("Cannot get track of folder node"));
         }
         let item = self.tracks.as_ref().unwrap().get(index).unwrap();
         Ok(item)
@@ -626,9 +891,7 @@ impl PyPlaylistNode {
 
     pub fn new_track(&mut self, py: Python, key: &str) -> PyResult<()> {
         if self.node_type != 1 {
-            return Err(PyErr::new::<XmlError, _>(format!(
-                "Cannot add track to folder node"
-            )));
+            return Err(PyErr::new::<XmlError, _>("Cannot add track to folder node"));
         }
         let track_item = PyPlaylistTrack::new(key)?;
         let pyitem = Py::new(py, track_item)?;
@@ -638,9 +901,7 @@ impl PyPlaylistNode {
 
     pub fn add_track(&mut self, py: Python, track: PyRef<'_, PyPlaylistTrack>) -> PyResult<()> {
         if self.node_type != 1 {
-            return Err(PyErr::new::<XmlError, _>(format!(
-                "Cannot add track to folder node"
-            )));
+            return Err(PyErr::new::<XmlError, _>("Cannot add track to folder node"));
         }
         let track_item = track.clone();
         let pyitem = Py::new(py, track_item)?;
@@ -650,9 +911,9 @@ impl PyPlaylistNode {
 
     pub fn remove_track(&mut self, py: Python, key: &str) -> PyResult<()> {
         if self.node_type != 0 {
-            return Err(PyErr::new::<XmlError, _>(format!(
-                "Cannot remove track from playlist node"
-            )));
+            return Err(PyErr::new::<XmlError, _>(
+                "Cannot remove track from playlist node",
+            ));
         }
         let mut index: Option<usize> = None;
         for (i, track) in self.tracks.as_mut().unwrap().iter_mut().enumerate() {
@@ -661,7 +922,7 @@ impl PyPlaylistNode {
             }
         }
         if index.is_none() {
-            return Err(PyErr::new::<XmlError, _>(format!("Track not found")));
+            return Err(PyErr::new::<XmlError, _>("Track not found"));
         }
         self.tracks.as_mut().unwrap().remove(index.unwrap());
         Ok(())
@@ -669,9 +930,9 @@ impl PyPlaylistNode {
 
     pub fn clear_tracks(&mut self) -> PyResult<()> {
         if self.node_type != 0 {
-            return Err(PyErr::new::<XmlError, _>(format!(
-                "Cannot clear tracks from playlist node"
-            )));
+            return Err(PyErr::new::<XmlError, _>(
+                "Cannot clear tracks from playlist node",
+            ));
         }
         self.tracks.as_mut().unwrap().clear();
         Ok(())
@@ -755,8 +1016,8 @@ impl FromPy<PyPlaylistNode> for PlaylistNode {
 #[pyclass(unsendable)]
 pub struct PyRekordboxXml {
     xml: RekordboxXml,
-    // #[pyo3(get, set)]
-    // tracks: Vec<Py<PyTrack>>,
+    #[pyo3(get, set)]
+    tracks: Vec<Py<PyTrack>>,
     #[pyo3(get, set)]
     pub root_playlist: Py<PyPlaylistNode>,
 }
@@ -765,8 +1026,12 @@ impl PyRekordboxXml {
     fn update_xml(&mut self, py: Python) {
         let root: PlaylistNode = PlaylistNode::from_py(py, self.root_playlist.borrow(py).into());
         self.xml.set_playlist_root(root);
-        // let tracks: Vec<Track> = self.tracks.iter().map(|t| Track::from_py(py, t.borrow(py))).collect();
-        // self.xml.set_tracks(tracks);
+        let tracks: Vec<Track> = self
+            .tracks
+            .iter()
+            .map(|t| Track::from_py(py, t.borrow(py)))
+            .collect();
+        self.xml.set_tracks(tracks);
     }
 }
 
@@ -777,11 +1042,15 @@ impl PyRekordboxXml {
         let mut xml = RekordboxXml::load(path);
         let root_node = xml.get_playlist_root();
         let node_ref = root_node.clone().into_py(py)?;
-        // let tracks = xml.get_tracks();
-        // let track_ref: Vec<Py<PyTrack>> = tracks.iter().map(|t| Py::new(py, t.clone().into_py(py).expect("")).expect("")).collect();
+        let tracks = xml.get_tracks();
+        let track_ref: Vec<Py<PyTrack>> = tracks
+            .iter()
+            .map(|t| Py::new(py, t.clone().into_py(py).expect("")).expect(""))
+            .collect();
         Ok(Self {
             xml,
             root_playlist: Py::new(py, node_ref)?,
+            tracks: track_ref,
         })
     }
 
@@ -814,50 +1083,61 @@ impl PyRekordboxXml {
 
     // -- Track handling --------------------------------------------------------------------------
 
-    pub fn get_tracks(&mut self, py: Python) -> PyResult<Vec<Py<PyTrack>>> {
-        let mut data = Vec::new();
-        for item in self.xml.get_tracks() {
-            let py_item = item.clone().into_py(py)?;
-            data.push(Py::new(py, py_item)?);
-        }
-        Ok(data)
+    // pub fn get_tracks(&mut self, py: Python) -> PyResult<Vec<Py<PyTrack>>> {
+    //     let mut data = Vec::new();
+    //     for item in self.xml.get_tracks() {
+    //         let py_item = item.clone().into_py(py)?;
+    //         data.push(Py::new(py, py_item)?);
+    //     }
+    //     Ok(data)
+    // }
+
+    pub fn get_track(&mut self, index: usize) -> PyResult<Option<&Py<PyTrack>>> {
+        Ok(self.tracks.get(index))
+        // let data = self.xml.get_track(index);
+        // if let Some(data) = data {
+        //     Ok(Some(data.clone().into_py(py)?))
+        // } else {
+        //     Ok(None)
+        // }
     }
 
-    pub fn get_track(&mut self, py: Python, index: usize) -> PyResult<Option<PyTrack>> {
-        let data = self.xml.get_track(index);
-        if let Some(data) = data {
-            Ok(Some(data.clone().into_py(py)?))
-        } else {
-            Ok(None)
-        }
-    }
+    pub fn get_track_by_id(
+        &mut self,
+        py: Python,
+        track_id: &str,
+    ) -> PyResult<Option<&Py<PyTrack>>> {
+        let item = self
+            .tracks
+            .iter()
+            .find(|t| &t.borrow(py).trackid == track_id);
+        Ok(item)
 
-    pub fn get_track_by_id(&mut self, py: Python, track_id: &str) -> PyResult<Option<PyTrack>> {
-        //let item = self
-        //    .tracks
-        //    .iter_mut()
-        //    .find(|t| &t.borrow(py).trackid == track_id);
-        //Ok(item)
-
-        let data = self.xml.get_track_by_id(track_id);
-        if let Some(data) = data {
-            Ok(Some(data.clone().into_py(py)?))
-        } else {
-            Ok(None)
-        }
+        // let data = self.xml.get_track_by_id(track_id);
+        // if let Some(data) = data {
+        //     Ok(Some(data.clone().into_py(py)?))
+        // } else {
+        //     Ok(None)
+        // }
     }
 
     pub fn get_track_by_location(
         &mut self,
         py: Python,
         location: &str,
-    ) -> PyResult<Option<PyTrack>> {
-        let data = self.xml.get_track_by_location(location);
-        if let Some(data) = data {
-            Ok(Some(data.clone().into_py(py)?))
-        } else {
-            Ok(None)
-        }
+    ) -> PyResult<Option<&Py<PyTrack>>> {
+        let item = self
+            .tracks
+            .iter()
+            .find(|t| &t.borrow(py).location == location);
+        Ok(item)
+
+        // let data = self.xml.get_track_by_location(location);
+        // if let Some(data) = data {
+        //     Ok(Some(data.clone().into_py(py)?))
+        // } else {
+        //     Ok(None)
+        // }
     }
 
     pub fn get_track_by_key(
@@ -865,44 +1145,59 @@ impl PyRekordboxXml {
         py: Python,
         key: &str,
         key_type: i32,
-    ) -> PyResult<Option<PyTrack>> {
-        let key_type: PlaylistKeyType = key_type.try_into().expect("invalid key type");
-        let data = self.xml.get_track_by_key(key, key_type);
-        if let Some(data) = data {
-            Ok(Some(data.clone().into_py(py)?))
-        } else {
-            Ok(None)
+    ) -> PyResult<Option<&Py<PyTrack>>> {
+        match key_type {
+            0 => self.get_track_by_id(py, key),
+            1 => self.get_track_by_location(py, key),
+            _ => Err(PyErr::new::<XmlError, _>("Invalid key type!")),
         }
     }
 
-    pub fn add_track(&mut self, py: Python, track: PyRef<'_, PyTrack>) -> PyResult<()> {
-        self.xml.add_track(Track::from_py(py, track));
+    pub fn add_track(&mut self, py: Python, track: &PyTrack) -> PyResult<()> {
+        let pyitem = Py::new(py, track.clone_py(py))?;
+        self.tracks.push(pyitem);
         Ok(())
     }
 
-    pub fn new_track(&mut self, py: Python, trackid: &str, location: &str) -> PyResult<PyTrack> {
-        let track = self.xml.new_track(trackid, location);
-        let pyitem = track.clone().into_py(py)?;
-        Ok(pyitem)
+    pub fn new_track(
+        &mut self,
+        py: Python,
+        trackid: &str,
+        location: &str,
+    ) -> PyResult<Option<&Py<PyTrack>>> {
+        let index = self.tracks.len();
+        let track = PyTrack::new(trackid, location)?;
+        let pyitem = Py::new(py, track.clone_py(py))?;
+        self.tracks.push(pyitem);
+        self.get_track(index)
     }
 
-    pub fn update_track(&mut self, py: Python, track: PyRef<'_, PyTrack>) -> PyResult<()> {
-        let data = Track::from_py(py, track);
-        self.xml
-            .update_track(data)
-            .map_err(|e| PyErr::new::<XmlError, _>(e.to_string()))?;
-        Ok(())
+    pub fn update_track(&mut self, py: Python, track: &PyTrack) -> PyResult<()> {
+        if let Some(existing_track) = self
+            .tracks
+            .iter_mut()
+            .find(|t| &t.borrow_mut(py).trackid == &track.trackid)
+        {
+            let pyitem = Py::new(py, track.clone_py(py))?;
+            *existing_track = pyitem;
+            Ok(())
+        } else {
+            Err(PyErr::new::<XmlError, _>("Track not found!"))
+        }
     }
 
-    pub fn remove_track(&mut self, track_id: &str) -> PyResult<()> {
-        self.xml
-            .remove_track(track_id)
-            .map_err(|e| PyErr::new::<XmlError, _>(e.to_string()))?;
+    pub fn remove_track(&mut self, py: Python, track_id: &str) -> PyResult<()> {
+        let index = self
+            .tracks
+            .iter()
+            .position(|t| &t.borrow_mut(py).trackid == track_id)
+            .ok_or_else(|| PyErr::new::<XmlError, _>("Track not found!"))?;
+        self.tracks.remove(index);
         Ok(())
     }
 
     pub fn clear_tracks(&mut self) -> PyResult<()> {
-        self.xml.clear_tracks();
+        self.tracks.clear();
         Ok(())
     }
 

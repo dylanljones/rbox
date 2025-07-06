@@ -2,27 +2,13 @@
 
 #![allow(non_snake_case)]
 
-use super::traits::{FromPy, IntoPy};
 use chrono::{DateTime, Utc};
 use pyo3::prelude::*;
 use pyo3::types::{PyDateTime, PyDict, PyList};
 use rbox::masterdb::models::*;
 
-#[pyclass]
-struct Iter {
-    inner: std::vec::IntoIter<String>,
-}
-
-#[pymethods]
-impl Iter {
-    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
-        slf
-    }
-
-    fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<String> {
-        slf.inner.next()
-    }
-}
+use super::iter::PyStrIter;
+use super::traits::{FromPy, IntoPy};
 
 #[pyclass(name = "AgentRegistry", unsendable, get_all, set_all)]
 pub struct PyAgentRegistry {
@@ -110,7 +96,7 @@ impl PyAgentRegistry {
         13
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "registry_id".to_string(),
             "created_at".to_string(),
@@ -126,9 +112,7 @@ impl PyAgentRegistry {
             "text_1".to_string(),
             "text_2".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -286,7 +270,7 @@ impl PyCloudAgentRegistry {
         18
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -307,9 +291,7 @@ impl PyCloudAgentRegistry {
             "text_1".to_string(),
             "text_2".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -457,7 +439,7 @@ impl PyContentActiveCensor {
         13
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -473,9 +455,7 @@ impl PyContentActiveCensor {
             "ActiveCensors".to_string(),
             "rb_activecensor_count".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -615,7 +595,7 @@ impl PyContentCue {
         13
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -631,9 +611,7 @@ impl PyContentCue {
             "Cues".to_string(),
             "rb_cue_count".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -815,7 +793,7 @@ impl PyContentFile {
         24
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -842,9 +820,7 @@ impl PyContentFile {
             "rb_priority".to_string(),
             "rb_file_size_dirty".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -1018,7 +994,7 @@ impl PyDjmdActiveCensor {
         16
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -1037,9 +1013,7 @@ impl PyDjmdActiveCensor {
             "ParameterList".to_string(),
             "ContentUUID".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -1191,7 +1165,7 @@ impl PyDjmdAlbum {
         15
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -1209,9 +1183,7 @@ impl PyDjmdAlbum {
             "Compilation".to_string(),
             "SearchStr".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -1349,7 +1321,7 @@ impl PyDjmdArtist {
         12
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -1364,9 +1336,7 @@ impl PyDjmdArtist {
             "Name".to_string(),
             "SearchStr".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -1506,7 +1476,7 @@ impl PyDjmdCategory {
         14
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -1523,9 +1493,7 @@ impl PyDjmdCategory {
             "Disable".to_string(),
             "InfoOrder".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -1665,7 +1633,7 @@ impl PyDjmdColor {
         13
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -1681,9 +1649,7 @@ impl PyDjmdColor {
             "SortKey".to_string(),
             "Commnt".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -2081,7 +2047,7 @@ impl PyDjmdContent {
         78
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -2162,9 +2128,7 @@ impl PyDjmdContent {
             "SrcAlbumName".to_string(),
             "SrcLength".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -2498,7 +2462,7 @@ impl PyDjmdCue {
         29
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -2530,9 +2494,7 @@ impl PyDjmdCue {
             "OutPointSeekInfo".to_string(),
             "ContentUUID".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -2698,7 +2660,7 @@ impl PyDjmdDevice {
         12
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -2713,9 +2675,7 @@ impl PyDjmdDevice {
             "MasterDBID".to_string(),
             "Name".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -2843,7 +2803,7 @@ impl PyDjmdGenre {
         11
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -2857,9 +2817,7 @@ impl PyDjmdGenre {
             "updated_at".to_string(),
             "Name".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -3001,7 +2959,7 @@ impl PyDjmdHistory {
         15
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -3019,9 +2977,7 @@ impl PyDjmdHistory {
             "ParentID".to_string(),
             "DateCreated".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -3163,7 +3119,7 @@ impl PyDjmdSongHistory {
         13
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -3179,9 +3135,7 @@ impl PyDjmdSongHistory {
             "ContentID".to_string(),
             "TrackNo".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -3327,7 +3281,7 @@ impl PyDjmdHotCueBanklist {
         15
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -3345,9 +3299,7 @@ impl PyDjmdHotCueBanklist {
             "Attribute".to_string(),
             "ParentID".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -3557,7 +3509,7 @@ impl PyDjmdSongHotCueBanklist {
         30
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -3590,9 +3542,7 @@ impl PyDjmdSongHotCueBanklist {
             "OutPointSeekInfo".to_string(),
             "HotCueBanklistUUID".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -3766,7 +3716,7 @@ impl PyHotCueBanklistCue {
         13
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -3782,9 +3732,7 @@ impl PyHotCueBanklistCue {
             "Cues".to_string(),
             "rb_cue_count".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -3918,7 +3866,7 @@ impl PyDjmdKey {
         12
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -3933,9 +3881,7 @@ impl PyDjmdKey {
             "ScaleName".to_string(),
             "Seq".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -4063,7 +4009,7 @@ impl PyDjmdLabel {
         11
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -4077,9 +4023,7 @@ impl PyDjmdLabel {
             "updated_at".to_string(),
             "Name".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -4209,7 +4153,7 @@ impl PyDjmdMenuItems {
         12
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -4224,9 +4168,7 @@ impl PyDjmdMenuItems {
             "Class".to_string(),
             "Name".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -4370,7 +4312,7 @@ impl PyDjmdMixerParam {
         15
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -4388,9 +4330,7 @@ impl PyDjmdMixerParam {
             "PeakHigh".to_string(),
             "PeakLow".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -4536,7 +4476,7 @@ impl PyDjmdMyTag {
         14
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -4553,9 +4493,7 @@ impl PyDjmdMyTag {
             "Attribute".to_string(),
             "ParentID".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -4695,7 +4633,7 @@ impl PyDjmdSongMyTag {
         13
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -4711,9 +4649,7 @@ impl PyDjmdSongMyTag {
             "ContentID".to_string(),
             "TrackNo".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -4863,7 +4799,7 @@ impl PyDjmdPlaylist {
         16
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -4882,9 +4818,7 @@ impl PyDjmdPlaylist {
             "ParentID".to_string(),
             "SmartList".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -5079,7 +5013,7 @@ impl PyDjmdSongPlaylist {
         13
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -5095,9 +5029,7 @@ impl PyDjmdSongPlaylist {
             "ContentID".to_string(),
             "TrackNo".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -5231,7 +5163,7 @@ impl PyDjmdProperty {
         12
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "DBID".to_string(),
             "DBVersion".to_string(),
@@ -5246,9 +5178,7 @@ impl PyDjmdProperty {
             "created_at".to_string(),
             "updated_at".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -5392,7 +5322,7 @@ impl PyDjmdCloudProperty {
         15
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -5410,9 +5340,7 @@ impl PyDjmdCloudProperty {
             "Reserved4".to_string(),
             "Reserved5".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -5562,7 +5490,7 @@ impl PyDjmdRecommendLike {
         15
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -5580,9 +5508,7 @@ impl PyDjmdRecommendLike {
             "DataCreatedH".to_string(),
             "DataCreatedL".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -5732,7 +5658,7 @@ impl PyDjmdRelatedTracks {
         15
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -5750,9 +5676,7 @@ impl PyDjmdRelatedTracks {
             "ParentID".to_string(),
             "Criteria".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -5894,7 +5818,7 @@ impl PyDjmdSongRelatedTracks {
         13
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -5910,9 +5834,7 @@ impl PyDjmdSongRelatedTracks {
             "ContentID".to_string(),
             "TrackNo".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -6054,7 +5976,7 @@ impl PyDjmdSampler {
         14
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -6071,9 +5993,7 @@ impl PyDjmdSampler {
             "Attribute".to_string(),
             "ParentID".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -6213,7 +6133,7 @@ impl PyDjmdSongSampler {
         13
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -6229,9 +6149,7 @@ impl PyDjmdSongSampler {
             "ContentID".to_string(),
             "TrackNo".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -6365,7 +6283,7 @@ impl PyDjmdSongTagList {
         12
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -6380,9 +6298,7 @@ impl PyDjmdSongTagList {
             "ContentID".to_string(),
             "TrackNo".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -6518,7 +6434,7 @@ impl PyDjmdSort {
         13
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -6534,9 +6450,7 @@ impl PyDjmdSort {
             "Seq".to_string(),
             "Disable".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -6726,7 +6640,7 @@ impl PyImageFile {
         26
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -6755,9 +6669,7 @@ impl PyImageFile {
             "rb_priority".to_string(),
             "rb_file_size_dirty".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -6943,7 +6855,7 @@ impl PySettingFile {
         18
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -6964,9 +6876,7 @@ impl PySettingFile {
             "rb_file_hash_dirty".to_string(),
             "rb_file_size_dirty".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 
@@ -7114,7 +7024,7 @@ impl PyUuidIDMap {
         13
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<Iter>> {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
         let keys: Vec<String> = vec![
             "ID".to_string(),
             "UUID".to_string(),
@@ -7130,9 +7040,7 @@ impl PyUuidIDMap {
             "TargetUUID".to_string(),
             "CurrentID".to_string(),
         ];
-        let iter = Iter {
-            inner: keys.clone().into_iter(),
-        };
+        let iter = PyStrIter::new(keys);
         Py::new(slf.py(), iter)
     }
 

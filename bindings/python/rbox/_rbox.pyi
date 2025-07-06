@@ -39,6 +39,23 @@ def is_rekordbox_running() -> bool:
     """Check if Rekordbox is running."""
     ...
 
+class _RustMutableMapping:
+    def __len__(self) -> int:
+        """Return the number of items."""
+    ...
+
+    def __iter__(self) -> Iterable[str]:
+        """Return an iterator over the keys."""
+        ...
+
+    def __getitem__(self, key: str) -> Any:
+        """Get an item by key."""
+        ...
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        """Set an item by key."""
+        ...
+
 class _Base:
     def __len__(self) -> int:
         """Return the number of items."""
@@ -728,7 +745,7 @@ class PyAnlz:
 
 # ---- XML -----------------------------------------------------------------------------------------
 
-class Tempo:
+class Tempo(_RustMutableMapping):
     inizio: float
     bpm: float
     metro: str
@@ -736,7 +753,7 @@ class Tempo:
 
     def __init__(self, inizio: float, bpm: float, metro: str, battito: int) -> None: ...
 
-class PositionMark:
+class PositionMark(_RustMutableMapping):
     name: str
     mark_type: int
     num: int
@@ -750,7 +767,7 @@ class PositionMark:
 class PlaylistTrack:
     key: str
 
-class Track:
+class Track(_RustMutableMapping):
     trackid: str
     location: str
     tempos: List[Tempo]
@@ -812,6 +829,7 @@ class PlaylistNode:
 
 class PyRekordboxXml:
     root_playlist: PlaylistNode
+    tracks: List[Track]
 
     def __init__(self, path: str) -> None: ...
     @classmethod
@@ -819,8 +837,8 @@ class PyRekordboxXml:
     def to_string(self) -> str: ...
     def dump_copy(self, path: str) -> None: ...
     def dump(self) -> None: ...
-    def get_tracks(self) -> List[Track]: ...
-    def get_track(self, index: str) -> List[Track]: ...
+    # def get_tracks(self) -> List[Track]: ...
+    def get_track(self, index: int) -> Optional[Track]: ...
     def get_track_by_id(self, track_id: str) -> Optional[Track]: ...
     def get_track_by_location(self, location: str) -> Optional[Track]: ...
     def get_track_by_key(self, key: str, key_type: int) -> Optional[Track]: ...
