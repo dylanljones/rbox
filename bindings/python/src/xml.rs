@@ -3,13 +3,14 @@
 
 use super::errors::XmlError;
 use super::traits::{FromPy, IntoPy};
-use crate::iter::PyStrIter;
+use crate::iter::{PyItemsIter, PyObjectIter, PyStrIter};
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use pyo3::prelude::*;
-use pyo3::types::{PyDateTime, PyType};
+use pyo3::types::{PyDateTime, PyDict, PyType};
 use rbox::xml::{
     PlaylistNode, PlaylistNodeType, PlaylistTrack, PositionMark, RekordboxXml, Tempo, Track,
 };
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 #[pyclass(name = "Tempo", unsendable, get_all, set_all)]
@@ -18,6 +19,17 @@ pub struct PyTempo {
     pub bpm: f64,
     pub metro: String,
     pub battito: u16,
+}
+
+impl PyTempo {
+    fn field_names() -> Vec<String> {
+        vec![
+            "inizio".to_string(),
+            "bpm".to_string(),
+            "metro".to_string(),
+            "battito".to_string(),
+        ]
+    }
 }
 
 #[pymethods]
@@ -36,15 +48,9 @@ impl PyTempo {
         4
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
-            "inizio".to_string(),
-            "bpm".to_string(),
-            "metro".to_string(),
-            "battito".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -74,6 +80,55 @@ impl PyTempo {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
     }
 
     fn __repr__(&self) -> PyResult<String> {
@@ -118,6 +173,17 @@ pub struct PyPositionMark {
     pub num: i32,
 }
 
+impl PyPositionMark {
+    fn field_names() -> Vec<String> {
+        vec![
+            "name".to_string(),
+            "mark_type".to_string(),
+            "start".to_string(),
+            "end".to_string(),
+            "num".to_string(),
+        ]
+    }
+}
 #[pymethods]
 impl PyPositionMark {
     #[new]
@@ -135,16 +201,9 @@ impl PyPositionMark {
         5
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
-            "name".to_string(),
-            "mark_type".to_string(),
-            "start".to_string(),
-            "end".to_string(),
-            "num".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -176,6 +235,55 @@ impl PyPositionMark {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
     }
 
     fn __repr__(&self) -> PyResult<String> {
@@ -336,6 +444,41 @@ impl PyTrack {
     }
 }
 
+impl PyTrack {
+    fn field_names() -> Vec<String> {
+        vec![
+            "trackid".to_string(),
+            "name".to_string(),
+            "artist".to_string(),
+            "composer".to_string(),
+            "album".to_string(),
+            "grouping".to_string(),
+            "genre".to_string(),
+            "kind".to_string(),
+            "size".to_string(),
+            "totaltime".to_string(),
+            "discnumber".to_string(),
+            "tracknumber".to_string(),
+            "year".to_string(),
+            "averagebpm".to_string(),
+            "datemodified".to_string(),
+            "dateadded".to_string(),
+            "bitrate".to_string(),
+            "samplerate".to_string(),
+            "comments".to_string(),
+            "playcount".to_string(),
+            "lastplayed".to_string(),
+            "rating".to_string(),
+            "location".to_string(),
+            "remixer".to_string(),
+            "tonality".to_string(),
+            "label".to_string(),
+            "mix".to_string(),
+            "color".to_string(),
+        ]
+    }
+}
+
 #[pymethods]
 impl PyTrack {
     #[new]
@@ -379,39 +522,9 @@ impl PyTrack {
         28
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
-            "trackid".to_string(),
-            "name".to_string(),
-            "artist".to_string(),
-            "composer".to_string(),
-            "album".to_string(),
-            "grouping".to_string(),
-            "genre".to_string(),
-            "kind".to_string(),
-            "size".to_string(),
-            "totaltime".to_string(),
-            "discnumber".to_string(),
-            "tracknumber".to_string(),
-            "year".to_string(),
-            "averagebpm".to_string(),
-            "datemodified".to_string(),
-            "dateadded".to_string(),
-            "bitrate".to_string(),
-            "samplerate".to_string(),
-            "comments".to_string(),
-            "playcount".to_string(),
-            "lastplayed".to_string(),
-            "rating".to_string(),
-            "location".to_string(),
-            "remixer".to_string(),
-            "tonality".to_string(),
-            "label".to_string(),
-            "mix".to_string(),
-            "color".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -509,6 +622,55 @@ impl PyTrack {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
     }
 
     fn __repr__(&self) -> PyResult<String> {

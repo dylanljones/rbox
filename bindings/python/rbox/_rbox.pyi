@@ -3,7 +3,7 @@
 # Date:   2025-05-01
 
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 class Error(Exception):
     """The base class of the other exceptions in this module.
@@ -54,6 +54,30 @@ class _RustMutableMapping:
 
     def __setitem__(self, key: str, value: Any) -> None:
         """Set an item by key."""
+        ...
+
+    def keys(self) -> Iterable[str]:
+        """Return an iterator over the keys."""
+        ...
+
+    def values(self) -> Iterable[Any]:
+        """Return an iterator over the values."""
+        ...
+
+    def items(self) -> Iterable[Tuple[str, Any]]:
+        """Return an iterator over the keys and values."""
+        ...
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """Get an item by key or return the default value, if the key doesn't exist."""
+        ...
+
+    def update(self, data: Dict[str, Any]) -> None:
+        """Update the fields from a dictionary."""
+        ...
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the object to a dictionary."""
         ...
 
 class _Base:
