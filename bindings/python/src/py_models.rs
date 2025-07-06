@@ -6,8 +6,9 @@ use chrono::{DateTime, Utc};
 use pyo3::prelude::*;
 use pyo3::types::{PyDateTime, PyDict, PyList};
 use rbox::masterdb::models::*;
+use std::collections::HashMap;
 
-use super::iter::PyStrIter;
+use super::iter::{PyItemsIter, PyObjectIter, PyStrIter};
 use super::traits::{FromPy, IntoPy};
 
 #[pyclass(name = "AgentRegistry", unsendable, get_all, set_all)]
@@ -68,36 +69,9 @@ impl FromPy<PyAgentRegistry> for AgentRegistry {
     }
 }
 
-#[pymethods]
 impl PyAgentRegistry {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("AgentRegistry(registry_id: {})", self.registry_id,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("registry_id", self.registry_id.clone())?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("id_1", self.id_1.clone())?;
-        dict.set_item("id_2", self.id_2.clone())?;
-        dict.set_item("int_1", self.int_1)?;
-        dict.set_item("int_2", self.int_2)?;
-        dict.set_item("str_1", self.str_1.clone())?;
-        dict.set_item("str_2", self.str_2.clone())?;
-        dict.set_item("date_1", self.date_1.clone())?;
-        dict.set_item("date_2", self.date_2.clone())?;
-        dict.set_item("text_1", self.text_1.clone())?;
-        dict.set_item("text_2", self.text_2.clone())?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "registry_id".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
@@ -111,9 +85,19 @@ impl PyAgentRegistry {
             "date_2".to_string(),
             "text_1".to_string(),
             "text_2".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyAgentRegistry {
+    fn __len__(&self) -> usize {
+        13
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -161,6 +145,59 @@ impl PyAgentRegistry {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("AgentRegistry(registry_id: {})", self.registry_id,))
     }
 }
 
@@ -237,41 +274,9 @@ impl FromPy<PyCloudAgentRegistry> for CloudAgentRegistry {
     }
 }
 
-#[pymethods]
 impl PyCloudAgentRegistry {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("CloudAgentRegistry(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("int_1", self.int_1)?;
-        dict.set_item("int_2", self.int_2)?;
-        dict.set_item("str_1", self.str_1.clone())?;
-        dict.set_item("str_2", self.str_2.clone())?;
-        dict.set_item("date_1", self.date_1.clone())?;
-        dict.set_item("date_2", self.date_2.clone())?;
-        dict.set_item("text_1", self.text_1.clone())?;
-        dict.set_item("text_2", self.text_2.clone())?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        18
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -290,9 +295,19 @@ impl PyCloudAgentRegistry {
             "date_2".to_string(),
             "text_1".to_string(),
             "text_2".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyCloudAgentRegistry {
+    fn __len__(&self) -> usize {
+        18
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -350,6 +365,59 @@ impl PyCloudAgentRegistry {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("CloudAgentRegistry(ID: {})", self.ID,))
     }
 }
 
@@ -411,36 +479,9 @@ impl FromPy<PyContentActiveCensor> for ContentActiveCensor {
     }
 }
 
-#[pymethods]
 impl PyContentActiveCensor {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("ContentActiveCensor(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("ContentID", self.ContentID.clone())?;
-        dict.set_item("ActiveCensors", self.ActiveCensors.clone())?;
-        dict.set_item("rb_activecensor_count", self.rb_activecensor_count)?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -454,9 +495,19 @@ impl PyContentActiveCensor {
             "ContentID".to_string(),
             "ActiveCensors".to_string(),
             "rb_activecensor_count".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyContentActiveCensor {
+    fn __len__(&self) -> usize {
+        13
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -506,6 +557,59 @@ impl PyContentActiveCensor {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("ContentActiveCensor(ID: {})", self.ID,))
     }
 }
 
@@ -567,36 +671,9 @@ impl FromPy<PyContentCue> for ContentCue {
     }
 }
 
-#[pymethods]
 impl PyContentCue {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("ContentCue(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("ContentID", self.ContentID.clone())?;
-        dict.set_item("Cues", self.Cues.clone())?;
-        dict.set_item("rb_cue_count", self.rb_cue_count)?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -610,9 +687,19 @@ impl PyContentCue {
             "ContentID".to_string(),
             "Cues".to_string(),
             "rb_cue_count".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyContentCue {
+    fn __len__(&self) -> usize {
+        13
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -660,6 +747,59 @@ impl PyContentCue {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("ContentCue(ID: {})", self.ID,))
     }
 }
 
@@ -754,47 +894,9 @@ impl FromPy<PyContentFile> for ContentFile {
     }
 }
 
-#[pymethods]
 impl PyContentFile {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("ContentFile(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("ContentID", self.ContentID.clone())?;
-        dict.set_item("Path", self.Path.clone())?;
-        dict.set_item("Hash", self.Hash.clone())?;
-        dict.set_item("Size", self.Size)?;
-        dict.set_item("rb_local_path", self.rb_local_path.clone())?;
-        dict.set_item("rb_insync_hash", self.rb_insync_hash.clone())?;
-        dict.set_item("rb_insync_local_usn", self.rb_insync_local_usn)?;
-        dict.set_item("rb_file_hash_dirty", self.rb_file_hash_dirty)?;
-        dict.set_item("rb_local_file_status", self.rb_local_file_status)?;
-        dict.set_item("rb_in_progress", self.rb_in_progress)?;
-        dict.set_item("rb_process_type", self.rb_process_type)?;
-        dict.set_item("rb_temp_path", self.rb_temp_path.clone())?;
-        dict.set_item("rb_priority", self.rb_priority)?;
-        dict.set_item("rb_file_size_dirty", self.rb_file_size_dirty)?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        24
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -819,9 +921,19 @@ impl PyContentFile {
             "rb_temp_path".to_string(),
             "rb_priority".to_string(),
             "rb_file_size_dirty".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyContentFile {
+    fn __len__(&self) -> usize {
+        24
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -894,6 +1006,59 @@ impl PyContentFile {
         }
         Ok(())
     }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("ContentFile(ID: {})", self.ID,))
+    }
 }
 
 #[pyclass(name = "DjmdActiveCensor", unsendable, get_all, set_all)]
@@ -963,39 +1128,9 @@ impl FromPy<PyDjmdActiveCensor> for DjmdActiveCensor {
     }
 }
 
-#[pymethods]
 impl PyDjmdActiveCensor {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdActiveCensor(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("ContentID", self.ContentID.clone())?;
-        dict.set_item("InMsec", self.InMsec)?;
-        dict.set_item("OutMsec", self.OutMsec)?;
-        dict.set_item("Info", self.Info)?;
-        dict.set_item("ParameterList", self.ParameterList.clone())?;
-        dict.set_item("ContentUUID", self.ContentUUID.clone())?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        16
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -1012,9 +1147,19 @@ impl PyDjmdActiveCensor {
             "Info".to_string(),
             "ParameterList".to_string(),
             "ContentUUID".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdActiveCensor {
+    fn __len__(&self) -> usize {
+        16
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -1068,6 +1213,59 @@ impl PyDjmdActiveCensor {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdActiveCensor(ID: {})", self.ID,))
     }
 }
 
@@ -1135,38 +1333,9 @@ impl FromPy<PyDjmdAlbum> for DjmdAlbum {
     }
 }
 
-#[pymethods]
 impl PyDjmdAlbum {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdAlbum(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("Name", self.Name.clone())?;
-        dict.set_item("AlbumArtistID", self.AlbumArtistID.clone())?;
-        dict.set_item("ImagePath", self.ImagePath.clone())?;
-        dict.set_item("Compilation", self.Compilation)?;
-        dict.set_item("SearchStr", self.SearchStr.clone())?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        15
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -1182,9 +1351,19 @@ impl PyDjmdAlbum {
             "ImagePath".to_string(),
             "Compilation".to_string(),
             "SearchStr".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdAlbum {
+    fn __len__(&self) -> usize {
+        15
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -1236,6 +1415,59 @@ impl PyDjmdAlbum {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdAlbum(ID: {})", self.ID,))
     }
 }
 
@@ -1294,35 +1526,9 @@ impl FromPy<PyDjmdArtist> for DjmdArtist {
     }
 }
 
-#[pymethods]
 impl PyDjmdArtist {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdArtist(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("Name", self.Name.clone())?;
-        dict.set_item("SearchStr", self.SearchStr.clone())?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        12
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -1335,9 +1541,19 @@ impl PyDjmdArtist {
             "updated_at".to_string(),
             "Name".to_string(),
             "SearchStr".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdArtist {
+    fn __len__(&self) -> usize {
+        12
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -1383,6 +1599,59 @@ impl PyDjmdArtist {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdArtist(ID: {})", self.ID,))
     }
 }
 
@@ -1447,37 +1716,9 @@ impl FromPy<PyDjmdCategory> for DjmdCategory {
     }
 }
 
-#[pymethods]
 impl PyDjmdCategory {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdCategory(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("MenuItemID", self.MenuItemID.clone())?;
-        dict.set_item("Seq", self.Seq)?;
-        dict.set_item("Disable", self.Disable)?;
-        dict.set_item("InfoOrder", self.InfoOrder)?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        14
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -1492,9 +1733,19 @@ impl PyDjmdCategory {
             "Seq".to_string(),
             "Disable".to_string(),
             "InfoOrder".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdCategory {
+    fn __len__(&self) -> usize {
+        14
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -1544,6 +1795,59 @@ impl PyDjmdCategory {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdCategory(ID: {})", self.ID,))
     }
 }
 
@@ -1605,36 +1909,9 @@ impl FromPy<PyDjmdColor> for DjmdColor {
     }
 }
 
-#[pymethods]
 impl PyDjmdColor {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdColor(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("ColorCode", self.ColorCode.clone())?;
-        dict.set_item("SortKey", self.SortKey)?;
-        dict.set_item("Commnt", self.Commnt.clone())?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -1648,9 +1925,19 @@ impl PyDjmdColor {
             "ColorCode".to_string(),
             "SortKey".to_string(),
             "Commnt".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdColor {
+    fn __len__(&self) -> usize {
+        13
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -1698,6 +1985,59 @@ impl PyDjmdColor {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdColor(ID: {})", self.ID,))
     }
 }
 
@@ -1954,101 +2294,9 @@ impl FromPy<PyDjmdContent> for DjmdContent {
     }
 }
 
-#[pymethods]
 impl PyDjmdContent {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdContent(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("FolderPath", self.FolderPath.clone())?;
-        dict.set_item("FileNameL", self.FileNameL.clone())?;
-        dict.set_item("FileNameS", self.FileNameS.clone())?;
-        dict.set_item("Title", self.Title.clone())?;
-        dict.set_item("ArtistID", self.ArtistID.clone())?;
-        dict.set_item("AlbumID", self.AlbumID.clone())?;
-        dict.set_item("GenreID", self.GenreID.clone())?;
-        dict.set_item("BPM", self.BPM)?;
-        dict.set_item("Length", self.Length)?;
-        dict.set_item("TrackNo", self.TrackNo)?;
-        dict.set_item("BitRate", self.BitRate)?;
-        dict.set_item("BitDepth", self.BitDepth)?;
-        dict.set_item("Commnt", self.Commnt.clone())?;
-        dict.set_item("FileType", self.FileType)?;
-        dict.set_item("Rating", self.Rating)?;
-        dict.set_item("ReleaseYear", self.ReleaseYear)?;
-        dict.set_item("RemixerID", self.RemixerID.clone())?;
-        dict.set_item("LabelID", self.LabelID.clone())?;
-        dict.set_item("OrgArtistID", self.OrgArtistID.clone())?;
-        dict.set_item("KeyID", self.KeyID.clone())?;
-        dict.set_item("StockDate", self.StockDate.clone())?;
-        dict.set_item("ColorID", self.ColorID.clone())?;
-        dict.set_item("DJPlayCount", self.DJPlayCount)?;
-        dict.set_item("ImagePath", self.ImagePath.clone())?;
-        dict.set_item("MasterDBID", self.MasterDBID.clone())?;
-        dict.set_item("MasterSongID", self.MasterSongID.clone())?;
-        dict.set_item("AnalysisDataPath", self.AnalysisDataPath.clone())?;
-        dict.set_item("SearchStr", self.SearchStr.clone())?;
-        dict.set_item("FileSize", self.FileSize)?;
-        dict.set_item("DiscNo", self.DiscNo)?;
-        dict.set_item("ComposerID", self.ComposerID.clone())?;
-        dict.set_item("Subtitle", self.Subtitle.clone())?;
-        dict.set_item("SampleRate", self.SampleRate)?;
-        dict.set_item("DisableQuantize", self.DisableQuantize)?;
-        dict.set_item("Analysed", self.Analysed)?;
-        dict.set_item("ReleaseDate", self.ReleaseDate.clone())?;
-        dict.set_item("DateCreated", self.DateCreated.clone())?;
-        dict.set_item("ContentLink", self.ContentLink)?;
-        dict.set_item("Tag", self.Tag.clone())?;
-        dict.set_item("ModifiedByRBM", self.ModifiedByRBM.clone())?;
-        dict.set_item("HotCueAutoLoad", self.HotCueAutoLoad.clone())?;
-        dict.set_item("DeliveryControl", self.DeliveryControl.clone())?;
-        dict.set_item("DeliveryComment", self.DeliveryComment.clone())?;
-        dict.set_item("CueUpdated", self.CueUpdated.clone())?;
-        dict.set_item("AnalysisUpdated", self.AnalysisUpdated.clone())?;
-        dict.set_item("TrackInfoUpdated", self.TrackInfoUpdated.clone())?;
-        dict.set_item("Lyricist", self.Lyricist.clone())?;
-        dict.set_item("ISRC", self.ISRC.clone())?;
-        dict.set_item("SamplerTrackInfo", self.SamplerTrackInfo)?;
-        dict.set_item("SamplerPlayOffset", self.SamplerPlayOffset)?;
-        dict.set_item("SamplerGain", self.SamplerGain)?;
-        dict.set_item("VideoAssociate", self.VideoAssociate.clone())?;
-        dict.set_item("LyricStatus", self.LyricStatus)?;
-        dict.set_item("ServiceID", self.ServiceID)?;
-        dict.set_item("OrgFolderPath", self.OrgFolderPath.clone())?;
-        dict.set_item("Reserved1", self.Reserved1.clone())?;
-        dict.set_item("Reserved2", self.Reserved2.clone())?;
-        dict.set_item("Reserved3", self.Reserved3.clone())?;
-        dict.set_item("Reserved4", self.Reserved4.clone())?;
-        dict.set_item("ExtInfo", self.ExtInfo.clone())?;
-        dict.set_item("rb_file_id", self.rb_file_id.clone())?;
-        dict.set_item("DeviceID", self.DeviceID.clone())?;
-        dict.set_item("rb_LocalFolderPath", self.rb_LocalFolderPath.clone())?;
-        dict.set_item("SrcID", self.SrcID.clone())?;
-        dict.set_item("SrcTitle", self.SrcTitle.clone())?;
-        dict.set_item("SrcArtistName", self.SrcArtistName.clone())?;
-        dict.set_item("SrcAlbumName", self.SrcAlbumName.clone())?;
-        dict.set_item("SrcLength", self.SrcLength)?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        78
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -2127,9 +2375,19 @@ impl PyDjmdContent {
             "SrcArtistName".to_string(),
             "SrcAlbumName".to_string(),
             "SrcLength".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdContent {
+    fn __len__(&self) -> usize {
+        78
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -2310,6 +2568,59 @@ impl PyDjmdContent {
         }
         Ok(())
     }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdContent(ID: {})", self.ID,))
+    }
 }
 
 #[pyclass(name = "DjmdCue", unsendable, get_all, set_all)]
@@ -2418,52 +2729,9 @@ impl FromPy<PyDjmdCue> for DjmdCue {
     }
 }
 
-#[pymethods]
 impl PyDjmdCue {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdCue(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("ContentID", self.ContentID.clone())?;
-        dict.set_item("InMsec", self.InMsec)?;
-        dict.set_item("InFrame", self.InFrame)?;
-        dict.set_item("InMpegFrame", self.InMpegFrame)?;
-        dict.set_item("InMpegAbs", self.InMpegAbs)?;
-        dict.set_item("OutMsec", self.OutMsec)?;
-        dict.set_item("OutFrame", self.OutFrame)?;
-        dict.set_item("OutMpegFrame", self.OutMpegFrame)?;
-        dict.set_item("OutMpegAbs", self.OutMpegAbs)?;
-        dict.set_item("Kind", self.Kind)?;
-        dict.set_item("Color", self.Color)?;
-        dict.set_item("ColorTableIndex", self.ColorTableIndex)?;
-        dict.set_item("ActiveLoop", self.ActiveLoop)?;
-        dict.set_item("Comment", self.Comment.clone())?;
-        dict.set_item("BeatLoopSize", self.BeatLoopSize)?;
-        dict.set_item("CueMicrosec", self.CueMicrosec)?;
-        dict.set_item("InPointSeekInfo", self.InPointSeekInfo.clone())?;
-        dict.set_item("OutPointSeekInfo", self.OutPointSeekInfo.clone())?;
-        dict.set_item("ContentUUID", self.ContentUUID.clone())?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        29
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -2493,9 +2761,19 @@ impl PyDjmdCue {
             "InPointSeekInfo".to_string(),
             "OutPointSeekInfo".to_string(),
             "ContentUUID".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdCue {
+    fn __len__(&self) -> usize {
+        29
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -2576,6 +2854,59 @@ impl PyDjmdCue {
         }
         Ok(())
     }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdCue(ID: {})", self.ID,))
+    }
 }
 
 #[pyclass(name = "DjmdDevice", unsendable, get_all, set_all)]
@@ -2633,35 +2964,9 @@ impl FromPy<PyDjmdDevice> for DjmdDevice {
     }
 }
 
-#[pymethods]
 impl PyDjmdDevice {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdDevice(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("MasterDBID", self.MasterDBID.clone())?;
-        dict.set_item("Name", self.Name.clone())?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        12
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -2674,9 +2979,19 @@ impl PyDjmdDevice {
             "updated_at".to_string(),
             "MasterDBID".to_string(),
             "Name".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdDevice {
+    fn __len__(&self) -> usize {
+        12
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -2722,6 +3037,59 @@ impl PyDjmdDevice {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdDevice(ID: {})", self.ID,))
     }
 }
 
@@ -2777,34 +3145,9 @@ impl FromPy<PyDjmdGenre> for DjmdGenre {
     }
 }
 
-#[pymethods]
 impl PyDjmdGenre {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdGenre(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("Name", self.Name.clone())?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        11
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -2816,9 +3159,19 @@ impl PyDjmdGenre {
             "created_at".to_string(),
             "updated_at".to_string(),
             "Name".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdGenre {
+    fn __len__(&self) -> usize {
+        11
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -2862,6 +3215,59 @@ impl PyDjmdGenre {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdGenre(ID: {})", self.ID,))
     }
 }
 
@@ -2929,38 +3335,9 @@ impl FromPy<PyDjmdHistory> for DjmdHistory {
     }
 }
 
-#[pymethods]
 impl PyDjmdHistory {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdHistory(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("Seq", self.Seq)?;
-        dict.set_item("Name", self.Name.clone())?;
-        dict.set_item("Attribute", self.Attribute)?;
-        dict.set_item("ParentID", self.ParentID.clone())?;
-        dict.set_item("DateCreated", self.DateCreated.clone())?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        15
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -2976,9 +3353,19 @@ impl PyDjmdHistory {
             "Attribute".to_string(),
             "ParentID".to_string(),
             "DateCreated".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdHistory {
+    fn __len__(&self) -> usize {
+        15
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -3030,6 +3417,59 @@ impl PyDjmdHistory {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdHistory(ID: {})", self.ID,))
     }
 }
 
@@ -3091,36 +3531,9 @@ impl FromPy<PyDjmdSongHistory> for DjmdSongHistory {
     }
 }
 
-#[pymethods]
 impl PyDjmdSongHistory {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongHistory(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("HistoryID", self.HistoryID.clone())?;
-        dict.set_item("ContentID", self.ContentID.clone())?;
-        dict.set_item("TrackNo", self.TrackNo)?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -3134,9 +3547,19 @@ impl PyDjmdSongHistory {
             "HistoryID".to_string(),
             "ContentID".to_string(),
             "TrackNo".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdSongHistory {
+    fn __len__(&self) -> usize {
+        13
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -3184,6 +3607,59 @@ impl PyDjmdSongHistory {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdSongHistory(ID: {})", self.ID,))
     }
 }
 
@@ -3251,38 +3727,9 @@ impl FromPy<PyDjmdHotCueBanklist> for DjmdHotCueBanklist {
     }
 }
 
-#[pymethods]
 impl PyDjmdHotCueBanklist {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdHotCueBanklist(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("Seq", self.Seq)?;
-        dict.set_item("Name", self.Name.clone())?;
-        dict.set_item("ImagePath", self.ImagePath.clone())?;
-        dict.set_item("Attribute", self.Attribute)?;
-        dict.set_item("ParentID", self.ParentID.clone())?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        15
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -3298,9 +3745,19 @@ impl PyDjmdHotCueBanklist {
             "ImagePath".to_string(),
             "Attribute".to_string(),
             "ParentID".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdHotCueBanklist {
+    fn __len__(&self) -> usize {
+        15
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -3352,6 +3809,59 @@ impl PyDjmdHotCueBanklist {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdHotCueBanklist(ID: {})", self.ID,))
     }
 }
 
@@ -3464,53 +3974,9 @@ impl FromPy<PyDjmdSongHotCueBanklist> for DjmdSongHotCueBanklist {
     }
 }
 
-#[pymethods]
 impl PyDjmdSongHotCueBanklist {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongHotCueBanklist(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("ContentID", self.ContentID.clone())?;
-        dict.set_item("TrackNo", self.TrackNo)?;
-        dict.set_item("CueID", self.CueID.clone())?;
-        dict.set_item("InMsec", self.InMsec)?;
-        dict.set_item("InFrame", self.InFrame)?;
-        dict.set_item("InMpegFrame", self.InMpegFrame)?;
-        dict.set_item("InMpegAbs", self.InMpegAbs)?;
-        dict.set_item("OutMsec", self.OutMsec)?;
-        dict.set_item("OutFrame", self.OutFrame)?;
-        dict.set_item("OutMpegFrame", self.OutMpegFrame)?;
-        dict.set_item("OutMpegAbs", self.OutMpegAbs)?;
-        dict.set_item("Color", self.Color)?;
-        dict.set_item("ColorTableIndex", self.ColorTableIndex)?;
-        dict.set_item("ActiveLoop", self.ActiveLoop)?;
-        dict.set_item("Comment", self.Comment.clone())?;
-        dict.set_item("BeatLoopSize", self.BeatLoopSize)?;
-        dict.set_item("CueMicrosec", self.CueMicrosec)?;
-        dict.set_item("InPointSeekInfo", self.InPointSeekInfo.clone())?;
-        dict.set_item("OutPointSeekInfo", self.OutPointSeekInfo.clone())?;
-        dict.set_item("HotCueBanklistUUID", self.HotCueBanklistUUID.clone())?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        30
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -3541,9 +4007,19 @@ impl PyDjmdSongHotCueBanklist {
             "InPointSeekInfo".to_string(),
             "OutPointSeekInfo".to_string(),
             "HotCueBanklistUUID".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdSongHotCueBanklist {
+    fn __len__(&self) -> usize {
+        30
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -3628,6 +4104,59 @@ impl PyDjmdSongHotCueBanklist {
         }
         Ok(())
     }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdSongHotCueBanklist(ID: {})", self.ID,))
+    }
 }
 
 #[pyclass(name = "HotCueBanklistCue", unsendable, get_all, set_all)]
@@ -3688,36 +4217,9 @@ impl FromPy<PyHotCueBanklistCue> for HotCueBanklistCue {
     }
 }
 
-#[pymethods]
 impl PyHotCueBanklistCue {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("HotCueBanklistCue(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("HotCueBanklistID", self.HotCueBanklistID.clone())?;
-        dict.set_item("Cues", self.Cues.clone())?;
-        dict.set_item("rb_cue_count", self.rb_cue_count)?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -3731,9 +4233,19 @@ impl PyHotCueBanklistCue {
             "HotCueBanklistID".to_string(),
             "Cues".to_string(),
             "rb_cue_count".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyHotCueBanklistCue {
+    fn __len__(&self) -> usize {
+        13
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -3781,6 +4293,59 @@ impl PyHotCueBanklistCue {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("HotCueBanklistCue(ID: {})", self.ID,))
     }
 }
 
@@ -3839,35 +4404,9 @@ impl FromPy<PyDjmdKey> for DjmdKey {
     }
 }
 
-#[pymethods]
 impl PyDjmdKey {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdKey(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("ScaleName", self.ScaleName.clone())?;
-        dict.set_item("Seq", self.Seq)?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        12
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -3880,9 +4419,19 @@ impl PyDjmdKey {
             "updated_at".to_string(),
             "ScaleName".to_string(),
             "Seq".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdKey {
+    fn __len__(&self) -> usize {
+        12
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -3928,6 +4477,59 @@ impl PyDjmdKey {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdKey(ID: {})", self.ID,))
     }
 }
 
@@ -3983,34 +4585,9 @@ impl FromPy<PyDjmdLabel> for DjmdLabel {
     }
 }
 
-#[pymethods]
 impl PyDjmdLabel {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdLabel(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("Name", self.Name.clone())?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        11
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -4022,9 +4599,19 @@ impl PyDjmdLabel {
             "created_at".to_string(),
             "updated_at".to_string(),
             "Name".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdLabel {
+    fn __len__(&self) -> usize {
+        11
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -4068,6 +4655,59 @@ impl PyDjmdLabel {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdLabel(ID: {})", self.ID,))
     }
 }
 
@@ -4126,35 +4766,9 @@ impl FromPy<PyDjmdMenuItems> for DjmdMenuItems {
     }
 }
 
-#[pymethods]
 impl PyDjmdMenuItems {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdMenuItems(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("Class", self.Class)?;
-        dict.set_item("Name", self.Name.clone())?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        12
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -4167,9 +4781,19 @@ impl PyDjmdMenuItems {
             "updated_at".to_string(),
             "Class".to_string(),
             "Name".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdMenuItems {
+    fn __len__(&self) -> usize {
+        12
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -4215,6 +4839,59 @@ impl PyDjmdMenuItems {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdMenuItems(ID: {})", self.ID,))
     }
 }
 
@@ -4282,38 +4959,9 @@ impl FromPy<PyDjmdMixerParam> for DjmdMixerParam {
     }
 }
 
-#[pymethods]
 impl PyDjmdMixerParam {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdMixerParam(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("ContentID", self.ContentID.clone())?;
-        dict.set_item("GainHigh", self.GainHigh)?;
-        dict.set_item("GainLow", self.GainLow)?;
-        dict.set_item("PeakHigh", self.PeakHigh)?;
-        dict.set_item("PeakLow", self.PeakLow)?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        15
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -4329,9 +4977,19 @@ impl PyDjmdMixerParam {
             "GainLow".to_string(),
             "PeakHigh".to_string(),
             "PeakLow".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdMixerParam {
+    fn __len__(&self) -> usize {
+        15
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -4383,6 +5041,59 @@ impl PyDjmdMixerParam {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdMixerParam(ID: {})", self.ID,))
     }
 }
 
@@ -4447,37 +5158,9 @@ impl FromPy<PyDjmdMyTag> for DjmdMyTag {
     }
 }
 
-#[pymethods]
 impl PyDjmdMyTag {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdMyTag(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("Seq", self.Seq)?;
-        dict.set_item("Name", self.Name.clone())?;
-        dict.set_item("Attribute", self.Attribute)?;
-        dict.set_item("ParentID", self.ParentID.clone())?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        14
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -4492,9 +5175,19 @@ impl PyDjmdMyTag {
             "Name".to_string(),
             "Attribute".to_string(),
             "ParentID".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdMyTag {
+    fn __len__(&self) -> usize {
+        14
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -4544,6 +5237,59 @@ impl PyDjmdMyTag {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdMyTag(ID: {})", self.ID,))
     }
 }
 
@@ -4605,36 +5351,9 @@ impl FromPy<PyDjmdSongMyTag> for DjmdSongMyTag {
     }
 }
 
-#[pymethods]
 impl PyDjmdSongMyTag {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongMyTag(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("MyTagID", self.MyTagID.clone())?;
-        dict.set_item("ContentID", self.ContentID.clone())?;
-        dict.set_item("TrackNo", self.TrackNo)?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -4648,9 +5367,19 @@ impl PyDjmdSongMyTag {
             "MyTagID".to_string(),
             "ContentID".to_string(),
             "TrackNo".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdSongMyTag {
+    fn __len__(&self) -> usize {
+        13
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -4698,6 +5427,59 @@ impl PyDjmdSongMyTag {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdSongMyTag(ID: {})", self.ID,))
     }
 }
 
@@ -4768,39 +5550,9 @@ impl FromPy<PyDjmdPlaylist> for DjmdPlaylist {
     }
 }
 
-#[pymethods]
 impl PyDjmdPlaylist {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdPlaylist(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("Seq", self.Seq)?;
-        dict.set_item("Name", self.Name.clone())?;
-        dict.set_item("ImagePath", self.ImagePath.clone())?;
-        dict.set_item("Attribute", self.Attribute)?;
-        dict.set_item("ParentID", self.ParentID.clone())?;
-        dict.set_item("SmartList", self.SmartList.clone())?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        16
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -4817,9 +5569,19 @@ impl PyDjmdPlaylist {
             "Attribute".to_string(),
             "ParentID".to_string(),
             "SmartList".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdPlaylist {
+    fn __len__(&self) -> usize {
+        16
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -4873,6 +5635,59 @@ impl PyDjmdPlaylist {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdPlaylist(ID: {})", self.ID,))
     }
 }
 
@@ -4985,36 +5800,9 @@ impl FromPy<PyDjmdSongPlaylist> for DjmdSongPlaylist {
     }
 }
 
-#[pymethods]
 impl PyDjmdSongPlaylist {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongPlaylist(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("PlaylistID", self.PlaylistID.clone())?;
-        dict.set_item("ContentID", self.ContentID.clone())?;
-        dict.set_item("TrackNo", self.TrackNo)?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -5028,9 +5816,19 @@ impl PyDjmdSongPlaylist {
             "PlaylistID".to_string(),
             "ContentID".to_string(),
             "TrackNo".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdSongPlaylist {
+    fn __len__(&self) -> usize {
+        13
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -5078,6 +5876,59 @@ impl PyDjmdSongPlaylist {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdSongPlaylist(ID: {})", self.ID,))
     }
 }
 
@@ -5136,35 +5987,9 @@ impl FromPy<PyDjmdProperty> for DjmdProperty {
     }
 }
 
-#[pymethods]
 impl PyDjmdProperty {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdProperty(DBID: {})", self.DBID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("DBID", self.DBID.clone())?;
-        dict.set_item("DBVersion", self.DBVersion.clone())?;
-        dict.set_item("BaseDBDrive", self.BaseDBDrive.clone())?;
-        dict.set_item("CurrentDBDrive", self.CurrentDBDrive.clone())?;
-        dict.set_item("DeviceID", self.DeviceID.clone())?;
-        dict.set_item("Reserved1", self.Reserved1.clone())?;
-        dict.set_item("Reserved2", self.Reserved2.clone())?;
-        dict.set_item("Reserved3", self.Reserved3.clone())?;
-        dict.set_item("Reserved4", self.Reserved4.clone())?;
-        dict.set_item("Reserved5", self.Reserved5.clone())?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        12
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "DBID".to_string(),
             "DBVersion".to_string(),
             "BaseDBDrive".to_string(),
@@ -5177,9 +6002,19 @@ impl PyDjmdProperty {
             "Reserved5".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdProperty {
+    fn __len__(&self) -> usize {
+        12
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -5225,6 +6060,59 @@ impl PyDjmdProperty {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdProperty(DBID: {})", self.DBID,))
     }
 }
 
@@ -5292,38 +6180,9 @@ impl FromPy<PyDjmdCloudProperty> for DjmdCloudProperty {
     }
 }
 
-#[pymethods]
 impl PyDjmdCloudProperty {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdCloudProperty(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("Reserved1", self.Reserved1.clone())?;
-        dict.set_item("Reserved2", self.Reserved2.clone())?;
-        dict.set_item("Reserved3", self.Reserved3.clone())?;
-        dict.set_item("Reserved4", self.Reserved4.clone())?;
-        dict.set_item("Reserved5", self.Reserved5.clone())?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        15
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -5339,9 +6198,19 @@ impl PyDjmdCloudProperty {
             "Reserved3".to_string(),
             "Reserved4".to_string(),
             "Reserved5".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdCloudProperty {
+    fn __len__(&self) -> usize {
+        15
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -5393,6 +6262,59 @@ impl PyDjmdCloudProperty {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdCloudProperty(ID: {})", self.ID,))
     }
 }
 
@@ -5460,38 +6382,9 @@ impl FromPy<PyDjmdRecommendLike> for DjmdRecommendLike {
     }
 }
 
-#[pymethods]
 impl PyDjmdRecommendLike {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdRecommendLike(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("ContentID1", self.ContentID1.clone())?;
-        dict.set_item("ContentID2", self.ContentID2.clone())?;
-        dict.set_item("LikeRate", self.LikeRate)?;
-        dict.set_item("DataCreatedH", self.DataCreatedH)?;
-        dict.set_item("DataCreatedL", self.DataCreatedL)?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        15
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -5507,9 +6400,19 @@ impl PyDjmdRecommendLike {
             "LikeRate".to_string(),
             "DataCreatedH".to_string(),
             "DataCreatedL".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdRecommendLike {
+    fn __len__(&self) -> usize {
+        15
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -5561,6 +6464,59 @@ impl PyDjmdRecommendLike {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdRecommendLike(ID: {})", self.ID,))
     }
 }
 
@@ -5628,38 +6584,9 @@ impl FromPy<PyDjmdRelatedTracks> for DjmdRelatedTracks {
     }
 }
 
-#[pymethods]
 impl PyDjmdRelatedTracks {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdRelatedTracks(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("Seq", self.Seq)?;
-        dict.set_item("Name", self.Name.clone())?;
-        dict.set_item("Attribute", self.Attribute)?;
-        dict.set_item("ParentID", self.ParentID.clone())?;
-        dict.set_item("Criteria", self.Criteria.clone())?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        15
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -5675,9 +6602,19 @@ impl PyDjmdRelatedTracks {
             "Attribute".to_string(),
             "ParentID".to_string(),
             "Criteria".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdRelatedTracks {
+    fn __len__(&self) -> usize {
+        15
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -5729,6 +6666,59 @@ impl PyDjmdRelatedTracks {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdRelatedTracks(ID: {})", self.ID,))
     }
 }
 
@@ -5790,36 +6780,9 @@ impl FromPy<PyDjmdSongRelatedTracks> for DjmdSongRelatedTracks {
     }
 }
 
-#[pymethods]
 impl PyDjmdSongRelatedTracks {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongRelatedTracks(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("RelatedTracksID", self.RelatedTracksID.clone())?;
-        dict.set_item("ContentID", self.ContentID.clone())?;
-        dict.set_item("TrackNo", self.TrackNo)?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -5833,9 +6796,19 @@ impl PyDjmdSongRelatedTracks {
             "RelatedTracksID".to_string(),
             "ContentID".to_string(),
             "TrackNo".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdSongRelatedTracks {
+    fn __len__(&self) -> usize {
+        13
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -5883,6 +6856,59 @@ impl PyDjmdSongRelatedTracks {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdSongRelatedTracks(ID: {})", self.ID,))
     }
 }
 
@@ -5947,37 +6973,9 @@ impl FromPy<PyDjmdSampler> for DjmdSampler {
     }
 }
 
-#[pymethods]
 impl PyDjmdSampler {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSampler(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("Seq", self.Seq)?;
-        dict.set_item("Name", self.Name.clone())?;
-        dict.set_item("Attribute", self.Attribute)?;
-        dict.set_item("ParentID", self.ParentID.clone())?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        14
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -5992,9 +6990,19 @@ impl PyDjmdSampler {
             "Name".to_string(),
             "Attribute".to_string(),
             "ParentID".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdSampler {
+    fn __len__(&self) -> usize {
+        14
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -6044,6 +7052,59 @@ impl PyDjmdSampler {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdSampler(ID: {})", self.ID,))
     }
 }
 
@@ -6105,36 +7166,9 @@ impl FromPy<PyDjmdSongSampler> for DjmdSongSampler {
     }
 }
 
-#[pymethods]
 impl PyDjmdSongSampler {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongSampler(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("SamplerID", self.SamplerID.clone())?;
-        dict.set_item("ContentID", self.ContentID.clone())?;
-        dict.set_item("TrackNo", self.TrackNo)?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -6148,9 +7182,19 @@ impl PyDjmdSongSampler {
             "SamplerID".to_string(),
             "ContentID".to_string(),
             "TrackNo".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdSongSampler {
+    fn __len__(&self) -> usize {
+        13
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -6198,6 +7242,59 @@ impl PyDjmdSongSampler {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdSongSampler(ID: {})", self.ID,))
     }
 }
 
@@ -6256,35 +7353,9 @@ impl FromPy<PyDjmdSongTagList> for DjmdSongTagList {
     }
 }
 
-#[pymethods]
 impl PyDjmdSongTagList {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongTagList(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("ContentID", self.ContentID.clone())?;
-        dict.set_item("TrackNo", self.TrackNo)?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        12
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -6297,9 +7368,19 @@ impl PyDjmdSongTagList {
             "updated_at".to_string(),
             "ContentID".to_string(),
             "TrackNo".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdSongTagList {
+    fn __len__(&self) -> usize {
+        12
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -6345,6 +7426,59 @@ impl PyDjmdSongTagList {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdSongTagList(ID: {})", self.ID,))
     }
 }
 
@@ -6406,36 +7540,9 @@ impl FromPy<PyDjmdSort> for DjmdSort {
     }
 }
 
-#[pymethods]
 impl PyDjmdSort {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSort(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("MenuItemID", self.MenuItemID.clone())?;
-        dict.set_item("Seq", self.Seq)?;
-        dict.set_item("Disable", self.Disable)?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -6449,9 +7556,19 @@ impl PyDjmdSort {
             "MenuItemID".to_string(),
             "Seq".to_string(),
             "Disable".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyDjmdSort {
+    fn __len__(&self) -> usize {
+        13
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -6499,6 +7616,59 @@ impl PyDjmdSort {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("DjmdSort(ID: {})", self.ID,))
     }
 }
 
@@ -6599,49 +7769,9 @@ impl FromPy<PyImageFile> for ImageFile {
     }
 }
 
-#[pymethods]
 impl PyImageFile {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("ImageFile(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("TableName", self.TableName.clone())?;
-        dict.set_item("TargetUUID", self.TargetUUID.clone())?;
-        dict.set_item("TargetID", self.TargetID.clone())?;
-        dict.set_item("Path", self.Path.clone())?;
-        dict.set_item("Hash", self.Hash.clone())?;
-        dict.set_item("Size", self.Size)?;
-        dict.set_item("rb_local_path", self.rb_local_path.clone())?;
-        dict.set_item("rb_insync_hash", self.rb_insync_hash.clone())?;
-        dict.set_item("rb_insync_local_usn", self.rb_insync_local_usn)?;
-        dict.set_item("rb_file_hash_dirty", self.rb_file_hash_dirty)?;
-        dict.set_item("rb_local_file_status", self.rb_local_file_status)?;
-        dict.set_item("rb_in_progress", self.rb_in_progress)?;
-        dict.set_item("rb_process_type", self.rb_process_type)?;
-        dict.set_item("rb_temp_path", self.rb_temp_path.clone())?;
-        dict.set_item("rb_priority", self.rb_priority)?;
-        dict.set_item("rb_file_size_dirty", self.rb_file_size_dirty)?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        26
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -6668,9 +7798,19 @@ impl PyImageFile {
             "rb_temp_path".to_string(),
             "rb_priority".to_string(),
             "rb_file_size_dirty".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyImageFile {
+    fn __len__(&self) -> usize {
+        26
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -6747,6 +7887,59 @@ impl PyImageFile {
         }
         Ok(())
     }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("ImageFile(ID: {})", self.ID,))
+    }
 }
 
 #[pyclass(name = "SettingFile", unsendable, get_all, set_all)]
@@ -6822,41 +8015,9 @@ impl FromPy<PySettingFile> for SettingFile {
     }
 }
 
-#[pymethods]
 impl PySettingFile {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("SettingFile(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("Path", self.Path.clone())?;
-        dict.set_item("Hash", self.Hash.clone())?;
-        dict.set_item("Size", self.Size)?;
-        dict.set_item("rb_local_path", self.rb_local_path.clone())?;
-        dict.set_item("rb_insync_hash", self.rb_insync_hash.clone())?;
-        dict.set_item("rb_insync_local_usn", self.rb_insync_local_usn)?;
-        dict.set_item("rb_file_hash_dirty", self.rb_file_hash_dirty)?;
-        dict.set_item("rb_file_size_dirty", self.rb_file_size_dirty)?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        18
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -6875,9 +8036,19 @@ impl PySettingFile {
             "rb_insync_local_usn".to_string(),
             "rb_file_hash_dirty".to_string(),
             "rb_file_size_dirty".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PySettingFile {
+    fn __len__(&self) -> usize {
+        18
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -6935,6 +8106,59 @@ impl PySettingFile {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("SettingFile(ID: {})", self.ID,))
     }
 }
 
@@ -6996,36 +8220,9 @@ impl FromPy<PyUuidIDMap> for UuidIDMap {
     }
 }
 
-#[pymethods]
 impl PyUuidIDMap {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("UuidIDMap(ID: {})", self.ID,))
-    }
-
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("ID", self.ID.clone())?;
-        dict.set_item("UUID", self.UUID.clone())?;
-        dict.set_item("rb_data_status", self.rb_data_status)?;
-        dict.set_item("rb_local_data_status", self.rb_local_data_status)?;
-        dict.set_item("rb_local_deleted", self.rb_local_deleted)?;
-        dict.set_item("rb_local_synced", self.rb_local_synced)?;
-        dict.set_item("usn", self.usn)?;
-        dict.set_item("rb_local_usn", self.rb_local_usn)?;
-        dict.set_item("created_at", self.created_at.clone_ref(py))?;
-        dict.set_item("updated_at", self.updated_at.clone_ref(py))?;
-        dict.set_item("TableName", self.TableName.clone())?;
-        dict.set_item("TargetUUID", self.TargetUUID.clone())?;
-        dict.set_item("CurrentID", self.CurrentID.clone())?;
-        Ok(dict.into())
-    }
-
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyStrIter>> {
-        let keys: Vec<String> = vec![
+    fn field_names() -> Vec<String> {
+        vec![
             "ID".to_string(),
             "UUID".to_string(),
             "rb_data_status".to_string(),
@@ -7039,9 +8236,19 @@ impl PyUuidIDMap {
             "TableName".to_string(),
             "TargetUUID".to_string(),
             "CurrentID".to_string(),
-        ];
-        let iter = PyStrIter::new(keys);
-        Py::new(slf.py(), iter)
+        ]
+    }
+}
+
+#[pymethods]
+impl PyUuidIDMap {
+    fn __len__(&self) -> usize {
+        13
+    }
+
+    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        let iter = PyStrIter::new(Self::field_names());
+        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -7089,5 +8296,58 @@ impl PyUuidIDMap {
             }
         }
         Ok(())
+    }
+
+    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        self.__iter__(py)
+    }
+
+    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        let mut values: Vec<PyObject> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push(value);
+        }
+        let iter = PyObjectIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        let mut values: Vec<(String, PyObject)> = Vec::new();
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            values.push((key, value));
+        }
+        let iter = PyItemsIter::new(values);
+        Py::new(py, iter)
+    }
+
+    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        let res = self.__getitem__(py, key);
+        if let Ok(res) = res {
+            Ok(res)
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        for (key, py_value) in data.into_iter() {
+            let _ = self.__setitem__(py, &key, py_value);
+        }
+        Ok(())
+    }
+
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let dict = PyDict::new(py);
+        for key in Self::field_names() {
+            let value = self.__getitem__(py, &key)?;
+            dict.set_item(key, value)?;
+        }
+        Ok(dict.into())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("UuidIDMap(ID: {})", self.ID,))
     }
 }
