@@ -1153,6 +1153,62 @@ export const enum WaveformCurrentPosition {
   Center = 'Center'
 }
 export declare function isRekordboxRunning(): boolean
+export interface Tempo {
+  inizio: number
+  bpm: number
+  metro: string
+  battito: number
+}
+export interface PositionMark {
+  name: string
+  markType: number
+  start: number
+  end?: number
+  num: number
+}
+export interface Track {
+  trackid: string
+  name?: string
+  artist?: string
+  composer?: string
+  album?: string
+  grouping?: string
+  genre?: string
+  kind?: string
+  size?: number
+  totaltime?: number
+  discnumber?: number
+  tracknumber?: number
+  year?: number
+  averagebpm?: number
+  datemodified?: Date
+  dateadded?: Date
+  bitrate?: number
+  samplerate?: number
+  comments?: string
+  playcount?: number
+  lastplayed?: Date
+  rating?: number
+  location: string
+  remixer?: string
+  tonality?: string
+  label?: string
+  mix?: string
+  color?: string
+  tempos: Array<Tempo>
+  positionMarks: Array<PositionMark>
+}
+export interface PlaylistTrack {
+  key: string
+}
+export const enum PlaylistNodeType {
+  Folder = 0,
+  Playlist = 1
+}
+export const enum PlaylistKeyType {
+  TrackID = 0,
+  Location = 1
+}
 export type JsAnlz = Anlz
 export declare class Anlz {
   constructor(path: string)
@@ -1420,4 +1476,22 @@ export declare class Setting {
   setKeyDisplayFormat(keyDisplayFormat: KeyDisplayFormat): void
   getWaveformCurrentPosition(): WaveformCurrentPosition
   setWaveformCurrentPosition(waveformCurrentPosition: WaveformCurrentPosition): void
+}
+export type JsRekordboxXml = RekordboxXml
+export declare class RekordboxXml {
+  constructor(path: string)
+  static load(path: string): JsRekordboxXml
+  toString(): string
+  dumpCopy(path: string): void
+  dump(): void
+  getTracks(): Array<Track>
+  getTrack(index: number): Track | null
+  getTrackById(trackId: string): Track | null
+  getTrackByLocation(location: string): Track | null
+  getTrackByKey(key: string, keyType: PlaylistKeyType): Track | null
+  addTrack(track: Track): void
+  newTrack(trackid: string, location: string): Track
+  updateTrack(track: Track): void
+  removeTrack(trackId: string): void
+  clearTracks(): void
 }

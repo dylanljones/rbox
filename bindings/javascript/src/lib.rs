@@ -7,3 +7,4 @@ mod masterdb;
 mod options;
 mod settings;
 mod util;
+mod xml;

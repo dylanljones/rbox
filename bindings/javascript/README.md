@@ -62,6 +62,14 @@ between two databases.
 
 rbox can read and write Rekordbox XML databases.
 
+```javascript
+import { RekordboxXml } from 'rbox-js'
+
+const xml = RekordboxXml.load(path);
+for (const track of xml.getTracks()) {
+    console.log(`track: ${track}`);
+}
+```
 
 
 ### Rekordbox ANLZ files
@@ -75,6 +83,15 @@ inside variable bit-rate audio streams, and lists of memory cues and loop points
 
 rbox can parse and write all three analysis files.
 
+```javascript
+import { Anlz } from 'rbox-js'
+
+const anlz = new Anlz(path);
+const beat_grid = anlz.getBeatGrid();sett.setQuantize(Quantize.Off);
+for (const beat of beat_grid.beats) {
+    console.log(`Beat: ${beat.beatNumber} Tempo: ${beat.tempo} Time: ${beat.time}`);
+}
+```
 
 
 ### Rekordbox My-Settings
@@ -88,6 +105,14 @@ crossfader curve and other settings for Pioneer professional DJ equipment.
 
 rbox supports both parsing and writing of My-Setting files.
 
+```javascript
+import { Setting, Quantize } from 'rbox-js'
+
+const sett = new Setting(path);
+console.log(`Quantize: ${sett.getQuantize()}`);
+sett.setQuantize(Quantize.Off);
+sett.dump();
+```
 
 
 
