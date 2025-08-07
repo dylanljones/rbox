@@ -229,11 +229,11 @@ pub struct Track {
     /// Size of audio file
     /// Unit : Octet
     #[serde(rename = "@Size")]
-    pub size: Option<i64>,
+    pub size: Option<i32>,
     /// Duration of track
     /// Unit : Second (without decimal numbers)
     #[serde(rename = "@TotalTime")]
-    pub totaltime: Option<f64>,
+    pub totaltime: Option<i32>,
     /// Order number of the disc of the album
     #[serde(rename = "@DiscNumber")]
     pub discnumber: Option<i32>,
