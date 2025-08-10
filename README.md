@@ -96,6 +96,12 @@ please use [GitHub Discussions][discussions] instead of opening an issue.
 
 This project is licensed under the [MIT license][LICENSE].
 
+## Sponsor
+
+If rbox has helped you or saved you time, please consider supporting its development—every coffee makes a difference!
+
+[![BuyMeACoffee](https://raw.githubusercontent.com/pachadotdev/buymeacoffee-badges/main/bmc-white.svg)](https://www.buymeacoffee.com/dylanljones)
+
 
 [crates.io]: https://crates.io/crates/rbox
 [pypi]: https://pypi.org/project/rbox/
