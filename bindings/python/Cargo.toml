@@ -19,12 +19,12 @@ extension-module = ["pyo3/extension-module"]
 
 [dependencies]
 rbox            = { path = "../../rbox" }
-pyo3            = { version = "0.24.0", features = ["anyhow", "serde", "chrono"] }
+pyo3            = { version = "0.25", features = ["anyhow", "serde", "chrono"] }
 serde_json      = { version = "1.0" }
 serde           = { version = "1.0", features = ["derive"] }
-chrono           = { version = "0.4.41", features = ["serde"] }
+chrono           = { version = "0.4", features = ["serde"] }
 
 [build-dependencies]
 # version_check = "0.9.5"
 # used where logic has to be version/distribution specific, e.g. pypy
-pyo3-build-config = { version = "0.24.0" }
+pyo3-build-config = { version = "0.25" }
