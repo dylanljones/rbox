@@ -2332,12 +2332,39 @@ impl MasterDb {
                 id.clone(),
                 parent_id.clone(),
                 attribute as i32,
-                utcnow.naive_utc(),
+                result.updated_at.naive_utc(),
             );
             let _ = pl_xml.dump();
         }
 
         Ok(result)
+    }
+
+    pub fn create_playlist(
+        &mut self,
+        name: String,
+        parent_id: Option<String>,
+        seq: Option<i32>,
+        image_path: Option<String>,
+        smart_list: Option<String>,
+    ) -> Result<DjmdPlaylist> {
+        self.insert_playlist(
+            name,
+            PlaylistType::Playlist,
+            parent_id,
+            seq,
+            image_path,
+            smart_list,
+        )
+    }
+
+    pub fn create_playlist_folder(
+        &mut self,
+        name: String,
+        parent_id: Option<String>,
+        seq: Option<i32>,
+    ) -> Result<DjmdPlaylist> {
+        self.insert_playlist(name, PlaylistType::Folder, parent_id, seq, None, None)
     }
 
     pub fn rename_playlist(&mut self, id: &String, name: String) -> Result<DjmdPlaylist> {
@@ -2360,7 +2387,7 @@ impl MasterDb {
 
         if let Some(pl_xml_path) = self.plxml_path.clone() {
             let mut pl_xml = MasterPlaylistXml::load(pl_xml_path);
-            pl_xml.update(id.to_string(), utcnow.naive_utc());
+            pl_xml.update(id.to_string(), result.updated_at.naive_utc());
             let _ = pl_xml.dump();
         } else {
             eprintln!("WARNING: Coulnd't update playlist XML, file not found!");
@@ -2419,6 +2446,15 @@ impl MasterDb {
             ))
             .execute(&mut self.conn)?;
             if let Some(seq) = seq {
+                let count = djmdPlaylist
+                    .filter(schema::djmdPlaylist::ParentID.eq(parent_id.clone()))
+                    .count()
+                    .get_result::<i64>(&mut self.conn)? as i32;
+                if seq <= 0 {
+                    return Err(anyhow!("seq must be greater than 0!"));
+                } else if seq > count {
+                    return Err(anyhow!("seq is too high!"));
+                }
                 // Move to seq in new parent
                 diesel::update(
                     djmdPlaylist
@@ -2453,6 +2489,16 @@ impl MasterDb {
                 .execute(&mut self.conn)?;
         } else {
             let seq = seq.unwrap_or(old_seq.clone());
+            let count = djmdPlaylist
+                .filter(schema::djmdPlaylist::ParentID.eq(parent_id.clone()))
+                .count()
+                .get_result::<i64>(&mut self.conn)? as i32;
+            if seq <= 0 {
+                return Err(anyhow!("seq must be greater than 0!"));
+            } else if seq > count {
+                return Err(anyhow!("seq is too high!"));
+            }
+
             // Move to seq in current parent
             if seq > old_seq {
                 // Seq is increased (move down in playlist):
@@ -2499,7 +2545,15 @@ impl MasterDb {
 
         if let Some(pl_xml_path) = self.plxml_path.clone() {
             let mut pl_xml = MasterPlaylistXml::load(pl_xml_path);
-            pl_xml.update_parent(id.to_string(), parent_id.clone(), utcnow.naive_utc());
+            pl_xml.update_parent(
+                id.to_string(),
+                parent_id.clone(),
+                playlist.updated_at.naive_utc(),
+            );
+            // Update update-time of all child items
+            for pl in self.get_playlist_children(&parent_id)? {
+                pl_xml.update(pl.ID, pl.updated_at.naive_utc());
+            }
             let _ = pl_xml.dump();
         } else {
             eprintln!("WARNING: Coulnd't update playlist XML, file not found!");
@@ -2619,7 +2673,7 @@ impl MasterDb {
             // Song is not inserted at end
             if seq <= 0 {
                 return Err(anyhow!("seq must be greater than 0!"));
-            } else if seq > count + 1 {
+            } else if seq > count {
                 return Err(anyhow!("seq is too high!"));
             };
             // Shift songs with seq higher than the new seq number by one
@@ -2671,6 +2725,16 @@ impl MasterDb {
             // Nothing to change
             return Ok(song);
         }
+        let count = djmdSongPlaylist
+            .filter(schema::djmdSongPlaylist::PlaylistID.eq(song.PlaylistID.clone()))
+            .count()
+            .get_result::<i64>(&mut self.conn)? as i32;
+
+        if seq <= 0 {
+            return Err(anyhow!("seq must be greater than 0!"));
+        } else if seq > count {
+            return Err(anyhow!("seq is too high!"));
+        }
 
         let playlist_id = song.PlaylistID.unwrap();
         let old_seq = song.TrackNo.unwrap();
@@ -2699,7 +2763,7 @@ impl MasterDb {
             diesel::update(
                 djmdSongPlaylist
                     .filter(schema::djmdSongPlaylist::PlaylistID.eq(playlist_id.clone()))
-                    .filter(schema::djmdSongPlaylist::TrackNo.lt(old_seq))
+                    .filter(schema::djmdSongPlaylist::TrackNo.le(old_seq))
                     .filter(schema::djmdSongPlaylist::TrackNo.ge(seq)),
             )
             .set((
