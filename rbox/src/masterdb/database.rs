@@ -1,11 +1,38 @@
 // Author: Dylan Jones
 // Date:   2025-05-01
-/// This module serves as the handler for the Rekordbox `master.db` database.
-///
-/// # Purpose
-/// Provides functionality for interacting with the Rekordbox database, including
-/// querying, updating, and managing various database tables and entries.
-///
+
+//! # Rekordbox Master Database Handler
+//!
+//! This module provides an interface for interacting with the Rekordbox `master.db` SQLite database.
+//! It enables querying, updating, and managing various tables such as playlists, songs, tags, and settings.
+//!
+//! ## Structure
+//! - The main struct [`MasterDb`] encapsulates the database connection and provides methods for accessing and modifying database entries.
+//! - Each table in the database has corresponding query methods for retrieving all entries, fetching by ID, and performing insert/update/delete operations.
+//! - Utility functions are included for playlist management, sequence handling, and safe/unsafe write control.
+//!
+//! ## Basic Usage
+//! ```no_run
+//! use rbox::MasterDb;
+//!
+//! // Open the default Rekordbox database
+//! let mut db = MasterDb::open().unwrap();
+//!
+//! // Query all playlists
+//! let playlists = db.get_playlists().unwrap();
+//!
+//! // Insert a new playlist
+//! let new_playlist = db.create_playlist("My Playlist".to_string(), None, None, None, None).unwrap();
+//! ```
+//!
+//! ## Safety
+//! By default, write operations are restricted if Rekordbox is running. Use `set_unsafe_writes(true)` to override this behavior if necessary.
+//!
+//! ## Tables Supported
+//! - AgentRegistry, CloudAgentRegistry, ContentActiveCensor, DjmdPlaylist, DjmdSongPlaylist, DjmdProperty, DjmdCloudProperty, DjmdRecommendLike, DjmdRelatedTracks, DjmdSampler, DjmdSongTagList, DjmdSort, ImageFile, SettingFile, UuidIDMap, and more.
+//!
+//! See individual method documentation for details on arguments, return values, and error handling.
+
 // #![allow(unused)]
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
