@@ -8,7 +8,7 @@ members = [
 
 [workspace.package]
 
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Dylan Jones <dylanljones@proton.me>"]
 description = "Library for interacting with the local and export data of Pioneers Rekordbox DJ software"
 license = "MIT"
