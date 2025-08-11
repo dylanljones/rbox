@@ -11,6 +11,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  working-directory: rbox
 
 jobs:
   cargo-fmt-check:
@@ -31,6 +32,9 @@ jobs:
         os: ["ubuntu-latest", "windows-latest", "macos-latest"] # "macos-13"
     runs-on: ${{ matrix.os }}
     continue-on-error: false
+    defaults:
+      run:
+        working-directory: ${{ env.working-directory }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
