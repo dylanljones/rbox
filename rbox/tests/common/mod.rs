@@ -8,20 +8,26 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
-pub fn testdata_demo_dir() -> anyhow::Result<PathBuf> {
+pub fn testdata_dir() -> anyhow::Result<PathBuf> {
     let current_dir = env::current_dir()?;
-    let root = current_dir
-        .parent()
-        .unwrap()
-        .join(".testdata")
-        .join("RBv6")
-        .join("demo");
+    let root = current_dir.parent().unwrap().join(".testdata");
+    Ok(root)
+}
+
+pub fn testdata_demo_dir() -> anyhow::Result<PathBuf> {
+    let test_data = testdata_dir()?;
+    let root = test_data.join("RBv6").join("demo");
     Ok(root)
 }
 
 pub fn testdata_anlz_dir() -> anyhow::Result<PathBuf> {
     let root = testdata_demo_dir()?.join("rekordbox");
     let dir = root.join("share").join("PIONEER").join("USBANLZ");
+    Ok(dir)
+}
+
+pub fn testdata_settings_dir() -> anyhow::Result<PathBuf> {
+    let dir = testdata_dir()?.join("mysettings");
     Ok(dir)
 }
 
