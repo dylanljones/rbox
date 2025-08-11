@@ -114,6 +114,6 @@ If rbox has helped you or saved you time, consider supporting its development - 
 [issue]: https://github.com/dylanljones/rbox/issues
 [pulls]: https://github.com/dylanljones/rbox/pulls
 [discussions]: https://github.com/dylanljones/rbox/discussions
-[CONTRIBUTING]: https://github.com/dylanljones/pyrekordbox/blob/main/CONTRIBUTING.md
-[LICENSE]: https://github.com/dylanljones/pyrekordbox/blob/main/LICENSE
-[CHANGELOG]: https://github.com/dylanljones/pyrekordbox/blob/main/CHANGELOG.md
+[CONTRIBUTING]: https://github.com/dylanljones/rbox/blob/main/CONTRIBUTING.md
+[LICENSE]: https://github.com/dylanljones/rbox/blob/main/LICENSE
+[CHANGELOG]: https://github.com/dylanljones/rbox/blob/main/CHANGELOG.md

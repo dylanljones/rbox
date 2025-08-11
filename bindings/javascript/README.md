@@ -115,5 +115,15 @@ sett.dump();
 ```
 
 
+## License
+
+This project is licensed under the [MIT license][LICENSE].
+
+## Sponsor
+
+If rbox has helped you or saved you time, consider supporting its development - every coffee makes a difference!
+
+[![BuyMeACoffee](https://raw.githubusercontent.com/pachadotdev/buymeacoffee-badges/main/bmc-white.svg)](https://www.buymeacoffee.com/dylanljones)
 
 [sqlcipher]: https://www.zetetic.net/sqlcipher/open-source/
+[LICENSE]: https://github.com/dylanljones/rbox/blob/main/LICENSE
