@@ -21,14 +21,14 @@ $ pre-commit install
 
 ## Commit Message Format
 
-A format influenced by [Angular commit message].
+This project uses the [Conventional Commits] specification for commit messages.
 
 ```text
-<type>(<scope>): <subject>
-<BLANK LINE>
-<body>
-<BLANK LINE>
-<footer>
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer(s)]
 ```
 
 ### Type
@@ -80,23 +80,27 @@ The footer can contain information about breaking changes and deprecations and i
 to reference GitHub issues, Jira tickets, and other PRs that this commit closes or is related to.
 For example:
 ```
+<type>(<scope>): <description>
+
+[optional body]
+
 BREAKING CHANGE: <breaking change summary>
-<BLANK LINE>
+
 <breaking change description + migration instructions>
-<BLANK LINE>
-<BLANK LINE>
+
 Fixes #<issue number>
 ```
 
 or
 
 ```
+<type>(<scope>): <description>
+
+[optional body]
+
 DEPRECATED: <what is deprecated>
-<BLANK LINE>
+
 <deprecation description + recommended update path>
-<BLANK LINE>
-<BLANK LINE>
-Closes #<pr number>
 ```
 
 Breaking Change section should start with the phrase "BREAKING CHANGE: " followed by a summary of
@@ -111,4 +115,4 @@ mentions the recommended update path.
 [pulls]: https://github.com/dylanljones/rbox/pulls
 [discussions]: https://github.com/dylanljones/rbox/discussions
 [pre-commit framework]: https://pre-commit.com/
-[Angular commit message]: https://github.com/angular/angular/blob/master/CONTRIBUTING.md#commit-message-format
+[Conventional Commits]: https://www.conventionalcommits.org/
