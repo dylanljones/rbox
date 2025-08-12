@@ -117,7 +117,12 @@ sett.dump();
 
 ## License
 
-This project is licensed under the [MIT license][LICENSE].
+Licensed under either of [Apache License, Version 2.0][LICENSE-APACHE] or [MIT license][LICENSE-MIT] at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in this crate by you, as defined in the Apache-2.0 license, shall
+be dual licensed as above, without any additional terms or conditions.
+
 
 ## Sponsor
 
@@ -126,4 +131,5 @@ If rbox has helped you or saved you time, consider supporting its development - 
 [![BuyMeACoffee](https://raw.githubusercontent.com/pachadotdev/buymeacoffee-badges/main/bmc-white.svg)](https://www.buymeacoffee.com/dylanljones)
 
 [sqlcipher]: https://www.zetetic.net/sqlcipher/open-source/
-[LICENSE]: https://github.com/dylanljones/rbox/blob/main/LICENSE
+[LICENSE-MIT]: https://github.com/dylanljones/rbox/blob/main/LICENSE-MIT
+[LICENSE-APACHE]: https://github.com/dylanljones/rbox/blob/main/LICENSE-APACHE

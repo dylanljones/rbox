@@ -3,6 +3,7 @@
   "version": "0.1.3",
   "description": "Javascript library for interacting with the local and export data of Pioneers Rekordbox DJ software",
   "author": "Dylan Jones <dylanljones@proton.me>",
+  "keywords": ["rekordbox", "dj", "database", "setting", "anlz", "music", "rust"],
   "repository": {
     "type": "git",
     "url": "https://github.com/dylanljones/rbox"

@@ -47,7 +47,7 @@ cargo add rbox
 ```
 or add the following line to your Cargo.toml:
 ```shell
-rbox = "0.1.2"
+rbox = "0.1.3"
 ```
 
 ### 🐍 Python
@@ -94,7 +94,12 @@ please use [GitHub Discussions][discussions] instead of opening an issue.
 
 ## License
 
-This project is licensed under the [MIT license][LICENSE].
+Licensed under either of [Apache License, Version 2.0][LICENSE-APACHE] or [MIT license][LICENSE-MIT] at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in this crate by you, as defined in the Apache-2.0 license, shall
+be dual licensed as above, without any additional terms or conditions.
+
 
 ## Sponsor
 
@@ -115,5 +120,6 @@ If rbox has helped you or saved you time, consider supporting its development - 
 [pulls]: https://github.com/dylanljones/rbox/pulls
 [discussions]: https://github.com/dylanljones/rbox/discussions
 [CONTRIBUTING]: https://github.com/dylanljones/rbox/blob/main/CONTRIBUTING.md
-[LICENSE]: https://github.com/dylanljones/rbox/blob/main/LICENSE
+[LICENSE-MIT]: https://github.com/dylanljones/rbox/blob/main/LICENSE-MIT
+[LICENSE-APACHE]: https://github.com/dylanljones/rbox/blob/main/LICENSE-APACHE
 [CHANGELOG]: https://github.com/dylanljones/rbox/blob/main/CHANGELOG.md
