@@ -7,6 +7,7 @@
 **database-out.xml
 **masterPlaylists6.xml
 **main.mjs
+.chglog
 
 ### -- Rust gitignore ------------------------------------------------------------------------- ###
 
@@ -300,11 +301,6 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/windows
-
-#Added by cargo
-
-/target
-Cargo.lock
 
 .pnp.*
 .yarn/*
