@@ -7,13 +7,16 @@ pub mod models;
 pub mod playlist_xml;
 mod random_id;
 pub mod schema;
+pub mod smart_list;
 mod util;
 
 // Core
 pub use database::MasterDb;
 pub use enums::{AnalysisUpdated, Analyzed, FileType, PlaylistType};
 pub use playlist_xml::MasterPlaylistXml;
+pub use smart_list::{Condition, LogicalOperator, Operator, Property, SmartList};
 pub use util::{format_datetime, parse_datetime, RekordboxDateString};
+
 // Models
 pub use models::AgentRegistry; // agentRegistry
 pub use models::CloudAgentRegistry; // cloudAgentRegistry

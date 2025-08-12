@@ -722,6 +722,7 @@ pub struct DjmdColor {
 
 #[derive(
     Queryable,
+    QueryableByName,
     Selectable,
     Identifiable,
     AsChangeset,
