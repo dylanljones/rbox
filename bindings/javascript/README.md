@@ -1,4 +1,17 @@
-# rbox-js
+<p align="center">
+  <h1 align="center">rbox-js</h1>
+</p>
+
+<p align="center">
+  <i>rbox</i> gives you full control over your Rekordbox data.
+</p>
+
+<p align="center">
+  <a title="GitHub" target="_blank" href="https://github.com/dylanljones/rbox"><img alt="Crates.io" src="https://img.shields.io/badge/github-8da0cb?style=for-the-badge&labelColor=555555&logo=github" style="height:20px;"></a>
+  <a title="JavaScript" target="_blank" href="https://www.npmjs.com/package/rbox-js"><img alt="JS" src="https://img.shields.io/npm/v/rbox-js.svg?style=for-the-badge&color=fc8d62&logo=npm" style="height:20px;"></a>
+  <a title="Docs" target="_blank" href="https://docs.rs/rbox"><img src="https://img.shields.io/badge/docs.rs-rbox-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs" style="height:20px;"></a>
+</p>
+
 
 > **⚠️ Disclaimer**: This project is **not** affiliated with Pioneer DJ, AlphaTheta Corp., or any related entities.
 > The maintainers and contributors assume no liability for any data loss or damage to your Rekordbox library.

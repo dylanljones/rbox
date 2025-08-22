@@ -1152,6 +1152,9 @@ export const enum WaveformCurrentPosition {
   Left = 'Left',
   Center = 'Center'
 }
+export declare function getRekordboxAppDirPath(): string
+export declare function getRekordboxSharePath(): string
+export declare function getMasterDbPath(): string
 export declare function isRekordboxRunning(): boolean
 export interface Tempo {
   inizio: number

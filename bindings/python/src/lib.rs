@@ -13,12 +13,33 @@ mod xml;
 use pyo3::prelude::*;
 
 #[pyfunction]
+fn get_rekordbox_app_dir_path() -> PyResult<String> {
+    let path = rbox::util::get_rekordbox_app_dir_path()?;
+    Ok(path.to_str().unwrap().to_string())
+}
+
+#[pyfunction]
+fn get_rekordbox_share_path() -> PyResult<String> {
+    let path = rbox::util::get_rekordbox_share_path()?;
+    Ok(path.to_str().unwrap().to_string())
+}
+
+#[pyfunction]
+fn get_master_db_path() -> PyResult<String> {
+    let path = rbox::util::get_master_db_path()?;
+    Ok(path.to_str().unwrap().to_string())
+}
+
+#[pyfunction]
 fn is_rekordbox_running() -> PyResult<bool> {
     Ok(rbox::util::is_rekordbox_running())
 }
 
 #[pymodule]
 fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
+    let _ = m.add_function(wrap_pyfunction!(get_rekordbox_app_dir_path, m)?);
+    let _ = m.add_function(wrap_pyfunction!(get_rekordbox_share_path, m)?);
+    let _ = m.add_function(wrap_pyfunction!(get_master_db_path, m)?);
     let _ = m.add_function(wrap_pyfunction!(is_rekordbox_running, m)?);
 
     m.add_class::<masterdb::PyMasterDb>()?;

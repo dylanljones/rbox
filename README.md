@@ -27,6 +27,7 @@ It supports the following Rekordbox files:
 - **XML database**: Read and write Rekordbox XML database files
 - **Analysis Files**: Read and write ANLZ files containing waveforms, beat grids, hot cues and more
 - **Settings Access**: Read and write My-Setting files
+- **Device Library Plus**: Read and write Rekordbox Device Library Plus export files
 
 #### Language support
 
@@ -46,7 +47,7 @@ cargo add rbox
 ```
 or add the following line to your Cargo.toml:
 ```shell
-rbox = "0.1.3"
+rbox = "0.1.4"
 ```
 
 ### 🐍 Python

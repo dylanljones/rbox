@@ -310,7 +310,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { CueType, CueListType, CueStatus, Mood, Bank, Anlz, MasterDb, RekordboxOptions, OnAirDisplay, LCDBrightness, Quantize, AutoCueLevel, Language, JogRingBrightness, JogRingIndicator, SlipFlashing, DiscSlotIllumination, EjectLock, Sync, PlayMode, QuantizeBeatValue, HotCueAutoLoad, HotCueColor, NeedleLock, TimeMode, JogMode, AutoCue, MasterTempo, TempoRange, PhaseMeter, VinylSpeedAdjust, JogDisplayMode, PadButtonBrightness, JogLCDBrightness, WaveformDivisions, Waveform, BeatJumpBeatValue, ChannelFaderCurve, CrossfaderCurve, HeadphonesPreEQ, HeadphonesMonoSplit, BeatFXQuantize, MicLowCut, TalkOverMode, TalkOverLevel, MidiChannel, MidiButtonType, MixerDisplayBrightness, MixerIndicatorBrightness, ChannelFaderCurveLongFader, OverviewWaveformType, WaveformColor, KeyDisplayFormat, WaveformCurrentPosition, Setting, isRekordboxRunning, PlaylistNodeType, PlaylistKeyType, RekordboxXml } = nativeBinding
+const { CueType, CueListType, CueStatus, Mood, Bank, Anlz, MasterDb, RekordboxOptions, OnAirDisplay, LCDBrightness, Quantize, AutoCueLevel, Language, JogRingBrightness, JogRingIndicator, SlipFlashing, DiscSlotIllumination, EjectLock, Sync, PlayMode, QuantizeBeatValue, HotCueAutoLoad, HotCueColor, NeedleLock, TimeMode, JogMode, AutoCue, MasterTempo, TempoRange, PhaseMeter, VinylSpeedAdjust, JogDisplayMode, PadButtonBrightness, JogLCDBrightness, WaveformDivisions, Waveform, BeatJumpBeatValue, ChannelFaderCurve, CrossfaderCurve, HeadphonesPreEQ, HeadphonesMonoSplit, BeatFXQuantize, MicLowCut, TalkOverMode, TalkOverLevel, MidiChannel, MidiButtonType, MixerDisplayBrightness, MixerIndicatorBrightness, ChannelFaderCurveLongFader, OverviewWaveformType, WaveformColor, KeyDisplayFormat, WaveformCurrentPosition, Setting, getRekordboxAppDirPath, getRekordboxSharePath, getMasterDbPath, isRekordboxRunning, PlaylistNodeType, PlaylistKeyType, RekordboxXml } = nativeBinding
 
 module.exports.CueType = CueType
 module.exports.CueListType = CueListType
@@ -367,6 +367,9 @@ module.exports.WaveformColor = WaveformColor
 module.exports.KeyDisplayFormat = KeyDisplayFormat
 module.exports.WaveformCurrentPosition = WaveformCurrentPosition
 module.exports.Setting = Setting
+module.exports.getRekordboxAppDirPath = getRekordboxAppDirPath
+module.exports.getRekordboxSharePath = getRekordboxSharePath
+module.exports.getMasterDbPath = getMasterDbPath
 module.exports.isRekordboxRunning = isRekordboxRunning
 module.exports.PlaylistNodeType = PlaylistNodeType
 module.exports.PlaylistKeyType = PlaylistKeyType
