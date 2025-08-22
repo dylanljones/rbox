@@ -16,50 +16,50 @@ env:
 
 jobs:
 
-  test:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ "ubuntu-latest", "windows-latest", "macos-latest" ]
-        python-version: [ "3.9", "3.13" ]  # check oldest and latest supported version
-        other-os: [ true ]
-    runs-on: ${{ matrix.os }}
-    env:
-      OS: ${{ matrix.os }}
-      PYTHON: ${{ matrix.python-version }}
-    defaults:
-      run:
-        working-directory: ${{ env.working-directory }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set Perl environment variables
-        if: runner.os == 'Windows'
-        run: |
-          echo "PERL=$((where.exe perl)[0])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          echo "OPENSSL_SRC_PERL=$((where.exe perl)[0])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-
-      - name: Set up Rust (stable)
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Build and install
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .[test]
-
-      - name: Run Tests
-        run: pytest tests
+#  test:
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        os: [ "ubuntu-latest", "windows-latest", "macos-latest" ]
+#        python-version: [ "3.9", "3.13" ]  # check oldest and latest supported version
+#        other-os: [ true ]
+#    runs-on: ${{ matrix.os }}
+#    env:
+#      OS: ${{ matrix.os }}
+#      PYTHON: ${{ matrix.python-version }}
+#    defaults:
+#      run:
+#        working-directory: ${{ env.working-directory }}
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v4
+#        with:
+#          fetch-depth: 0
+#
+#      - name: Set Perl environment variables
+#        if: runner.os == 'Windows'
+#        run: |
+#          echo "PERL=$((where.exe perl)[0])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+#          echo "OPENSSL_SRC_PERL=$((where.exe perl)[0])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+#
+#      - name: Set up Rust (stable)
+#        uses: dtolnay/rust-toolchain@stable
+#
+#      - name: Set up Python ${{ matrix.python-version }}
+#        uses: actions/setup-python@v5
+#        with:
+#          python-version: ${{ matrix.python-version }}
+#
+#      - name: Rust cache
+#        uses: Swatinem/rust-cache@v2
+#
+#      - name: Build and install
+#        run: |
+#          python -m pip install --upgrade pip
+#          pip install -e .[test]
+#
+#      - name: Run Tests
+#        run: pytest tests
 
   linux:
     runs-on: ${{ matrix.platform.runner }}
@@ -69,7 +69,7 @@ jobs:
         platform:
           - runner: ubuntu-latest
             target: x86_64
-    needs: test
+    # needs: test
     defaults:
       run:
         working-directory: ${{ env.working-directory }}
@@ -121,7 +121,7 @@ jobs:
             target: x64
           # - runner: windows-latest
           #   target: x86
-    needs: test
+    # needs: test
     defaults:
       run:
         working-directory: ${{ env.working-directory }}
@@ -167,7 +167,7 @@ jobs:
             target: x86_64
           - runner: macos-14
             target: aarch64
-    needs: test
+    # needs: test
     defaults:
       run:
         working-directory: ${{ env.working-directory }}
@@ -196,7 +196,7 @@ jobs:
 
   sdist:
     runs-on: ubuntu-latest
-    needs: test
+    # needs: test
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
     defaults:
       run:

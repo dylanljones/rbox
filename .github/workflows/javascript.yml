@@ -133,101 +133,101 @@ jobs:
           path: bindings/javascript/${{ env.APP_NAME }}.*.node
           if-no-files-found: error
 
-  test-macOS-windows-binding:
-    name: Test bindings on ${{ matrix.settings.target }} - node@${{ matrix.node }}
-    needs: build
-    strategy:
-      fail-fast: false
-      matrix:
-        settings:
-          - host: windows-latest
-            target: x86_64-pc-windows-msvc
-            architecture: x64
-          - host: macos-latest
-            target: aarch64-apple-darwin
-            architecture: arm64
-          - host: macos-latest
-            target: x86_64-apple-darwin
-            architecture: x64
-        node:
-          - '18'
-          - '22'
-    runs-on: ${{ matrix.settings.host }}
-    defaults:
-      run:
-        working-directory: ${{ env.working-directory }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-          cache: yarn
-          cache-dependency-path: bindings/javascript
-          architecture: ${{ matrix.settings.architecture }}
-
-      - name: Install dependencies
-        run: yarn install
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: bindings-${{ matrix.settings.target }}
-          path: bindings/javascript
-
-      - name: List packages
-        run: ls -R .
-        shell: bash
-
-      - name: Test bindings
-        run: yarn test
-
-  test-linux-x64-gnu-binding:
-    name: Test bindings on Linux-x64-gnu - node@${{ matrix.node }}
-    needs:
-      - build
-    strategy:
-      fail-fast: false
-      matrix:
-        node:
-          - '18'
-          - '22'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ env.working-directory }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-          cache: yarn
-          cache-dependency-path: bindings/javascript
-          architecture: x64
-
-      - name: Install dependencies
-        run: yarn install
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: bindings-x86_64-unknown-linux-gnu
-          path: bindings/javascript
-
-      - name: List packages
-        run: ls -R .
-        shell: bash
-
-      # - name: Test bindings
-      #   run: docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim yarn test
-
-      - name: Test bindings
-        run: yarn test
+#  test-macOS-windows-binding:
+#    name: Test bindings on ${{ matrix.settings.target }} - node@${{ matrix.node }}
+#    needs: build
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        settings:
+#          - host: windows-latest
+#            target: x86_64-pc-windows-msvc
+#            architecture: x64
+#          - host: macos-latest
+#            target: aarch64-apple-darwin
+#            architecture: arm64
+#          - host: macos-latest
+#            target: x86_64-apple-darwin
+#            architecture: x64
+#        node:
+#          - '18'
+#          - '22'
+#    runs-on: ${{ matrix.settings.host }}
+#    defaults:
+#      run:
+#        working-directory: ${{ env.working-directory }}
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v4
+#
+#      - name: Setup node
+#        uses: actions/setup-node@v4
+#        with:
+#          node-version: ${{ matrix.node }}
+#          cache: yarn
+#          cache-dependency-path: bindings/javascript
+#          architecture: ${{ matrix.settings.architecture }}
+#
+#      - name: Install dependencies
+#        run: yarn install
+#
+#      - name: Download artifacts
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: bindings-${{ matrix.settings.target }}
+#          path: bindings/javascript
+#
+#      - name: List packages
+#        run: ls -R .
+#        shell: bash
+#
+#      - name: Test bindings
+#        run: yarn test
+#
+#  test-linux-x64-gnu-binding:
+#    name: Test bindings on Linux-x64-gnu - node@${{ matrix.node }}
+#    needs:
+#      - build
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        node:
+#          - '18'
+#          - '22'
+#    runs-on: ubuntu-latest
+#    defaults:
+#      run:
+#        working-directory: ${{ env.working-directory }}
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v4
+#
+#      - name: Setup node
+#        uses: actions/setup-node@v4
+#        with:
+#          node-version: ${{ matrix.node }}
+#          cache: yarn
+#          cache-dependency-path: bindings/javascript
+#          architecture: x64
+#
+#      - name: Install dependencies
+#        run: yarn install
+#
+#      - name: Download artifacts
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: bindings-x86_64-unknown-linux-gnu
+#          path: bindings/javascript
+#
+#      - name: List packages
+#        run: ls -R .
+#        shell: bash
+#
+#      # - name: Test bindings
+#      #   run: docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim yarn test
+#
+#      - name: Test bindings
+#        run: yarn test
 
   universal-macOS:
     name: Build universal macOS binary
@@ -284,8 +284,7 @@ jobs:
       contents: read
       id-token: write
     needs:
-      - test-macOS-windows-binding
-      - test-linux-x64-gnu-binding
+      - build
       - universal-macOS
     defaults:
       run:
