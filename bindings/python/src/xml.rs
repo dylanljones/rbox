@@ -1,9 +1,6 @@
 // Author: Dylan Jones
 // Date:   2025-05-15
 
-use super::errors::XmlError;
-use super::traits::{FromPy, IntoPy};
-use crate::iter::{PyItemsIter, PyObjectIter, PyStrIter};
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use pyo3::prelude::*;
 use pyo3::types::{PyDateTime, PyDict, PyType};
@@ -11,6 +8,10 @@ use rbox::xml::{
     PlaylistNode, PlaylistNodeType, PlaylistTrack, PositionMark, RekordboxXml, Tempo, Track,
 };
 use std::collections::HashMap;
+
+use super::errors::XmlError;
+use super::traits::{FromPy, IntoPy, MutableMapping};
+use crate::iter::{PyItemsIter, PyObjectIter, PyStrIter};
 
 #[derive(Debug, Clone)]
 #[pyclass(name = "Tempo", unsendable, get_all, set_all)]
@@ -21,7 +22,7 @@ pub struct PyTempo {
     pub battito: u16,
 }
 
-impl PyTempo {
+impl MutableMapping for PyTempo {
     fn field_names() -> Vec<String> {
         vec![
             "inizio".to_string(),
@@ -29,28 +30,6 @@ impl PyTempo {
             "metro".to_string(),
             "battito".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyTempo {
-    #[new]
-    fn new(inizio: f64, bpm: f64, metro: &str, battito: u16) -> Self {
-        Self {
-            inizio,
-            bpm,
-            metro: metro.to_string(),
-            battito,
-        }
-    }
-
-    fn __len__(&self) -> usize {
-        4
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -81,54 +60,62 @@ impl PyTempo {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
-    }
-
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
-    }
-
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
-    }
-
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
+#[pymethods]
+impl PyTempo {
+    #[new]
+    fn new(inizio: f64, bpm: f64, metro: &str, battito: u16) -> Self {
+        Self {
+            inizio,
+            bpm,
+            metro: metro.to_string(),
+            battito,
         }
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    fn __len__(&self) -> usize {
+        4
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
+    }
+
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
+    }
+
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
+    }
+
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
+    }
+
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
@@ -173,7 +160,7 @@ pub struct PyPositionMark {
     pub num: i32,
 }
 
-impl PyPositionMark {
+impl MutableMapping for PyPositionMark {
     fn field_names() -> Vec<String> {
         vec![
             "name".to_string(),
@@ -182,28 +169,6 @@ impl PyPositionMark {
             "end".to_string(),
             "num".to_string(),
         ]
-    }
-}
-#[pymethods]
-impl PyPositionMark {
-    #[new]
-    fn new(name: &str, mark_type: u16, num: i32, start: f64, end: Option<f64>) -> Self {
-        Self {
-            name: name.to_string(),
-            mark_type,
-            start,
-            end,
-            num,
-        }
-    }
-
-    fn __len__(&self) -> usize {
-        5
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -236,54 +201,63 @@ impl PyPositionMark {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
-    }
-
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
-    }
-
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
-    }
-
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
+#[pymethods]
+impl PyPositionMark {
+    #[new]
+    fn new(name: &str, mark_type: u16, num: i32, start: f64, end: Option<f64>) -> Self {
+        Self {
+            name: name.to_string(),
+            mark_type,
+            start,
+            end,
+            num,
         }
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    fn __len__(&self) -> usize {
+        5
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
+    }
+
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
+    }
+
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
+    }
+
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
+    }
+
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
@@ -444,7 +418,7 @@ impl PyTrack {
     }
 }
 
-impl PyTrack {
+impl MutableMapping for PyTrack {
     fn field_names() -> Vec<String> {
         vec![
             "trackid".to_string(),
@@ -476,55 +450,6 @@ impl PyTrack {
             "mix".to_string(),
             "color".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyTrack {
-    #[new]
-    fn new(trackid: &str, location: &str) -> PyResult<Self> {
-        let track = Self {
-            trackid: trackid.to_string(),
-            location: location.to_string(),
-            name: None,
-            artist: None,
-            composer: None,
-            album: None,
-            grouping: None,
-            genre: None,
-            kind: None,
-            size: None,
-            totaltime: None,
-            discnumber: None,
-            tracknumber: None,
-            year: None,
-            averagebpm: None,
-            datemodified: None,
-            dateadded: None,
-            bitrate: None,
-            samplerate: None,
-            comments: None,
-            playcount: None,
-            lastplayed: None,
-            rating: None,
-            remixer: None,
-            tonality: None,
-            label: None,
-            mix: None,
-            color: None,
-            tempos: Vec::new(),
-            position_marks: Vec::new(),
-        };
-        Ok(track)
-    }
-
-    fn __len__(&self) -> usize {
-        28
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -623,54 +548,89 @@ impl PyTrack {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyTrack {
+    #[new]
+    fn new(trackid: &str, location: &str) -> PyResult<Self> {
+        let track = Self {
+            trackid: trackid.to_string(),
+            location: location.to_string(),
+            name: None,
+            artist: None,
+            composer: None,
+            album: None,
+            grouping: None,
+            genre: None,
+            kind: None,
+            size: None,
+            totaltime: None,
+            discnumber: None,
+            tracknumber: None,
+            year: None,
+            averagebpm: None,
+            datemodified: None,
+            dateadded: None,
+            bitrate: None,
+            samplerate: None,
+            comments: None,
+            playcount: None,
+            lastplayed: None,
+            rating: None,
+            remixer: None,
+            tonality: None,
+            label: None,
+            mix: None,
+            color: None,
+            tempos: Vec::new(),
+            position_marks: Vec::new(),
+        };
+        Ok(track)
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    fn __len__(&self) -> usize {
+        28
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
+    }
+
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {

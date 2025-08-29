@@ -9,7 +9,7 @@ use rbox::masterdb::models::*;
 use std::collections::HashMap;
 
 use super::iter::{PyItemsIter, PyObjectIter, PyStrIter};
-use super::traits::{FromPy, IntoPy};
+use super::traits::{FromPy, IntoPy, MutableMapping};
 
 #[pyclass(name = "AgentRegistry", unsendable, get_all, set_all)]
 pub struct PyAgentRegistry {
@@ -69,7 +69,7 @@ impl FromPy<PyAgentRegistry> for AgentRegistry {
     }
 }
 
-impl PyAgentRegistry {
+impl MutableMapping for PyAgentRegistry {
     fn field_names() -> Vec<String> {
         vec![
             "registry_id".to_string(),
@@ -86,18 +86,6 @@ impl PyAgentRegistry {
             "text_1".to_string(),
             "text_2".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyAgentRegistry {
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -146,58 +134,56 @@ impl PyAgentRegistry {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyAgentRegistry {
+    fn __len__(&self) -> usize {
+        13
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("AgentRegistry(registry_id: {})", self.registry_id,))
+        Ok(format!("AgentRegistry(registry_id: {})", self.registry_id))
     }
 }
 
@@ -274,7 +260,7 @@ impl FromPy<PyCloudAgentRegistry> for CloudAgentRegistry {
     }
 }
 
-impl PyCloudAgentRegistry {
+impl MutableMapping for PyCloudAgentRegistry {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -296,18 +282,6 @@ impl PyCloudAgentRegistry {
             "text_1".to_string(),
             "text_2".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyCloudAgentRegistry {
-    fn __len__(&self) -> usize {
-        18
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -366,58 +340,56 @@ impl PyCloudAgentRegistry {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyCloudAgentRegistry {
+    fn __len__(&self) -> usize {
+        18
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("CloudAgentRegistry(ID: {})", self.ID,))
+        Ok(format!("CloudAgentRegistry(ID: {})", self.ID))
     }
 }
 
@@ -479,7 +451,7 @@ impl FromPy<PyContentActiveCensor> for ContentActiveCensor {
     }
 }
 
-impl PyContentActiveCensor {
+impl MutableMapping for PyContentActiveCensor {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -496,18 +468,6 @@ impl PyContentActiveCensor {
             "ActiveCensors".to_string(),
             "rb_activecensor_count".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyContentActiveCensor {
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -558,58 +518,56 @@ impl PyContentActiveCensor {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyContentActiveCensor {
+    fn __len__(&self) -> usize {
+        13
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("ContentActiveCensor(ID: {})", self.ID,))
+        Ok(format!("ContentActiveCensor(ID: {})", self.ID))
     }
 }
 
@@ -671,7 +629,7 @@ impl FromPy<PyContentCue> for ContentCue {
     }
 }
 
-impl PyContentCue {
+impl MutableMapping for PyContentCue {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -688,18 +646,6 @@ impl PyContentCue {
             "Cues".to_string(),
             "rb_cue_count".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyContentCue {
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -748,58 +694,56 @@ impl PyContentCue {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyContentCue {
+    fn __len__(&self) -> usize {
+        13
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("ContentCue(ID: {})", self.ID,))
+        Ok(format!("ContentCue(ID: {})", self.ID))
     }
 }
 
@@ -894,7 +838,7 @@ impl FromPy<PyContentFile> for ContentFile {
     }
 }
 
-impl PyContentFile {
+impl MutableMapping for PyContentFile {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -922,18 +866,6 @@ impl PyContentFile {
             "rb_priority".to_string(),
             "rb_file_size_dirty".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyContentFile {
-    fn __len__(&self) -> usize {
-        24
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -1006,58 +938,56 @@ impl PyContentFile {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyContentFile {
+    fn __len__(&self) -> usize {
+        24
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("ContentFile(ID: {})", self.ID,))
+        Ok(format!("ContentFile(ID: {})", self.ID))
     }
 }
 
@@ -1128,7 +1058,7 @@ impl FromPy<PyDjmdActiveCensor> for DjmdActiveCensor {
     }
 }
 
-impl PyDjmdActiveCensor {
+impl MutableMapping for PyDjmdActiveCensor {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -1148,18 +1078,6 @@ impl PyDjmdActiveCensor {
             "ParameterList".to_string(),
             "ContentUUID".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdActiveCensor {
-    fn __len__(&self) -> usize {
-        16
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -1214,58 +1132,56 @@ impl PyDjmdActiveCensor {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdActiveCensor {
+    fn __len__(&self) -> usize {
+        16
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdActiveCensor(ID: {})", self.ID,))
+        Ok(format!("DjmdActiveCensor(ID: {})", self.ID))
     }
 }
 
@@ -1333,7 +1249,7 @@ impl FromPy<PyDjmdAlbum> for DjmdAlbum {
     }
 }
 
-impl PyDjmdAlbum {
+impl MutableMapping for PyDjmdAlbum {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -1352,18 +1268,6 @@ impl PyDjmdAlbum {
             "Compilation".to_string(),
             "SearchStr".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdAlbum {
-    fn __len__(&self) -> usize {
-        15
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -1416,58 +1320,56 @@ impl PyDjmdAlbum {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdAlbum {
+    fn __len__(&self) -> usize {
+        15
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdAlbum(ID: {})", self.ID,))
+        Ok(format!("DjmdAlbum(ID: {})", self.ID))
     }
 }
 
@@ -1526,7 +1428,7 @@ impl FromPy<PyDjmdArtist> for DjmdArtist {
     }
 }
 
-impl PyDjmdArtist {
+impl MutableMapping for PyDjmdArtist {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -1542,18 +1444,6 @@ impl PyDjmdArtist {
             "Name".to_string(),
             "SearchStr".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdArtist {
-    fn __len__(&self) -> usize {
-        12
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -1600,58 +1490,56 @@ impl PyDjmdArtist {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdArtist {
+    fn __len__(&self) -> usize {
+        12
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdArtist(ID: {})", self.ID,))
+        Ok(format!("DjmdArtist(ID: {})", self.ID))
     }
 }
 
@@ -1716,7 +1604,7 @@ impl FromPy<PyDjmdCategory> for DjmdCategory {
     }
 }
 
-impl PyDjmdCategory {
+impl MutableMapping for PyDjmdCategory {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -1734,18 +1622,6 @@ impl PyDjmdCategory {
             "Disable".to_string(),
             "InfoOrder".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdCategory {
-    fn __len__(&self) -> usize {
-        14
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -1796,58 +1672,56 @@ impl PyDjmdCategory {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdCategory {
+    fn __len__(&self) -> usize {
+        14
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdCategory(ID: {})", self.ID,))
+        Ok(format!("DjmdCategory(ID: {})", self.ID))
     }
 }
 
@@ -1909,7 +1783,7 @@ impl FromPy<PyDjmdColor> for DjmdColor {
     }
 }
 
-impl PyDjmdColor {
+impl MutableMapping for PyDjmdColor {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -1926,18 +1800,6 @@ impl PyDjmdColor {
             "SortKey".to_string(),
             "Commnt".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdColor {
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -1986,58 +1848,56 @@ impl PyDjmdColor {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdColor {
+    fn __len__(&self) -> usize {
+        13
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdColor(ID: {})", self.ID,))
+        Ok(format!("DjmdColor(ID: {})", self.ID))
     }
 }
 
@@ -2294,7 +2154,7 @@ impl FromPy<PyDjmdContent> for DjmdContent {
     }
 }
 
-impl PyDjmdContent {
+impl MutableMapping for PyDjmdContent {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -2376,18 +2236,6 @@ impl PyDjmdContent {
             "SrcAlbumName".to_string(),
             "SrcLength".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdContent {
-    fn __len__(&self) -> usize {
-        78
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -2568,58 +2416,56 @@ impl PyDjmdContent {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdContent {
+    fn __len__(&self) -> usize {
+        78
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdContent(ID: {})", self.ID,))
+        Ok(format!("DjmdContent(ID: {})", self.ID))
     }
 }
 
@@ -2729,7 +2575,7 @@ impl FromPy<PyDjmdCue> for DjmdCue {
     }
 }
 
-impl PyDjmdCue {
+impl MutableMapping for PyDjmdCue {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -2762,18 +2608,6 @@ impl PyDjmdCue {
             "OutPointSeekInfo".to_string(),
             "ContentUUID".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdCue {
-    fn __len__(&self) -> usize {
-        29
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -2854,58 +2688,56 @@ impl PyDjmdCue {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdCue {
+    fn __len__(&self) -> usize {
+        29
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdCue(ID: {})", self.ID,))
+        Ok(format!("DjmdCue(ID: {})", self.ID))
     }
 }
 
@@ -2964,7 +2796,7 @@ impl FromPy<PyDjmdDevice> for DjmdDevice {
     }
 }
 
-impl PyDjmdDevice {
+impl MutableMapping for PyDjmdDevice {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -2980,18 +2812,6 @@ impl PyDjmdDevice {
             "MasterDBID".to_string(),
             "Name".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdDevice {
-    fn __len__(&self) -> usize {
-        12
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -3038,58 +2858,56 @@ impl PyDjmdDevice {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdDevice {
+    fn __len__(&self) -> usize {
+        12
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdDevice(ID: {})", self.ID,))
+        Ok(format!("DjmdDevice(ID: {})", self.ID))
     }
 }
 
@@ -3145,7 +2963,7 @@ impl FromPy<PyDjmdGenre> for DjmdGenre {
     }
 }
 
-impl PyDjmdGenre {
+impl MutableMapping for PyDjmdGenre {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -3160,18 +2978,6 @@ impl PyDjmdGenre {
             "updated_at".to_string(),
             "Name".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdGenre {
-    fn __len__(&self) -> usize {
-        11
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -3216,58 +3022,56 @@ impl PyDjmdGenre {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdGenre {
+    fn __len__(&self) -> usize {
+        11
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdGenre(ID: {})", self.ID,))
+        Ok(format!("DjmdGenre(ID: {})", self.ID))
     }
 }
 
@@ -3335,7 +3139,7 @@ impl FromPy<PyDjmdHistory> for DjmdHistory {
     }
 }
 
-impl PyDjmdHistory {
+impl MutableMapping for PyDjmdHistory {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -3354,18 +3158,6 @@ impl PyDjmdHistory {
             "ParentID".to_string(),
             "DateCreated".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdHistory {
-    fn __len__(&self) -> usize {
-        15
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -3418,58 +3210,56 @@ impl PyDjmdHistory {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdHistory {
+    fn __len__(&self) -> usize {
+        15
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdHistory(ID: {})", self.ID,))
+        Ok(format!("DjmdHistory(ID: {})", self.ID))
     }
 }
 
@@ -3531,7 +3321,7 @@ impl FromPy<PyDjmdSongHistory> for DjmdSongHistory {
     }
 }
 
-impl PyDjmdSongHistory {
+impl MutableMapping for PyDjmdSongHistory {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -3548,18 +3338,6 @@ impl PyDjmdSongHistory {
             "ContentID".to_string(),
             "TrackNo".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdSongHistory {
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -3608,58 +3386,56 @@ impl PyDjmdSongHistory {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdSongHistory {
+    fn __len__(&self) -> usize {
+        13
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongHistory(ID: {})", self.ID,))
+        Ok(format!("DjmdSongHistory(ID: {})", self.ID))
     }
 }
 
@@ -3727,7 +3503,7 @@ impl FromPy<PyDjmdHotCueBanklist> for DjmdHotCueBanklist {
     }
 }
 
-impl PyDjmdHotCueBanklist {
+impl MutableMapping for PyDjmdHotCueBanklist {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -3746,18 +3522,6 @@ impl PyDjmdHotCueBanklist {
             "Attribute".to_string(),
             "ParentID".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdHotCueBanklist {
-    fn __len__(&self) -> usize {
-        15
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -3810,58 +3574,56 @@ impl PyDjmdHotCueBanklist {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdHotCueBanklist {
+    fn __len__(&self) -> usize {
+        15
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdHotCueBanklist(ID: {})", self.ID,))
+        Ok(format!("DjmdHotCueBanklist(ID: {})", self.ID))
     }
 }
 
@@ -3974,7 +3736,7 @@ impl FromPy<PyDjmdSongHotCueBanklist> for DjmdSongHotCueBanklist {
     }
 }
 
-impl PyDjmdSongHotCueBanklist {
+impl MutableMapping for PyDjmdSongHotCueBanklist {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -4008,18 +3770,6 @@ impl PyDjmdSongHotCueBanklist {
             "OutPointSeekInfo".to_string(),
             "HotCueBanklistUUID".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdSongHotCueBanklist {
-    fn __len__(&self) -> usize {
-        30
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -4104,58 +3854,56 @@ impl PyDjmdSongHotCueBanklist {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdSongHotCueBanklist {
+    fn __len__(&self) -> usize {
+        30
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongHotCueBanklist(ID: {})", self.ID,))
+        Ok(format!("DjmdSongHotCueBanklist(ID: {})", self.ID))
     }
 }
 
@@ -4217,7 +3965,7 @@ impl FromPy<PyHotCueBanklistCue> for HotCueBanklistCue {
     }
 }
 
-impl PyHotCueBanklistCue {
+impl MutableMapping for PyHotCueBanklistCue {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -4234,18 +3982,6 @@ impl PyHotCueBanklistCue {
             "Cues".to_string(),
             "rb_cue_count".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyHotCueBanklistCue {
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -4294,58 +4030,56 @@ impl PyHotCueBanklistCue {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyHotCueBanklistCue {
+    fn __len__(&self) -> usize {
+        13
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("HotCueBanklistCue(ID: {})", self.ID,))
+        Ok(format!("HotCueBanklistCue(ID: {})", self.ID))
     }
 }
 
@@ -4404,7 +4138,7 @@ impl FromPy<PyDjmdKey> for DjmdKey {
     }
 }
 
-impl PyDjmdKey {
+impl MutableMapping for PyDjmdKey {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -4420,18 +4154,6 @@ impl PyDjmdKey {
             "ScaleName".to_string(),
             "Seq".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdKey {
-    fn __len__(&self) -> usize {
-        12
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -4478,58 +4200,56 @@ impl PyDjmdKey {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdKey {
+    fn __len__(&self) -> usize {
+        12
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdKey(ID: {})", self.ID,))
+        Ok(format!("DjmdKey(ID: {})", self.ID))
     }
 }
 
@@ -4585,7 +4305,7 @@ impl FromPy<PyDjmdLabel> for DjmdLabel {
     }
 }
 
-impl PyDjmdLabel {
+impl MutableMapping for PyDjmdLabel {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -4600,18 +4320,6 @@ impl PyDjmdLabel {
             "updated_at".to_string(),
             "Name".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdLabel {
-    fn __len__(&self) -> usize {
-        11
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -4656,58 +4364,56 @@ impl PyDjmdLabel {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdLabel {
+    fn __len__(&self) -> usize {
+        11
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdLabel(ID: {})", self.ID,))
+        Ok(format!("DjmdLabel(ID: {})", self.ID))
     }
 }
 
@@ -4766,7 +4472,7 @@ impl FromPy<PyDjmdMenuItems> for DjmdMenuItems {
     }
 }
 
-impl PyDjmdMenuItems {
+impl MutableMapping for PyDjmdMenuItems {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -4782,18 +4488,6 @@ impl PyDjmdMenuItems {
             "Class".to_string(),
             "Name".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdMenuItems {
-    fn __len__(&self) -> usize {
-        12
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -4840,58 +4534,56 @@ impl PyDjmdMenuItems {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdMenuItems {
+    fn __len__(&self) -> usize {
+        12
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdMenuItems(ID: {})", self.ID,))
+        Ok(format!("DjmdMenuItems(ID: {})", self.ID))
     }
 }
 
@@ -4959,7 +4651,7 @@ impl FromPy<PyDjmdMixerParam> for DjmdMixerParam {
     }
 }
 
-impl PyDjmdMixerParam {
+impl MutableMapping for PyDjmdMixerParam {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -4978,18 +4670,6 @@ impl PyDjmdMixerParam {
             "PeakHigh".to_string(),
             "PeakLow".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdMixerParam {
-    fn __len__(&self) -> usize {
-        15
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -5042,58 +4722,56 @@ impl PyDjmdMixerParam {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdMixerParam {
+    fn __len__(&self) -> usize {
+        15
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdMixerParam(ID: {})", self.ID,))
+        Ok(format!("DjmdMixerParam(ID: {})", self.ID))
     }
 }
 
@@ -5158,7 +4836,7 @@ impl FromPy<PyDjmdMyTag> for DjmdMyTag {
     }
 }
 
-impl PyDjmdMyTag {
+impl MutableMapping for PyDjmdMyTag {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -5176,18 +4854,6 @@ impl PyDjmdMyTag {
             "Attribute".to_string(),
             "ParentID".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdMyTag {
-    fn __len__(&self) -> usize {
-        14
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -5238,58 +4904,56 @@ impl PyDjmdMyTag {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdMyTag {
+    fn __len__(&self) -> usize {
+        14
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdMyTag(ID: {})", self.ID,))
+        Ok(format!("DjmdMyTag(ID: {})", self.ID))
     }
 }
 
@@ -5351,7 +5015,7 @@ impl FromPy<PyDjmdSongMyTag> for DjmdSongMyTag {
     }
 }
 
-impl PyDjmdSongMyTag {
+impl MutableMapping for PyDjmdSongMyTag {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -5368,18 +5032,6 @@ impl PyDjmdSongMyTag {
             "ContentID".to_string(),
             "TrackNo".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdSongMyTag {
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -5428,58 +5080,56 @@ impl PyDjmdSongMyTag {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdSongMyTag {
+    fn __len__(&self) -> usize {
+        13
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongMyTag(ID: {})", self.ID,))
+        Ok(format!("DjmdSongMyTag(ID: {})", self.ID))
     }
 }
 
@@ -5550,7 +5200,7 @@ impl FromPy<PyDjmdPlaylist> for DjmdPlaylist {
     }
 }
 
-impl PyDjmdPlaylist {
+impl MutableMapping for PyDjmdPlaylist {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -5570,18 +5220,6 @@ impl PyDjmdPlaylist {
             "ParentID".to_string(),
             "SmartList".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdPlaylist {
-    fn __len__(&self) -> usize {
-        16
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -5636,58 +5274,56 @@ impl PyDjmdPlaylist {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdPlaylist {
+    fn __len__(&self) -> usize {
+        16
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdPlaylist(ID: {})", self.ID,))
+        Ok(format!("DjmdPlaylist(ID: {})", self.ID))
     }
 }
 
@@ -5800,7 +5436,7 @@ impl FromPy<PyDjmdSongPlaylist> for DjmdSongPlaylist {
     }
 }
 
-impl PyDjmdSongPlaylist {
+impl MutableMapping for PyDjmdSongPlaylist {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -5817,18 +5453,6 @@ impl PyDjmdSongPlaylist {
             "ContentID".to_string(),
             "TrackNo".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdSongPlaylist {
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -5877,58 +5501,56 @@ impl PyDjmdSongPlaylist {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdSongPlaylist {
+    fn __len__(&self) -> usize {
+        13
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongPlaylist(ID: {})", self.ID,))
+        Ok(format!("DjmdSongPlaylist(ID: {})", self.ID))
     }
 }
 
@@ -5987,7 +5609,7 @@ impl FromPy<PyDjmdProperty> for DjmdProperty {
     }
 }
 
-impl PyDjmdProperty {
+impl MutableMapping for PyDjmdProperty {
     fn field_names() -> Vec<String> {
         vec![
             "DBID".to_string(),
@@ -6003,18 +5625,6 @@ impl PyDjmdProperty {
             "created_at".to_string(),
             "updated_at".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdProperty {
-    fn __len__(&self) -> usize {
-        12
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -6061,58 +5671,56 @@ impl PyDjmdProperty {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdProperty {
+    fn __len__(&self) -> usize {
+        12
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdProperty(DBID: {})", self.DBID,))
+        Ok(format!("DjmdProperty(DBID: {})", self.DBID))
     }
 }
 
@@ -6180,7 +5788,7 @@ impl FromPy<PyDjmdCloudProperty> for DjmdCloudProperty {
     }
 }
 
-impl PyDjmdCloudProperty {
+impl MutableMapping for PyDjmdCloudProperty {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -6199,18 +5807,6 @@ impl PyDjmdCloudProperty {
             "Reserved4".to_string(),
             "Reserved5".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdCloudProperty {
-    fn __len__(&self) -> usize {
-        15
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -6263,58 +5859,56 @@ impl PyDjmdCloudProperty {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdCloudProperty {
+    fn __len__(&self) -> usize {
+        15
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdCloudProperty(ID: {})", self.ID,))
+        Ok(format!("DjmdCloudProperty(ID: {})", self.ID))
     }
 }
 
@@ -6382,7 +5976,7 @@ impl FromPy<PyDjmdRecommendLike> for DjmdRecommendLike {
     }
 }
 
-impl PyDjmdRecommendLike {
+impl MutableMapping for PyDjmdRecommendLike {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -6401,18 +5995,6 @@ impl PyDjmdRecommendLike {
             "DataCreatedH".to_string(),
             "DataCreatedL".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdRecommendLike {
-    fn __len__(&self) -> usize {
-        15
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -6465,58 +6047,56 @@ impl PyDjmdRecommendLike {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdRecommendLike {
+    fn __len__(&self) -> usize {
+        15
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdRecommendLike(ID: {})", self.ID,))
+        Ok(format!("DjmdRecommendLike(ID: {})", self.ID))
     }
 }
 
@@ -6584,7 +6164,7 @@ impl FromPy<PyDjmdRelatedTracks> for DjmdRelatedTracks {
     }
 }
 
-impl PyDjmdRelatedTracks {
+impl MutableMapping for PyDjmdRelatedTracks {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -6603,18 +6183,6 @@ impl PyDjmdRelatedTracks {
             "ParentID".to_string(),
             "Criteria".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdRelatedTracks {
-    fn __len__(&self) -> usize {
-        15
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -6667,58 +6235,56 @@ impl PyDjmdRelatedTracks {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdRelatedTracks {
+    fn __len__(&self) -> usize {
+        15
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdRelatedTracks(ID: {})", self.ID,))
+        Ok(format!("DjmdRelatedTracks(ID: {})", self.ID))
     }
 }
 
@@ -6780,7 +6346,7 @@ impl FromPy<PyDjmdSongRelatedTracks> for DjmdSongRelatedTracks {
     }
 }
 
-impl PyDjmdSongRelatedTracks {
+impl MutableMapping for PyDjmdSongRelatedTracks {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -6797,18 +6363,6 @@ impl PyDjmdSongRelatedTracks {
             "ContentID".to_string(),
             "TrackNo".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdSongRelatedTracks {
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -6857,58 +6411,56 @@ impl PyDjmdSongRelatedTracks {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdSongRelatedTracks {
+    fn __len__(&self) -> usize {
+        13
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongRelatedTracks(ID: {})", self.ID,))
+        Ok(format!("DjmdSongRelatedTracks(ID: {})", self.ID))
     }
 }
 
@@ -6973,7 +6525,7 @@ impl FromPy<PyDjmdSampler> for DjmdSampler {
     }
 }
 
-impl PyDjmdSampler {
+impl MutableMapping for PyDjmdSampler {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -6991,18 +6543,6 @@ impl PyDjmdSampler {
             "Attribute".to_string(),
             "ParentID".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdSampler {
-    fn __len__(&self) -> usize {
-        14
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -7053,58 +6593,56 @@ impl PyDjmdSampler {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdSampler {
+    fn __len__(&self) -> usize {
+        14
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSampler(ID: {})", self.ID,))
+        Ok(format!("DjmdSampler(ID: {})", self.ID))
     }
 }
 
@@ -7166,7 +6704,7 @@ impl FromPy<PyDjmdSongSampler> for DjmdSongSampler {
     }
 }
 
-impl PyDjmdSongSampler {
+impl MutableMapping for PyDjmdSongSampler {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -7183,18 +6721,6 @@ impl PyDjmdSongSampler {
             "ContentID".to_string(),
             "TrackNo".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdSongSampler {
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -7243,58 +6769,56 @@ impl PyDjmdSongSampler {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdSongSampler {
+    fn __len__(&self) -> usize {
+        13
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongSampler(ID: {})", self.ID,))
+        Ok(format!("DjmdSongSampler(ID: {})", self.ID))
     }
 }
 
@@ -7353,7 +6877,7 @@ impl FromPy<PyDjmdSongTagList> for DjmdSongTagList {
     }
 }
 
-impl PyDjmdSongTagList {
+impl MutableMapping for PyDjmdSongTagList {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -7369,18 +6893,6 @@ impl PyDjmdSongTagList {
             "ContentID".to_string(),
             "TrackNo".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdSongTagList {
-    fn __len__(&self) -> usize {
-        12
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -7427,58 +6939,56 @@ impl PyDjmdSongTagList {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdSongTagList {
+    fn __len__(&self) -> usize {
+        12
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongTagList(ID: {})", self.ID,))
+        Ok(format!("DjmdSongTagList(ID: {})", self.ID))
     }
 }
 
@@ -7540,7 +7050,7 @@ impl FromPy<PyDjmdSort> for DjmdSort {
     }
 }
 
-impl PyDjmdSort {
+impl MutableMapping for PyDjmdSort {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -7557,18 +7067,6 @@ impl PyDjmdSort {
             "Seq".to_string(),
             "Disable".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyDjmdSort {
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -7617,58 +7115,56 @@ impl PyDjmdSort {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyDjmdSort {
+    fn __len__(&self) -> usize {
+        13
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSort(ID: {})", self.ID,))
+        Ok(format!("DjmdSort(ID: {})", self.ID))
     }
 }
 
@@ -7769,7 +7265,7 @@ impl FromPy<PyImageFile> for ImageFile {
     }
 }
 
-impl PyImageFile {
+impl MutableMapping for PyImageFile {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -7799,18 +7295,6 @@ impl PyImageFile {
             "rb_priority".to_string(),
             "rb_file_size_dirty".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyImageFile {
-    fn __len__(&self) -> usize {
-        26
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -7887,58 +7371,56 @@ impl PyImageFile {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyImageFile {
+    fn __len__(&self) -> usize {
+        26
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("ImageFile(ID: {})", self.ID,))
+        Ok(format!("ImageFile(ID: {})", self.ID))
     }
 }
 
@@ -8015,7 +7497,7 @@ impl FromPy<PySettingFile> for SettingFile {
     }
 }
 
-impl PySettingFile {
+impl MutableMapping for PySettingFile {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -8037,18 +7519,6 @@ impl PySettingFile {
             "rb_file_hash_dirty".to_string(),
             "rb_file_size_dirty".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PySettingFile {
-    fn __len__(&self) -> usize {
-        18
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -8107,58 +7577,56 @@ impl PySettingFile {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PySettingFile {
+    fn __len__(&self) -> usize {
+        18
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("SettingFile(ID: {})", self.ID,))
+        Ok(format!("SettingFile(ID: {})", self.ID))
     }
 }
 
@@ -8220,7 +7688,7 @@ impl FromPy<PyUuidIDMap> for UuidIDMap {
     }
 }
 
-impl PyUuidIDMap {
+impl MutableMapping for PyUuidIDMap {
     fn field_names() -> Vec<String> {
         vec![
             "ID".to_string(),
@@ -8237,18 +7705,6 @@ impl PyUuidIDMap {
             "TargetUUID".to_string(),
             "CurrentID".to_string(),
         ]
-    }
-}
-
-#[pymethods]
-impl PyUuidIDMap {
-    fn __len__(&self) -> usize {
-        13
-    }
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
@@ -8297,57 +7753,55 @@ impl PyUuidIDMap {
         }
         Ok(())
     }
+}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
-        self.__iter__(py)
+#[pymethods]
+impl PyUuidIDMap {
+    fn __len__(&self) -> usize {
+        13
     }
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {
+        MutableMapping::__contains__(self, key)
     }
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::__iter__(self, py)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {
-            Ok(res)
-        } else {
-            Ok(default)
-        }
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+        MutableMapping::__getitem__(self, py, key)
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
-        for (key, py_value) in data.into_iter() {
-            let _ = self.__setitem__(py, &key, py_value);
-        }
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+        MutableMapping::__setitem__(self, py, key, value)
     }
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {
+        MutableMapping::keys(self, py)
+    }
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
+        MutableMapping::values(self, py)
+    }
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
+        MutableMapping::items(self, py)
+    }
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+        MutableMapping::get(self, py, key, default)
+    }
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+        MutableMapping::update(self, py, data)
+    }
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        MutableMapping::to_dict(self, py)
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("UuidIDMap(ID: {})", self.ID,))
+        Ok(format!("UuidIDMap(ID: {})", self.ID))
     }
 }

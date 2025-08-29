@@ -17,7 +17,7 @@ use std::collections::HashMap;
 use rbox::masterdb::models::*;
 
 use super::iter::{PyStrIter, PyObjectIter, PyItemsIter};
-use super::traits::{FromPy, IntoPy};
+use super::traits::{FromPy, IntoPy, MutableMapping};
 
 """
 
@@ -143,25 +143,13 @@ impl From<Js{name}<'_>> for {name} {{
 }}
 """
 
+# See trait bounds: https://pyo3.rs/v0.19.2/trait_bounds
 PY_TMPLT_PYMETHODS = """
-impl Py{name} {{
+impl MutableMapping for Py{name} {{
     fn field_names() -> Vec<String> {{
         vec![
             {keys}
         ]
-    }}
-}}
-
-#[pymethods]
-impl Py{name} {{
-
-    fn __len__(&self) -> usize {{
-        {length}
-    }}
-
-    fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {{
-        let iter = PyStrIter::new(Self::field_names());
-        Py::new(py, iter)
     }}
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {{
@@ -178,61 +166,56 @@ impl Py{name} {{
         }}
         Ok(())
     }}
+}}
 
-    fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {{
-        self.__iter__(py)
+#[pymethods]
+impl Py{name} {{
+    fn __len__(&self) -> usize {{
+        {length}
     }}
 
-    fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {{
-        let mut values: Vec<PyObject> = Vec::new();
-        for key in Self::field_names() {{
-            let value = self.__getitem__(py, &key)?;
-            values.push(value);
-        }}
-        let iter = PyObjectIter::new(values);
-        Py::new(py, iter)
+    pub fn __contains__(&self, key: &str) -> bool {{
+        MutableMapping::__contains__(self, key)
     }}
 
-    fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {{
-        let mut values: Vec<(String, PyObject)> = Vec::new();
-        for key in Self::field_names() {{
-            let value = self.__getitem__(py, &key)?;
-            values.push((key, value));
-        }}
-        let iter = PyItemsIter::new(values);
-        Py::new(py, iter)
+    pub fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {{
+        MutableMapping::__iter__(self, py)
     }}
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {{
-        let res = self.__getitem__(py, key);
-        if let Ok(res) = res {{
-            Ok(res)
-        }} else {{
-            Ok(default)
-        }}
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {{
+        MutableMapping::__getitem__(self, py, key)
     }}
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {{
-        for (key, py_value) in data.into_iter() {{
-            let _ = self.__setitem__(py, &key, py_value);
-        }}
-        Ok(())
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {{
+        MutableMapping::__setitem__(self, py, key, value)
     }}
 
-    fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {{
-        let dict = PyDict::new(py);
-        for key in Self::field_names() {{
-            let value = self.__getitem__(py, &key)?;
-            dict.set_item(key, value)?;
-        }}
-        Ok(dict.into())
+    pub fn keys(&self, py: Python) -> PyResult<Py<PyStrIter>> {{
+        MutableMapping::keys(self, py)
+    }}
+
+    pub fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {{
+        MutableMapping::values(self, py)
+    }}
+
+    pub fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {{
+        MutableMapping::items(self, py)
+    }}
+
+    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {{
+        MutableMapping::get(self, py, key, default)
+    }}
+
+    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {{
+        MutableMapping::update(self, py, data)
+    }}
+
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyDict>> {{
+        MutableMapping::to_dict(self, py)
     }}
 
     fn __repr__(&self) -> PyResult<String> {{
-        Ok(format!(
-            "{name}({id}: {{}})",
-            self.{id},
-        ))
+        Ok(format!("{name}({id}: {{}})", self.{id}))
     }}
 }}
 """
@@ -477,7 +460,7 @@ def main():
     generate_py_models(models, output)
 
     output = "../bindings/javascript/src/js_models.rs"
-    generate_js_models(models, output)
+    # generate_js_models(models, output)
 
 
 if __name__ == "__main__":

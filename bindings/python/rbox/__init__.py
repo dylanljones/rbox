@@ -8,6 +8,9 @@ from ._rbox import (
     Error,
     SettingError,
     XmlError,
+    get_master_db_path,
+    get_rekordbox_app_dir_path,
+    get_rekordbox_share_path,
     is_rekordbox_running,
 )
 from .anlz import Anlz, TagType

@@ -33,16 +33,42 @@ class SettingError(Exception):
 
     ...
 
-# ---- MasterDb ------------------------------------------------------------------------------------
+# ---- Utility -------------------------------------------------------------------------------------
+
+def get_rekordbox_app_dir_path() -> str:
+    r"""Retrieves the path to the Rekordbox application directory.
+
+    The Rekordbox application directory is typically:
+    - On Windows: `C:\Users\dylan\AppData\Roaming\Pioneer\rekordbox`
+    - On macOS: `~/Library/Application Support/Pioneer/rekordbox`
+    """
+    ...
+
+def get_rekordbox_share_path() -> str:
+    """Retrieves the path to the Rekordbox "share" directory.
+
+    The "share" directory is typically located within the Rekordbox application directory.
+    """
+    ...
+
+def get_master_db_path() -> str:
+    """Retrieves the path to the Rekordbox master database file."""
+    ...
 
 def is_rekordbox_running() -> bool:
-    """Check if Rekordbox is running."""
+    """Checks if the Rekordbox application is currently running."""
     ...
+
+# ---- MasterDb ------------------------------------------------------------------------------------
 
 class _RustMutableMapping:
     def __len__(self) -> int:
         """Return the number of items."""
-    ...
+        ...
+
+    def __contains__(self, key: str) -> bool:
+        """Return True if the key is in the mapping."""
+        ...
 
     def __iter__(self) -> Iterable[str]:
         """Return an iterator over the keys."""

@@ -14,19 +14,22 @@ use pyo3::prelude::*;
 
 #[pyfunction]
 fn get_rekordbox_app_dir_path() -> PyResult<String> {
-    let path = rbox::util::get_rekordbox_app_dir_path()?;
+    let path = rbox::util::get_rekordbox_app_dir_path()
+        .map_err(|e| PyErr::new::<errors::Error, _>(format!("{}", e)))?;
     Ok(path.to_str().unwrap().to_string())
 }
 
 #[pyfunction]
 fn get_rekordbox_share_path() -> PyResult<String> {
-    let path = rbox::util::get_rekordbox_share_path()?;
+    let path = rbox::util::get_rekordbox_share_path()
+        .map_err(|e| PyErr::new::<errors::Error, _>(format!("{}", e)))?;
     Ok(path.to_str().unwrap().to_string())
 }
 
 #[pyfunction]
 fn get_master_db_path() -> PyResult<String> {
-    let path = rbox::util::get_master_db_path()?;
+    let path = rbox::util::get_master_db_path()
+        .map_err(|e| PyErr::new::<errors::Error, _>(format!("{}", e)))?;
     Ok(path.to_str().unwrap().to_string())
 }
 
