@@ -12,7 +12,7 @@ use rbox::xml::{
     PlaylistKeyType, PlaylistNodeType, PlaylistTrack, PositionMark, RekordboxXml, Tempo, Track,
 };
 
-pub fn datetime_to_js_date(env: &Env, date: &NaiveDate) -> JsDate {
+pub fn datetime_to_js_date<'a>(env: &'a Env, date: &NaiveDate) -> JsDate<'a> {
     const MIDNIGHT: NaiveTime = NaiveTime::from_hms_opt(0, 0, 0).unwrap();
 
     let dt = date.and_time(MIDNIGHT).and_local_timezone(Utc).unwrap();
@@ -50,6 +50,11 @@ pub fn js_date_opt_to_datetime(js_date: Option<JsDate>) -> Option<NaiveDate> {
 
 pub trait IntoJs<T> {
     fn into_js(self, env: &Env) -> T;
+}
+
+pub trait IntoJsDate {
+    type Out<'a>;
+    fn into_js(self, env: &Env) -> Self::Out<'_>;
 }
 
 #[derive(Clone)]
@@ -118,7 +123,7 @@ impl From<JsPositionMark> for PositionMark {
 }
 
 #[napi(object, js_name = "Track")]
-pub struct JsTrack {
+pub struct JsTrack<'a> {
     pub trackid: String,
     pub name: Option<String>,
     pub artist: Option<String>,
@@ -133,13 +138,13 @@ pub struct JsTrack {
     pub tracknumber: Option<i32>,
     pub year: Option<i32>,
     pub averagebpm: Option<f64>,
-    pub datemodified: Option<JsDate>,
-    pub dateadded: Option<JsDate>,
+    pub datemodified: Option<JsDate<'a>>,
+    pub dateadded: Option<JsDate<'a>>,
     pub bitrate: Option<i32>,
     pub samplerate: Option<f64>,
     pub comments: Option<String>,
     pub playcount: Option<i32>,
-    pub lastplayed: Option<JsDate>,
+    pub lastplayed: Option<JsDate<'a>>,
     pub rating: Option<i32>,
     pub location: String,
     pub remixer: Option<String>,
@@ -151,8 +156,10 @@ pub struct JsTrack {
     pub position_marks: Vec<JsPositionMark>,
 }
 
-impl IntoJs<JsTrack> for Track {
-    fn into_js(self, env: &Env) -> JsTrack {
+impl IntoJsDate for Track {
+    type Out<'a> = JsTrack<'a>;
+
+    fn into_js(self, env: &Env) -> Self::Out<'_> {
         JsTrack {
             trackid: self.trackid,
             name: self.name,
@@ -196,7 +203,7 @@ impl IntoJs<JsTrack> for Track {
     }
 }
 
-impl From<JsTrack> for Track {
+impl From<JsTrack<'_>> for Track {
     fn from(model: JsTrack) -> Self {
         let mut tempos = Vec::new();
         let mut position_marks = Vec::new();
@@ -343,51 +350,52 @@ impl JsRekordboxXml {
     }
 
     #[napi]
-    pub fn get_tracks(&mut self, env: Env) -> Vec<JsTrack> {
+    pub fn get_tracks<'a>(&mut self, env: &'a Env) -> Vec<JsTrack<'a>> {
         let tracks = self.xml.get_tracks();
-        let items: Vec<JsTrack> = tracks
-            .into_iter()
-            .map(|t| t.clone().into_js(&env))
-            .collect();
+        let items: Vec<JsTrack> = tracks.into_iter().map(|t| t.clone().into_js(env)).collect();
         items
     }
 
     #[napi]
-    pub fn get_track(&mut self, env: Env, index: u32) -> Option<JsTrack> {
+    pub fn get_track<'a>(&mut self, env: &'a Env, index: u32) -> Option<JsTrack<'a>> {
         let idx: usize = index as usize;
         let item: Option<&mut Track> = self.xml.get_track(idx);
         println!("{:?}", item);
         match item {
-            Some(track) => Some(track.clone().into_js(&env)),
+            Some(track) => Some(track.clone().into_js(env)),
             None => None,
         }
     }
 
     #[napi]
-    pub fn get_track_by_id(&mut self, env: Env, track_id: String) -> Option<JsTrack> {
+    pub fn get_track_by_id<'a>(&mut self, env: &'a Env, track_id: String) -> Option<JsTrack<'a>> {
         let item: Option<&mut Track> = self.xml.get_track_by_id(&track_id);
         match item {
-            Some(track) => Some(track.clone().into_js(&env)),
+            Some(track) => Some(track.clone().into_js(env)),
             None => None,
         }
     }
 
     #[napi]
-    pub fn get_track_by_location(&mut self, env: Env, location: String) -> Option<JsTrack> {
+    pub fn get_track_by_location<'a>(
+        &mut self,
+        env: &'a Env,
+        location: String,
+    ) -> Option<JsTrack<'a>> {
         let item: Option<&mut Track> = self.xml.get_track_by_location(&location);
         match item {
-            Some(track) => Some(track.clone().into_js(&env)),
+            Some(track) => Some(track.clone().into_js(env)),
             None => None,
         }
     }
 
     #[napi]
-    pub fn get_track_by_key(
+    pub fn get_track_by_key<'a>(
         &mut self,
         key: String,
-        env: Env,
+        env: &'a Env,
         key_type: JsPlaylistKeyType,
-    ) -> Option<JsTrack> {
+    ) -> Option<JsTrack<'a>> {
         match key_type {
             JsPlaylistKeyType::TrackID => self.get_track_by_id(env, key),
             JsPlaylistKeyType::Location => self.get_track_by_location(env, key),
@@ -401,9 +409,14 @@ impl JsRekordboxXml {
     }
 
     #[napi]
-    pub fn new_track(&mut self, env: Env, trackid: String, location: String) -> JsTrack {
+    pub fn new_track<'a>(
+        &mut self,
+        env: &'a Env,
+        trackid: String,
+        location: String,
+    ) -> JsTrack<'a> {
         let track = self.xml.new_track(&trackid, &location);
-        track.clone().into_js(&env)
+        track.clone().into_js(env)
     }
 
     #[napi]

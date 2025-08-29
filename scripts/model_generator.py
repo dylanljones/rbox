@@ -31,7 +31,7 @@ use napi::JsDate;
 use napi_derive::napi;
 use rbox::masterdb::models::*;
 
-pub fn datetime_to_js_date(env: &Env, date: &DateTime<Utc>) -> JsDate {
+pub fn datetime_to_js_date<'a>(env: &'a Env, date: &DateTime<Utc>) -> JsDate<'a> {
     env.create_date(date.timestamp_millis() as f64).unwrap()
 }
 
@@ -45,8 +45,9 @@ pub fn js_date_to_datetime(js_date: JsDate) -> DateTime<Utc> {
     }
 }
 
-pub trait IntoJs<T> {
-    fn into_js(self, env: &Env) -> T;
+pub trait IntoJs {
+    type Out<'a>;
+    fn into_js(self, env: &Env) -> Self::Out<'_>;
 }
 """
 
@@ -59,7 +60,7 @@ pub struct Py{name} {{
 
 JS_TMPLT_STRUCT = """
 #[napi(object, js_name = "{name}")]
-pub struct Js{name} {{
+pub struct Js{name}<'a> {{
     {fields}
 }}
 """
@@ -76,8 +77,10 @@ impl IntoPy<Py{name}> for {name} {{
 """
 
 JS_TMPLT_INTO = """
-impl IntoJs<Js{name}> for {name} {{
-    fn into_js(self, env: &Env) -> Js{name} {{
+impl IntoJs for {name} {{
+    type Out<'a> = Js{name}<'a>;
+
+    fn into_js(self, env: & Env) -> Self::Out<'_> {{
         Js{name} {{
             {into_fields}
         }}
@@ -103,8 +106,10 @@ impl IntoPy<Py{name}> for {name} {{
 """
 
 JS_TMPLT_INTO_TREE = """
-impl IntoJs<Js{name}> for {name} {{
-    fn into_js(self, env: &Env) -> Js{name} {{
+impl IntoJs for {name} {{
+    type Out<'a> = Js{name}<'a>;
+
+    fn into_js(self, env: &Env) -> Self::Out<'_> {{
         let mut model = Js{name} {{
             {into_fields}
             Children: Vec::new(),
@@ -129,7 +134,7 @@ impl FromPy<Py{name}> for {name} {{
 """
 
 JS_TMPLT_FROM = """
-impl From<Js{name}> for {name} {{
+impl From<Js{name}<'_>> for {name} {{
     fn from(model: Js{name}) -> Self {{
         {name} {{
             {from_fields}
@@ -278,9 +283,9 @@ def get_py_type(field_type: str) -> str:
 
 def get_js_type(field_type: str) -> str:
     if "Date" in field_type:
-        field_type = "JsDate"
+        field_type = "JsDate<'a>"
     if "Rc" in field_type:
-        field_type = "Vec<JsDjmdPlaylistTreeItem>"
+        field_type = "Vec<JsDjmdPlaylistTreeItem<'a>>"
     return field_type
 
 
@@ -437,6 +442,7 @@ def generate_py_models(models: list[Model], out_file: str | Path) -> None:
                         setters=get_py_setters(fields),
                     )
                 )
+    print(f"Generated Python models in     {out_file}")
 
 
 def generate_js_models(models: list[Model], out_file: str | Path) -> None:
@@ -461,6 +467,7 @@ def generate_js_models(models: list[Model], out_file: str | Path) -> None:
                 f.write(JS_TMPLT_STRUCT.format(name=name, fields=js_fields))
                 f.write(JS_TMPLT_INTO.format(name=name, into_fields=into_js_fields))
                 f.write(JS_TMPLT_FROM.format(name=name, from_fields=from_js_fields))
+    print(f"Generated Javascript models in {out_file}")
 
 
 def main():
@@ -468,11 +475,9 @@ def main():
 
     output = "../bindings/python/src/py_models.rs"
     generate_py_models(models, output)
-    print(f"Generated Python models in     {output}")
 
     output = "../bindings/javascript/src/js_models.rs"
     generate_js_models(models, output)
-    print(f"Generated Javascript models in {output}")
 
 
 if __name__ == "__main__":

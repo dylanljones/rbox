@@ -3,7 +3,15 @@
   "version": "0.1.4",
   "description": "Javascript library for interacting with the local and export data of Pioneers Rekordbox DJ software",
   "author": "Dylan Jones <dylanljones@proton.me>",
-  "keywords": ["rekordbox", "dj", "database", "setting", "anlz", "music", "rust"],
+  "keywords": [
+    "rekordbox",
+    "dj",
+    "database",
+    "setting",
+    "anlz",
+    "music",
+    "rust"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/dylanljones/rbox"
@@ -11,22 +19,19 @@
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
-    "name": "rbox-js",
+    "binaryName": "rbox-js",
     "package": {
       "name": "@dylanljones/rbox-js"
     },
-    "triples": {
-      "defaults": false,
-      "additional": [
-        "x86_64-pc-windows-msvc",
-        "x86_64-unknown-linux-gnu",
-        "universal-apple-darwin"
-      ]
-    }
+    "targets": [
+      "x86_64-pc-windows-msvc",
+      "x86_64-unknown-linux-gnu",
+      "universal-apple-darwin"
+    ]
   },
   "license": "MIT",
   "devDependencies": {
-    "@napi-rs/cli": "^2.18.4",
+    "@napi-rs/cli": "^3.1.5",
     "ava": "^6.0.1"
   },
   "ava": {
