@@ -3,13 +3,16 @@
 
 #![allow(non_snake_case)]
 
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use napi::Env;
 use napi::JsDate;
 use napi_derive::napi;
+use std::sync::{Arc, RwLock};
 
 use rbox::xml::{
-    PlaylistKeyType, PlaylistNodeType, PlaylistTrack, PositionMark, RekordboxXml, Tempo, Track,
+    PlaylistKeyType, PlaylistNode, PlaylistNodeType, PlaylistTrack, PositionMark, RekordboxXml,
+    Tempo, Track,
 };
 
 pub fn datetime_to_js_date<'a>(env: &'a Env, date: &NaiveDate) -> JsDate<'a> {
@@ -49,7 +52,7 @@ pub fn js_date_opt_to_datetime(js_date: Option<JsDate>) -> Option<NaiveDate> {
 }
 
 pub trait IntoJs<T> {
-    fn into_js(self, env: &Env) -> T;
+    fn into_js(self) -> T;
 }
 
 pub trait IntoJsDate {
@@ -67,7 +70,7 @@ pub struct JsTempo {
 }
 
 impl IntoJs<JsTempo> for Tempo {
-    fn into_js(self, _env: &Env) -> JsTempo {
+    fn into_js(self) -> JsTempo {
         JsTempo {
             inizio: self.inizio,
             bpm: self.bpm,
@@ -99,7 +102,7 @@ pub struct JsPositionMark {
 }
 
 impl IntoJs<JsPositionMark> for PositionMark {
-    fn into_js(self, _env: &Env) -> JsPositionMark {
+    fn into_js(self) -> JsPositionMark {
         JsPositionMark {
             name: self.name,
             mark_type: self.mark_type,
@@ -192,12 +195,12 @@ impl IntoJsDate for Track {
             tempos: self
                 .tempos
                 .iter()
-                .map(|item| item.clone().into_js(env))
+                .map(|item| item.clone().into_js())
                 .collect(),
             position_marks: self
                 .position_marks
                 .iter()
-                .map(|item| item.clone().into_js(env))
+                .map(|item| item.clone().into_js())
                 .collect(),
         }
     }
@@ -249,13 +252,14 @@ impl From<JsTrack<'_>> for Track {
     }
 }
 
+#[derive(Clone, PartialEq)]
 #[napi(object, js_name = "PlaylistTrack")]
 pub struct JsPlaylistTrack {
     pub key: String,
 }
 
 impl IntoJs<JsPlaylistTrack> for PlaylistTrack {
-    fn into_js(self, _env: &Env) -> JsPlaylistTrack {
+    fn into_js(self) -> JsPlaylistTrack {
         JsPlaylistTrack { key: self.key }
     }
 }
@@ -266,6 +270,7 @@ impl From<JsPlaylistTrack> for PlaylistTrack {
     }
 }
 
+#[derive(Clone, PartialEq)]
 #[napi(js_name = "PlaylistNodeType")]
 pub enum JsPlaylistNodeType {
     Folder = 0,
@@ -290,6 +295,7 @@ impl From<JsPlaylistNodeType> for PlaylistNodeType {
     }
 }
 
+#[derive(Clone)]
 #[napi(js_name = "PlaylistKeyType")]
 pub enum JsPlaylistKeyType {
     TrackID = 0,
@@ -314,10 +320,257 @@ impl From<JsPlaylistKeyType> for PlaylistKeyType {
     }
 }
 
+#[derive(Clone)]
+struct PlaylistNodeInner {
+    name: String,
+    node_type: JsPlaylistNodeType, // 0=Folder, 1=Playlist (map to your enums at the edges)
+    key_type: Option<JsPlaylistKeyType>, // 0=TrackID, 1=Location
+    nodes: Vec<Arc<RwLock<PlaylistNodeInner>>>,
+    tracks: Vec<JsPlaylistTrack>, // or your real PlaylistTrack; using String keys for clarity
+}
+
+#[derive(Clone)]
+#[napi(js_name = "PlaylistNode")]
+pub struct JsPlaylistNode {
+    inner: Arc<RwLock<PlaylistNodeInner>>,
+}
+
+impl JsPlaylistNode {
+    fn from_inner(inner: Arc<RwLock<PlaylistNodeInner>>) -> Self {
+        Self { inner }
+    }
+}
+
+#[napi]
+impl JsPlaylistNode {
+    #[napi(constructor)]
+    pub fn new(
+        name: String,
+        node_type: JsPlaylistNodeType,
+        key_type: Option<JsPlaylistKeyType>,
+    ) -> Self {
+        if node_type == JsPlaylistNodeType::Folder && key_type.is_some() {
+            panic!("Folder node cannot have a key type");
+        }
+        let inner = Arc::new(RwLock::new(PlaylistNodeInner {
+            name,
+            node_type,
+            key_type,
+            tracks: Vec::new(), // filled below
+            nodes: Vec::new(),  // filled below
+        }));
+        return Self::from_inner(inner);
+    }
+
+    #[napi(factory)]
+    pub fn playlist(name: String, key_type: JsPlaylistKeyType) -> Self {
+        Self::new(name, JsPlaylistNodeType::Playlist, Some(key_type))
+    }
+
+    #[napi(factory)]
+    pub fn folder(name: String) -> Self {
+        Self::new(name, JsPlaylistNodeType::Folder, None)
+    }
+
+    #[napi(getter)]
+    pub fn name(&self) -> String {
+        self.inner.read().unwrap().name.clone()
+    }
+
+    #[napi(setter)]
+    pub fn set_name(&self, v: String) {
+        self.inner.write().unwrap().name = v;
+    }
+
+    #[napi(getter)]
+    pub fn node_type(&self) -> JsPlaylistNodeType {
+        self.inner.read().unwrap().node_type.clone()
+    }
+
+    #[napi(getter)]
+    pub fn key_type(&self) -> Option<JsPlaylistKeyType> {
+        self.inner.read().unwrap().key_type.clone()
+    }
+
+    #[napi(getter)]
+    pub fn get_nodes(&self) -> Vec<JsPlaylistNode> {
+        let guard = self.inner.read().unwrap();
+        let items: Vec<JsPlaylistNode> = guard
+            .nodes
+            .iter()
+            .map(|n| JsPlaylistNode::from_inner(n.clone()))
+            .collect();
+        items
+    }
+
+    #[napi(getter)]
+    pub fn num_nodes(&self) -> u32 {
+        self.inner.read().unwrap().nodes.len() as u32
+    }
+
+    #[napi(getter)]
+    pub fn num_tracks(&self) -> u32 {
+        self.inner.read().unwrap().tracks.len() as u32
+    }
+
+    #[napi]
+    pub fn add_node(&self, node: &JsPlaylistNode) {
+        self.inner.write().unwrap().nodes.push(node.inner.clone());
+    }
+
+    #[napi]
+    pub fn new_playlist(&self, name: String, key_type: JsPlaylistKeyType) -> Self {
+        let node = Self::playlist(name, key_type);
+        self.add_node(&node);
+        node
+    }
+
+    #[napi]
+    pub fn new_folder(&self, name: String) -> Self {
+        let node = Self::folder(name);
+        self.add_node(&node);
+        node
+    }
+
+    #[napi]
+    pub fn remove_node(&self, index: u32) -> Result<()> {
+        let mut guard = self.inner.write().unwrap();
+        if (index as usize) < guard.nodes.len() {
+            guard.nodes.remove(index as usize);
+            Ok(())
+        } else {
+            Err(anyhow!("child index out of bounds"))
+        }
+    }
+
+    #[napi]
+    pub fn clear_nodes(&self) {
+        self.inner.write().unwrap().nodes.clear();
+    }
+
+    #[napi]
+    pub fn get_child(&self, index: u32) -> Result<JsPlaylistNode> {
+        let guard = self.inner.read().unwrap();
+        let child: Arc<RwLock<PlaylistNodeInner>> = guard
+            .nodes
+            .get(index as usize)
+            .ok_or_else(|| anyhow!("child index out of bounds"))?
+            .clone();
+        Ok(JsPlaylistNode::from_inner(child))
+    }
+
+    #[napi]
+    pub fn add_track(&self, track: JsPlaylistTrack) {
+        self.inner.write().unwrap().tracks.push(track);
+    }
+
+    #[napi]
+    pub fn new_track(&self, key: String) {
+        let track = JsPlaylistTrack { key };
+        self.add_track(track);
+    }
+
+    #[napi]
+    pub fn remove_track(&self, index: u32) -> Result<()> {
+        let mut guard = self.inner.write().unwrap();
+        if (index as usize) < guard.tracks.len() {
+            guard.tracks.remove(index as usize);
+            Ok(())
+        } else {
+            Err(anyhow!("track index out of bounds"))
+        }
+    }
+
+    #[napi]
+    pub fn clear_tracks(&self) {
+        self.inner.write().unwrap().tracks.clear();
+    }
+}
+
 #[napi(js_name = "RekordboxXml")]
 pub struct JsRekordboxXml {
     xml: RekordboxXml,
+    playlist_root: JsPlaylistNode,
     //  tracks: Vec<JsTrack>
+}
+
+impl IntoJs<Arc<RwLock<PlaylistNodeInner>>> for PlaylistNode {
+    fn into_js(self) -> Arc<RwLock<PlaylistNodeInner>> {
+        let inner = Arc::new(RwLock::new(PlaylistNodeInner {
+            name: self.name.clone(),
+            node_type: self.node_type.into(),
+            key_type: self.key_type.map(|kt| kt.into()),
+            tracks: Vec::new(), // filled below
+            nodes: Vec::new(),  // filled below
+        }));
+
+        if let Some(tracks) = &self.tracks {
+            let mut js_tracks = Vec::new();
+            for track in tracks {
+                let js_track: JsPlaylistTrack = track.clone().into_js();
+                js_tracks.push(js_track);
+            }
+            inner.write().unwrap().tracks = js_tracks;
+        }
+
+        if let Some(children) = &self.nodes {
+            let mut js_nodes = Vec::new();
+            for child in children {
+                let js_node = child.clone().into_js();
+                js_nodes.push(js_node);
+            }
+            inner.write().unwrap().nodes = js_nodes;
+        }
+
+        inner
+    }
+}
+
+impl From<PlaylistNodeInner> for PlaylistNode {
+    fn from(inner: PlaylistNodeInner) -> Self {
+        let nodes: Option<Vec<PlaylistNode>> = if inner.nodes.is_empty() {
+            None
+        } else {
+            let items = inner
+                .nodes
+                .iter()
+                .map(|n| PlaylistNode::from(n.read().unwrap().clone()))
+                .collect();
+            Some(items)
+        };
+        let tracks: Option<Vec<PlaylistTrack>> = if inner.tracks.is_empty() {
+            None
+        } else {
+            let items = inner
+                .tracks
+                .iter()
+                .map(|t| PlaylistTrack::from(t.clone()))
+                .collect();
+            Some(items)
+        };
+        Self {
+            name: inner.name.clone(),
+            node_type: inner.node_type.clone().into(),
+            key_type: inner.key_type.clone().map(|kt| kt.into()),
+            nodes,
+            tracks,
+            node_path: Vec::new(),
+        }
+    }
+}
+
+impl JsRekordboxXml {
+    fn from_xml(mut xml: RekordboxXml) -> Self {
+        let playlist_root_inner = xml.get_playlist_root().clone().into_js();
+        let playlist_root = JsPlaylistNode::from_inner(playlist_root_inner);
+        Self { xml, playlist_root }
+    }
+
+    fn update_xml(&mut self) {
+        let guard = self.playlist_root.inner.read().unwrap();
+        let root: PlaylistNode = PlaylistNode::from(guard.clone());
+        self.xml.set_playlist_root(root);
+    }
 }
 
 #[napi]
@@ -325,28 +578,41 @@ impl JsRekordboxXml {
     #[napi(constructor)]
     pub fn new(path: String) -> Self {
         let xml = RekordboxXml::new(path);
-        Self { xml }
+        Self::from_xml(xml)
     }
 
     #[napi(factory)]
     pub fn load(path: String) -> Self {
         let xml = RekordboxXml::load(path);
-        Self { xml }
+        Self::from_xml(xml)
     }
 
     #[napi]
     pub fn to_string(&mut self) -> String {
+        self.update_xml();
         self.xml.to_string().expect("Failed to dump XML to string")
     }
 
     #[napi]
     pub fn dump_copy(&mut self, path: String) {
+        self.update_xml();
         self.xml.dump_copy(path).expect("Failed to dump XML");
     }
 
     #[napi]
     pub fn dump(&mut self) {
+        self.update_xml();
         self.xml.dump().expect("Failed to dump XML");
+    }
+
+    #[napi(getter)]
+    pub fn get_playlist_root(&self) -> JsPlaylistNode {
+        self.playlist_root.clone()
+    }
+
+    #[napi]
+    pub fn get_playlist_roots(&self) -> JsPlaylistNode {
+        self.playlist_root.clone()
     }
 
     #[napi]
@@ -360,7 +626,6 @@ impl JsRekordboxXml {
     pub fn get_track<'a>(&mut self, env: &'a Env, index: u32) -> Option<JsTrack<'a>> {
         let idx: usize = index as usize;
         let item: Option<&mut Track> = self.xml.get_track(idx);
-        println!("{:?}", item);
         match item {
             Some(track) => Some(track.clone().into_js(env)),
             None => None,

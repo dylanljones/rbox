@@ -818,6 +818,7 @@ impl FromPy<PyPlaylistTrack> for PlaylistTrack {
         }
     }
 }
+
 #[derive(Debug)]
 #[pyclass(name = "PlaylistNode", unsendable, get_all, set_all)]
 pub struct PyPlaylistNode {
@@ -972,6 +973,7 @@ impl PyPlaylistNode {
         self.nodes.as_mut().unwrap().remove(index);
         Ok(())
     }
+
     pub fn clear_nodes(&mut self) -> PyResult<()> {
         if self.node_type == 1 {
             return Err(PyErr::new::<XmlError, _>(
@@ -1139,7 +1141,7 @@ impl FromPy<PyPlaylistNode> for PlaylistNode {
 pub struct PyRekordboxXml {
     xml: RekordboxXml,
     #[pyo3(get, set)]
-    tracks: Vec<Py<PyTrack>>,
+    pub tracks: Vec<Py<PyTrack>>,
     #[pyo3(get, set)]
     pub root_playlist: Py<PyPlaylistNode>,
 }
@@ -1321,12 +1323,5 @@ impl PyRekordboxXml {
     pub fn clear_tracks(&mut self) -> PyResult<()> {
         self.tracks.clear();
         Ok(())
-    }
-
-    // -- Playlist handling -----------------------------------------------------------------------
-
-    pub fn get_playlist_root(&mut self, py: Python) -> PyResult<PyPlaylistNode> {
-        let data = self.xml.get_playlist_root();
-        data.clone().into_py(py)
     }
 }

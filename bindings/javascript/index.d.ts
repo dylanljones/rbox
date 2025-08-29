@@ -158,6 +158,30 @@ export declare class MasterDb {
 }
 export type JsMasterDb = MasterDb
 
+export declare class PlaylistNode {
+  constructor(name: string, nodeType: PlaylistNodeType, keyType?: PlaylistKeyType | undefined | null)
+  static playlist(name: string, keyType: PlaylistKeyType): PlaylistNode
+  static folder(name: string): PlaylistNode
+  get name(): string
+  set name(v: string)
+  get nodeType(): PlaylistNodeType
+  get keyType(): PlaylistKeyType | null
+  get nodes(): Array<PlaylistNode>
+  get numNodes(): number
+  get numTracks(): number
+  addNode(node: PlaylistNode): void
+  newPlaylist(name: string, keyType: PlaylistKeyType): PlaylistNode
+  newFolder(name: string): PlaylistNode
+  removeNode(index: number): void
+  clearNodes(): void
+  getChild(index: number): PlaylistNode
+  addTrack(track: PlaylistTrack): void
+  newTrack(key: string): void
+  removeTrack(index: number): void
+  clearTracks(): void
+}
+export type JsPlaylistNode = PlaylistNode
+
 export declare class RekordboxOptions {
   constructor(dbPath: string, analysisRoot: string, settingsRoot: string)
   static load(path: string): RekordboxOptions
@@ -174,6 +198,8 @@ export declare class RekordboxXml {
   toString(): string
   dumpCopy(path: string): void
   dump(): void
+  get playlistRoot(): PlaylistNode
+  getPlaylistRoots(): PlaylistNode
   getTracks(): Array<Track>
   getTrack(index: number): Track | null
   getTrackById(trackId: string): Track | null

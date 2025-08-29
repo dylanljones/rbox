@@ -781,7 +781,7 @@ impl PlaylistNode {
 
     pub fn remove_track(&mut self, key: &str) -> anyhow::Result<()> {
         if self.node_type == PlaylistNodeType::Folder {
-            return Err(anyhow::anyhow!("Cannot remove track frpm folder node"));
+            return Err(anyhow::anyhow!("Cannot remove track from folder node"));
         };
         let mut index: Option<usize> = None;
         for (i, track) in self.tracks.as_mut().unwrap().iter_mut().enumerate() {
@@ -800,7 +800,7 @@ impl PlaylistNode {
         if self.node_type == PlaylistNodeType::Folder {
             return Err(anyhow::anyhow!("Cannot clear tracks of a folder node"));
         };
-        self.nodes.as_mut().unwrap().clear();
+        self.tracks.as_mut().unwrap().clear();
         Ok(())
     }
 
