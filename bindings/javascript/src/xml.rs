@@ -116,6 +116,7 @@ impl From<JsPositionMark> for PositionMark {
     }
 }
 
+#[derive(Clone)]
 #[napi(object, js_name = "Track")]
 pub struct JsTrack<'a> {
     pub trackid: String,
@@ -146,8 +147,8 @@ pub struct JsTrack<'a> {
     pub label: Option<String>,
     pub mix: Option<String>,
     pub color: Option<String>,
-    pub tempos: Vec<JsTempo>,
-    pub position_marks: Vec<JsPositionMark>,
+    pub tempos: Option<Vec<JsTempo>>,
+    pub position_marks: Option<Vec<JsPositionMark>>,
 }
 
 impl IntoJsDate for Track {
@@ -183,12 +184,13 @@ impl IntoJsDate for Track {
             label: self.label,
             mix: self.mix,
             color: self.color,
-            tempos: self.tempos.iter().map(|item| item.clone().into()).collect(),
-            position_marks: self
-                .position_marks
-                .iter()
-                .map(|item| item.clone().into())
-                .collect(),
+            tempos: Some(self.tempos.iter().map(|item| item.clone().into()).collect()),
+            position_marks: Some(
+                self.position_marks
+                    .iter()
+                    .map(|item| item.clone().into())
+                    .collect(),
+            ),
         }
     }
 }
@@ -197,11 +199,15 @@ impl From<JsTrack<'_>> for Track {
     fn from(model: JsTrack) -> Self {
         let mut tempos = Vec::new();
         let mut position_marks = Vec::new();
-        for item in model.tempos {
-            tempos.push(Tempo::from(item));
+        if let Some(t) = model.tempos {
+            for item in t {
+                tempos.push(Tempo::from(item));
+            }
         }
-        for item in model.position_marks {
-            position_marks.push(PositionMark::from(item));
+        if let Some(pm) = model.position_marks {
+            for item in pm {
+                position_marks.push(PositionMark::from(item));
+            }
         }
 
         Self {
@@ -388,6 +394,12 @@ impl JsPlaylistNode {
             .map(|n| JsPlaylistNode::from_inner(n.clone()))
             .collect();
         items
+    }
+
+    #[napi(getter)]
+    pub fn get_tracks(&self) -> Vec<JsPlaylistTrack> {
+        let guard = self.inner.read().unwrap();
+        guard.tracks.clone()
     }
 
     #[napi(getter)]
@@ -670,6 +682,7 @@ impl JsRekordboxXml {
         Ok(())
     }
 
+    #[napi]
     pub fn remove_track(&mut self, track_id: String) -> Result<()> {
         self.xml.remove_track(&track_id)?;
         Ok(())

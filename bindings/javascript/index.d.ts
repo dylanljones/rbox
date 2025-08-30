@@ -212,6 +212,7 @@ export declare class PlaylistNode {
   get nodeType(): PlaylistNodeType
   get keyType(): PlaylistKeyType | null
   get nodes(): Array<PlaylistNode>
+  get tracks(): Array<PlaylistTrack>
   get numNodes(): number
   get numTracks(): number
   addNode(node: PlaylistNode): void
@@ -253,6 +254,7 @@ export declare class RekordboxXml {
   addTrack(track: Track): void
   newTrack(trackid: string, location: string): Track
   updateTrack(track: Track): void
+  removeTrack(trackId: string): void
   clearTracks(): void
 }
 export type JsRekordboxXml = RekordboxXml
@@ -1598,8 +1600,8 @@ export interface Track {
   label?: string
   mix?: string
   color?: string
-  tempos: Array<Tempo>
-  positionMarks: Array<PositionMark>
+  tempos?: Array<Tempo>
+  positionMarks?: Array<PositionMark>
 }
 
 export interface UuidIDMap {
