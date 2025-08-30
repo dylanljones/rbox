@@ -541,7 +541,6 @@ impl From<PlaylistNodeInner> for PlaylistNode {
             key_type: inner.key_type.clone().map(|kt| kt.into()),
             nodes,
             tracks,
-            node_path: Vec::new(),
         }
     }
 }

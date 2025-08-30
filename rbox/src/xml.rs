@@ -398,7 +398,7 @@ impl Serialize for Collection {
         let tracks: &Vec<Track> = self.tracks.as_ref();
         let value = Value {
             entries: tracks.len(),
-            tracks: tracks,
+            tracks,
         };
         value.serialize(serializer)
     }
@@ -570,10 +570,6 @@ pub struct PlaylistNode {
     /// Only used for folder nodes
     #[serde(rename = "NODE")]
     pub nodes: Option<Vec<PlaylistNode>>,
-    /// Path of the playlist node from root
-    /// Only used internally
-    #[serde(skip)]
-    pub node_path: Vec<String>,
 }
 
 impl Serialize for PlaylistNode {
@@ -655,7 +651,6 @@ impl PlaylistNode {
             key_type: None,
             tracks: None,
             nodes: None,
-            node_path: Vec::new(),
         }
     }
 
@@ -672,28 +667,36 @@ impl PlaylistNode {
         node
     }
 
-    pub fn add_node(&mut self, mut node: PlaylistNode) {
-        node.node_path.extend_from_slice(self.node_path.as_slice());
-        node.node_path.push(self.name.clone());
+    pub fn add_node(&mut self, node: PlaylistNode) {
         self.nodes.as_mut().unwrap().push(node);
     }
 
-    pub fn new_playlist(&mut self, name: &str, key_type: PlaylistKeyType) -> anyhow::Result<()> {
+    pub fn new_playlist(
+        &mut self,
+        name: &str,
+        key_type: PlaylistKeyType,
+    ) -> anyhow::Result<&mut PlaylistNode> {
         if self.node_type == PlaylistNodeType::Playlist {
             return Err(anyhow::anyhow!("Cannot add child node to playlist node"));
         };
+        let idx = self.nodes.as_ref().unwrap().len();
         let node = Self::playlist(name, key_type);
         self.add_node(node);
-        Ok(())
+
+        let node_out = self.nodes.as_mut().unwrap().get_mut(idx).unwrap();
+        Ok(node_out)
     }
 
-    pub fn new_folder(&mut self, name: &str) -> anyhow::Result<()> {
+    pub fn new_folder(&mut self, name: &str) -> anyhow::Result<&mut PlaylistNode> {
         if self.node_type == PlaylistNodeType::Playlist {
             return Err(anyhow::anyhow!("Cannot add child node to playlist node"));
         };
+        let idx = self.nodes.as_ref().unwrap().len();
         let node = Self::folder(name);
         self.add_node(node);
-        Ok(())
+
+        let node_out = self.nodes.as_mut().unwrap().get_mut(idx).unwrap();
+        Ok(node_out)
     }
 
     pub fn remove_node(&mut self, index: usize) -> anyhow::Result<()> {
@@ -803,30 +806,6 @@ impl PlaylistNode {
         self.tracks.as_mut().unwrap().clear();
         Ok(())
     }
-
-    fn update_path(&mut self, parent_path: Vec<String>) {
-        // Set this node's path
-        let mut path = parent_path;
-        path.push(self.name.clone());
-        self.node_path = path;
-
-        // Recursively update paths for all children
-        if let Some(ref mut children) = self.nodes {
-            for child in children.iter_mut() {
-                child.update_path(self.node_path.clone());
-            }
-        }
-    }
-
-    fn set_path(&mut self, path: Vec<String>) {
-        self.node_path = path;
-        // Recursively update paths for all children
-        if let Some(ref mut children) = self.nodes {
-            for child in children.iter_mut() {
-                child.update_path(self.node_path.clone());
-            }
-        }
-    }
 }
 
 impl Debug for PlaylistNode {
@@ -836,13 +815,11 @@ impl Debug for PlaylistNode {
                 .debug_struct("PlaylistNode")
                 .field("name", &self.name)
                 .field("key_type", &self.key_type.clone().unwrap())
-                .field("node_path", &self.node_path)
                 // .field("tracks", &self.tracks)
                 .finish(),
             PlaylistNodeType::Folder => f
                 .debug_struct("PlaylistNode")
                 .field("name", &self.name)
-                .field("node_path", &self.node_path)
                 // .field("children", &self.nodes)
                 .finish(),
         }
@@ -930,8 +907,7 @@ impl RekordboxXml {
     pub fn new<P: AsRef<Path> + AsRef<OsStr>>(path: P) -> Self {
         let p = Path::new(&path).to_path_buf();
         let doc = Document::new();
-        let mut xml = RekordboxXml { path: p, doc };
-        xml.doc.playlists.node.set_path(Vec::new());
+        let xml = RekordboxXml { path: p, doc };
         xml
     }
 
@@ -941,8 +917,7 @@ impl RekordboxXml {
         let file = std::fs::File::open(&p).expect("File not found");
         let reader = std::io::BufReader::new(file);
         let doc: Document = quick_xml::de::from_reader(reader).expect("failed to deserialize XML");
-        let mut xml = RekordboxXml { path: p, doc };
-        xml.doc.playlists.node.set_path(Vec::new());
+        let xml = RekordboxXml { path: p, doc };
         xml
     }
 

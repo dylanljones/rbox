@@ -16,17 +16,17 @@ pub struct JsMasterDb {
 #[napi]
 impl JsMasterDb {
     #[napi(constructor)]
-    pub fn new(path: String) -> Self {
-        JsMasterDb {
-            db: MasterDb::new(path.as_str()).expect("Failed to open MasterDb"),
-        }
+    pub fn new(path: String) -> Result<Self> {
+        Ok(JsMasterDb {
+            db: MasterDb::new(path.as_str())?,
+        })
     }
 
     #[napi(factory)]
-    pub fn open() -> Self {
-        JsMasterDb {
-            db: MasterDb::open().expect("Failed to open MasterDb"),
-        }
+    pub fn open() -> Result<Self> {
+        Ok(JsMasterDb {
+            db: MasterDb::open()?,
+        })
     }
 
     #[napi]

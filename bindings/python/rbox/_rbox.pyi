@@ -836,7 +836,6 @@ class PlaylistNode:
     key_type: Optional[int]
     tracks: Optional[List[PlaylistTrack]]
     nodes: Optional[List[PlaylistNode]]
-    node_path: List[str]
 
     def __init__(self, node_type: int) -> None: ...
     @classmethod

@@ -827,7 +827,6 @@ pub struct PyPlaylistNode {
     pub key_type: Option<u16>,
     pub tracks: Option<Vec<Py<PyPlaylistTrack>>>,
     pub nodes: Option<Vec<Py<PyPlaylistNode>>>,
-    pub node_path: Vec<String>,
 }
 
 impl PyPlaylistNode {
@@ -855,9 +854,8 @@ impl PyPlaylistNode {
             name: self.name.clone(),
             node_type: self.node_type.clone(),
             key_type: self.key_type.clone(),
-            tracks: tracks,
-            nodes: nodes,
-            node_path: self.node_path.clone(),
+            tracks,
+            nodes,
         }
     }
 }
@@ -872,7 +870,6 @@ impl PyPlaylistNode {
             key_type: None,
             tracks: Some(Vec::new()),
             nodes: Some(Vec::new()),
-            node_path: Vec::new(),
         })
     }
 
@@ -884,7 +881,6 @@ impl PyPlaylistNode {
             key_type: Some(key_type),
             tracks: Some(Vec::new()),
             nodes: Some(Vec::new()),
-            node_path: Vec::new(),
         })
     }
 
@@ -896,14 +892,11 @@ impl PyPlaylistNode {
             key_type: None,
             tracks: Some(Vec::new()),
             nodes: Some(Vec::new()),
-            node_path: Vec::new(),
         })
     }
 
     pub fn add_node(&mut self, py: Python, node: PyRef<'_, PyPlaylistNode>) -> PyResult<()> {
-        let mut node = node.clone_py(py);
-        node.node_path.extend_from_slice(self.node_path.as_slice());
-        node.node_path.push(self.name.clone());
+        let node = node.clone_py(py);
         let pynode = Py::new(py, node)?;
         self.nodes.as_mut().unwrap().push(pynode);
         Ok(())
@@ -926,13 +919,10 @@ impl PyPlaylistNode {
             key_type: Some(key_type),
             tracks: Some(Vec::new()),
             nodes: Some(Vec::new()),
-            node_path: Vec::new(),
         };
         let index = self.nodes.as_ref().unwrap().len();
 
-        let mut node = node.clone_py(py);
-        node.node_path.extend_from_slice(self.node_path.as_slice());
-        node.node_path.push(self.name.clone());
+        let node = node.clone_py(py);
         let pynode = Py::new(py, node)?;
         self.nodes.as_mut().unwrap().push(pynode);
 
@@ -951,13 +941,10 @@ impl PyPlaylistNode {
             key_type: None,
             tracks: Some(Vec::new()),
             nodes: Some(Vec::new()),
-            node_path: Vec::new(),
         };
         let index = self.nodes.as_ref().unwrap().len();
 
-        let mut node = node.clone_py(py);
-        node.node_path.extend_from_slice(self.node_path.as_slice());
-        node.node_path.push(self.name.clone());
+        let node = node.clone_py(py);
         let pynode = Py::new(py, node)?;
         self.nodes.as_mut().unwrap().push(pynode);
 
@@ -1096,7 +1083,6 @@ impl IntoPy<PyPlaylistNode> for PlaylistNode {
             key_type: self.key_type.map_or(None, |key| Some(key.into())),
             tracks,
             nodes,
-            node_path: self.node_path,
         };
         Ok(model)
     }
@@ -1132,7 +1118,6 @@ impl FromPy<PyPlaylistNode> for PlaylistNode {
                 .map_or(None, |key| Some(key.try_into().expect("invalid key type"))),
             tracks,
             nodes,
-            node_path: model.node_path.clone(),
         }
     }
 }
