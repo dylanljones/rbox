@@ -1,6 +1,6 @@
 import test from 'ava'
-import { MasterDb } from '../index.js'
 import fs from 'fs'
+import { MasterDb } from '../index.js'
 
 const DEMO_DB_SRC = "../../.testdata/RBv6/demo/rekordbox/master.db"
 const DEMO_DB  = "../../.testdata/RBv6/demo/rekordbox/master-copy.db"
