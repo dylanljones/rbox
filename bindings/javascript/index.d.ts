@@ -208,7 +208,6 @@ export declare class RekordboxXml {
   addTrack(track: Track): void
   newTrack(trackid: string, location: string): Track
   updateTrack(track: Track): void
-  removeTrack(trackId: string): void
   clearTracks(): void
 }
 export type JsRekordboxXml = RekordboxXml
@@ -1436,12 +1435,6 @@ export interface PositionMark {
   num: number
 }
 
-export interface PyWaveform3BandColumn {
-  mid: number
-  high: number
-  low: number
-}
-
 export declare const enum Quantize {
   Off = 'Off',
   On = 'On'
@@ -1591,12 +1584,18 @@ export declare const enum Waveform {
   PhaseMeter = 'PhaseMeter'
 }
 
+export interface Waveform3BandColumn {
+  mid: number
+  high: number
+  low: number
+}
+
 export interface Waveform3BandDetail {
-  data: Array<PyWaveform3BandColumn>
+  data: Array<Waveform3BandColumn>
 }
 
 export interface Waveform3BandPreview {
-  data: Array<PyWaveform3BandColumn>
+  data: Array<Waveform3BandColumn>
 }
 
 export declare const enum WaveformColor {

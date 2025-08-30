@@ -1,6 +1,7 @@
 // Author: Dylan Jones
 // Date:   2025-05-10
 
+use napi::Result;
 use napi_derive::napi;
 use rbox::anlz::anlz::*;
 
@@ -328,7 +329,7 @@ impl Into<JsWaveformColorDetail> for WaveformColorDetail {
     }
 }
 
-#[napi(object, js_name = "PyWaveform3BandColumn")]
+#[napi(object, js_name = "Waveform3BandColumn")]
 pub struct JsWaveform3BandColumn {
     pub mid: u8,
     pub high: u8,
@@ -483,25 +484,27 @@ pub struct JsAnlz {
 #[napi]
 impl JsAnlz {
     #[napi(constructor)]
-    pub fn new(path: String) -> Self {
-        JsAnlz {
-            anlz: Anlz::load(path).expect("Failed to create Anlz"),
-        }
+    pub fn new(path: String) -> Result<Self> {
+        let anlz = Anlz::load(path)?;
+        Ok(JsAnlz { anlz })
     }
 
     #[napi]
-    pub fn dump_copy(&mut self, path: String) {
-        self.anlz.dump_copy(path).expect("Failed to dump Anlz");
+    pub fn dump_copy(&mut self, path: String) -> Result<()> {
+        self.anlz.dump_copy(path)?;
+        Ok(())
     }
 
     #[napi]
-    pub fn dump(&mut self) {
-        self.anlz.dump().expect("Failed to dump Anlz");
+    pub fn dump(&mut self) -> Result<()> {
+        self.anlz.dump()?;
+        Ok(())
     }
 
     #[napi]
-    pub fn get_tags(&mut self) -> Vec<String> {
-        self.anlz.get_tags().expect("Failed to get Anlz tags")
+    pub fn get_tags(&mut self) -> Result<Vec<String>> {
+        let tags = self.anlz.get_tags()?;
+        Ok(tags)
     }
 
     #[napi]
@@ -564,8 +567,9 @@ impl JsAnlz {
     }
 
     #[napi]
-    pub fn set_path(&mut self, path: String) {
-        self.anlz.set_path(path).expect("Failed to set Anlz path");
+    pub fn set_path(&mut self, path: String) -> Result<()> {
+        self.anlz.set_path(path)?;
+        Ok(())
     }
 
     #[napi]

@@ -3,10 +3,9 @@
 
 #![allow(non_snake_case)]
 
-use anyhow::{anyhow, Result};
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
-use napi::Env;
 use napi::JsDate;
+use napi::{Env, Error, Result, Status};
 use napi_derive::napi;
 use std::sync::{Arc, RwLock};
 
@@ -23,11 +22,7 @@ pub fn datetime_to_js_date<'a>(env: &'a Env, date: &NaiveDate) -> JsDate<'a> {
 }
 
 pub fn datetime_opt_to_js_date(env: &Env, date: Option<NaiveDate>) -> Option<JsDate> {
-    if let Some(date) = date {
-        Some(datetime_to_js_date(env, &date))
-    } else {
-        None
-    }
+    date.map(|d| datetime_to_js_date(env, &d))
 }
 
 pub fn js_date_to_datetime(js_date: JsDate) -> NaiveDate {
@@ -44,11 +39,7 @@ pub fn js_date_to_datetime(js_date: JsDate) -> NaiveDate {
 }
 
 pub fn js_date_opt_to_datetime(js_date: Option<JsDate>) -> Option<NaiveDate> {
-    if let Some(js_date) = js_date {
-        Some(js_date_to_datetime(js_date))
-    } else {
-        None
-    }
+    js_date.map(|d| js_date_to_datetime(d))
 }
 
 pub trait IntoJs<T> {
@@ -69,8 +60,8 @@ pub struct JsTempo {
     pub battito: u16,
 }
 
-impl IntoJs<JsTempo> for Tempo {
-    fn into_js(self) -> JsTempo {
+impl Into<JsTempo> for Tempo {
+    fn into(self) -> JsTempo {
         JsTempo {
             inizio: self.inizio,
             bpm: self.bpm,
@@ -101,8 +92,8 @@ pub struct JsPositionMark {
     pub num: i32,
 }
 
-impl IntoJs<JsPositionMark> for PositionMark {
-    fn into_js(self) -> JsPositionMark {
+impl Into<JsPositionMark> for PositionMark {
+    fn into(self) -> JsPositionMark {
         JsPositionMark {
             name: self.name,
             mark_type: self.mark_type,
@@ -192,15 +183,11 @@ impl IntoJsDate for Track {
             label: self.label,
             mix: self.mix,
             color: self.color,
-            tempos: self
-                .tempos
-                .iter()
-                .map(|item| item.clone().into_js())
-                .collect(),
+            tempos: self.tempos.iter().map(|item| item.clone().into()).collect(),
             position_marks: self
                 .position_marks
                 .iter()
-                .map(|item| item.clone().into_js())
+                .map(|item| item.clone().into())
                 .collect(),
         }
     }
@@ -258,8 +245,8 @@ pub struct JsPlaylistTrack {
     pub key: String,
 }
 
-impl IntoJs<JsPlaylistTrack> for PlaylistTrack {
-    fn into_js(self) -> JsPlaylistTrack {
+impl Into<JsPlaylistTrack> for PlaylistTrack {
+    fn into(self) -> JsPlaylistTrack {
         JsPlaylistTrack { key: self.key }
     }
 }
@@ -439,7 +426,7 @@ impl JsPlaylistNode {
             guard.nodes.remove(index as usize);
             Ok(())
         } else {
-            Err(anyhow!("child index out of bounds"))
+            Err(Error::new(Status::InvalidArg, "child index out of bounds"))
         }
     }
 
@@ -454,7 +441,7 @@ impl JsPlaylistNode {
         let child: Arc<RwLock<PlaylistNodeInner>> = guard
             .nodes
             .get(index as usize)
-            .ok_or_else(|| anyhow!("child index out of bounds"))?
+            .ok_or_else(|| Error::new(Status::InvalidArg, "child index out of bounds"))?
             .clone();
         Ok(JsPlaylistNode::from_inner(child))
     }
@@ -477,7 +464,7 @@ impl JsPlaylistNode {
             guard.tracks.remove(index as usize);
             Ok(())
         } else {
-            Err(anyhow!("track index out of bounds"))
+            Err(Error::new(Status::InvalidArg, "track index out of bounds"))
         }
     }
 
@@ -507,7 +494,7 @@ impl IntoJs<Arc<RwLock<PlaylistNodeInner>>> for PlaylistNode {
         if let Some(tracks) = &self.tracks {
             let mut js_tracks = Vec::new();
             for track in tracks {
-                let js_track: JsPlaylistTrack = track.clone().into_js();
+                let js_track: JsPlaylistTrack = track.clone().into();
                 js_tracks.push(js_track);
             }
             inner.write().unwrap().tracks = js_tracks;
@@ -588,21 +575,23 @@ impl JsRekordboxXml {
     }
 
     #[napi]
-    pub fn to_string(&mut self) -> String {
+    pub fn to_string(&mut self) -> Result<String> {
         self.update_xml();
-        self.xml.to_string().expect("Failed to dump XML to string")
+        Ok(self.xml.to_string()?)
     }
 
     #[napi]
-    pub fn dump_copy(&mut self, path: String) {
+    pub fn dump_copy(&mut self, path: String) -> Result<()> {
         self.update_xml();
-        self.xml.dump_copy(path).expect("Failed to dump XML");
+        self.xml.dump_copy(path)?;
+        Ok(())
     }
 
     #[napi]
-    pub fn dump(&mut self) {
+    pub fn dump(&mut self) -> Result<()> {
         self.update_xml();
-        self.xml.dump().expect("Failed to dump XML");
+        self.xml.dump()?;
+        Ok(())
     }
 
     #[napi(getter)]
@@ -626,19 +615,13 @@ impl JsRekordboxXml {
     pub fn get_track<'a>(&mut self, env: &'a Env, index: u32) -> Option<JsTrack<'a>> {
         let idx: usize = index as usize;
         let item: Option<&mut Track> = self.xml.get_track(idx);
-        match item {
-            Some(track) => Some(track.clone().into_js(env)),
-            None => None,
-        }
+        item.map(|track| track.clone().into_js(env))
     }
 
     #[napi]
     pub fn get_track_by_id<'a>(&mut self, env: &'a Env, track_id: String) -> Option<JsTrack<'a>> {
         let item: Option<&mut Track> = self.xml.get_track_by_id(&track_id);
-        match item {
-            Some(track) => Some(track.clone().into_js(env)),
-            None => None,
-        }
+        item.map(|track| track.clone().into_js(env))
     }
 
     #[napi]
@@ -648,10 +631,7 @@ impl JsRekordboxXml {
         location: String,
     ) -> Option<JsTrack<'a>> {
         let item: Option<&mut Track> = self.xml.get_track_by_location(&location);
-        match item {
-            Some(track) => Some(track.clone().into_js(env)),
-            None => None,
-        }
+        item.map(|track| track.clone().into_js(env))
     }
 
     #[napi]
@@ -685,18 +665,15 @@ impl JsRekordboxXml {
     }
 
     #[napi]
-    pub fn update_track(&mut self, track: JsTrack) {
+    pub fn update_track(&mut self, track: JsTrack) -> Result<()> {
         let track = Track::from(track);
-        self.xml
-            .update_track(track)
-            .expect("Failed to update track");
+        self.xml.update_track(track)?;
+        Ok(())
     }
 
-    #[napi]
-    pub fn remove_track(&mut self, track_id: String) {
-        self.xml
-            .remove_track(&track_id)
-            .expect("Failed to remove track");
+    pub fn remove_track(&mut self, track_id: String) -> Result<()> {
+        self.xml.remove_track(&track_id)?;
+        Ok(())
     }
 
     #[napi]

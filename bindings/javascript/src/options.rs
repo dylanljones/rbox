@@ -1,7 +1,9 @@
 // Author: Dylan Jones
 // Date:   2025-05-30
 
+use napi::Result;
 use napi_derive::napi;
+
 use rbox::RekordboxOptions;
 
 #[napi(js_name = "RekordboxOptions")]
@@ -12,22 +14,21 @@ pub struct JsRekordboxOptions {
 #[napi]
 impl JsRekordboxOptions {
     #[napi(constructor)]
-    pub fn new(db_path: String, analysis_root: String, settings_root: String) -> Self {
-        let opts = RekordboxOptions::new(db_path, analysis_root, settings_root)
-            .expect("Failed to create RekordboxOptions");
-        JsRekordboxOptions { opts }
+    pub fn new(db_path: String, analysis_root: String, settings_root: String) -> Result<Self> {
+        let opts = RekordboxOptions::new(db_path, analysis_root, settings_root)?;
+        Ok(JsRekordboxOptions { opts })
     }
 
     #[napi(factory)]
-    pub fn load(path: String) -> Self {
-        let opts = RekordboxOptions::load(path).expect("Failed to load RekordboxOptions from file");
-        JsRekordboxOptions { opts }
+    pub fn load(path: String) -> Result<Self> {
+        let opts = RekordboxOptions::load(path)?;
+        Ok(JsRekordboxOptions { opts })
     }
 
     #[napi(factory)]
-    pub fn open() -> Self {
-        let opts = RekordboxOptions::open().expect("Failed to load default RekordboxOptions");
-        JsRekordboxOptions { opts }
+    pub fn open() -> Result<Self> {
+        let opts = RekordboxOptions::open()?;
+        Ok(JsRekordboxOptions { opts })
     }
 
     #[napi(getter)]

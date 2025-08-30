@@ -3,35 +3,14 @@
 #![allow(non_snake_case)]
 
 use chrono::{DateTime, Utc};
-use napi::Env;
-use napi::JsDate;
 use napi_derive::napi;
 use rbox::masterdb::models::*;
 
-pub fn datetime_to_js_date<'a>(env: &'a Env, date: &DateTime<Utc>) -> JsDate<'a> {
-    env.create_date(date.timestamp_millis() as f64).unwrap()
-}
-
-pub fn js_date_to_datetime(js_date: JsDate) -> DateTime<Utc> {
-    match js_date.value_of() {
-        Ok(timestamp_ms) => {
-            let timestamp_ms = timestamp_ms as i64;
-            DateTime::<Utc>::from_timestamp_millis(timestamp_ms).unwrap_or_else(|| Utc::now())
-        }
-        Err(_) => Utc::now(),
-    }
-}
-
-pub trait IntoJs {
-    type Out<'a>;
-    fn into_js(self, env: &Env) -> Self::Out<'_>;
-}
-
 #[napi(object, js_name = "AgentRegistry")]
-pub struct JsAgentRegistry<'a> {
+pub struct JsAgentRegistry {
     pub registry_id: String,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub id_1: Option<String>,
     pub id_2: Option<String>,
     pub int_1: Option<i32>,
@@ -44,14 +23,12 @@ pub struct JsAgentRegistry<'a> {
     pub text_2: Option<String>,
 }
 
-impl IntoJs for AgentRegistry {
-    type Out<'a> = JsAgentRegistry<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsAgentRegistry> for AgentRegistry {
+    fn into(self) -> JsAgentRegistry {
         JsAgentRegistry {
             registry_id: self.registry_id,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             id_1: self.id_1,
             id_2: self.id_2,
             int_1: self.int_1,
@@ -66,12 +43,12 @@ impl IntoJs for AgentRegistry {
     }
 }
 
-impl From<JsAgentRegistry<'_>> for AgentRegistry {
+impl From<JsAgentRegistry> for AgentRegistry {
     fn from(model: JsAgentRegistry) -> Self {
         AgentRegistry {
             registry_id: model.registry_id,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             id_1: model.id_1,
             id_2: model.id_2,
             int_1: model.int_1,
@@ -87,7 +64,7 @@ impl From<JsAgentRegistry<'_>> for AgentRegistry {
 }
 
 #[napi(object, js_name = "CloudAgentRegistry")]
-pub struct JsCloudAgentRegistry<'a> {
+pub struct JsCloudAgentRegistry {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -96,8 +73,8 @@ pub struct JsCloudAgentRegistry<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub int_1: Option<i32>,
     pub int_2: Option<i32>,
     pub str_1: Option<String>,
@@ -108,10 +85,8 @@ pub struct JsCloudAgentRegistry<'a> {
     pub text_2: Option<String>,
 }
 
-impl IntoJs for CloudAgentRegistry {
-    type Out<'a> = JsCloudAgentRegistry<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsCloudAgentRegistry> for CloudAgentRegistry {
+    fn into(self) -> JsCloudAgentRegistry {
         JsCloudAgentRegistry {
             ID: self.ID,
             UUID: self.UUID,
@@ -121,8 +96,8 @@ impl IntoJs for CloudAgentRegistry {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             int_1: self.int_1,
             int_2: self.int_2,
             str_1: self.str_1,
@@ -135,7 +110,7 @@ impl IntoJs for CloudAgentRegistry {
     }
 }
 
-impl From<JsCloudAgentRegistry<'_>> for CloudAgentRegistry {
+impl From<JsCloudAgentRegistry> for CloudAgentRegistry {
     fn from(model: JsCloudAgentRegistry) -> Self {
         CloudAgentRegistry {
             ID: model.ID,
@@ -146,8 +121,8 @@ impl From<JsCloudAgentRegistry<'_>> for CloudAgentRegistry {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             int_1: model.int_1,
             int_2: model.int_2,
             str_1: model.str_1,
@@ -161,7 +136,7 @@ impl From<JsCloudAgentRegistry<'_>> for CloudAgentRegistry {
 }
 
 #[napi(object, js_name = "ContentActiveCensor")]
-pub struct JsContentActiveCensor<'a> {
+pub struct JsContentActiveCensor {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -170,17 +145,15 @@ pub struct JsContentActiveCensor<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub ContentID: Option<String>,
     pub ActiveCensors: Option<String>,
     pub rb_activecensor_count: Option<i32>,
 }
 
-impl IntoJs for ContentActiveCensor {
-    type Out<'a> = JsContentActiveCensor<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsContentActiveCensor> for ContentActiveCensor {
+    fn into(self) -> JsContentActiveCensor {
         JsContentActiveCensor {
             ID: self.ID,
             UUID: self.UUID,
@@ -190,8 +163,8 @@ impl IntoJs for ContentActiveCensor {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             ContentID: self.ContentID,
             ActiveCensors: self.ActiveCensors,
             rb_activecensor_count: self.rb_activecensor_count,
@@ -199,7 +172,7 @@ impl IntoJs for ContentActiveCensor {
     }
 }
 
-impl From<JsContentActiveCensor<'_>> for ContentActiveCensor {
+impl From<JsContentActiveCensor> for ContentActiveCensor {
     fn from(model: JsContentActiveCensor) -> Self {
         ContentActiveCensor {
             ID: model.ID,
@@ -210,8 +183,8 @@ impl From<JsContentActiveCensor<'_>> for ContentActiveCensor {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             ContentID: model.ContentID,
             ActiveCensors: model.ActiveCensors,
             rb_activecensor_count: model.rb_activecensor_count,
@@ -220,7 +193,7 @@ impl From<JsContentActiveCensor<'_>> for ContentActiveCensor {
 }
 
 #[napi(object, js_name = "ContentCue")]
-pub struct JsContentCue<'a> {
+pub struct JsContentCue {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -229,17 +202,15 @@ pub struct JsContentCue<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub ContentID: Option<String>,
     pub Cues: Option<String>,
     pub rb_cue_count: Option<i32>,
 }
 
-impl IntoJs for ContentCue {
-    type Out<'a> = JsContentCue<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsContentCue> for ContentCue {
+    fn into(self) -> JsContentCue {
         JsContentCue {
             ID: self.ID,
             UUID: self.UUID,
@@ -249,8 +220,8 @@ impl IntoJs for ContentCue {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             ContentID: self.ContentID,
             Cues: self.Cues,
             rb_cue_count: self.rb_cue_count,
@@ -258,7 +229,7 @@ impl IntoJs for ContentCue {
     }
 }
 
-impl From<JsContentCue<'_>> for ContentCue {
+impl From<JsContentCue> for ContentCue {
     fn from(model: JsContentCue) -> Self {
         ContentCue {
             ID: model.ID,
@@ -269,8 +240,8 @@ impl From<JsContentCue<'_>> for ContentCue {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             ContentID: model.ContentID,
             Cues: model.Cues,
             rb_cue_count: model.rb_cue_count,
@@ -279,7 +250,7 @@ impl From<JsContentCue<'_>> for ContentCue {
 }
 
 #[napi(object, js_name = "ContentFile")]
-pub struct JsContentFile<'a> {
+pub struct JsContentFile {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -288,8 +259,8 @@ pub struct JsContentFile<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub ContentID: Option<String>,
     pub Path: Option<String>,
     pub Hash: Option<String>,
@@ -306,10 +277,8 @@ pub struct JsContentFile<'a> {
     pub rb_file_size_dirty: Option<i32>,
 }
 
-impl IntoJs for ContentFile {
-    type Out<'a> = JsContentFile<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsContentFile> for ContentFile {
+    fn into(self) -> JsContentFile {
         JsContentFile {
             ID: self.ID,
             UUID: self.UUID,
@@ -319,8 +288,8 @@ impl IntoJs for ContentFile {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             ContentID: self.ContentID,
             Path: self.Path,
             Hash: self.Hash,
@@ -339,7 +308,7 @@ impl IntoJs for ContentFile {
     }
 }
 
-impl From<JsContentFile<'_>> for ContentFile {
+impl From<JsContentFile> for ContentFile {
     fn from(model: JsContentFile) -> Self {
         ContentFile {
             ID: model.ID,
@@ -350,8 +319,8 @@ impl From<JsContentFile<'_>> for ContentFile {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             ContentID: model.ContentID,
             Path: model.Path,
             Hash: model.Hash,
@@ -371,7 +340,7 @@ impl From<JsContentFile<'_>> for ContentFile {
 }
 
 #[napi(object, js_name = "DjmdActiveCensor")]
-pub struct JsDjmdActiveCensor<'a> {
+pub struct JsDjmdActiveCensor {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -380,8 +349,8 @@ pub struct JsDjmdActiveCensor<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub ContentID: Option<String>,
     pub InMsec: Option<i32>,
     pub OutMsec: Option<i32>,
@@ -390,10 +359,8 @@ pub struct JsDjmdActiveCensor<'a> {
     pub ContentUUID: Option<String>,
 }
 
-impl IntoJs for DjmdActiveCensor {
-    type Out<'a> = JsDjmdActiveCensor<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdActiveCensor> for DjmdActiveCensor {
+    fn into(self) -> JsDjmdActiveCensor {
         JsDjmdActiveCensor {
             ID: self.ID,
             UUID: self.UUID,
@@ -403,8 +370,8 @@ impl IntoJs for DjmdActiveCensor {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             ContentID: self.ContentID,
             InMsec: self.InMsec,
             OutMsec: self.OutMsec,
@@ -415,7 +382,7 @@ impl IntoJs for DjmdActiveCensor {
     }
 }
 
-impl From<JsDjmdActiveCensor<'_>> for DjmdActiveCensor {
+impl From<JsDjmdActiveCensor> for DjmdActiveCensor {
     fn from(model: JsDjmdActiveCensor) -> Self {
         DjmdActiveCensor {
             ID: model.ID,
@@ -426,8 +393,8 @@ impl From<JsDjmdActiveCensor<'_>> for DjmdActiveCensor {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             ContentID: model.ContentID,
             InMsec: model.InMsec,
             OutMsec: model.OutMsec,
@@ -439,7 +406,7 @@ impl From<JsDjmdActiveCensor<'_>> for DjmdActiveCensor {
 }
 
 #[napi(object, js_name = "DjmdAlbum")]
-pub struct JsDjmdAlbum<'a> {
+pub struct JsDjmdAlbum {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -448,8 +415,8 @@ pub struct JsDjmdAlbum<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub Name: Option<String>,
     pub AlbumArtistID: Option<String>,
     pub ImagePath: Option<String>,
@@ -457,10 +424,8 @@ pub struct JsDjmdAlbum<'a> {
     pub SearchStr: Option<String>,
 }
 
-impl IntoJs for DjmdAlbum {
-    type Out<'a> = JsDjmdAlbum<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdAlbum> for DjmdAlbum {
+    fn into(self) -> JsDjmdAlbum {
         JsDjmdAlbum {
             ID: self.ID,
             UUID: self.UUID,
@@ -470,8 +435,8 @@ impl IntoJs for DjmdAlbum {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             Name: self.Name,
             AlbumArtistID: self.AlbumArtistID,
             ImagePath: self.ImagePath,
@@ -481,7 +446,7 @@ impl IntoJs for DjmdAlbum {
     }
 }
 
-impl From<JsDjmdAlbum<'_>> for DjmdAlbum {
+impl From<JsDjmdAlbum> for DjmdAlbum {
     fn from(model: JsDjmdAlbum) -> Self {
         DjmdAlbum {
             ID: model.ID,
@@ -492,8 +457,8 @@ impl From<JsDjmdAlbum<'_>> for DjmdAlbum {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             Name: model.Name,
             AlbumArtistID: model.AlbumArtistID,
             ImagePath: model.ImagePath,
@@ -504,7 +469,7 @@ impl From<JsDjmdAlbum<'_>> for DjmdAlbum {
 }
 
 #[napi(object, js_name = "DjmdArtist")]
-pub struct JsDjmdArtist<'a> {
+pub struct JsDjmdArtist {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -513,16 +478,14 @@ pub struct JsDjmdArtist<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub Name: Option<String>,
     pub SearchStr: Option<String>,
 }
 
-impl IntoJs for DjmdArtist {
-    type Out<'a> = JsDjmdArtist<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdArtist> for DjmdArtist {
+    fn into(self) -> JsDjmdArtist {
         JsDjmdArtist {
             ID: self.ID,
             UUID: self.UUID,
@@ -532,15 +495,15 @@ impl IntoJs for DjmdArtist {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             Name: self.Name,
             SearchStr: self.SearchStr,
         }
     }
 }
 
-impl From<JsDjmdArtist<'_>> for DjmdArtist {
+impl From<JsDjmdArtist> for DjmdArtist {
     fn from(model: JsDjmdArtist) -> Self {
         DjmdArtist {
             ID: model.ID,
@@ -551,8 +514,8 @@ impl From<JsDjmdArtist<'_>> for DjmdArtist {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             Name: model.Name,
             SearchStr: model.SearchStr,
         }
@@ -560,7 +523,7 @@ impl From<JsDjmdArtist<'_>> for DjmdArtist {
 }
 
 #[napi(object, js_name = "DjmdCategory")]
-pub struct JsDjmdCategory<'a> {
+pub struct JsDjmdCategory {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -569,18 +532,16 @@ pub struct JsDjmdCategory<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub MenuItemID: Option<String>,
     pub Seq: Option<i32>,
     pub Disable: Option<i32>,
     pub InfoOrder: Option<i32>,
 }
 
-impl IntoJs for DjmdCategory {
-    type Out<'a> = JsDjmdCategory<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdCategory> for DjmdCategory {
+    fn into(self) -> JsDjmdCategory {
         JsDjmdCategory {
             ID: self.ID,
             UUID: self.UUID,
@@ -590,8 +551,8 @@ impl IntoJs for DjmdCategory {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             MenuItemID: self.MenuItemID,
             Seq: self.Seq,
             Disable: self.Disable,
@@ -600,7 +561,7 @@ impl IntoJs for DjmdCategory {
     }
 }
 
-impl From<JsDjmdCategory<'_>> for DjmdCategory {
+impl From<JsDjmdCategory> for DjmdCategory {
     fn from(model: JsDjmdCategory) -> Self {
         DjmdCategory {
             ID: model.ID,
@@ -611,8 +572,8 @@ impl From<JsDjmdCategory<'_>> for DjmdCategory {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             MenuItemID: model.MenuItemID,
             Seq: model.Seq,
             Disable: model.Disable,
@@ -622,7 +583,7 @@ impl From<JsDjmdCategory<'_>> for DjmdCategory {
 }
 
 #[napi(object, js_name = "DjmdColor")]
-pub struct JsDjmdColor<'a> {
+pub struct JsDjmdColor {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -631,17 +592,15 @@ pub struct JsDjmdColor<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub ColorCode: Option<String>,
     pub SortKey: Option<i32>,
     pub Commnt: Option<String>,
 }
 
-impl IntoJs for DjmdColor {
-    type Out<'a> = JsDjmdColor<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdColor> for DjmdColor {
+    fn into(self) -> JsDjmdColor {
         JsDjmdColor {
             ID: self.ID,
             UUID: self.UUID,
@@ -651,8 +610,8 @@ impl IntoJs for DjmdColor {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             ColorCode: self.ColorCode,
             SortKey: self.SortKey,
             Commnt: self.Commnt,
@@ -660,7 +619,7 @@ impl IntoJs for DjmdColor {
     }
 }
 
-impl From<JsDjmdColor<'_>> for DjmdColor {
+impl From<JsDjmdColor> for DjmdColor {
     fn from(model: JsDjmdColor) -> Self {
         DjmdColor {
             ID: model.ID,
@@ -671,8 +630,8 @@ impl From<JsDjmdColor<'_>> for DjmdColor {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             ColorCode: model.ColorCode,
             SortKey: model.SortKey,
             Commnt: model.Commnt,
@@ -681,7 +640,7 @@ impl From<JsDjmdColor<'_>> for DjmdColor {
 }
 
 #[napi(object, js_name = "DjmdContent")]
-pub struct JsDjmdContent<'a> {
+pub struct JsDjmdContent {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -690,8 +649,8 @@ pub struct JsDjmdContent<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub FolderPath: Option<String>,
     pub FileNameL: Option<String>,
     pub FileNameS: Option<String>,
@@ -762,10 +721,8 @@ pub struct JsDjmdContent<'a> {
     pub SrcLength: Option<i32>,
 }
 
-impl IntoJs for DjmdContent {
-    type Out<'a> = JsDjmdContent<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdContent> for DjmdContent {
+    fn into(self) -> JsDjmdContent {
         JsDjmdContent {
             ID: self.ID,
             UUID: self.UUID,
@@ -775,8 +732,8 @@ impl IntoJs for DjmdContent {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             FolderPath: self.FolderPath,
             FileNameL: self.FileNameL,
             FileNameS: self.FileNameS,
@@ -849,7 +806,7 @@ impl IntoJs for DjmdContent {
     }
 }
 
-impl From<JsDjmdContent<'_>> for DjmdContent {
+impl From<JsDjmdContent> for DjmdContent {
     fn from(model: JsDjmdContent) -> Self {
         DjmdContent {
             ID: model.ID,
@@ -860,8 +817,8 @@ impl From<JsDjmdContent<'_>> for DjmdContent {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             FolderPath: model.FolderPath,
             FileNameL: model.FileNameL,
             FileNameS: model.FileNameS,
@@ -935,7 +892,7 @@ impl From<JsDjmdContent<'_>> for DjmdContent {
 }
 
 #[napi(object, js_name = "DjmdCue")]
-pub struct JsDjmdCue<'a> {
+pub struct JsDjmdCue {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -944,8 +901,8 @@ pub struct JsDjmdCue<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub ContentID: Option<String>,
     pub InMsec: Option<i32>,
     pub InFrame: Option<i32>,
@@ -967,10 +924,8 @@ pub struct JsDjmdCue<'a> {
     pub ContentUUID: Option<String>,
 }
 
-impl IntoJs for DjmdCue {
-    type Out<'a> = JsDjmdCue<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdCue> for DjmdCue {
+    fn into(self) -> JsDjmdCue {
         JsDjmdCue {
             ID: self.ID,
             UUID: self.UUID,
@@ -980,8 +935,8 @@ impl IntoJs for DjmdCue {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             ContentID: self.ContentID,
             InMsec: self.InMsec,
             InFrame: self.InFrame,
@@ -1005,7 +960,7 @@ impl IntoJs for DjmdCue {
     }
 }
 
-impl From<JsDjmdCue<'_>> for DjmdCue {
+impl From<JsDjmdCue> for DjmdCue {
     fn from(model: JsDjmdCue) -> Self {
         DjmdCue {
             ID: model.ID,
@@ -1016,8 +971,8 @@ impl From<JsDjmdCue<'_>> for DjmdCue {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             ContentID: model.ContentID,
             InMsec: model.InMsec,
             InFrame: model.InFrame,
@@ -1042,7 +997,7 @@ impl From<JsDjmdCue<'_>> for DjmdCue {
 }
 
 #[napi(object, js_name = "DjmdDevice")]
-pub struct JsDjmdDevice<'a> {
+pub struct JsDjmdDevice {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -1051,16 +1006,14 @@ pub struct JsDjmdDevice<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub MasterDBID: Option<String>,
     pub Name: Option<String>,
 }
 
-impl IntoJs for DjmdDevice {
-    type Out<'a> = JsDjmdDevice<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdDevice> for DjmdDevice {
+    fn into(self) -> JsDjmdDevice {
         JsDjmdDevice {
             ID: self.ID,
             UUID: self.UUID,
@@ -1070,15 +1023,15 @@ impl IntoJs for DjmdDevice {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             MasterDBID: self.MasterDBID,
             Name: self.Name,
         }
     }
 }
 
-impl From<JsDjmdDevice<'_>> for DjmdDevice {
+impl From<JsDjmdDevice> for DjmdDevice {
     fn from(model: JsDjmdDevice) -> Self {
         DjmdDevice {
             ID: model.ID,
@@ -1089,8 +1042,8 @@ impl From<JsDjmdDevice<'_>> for DjmdDevice {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             MasterDBID: model.MasterDBID,
             Name: model.Name,
         }
@@ -1098,7 +1051,7 @@ impl From<JsDjmdDevice<'_>> for DjmdDevice {
 }
 
 #[napi(object, js_name = "DjmdGenre")]
-pub struct JsDjmdGenre<'a> {
+pub struct JsDjmdGenre {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -1107,15 +1060,13 @@ pub struct JsDjmdGenre<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub Name: Option<String>,
 }
 
-impl IntoJs for DjmdGenre {
-    type Out<'a> = JsDjmdGenre<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdGenre> for DjmdGenre {
+    fn into(self) -> JsDjmdGenre {
         JsDjmdGenre {
             ID: self.ID,
             UUID: self.UUID,
@@ -1125,14 +1076,14 @@ impl IntoJs for DjmdGenre {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             Name: self.Name,
         }
     }
 }
 
-impl From<JsDjmdGenre<'_>> for DjmdGenre {
+impl From<JsDjmdGenre> for DjmdGenre {
     fn from(model: JsDjmdGenre) -> Self {
         DjmdGenre {
             ID: model.ID,
@@ -1143,15 +1094,15 @@ impl From<JsDjmdGenre<'_>> for DjmdGenre {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             Name: model.Name,
         }
     }
 }
 
 #[napi(object, js_name = "DjmdHistory")]
-pub struct JsDjmdHistory<'a> {
+pub struct JsDjmdHistory {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -1160,8 +1111,8 @@ pub struct JsDjmdHistory<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub Seq: Option<i32>,
     pub Name: Option<String>,
     pub Attribute: Option<i32>,
@@ -1169,10 +1120,8 @@ pub struct JsDjmdHistory<'a> {
     pub DateCreated: Option<String>,
 }
 
-impl IntoJs for DjmdHistory {
-    type Out<'a> = JsDjmdHistory<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdHistory> for DjmdHistory {
+    fn into(self) -> JsDjmdHistory {
         JsDjmdHistory {
             ID: self.ID,
             UUID: self.UUID,
@@ -1182,8 +1131,8 @@ impl IntoJs for DjmdHistory {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             Seq: self.Seq,
             Name: self.Name,
             Attribute: self.Attribute,
@@ -1193,7 +1142,7 @@ impl IntoJs for DjmdHistory {
     }
 }
 
-impl From<JsDjmdHistory<'_>> for DjmdHistory {
+impl From<JsDjmdHistory> for DjmdHistory {
     fn from(model: JsDjmdHistory) -> Self {
         DjmdHistory {
             ID: model.ID,
@@ -1204,8 +1153,8 @@ impl From<JsDjmdHistory<'_>> for DjmdHistory {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             Seq: model.Seq,
             Name: model.Name,
             Attribute: model.Attribute,
@@ -1216,7 +1165,7 @@ impl From<JsDjmdHistory<'_>> for DjmdHistory {
 }
 
 #[napi(object, js_name = "DjmdSongHistory")]
-pub struct JsDjmdSongHistory<'a> {
+pub struct JsDjmdSongHistory {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -1225,17 +1174,15 @@ pub struct JsDjmdSongHistory<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub HistoryID: Option<String>,
     pub ContentID: Option<String>,
     pub TrackNo: Option<i32>,
 }
 
-impl IntoJs for DjmdSongHistory {
-    type Out<'a> = JsDjmdSongHistory<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdSongHistory> for DjmdSongHistory {
+    fn into(self) -> JsDjmdSongHistory {
         JsDjmdSongHistory {
             ID: self.ID,
             UUID: self.UUID,
@@ -1245,8 +1192,8 @@ impl IntoJs for DjmdSongHistory {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             HistoryID: self.HistoryID,
             ContentID: self.ContentID,
             TrackNo: self.TrackNo,
@@ -1254,7 +1201,7 @@ impl IntoJs for DjmdSongHistory {
     }
 }
 
-impl From<JsDjmdSongHistory<'_>> for DjmdSongHistory {
+impl From<JsDjmdSongHistory> for DjmdSongHistory {
     fn from(model: JsDjmdSongHistory) -> Self {
         DjmdSongHistory {
             ID: model.ID,
@@ -1265,8 +1212,8 @@ impl From<JsDjmdSongHistory<'_>> for DjmdSongHistory {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             HistoryID: model.HistoryID,
             ContentID: model.ContentID,
             TrackNo: model.TrackNo,
@@ -1275,7 +1222,7 @@ impl From<JsDjmdSongHistory<'_>> for DjmdSongHistory {
 }
 
 #[napi(object, js_name = "DjmdHotCueBanklist")]
-pub struct JsDjmdHotCueBanklist<'a> {
+pub struct JsDjmdHotCueBanklist {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -1284,8 +1231,8 @@ pub struct JsDjmdHotCueBanklist<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub Seq: Option<i32>,
     pub Name: Option<String>,
     pub ImagePath: Option<String>,
@@ -1293,10 +1240,8 @@ pub struct JsDjmdHotCueBanklist<'a> {
     pub ParentID: Option<String>,
 }
 
-impl IntoJs for DjmdHotCueBanklist {
-    type Out<'a> = JsDjmdHotCueBanklist<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdHotCueBanklist> for DjmdHotCueBanklist {
+    fn into(self) -> JsDjmdHotCueBanklist {
         JsDjmdHotCueBanklist {
             ID: self.ID,
             UUID: self.UUID,
@@ -1306,8 +1251,8 @@ impl IntoJs for DjmdHotCueBanklist {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             Seq: self.Seq,
             Name: self.Name,
             ImagePath: self.ImagePath,
@@ -1317,7 +1262,7 @@ impl IntoJs for DjmdHotCueBanklist {
     }
 }
 
-impl From<JsDjmdHotCueBanklist<'_>> for DjmdHotCueBanklist {
+impl From<JsDjmdHotCueBanklist> for DjmdHotCueBanklist {
     fn from(model: JsDjmdHotCueBanklist) -> Self {
         DjmdHotCueBanklist {
             ID: model.ID,
@@ -1328,8 +1273,8 @@ impl From<JsDjmdHotCueBanklist<'_>> for DjmdHotCueBanklist {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             Seq: model.Seq,
             Name: model.Name,
             ImagePath: model.ImagePath,
@@ -1340,7 +1285,7 @@ impl From<JsDjmdHotCueBanklist<'_>> for DjmdHotCueBanklist {
 }
 
 #[napi(object, js_name = "DjmdSongHotCueBanklist")]
-pub struct JsDjmdSongHotCueBanklist<'a> {
+pub struct JsDjmdSongHotCueBanklist {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -1349,8 +1294,8 @@ pub struct JsDjmdSongHotCueBanklist<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub ContentID: Option<String>,
     pub TrackNo: Option<i32>,
     pub CueID: Option<String>,
@@ -1373,10 +1318,8 @@ pub struct JsDjmdSongHotCueBanklist<'a> {
     pub HotCueBanklistUUID: Option<String>,
 }
 
-impl IntoJs for DjmdSongHotCueBanklist {
-    type Out<'a> = JsDjmdSongHotCueBanklist<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdSongHotCueBanklist> for DjmdSongHotCueBanklist {
+    fn into(self) -> JsDjmdSongHotCueBanklist {
         JsDjmdSongHotCueBanklist {
             ID: self.ID,
             UUID: self.UUID,
@@ -1386,8 +1329,8 @@ impl IntoJs for DjmdSongHotCueBanklist {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             ContentID: self.ContentID,
             TrackNo: self.TrackNo,
             CueID: self.CueID,
@@ -1412,7 +1355,7 @@ impl IntoJs for DjmdSongHotCueBanklist {
     }
 }
 
-impl From<JsDjmdSongHotCueBanklist<'_>> for DjmdSongHotCueBanklist {
+impl From<JsDjmdSongHotCueBanklist> for DjmdSongHotCueBanklist {
     fn from(model: JsDjmdSongHotCueBanklist) -> Self {
         DjmdSongHotCueBanklist {
             ID: model.ID,
@@ -1423,8 +1366,8 @@ impl From<JsDjmdSongHotCueBanklist<'_>> for DjmdSongHotCueBanklist {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             ContentID: model.ContentID,
             TrackNo: model.TrackNo,
             CueID: model.CueID,
@@ -1450,7 +1393,7 @@ impl From<JsDjmdSongHotCueBanklist<'_>> for DjmdSongHotCueBanklist {
 }
 
 #[napi(object, js_name = "HotCueBanklistCue")]
-pub struct JsHotCueBanklistCue<'a> {
+pub struct JsHotCueBanklistCue {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -1459,17 +1402,15 @@ pub struct JsHotCueBanklistCue<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub HotCueBanklistID: Option<String>,
     pub Cues: Option<String>,
     pub rb_cue_count: Option<i32>,
 }
 
-impl IntoJs for HotCueBanklistCue {
-    type Out<'a> = JsHotCueBanklistCue<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsHotCueBanklistCue> for HotCueBanklistCue {
+    fn into(self) -> JsHotCueBanklistCue {
         JsHotCueBanklistCue {
             ID: self.ID,
             UUID: self.UUID,
@@ -1479,8 +1420,8 @@ impl IntoJs for HotCueBanklistCue {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             HotCueBanklistID: self.HotCueBanklistID,
             Cues: self.Cues,
             rb_cue_count: self.rb_cue_count,
@@ -1488,7 +1429,7 @@ impl IntoJs for HotCueBanklistCue {
     }
 }
 
-impl From<JsHotCueBanklistCue<'_>> for HotCueBanklistCue {
+impl From<JsHotCueBanklistCue> for HotCueBanklistCue {
     fn from(model: JsHotCueBanklistCue) -> Self {
         HotCueBanklistCue {
             ID: model.ID,
@@ -1499,8 +1440,8 @@ impl From<JsHotCueBanklistCue<'_>> for HotCueBanklistCue {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             HotCueBanklistID: model.HotCueBanklistID,
             Cues: model.Cues,
             rb_cue_count: model.rb_cue_count,
@@ -1509,7 +1450,7 @@ impl From<JsHotCueBanklistCue<'_>> for HotCueBanklistCue {
 }
 
 #[napi(object, js_name = "DjmdKey")]
-pub struct JsDjmdKey<'a> {
+pub struct JsDjmdKey {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -1518,16 +1459,14 @@ pub struct JsDjmdKey<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub ScaleName: Option<String>,
     pub Seq: Option<i32>,
 }
 
-impl IntoJs for DjmdKey {
-    type Out<'a> = JsDjmdKey<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdKey> for DjmdKey {
+    fn into(self) -> JsDjmdKey {
         JsDjmdKey {
             ID: self.ID,
             UUID: self.UUID,
@@ -1537,15 +1476,15 @@ impl IntoJs for DjmdKey {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             ScaleName: self.ScaleName,
             Seq: self.Seq,
         }
     }
 }
 
-impl From<JsDjmdKey<'_>> for DjmdKey {
+impl From<JsDjmdKey> for DjmdKey {
     fn from(model: JsDjmdKey) -> Self {
         DjmdKey {
             ID: model.ID,
@@ -1556,8 +1495,8 @@ impl From<JsDjmdKey<'_>> for DjmdKey {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             ScaleName: model.ScaleName,
             Seq: model.Seq,
         }
@@ -1565,7 +1504,7 @@ impl From<JsDjmdKey<'_>> for DjmdKey {
 }
 
 #[napi(object, js_name = "DjmdLabel")]
-pub struct JsDjmdLabel<'a> {
+pub struct JsDjmdLabel {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -1574,15 +1513,13 @@ pub struct JsDjmdLabel<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub Name: Option<String>,
 }
 
-impl IntoJs for DjmdLabel {
-    type Out<'a> = JsDjmdLabel<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdLabel> for DjmdLabel {
+    fn into(self) -> JsDjmdLabel {
         JsDjmdLabel {
             ID: self.ID,
             UUID: self.UUID,
@@ -1592,14 +1529,14 @@ impl IntoJs for DjmdLabel {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             Name: self.Name,
         }
     }
 }
 
-impl From<JsDjmdLabel<'_>> for DjmdLabel {
+impl From<JsDjmdLabel> for DjmdLabel {
     fn from(model: JsDjmdLabel) -> Self {
         DjmdLabel {
             ID: model.ID,
@@ -1610,15 +1547,15 @@ impl From<JsDjmdLabel<'_>> for DjmdLabel {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             Name: model.Name,
         }
     }
 }
 
 #[napi(object, js_name = "DjmdMenuItems")]
-pub struct JsDjmdMenuItems<'a> {
+pub struct JsDjmdMenuItems {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -1627,16 +1564,14 @@ pub struct JsDjmdMenuItems<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub Class: Option<i32>,
     pub Name: Option<String>,
 }
 
-impl IntoJs for DjmdMenuItems {
-    type Out<'a> = JsDjmdMenuItems<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdMenuItems> for DjmdMenuItems {
+    fn into(self) -> JsDjmdMenuItems {
         JsDjmdMenuItems {
             ID: self.ID,
             UUID: self.UUID,
@@ -1646,15 +1581,15 @@ impl IntoJs for DjmdMenuItems {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             Class: self.Class,
             Name: self.Name,
         }
     }
 }
 
-impl From<JsDjmdMenuItems<'_>> for DjmdMenuItems {
+impl From<JsDjmdMenuItems> for DjmdMenuItems {
     fn from(model: JsDjmdMenuItems) -> Self {
         DjmdMenuItems {
             ID: model.ID,
@@ -1665,8 +1600,8 @@ impl From<JsDjmdMenuItems<'_>> for DjmdMenuItems {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             Class: model.Class,
             Name: model.Name,
         }
@@ -1674,7 +1609,7 @@ impl From<JsDjmdMenuItems<'_>> for DjmdMenuItems {
 }
 
 #[napi(object, js_name = "DjmdMixerParam")]
-pub struct JsDjmdMixerParam<'a> {
+pub struct JsDjmdMixerParam {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -1683,8 +1618,8 @@ pub struct JsDjmdMixerParam<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub ContentID: Option<String>,
     pub GainHigh: Option<i32>,
     pub GainLow: Option<i32>,
@@ -1692,10 +1627,8 @@ pub struct JsDjmdMixerParam<'a> {
     pub PeakLow: Option<i32>,
 }
 
-impl IntoJs for DjmdMixerParam {
-    type Out<'a> = JsDjmdMixerParam<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdMixerParam> for DjmdMixerParam {
+    fn into(self) -> JsDjmdMixerParam {
         JsDjmdMixerParam {
             ID: self.ID,
             UUID: self.UUID,
@@ -1705,8 +1638,8 @@ impl IntoJs for DjmdMixerParam {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             ContentID: self.ContentID,
             GainHigh: self.GainHigh,
             GainLow: self.GainLow,
@@ -1716,7 +1649,7 @@ impl IntoJs for DjmdMixerParam {
     }
 }
 
-impl From<JsDjmdMixerParam<'_>> for DjmdMixerParam {
+impl From<JsDjmdMixerParam> for DjmdMixerParam {
     fn from(model: JsDjmdMixerParam) -> Self {
         DjmdMixerParam {
             ID: model.ID,
@@ -1727,8 +1660,8 @@ impl From<JsDjmdMixerParam<'_>> for DjmdMixerParam {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             ContentID: model.ContentID,
             GainHigh: model.GainHigh,
             GainLow: model.GainLow,
@@ -1739,7 +1672,7 @@ impl From<JsDjmdMixerParam<'_>> for DjmdMixerParam {
 }
 
 #[napi(object, js_name = "DjmdMyTag")]
-pub struct JsDjmdMyTag<'a> {
+pub struct JsDjmdMyTag {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -1748,18 +1681,16 @@ pub struct JsDjmdMyTag<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub Seq: Option<i32>,
     pub Name: Option<String>,
     pub Attribute: Option<i32>,
     pub ParentID: Option<String>,
 }
 
-impl IntoJs for DjmdMyTag {
-    type Out<'a> = JsDjmdMyTag<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdMyTag> for DjmdMyTag {
+    fn into(self) -> JsDjmdMyTag {
         JsDjmdMyTag {
             ID: self.ID,
             UUID: self.UUID,
@@ -1769,8 +1700,8 @@ impl IntoJs for DjmdMyTag {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             Seq: self.Seq,
             Name: self.Name,
             Attribute: self.Attribute,
@@ -1779,7 +1710,7 @@ impl IntoJs for DjmdMyTag {
     }
 }
 
-impl From<JsDjmdMyTag<'_>> for DjmdMyTag {
+impl From<JsDjmdMyTag> for DjmdMyTag {
     fn from(model: JsDjmdMyTag) -> Self {
         DjmdMyTag {
             ID: model.ID,
@@ -1790,8 +1721,8 @@ impl From<JsDjmdMyTag<'_>> for DjmdMyTag {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             Seq: model.Seq,
             Name: model.Name,
             Attribute: model.Attribute,
@@ -1801,7 +1732,7 @@ impl From<JsDjmdMyTag<'_>> for DjmdMyTag {
 }
 
 #[napi(object, js_name = "DjmdSongMyTag")]
-pub struct JsDjmdSongMyTag<'a> {
+pub struct JsDjmdSongMyTag {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -1810,17 +1741,15 @@ pub struct JsDjmdSongMyTag<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub MyTagID: Option<String>,
     pub ContentID: Option<String>,
     pub TrackNo: Option<i32>,
 }
 
-impl IntoJs for DjmdSongMyTag {
-    type Out<'a> = JsDjmdSongMyTag<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdSongMyTag> for DjmdSongMyTag {
+    fn into(self) -> JsDjmdSongMyTag {
         JsDjmdSongMyTag {
             ID: self.ID,
             UUID: self.UUID,
@@ -1830,8 +1759,8 @@ impl IntoJs for DjmdSongMyTag {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             MyTagID: self.MyTagID,
             ContentID: self.ContentID,
             TrackNo: self.TrackNo,
@@ -1839,7 +1768,7 @@ impl IntoJs for DjmdSongMyTag {
     }
 }
 
-impl From<JsDjmdSongMyTag<'_>> for DjmdSongMyTag {
+impl From<JsDjmdSongMyTag> for DjmdSongMyTag {
     fn from(model: JsDjmdSongMyTag) -> Self {
         DjmdSongMyTag {
             ID: model.ID,
@@ -1850,8 +1779,8 @@ impl From<JsDjmdSongMyTag<'_>> for DjmdSongMyTag {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             MyTagID: model.MyTagID,
             ContentID: model.ContentID,
             TrackNo: model.TrackNo,
@@ -1860,7 +1789,7 @@ impl From<JsDjmdSongMyTag<'_>> for DjmdSongMyTag {
 }
 
 #[napi(object, js_name = "DjmdPlaylist")]
-pub struct JsDjmdPlaylist<'a> {
+pub struct JsDjmdPlaylist {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -1869,8 +1798,8 @@ pub struct JsDjmdPlaylist<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub Seq: Option<i32>,
     pub Name: Option<String>,
     pub ImagePath: Option<String>,
@@ -1879,10 +1808,8 @@ pub struct JsDjmdPlaylist<'a> {
     pub SmartList: Option<String>,
 }
 
-impl IntoJs for DjmdPlaylist {
-    type Out<'a> = JsDjmdPlaylist<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdPlaylist> for DjmdPlaylist {
+    fn into(self) -> JsDjmdPlaylist {
         JsDjmdPlaylist {
             ID: self.ID,
             UUID: self.UUID,
@@ -1892,8 +1819,8 @@ impl IntoJs for DjmdPlaylist {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             Seq: self.Seq,
             Name: self.Name,
             ImagePath: self.ImagePath,
@@ -1904,7 +1831,7 @@ impl IntoJs for DjmdPlaylist {
     }
 }
 
-impl From<JsDjmdPlaylist<'_>> for DjmdPlaylist {
+impl From<JsDjmdPlaylist> for DjmdPlaylist {
     fn from(model: JsDjmdPlaylist) -> Self {
         DjmdPlaylist {
             ID: model.ID,
@@ -1915,8 +1842,8 @@ impl From<JsDjmdPlaylist<'_>> for DjmdPlaylist {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             Seq: model.Seq,
             Name: model.Name,
             ImagePath: model.ImagePath,
@@ -1928,7 +1855,7 @@ impl From<JsDjmdPlaylist<'_>> for DjmdPlaylist {
 }
 
 #[napi(object, js_name = "DjmdPlaylistTreeItem")]
-pub struct JsDjmdPlaylistTreeItem<'a> {
+pub struct JsDjmdPlaylistTreeItem {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -1937,21 +1864,19 @@ pub struct JsDjmdPlaylistTreeItem<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub Seq: Option<i32>,
     pub Name: Option<String>,
     pub ImagePath: Option<String>,
     pub Attribute: Option<i32>,
     pub ParentID: Option<String>,
     pub SmartList: Option<String>,
-    pub Children: Vec<JsDjmdPlaylistTreeItem<'a>>,
+    pub Children: Vec<JsDjmdPlaylistTreeItem>,
 }
 
-impl IntoJs for DjmdPlaylistTreeItem {
-    type Out<'a> = JsDjmdPlaylistTreeItem<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdPlaylistTreeItem> for DjmdPlaylistTreeItem {
+    fn into(self) -> JsDjmdPlaylistTreeItem {
         let mut model = JsDjmdPlaylistTreeItem {
             ID: self.ID,
             UUID: self.UUID,
@@ -1961,8 +1886,8 @@ impl IntoJs for DjmdPlaylistTreeItem {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             Seq: self.Seq,
             Name: self.Name,
             ImagePath: self.ImagePath,
@@ -1972,7 +1897,7 @@ impl IntoJs for DjmdPlaylistTreeItem {
             Children: Vec::new(),
         };
         for child in self.Children {
-            let js_child = child.borrow().clone().into_js(env);
+            let js_child = child.borrow().clone().into();
             model.Children.push(js_child);
         }
         model
@@ -1980,7 +1905,7 @@ impl IntoJs for DjmdPlaylistTreeItem {
 }
 
 #[napi(object, js_name = "DjmdSongPlaylist")]
-pub struct JsDjmdSongPlaylist<'a> {
+pub struct JsDjmdSongPlaylist {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -1989,17 +1914,15 @@ pub struct JsDjmdSongPlaylist<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub PlaylistID: Option<String>,
     pub ContentID: Option<String>,
     pub TrackNo: Option<i32>,
 }
 
-impl IntoJs for DjmdSongPlaylist {
-    type Out<'a> = JsDjmdSongPlaylist<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdSongPlaylist> for DjmdSongPlaylist {
+    fn into(self) -> JsDjmdSongPlaylist {
         JsDjmdSongPlaylist {
             ID: self.ID,
             UUID: self.UUID,
@@ -2009,8 +1932,8 @@ impl IntoJs for DjmdSongPlaylist {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             PlaylistID: self.PlaylistID,
             ContentID: self.ContentID,
             TrackNo: self.TrackNo,
@@ -2018,7 +1941,7 @@ impl IntoJs for DjmdSongPlaylist {
     }
 }
 
-impl From<JsDjmdSongPlaylist<'_>> for DjmdSongPlaylist {
+impl From<JsDjmdSongPlaylist> for DjmdSongPlaylist {
     fn from(model: JsDjmdSongPlaylist) -> Self {
         DjmdSongPlaylist {
             ID: model.ID,
@@ -2029,8 +1952,8 @@ impl From<JsDjmdSongPlaylist<'_>> for DjmdSongPlaylist {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             PlaylistID: model.PlaylistID,
             ContentID: model.ContentID,
             TrackNo: model.TrackNo,
@@ -2039,7 +1962,7 @@ impl From<JsDjmdSongPlaylist<'_>> for DjmdSongPlaylist {
 }
 
 #[napi(object, js_name = "DjmdProperty")]
-pub struct JsDjmdProperty<'a> {
+pub struct JsDjmdProperty {
     pub DBID: String,
     pub DBVersion: Option<String>,
     pub BaseDBDrive: Option<String>,
@@ -2050,14 +1973,12 @@ pub struct JsDjmdProperty<'a> {
     pub Reserved3: Option<String>,
     pub Reserved4: Option<String>,
     pub Reserved5: Option<String>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
-impl IntoJs for DjmdProperty {
-    type Out<'a> = JsDjmdProperty<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdProperty> for DjmdProperty {
+    fn into(self) -> JsDjmdProperty {
         JsDjmdProperty {
             DBID: self.DBID,
             DBVersion: self.DBVersion,
@@ -2069,13 +1990,13 @@ impl IntoJs for DjmdProperty {
             Reserved3: self.Reserved3,
             Reserved4: self.Reserved4,
             Reserved5: self.Reserved5,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
         }
     }
 }
 
-impl From<JsDjmdProperty<'_>> for DjmdProperty {
+impl From<JsDjmdProperty> for DjmdProperty {
     fn from(model: JsDjmdProperty) -> Self {
         DjmdProperty {
             DBID: model.DBID,
@@ -2088,14 +2009,14 @@ impl From<JsDjmdProperty<'_>> for DjmdProperty {
             Reserved3: model.Reserved3,
             Reserved4: model.Reserved4,
             Reserved5: model.Reserved5,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
         }
     }
 }
 
 #[napi(object, js_name = "DjmdCloudProperty")]
-pub struct JsDjmdCloudProperty<'a> {
+pub struct JsDjmdCloudProperty {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -2104,8 +2025,8 @@ pub struct JsDjmdCloudProperty<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub Reserved1: Option<String>,
     pub Reserved2: Option<String>,
     pub Reserved3: Option<String>,
@@ -2113,10 +2034,8 @@ pub struct JsDjmdCloudProperty<'a> {
     pub Reserved5: Option<String>,
 }
 
-impl IntoJs for DjmdCloudProperty {
-    type Out<'a> = JsDjmdCloudProperty<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdCloudProperty> for DjmdCloudProperty {
+    fn into(self) -> JsDjmdCloudProperty {
         JsDjmdCloudProperty {
             ID: self.ID,
             UUID: self.UUID,
@@ -2126,8 +2045,8 @@ impl IntoJs for DjmdCloudProperty {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             Reserved1: self.Reserved1,
             Reserved2: self.Reserved2,
             Reserved3: self.Reserved3,
@@ -2137,7 +2056,7 @@ impl IntoJs for DjmdCloudProperty {
     }
 }
 
-impl From<JsDjmdCloudProperty<'_>> for DjmdCloudProperty {
+impl From<JsDjmdCloudProperty> for DjmdCloudProperty {
     fn from(model: JsDjmdCloudProperty) -> Self {
         DjmdCloudProperty {
             ID: model.ID,
@@ -2148,8 +2067,8 @@ impl From<JsDjmdCloudProperty<'_>> for DjmdCloudProperty {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             Reserved1: model.Reserved1,
             Reserved2: model.Reserved2,
             Reserved3: model.Reserved3,
@@ -2160,7 +2079,7 @@ impl From<JsDjmdCloudProperty<'_>> for DjmdCloudProperty {
 }
 
 #[napi(object, js_name = "DjmdRecommendLike")]
-pub struct JsDjmdRecommendLike<'a> {
+pub struct JsDjmdRecommendLike {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -2169,8 +2088,8 @@ pub struct JsDjmdRecommendLike<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub ContentID1: Option<String>,
     pub ContentID2: Option<String>,
     pub LikeRate: Option<i32>,
@@ -2178,10 +2097,8 @@ pub struct JsDjmdRecommendLike<'a> {
     pub DataCreatedL: Option<i32>,
 }
 
-impl IntoJs for DjmdRecommendLike {
-    type Out<'a> = JsDjmdRecommendLike<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdRecommendLike> for DjmdRecommendLike {
+    fn into(self) -> JsDjmdRecommendLike {
         JsDjmdRecommendLike {
             ID: self.ID,
             UUID: self.UUID,
@@ -2191,8 +2108,8 @@ impl IntoJs for DjmdRecommendLike {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             ContentID1: self.ContentID1,
             ContentID2: self.ContentID2,
             LikeRate: self.LikeRate,
@@ -2202,7 +2119,7 @@ impl IntoJs for DjmdRecommendLike {
     }
 }
 
-impl From<JsDjmdRecommendLike<'_>> for DjmdRecommendLike {
+impl From<JsDjmdRecommendLike> for DjmdRecommendLike {
     fn from(model: JsDjmdRecommendLike) -> Self {
         DjmdRecommendLike {
             ID: model.ID,
@@ -2213,8 +2130,8 @@ impl From<JsDjmdRecommendLike<'_>> for DjmdRecommendLike {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             ContentID1: model.ContentID1,
             ContentID2: model.ContentID2,
             LikeRate: model.LikeRate,
@@ -2225,7 +2142,7 @@ impl From<JsDjmdRecommendLike<'_>> for DjmdRecommendLike {
 }
 
 #[napi(object, js_name = "DjmdRelatedTracks")]
-pub struct JsDjmdRelatedTracks<'a> {
+pub struct JsDjmdRelatedTracks {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -2234,8 +2151,8 @@ pub struct JsDjmdRelatedTracks<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub Seq: Option<i32>,
     pub Name: Option<String>,
     pub Attribute: Option<i32>,
@@ -2243,10 +2160,8 @@ pub struct JsDjmdRelatedTracks<'a> {
     pub Criteria: Option<String>,
 }
 
-impl IntoJs for DjmdRelatedTracks {
-    type Out<'a> = JsDjmdRelatedTracks<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdRelatedTracks> for DjmdRelatedTracks {
+    fn into(self) -> JsDjmdRelatedTracks {
         JsDjmdRelatedTracks {
             ID: self.ID,
             UUID: self.UUID,
@@ -2256,8 +2171,8 @@ impl IntoJs for DjmdRelatedTracks {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             Seq: self.Seq,
             Name: self.Name,
             Attribute: self.Attribute,
@@ -2267,7 +2182,7 @@ impl IntoJs for DjmdRelatedTracks {
     }
 }
 
-impl From<JsDjmdRelatedTracks<'_>> for DjmdRelatedTracks {
+impl From<JsDjmdRelatedTracks> for DjmdRelatedTracks {
     fn from(model: JsDjmdRelatedTracks) -> Self {
         DjmdRelatedTracks {
             ID: model.ID,
@@ -2278,8 +2193,8 @@ impl From<JsDjmdRelatedTracks<'_>> for DjmdRelatedTracks {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             Seq: model.Seq,
             Name: model.Name,
             Attribute: model.Attribute,
@@ -2290,7 +2205,7 @@ impl From<JsDjmdRelatedTracks<'_>> for DjmdRelatedTracks {
 }
 
 #[napi(object, js_name = "DjmdSongRelatedTracks")]
-pub struct JsDjmdSongRelatedTracks<'a> {
+pub struct JsDjmdSongRelatedTracks {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -2299,17 +2214,15 @@ pub struct JsDjmdSongRelatedTracks<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub RelatedTracksID: Option<String>,
     pub ContentID: Option<String>,
     pub TrackNo: Option<i32>,
 }
 
-impl IntoJs for DjmdSongRelatedTracks {
-    type Out<'a> = JsDjmdSongRelatedTracks<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdSongRelatedTracks> for DjmdSongRelatedTracks {
+    fn into(self) -> JsDjmdSongRelatedTracks {
         JsDjmdSongRelatedTracks {
             ID: self.ID,
             UUID: self.UUID,
@@ -2319,8 +2232,8 @@ impl IntoJs for DjmdSongRelatedTracks {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             RelatedTracksID: self.RelatedTracksID,
             ContentID: self.ContentID,
             TrackNo: self.TrackNo,
@@ -2328,7 +2241,7 @@ impl IntoJs for DjmdSongRelatedTracks {
     }
 }
 
-impl From<JsDjmdSongRelatedTracks<'_>> for DjmdSongRelatedTracks {
+impl From<JsDjmdSongRelatedTracks> for DjmdSongRelatedTracks {
     fn from(model: JsDjmdSongRelatedTracks) -> Self {
         DjmdSongRelatedTracks {
             ID: model.ID,
@@ -2339,8 +2252,8 @@ impl From<JsDjmdSongRelatedTracks<'_>> for DjmdSongRelatedTracks {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             RelatedTracksID: model.RelatedTracksID,
             ContentID: model.ContentID,
             TrackNo: model.TrackNo,
@@ -2349,7 +2262,7 @@ impl From<JsDjmdSongRelatedTracks<'_>> for DjmdSongRelatedTracks {
 }
 
 #[napi(object, js_name = "DjmdSampler")]
-pub struct JsDjmdSampler<'a> {
+pub struct JsDjmdSampler {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -2358,18 +2271,16 @@ pub struct JsDjmdSampler<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub Seq: Option<i32>,
     pub Name: Option<String>,
     pub Attribute: Option<i32>,
     pub ParentID: Option<String>,
 }
 
-impl IntoJs for DjmdSampler {
-    type Out<'a> = JsDjmdSampler<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdSampler> for DjmdSampler {
+    fn into(self) -> JsDjmdSampler {
         JsDjmdSampler {
             ID: self.ID,
             UUID: self.UUID,
@@ -2379,8 +2290,8 @@ impl IntoJs for DjmdSampler {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             Seq: self.Seq,
             Name: self.Name,
             Attribute: self.Attribute,
@@ -2389,7 +2300,7 @@ impl IntoJs for DjmdSampler {
     }
 }
 
-impl From<JsDjmdSampler<'_>> for DjmdSampler {
+impl From<JsDjmdSampler> for DjmdSampler {
     fn from(model: JsDjmdSampler) -> Self {
         DjmdSampler {
             ID: model.ID,
@@ -2400,8 +2311,8 @@ impl From<JsDjmdSampler<'_>> for DjmdSampler {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             Seq: model.Seq,
             Name: model.Name,
             Attribute: model.Attribute,
@@ -2411,7 +2322,7 @@ impl From<JsDjmdSampler<'_>> for DjmdSampler {
 }
 
 #[napi(object, js_name = "DjmdSongSampler")]
-pub struct JsDjmdSongSampler<'a> {
+pub struct JsDjmdSongSampler {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -2420,17 +2331,15 @@ pub struct JsDjmdSongSampler<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub SamplerID: Option<String>,
     pub ContentID: Option<String>,
     pub TrackNo: Option<i32>,
 }
 
-impl IntoJs for DjmdSongSampler {
-    type Out<'a> = JsDjmdSongSampler<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdSongSampler> for DjmdSongSampler {
+    fn into(self) -> JsDjmdSongSampler {
         JsDjmdSongSampler {
             ID: self.ID,
             UUID: self.UUID,
@@ -2440,8 +2349,8 @@ impl IntoJs for DjmdSongSampler {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             SamplerID: self.SamplerID,
             ContentID: self.ContentID,
             TrackNo: self.TrackNo,
@@ -2449,7 +2358,7 @@ impl IntoJs for DjmdSongSampler {
     }
 }
 
-impl From<JsDjmdSongSampler<'_>> for DjmdSongSampler {
+impl From<JsDjmdSongSampler> for DjmdSongSampler {
     fn from(model: JsDjmdSongSampler) -> Self {
         DjmdSongSampler {
             ID: model.ID,
@@ -2460,8 +2369,8 @@ impl From<JsDjmdSongSampler<'_>> for DjmdSongSampler {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             SamplerID: model.SamplerID,
             ContentID: model.ContentID,
             TrackNo: model.TrackNo,
@@ -2470,7 +2379,7 @@ impl From<JsDjmdSongSampler<'_>> for DjmdSongSampler {
 }
 
 #[napi(object, js_name = "DjmdSongTagList")]
-pub struct JsDjmdSongTagList<'a> {
+pub struct JsDjmdSongTagList {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -2479,16 +2388,14 @@ pub struct JsDjmdSongTagList<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub ContentID: Option<String>,
     pub TrackNo: Option<i32>,
 }
 
-impl IntoJs for DjmdSongTagList {
-    type Out<'a> = JsDjmdSongTagList<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdSongTagList> for DjmdSongTagList {
+    fn into(self) -> JsDjmdSongTagList {
         JsDjmdSongTagList {
             ID: self.ID,
             UUID: self.UUID,
@@ -2498,15 +2405,15 @@ impl IntoJs for DjmdSongTagList {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             ContentID: self.ContentID,
             TrackNo: self.TrackNo,
         }
     }
 }
 
-impl From<JsDjmdSongTagList<'_>> for DjmdSongTagList {
+impl From<JsDjmdSongTagList> for DjmdSongTagList {
     fn from(model: JsDjmdSongTagList) -> Self {
         DjmdSongTagList {
             ID: model.ID,
@@ -2517,8 +2424,8 @@ impl From<JsDjmdSongTagList<'_>> for DjmdSongTagList {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             ContentID: model.ContentID,
             TrackNo: model.TrackNo,
         }
@@ -2526,7 +2433,7 @@ impl From<JsDjmdSongTagList<'_>> for DjmdSongTagList {
 }
 
 #[napi(object, js_name = "DjmdSort")]
-pub struct JsDjmdSort<'a> {
+pub struct JsDjmdSort {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -2535,17 +2442,15 @@ pub struct JsDjmdSort<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub MenuItemID: Option<String>,
     pub Seq: Option<i32>,
     pub Disable: Option<i32>,
 }
 
-impl IntoJs for DjmdSort {
-    type Out<'a> = JsDjmdSort<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsDjmdSort> for DjmdSort {
+    fn into(self) -> JsDjmdSort {
         JsDjmdSort {
             ID: self.ID,
             UUID: self.UUID,
@@ -2555,8 +2460,8 @@ impl IntoJs for DjmdSort {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             MenuItemID: self.MenuItemID,
             Seq: self.Seq,
             Disable: self.Disable,
@@ -2564,7 +2469,7 @@ impl IntoJs for DjmdSort {
     }
 }
 
-impl From<JsDjmdSort<'_>> for DjmdSort {
+impl From<JsDjmdSort> for DjmdSort {
     fn from(model: JsDjmdSort) -> Self {
         DjmdSort {
             ID: model.ID,
@@ -2575,8 +2480,8 @@ impl From<JsDjmdSort<'_>> for DjmdSort {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             MenuItemID: model.MenuItemID,
             Seq: model.Seq,
             Disable: model.Disable,
@@ -2585,7 +2490,7 @@ impl From<JsDjmdSort<'_>> for DjmdSort {
 }
 
 #[napi(object, js_name = "ImageFile")]
-pub struct JsImageFile<'a> {
+pub struct JsImageFile {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -2594,8 +2499,8 @@ pub struct JsImageFile<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub TableName: Option<String>,
     pub TargetUUID: Option<String>,
     pub TargetID: Option<String>,
@@ -2614,10 +2519,8 @@ pub struct JsImageFile<'a> {
     pub rb_file_size_dirty: Option<i32>,
 }
 
-impl IntoJs for ImageFile {
-    type Out<'a> = JsImageFile<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsImageFile> for ImageFile {
+    fn into(self) -> JsImageFile {
         JsImageFile {
             ID: self.ID,
             UUID: self.UUID,
@@ -2627,8 +2530,8 @@ impl IntoJs for ImageFile {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             TableName: self.TableName,
             TargetUUID: self.TargetUUID,
             TargetID: self.TargetID,
@@ -2649,7 +2552,7 @@ impl IntoJs for ImageFile {
     }
 }
 
-impl From<JsImageFile<'_>> for ImageFile {
+impl From<JsImageFile> for ImageFile {
     fn from(model: JsImageFile) -> Self {
         ImageFile {
             ID: model.ID,
@@ -2660,8 +2563,8 @@ impl From<JsImageFile<'_>> for ImageFile {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             TableName: model.TableName,
             TargetUUID: model.TargetUUID,
             TargetID: model.TargetID,
@@ -2683,7 +2586,7 @@ impl From<JsImageFile<'_>> for ImageFile {
 }
 
 #[napi(object, js_name = "SettingFile")]
-pub struct JsSettingFile<'a> {
+pub struct JsSettingFile {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -2692,8 +2595,8 @@ pub struct JsSettingFile<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub Path: Option<String>,
     pub Hash: Option<String>,
     pub Size: Option<i32>,
@@ -2704,10 +2607,8 @@ pub struct JsSettingFile<'a> {
     pub rb_file_size_dirty: Option<i32>,
 }
 
-impl IntoJs for SettingFile {
-    type Out<'a> = JsSettingFile<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsSettingFile> for SettingFile {
+    fn into(self) -> JsSettingFile {
         JsSettingFile {
             ID: self.ID,
             UUID: self.UUID,
@@ -2717,8 +2618,8 @@ impl IntoJs for SettingFile {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             Path: self.Path,
             Hash: self.Hash,
             Size: self.Size,
@@ -2731,7 +2632,7 @@ impl IntoJs for SettingFile {
     }
 }
 
-impl From<JsSettingFile<'_>> for SettingFile {
+impl From<JsSettingFile> for SettingFile {
     fn from(model: JsSettingFile) -> Self {
         SettingFile {
             ID: model.ID,
@@ -2742,8 +2643,8 @@ impl From<JsSettingFile<'_>> for SettingFile {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             Path: model.Path,
             Hash: model.Hash,
             Size: model.Size,
@@ -2757,7 +2658,7 @@ impl From<JsSettingFile<'_>> for SettingFile {
 }
 
 #[napi(object, js_name = "UuidIDMap")]
-pub struct JsUuidIDMap<'a> {
+pub struct JsUuidIDMap {
     pub ID: String,
     pub UUID: String,
     pub rb_data_status: i32,
@@ -2766,17 +2667,15 @@ pub struct JsUuidIDMap<'a> {
     pub rb_local_synced: i32,
     pub usn: Option<i32>,
     pub rb_local_usn: Option<i32>,
-    pub created_at: JsDate<'a>,
-    pub updated_at: JsDate<'a>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub TableName: Option<String>,
     pub TargetUUID: Option<String>,
     pub CurrentID: Option<String>,
 }
 
-impl IntoJs for UuidIDMap {
-    type Out<'a> = JsUuidIDMap<'a>;
-
-    fn into_js(self, env: &Env) -> Self::Out<'_> {
+impl Into<JsUuidIDMap> for UuidIDMap {
+    fn into(self) -> JsUuidIDMap {
         JsUuidIDMap {
             ID: self.ID,
             UUID: self.UUID,
@@ -2786,8 +2685,8 @@ impl IntoJs for UuidIDMap {
             rb_local_synced: self.rb_local_synced,
             usn: self.usn,
             rb_local_usn: self.rb_local_usn,
-            created_at: datetime_to_js_date(env, &self.created_at),
-            updated_at: datetime_to_js_date(env, &self.updated_at),
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
             TableName: self.TableName,
             TargetUUID: self.TargetUUID,
             CurrentID: self.CurrentID,
@@ -2795,7 +2694,7 @@ impl IntoJs for UuidIDMap {
     }
 }
 
-impl From<JsUuidIDMap<'_>> for UuidIDMap {
+impl From<JsUuidIDMap> for UuidIDMap {
     fn from(model: JsUuidIDMap) -> Self {
         UuidIDMap {
             ID: model.ID,
@@ -2806,8 +2705,8 @@ impl From<JsUuidIDMap<'_>> for UuidIDMap {
             rb_local_synced: model.rb_local_synced,
             usn: model.usn,
             rb_local_usn: model.rb_local_usn,
-            created_at: js_date_to_datetime(model.created_at),
-            updated_at: js_date_to_datetime(model.updated_at),
+            created_at: model.created_at.clone(),
+            updated_at: model.updated_at.clone(),
             TableName: model.TableName,
             TargetUUID: model.TargetUUID,
             CurrentID: model.CurrentID,
