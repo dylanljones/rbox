@@ -12,8 +12,6 @@ use diesel::prelude::*;
 use diesel::serialize::{IsNull, Output, Result as SResult, ToSql};
 use diesel::sql_types::Text;
 use diesel::{AsExpression, FromSqlRow};
-use serde::{Deserialize, Serialize, Serializer};
-
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -77,17 +75,7 @@ where
 /// * SyncSettingsRootPath
 /// * LangPath
 ///
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, AsChangeset)]
 #[diesel(table_name = schema::agentRegistry)]
 #[diesel(primary_key(registry_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -129,17 +117,7 @@ pub struct AgentRegistry {
 /// This struct maps to the `CloudAgentRegistry` table in the SQLite database used by Rekordbox.
 /// It contains similar fields as the [`AgentRegistry`], but is specifically used for cloud-related
 /// registry entries.
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::cloudAgentRegistry)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -191,18 +169,7 @@ pub struct CloudAgentRegistry {
 ///
 /// This struct maps to the `ContentActiveCensor` table in the SQLite database used by Rekordbox.
 /// It contains the active censor entries [`DjmdActiveCensor`] of a file as stringified JSON data.
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::contentActiveCensor)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -244,18 +211,7 @@ pub struct ContentActiveCensor {
 ///
 /// This struct maps to the `ContentCue` table in the SQLite database used by Rekordbox.
 /// It contains the cue entry [`DjmdCue`] of a file as stringified JSON data.
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::contentCue)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -298,18 +254,7 @@ pub struct ContentCue {
 /// This struct maps to the `ContentFile` table in the SQLite database used by Rekordbox.
 /// It contains metadata and attributes of the additional file of contents. These include
 /// the analysis and artwork files linked to a track
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::contentFile)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -375,18 +320,7 @@ pub struct ContentFile {
 /// It contains information for actively censoring explicit content of tracks in the Rekordbox
 /// collection. Active Censor items behave like two cue points, between which an effect is applied
 /// to the audio of a track.
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdActiveCensor)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -435,18 +369,7 @@ pub struct DjmdActiveCensor {
 /// This struct maps to the `DjmdAlbum` table in the SQLite database used by Rekordbox.
 /// It stores album-related data, allowing multiple tracks to be associated with the same album.
 /// This table includes metadata such as album name, artist, and compilation status.
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdAlbum)]
 #[diesel(primary_key(ID))]
 pub struct DjmdAlbum {
@@ -539,18 +462,7 @@ impl DjmdAlbum {
 ///
 /// This struct maps to the `DjmdArtist` table in the SQLite database used by Rekordbox.
 /// It stores artist-related data, allowing multiple tracks to be associated with the same artist.
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdArtist)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -624,18 +536,7 @@ impl DjmdArtist {
     }
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdCategory)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -661,18 +562,7 @@ pub struct DjmdCategory {
     pub InfoOrder: Option<i32>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdColor)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -696,19 +586,7 @@ pub struct DjmdColor {
     pub Commnt: Option<String>,
 }
 
-#[derive(
-    Queryable,
-    QueryableByName,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdContent)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -898,18 +776,7 @@ impl DjmdContent {
     }
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdCue)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -950,18 +817,7 @@ pub struct DjmdCue {
     pub ContentUUID: Option<String>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdDevice)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -985,18 +841,7 @@ pub struct DjmdDevice {
     pub Name: Option<String>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdGenre)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1043,18 +888,7 @@ impl DjmdGenre {
     }
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdHistory)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1081,18 +915,7 @@ pub struct DjmdHistory {
     pub DateCreated: Option<String>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdSongHistory)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1117,18 +940,7 @@ pub struct DjmdSongHistory {
     pub TrackNo: Option<i32>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdHotCueBanklist)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1155,18 +967,7 @@ pub struct DjmdHotCueBanklist {
     pub ParentID: Option<String>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdSongHotCueBanklist)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1208,18 +1009,7 @@ pub struct DjmdSongHotCueBanklist {
     pub HotCueBanklistUUID: Option<String>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::hotCueBanklistCue)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1244,18 +1034,7 @@ pub struct HotCueBanklistCue {
     pub rb_cue_count: Option<i32>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdKey)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1305,18 +1084,7 @@ impl DjmdKey {
     }
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdLabel)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1363,18 +1131,7 @@ impl DjmdLabel {
     }
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdMenuItems)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1398,18 +1155,7 @@ pub struct DjmdMenuItems {
     pub Name: Option<String>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdMixerParam)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1436,18 +1182,7 @@ pub struct DjmdMixerParam {
     pub PeakLow: Option<i32>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdMyTag)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1473,18 +1208,7 @@ pub struct DjmdMyTag {
     pub ParentID: Option<String>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdSongMyTag)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1509,18 +1233,7 @@ pub struct DjmdSongMyTag {
     pub TrackNo: Option<i32>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdPlaylist)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1582,19 +1295,7 @@ impl DjmdPlaylist {
     }
 }
 
-fn serialize_rc_vec<S>(
-    vec: &Vec<Rc<RefCell<DjmdPlaylistTreeItem>>>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    let serializable_vec: Vec<DjmdPlaylistTreeItem> =
-        vec.iter().map(|item| item.borrow().clone()).collect();
-    serializable_vec.serialize(serializer)
-}
-
-#[derive(Serialize, PartialEq, Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct DjmdPlaylistTreeItem {
     pub ID: String,
     pub UUID: String,
@@ -1613,8 +1314,6 @@ pub struct DjmdPlaylistTreeItem {
     pub Attribute: Option<i32>,
     pub ParentID: Option<String>,
     pub SmartList: Option<String>,
-
-    #[serde(serialize_with = "serialize_rc_vec")]
     pub Children: Vec<Rc<RefCell<Self>>>,
 }
 
@@ -1644,18 +1343,7 @@ impl DjmdPlaylistTreeItem {
     }
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdSongPlaylist)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1708,18 +1396,7 @@ impl DjmdSongPlaylist {
     }
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdProperty)]
 #[diesel(primary_key(DBID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1742,18 +1419,7 @@ pub struct DjmdProperty {
     pub updated_at: Date,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdCloudProperty)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1780,18 +1446,7 @@ pub struct DjmdCloudProperty {
     pub Reserved5: Option<String>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdRecommendLike)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1818,18 +1473,7 @@ pub struct DjmdRecommendLike {
     pub DataCreatedL: Option<i32>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdRelatedTracks)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1856,18 +1500,7 @@ pub struct DjmdRelatedTracks {
     pub Criteria: Option<String>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdSongRelatedTracks)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1892,18 +1525,7 @@ pub struct DjmdSongRelatedTracks {
     pub TrackNo: Option<i32>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdSampler)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1929,18 +1551,7 @@ pub struct DjmdSampler {
     pub ParentID: Option<String>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdSongSampler)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -1965,18 +1576,7 @@ pub struct DjmdSongSampler {
     pub TrackNo: Option<i32>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdSongTagList)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -2000,18 +1600,7 @@ pub struct DjmdSongTagList {
     pub TrackNo: Option<i32>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdSort)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -2036,18 +1625,7 @@ pub struct DjmdSort {
     pub Disable: Option<i32>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::imageFile)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -2085,18 +1663,7 @@ pub struct ImageFile {
     pub rb_file_size_dirty: Option<i32>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::settingFile)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -2126,18 +1693,7 @@ pub struct SettingFile {
     pub rb_file_size_dirty: Option<i32>,
 }
 
-#[derive(
-    Queryable,
-    Selectable,
-    Identifiable,
-    AsChangeset,
-    Insertable,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Debug,
-    Clone,
-)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::uuidIDMap)]
 #[diesel(primary_key(ID))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
