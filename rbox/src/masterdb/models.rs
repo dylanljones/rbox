@@ -119,13 +119,13 @@ pub struct AgentRegistry {
 /// registry entries.
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::cloudAgentRegistry)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct CloudAgentRegistry {
     /// A unique identifier for the entry.
-    pub ID: String,
+    pub id: String,
     /// A unique universal identifier for the entry.
-    pub UUID: String,
+    pub uuid: String,
     /// An integer representing the data status in Rekordbox.
     pub rb_data_status: i32,
     /// An integer representing the local data status in Rekordbox.
@@ -171,13 +171,13 @@ pub struct CloudAgentRegistry {
 /// It contains the active censor entries [`DjmdActiveCensor`] of a file as stringified JSON data.
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::contentActiveCensor)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct ContentActiveCensor {
     /// A unique identifier for the entry.
-    pub ID: String,
+    pub id: String,
     /// A unique universal identifier for the entry.
-    pub UUID: String,
+    pub uuid: String,
     /// An integer representing the data status in Rekordbox.
     pub rb_data_status: i32,
     /// An integer representing the local data status in Rekordbox.
@@ -199,10 +199,10 @@ pub struct ContentActiveCensor {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the ID of the associated [`DjmdContent`].
-    pub ContentID: Option<String>,
+    /// An optional string representing the id of the associated [`DjmdContent`].
+    pub content_id: Option<String>,
     /// An optional string representing the active censors.
-    pub ActiveCensors: Option<String>,
+    pub active_censors: Option<String>,
     /// An optional integer representing the count of active censors.
     pub rb_activecensor_count: Option<i32>,
 }
@@ -213,13 +213,13 @@ pub struct ContentActiveCensor {
 /// It contains the cue entry [`DjmdCue`] of a file as stringified JSON data.
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::contentCue)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct ContentCue {
     /// A unique identifier for the entry.
-    pub ID: String,
+    pub id: String,
     /// A unique universal identifier for the entry.
-    pub UUID: String,
+    pub uuid: String,
     /// An integer representing the data status in Rekordbox.
     pub rb_data_status: i32,
     /// An integer representing the local data status in Rekordbox.
@@ -241,10 +241,10 @@ pub struct ContentCue {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the ID of the associated [`DjmdContent`].
-    pub ContentID: Option<String>,
+    /// An optional string representing the id of the associated [`DjmdContent`].
+    pub content_id: Option<String>,
     /// An optional string representing the cues.
-    pub Cues: Option<String>,
+    pub cues: Option<String>,
     /// An optional integer representing the count of cues.
     pub rb_cue_count: Option<i32>,
 }
@@ -256,13 +256,13 @@ pub struct ContentCue {
 /// the analysis and artwork files linked to a track
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::contentFile)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct ContentFile {
     /// A unique identifier for the entry.
-    pub ID: String,
+    pub id: String,
     /// A unique universal identifier for the entry.
-    pub UUID: String,
+    pub uuid: String,
     /// An integer representing the data status in Rekordbox.
     pub rb_data_status: i32,
     /// An integer representing the local data status in Rekordbox.
@@ -284,14 +284,14 @@ pub struct ContentFile {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the ID of the associated [`DjmdContent`].
-    pub ContentID: Option<String>,
+    /// An optional string representing the id of the associated [`DjmdContent`].
+    pub content_id: Option<String>,
     /// An optional string representing the file path.
-    pub Path: Option<String>,
+    pub path: Option<String>,
     /// An optional string representing the file hash.
-    pub Hash: Option<String>,
+    pub hash: Option<String>,
     /// An optional integer representing the file size.
-    pub Size: Option<i32>,
+    pub size: Option<i32>,
     /// An optional string representing the local file path.
     pub rb_local_path: Option<String>,
     /// An optional string representing the in-sync file hash.
@@ -322,13 +322,13 @@ pub struct ContentFile {
 /// to the audio of a track.
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdActiveCensor)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdActiveCensor {
     /// A unique identifier for the entry.
-    pub ID: String,
+    pub id: String,
     /// A unique universal identifier for the entry.
-    pub UUID: String,
+    pub uuid: String,
     /// An integer representing the data status in Rekordbox.
     pub rb_data_status: i32,
     /// An integer representing the local data status in Rekordbox.
@@ -350,18 +350,18 @@ pub struct DjmdActiveCensor {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the ID of the associated [`DjmdContent`].
-    pub ContentID: Option<String>,
+    /// An optional string representing the id of the associated [`DjmdContent`].
+    pub content_id: Option<String>,
     /// An optional integer representing the start time of the censor in milliseconds.
-    pub InMsec: Option<i32>,
+    pub in_msec: Option<i32>,
     /// An optional integer representing the end time of the censor in milliseconds.
-    pub OutMsec: Option<i32>,
+    pub out_msec: Option<i32>,
     /// An optional integer representing additional information about the censor.
-    pub Info: Option<i32>,
+    pub info: Option<i32>,
     /// An optional string representing the list of parameters for the censor.
-    pub ParameterList: Option<String>,
-    /// An optional string representing the UUID of the associated [`DjmdContent`].
-    pub ContentUUID: Option<String>,
+    pub parameter_list: Option<String>,
+    /// An optional string representing the uuid of the associated [`DjmdContent`].
+    pub content_uuid: Option<String>,
 }
 
 /// Represents the `DjmdAlbum` table in the Rekordbox database.
@@ -371,12 +371,12 @@ pub struct DjmdActiveCensor {
 /// This table includes metadata such as album name, artist, and compilation status.
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdAlbum)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 pub struct DjmdAlbum {
     /// A unique identifier for the entry.
-    pub ID: String,
+    pub id: String,
     /// A unique universal identifier for the entry.
-    pub UUID: String,
+    pub uuid: String,
     /// An integer representing the data status in Rekordbox.
     pub rb_data_status: i32,
     /// An integer representing the local data status in Rekordbox.
@@ -399,15 +399,15 @@ pub struct DjmdAlbum {
     pub updated_at: Date,
 
     /// An optional string representing the name of the album.
-    pub Name: Option<String>,
-    /// An optional string representing the ID of the album artist [`DjmdArtist`].
-    pub AlbumArtistID: Option<String>,
+    pub name: Option<String>,
+    /// An optional string representing the id of the album artist [`DjmdArtist`].
+    pub album_artist_id: Option<String>,
     /// An optional string representing the path to the album's image.
-    pub ImagePath: Option<String>,
+    pub image_path: Option<String>,
     /// An optional integer indicating whether the album is a compilation.
-    pub Compilation: Option<i32>,
+    pub compilation: Option<i32>,
     /// An optional string used for searching the album.
-    pub SearchStr: Option<String>,
+    pub search_str: Option<String>,
 }
 
 impl DjmdAlbum {
@@ -439,8 +439,8 @@ impl DjmdAlbum {
     ) -> anyhow::Result<Self> {
         let comp = compilation.unwrap_or(0);
         Ok(Self {
-            ID: id.clone(),
-            UUID: uuid.clone(),
+            id: id.clone(),
+            uuid: uuid.clone(),
             rb_data_status: 0,
             rb_local_data_status: 0,
             rb_local_deleted: 0,
@@ -449,11 +449,11 @@ impl DjmdAlbum {
             rb_local_usn: Some(usn.clone()),
             created_at: now.clone(),
             updated_at: now.clone(),
-            Name: Some(name.clone()),
-            AlbumArtistID: artist_id.clone(),
-            ImagePath: image_path.clone(),
-            Compilation: Some(comp),
-            SearchStr: None,
+            name: Some(name.clone()),
+            album_artist_id: artist_id.clone(),
+            image_path: image_path.clone(),
+            compilation: Some(comp),
+            search_str: None,
         })
     }
 }
@@ -464,13 +464,13 @@ impl DjmdAlbum {
 /// It stores artist-related data, allowing multiple tracks to be associated with the same artist.
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdArtist)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdArtist {
     /// A unique identifier for the entry.
-    pub ID: String,
+    pub id: String,
     /// A unique universal identifier for the entry.
-    pub UUID: String,
+    pub uuid: String,
     /// An integer representing the data status in Rekordbox.
     pub rb_data_status: i32,
     /// An integer representing the local data status in Rekordbox.
@@ -493,9 +493,9 @@ pub struct DjmdArtist {
     pub updated_at: Date,
 
     /// An optional string representing the name of the artist.
-    pub Name: Option<String>,
+    pub name: Option<String>,
     /// An optional string used for searching the artist.
-    pub SearchStr: Option<String>,
+    pub search_str: Option<String>,
 }
 
 impl DjmdArtist {
@@ -520,8 +520,8 @@ impl DjmdArtist {
         name: String,
     ) -> anyhow::Result<Self> {
         Ok(Self {
-            ID: id.clone(),
-            UUID: uuid.clone(),
+            id: id.clone(),
+            uuid: uuid.clone(),
             rb_data_status: 0,
             rb_local_data_status: 0,
             rb_local_deleted: 0,
@@ -530,19 +530,19 @@ impl DjmdArtist {
             rb_local_usn: Some(usn.clone()),
             created_at: now.clone(),
             updated_at: now.clone(),
-            Name: Some(name.clone()),
-            SearchStr: None,
+            name: Some(name.clone()),
+            search_str: None,
         })
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdCategory)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdCategory {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -556,19 +556,19 @@ pub struct DjmdCategory {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub MenuItemID: Option<String>,
-    pub Seq: Option<i32>,
-    pub Disable: Option<i32>,
-    pub InfoOrder: Option<i32>,
+    pub menu_item_id: Option<String>,
+    pub seq: Option<i32>,
+    pub disable: Option<i32>,
+    pub info_order: Option<i32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdColor)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdColor {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -581,18 +581,18 @@ pub struct DjmdColor {
     #[diesel(serialize_as = DateString)]
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
-    pub ColorCode: Option<String>,
-    pub SortKey: Option<i32>,
-    pub Commnt: Option<String>,
+    pub color_code: Option<String>,
+    pub sort_key: Option<i32>,
+    pub commnt: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdContent)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdContent {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -606,74 +606,74 @@ pub struct DjmdContent {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub FolderPath: Option<String>,
-    pub FileNameL: Option<String>,
-    pub FileNameS: Option<String>,
-    pub Title: Option<String>,
-    pub ArtistID: Option<String>,
-    pub AlbumID: Option<String>,
-    pub GenreID: Option<String>,
-    pub BPM: Option<i32>,
-    pub Length: Option<i32>,
-    pub TrackNo: Option<i32>,
-    pub BitRate: Option<i32>,
-    pub BitDepth: Option<i32>,
-    pub Commnt: Option<String>,
-    pub FileType: Option<i32>,
-    pub Rating: Option<i32>,
-    pub ReleaseYear: Option<i32>,
-    pub RemixerID: Option<String>,
-    pub LabelID: Option<String>,
-    pub OrgArtistID: Option<String>,
-    pub KeyID: Option<String>,
-    pub StockDate: Option<String>,
-    pub ColorID: Option<String>,
-    pub DJPlayCount: Option<i32>,
-    pub ImagePath: Option<String>,
-    pub MasterDBID: Option<String>,
-    pub MasterSongID: Option<String>,
-    pub AnalysisDataPath: Option<String>,
-    pub SearchStr: Option<String>,
-    pub FileSize: Option<i32>,
-    pub DiscNo: Option<i32>,
-    pub ComposerID: Option<String>,
-    pub Subtitle: Option<String>,
-    pub SampleRate: Option<i32>,
-    pub DisableQuantize: Option<i32>,
-    pub Analysed: Option<i32>,
-    pub ReleaseDate: Option<String>,
-    pub DateCreated: Option<String>,
-    pub ContentLink: Option<i32>,
-    pub Tag: Option<String>,
-    pub ModifiedByRBM: Option<String>,
-    pub HotCueAutoLoad: Option<String>,
-    pub DeliveryControl: Option<String>,
-    pub DeliveryComment: Option<String>,
-    pub CueUpdated: Option<String>,
-    pub AnalysisUpdated: Option<String>,
-    pub TrackInfoUpdated: Option<String>,
-    pub Lyricist: Option<String>,
-    pub ISRC: Option<String>,
-    pub SamplerTrackInfo: Option<i32>,
-    pub SamplerPlayOffset: Option<i32>,
-    pub SamplerGain: Option<f64>,
-    pub VideoAssociate: Option<String>,
-    pub LyricStatus: Option<i32>,
-    pub ServiceID: Option<i32>,
-    pub OrgFolderPath: Option<String>,
-    pub Reserved1: Option<String>,
-    pub Reserved2: Option<String>,
-    pub Reserved3: Option<String>,
-    pub Reserved4: Option<String>,
-    pub ExtInfo: Option<String>,
+    pub folder_path: Option<String>,
+    pub file_name_l: Option<String>,
+    pub file_name_s: Option<String>,
+    pub title: Option<String>,
+    pub artist_id: Option<String>,
+    pub album_id: Option<String>,
+    pub genre_id: Option<String>,
+    pub bpm: Option<i32>,
+    pub length: Option<i32>,
+    pub track_no: Option<i32>,
+    pub bit_rate: Option<i32>,
+    pub bit_depth: Option<i32>,
+    pub commnt: Option<String>,
+    pub file_type: Option<i32>,
+    pub rating: Option<i32>,
+    pub release_year: Option<i32>,
+    pub remixer_id: Option<String>,
+    pub label_id: Option<String>,
+    pub org_artist_id: Option<String>,
+    pub key_id: Option<String>,
+    pub stock_date: Option<String>,
+    pub color_id: Option<String>,
+    pub dj_play_count: Option<i32>,
+    pub image_path: Option<String>,
+    pub master_db_id: Option<String>,
+    pub master_song_id: Option<String>,
+    pub analysis_data_path: Option<String>,
+    pub search_str: Option<String>,
+    pub file_size: Option<i32>,
+    pub disc_no: Option<i32>,
+    pub composer_id: Option<String>,
+    pub subtitle: Option<String>,
+    pub sample_rate: Option<i32>,
+    pub disable_quantize: Option<i32>,
+    pub analysed: Option<i32>,
+    pub release_date: Option<String>,
+    pub date_created: Option<String>,
+    pub content_link: Option<i32>,
+    pub tag: Option<String>,
+    pub modified_by_rbm: Option<String>,
+    pub hot_cue_auto_load: Option<String>,
+    pub delivery_control: Option<String>,
+    pub delivery_comment: Option<String>,
+    pub cue_updated: Option<String>,
+    pub analysis_updated: Option<String>,
+    pub track_info_updated: Option<String>,
+    pub lyricist: Option<String>,
+    pub isrc: Option<String>,
+    pub sampler_track_info: Option<i32>,
+    pub sampler_play_offset: Option<i32>,
+    pub sampler_gain: Option<f64>,
+    pub video_associate: Option<String>,
+    pub lyric_status: Option<i32>,
+    pub service_id: Option<i32>,
+    pub org_folder_path: Option<String>,
+    pub reserved1: Option<String>,
+    pub reserved2: Option<String>,
+    pub reserved3: Option<String>,
+    pub reserved4: Option<String>,
+    pub ext_info: Option<String>,
     pub rb_file_id: Option<String>,
-    pub DeviceID: Option<String>,
-    pub rb_LocalFolderPath: Option<String>,
-    pub SrcID: Option<String>,
-    pub SrcTitle: Option<String>,
-    pub SrcArtistName: Option<String>,
-    pub SrcAlbumName: Option<String>,
-    pub SrcLength: Option<i32>,
+    pub device_id: Option<String>,
+    pub rb__local_folder_path: Option<String>,
+    pub src_id: Option<String>,
+    pub src_title: Option<String>,
+    pub src_artist_name: Option<String>,
+    pub src_album_name: Option<String>,
+    pub src_length: Option<i32>,
 }
 
 impl DjmdContent {
@@ -693,8 +693,8 @@ impl DjmdContent {
         let hot_cue_auto_load = "on".to_string();
         let deliver_control = "on".to_string();
         Ok(Self {
-            ID: id.clone(),
-            UUID: uuid.clone(),
+            id: id.clone(),
+            uuid: uuid.clone(),
             rb_data_status: 0,
             rb_local_data_status: 0,
             rb_local_deleted: 0,
@@ -704,85 +704,85 @@ impl DjmdContent {
             created_at: now.clone(),
             updated_at: now.clone(),
 
-            FolderPath: Some(path.clone()),
-            FileNameL: Some(file_name.clone()),
-            FileNameS: Some("".to_string()),
-            Title: None,
-            ArtistID: None,
-            AlbumID: None,
-            GenreID: None,
-            BPM: None,
-            Length: None,
-            TrackNo: None,
-            BitRate: None,
-            BitDepth: None,
-            Commnt: None,
-            FileType: Some(file_type),
-            Rating: None,
-            ReleaseYear: None,
-            RemixerID: None,
-            LabelID: None,
-            OrgArtistID: None,
-            KeyID: None,
-            StockDate: None,
-            ColorID: None,
-            DJPlayCount: None,
-            ImagePath: None,
-            MasterDBID: Some(db_id),
-            MasterSongID: Some(id),
-            AnalysisDataPath: None,
-            SearchStr: None,
-            FileSize: Some(size),
-            DiscNo: None,
-            ComposerID: None,
-            Subtitle: None,
-            SampleRate: None,
-            DisableQuantize: None,
-            Analysed: None,
-            ReleaseDate: None,
-            DateCreated: None,
-            ContentLink: content_link,
-            Tag: None,
-            ModifiedByRBM: None,
-            HotCueAutoLoad: Some(hot_cue_auto_load),
-            DeliveryControl: Some(deliver_control),
-            DeliveryComment: None,
-            CueUpdated: None,
-            AnalysisUpdated: None,
-            TrackInfoUpdated: None,
-            Lyricist: None,
-            ISRC: None,
-            SamplerTrackInfo: Some(0),
-            SamplerPlayOffset: Some(0),
-            SamplerGain: Some(0.0),
-            VideoAssociate: None,
-            LyricStatus: Some(0),
-            ServiceID: Some(0),
-            OrgFolderPath: None,
-            Reserved1: None,
-            Reserved2: None,
-            Reserved3: None,
-            Reserved4: None,
-            ExtInfo: None,
+            folder_path: Some(path.clone()),
+            file_name_l: Some(file_name.clone()),
+            file_name_s: Some("".to_string()),
+            title: None,
+            artist_id: None,
+            album_id: None,
+            genre_id: None,
+            bpm: None,
+            length: None,
+            track_no: None,
+            bit_rate: None,
+            bit_depth: None,
+            commnt: None,
+            file_type: Some(file_type),
+            rating: None,
+            release_year: None,
+            remixer_id: None,
+            label_id: None,
+            org_artist_id: None,
+            key_id: None,
+            stock_date: None,
+            color_id: None,
+            dj_play_count: None,
+            image_path: None,
+            master_db_id: Some(db_id),
+            master_song_id: Some(id),
+            analysis_data_path: None,
+            search_str: None,
+            file_size: Some(size),
+            disc_no: None,
+            composer_id: None,
+            subtitle: None,
+            sample_rate: None,
+            disable_quantize: None,
+            analysed: None,
+            release_date: None,
+            date_created: None,
+            content_link: content_link,
+            tag: None,
+            modified_by_rbm: None,
+            hot_cue_auto_load: Some(hot_cue_auto_load),
+            delivery_control: Some(deliver_control),
+            delivery_comment: None,
+            cue_updated: None,
+            analysis_updated: None,
+            track_info_updated: None,
+            lyricist: None,
+            isrc: None,
+            sampler_track_info: Some(0),
+            sampler_play_offset: Some(0),
+            sampler_gain: Some(0.0),
+            video_associate: None,
+            lyric_status: Some(0),
+            service_id: Some(0),
+            org_folder_path: None,
+            reserved1: None,
+            reserved2: None,
+            reserved3: None,
+            reserved4: None,
+            ext_info: None,
             rb_file_id: Some(file_id),
-            DeviceID: None,
-            rb_LocalFolderPath: None,
-            SrcID: None,
-            SrcTitle: None,
-            SrcArtistName: None,
-            SrcAlbumName: None,
-            SrcLength: None,
+            device_id: None,
+            rb__local_folder_path: None,
+            src_id: None,
+            src_title: None,
+            src_artist_name: None,
+            src_album_name: None,
+            src_length: None,
         })
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdCue)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdCue {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -796,34 +796,34 @@ pub struct DjmdCue {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub ContentID: Option<String>,
-    pub InMsec: Option<i32>,
-    pub InFrame: Option<i32>,
-    pub InMpegFrame: Option<i32>,
-    pub InMpegAbs: Option<i32>,
-    pub OutMsec: Option<i32>,
-    pub OutFrame: Option<i32>,
-    pub OutMpegFrame: Option<i32>,
-    pub OutMpegAbs: Option<i32>,
-    pub Kind: Option<i32>,
-    pub Color: Option<i32>,
-    pub ColorTableIndex: Option<i32>,
-    pub ActiveLoop: Option<i32>,
-    pub Comment: Option<String>,
-    pub BeatLoopSize: Option<i32>,
-    pub CueMicrosec: Option<i32>,
-    pub InPointSeekInfo: Option<String>,
-    pub OutPointSeekInfo: Option<String>,
-    pub ContentUUID: Option<String>,
+    pub content_id: Option<String>,
+    pub in_msec: Option<i32>,
+    pub in_frame: Option<i32>,
+    pub in_mpeg_frame: Option<i32>,
+    pub in_mpeg_abs: Option<i32>,
+    pub out_msec: Option<i32>,
+    pub out_frame: Option<i32>,
+    pub out_mpeg_frame: Option<i32>,
+    pub out_mpeg_abs: Option<i32>,
+    pub kind: Option<i32>,
+    pub color: Option<i32>,
+    pub color_table_index: Option<i32>,
+    pub active_loop: Option<i32>,
+    pub comment: Option<String>,
+    pub beat_loop_size: Option<i32>,
+    pub cue_microsec: Option<i32>,
+    pub in_point_seek_info: Option<String>,
+    pub out_point_seek_info: Option<String>,
+    pub content_uuid: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdDevice)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdDevice {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -837,17 +837,17 @@ pub struct DjmdDevice {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub MasterDBID: Option<String>,
-    pub Name: Option<String>,
+    pub master_db_id: Option<String>,
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdGenre)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdGenre {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -861,7 +861,7 @@ pub struct DjmdGenre {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub Name: Option<String>,
+    pub name: Option<String>,
 }
 
 impl DjmdGenre {
@@ -873,8 +873,8 @@ impl DjmdGenre {
         name: String,
     ) -> anyhow::Result<Self> {
         Ok(Self {
-            ID: id.clone(),
-            UUID: uuid.clone(),
+            id: id.clone(),
+            uuid: uuid.clone(),
             rb_data_status: 0,
             rb_local_data_status: 0,
             rb_local_deleted: 0,
@@ -883,18 +883,18 @@ impl DjmdGenre {
             rb_local_usn: Some(usn.clone()),
             created_at: now.clone(),
             updated_at: now.clone(),
-            Name: Some(name.clone()),
+            name: Some(name.clone()),
         })
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdHistory)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdHistory {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -908,20 +908,20 @@ pub struct DjmdHistory {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub Seq: Option<i32>,
-    pub Name: Option<String>,
-    pub Attribute: Option<i32>,
-    pub ParentID: Option<String>,
-    pub DateCreated: Option<String>,
+    pub seq: Option<i32>,
+    pub name: Option<String>,
+    pub attribute: Option<i32>,
+    pub parent_id: Option<String>,
+    pub date_created: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdSongHistory)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdSongHistory {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -935,18 +935,18 @@ pub struct DjmdSongHistory {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub HistoryID: Option<String>,
-    pub ContentID: Option<String>,
-    pub TrackNo: Option<i32>,
+    pub history_id: Option<String>,
+    pub content_id: Option<String>,
+    pub track_no: Option<i32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdHotCueBanklist)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdHotCueBanklist {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -960,20 +960,20 @@ pub struct DjmdHotCueBanklist {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub Seq: Option<i32>,
-    pub Name: Option<String>,
-    pub ImagePath: Option<String>,
-    pub Attribute: Option<i32>,
-    pub ParentID: Option<String>,
+    pub seq: Option<i32>,
+    pub name: Option<String>,
+    pub image_path: Option<String>,
+    pub attribute: Option<i32>,
+    pub parent_id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdSongHotCueBanklist)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdSongHotCueBanklist {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -987,35 +987,35 @@ pub struct DjmdSongHotCueBanklist {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub ContentID: Option<String>,
-    pub TrackNo: Option<i32>,
-    pub CueID: Option<String>,
-    pub InMsec: Option<i32>,
-    pub InFrame: Option<i32>,
-    pub InMpegFrame: Option<i32>,
-    pub InMpegAbs: Option<i32>,
-    pub OutMsec: Option<i32>,
-    pub OutFrame: Option<i32>,
-    pub OutMpegFrame: Option<i32>,
-    pub OutMpegAbs: Option<i32>,
-    pub Color: Option<i32>,
-    pub ColorTableIndex: Option<i32>,
-    pub ActiveLoop: Option<i32>,
-    pub Comment: Option<String>,
-    pub BeatLoopSize: Option<i32>,
-    pub CueMicrosec: Option<i32>,
-    pub InPointSeekInfo: Option<String>,
-    pub OutPointSeekInfo: Option<String>,
-    pub HotCueBanklistUUID: Option<String>,
+    pub content_id: Option<String>,
+    pub track_no: Option<i32>,
+    pub cue_id: Option<String>,
+    pub in_msec: Option<i32>,
+    pub in_frame: Option<i32>,
+    pub in_mpeg_frame: Option<i32>,
+    pub in_mpeg_abs: Option<i32>,
+    pub out_msec: Option<i32>,
+    pub out_frame: Option<i32>,
+    pub out_mpeg_frame: Option<i32>,
+    pub out_mpeg_abs: Option<i32>,
+    pub color: Option<i32>,
+    pub color_table_index: Option<i32>,
+    pub active_loop: Option<i32>,
+    pub comment: Option<String>,
+    pub beat_loop_size: Option<i32>,
+    pub cue_microsec: Option<i32>,
+    pub in_point_seek_info: Option<String>,
+    pub out_point_seek_info: Option<String>,
+    pub hot_cue_banklist_uuid: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::hotCueBanklistCue)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct HotCueBanklistCue {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1029,18 +1029,18 @@ pub struct HotCueBanklistCue {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub HotCueBanklistID: Option<String>,
-    pub Cues: Option<String>,
+    pub hot_cue_banklist_id: Option<String>,
+    pub cues: Option<String>,
     pub rb_cue_count: Option<i32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdKey)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdKey {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1054,8 +1054,8 @@ pub struct DjmdKey {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub ScaleName: Option<String>,
-    pub Seq: Option<i32>,
+    pub scale_name: Option<String>,
+    pub seq: Option<i32>,
 }
 
 impl DjmdKey {
@@ -1068,8 +1068,8 @@ impl DjmdKey {
         seq: i32,
     ) -> anyhow::Result<Self> {
         Ok(Self {
-            ID: id.clone(),
-            UUID: uuid.clone(),
+            id: id.clone(),
+            uuid: uuid.clone(),
             rb_data_status: 0,
             rb_local_data_status: 0,
             rb_local_deleted: 0,
@@ -1078,19 +1078,19 @@ impl DjmdKey {
             rb_local_usn: Some(usn.clone()),
             created_at: now.clone(),
             updated_at: now.clone(),
-            ScaleName: Some(name.clone()),
-            Seq: Some(seq.clone()),
+            scale_name: Some(name.clone()),
+            seq: Some(seq.clone()),
         })
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdLabel)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdLabel {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1104,7 +1104,7 @@ pub struct DjmdLabel {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub Name: Option<String>,
+    pub name: Option<String>,
 }
 
 impl DjmdLabel {
@@ -1116,8 +1116,8 @@ impl DjmdLabel {
         name: String,
     ) -> anyhow::Result<Self> {
         Ok(Self {
-            ID: id.clone(),
-            UUID: uuid.clone(),
+            id: id.clone(),
+            uuid: uuid.clone(),
             rb_data_status: 0,
             rb_local_data_status: 0,
             rb_local_deleted: 0,
@@ -1126,18 +1126,18 @@ impl DjmdLabel {
             rb_local_usn: Some(usn.clone()),
             created_at: now.clone(),
             updated_at: now.clone(),
-            Name: Some(name.clone()),
+            name: Some(name.clone()),
         })
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdMenuItems)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdMenuItems {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1151,17 +1151,17 @@ pub struct DjmdMenuItems {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub Class: Option<i32>,
-    pub Name: Option<String>,
+    pub class: Option<i32>,
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdMixerParam)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdMixerParam {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1175,20 +1175,20 @@ pub struct DjmdMixerParam {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub ContentID: Option<String>,
-    pub GainHigh: Option<i32>,
-    pub GainLow: Option<i32>,
-    pub PeakHigh: Option<i32>,
-    pub PeakLow: Option<i32>,
+    pub content_id: Option<String>,
+    pub gain_high: Option<i32>,
+    pub gain_low: Option<i32>,
+    pub peak_high: Option<i32>,
+    pub peak_low: Option<i32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdMyTag)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdMyTag {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1202,19 +1202,19 @@ pub struct DjmdMyTag {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub Seq: Option<i32>,
-    pub Name: Option<String>,
-    pub Attribute: Option<i32>,
-    pub ParentID: Option<String>,
+    pub seq: Option<i32>,
+    pub name: Option<String>,
+    pub attribute: Option<i32>,
+    pub parent_id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdSongMyTag)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdSongMyTag {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1228,18 +1228,18 @@ pub struct DjmdSongMyTag {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub MyTagID: Option<String>,
-    pub ContentID: Option<String>,
-    pub TrackNo: Option<i32>,
+    pub my_tag_id: Option<String>,
+    pub content_id: Option<String>,
+    pub track_no: Option<i32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdPlaylist)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdPlaylist {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1253,12 +1253,12 @@ pub struct DjmdPlaylist {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub Seq: Option<i32>,
-    pub Name: Option<String>,
-    pub ImagePath: Option<String>,
-    pub Attribute: Option<i32>,
-    pub ParentID: Option<String>,
-    pub SmartList: Option<String>,
+    pub seq: Option<i32>,
+    pub name: Option<String>,
+    pub image_path: Option<String>,
+    pub attribute: Option<i32>,
+    pub parent_id: Option<String>,
+    pub smart_list: Option<String>,
 }
 
 impl DjmdPlaylist {
@@ -1275,8 +1275,8 @@ impl DjmdPlaylist {
         smart_list: Option<String>,
     ) -> anyhow::Result<Self> {
         Ok(Self {
-            ID: id.clone(),
-            UUID: uuid.clone(),
+            id: id.clone(),
+            uuid: uuid.clone(),
             rb_data_status: 0,
             rb_local_data_status: 0,
             rb_local_deleted: 0,
@@ -1285,20 +1285,20 @@ impl DjmdPlaylist {
             rb_local_usn: Some(usn.clone()),
             created_at: now.clone(),
             updated_at: now.clone(),
-            Seq: Some(seq.clone()),
-            Name: Some(name.clone()),
-            ImagePath: image_path.clone(),
-            Attribute: Some(attribute.clone()),
-            ParentID: Some(parent_id.clone()),
-            SmartList: smart_list.clone(),
+            seq: Some(seq.clone()),
+            name: Some(name.clone()),
+            image_path: image_path.clone(),
+            attribute: Some(attribute.clone()),
+            parent_id: Some(parent_id.clone()),
+            smart_list: smart_list.clone(),
         })
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DjmdPlaylistTreeItem {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1308,20 +1308,20 @@ pub struct DjmdPlaylistTreeItem {
     pub created_at: Date,
     pub updated_at: Date,
 
-    pub Seq: Option<i32>,
-    pub Name: Option<String>,
-    pub ImagePath: Option<String>,
-    pub Attribute: Option<i32>,
-    pub ParentID: Option<String>,
-    pub SmartList: Option<String>,
-    pub Children: Vec<Rc<RefCell<Self>>>,
+    pub seq: Option<i32>,
+    pub name: Option<String>,
+    pub image_path: Option<String>,
+    pub attribute: Option<i32>,
+    pub parent_id: Option<String>,
+    pub smart_list: Option<String>,
+    pub children: Vec<Rc<RefCell<Self>>>,
 }
 
 impl DjmdPlaylistTreeItem {
     pub fn from_playlist(playlist: DjmdPlaylist) -> Self {
         Self {
-            ID: playlist.ID,
-            UUID: playlist.UUID,
+            id: playlist.id,
+            uuid: playlist.uuid,
             rb_data_status: playlist.rb_data_status,
             rb_local_data_status: playlist.rb_local_data_status,
             rb_local_deleted: playlist.rb_local_deleted,
@@ -1331,25 +1331,25 @@ impl DjmdPlaylistTreeItem {
             created_at: playlist.created_at,
             updated_at: playlist.updated_at,
 
-            Seq: playlist.Seq,
-            Name: playlist.Name,
-            ImagePath: playlist.ImagePath,
-            Attribute: playlist.Attribute,
-            ParentID: playlist.ParentID,
-            SmartList: playlist.SmartList,
+            seq: playlist.seq,
+            name: playlist.name,
+            image_path: playlist.image_path,
+            attribute: playlist.attribute,
+            parent_id: playlist.parent_id,
+            smart_list: playlist.smart_list,
 
-            Children: Vec::new(),
+            children: Vec::new(),
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdSongPlaylist)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdSongPlaylist {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1363,9 +1363,9 @@ pub struct DjmdSongPlaylist {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub PlaylistID: Option<String>,
-    pub ContentID: Option<String>,
-    pub TrackNo: Option<i32>,
+    pub playlist_id: Option<String>,
+    pub content_id: Option<String>,
+    pub track_no: Option<i32>,
 }
 
 impl DjmdSongPlaylist {
@@ -1379,8 +1379,8 @@ impl DjmdSongPlaylist {
         seq: i32,
     ) -> anyhow::Result<Self> {
         Ok(Self {
-            ID: id.clone(),
-            UUID: uuid.clone(),
+            id: id.clone(),
+            uuid: uuid.clone(),
             rb_data_status: 0,
             rb_local_data_status: 0,
             rb_local_deleted: 0,
@@ -1389,28 +1389,28 @@ impl DjmdSongPlaylist {
             rb_local_usn: Some(usn.clone()),
             created_at: now.clone(),
             updated_at: now.clone(),
-            PlaylistID: Some(playlist_id.clone()),
-            ContentID: Some(content_id.clone()),
-            TrackNo: Some(seq.clone()),
+            playlist_id: Some(playlist_id.clone()),
+            content_id: Some(content_id.clone()),
+            track_no: Some(seq.clone()),
         })
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdProperty)]
-#[diesel(primary_key(DBID))]
+#[diesel(primary_key(db_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdProperty {
-    pub DBID: String,
-    pub DBVersion: Option<String>,
-    pub BaseDBDrive: Option<String>,
-    pub CurrentDBDrive: Option<String>,
-    pub DeviceID: Option<String>,
-    pub Reserved1: Option<String>,
-    pub Reserved2: Option<String>,
-    pub Reserved3: Option<String>,
-    pub Reserved4: Option<String>,
-    pub Reserved5: Option<String>,
+    pub db_id: String,
+    pub db_version: Option<String>,
+    pub base_db_drive: Option<String>,
+    pub current_db_drive: Option<String>,
+    pub device_id: Option<String>,
+    pub reserved1: Option<String>,
+    pub reserved2: Option<String>,
+    pub reserved3: Option<String>,
+    pub reserved4: Option<String>,
+    pub reserved5: Option<String>,
     #[diesel(serialize_as = DateString)]
     #[diesel(deserialize_as = DateString)]
     pub created_at: Date,
@@ -1421,11 +1421,11 @@ pub struct DjmdProperty {
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdCloudProperty)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdCloudProperty {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1439,20 +1439,20 @@ pub struct DjmdCloudProperty {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub Reserved1: Option<String>,
-    pub Reserved2: Option<String>,
-    pub Reserved3: Option<String>,
-    pub Reserved4: Option<String>,
-    pub Reserved5: Option<String>,
+    pub reserved1: Option<String>,
+    pub reserved2: Option<String>,
+    pub reserved3: Option<String>,
+    pub reserved4: Option<String>,
+    pub reserved5: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdRecommendLike)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdRecommendLike {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1466,20 +1466,20 @@ pub struct DjmdRecommendLike {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub ContentID1: Option<String>,
-    pub ContentID2: Option<String>,
-    pub LikeRate: Option<i32>,
-    pub DataCreatedH: Option<i32>,
-    pub DataCreatedL: Option<i32>,
+    pub content_id1: Option<String>,
+    pub content_id2: Option<String>,
+    pub like_rate: Option<i32>,
+    pub data_created_h: Option<i32>,
+    pub data_created_l: Option<i32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdRelatedTracks)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdRelatedTracks {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1493,20 +1493,20 @@ pub struct DjmdRelatedTracks {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub Seq: Option<i32>,
-    pub Name: Option<String>,
-    pub Attribute: Option<i32>,
-    pub ParentID: Option<String>,
-    pub Criteria: Option<String>,
+    pub seq: Option<i32>,
+    pub name: Option<String>,
+    pub attribute: Option<i32>,
+    pub parent_id: Option<String>,
+    pub criteria: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdSongRelatedTracks)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdSongRelatedTracks {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1520,18 +1520,18 @@ pub struct DjmdSongRelatedTracks {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub RelatedTracksID: Option<String>,
-    pub ContentID: Option<String>,
-    pub TrackNo: Option<i32>,
+    pub related_tracks_id: Option<String>,
+    pub content_id: Option<String>,
+    pub track_no: Option<i32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdSampler)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdSampler {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1545,19 +1545,19 @@ pub struct DjmdSampler {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub Seq: Option<i32>,
-    pub Name: Option<String>,
-    pub Attribute: Option<i32>,
-    pub ParentID: Option<String>,
+    pub seq: Option<i32>,
+    pub name: Option<String>,
+    pub attribute: Option<i32>,
+    pub parent_id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdSongSampler)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdSongSampler {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1571,18 +1571,18 @@ pub struct DjmdSongSampler {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub SamplerID: Option<String>,
-    pub ContentID: Option<String>,
-    pub TrackNo: Option<i32>,
+    pub sampler_id: Option<String>,
+    pub content_id: Option<String>,
+    pub track_no: Option<i32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdSongTagList)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdSongTagList {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1596,17 +1596,17 @@ pub struct DjmdSongTagList {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub ContentID: Option<String>,
-    pub TrackNo: Option<i32>,
+    pub content_id: Option<String>,
+    pub track_no: Option<i32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdSort)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdSort {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1620,18 +1620,18 @@ pub struct DjmdSort {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub MenuItemID: Option<String>,
-    pub Seq: Option<i32>,
-    pub Disable: Option<i32>,
+    pub menu_item_id: Option<String>,
+    pub seq: Option<i32>,
+    pub disable: Option<i32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::imageFile)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct ImageFile {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1645,12 +1645,12 @@ pub struct ImageFile {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub TableName: Option<String>,
-    pub TargetUUID: Option<String>,
-    pub TargetID: Option<String>,
-    pub Path: Option<String>,
-    pub Hash: Option<String>,
-    pub Size: Option<i32>,
+    pub table_name: Option<String>,
+    pub target_uuid: Option<String>,
+    pub target_id: Option<String>,
+    pub path: Option<String>,
+    pub hash: Option<String>,
+    pub size: Option<i32>,
     pub rb_local_path: Option<String>,
     pub rb_insync_hash: Option<String>,
     pub rb_insync_local_usn: Option<i32>,
@@ -1665,11 +1665,11 @@ pub struct ImageFile {
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::settingFile)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct SettingFile {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1683,9 +1683,9 @@ pub struct SettingFile {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub Path: Option<String>,
-    pub Hash: Option<String>,
-    pub Size: Option<i32>,
+    pub path: Option<String>,
+    pub hash: Option<String>,
+    pub size: Option<i32>,
     pub rb_local_path: Option<String>,
     pub rb_insync_hash: Option<String>,
     pub rb_insync_local_usn: Option<i32>,
@@ -1695,11 +1695,11 @@ pub struct SettingFile {
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::uuidIDMap)]
-#[diesel(primary_key(ID))]
+#[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct UuidIDMap {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1713,7 +1713,7 @@ pub struct UuidIDMap {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    pub TableName: Option<String>,
-    pub TargetUUID: Option<String>,
-    pub CurrentID: Option<String>,
+    pub table_name: Option<String>,
+    pub target_uuid: Option<String>,
+    pub current_id: Option<String>,
 }

@@ -712,7 +712,7 @@ export interface DjmdContent {
   colorId?: string
   djPlayCount?: number
   imagePath?: string
-  masterDbid?: string
+  masterDbId?: string
   masterSongId?: string
   analysisDataPath?: string
   searchStr?: string
@@ -801,7 +801,7 @@ export interface DjmdDevice {
   rbLocalUsn?: number
   createdAt: Date
   updatedAt: Date
-  masterDbid?: string
+  masterDbId?: string
   name?: string
 }
 
@@ -974,7 +974,7 @@ export interface DjmdPlaylistTreeItem {
 }
 
 export interface DjmdProperty {
-  dbid: string
+  dbId: string
   dbVersion?: string
   baseDbDrive?: string
   currentDbDrive?: string

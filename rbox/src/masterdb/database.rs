@@ -363,7 +363,7 @@ impl MasterDb {
         id: &str,
     ) -> Result<Option<CloudAgentRegistry>> {
         let result = cloudAgentRegistry
-            .filter(schema::cloudAgentRegistry::ID.eq(id))
+            .filter(schema::cloudAgentRegistry::id.eq(id))
             .first::<CloudAgentRegistry>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -419,7 +419,7 @@ impl MasterDb {
         id: &str,
     ) -> Result<Option<ContentActiveCensor>> {
         let result = contentActiveCensor
-            .filter(schema::contentActiveCensor::ID.eq(id))
+            .filter(schema::contentActiveCensor::id.eq(id))
             .first::<ContentActiveCensor>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -472,7 +472,7 @@ impl MasterDb {
     /// ```
     pub fn get_content_cue_by_id(&mut self, id: &str) -> Result<Option<ContentCue>> {
         let result = contentCue
-            .filter(schema::contentCue::ID.eq(id))
+            .filter(schema::contentCue::id.eq(id))
             .first::<ContentCue>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -525,7 +525,7 @@ impl MasterDb {
     /// ```
     pub fn get_content_file_by_id(&mut self, id: &str) -> Result<Option<ContentFile>> {
         let result = contentFile
-            .filter(schema::contentFile::ID.eq(id))
+            .filter(schema::contentFile::id.eq(id))
             .first::<ContentFile>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -578,7 +578,7 @@ impl MasterDb {
     /// ```
     pub fn get_active_censor_by_id(&mut self, id: &str) -> Result<Option<DjmdActiveCensor>> {
         let result = djmdActiveCensor
-            .filter(schema::djmdActiveCensor::ID.eq(id))
+            .filter(schema::djmdActiveCensor::id.eq(id))
             .first::<DjmdActiveCensor>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -631,7 +631,7 @@ impl MasterDb {
     /// ```
     pub fn get_album_by_id(&mut self, id: &str) -> Result<Option<DjmdAlbum>> {
         let result: Option<DjmdAlbum> = djmdAlbum
-            .filter(schema::djmdAlbum::ID.eq(id))
+            .filter(schema::djmdAlbum::id.eq(id))
             .first(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -662,7 +662,7 @@ impl MasterDb {
     /// ```
     pub fn get_album_by_name(&mut self, name: &str) -> Result<Option<DjmdAlbum>> {
         let results: Vec<DjmdAlbum> = djmdAlbum
-            .filter(schema::djmdAlbum::Name.eq(name))
+            .filter(schema::djmdAlbum::name.eq(name))
             .load(&mut self.conn)?;
         let n = results.len();
         if n == 0 {
@@ -684,7 +684,7 @@ impl MasterDb {
     /// # Returns
     /// * `Result<bool>` - Returns `true` if the album exists, `false` otherwise.
     fn album_exists(&mut self, id: &String) -> Result<bool> {
-        let id_exists: bool = select(exists(djmdAlbum.filter(schema::djmdAlbum::ID.eq(id))))
+        let id_exists: bool = select(exists(djmdAlbum.filter(schema::djmdAlbum::id.eq(id))))
             .get_result(&mut self.conn)?;
         Ok(id_exists)
     }
@@ -825,7 +825,7 @@ impl MasterDb {
     /// ```no_run
     /// let mut db = MasterDb::open().unwrap();
     /// let mut album = db.get_album_by_id("some_id").unwrap().unwrap();
-    /// album.Name = "New Album Name".to_string();
+    /// album.name = "New Album Name".to_string();
     /// let updated_album = db.update_album(&mut album).unwrap();
     /// println!("{:?}", updated_album);
     /// ```
@@ -837,21 +837,21 @@ impl MasterDb {
             ));
         }
         // Count differences
-        let existing: DjmdAlbum = self.get_album_by_id(&item.ID)?.unwrap();
+        let existing: DjmdAlbum = self.get_album_by_id(&item.id)?.unwrap();
         let mut n: i32 = 0;
-        if item.Name != existing.Name {
+        if item.name != existing.name {
             n += 1
         }
-        if item.AlbumArtistID != existing.AlbumArtistID {
+        if item.album_artist_id != existing.album_artist_id {
             n += 1
         }
-        if item.ImagePath != existing.ImagePath {
+        if item.image_path != existing.image_path {
             n += 1
         }
-        if item.Compilation != existing.Compilation {
+        if item.compilation != existing.compilation {
             n += 1
         }
-        if item.SearchStr != existing.SearchStr {
+        if item.search_str != existing.search_str {
             n += 1
         }
         if n == 0 {
@@ -899,12 +899,12 @@ impl MasterDb {
                 "Rekordbox is running, unsafe writes are not allowed!"
             ));
         }
-        let result = diesel::delete(djmdAlbum.filter(schema::djmdAlbum::ID.eq(id)))
+        let result = diesel::delete(djmdAlbum.filter(schema::djmdAlbum::id.eq(id)))
             .execute(&mut self.conn)?;
 
         // Remove any references to the album in DjmdContent
-        let _ = diesel::update(djmdContent.filter(schema::djmdContent::AlbumID.eq(id)))
-            .set(schema::djmdContent::AlbumID.eq(None::<String>))
+        let _ = diesel::update(djmdContent.filter(schema::djmdContent::album_id.eq(id)))
+            .set(schema::djmdContent::album_id.eq(None::<String>))
             .execute(&mut self.conn)?;
 
         let _ = self.increment_local_usn(1);
@@ -958,7 +958,7 @@ impl MasterDb {
     /// ```
     pub fn get_artist_by_id(&mut self, id: &str) -> Result<Option<DjmdArtist>> {
         let result: Option<DjmdArtist> = djmdArtist
-            .filter(schema::djmdArtist::ID.eq(id))
+            .filter(schema::djmdArtist::id.eq(id))
             .first(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -989,7 +989,7 @@ impl MasterDb {
     /// ```
     pub fn get_artist_by_name(&mut self, name: &str) -> Result<Option<DjmdArtist>> {
         let results: Vec<DjmdArtist> = djmdArtist
-            .filter(schema::djmdArtist::Name.eq(name))
+            .filter(schema::djmdArtist::name.eq(name))
             .load(&mut self.conn)?;
         let n = results.len();
         if n == 0 {
@@ -1011,7 +1011,7 @@ impl MasterDb {
     /// # Returns
     /// * `Result<bool>` - Returns `true` if the artist exists, `false` otherwise.
     fn artist_exists(&mut self, id: &String) -> Result<bool> {
-        let id_exists: bool = select(exists(djmdArtist.filter(schema::djmdArtist::ID.eq(id))))
+        let id_exists: bool = select(exists(djmdArtist.filter(schema::djmdArtist::id.eq(id))))
             .get_result(&mut self.conn)?;
         Ok(id_exists)
     }
@@ -1129,7 +1129,7 @@ impl MasterDb {
     /// ```no_run
     /// let mut db = MasterDb::open().unwrap();
     /// let mut artist = db.get_artist_by_id("some_id").unwrap().unwrap();
-    /// artist.Name = "New Artist Name".to_string();
+    /// artist.name = "New Artist Name".to_string();
     /// let updated_artist = db.update_artist(&mut artist).unwrap();
     /// println!("{:?}", updated_artist);
     /// ```
@@ -1141,12 +1141,12 @@ impl MasterDb {
             ));
         }
         // Count differences
-        let existing: DjmdArtist = self.get_artist_by_id(&item.ID)?.unwrap();
+        let existing: DjmdArtist = self.get_artist_by_id(&item.id)?.unwrap();
         let mut n: i32 = 0;
-        if item.Name != existing.Name {
+        if item.name != existing.name {
             n += 1
         }
-        if item.SearchStr != existing.SearchStr {
+        if item.search_str != existing.search_str {
             n += 1
         }
         if n == 0 {
@@ -1195,21 +1195,21 @@ impl MasterDb {
                 "Rekordbox is running, unsafe writes are not allowed!"
             ));
         }
-        let result: usize = diesel::delete(djmdArtist.filter(schema::djmdArtist::ID.eq(id)))
+        let result: usize = diesel::delete(djmdArtist.filter(schema::djmdArtist::id.eq(id)))
             .execute(&mut self.conn)?;
         self.increment_local_usn(1)?;
 
         // Remove any references to the artist in DjmdContent
-        let _ = diesel::update(djmdContent.filter(schema::djmdContent::ArtistID.eq(id)))
-            .set(schema::djmdContent::ArtistID.eq(None::<String>))
+        let _ = diesel::update(djmdContent.filter(schema::djmdContent::artist_id.eq(id)))
+            .set(schema::djmdContent::artist_id.eq(None::<String>))
             .execute(&mut self.conn)?;
-        let _ = diesel::update(djmdContent.filter(schema::djmdContent::OrgArtistID.eq(id)))
-            .set(schema::djmdContent::OrgArtistID.eq(None::<String>))
+        let _ = diesel::update(djmdContent.filter(schema::djmdContent::org_artist_id.eq(id)))
+            .set(schema::djmdContent::org_artist_id.eq(None::<String>))
             .execute(&mut self.conn)?;
 
         // Remove any references to the artist in DjmdAlbum
-        let _ = diesel::update(djmdAlbum.filter(schema::djmdAlbum::AlbumArtistID.eq(id)))
-            .set(schema::djmdAlbum::AlbumArtistID.eq(None::<String>))
+        let _ = diesel::update(djmdAlbum.filter(schema::djmdAlbum::album_artist_id.eq(id)))
+            .set(schema::djmdAlbum::album_artist_id.eq(None::<String>))
             .execute(&mut self.conn)?;
 
         Ok(result)
@@ -1236,7 +1236,7 @@ impl MasterDb {
     /// ```
     pub fn get_category(&mut self) -> Result<Vec<DjmdCategory>> {
         let results = djmdCategory
-            .order_by(schema::djmdCategory::Seq)
+            .order_by(schema::djmdCategory::seq)
             .load::<DjmdCategory>(&mut self.conn)?;
         Ok(results)
     }
@@ -1264,7 +1264,7 @@ impl MasterDb {
     /// ```
     pub fn get_category_by_id(&mut self, id: &str) -> Result<Option<DjmdCategory>> {
         let result = djmdCategory
-            .filter(schema::djmdCategory::ID.eq(id))
+            .filter(schema::djmdCategory::id.eq(id))
             .first::<DjmdCategory>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -1291,7 +1291,7 @@ impl MasterDb {
     /// ```
     pub fn get_color(&mut self) -> Result<Vec<DjmdColor>> {
         let results = djmdColor
-            .order_by(schema::djmdColor::SortKey)
+            .order_by(schema::djmdColor::sort_key)
             .load::<DjmdColor>(&mut self.conn)?;
         Ok(results)
     }
@@ -1319,7 +1319,7 @@ impl MasterDb {
     /// ```
     pub fn get_color_by_id(&mut self, id: &str) -> Result<Option<DjmdColor>> {
         let result = djmdColor
-            .filter(schema::djmdColor::ID.eq(id))
+            .filter(schema::djmdColor::id.eq(id))
             .first::<DjmdColor>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -1372,7 +1372,7 @@ impl MasterDb {
     /// ```
     pub fn get_content_by_id(&mut self, id: &str) -> Result<Option<DjmdContent>> {
         let result = djmdContent
-            .filter(schema::djmdContent::ID.eq(id))
+            .filter(schema::djmdContent::id.eq(id))
             .first::<DjmdContent>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -1401,7 +1401,7 @@ impl MasterDb {
         let mut result: Vec<DjmdContent> = Vec::new();
         for id in ids {
             let content = djmdContent
-                .filter(schema::djmdContent::ID.eq(id))
+                .filter(schema::djmdContent::id.eq(id))
                 .first::<DjmdContent>(&mut self.conn)
                 .optional()?;
 
@@ -1435,7 +1435,7 @@ impl MasterDb {
     /// ```
     pub fn get_content_by_path(&mut self, path: &str) -> Result<Option<DjmdContent>> {
         let result = djmdContent
-            .filter(schema::djmdContent::FolderPath.eq(path))
+            .filter(schema::djmdContent::folder_path.eq(path))
             .first::<DjmdContent>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -1463,8 +1463,8 @@ impl MasterDb {
             return Err(anyhow::anyhow!("Share dir not set!"));
         }
         let result = djmdContent
-            .filter(schema::djmdContent::ID.eq(id))
-            .select(schema::djmdContent::AnalysisDataPath)
+            .filter(schema::djmdContent::id.eq(id))
+            .select(schema::djmdContent::analysis_data_path)
             .first::<Option<String>>(&mut self.conn)?;
         if let Some(result) = result {
             // Strip first "/" in result
@@ -1565,7 +1565,7 @@ impl MasterDb {
     /// # Returns
     /// * `Result<bool>` - Returns `true` if the content exists, `false` otherwise.
     fn content_exists(&mut self, id: &String) -> Result<bool> {
-        let id_exists: bool = select(exists(djmdContent.filter(schema::djmdContent::ID.eq(id))))
+        let id_exists: bool = select(exists(djmdContent.filter(schema::djmdContent::id.eq(id))))
             .get_result(&mut self.conn)?;
         Ok(id_exists)
     }
@@ -1579,7 +1579,7 @@ impl MasterDb {
     /// * `Result<bool>` - Returns `true` if the content exists, `false` otherwise.
     fn content_path_exists(&mut self, path: &str) -> Result<bool> {
         let exists: bool = select(exists(
-            djmdContent.filter(schema::djmdContent::FolderPath.eq(path)),
+            djmdContent.filter(schema::djmdContent::folder_path.eq(path)),
         ))
         .get_result(&mut self.conn)?;
         Ok(exists)
@@ -1711,14 +1711,14 @@ impl MasterDb {
         let file_name = path.file_name().unwrap().to_str().unwrap().to_string();
         // Get master DB ID
         let db_id = djmdDevice
-            .select(schema::djmdDevice::MasterDBID)
+            .select(schema::djmdDevice::master_db_id)
             .first::<Option<String>>(&mut self.conn)?;
         if db_id.is_none() {
             return Err(anyhow::anyhow!("No master DB ID found in djmdDevice"));
         }
         // TODO: No clue what content link should be, for now we just choose the last value used
         let content_link = djmdContent
-            .select(schema::djmdContent::ContentLink)
+            .select(schema::djmdContent::content_link)
             .order(schema::djmdContent::rb_local_usn.desc())
             .limit(1)
             .first::<Option<i32>>(&mut self.conn)?;
@@ -1760,7 +1760,7 @@ impl MasterDb {
     /// ```no_run
     /// let mut db = MasterDb::open().unwrap();
     /// let mut content = db.get_content_by_id("some_id").unwrap().unwrap();
-    /// content.Title = "New Title".to_string();
+    /// content.title = "New Title".to_string();
     /// let rows_updated = db.update_content(&content).unwrap();
     /// println!("Rows updated: {}", rows_updated);
     /// ```
@@ -1779,7 +1779,7 @@ impl MasterDb {
 
     /// Update the content album field.
     ///
-    /// Sets the [DjmdContent.AlbumID] to the corresponding ID of the album.
+    /// Sets the [DjmdContent.album_id] to the corresponding ID of the album.
     /// If the album does not exist yet, a new [DjmdAlbum] row will be created.
     pub fn update_content_album(&mut self, content_id: &str, name: &str) -> Result<usize> {
         // Check if Rekordbox is running
@@ -1790,15 +1790,15 @@ impl MasterDb {
         }
         let album = self.insert_album_if_not_exists(name)?;
 
-        let result = diesel::update(djmdContent.filter(schema::djmdContent::ID.eq(content_id)))
-            .set(schema::djmdContent::AlbumID.eq(album.ID.clone()))
+        let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
+            .set(schema::djmdContent::album_id.eq(album.id.clone()))
             .execute(&mut self.conn)?;
         Ok(result)
     }
 
     /// Update the content artist name.
     ///
-    /// Sets the [DjmdContent.ArtistID] to the corresponding ID of the artist.
+    /// Sets the [DjmdContent.artist_id] to the corresponding ID of the artist.
     /// If the artist does not exist yet, a new [DjmdArtist] row will be created.
     pub fn update_content_artist(&mut self, content_id: &str, name: &str) -> Result<usize> {
         // Check if Rekordbox is running
@@ -1809,15 +1809,15 @@ impl MasterDb {
         }
         let artist = self.insert_artist_if_not_exists(name)?;
 
-        let result = diesel::update(djmdContent.filter(schema::djmdContent::ID.eq(content_id)))
-            .set(schema::djmdContent::ArtistID.eq(artist.ID.clone()))
+        let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
+            .set(schema::djmdContent::artist_id.eq(artist.id.clone()))
             .execute(&mut self.conn)?;
         Ok(result)
     }
 
     /// Update the content remixer name.
     ///
-    /// Sets the [DjmdContent.RemixerID] to the corresponding ID of the artist.
+    /// Sets the [DjmdContent.remixer_id] to the corresponding ID of the artist.
     /// If the artist does not exist yet, a new [DjmdArtist] row will be created.
     pub fn update_content_remixer(&mut self, content_id: &str, name: &str) -> Result<usize> {
         // Check if Rekordbox is running
@@ -1828,15 +1828,15 @@ impl MasterDb {
         }
         let artist = self.insert_artist_if_not_exists(name)?;
 
-        let result = diesel::update(djmdContent.filter(schema::djmdContent::ID.eq(content_id)))
-            .set(schema::djmdContent::RemixerID.eq(artist.ID.clone()))
+        let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
+            .set(schema::djmdContent::remixer_id.eq(artist.id.clone()))
             .execute(&mut self.conn)?;
         Ok(result)
     }
 
     /// Update the content original artist name.
     ///
-    /// Sets the [DjmdContent.OrgArtistID] to the corresponding ID of the artist.
+    /// Sets the [DjmdContent.org_artist_id] to the corresponding ID of the artist.
     /// If the artist does not exist yet, a new [DjmdArtist] row will be created.
     pub fn update_content_original_artist(
         &mut self,
@@ -1851,15 +1851,15 @@ impl MasterDb {
         }
         let artist = self.insert_artist_if_not_exists(name)?;
 
-        let result = diesel::update(djmdContent.filter(schema::djmdContent::ID.eq(content_id)))
-            .set(schema::djmdContent::OrgArtistID.eq(artist.ID.clone()))
+        let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
+            .set(schema::djmdContent::org_artist_id.eq(artist.id.clone()))
             .execute(&mut self.conn)?;
         Ok(result)
     }
 
     /// Update the content composer name.
     ///
-    /// Sets the [DjmdContent.ComposerID] to the corresponding ID of the artist.
+    /// Sets the [DjmdContent.composer_id] to the corresponding ID of the artist.
     /// If the artist does not exist yet, a new [DjmdArtist] row will be created.
     pub fn update_content_composer(&mut self, content_id: &str, name: &str) -> Result<usize> {
         // Check if Rekordbox is running
@@ -1870,15 +1870,15 @@ impl MasterDb {
         }
         let artist = self.insert_artist_if_not_exists(name)?;
 
-        let result = diesel::update(djmdContent.filter(schema::djmdContent::ID.eq(content_id)))
-            .set(schema::djmdContent::ComposerID.eq(artist.ID.clone()))
+        let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
+            .set(schema::djmdContent::composer_id.eq(artist.id.clone()))
             .execute(&mut self.conn)?;
         Ok(result)
     }
 
     /// Update the content genre name.
     ///
-    /// Sets the [DjmdContent.GenreID] to the corresponding ID of the genre.
+    /// Sets the [DjmdContent.genre_id] to the corresponding ID of the genre.
     /// If the genre does not exist yet, a new [DjmdGenre] row will be created.
     pub fn update_content_genre(&mut self, content_id: &str, name: &str) -> Result<usize> {
         // Check if Rekordbox is running
@@ -1889,15 +1889,15 @@ impl MasterDb {
         }
         let genre = self.insert_genre_if_not_exists(name)?;
 
-        let result = diesel::update(djmdContent.filter(schema::djmdContent::ID.eq(content_id)))
-            .set(schema::djmdContent::GenreID.eq(genre.ID.clone()))
+        let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
+            .set(schema::djmdContent::genre_id.eq(genre.id.clone()))
             .execute(&mut self.conn)?;
         Ok(result)
     }
 
     /// Update the content label name.
     ///
-    /// Sets the [DjmdContent.LabelID] to the corresponding ID of the label.
+    /// Sets the [DjmdContent.label_id] to the corresponding ID of the label.
     /// If the label does not exist yet, a new [DjmdLabel] row will be created.
     pub fn update_content_label(&mut self, content_id: &str, name: &str) -> Result<usize> {
         // Check if Rekordbox is running
@@ -1908,15 +1908,15 @@ impl MasterDb {
         }
         let label = self.insert_label_if_not_exists(name)?;
 
-        let result = diesel::update(djmdContent.filter(schema::djmdContent::ID.eq(content_id)))
-            .set(schema::djmdContent::LabelID.eq(label.ID.clone()))
+        let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
+            .set(schema::djmdContent::label_id.eq(label.id.clone()))
             .execute(&mut self.conn)?;
         Ok(result)
     }
 
     /// Update the content key name.
     ///
-    /// Sets the [DjmdContent.KeyID] to the corresponding ID of the label.
+    /// Sets the [DjmdContent.key_id] to the corresponding ID of the label.
     /// If the key does not exist yet, a new [DjmdKey] row will be created.
     pub fn update_content_key(&mut self, content_id: &str, name: &str) -> Result<usize> {
         // Check if Rekordbox is running
@@ -1927,8 +1927,8 @@ impl MasterDb {
         }
         let key = self.insert_key_if_not_exists(name)?;
 
-        let result = diesel::update(djmdContent.filter(schema::djmdContent::ID.eq(content_id)))
-            .set(schema::djmdContent::KeyID.eq(key.ID.clone()))
+        let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
+            .set(schema::djmdContent::key_id.eq(key.id.clone()))
             .execute(&mut self.conn)?;
         Ok(result)
     }
@@ -1940,7 +1940,7 @@ impl MasterDb {
     //             "Rekordbox is running, unsafe writes are not allowed!"
     //         ));
     //     }
-    //     let result = diesel::delete(djmdContent.filter(schema::djmdContent::ID.eq(id)))
+    //     let result = diesel::delete(djmdContent.filter(schema::djmdContent::id.eq(id)))
     //         .execute(&mut self.conn)?;
     //     Ok(result)
     // }
@@ -1981,7 +1981,7 @@ impl MasterDb {
     /// ```
     pub fn get_cue_by_id(&mut self, id: &str) -> Result<Option<DjmdCue>> {
         let result = djmdCue
-            .filter(schema::djmdCue::ID.eq(id))
+            .filter(schema::djmdCue::id.eq(id))
             .first::<DjmdCue>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -2023,7 +2023,7 @@ impl MasterDb {
     /// ```
     pub fn get_device_by_id(&mut self, id: &str) -> Result<Option<DjmdDevice>> {
         let result = djmdDevice
-            .filter(schema::djmdDevice::ID.eq(id))
+            .filter(schema::djmdDevice::id.eq(id))
             .first::<DjmdDevice>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -2074,7 +2074,7 @@ impl MasterDb {
     /// ```
     pub fn get_genre_by_id(&mut self, id: &str) -> Result<Option<DjmdGenre>> {
         let result = djmdGenre
-            .filter(schema::djmdGenre::ID.eq(id))
+            .filter(schema::djmdGenre::id.eq(id))
             .first::<DjmdGenre>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -2104,7 +2104,7 @@ impl MasterDb {
     /// ```
     pub fn get_genre_by_name(&mut self, name: &str) -> Result<Option<DjmdGenre>> {
         let results: Vec<DjmdGenre> = djmdGenre
-            .filter(schema::djmdGenre::Name.eq(name))
+            .filter(schema::djmdGenre::name.eq(name))
             .load(&mut self.conn)?;
         let n = results.len();
         if n == 0 {
@@ -2126,7 +2126,7 @@ impl MasterDb {
     /// # Returns
     /// * `Result<bool>` - Returns `true` if the genre exists, `false` otherwise.
     fn genre_exists(&mut self, id: &String) -> Result<bool> {
-        let id_exists: bool = select(exists(djmdGenre.filter(schema::djmdGenre::ID.eq(id))))
+        let id_exists: bool = select(exists(djmdGenre.filter(schema::djmdGenre::id.eq(id))))
             .get_result(&mut self.conn)?;
         Ok(id_exists)
     }
@@ -2238,7 +2238,7 @@ impl MasterDb {
     /// # Example
     /// ```no_run
     /// let mut genre = db.get_genre_by_id("some_id").unwrap().unwrap();
-    /// genre.Name = "New Genre Name".to_string();
+    /// genre.name = "New Genre Name".to_string();
     /// let updated_genre = db.update_genre(&mut genre).unwrap();
     /// println!("{:?}", updated_genre);
     /// ```
@@ -2250,9 +2250,9 @@ impl MasterDb {
             ));
         }
         // Count differences
-        let existing: DjmdGenre = self.get_genre_by_id(&item.ID)?.unwrap();
+        let existing: DjmdGenre = self.get_genre_by_id(&item.id)?.unwrap();
         let mut n: i32 = 0;
-        if item.Name != existing.Name {
+        if item.name != existing.name {
             n += 1
         }
         if n == 0 {
@@ -2299,13 +2299,13 @@ impl MasterDb {
                 "Rekordbox is running, unsafe writes are not allowed!"
             ));
         }
-        let result = diesel::delete(djmdGenre.filter(schema::djmdGenre::ID.eq(id)))
+        let result = diesel::delete(djmdGenre.filter(schema::djmdGenre::id.eq(id)))
             .execute(&mut self.conn)?;
         self.increment_local_usn(1)?;
 
         // Remove any references to the genre in DjmdContent
-        let _ = diesel::update(djmdContent.filter(schema::djmdContent::GenreID.eq(id)))
-            .set(schema::djmdContent::GenreID.eq(None::<String>))
+        let _ = diesel::update(djmdContent.filter(schema::djmdContent::genre_id.eq(id)))
+            .set(schema::djmdContent::genre_id.eq(None::<String>))
             .execute(&mut self.conn)?;
 
         Ok(result)
@@ -2331,7 +2331,7 @@ impl MasterDb {
     /// ```
     pub fn get_history(&mut self) -> Result<Vec<DjmdHistory>> {
         let results = djmdHistory
-            .order_by(schema::djmdHistory::Seq)
+            .order_by(schema::djmdHistory::seq)
             .load::<DjmdHistory>(&mut self.conn)?;
         Ok(results)
     }
@@ -2358,7 +2358,7 @@ impl MasterDb {
     /// ```
     pub fn get_history_by_id(&mut self, id: &str) -> Result<Option<DjmdHistory>> {
         let result = djmdHistory
-            .filter(schema::djmdHistory::ID.eq(id))
+            .filter(schema::djmdHistory::id.eq(id))
             .first::<DjmdHistory>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -2384,8 +2384,8 @@ impl MasterDb {
     /// ```
     pub fn get_history_songs(&mut self, id: &str) -> Result<Vec<DjmdSongHistory>> {
         let results = schema::djmdSongHistory::table
-            .filter(schema::djmdSongHistory::HistoryID.eq(id))
-            .order_by(schema::djmdSongHistory::TrackNo)
+            .filter(schema::djmdSongHistory::history_id.eq(id))
+            .order_by(schema::djmdSongHistory::track_no)
             .load::<DjmdSongHistory>(&mut self.conn)?;
         Ok(results)
     }
@@ -2412,7 +2412,7 @@ impl MasterDb {
         let songs = self.get_history_songs(id)?;
         let ids: Vec<&str> = songs
             .iter()
-            .map(|s| s.ContentID.as_ref().unwrap().as_str())
+            .map(|s| s.content_id.as_ref().unwrap().as_str())
             .collect();
         let result = self.get_contents_by_ids(ids)?;
         Ok(result)
@@ -2463,7 +2463,7 @@ impl MasterDb {
     /// ```
     pub fn get_hot_cue_banklist_by_id(&mut self, id: &str) -> Result<Option<DjmdHotCueBanklist>> {
         let result = djmdHotCueBanklist
-            .filter(schema::djmdHotCueBanklist::ID.eq(id))
+            .filter(schema::djmdHotCueBanklist::id.eq(id))
             .first::<DjmdHotCueBanklist>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -2492,8 +2492,8 @@ impl MasterDb {
         parent_id: &str,
     ) -> Result<Vec<DjmdHotCueBanklist>> {
         let results = djmdHotCueBanklist
-            .filter(schema::djmdHotCueBanklist::ParentID.eq(parent_id))
-            .order_by(schema::djmdHotCueBanklist::Seq)
+            .filter(schema::djmdHotCueBanklist::parent_id.eq(parent_id))
+            .order_by(schema::djmdHotCueBanklist::seq)
             .load::<DjmdHotCueBanklist>(&mut self.conn)?;
         Ok(results)
     }
@@ -2518,8 +2518,8 @@ impl MasterDb {
     /// ```
     pub fn get_hot_cue_banklist_songs(&mut self, id: &str) -> Result<Vec<DjmdSongHotCueBanklist>> {
         let results = schema::djmdSongHotCueBanklist::table
-            .filter(schema::djmdSongHotCueBanklist::CueID.eq(id))
-            .order_by(schema::djmdSongHotCueBanklist::TrackNo)
+            .filter(schema::djmdSongHotCueBanklist::cue_id.eq(id))
+            .order_by(schema::djmdSongHotCueBanklist::track_no)
             .load::<DjmdSongHotCueBanklist>(&mut self.conn)?;
         Ok(results)
     }
@@ -2546,7 +2546,7 @@ impl MasterDb {
         let songs = self.get_hot_cue_banklist_songs(id)?;
         let ids: Vec<&str> = songs
             .iter()
-            .map(|s| s.ContentID.as_ref().unwrap().as_str())
+            .map(|s| s.content_id.as_ref().unwrap().as_str())
             .collect();
         let result = self.get_contents_by_ids(ids)?;
         Ok(result)
@@ -2572,7 +2572,7 @@ impl MasterDb {
     /// ```
     pub fn get_hot_cue_banklist_cues(&mut self, id: &str) -> Result<Vec<HotCueBanklistCue>> {
         let results = schema::hotCueBanklistCue::table
-            .filter(schema::hotCueBanklistCue::HotCueBanklistID.eq(id))
+            .filter(schema::hotCueBanklistCue::hot_cue_banklist_id.eq(id))
             .load::<HotCueBanklistCue>(&mut self.conn)?;
         Ok(results)
     }
@@ -2596,7 +2596,7 @@ impl MasterDb {
     /// ```
     pub fn get_key(&mut self) -> Result<Vec<DjmdKey>> {
         let results = djmdKey
-            .order_by(schema::djmdKey::Seq)
+            .order_by(schema::djmdKey::seq)
             .load::<DjmdKey>(&mut self.conn)?;
         Ok(results)
     }
@@ -2622,7 +2622,7 @@ impl MasterDb {
     /// ```
     pub fn get_key_by_id(&mut self, id: &str) -> Result<Option<DjmdKey>> {
         let result = djmdKey
-            .filter(schema::djmdKey::ID.eq(id))
+            .filter(schema::djmdKey::id.eq(id))
             .first::<DjmdKey>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -2650,7 +2650,7 @@ impl MasterDb {
     /// ```
     pub fn get_key_by_name(&mut self, name: &str) -> Result<Option<DjmdKey>> {
         let results: Vec<DjmdKey> = djmdKey
-            .filter(schema::djmdKey::ScaleName.eq(name))
+            .filter(schema::djmdKey::scale_name.eq(name))
             .load(&mut self.conn)?;
         let n = results.len();
         if n == 0 {
@@ -2672,7 +2672,7 @@ impl MasterDb {
     /// # Returns
     /// * `Result<bool>` - Returns `true` if the key exists, `false` otherwise.
     fn key_exists(&mut self, id: &String) -> Result<bool> {
-        let id_exists: bool = select(exists(djmdKey.filter(schema::djmdKey::ID.eq(id))))
+        let id_exists: bool = select(exists(djmdKey.filter(schema::djmdKey::id.eq(id))))
             .get_result(&mut self.conn)?;
         Ok(id_exists)
     }
@@ -2783,7 +2783,7 @@ impl MasterDb {
     /// # Example
     /// ```no_run
     /// let mut key = db.get_key_by_id("key_id").unwrap().unwrap();
-    /// key.ScaleName = "Dm".to_string();
+    /// key.scale_name = "Dm".to_string();
     /// let updated_key = db.update_key(&mut key).unwrap();
     /// println!("{:?}", updated_key);
     /// ```
@@ -2795,12 +2795,12 @@ impl MasterDb {
             ));
         }
         // Count differences
-        let existing: DjmdKey = self.get_key_by_id(&item.ID)?.unwrap();
+        let existing: DjmdKey = self.get_key_by_id(&item.id)?.unwrap();
         let mut n: i32 = 0;
-        if item.ScaleName != existing.ScaleName {
+        if item.scale_name != existing.scale_name {
             n += 1
         }
-        if item.Seq != existing.Seq {
+        if item.seq != existing.seq {
             n += 1
         }
         if n == 0 {
@@ -2848,12 +2848,12 @@ impl MasterDb {
             ));
         }
         let result =
-            diesel::delete(djmdKey.filter(schema::djmdKey::ID.eq(id))).execute(&mut self.conn)?;
+            diesel::delete(djmdKey.filter(schema::djmdKey::id.eq(id))).execute(&mut self.conn)?;
         self.increment_local_usn(1)?;
 
         // Remove any references to the key in DjmdContent
-        let _ = diesel::update(djmdContent.filter(schema::djmdContent::KeyID.eq(id)))
-            .set(schema::djmdContent::KeyID.eq(None::<String>))
+        let _ = diesel::update(djmdContent.filter(schema::djmdContent::key_id.eq(id)))
+            .set(schema::djmdContent::key_id.eq(None::<String>))
             .execute(&mut self.conn)?;
 
         Ok(result)
@@ -2902,7 +2902,7 @@ impl MasterDb {
     /// ```
     pub fn get_label_by_id(&mut self, id: &str) -> Result<Option<DjmdLabel>> {
         let result = djmdLabel
-            .filter(schema::djmdLabel::ID.eq(id))
+            .filter(schema::djmdLabel::id.eq(id))
             .first::<DjmdLabel>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -2930,7 +2930,7 @@ impl MasterDb {
     /// ```
     pub fn get_label_by_name(&mut self, name: &str) -> Result<Option<DjmdLabel>> {
         let results: Vec<DjmdLabel> = djmdLabel
-            .filter(schema::djmdLabel::Name.eq(name))
+            .filter(schema::djmdLabel::name.eq(name))
             .load(&mut self.conn)?;
         let n = results.len();
         if n == 0 {
@@ -2952,7 +2952,7 @@ impl MasterDb {
     /// # Returns
     /// * `Result<bool>` - Returns `true` if the label exists, `false` otherwise.
     fn label_exists(&mut self, id: &String) -> Result<bool> {
-        let id_exists: bool = select(exists(djmdLabel.filter(schema::djmdLabel::ID.eq(id))))
+        let id_exists: bool = select(exists(djmdLabel.filter(schema::djmdLabel::id.eq(id))))
             .get_result(&mut self.conn)?;
         Ok(id_exists)
     }
@@ -3059,7 +3059,7 @@ impl MasterDb {
     /// # Example
     /// ```no_run
     /// let mut label = db.get_label_by_id("label_id").unwrap().unwrap();
-    /// label.Name = "New Label Name".to_string();
+    /// label.name = "New Label Name".to_string();
     /// let updated_label = db.update_label(&mut label).unwrap();
     /// println
     pub fn update_label(&mut self, item: &mut DjmdLabel) -> Result<DjmdLabel> {
@@ -3070,9 +3070,9 @@ impl MasterDb {
             ));
         }
         // Count differences
-        let existing: DjmdLabel = self.get_label_by_id(&item.ID)?.unwrap();
+        let existing: DjmdLabel = self.get_label_by_id(&item.id)?.unwrap();
         let mut n: i32 = 0;
-        if item.Name != existing.Name {
+        if item.name != existing.name {
             n += 1
         }
         if n == 0 {
@@ -3119,13 +3119,13 @@ impl MasterDb {
                 "Rekordbox is running, unsafe writes are not allowed!"
             ));
         }
-        let result = diesel::delete(djmdLabel.filter(schema::djmdLabel::ID.eq(id)))
+        let result = diesel::delete(djmdLabel.filter(schema::djmdLabel::id.eq(id)))
             .execute(&mut self.conn)?;
         self.increment_local_usn(1)?;
 
         // Remove any references to the key in DjmdContent
-        let _ = diesel::update(djmdContent.filter(schema::djmdContent::LabelID.eq(id)))
-            .set(schema::djmdContent::LabelID.eq(None::<String>))
+        let _ = diesel::update(djmdContent.filter(schema::djmdContent::label_id.eq(id)))
+            .set(schema::djmdContent::label_id.eq(None::<String>))
             .execute(&mut self.conn)?;
 
         Ok(result)
@@ -3174,7 +3174,7 @@ impl MasterDb {
     /// ```
     pub fn get_menu_item_by_id(&mut self, id: &str) -> Result<Option<DjmdMenuItems>> {
         let result = djmdMenuItems
-            .filter(schema::djmdMenuItems::ID.eq(id))
+            .filter(schema::djmdMenuItems::id.eq(id))
             .first::<DjmdMenuItems>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -3223,7 +3223,7 @@ impl MasterDb {
     /// ```
     pub fn get_mixer_param_by_id(&mut self, id: &str) -> Result<Option<DjmdMixerParam>> {
         let result = djmdMixerParam
-            .filter(schema::djmdMixerParam::ID.eq(id))
+            .filter(schema::djmdMixerParam::id.eq(id))
             .first::<DjmdMixerParam>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -3271,8 +3271,8 @@ impl MasterDb {
     /// ```
     pub fn get_my_tag_children(&mut self, parent_id: &str) -> Result<Vec<DjmdMyTag>> {
         let results = djmdMyTag
-            .filter(schema::djmdMyTag::ParentID.eq(parent_id))
-            .order_by(schema::djmdMyTag::Seq)
+            .filter(schema::djmdMyTag::parent_id.eq(parent_id))
+            .order_by(schema::djmdMyTag::seq)
             .load::<DjmdMyTag>(&mut self.conn)?;
         Ok(results)
     }
@@ -3298,7 +3298,7 @@ impl MasterDb {
     /// ```
     pub fn get_my_tag_by_id(&mut self, id: &str) -> Result<Option<DjmdMyTag>> {
         let result = djmdMyTag
-            .filter(schema::djmdMyTag::ID.eq(id))
+            .filter(schema::djmdMyTag::id.eq(id))
             .first::<DjmdMyTag>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -3324,8 +3324,8 @@ impl MasterDb {
     /// ```
     pub fn get_my_tag_songs(&mut self, id: &str) -> Result<Vec<DjmdSongMyTag>> {
         let results = schema::djmdSongMyTag::table
-            .filter(schema::djmdSongMyTag::MyTagID.eq(id))
-            .order_by(schema::djmdSongMyTag::TrackNo)
+            .filter(schema::djmdSongMyTag::my_tag_id.eq(id))
+            .order_by(schema::djmdSongMyTag::track_no)
             .load::<DjmdSongMyTag>(&mut self.conn)?;
         Ok(results)
     }
@@ -3352,7 +3352,7 @@ impl MasterDb {
         let songs = self.get_my_tag_songs(id)?;
         let ids: Vec<&str> = songs
             .iter()
-            .map(|s| s.ContentID.as_ref().unwrap().as_str())
+            .map(|s| s.content_id.as_ref().unwrap().as_str())
             .collect();
         let result = self.get_contents_by_ids(ids)?;
         Ok(result)
@@ -3408,8 +3408,8 @@ impl MasterDb {
         // Populate the map with nodes
         for pl in playlists.iter() {
             let item = Rc::new(RefCell::new(pl.clone()));
-            map.insert(pl.ID.clone(), item.clone());
-            if pl.ParentID.is_none() || pl.ParentID == Some("root".to_string()) {
+            map.insert(pl.id.clone(), item.clone());
+            if pl.parent_id.is_none() || pl.parent_id == Some("root".to_string()) {
                 roots.push(item.clone());
             }
         }
@@ -3417,9 +3417,9 @@ impl MasterDb {
         // Build the tree structure
         for id in map.keys() {
             let node = map.get(id).unwrap();
-            if let Some(parent_id) = node.borrow().ParentID.clone() {
+            if let Some(parent_id) = node.borrow().parent_id.clone() {
                 if let Some(parent_node) = map.get(&parent_id) {
-                    parent_node.borrow_mut().Children.push(node.clone());
+                    parent_node.borrow_mut().children.push(node.clone());
                 }
             }
         }
@@ -3448,8 +3448,8 @@ impl MasterDb {
     /// ```
     pub fn get_playlist_children(&mut self, parent_id: &str) -> Result<Vec<DjmdPlaylist>> {
         let results = djmdPlaylist
-            .filter(schema::djmdPlaylist::ParentID.eq(parent_id))
-            .order_by(schema::djmdPlaylist::Seq)
+            .filter(schema::djmdPlaylist::parent_id.eq(parent_id))
+            .order_by(schema::djmdPlaylist::seq)
             .load::<DjmdPlaylist>(&mut self.conn)?;
         Ok(results)
     }
@@ -3475,7 +3475,7 @@ impl MasterDb {
     /// ```
     pub fn get_playlist_by_id(&mut self, id: &str) -> Result<Option<DjmdPlaylist>> {
         let result = djmdPlaylist
-            .filter(schema::djmdPlaylist::ID.eq(id))
+            .filter(schema::djmdPlaylist::id.eq(id))
             .first::<DjmdPlaylist>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -3505,13 +3505,13 @@ impl MasterDb {
         let mut playlist: Option<DjmdPlaylist> = None;
         for name in path {
             let result = djmdPlaylist
-                .filter(schema::djmdPlaylist::ParentID.eq(&parent_id))
-                .filter(schema::djmdPlaylist::Name.eq(name))
+                .filter(schema::djmdPlaylist::parent_id.eq(&parent_id))
+                .filter(schema::djmdPlaylist::name.eq(name))
                 .first::<DjmdPlaylist>(&mut self.conn)
                 .optional()?;
             playlist = result.clone();
             if let Some(result) = result {
-                parent_id = result.ID.clone();
+                parent_id = result.id.clone();
             } else {
                 return Ok(None);
             }
@@ -3539,8 +3539,8 @@ impl MasterDb {
     /// ```
     pub fn get_playlist_songs(&mut self, id: &str) -> Result<Vec<DjmdSongPlaylist>> {
         let results = schema::djmdSongPlaylist::table
-            .filter(schema::djmdSongPlaylist::PlaylistID.eq(id))
-            .order_by(schema::djmdSongPlaylist::TrackNo)
+            .filter(schema::djmdSongPlaylist::playlist_id.eq(id))
+            .order_by(schema::djmdSongPlaylist::track_no)
             .load::<DjmdSongPlaylist>(&mut self.conn)?;
         Ok(results)
     }
@@ -3567,7 +3567,7 @@ impl MasterDb {
         let songs = self.get_playlist_songs(id)?;
         let ids: Vec<&str> = songs
             .iter()
-            .map(|s| s.ContentID.as_ref().unwrap().as_str())
+            .map(|s| s.content_id.as_ref().unwrap().as_str())
             .collect();
         let result = self.get_contents_by_ids(ids)?;
         Ok(result)
@@ -3594,7 +3594,7 @@ impl MasterDb {
     /// ```
     pub fn get_playlist_song_by_id(&mut self, id: &str) -> Result<Option<DjmdSongPlaylist>> {
         let result = djmdSongPlaylist
-            .filter(schema::djmdSongPlaylist::ID.eq(id))
+            .filter(schema::djmdSongPlaylist::id.eq(id))
             .first::<DjmdSongPlaylist>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -3621,8 +3621,8 @@ impl MasterDb {
             return Ok(PlaylistType::Folder);
         }
         let result = djmdPlaylist
-            .filter(schema::djmdPlaylist::ID.eq(id))
-            .select(schema::djmdPlaylist::Attribute)
+            .filter(schema::djmdPlaylist::id.eq(id))
+            .select(schema::djmdPlaylist::attribute)
             .first::<Option<i32>>(&mut self.conn)?;
         let attr = result.expect("Playlist not found");
         let ptype = PlaylistType::try_from(attr).expect("Invalid playlist Attribute");
@@ -3643,7 +3643,7 @@ impl MasterDb {
     /// println!("Exists: {}", exists);
     /// ```
     fn playlist_exists(&mut self, id: &String) -> Result<bool> {
-        let id_exists: bool = select(exists(djmdPlaylist.filter(schema::djmdPlaylist::ID.eq(id))))
+        let id_exists: bool = select(exists(djmdPlaylist.filter(schema::djmdPlaylist::id.eq(id))))
             .get_result(&mut self.conn)?;
         Ok(id_exists)
     }
@@ -3663,7 +3663,7 @@ impl MasterDb {
     /// ```
     fn playlist_song_exists(&mut self, id: &String) -> Result<bool> {
         let id_exists: bool = select(exists(
-            djmdSongPlaylist.filter(schema::djmdSongPlaylist::ID.eq(id)),
+            djmdSongPlaylist.filter(schema::djmdSongPlaylist::id.eq(id)),
         ))
         .get_result(&mut self.conn)?;
         Ok(id_exists)
@@ -3785,7 +3785,7 @@ impl MasterDb {
         let utcnow = Utc::now();
         // Count existing playlists with same parent
         let count = djmdPlaylist
-            .filter(schema::djmdPlaylist::ParentID.eq(parent_id.clone()))
+            .filter(schema::djmdPlaylist::parent_id.eq(parent_id.clone()))
             .count()
             .get_result::<i64>(&mut self.conn)? as i32;
 
@@ -3802,11 +3802,11 @@ impl MasterDb {
             let move_usn = self.increment_local_usn(1)?;
             diesel::update(
                 djmdPlaylist
-                    .filter(schema::djmdPlaylist::ParentID.eq(parent_id.clone()))
-                    .filter(schema::djmdPlaylist::Seq.ge(seq)),
+                    .filter(schema::djmdPlaylist::parent_id.eq(parent_id.clone()))
+                    .filter(schema::djmdPlaylist::seq.ge(seq)),
             )
             .set((
-                schema::djmdPlaylist::Seq.eq(schema::djmdPlaylist::Seq + 1),
+                schema::djmdPlaylist::seq.eq(schema::djmdPlaylist::seq + 1),
                 schema::djmdPlaylist::rb_local_usn.eq(move_usn.clone()),
                 schema::djmdPlaylist::updated_at.eq(format_datetime(&utcnow)),
             ))
@@ -3941,9 +3941,9 @@ impl MasterDb {
         let utcnow = Utc::now();
         let usn: i32 = self.increment_local_usn(1)?;
         let result: DjmdPlaylist =
-            diesel::update(djmdPlaylist.filter(schema::djmdPlaylist::ID.eq(id)))
+            diesel::update(djmdPlaylist.filter(schema::djmdPlaylist::id.eq(id)))
                 .set((
-                    schema::djmdPlaylist::Name.eq(name),
+                    schema::djmdPlaylist::name.eq(name),
                     schema::djmdPlaylist::rb_local_usn.eq(usn),
                     schema::djmdPlaylist::updated_at.eq(format_datetime(&utcnow)),
                 ))
@@ -4002,8 +4002,8 @@ impl MasterDb {
         let playlist: DjmdPlaylist = self.get_playlist_by_id(id)?.expect("Playlist not found");
 
         // Get parentID (old parentID if None)
-        let old_parent_id = playlist.ParentID.expect("No ParentID set");
-        let old_seq = playlist.Seq.expect("No Seq set");
+        let old_parent_id = playlist.parent_id.expect("No ParentID set");
+        let old_seq = playlist.seq.expect("No Seq set");
         let parent_id: String = parent_id.unwrap_or(old_parent_id.clone());
 
         // Moving increments USN by 1 for all changes
@@ -4026,18 +4026,18 @@ impl MasterDb {
             // Decrease seq of playlists with seq higher than old seq
             diesel::update(
                 djmdPlaylist
-                    .filter(schema::djmdPlaylist::ParentID.eq(old_parent_id.clone()))
-                    .filter(schema::djmdPlaylist::Seq.gt(old_seq)),
+                    .filter(schema::djmdPlaylist::parent_id.eq(old_parent_id.clone()))
+                    .filter(schema::djmdPlaylist::seq.gt(old_seq)),
             )
             .set((
-                schema::djmdPlaylist::Seq.eq(schema::djmdPlaylist::Seq - 1),
+                schema::djmdPlaylist::seq.eq(schema::djmdPlaylist::seq - 1),
                 schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
                 schema::djmdPlaylist::updated_at.eq(datestr.clone()),
             ))
             .execute(&mut self.conn)?;
             if let Some(seq) = seq {
                 let count = djmdPlaylist
-                    .filter(schema::djmdPlaylist::ParentID.eq(parent_id.clone()))
+                    .filter(schema::djmdPlaylist::parent_id.eq(parent_id.clone()))
                     .count()
                     .get_result::<i64>(&mut self.conn)? as i32;
                 if seq <= 0 {
@@ -4048,11 +4048,11 @@ impl MasterDb {
                 // Move to seq in new parent
                 diesel::update(
                     djmdPlaylist
-                        .filter(schema::djmdPlaylist::ParentID.eq(parent_id.clone()))
-                        .filter(schema::djmdPlaylist::Seq.ge(seq)),
+                        .filter(schema::djmdPlaylist::parent_id.eq(parent_id.clone()))
+                        .filter(schema::djmdPlaylist::seq.ge(seq)),
                 )
                 .set((
-                    schema::djmdPlaylist::Seq.eq(schema::djmdPlaylist::Seq + 1),
+                    schema::djmdPlaylist::seq.eq(schema::djmdPlaylist::seq + 1),
                     schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
                     schema::djmdPlaylist::updated_at.eq(datestr.clone()),
                 ))
@@ -4063,16 +4063,16 @@ impl MasterDb {
                 // If no seq given, move to end of new parent:
                 // No seq in new parent have to be updated
                 let count = djmdPlaylist
-                    .filter(schema::djmdPlaylist::ParentID.eq(parent_id.clone()))
+                    .filter(schema::djmdPlaylist::parent_id.eq(parent_id.clone()))
                     .count()
                     .get_result::<i64>(&mut self.conn)? as i32;
                 sequence = count + 1;
             };
             // Update Seq and parent of actual playlist
-            diesel::update(djmdPlaylist.filter(schema::djmdPlaylist::ID.eq(id)))
+            diesel::update(djmdPlaylist.filter(schema::djmdPlaylist::id.eq(id)))
                 .set((
-                    schema::djmdPlaylist::Seq.eq(sequence),
-                    schema::djmdPlaylist::ParentID.eq(parent_id.clone()),
+                    schema::djmdPlaylist::seq.eq(sequence),
+                    schema::djmdPlaylist::parent_id.eq(parent_id.clone()),
                     schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
                     schema::djmdPlaylist::updated_at.eq(datestr.clone()),
                 ))
@@ -4080,7 +4080,7 @@ impl MasterDb {
         } else {
             let seq = seq.unwrap_or(old_seq.clone());
             let count = djmdPlaylist
-                .filter(schema::djmdPlaylist::ParentID.eq(parent_id.clone()))
+                .filter(schema::djmdPlaylist::parent_id.eq(parent_id.clone()))
                 .count()
                 .get_result::<i64>(&mut self.conn)? as i32;
             if seq <= 0 {
@@ -4095,12 +4095,12 @@ impl MasterDb {
                 // Decrease seq of all playlists with seq between old seq and new seq
                 diesel::update(
                     djmdPlaylist
-                        .filter(schema::djmdPlaylist::ParentID.eq(parent_id.clone()))
-                        .filter(schema::djmdPlaylist::Seq.gt(old_seq))
-                        .filter(schema::djmdPlaylist::Seq.le(seq)),
+                        .filter(schema::djmdPlaylist::parent_id.eq(parent_id.clone()))
+                        .filter(schema::djmdPlaylist::seq.gt(old_seq))
+                        .filter(schema::djmdPlaylist::seq.le(seq)),
                 )
                 .set((
-                    schema::djmdPlaylist::Seq.eq(schema::djmdPlaylist::Seq - 1),
+                    schema::djmdPlaylist::seq.eq(schema::djmdPlaylist::seq - 1),
                     schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
                     schema::djmdPlaylist::updated_at.eq(datestr.clone()),
                 ))
@@ -4110,21 +4110,21 @@ impl MasterDb {
                 // Increase seq of all playlists with seq between old seq and new seq
                 diesel::update(
                     djmdPlaylist
-                        .filter(schema::djmdPlaylist::ParentID.eq(parent_id.clone()))
-                        .filter(schema::djmdPlaylist::Seq.lt(old_seq))
-                        .filter(schema::djmdPlaylist::Seq.ge(seq)),
+                        .filter(schema::djmdPlaylist::parent_id.eq(parent_id.clone()))
+                        .filter(schema::djmdPlaylist::seq.lt(old_seq))
+                        .filter(schema::djmdPlaylist::seq.ge(seq)),
                 )
                 .set((
-                    schema::djmdPlaylist::Seq.eq(schema::djmdPlaylist::Seq + 1),
+                    schema::djmdPlaylist::seq.eq(schema::djmdPlaylist::seq + 1),
                     schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
                     schema::djmdPlaylist::updated_at.eq(datestr.clone()),
                 ))
                 .execute(&mut self.conn)?;
             };
             // Update Seq of actual playlist
-            diesel::update(djmdPlaylist.filter(schema::djmdPlaylist::ID.eq(id)))
+            diesel::update(djmdPlaylist.filter(schema::djmdPlaylist::id.eq(id)))
                 .set((
-                    schema::djmdPlaylist::Seq.eq(seq),
+                    schema::djmdPlaylist::seq.eq(seq),
                     schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
                     schema::djmdPlaylist::updated_at.eq(datestr.clone()),
                 ))
@@ -4142,7 +4142,7 @@ impl MasterDb {
             );
             // Update update-time of all child items
             for pl in self.get_playlist_children(&parent_id)? {
-                pl_xml.update(pl.ID, pl.updated_at.naive_utc());
+                pl_xml.update(pl.id, pl.updated_at.naive_utc());
             }
             let _ = pl_xml.dump();
         } else {
@@ -4187,41 +4187,41 @@ impl MasterDb {
 
         // Get parentID and seq number
         let playlist: DjmdPlaylist = self.get_playlist_by_id(id)?.expect("Playlist not found");
-        let attr = playlist.Attribute.unwrap();
+        let attr = playlist.attribute.unwrap();
         let playlist_type = PlaylistType::try_from(attr).expect("Invalid playlist Attribute");
-        let parent_id = playlist.ParentID.unwrap();
-        let seq = playlist.Seq.unwrap();
+        let parent_id = playlist.parent_id.unwrap();
+        let seq = playlist.seq.unwrap();
 
         // Decrease seq of all playlists with seq higher then seq of deleted playlist
         diesel::update(
             djmdPlaylist
-                .filter(schema::djmdPlaylist::ParentID.eq(parent_id.clone()))
-                .filter(schema::djmdPlaylist::Seq.gt(seq)),
+                .filter(schema::djmdPlaylist::parent_id.eq(parent_id.clone()))
+                .filter(schema::djmdPlaylist::seq.gt(seq)),
         )
         .set((
-            schema::djmdPlaylist::Seq.eq(schema::djmdPlaylist::Seq - 1),
+            schema::djmdPlaylist::seq.eq(schema::djmdPlaylist::seq - 1),
             schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
             schema::djmdPlaylist::updated_at.eq(format_datetime(&utcnow)),
         ))
         .execute(&mut self.conn)?;
 
         // Delete playlist
-        let mut result = diesel::delete(djmdPlaylist.filter(schema::djmdPlaylist::ID.eq(id)))
+        let mut result = diesel::delete(djmdPlaylist.filter(schema::djmdPlaylist::id.eq(id)))
             .execute(&mut self.conn)?;
 
         // Cascade delete references
         if playlist_type == PlaylistType::Playlist {
             // Delete all songs in playlist
             let n = diesel::delete(
-                djmdSongPlaylist.filter(schema::djmdSongPlaylist::PlaylistID.eq(id)),
+                djmdSongPlaylist.filter(schema::djmdSongPlaylist::playlist_id.eq(id)),
             )
             .execute(&mut self.conn)?;
             result += n;
         } else if playlist_type == PlaylistType::Folder {
             // Select child ids
             let children: Vec<String> = djmdPlaylist
-                .filter(schema::djmdPlaylist::ParentID.eq(id))
-                .select(schema::djmdPlaylist::ID)
+                .filter(schema::djmdPlaylist::parent_id.eq(id))
+                .select(schema::djmdPlaylist::id)
                 .load::<String>(&mut self.conn)?;
             // Delete all children recursively
             for child_id in children {
@@ -4297,7 +4297,7 @@ impl MasterDb {
 
         // Count existing songs in playlist
         let count = djmdSongPlaylist
-            .filter(schema::djmdSongPlaylist::PlaylistID.eq(playlist_id.clone()))
+            .filter(schema::djmdSongPlaylist::playlist_id.eq(playlist_id.clone()))
             .count()
             .get_result::<i64>(&mut self.conn)? as i32;
 
@@ -4317,11 +4317,11 @@ impl MasterDb {
             let move_usn = self.increment_local_usn(1)?;
             diesel::update(
                 djmdSongPlaylist
-                    .filter(schema::djmdSongPlaylist::PlaylistID.eq(playlist_id.clone()))
-                    .filter(schema::djmdSongPlaylist::TrackNo.ge(seq)),
+                    .filter(schema::djmdSongPlaylist::playlist_id.eq(playlist_id.clone()))
+                    .filter(schema::djmdSongPlaylist::track_no.ge(seq)),
             )
             .set((
-                schema::djmdSongPlaylist::TrackNo.eq(schema::djmdSongPlaylist::TrackNo + 1),
+                schema::djmdSongPlaylist::track_no.eq(schema::djmdSongPlaylist::track_no + 1),
                 schema::djmdSongPlaylist::rb_local_usn.eq(move_usn.clone()),
                 schema::djmdSongPlaylist::updated_at.eq(format_datetime(&utcnow)),
             ))
@@ -4380,12 +4380,12 @@ impl MasterDb {
         }
         // Get playlistID and seq number
         let song: DjmdSongPlaylist = self.get_playlist_song_by_id(id)?.expect("Song not found");
-        if song.TrackNo.unwrap() == seq {
+        if song.track_no.unwrap() == seq {
             // Nothing to change
             return Ok(song);
         }
         let count = djmdSongPlaylist
-            .filter(schema::djmdSongPlaylist::PlaylistID.eq(song.PlaylistID.clone()))
+            .filter(schema::djmdSongPlaylist::playlist_id.eq(song.playlist_id.clone()))
             .count()
             .get_result::<i64>(&mut self.conn)? as i32;
 
@@ -4395,8 +4395,8 @@ impl MasterDb {
             return Err(anyhow!("seq is too high!"));
         }
 
-        let playlist_id = song.PlaylistID.unwrap();
-        let old_seq = song.TrackNo.unwrap();
+        let playlist_id = song.playlist_id.unwrap();
+        let old_seq = song.track_no.unwrap();
 
         let usn = self.increment_local_usn(1)?;
         let utcnow: DateTime<Utc> = Utc::now();
@@ -4406,12 +4406,12 @@ impl MasterDb {
             // Decrease seq of all songs with seq between old seq and new seq
             diesel::update(
                 djmdSongPlaylist
-                    .filter(schema::djmdSongPlaylist::PlaylistID.eq(playlist_id.clone()))
-                    .filter(schema::djmdSongPlaylist::TrackNo.gt(old_seq))
-                    .filter(schema::djmdSongPlaylist::TrackNo.le(seq)),
+                    .filter(schema::djmdSongPlaylist::playlist_id.eq(playlist_id.clone()))
+                    .filter(schema::djmdSongPlaylist::track_no.gt(old_seq))
+                    .filter(schema::djmdSongPlaylist::track_no.le(seq)),
             )
             .set((
-                schema::djmdSongPlaylist::TrackNo.eq(schema::djmdSongPlaylist::TrackNo - 1),
+                schema::djmdSongPlaylist::track_no.eq(schema::djmdSongPlaylist::track_no - 1),
                 schema::djmdSongPlaylist::rb_local_usn.eq(usn.clone()),
                 schema::djmdSongPlaylist::updated_at.eq(datestr.clone()),
             ))
@@ -4421,21 +4421,21 @@ impl MasterDb {
             // Increase seq of all songs with seq between old seq and new seq
             diesel::update(
                 djmdSongPlaylist
-                    .filter(schema::djmdSongPlaylist::PlaylistID.eq(playlist_id.clone()))
-                    .filter(schema::djmdSongPlaylist::TrackNo.le(old_seq))
-                    .filter(schema::djmdSongPlaylist::TrackNo.ge(seq)),
+                    .filter(schema::djmdSongPlaylist::playlist_id.eq(playlist_id.clone()))
+                    .filter(schema::djmdSongPlaylist::track_no.le(old_seq))
+                    .filter(schema::djmdSongPlaylist::track_no.ge(seq)),
             )
             .set((
-                schema::djmdSongPlaylist::TrackNo.eq(schema::djmdSongPlaylist::TrackNo + 1),
+                schema::djmdSongPlaylist::track_no.eq(schema::djmdSongPlaylist::track_no + 1),
                 schema::djmdSongPlaylist::rb_local_usn.eq(usn.clone()),
                 schema::djmdSongPlaylist::updated_at.eq(datestr.clone()),
             ))
             .execute(&mut self.conn)?;
         };
         // Update Seq of actual song
-        diesel::update(djmdSongPlaylist.filter(schema::djmdSongPlaylist::ID.eq(id)))
+        diesel::update(djmdSongPlaylist.filter(schema::djmdSongPlaylist::id.eq(id)))
             .set((
-                schema::djmdSongPlaylist::TrackNo.eq(seq),
+                schema::djmdSongPlaylist::track_no.eq(seq),
                 schema::djmdSongPlaylist::rb_local_usn.eq(usn.clone()),
                 schema::djmdSongPlaylist::updated_at.eq(datestr.clone()),
             ))
@@ -4480,23 +4480,23 @@ impl MasterDb {
 
         // Get playlist and seq number
         let song: DjmdSongPlaylist = self.get_playlist_song_by_id(id)?.expect("Song not found");
-        let playlist_id = song.PlaylistID.unwrap();
-        let seq = song.TrackNo.unwrap();
+        let playlist_id = song.playlist_id.unwrap();
+        let seq = song.track_no.unwrap();
 
         // Decrease seq of all songs with seq higher then seq of deleted song
         diesel::update(
             djmdSongPlaylist
-                .filter(schema::djmdSongPlaylist::PlaylistID.eq(playlist_id.clone()))
-                .filter(schema::djmdSongPlaylist::TrackNo.gt(seq)),
+                .filter(schema::djmdSongPlaylist::playlist_id.eq(playlist_id.clone()))
+                .filter(schema::djmdSongPlaylist::track_no.gt(seq)),
         )
         .set((
-            schema::djmdSongPlaylist::TrackNo.eq(schema::djmdSongPlaylist::TrackNo - 1),
+            schema::djmdSongPlaylist::track_no.eq(schema::djmdSongPlaylist::track_no - 1),
             schema::djmdSongPlaylist::rb_local_usn.eq(usn.clone()),
             schema::djmdSongPlaylist::updated_at.eq(datestr),
         ))
         .execute(&mut self.conn)?;
 
-        let result = diesel::delete(djmdSongPlaylist.filter(schema::djmdSongPlaylist::ID.eq(id)))
+        let result = diesel::delete(djmdSongPlaylist.filter(schema::djmdSongPlaylist::id.eq(id)))
             .execute(&mut self.conn)?;
 
         Ok(result)
@@ -4545,7 +4545,7 @@ impl MasterDb {
     /// ```
     pub fn get_property_by_id(&mut self, id: &str) -> Result<Option<DjmdProperty>> {
         let result = djmdProperty
-            .filter(schema::djmdProperty::DBID.eq(id))
+            .filter(schema::djmdProperty::db_id.eq(id))
             .first::<DjmdProperty>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -4594,7 +4594,7 @@ impl MasterDb {
     /// ```
     pub fn get_cloud_property_by_id(&mut self, id: &str) -> Result<Option<DjmdCloudProperty>> {
         let result = djmdCloudProperty
-            .filter(schema::djmdCloudProperty::ID.eq(id))
+            .filter(schema::djmdCloudProperty::id.eq(id))
             .first::<DjmdCloudProperty>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -4643,7 +4643,7 @@ impl MasterDb {
     /// ```
     pub fn get_recommend_like_by_id(&mut self, id: &str) -> Result<Option<DjmdRecommendLike>> {
         let result = djmdRecommendLike
-            .filter(schema::djmdRecommendLike::ID.eq(id))
+            .filter(schema::djmdRecommendLike::id.eq(id))
             .first::<DjmdRecommendLike>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -4694,8 +4694,8 @@ impl MasterDb {
         parent_id: &str,
     ) -> Result<Vec<DjmdRelatedTracks>> {
         let results = djmdRelatedTracks
-            .filter(schema::djmdRelatedTracks::ParentID.eq(parent_id))
-            .order_by(schema::djmdRelatedTracks::Seq)
+            .filter(schema::djmdRelatedTracks::parent_id.eq(parent_id))
+            .order_by(schema::djmdRelatedTracks::seq)
             .load::<DjmdRelatedTracks>(&mut self.conn)?;
         Ok(results)
     }
@@ -4721,7 +4721,7 @@ impl MasterDb {
     /// ```
     pub fn get_related_tracks_by_id(&mut self, id: &str) -> Result<Option<DjmdRelatedTracks>> {
         let result = djmdRelatedTracks
-            .filter(schema::djmdRelatedTracks::ID.eq(id))
+            .filter(schema::djmdRelatedTracks::id.eq(id))
             .first::<DjmdRelatedTracks>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -4747,8 +4747,8 @@ impl MasterDb {
     /// ```
     pub fn get_related_tracks_songs(&mut self, id: &str) -> Result<Vec<DjmdSongRelatedTracks>> {
         let results = schema::djmdSongRelatedTracks::table
-            .filter(schema::djmdSongRelatedTracks::RelatedTracksID.eq(id))
-            .order_by(schema::djmdSongRelatedTracks::TrackNo)
+            .filter(schema::djmdSongRelatedTracks::related_tracks_id.eq(id))
+            .order_by(schema::djmdSongRelatedTracks::track_no)
             .load::<DjmdSongRelatedTracks>(&mut self.conn)?;
         Ok(results)
     }
@@ -4775,7 +4775,7 @@ impl MasterDb {
         let songs = self.get_related_tracks_songs(id)?;
         let ids: Vec<&str> = songs
             .iter()
-            .map(|s| s.ContentID.as_ref().unwrap().as_str())
+            .map(|s| s.content_id.as_ref().unwrap().as_str())
             .collect();
         let result = self.get_contents_by_ids(ids)?;
         Ok(result)
@@ -4823,8 +4823,8 @@ impl MasterDb {
     /// ```
     pub fn get_sampler_children(&mut self, parent_id: &str) -> Result<Vec<DjmdSampler>> {
         let results = djmdSampler
-            .filter(schema::djmdSampler::ParentID.eq(parent_id))
-            .order_by(schema::djmdSampler::Seq)
+            .filter(schema::djmdSampler::parent_id.eq(parent_id))
+            .order_by(schema::djmdSampler::seq)
             .load::<DjmdSampler>(&mut self.conn)?;
         Ok(results)
     }
@@ -4850,7 +4850,7 @@ impl MasterDb {
     /// ```
     pub fn get_sampler_by_id(&mut self, id: &str) -> Result<Option<DjmdSampler>> {
         let result = djmdSampler
-            .filter(schema::djmdSampler::ID.eq(id))
+            .filter(schema::djmdSampler::id.eq(id))
             .first::<DjmdSampler>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -4876,8 +4876,8 @@ impl MasterDb {
     /// ```
     pub fn get_sampler_songs(&mut self, id: &str) -> Result<Vec<DjmdSongSampler>> {
         let results = schema::djmdSongSampler::table
-            .filter(schema::djmdSongSampler::SamplerID.eq(id))
-            .order_by(schema::djmdSongSampler::TrackNo)
+            .filter(schema::djmdSongSampler::sampler_id.eq(id))
+            .order_by(schema::djmdSongSampler::track_no)
             .load::<DjmdSongSampler>(&mut self.conn)?;
         Ok(results)
     }
@@ -4904,7 +4904,7 @@ impl MasterDb {
         let songs = self.get_sampler_songs(id)?;
         let ids: Vec<&str> = songs
             .iter()
-            .map(|s| s.ContentID.as_ref().unwrap().as_str())
+            .map(|s| s.content_id.as_ref().unwrap().as_str())
             .collect();
         let result = self.get_contents_by_ids(ids)?;
         Ok(result)
@@ -4929,7 +4929,7 @@ impl MasterDb {
     /// ```
     pub fn get_song_tag_list(&mut self) -> Result<Vec<DjmdSongTagList>> {
         let results = djmdSongTagList
-            .order_by(schema::djmdSongTagList::TrackNo)
+            .order_by(schema::djmdSongTagList::track_no)
             .load::<DjmdSongTagList>(&mut self.conn)?;
         Ok(results)
     }
@@ -4955,7 +4955,7 @@ impl MasterDb {
     /// ```
     pub fn get_song_tag_list_by_id(&mut self, id: &str) -> Result<Option<DjmdSongTagList>> {
         let result = djmdSongTagList
-            .filter(schema::djmdSongTagList::ID.eq(id))
+            .filter(schema::djmdSongTagList::id.eq(id))
             .first::<DjmdSongTagList>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -4980,7 +4980,7 @@ impl MasterDb {
     /// ```
     pub fn get_sort(&mut self) -> Result<Vec<DjmdSort>> {
         let results = djmdSort
-            .order_by(schema::djmdSort::Seq)
+            .order_by(schema::djmdSort::seq)
             .load::<DjmdSort>(&mut self.conn)?;
         Ok(results)
     }
@@ -5006,7 +5006,7 @@ impl MasterDb {
     /// ```
     pub fn get_sort_by_id(&mut self, id: &str) -> Result<Option<DjmdSort>> {
         let result = djmdSort
-            .filter(schema::djmdSort::ID.eq(id))
+            .filter(schema::djmdSort::id.eq(id))
             .first::<DjmdSort>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -5055,7 +5055,7 @@ impl MasterDb {
     /// ```
     pub fn get_image_file_by_id(&mut self, id: &str) -> Result<Option<ImageFile>> {
         let result = imageFile
-            .filter(schema::imageFile::ID.eq(id))
+            .filter(schema::imageFile::id.eq(id))
             .first::<ImageFile>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -5104,7 +5104,7 @@ impl MasterDb {
     /// ```
     pub fn get_setting_file_by_id(&mut self, id: &str) -> Result<Option<SettingFile>> {
         let result = settingFile
-            .filter(schema::settingFile::ID.eq(id))
+            .filter(schema::settingFile::id.eq(id))
             .first::<SettingFile>(&mut self.conn)
             .optional()?;
         Ok(result)
@@ -5153,7 +5153,7 @@ impl MasterDb {
     /// ```
     pub fn get_uuid_id_map_by_id(&mut self, id: &str) -> Result<Option<UuidIDMap>> {
         let result = uuidIDMap
-            .filter(schema::uuidIDMap::ID.eq(id))
+            .filter(schema::uuidIDMap::id.eq(id))
             .first::<UuidIDMap>(&mut self.conn)
             .optional()?;
         Ok(result)

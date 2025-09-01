@@ -189,8 +189,8 @@ impl PyAgentRegistry {
 
 #[pyclass(name = "CloudAgentRegistry", unsendable, get_all, set_all)]
 pub struct PyCloudAgentRegistry {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -212,8 +212,8 @@ pub struct PyCloudAgentRegistry {
 impl IntoPy<PyCloudAgentRegistry> for CloudAgentRegistry {
     fn into_py(self, py: Python) -> PyResult<PyCloudAgentRegistry> {
         let model = PyCloudAgentRegistry {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -238,8 +238,8 @@ impl IntoPy<PyCloudAgentRegistry> for CloudAgentRegistry {
 impl FromPy<PyCloudAgentRegistry> for CloudAgentRegistry {
     fn from_py(py: Python, model: PyRef<'_, PyCloudAgentRegistry>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -263,8 +263,8 @@ impl FromPy<PyCloudAgentRegistry> for CloudAgentRegistry {
 impl MutableMapping for PyCloudAgentRegistry {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -286,8 +286,8 @@ impl MutableMapping for PyCloudAgentRegistry {
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -313,8 +313,8 @@ impl MutableMapping for PyCloudAgentRegistry {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -389,14 +389,14 @@ impl PyCloudAgentRegistry {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("CloudAgentRegistry(ID: {})", self.ID))
+        Ok(format!("CloudAgentRegistry(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "ContentActiveCensor", unsendable, get_all, set_all)]
 pub struct PyContentActiveCensor {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -405,16 +405,16 @@ pub struct PyContentActiveCensor {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub ContentID: Option<String>,
-    pub ActiveCensors: Option<String>,
+    pub content_id: Option<String>,
+    pub active_censors: Option<String>,
     pub rb_activecensor_count: Option<i32>,
 }
 
 impl IntoPy<PyContentActiveCensor> for ContentActiveCensor {
     fn into_py(self, py: Python) -> PyResult<PyContentActiveCensor> {
         let model = PyContentActiveCensor {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -423,8 +423,8 @@ impl IntoPy<PyContentActiveCensor> for ContentActiveCensor {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            ContentID: self.ContentID,
-            ActiveCensors: self.ActiveCensors,
+            content_id: self.content_id,
+            active_censors: self.active_censors,
             rb_activecensor_count: self.rb_activecensor_count,
         };
         Ok(model)
@@ -434,8 +434,8 @@ impl IntoPy<PyContentActiveCensor> for ContentActiveCensor {
 impl FromPy<PyContentActiveCensor> for ContentActiveCensor {
     fn from_py(py: Python, model: PyRef<'_, PyContentActiveCensor>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -444,8 +444,8 @@ impl FromPy<PyContentActiveCensor> for ContentActiveCensor {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            ContentID: model.ContentID.clone(),
-            ActiveCensors: model.ActiveCensors.clone(),
+            content_id: model.content_id.clone(),
+            active_censors: model.active_censors.clone(),
             rb_activecensor_count: model.rb_activecensor_count,
         }
     }
@@ -454,8 +454,8 @@ impl FromPy<PyContentActiveCensor> for ContentActiveCensor {
 impl MutableMapping for PyContentActiveCensor {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -464,16 +464,16 @@ impl MutableMapping for PyContentActiveCensor {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "ContentID".to_string(),
-            "ActiveCensors".to_string(),
+            "content_id".to_string(),
+            "active_censors".to_string(),
             "rb_activecensor_count".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -482,8 +482,8 @@ impl MutableMapping for PyContentActiveCensor {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "ContentID" => Ok(self.ContentID.clone().into_pyobject(py)?.into()),
-            "ActiveCensors" => Ok(self.ActiveCensors.clone().into_pyobject(py)?.into()),
+            "content_id" => Ok(self.content_id.clone().into_pyobject(py)?.into()),
+            "active_censors" => Ok(self.active_censors.clone().into_pyobject(py)?.into()),
             "rb_activecensor_count" => Ok(self.rb_activecensor_count.into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
@@ -494,8 +494,8 @@ impl MutableMapping for PyContentActiveCensor {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -504,8 +504,8 @@ impl MutableMapping for PyContentActiveCensor {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "ContentID" => self.ContentID = value.extract::<Option<String>>(py)?,
-            "ActiveCensors" => self.ActiveCensors = value.extract::<Option<String>>(py)?,
+            "content_id" => self.content_id = value.extract::<Option<String>>(py)?,
+            "active_censors" => self.active_censors = value.extract::<Option<String>>(py)?,
             "rb_activecensor_count" => {
                 self.rb_activecensor_count = value.extract::<Option<i32>>(py)?
             }
@@ -567,14 +567,14 @@ impl PyContentActiveCensor {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("ContentActiveCensor(ID: {})", self.ID))
+        Ok(format!("ContentActiveCensor(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "ContentCue", unsendable, get_all, set_all)]
 pub struct PyContentCue {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -583,16 +583,16 @@ pub struct PyContentCue {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub ContentID: Option<String>,
-    pub Cues: Option<String>,
+    pub content_id: Option<String>,
+    pub cues: Option<String>,
     pub rb_cue_count: Option<i32>,
 }
 
 impl IntoPy<PyContentCue> for ContentCue {
     fn into_py(self, py: Python) -> PyResult<PyContentCue> {
         let model = PyContentCue {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -601,8 +601,8 @@ impl IntoPy<PyContentCue> for ContentCue {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            ContentID: self.ContentID,
-            Cues: self.Cues,
+            content_id: self.content_id,
+            cues: self.cues,
             rb_cue_count: self.rb_cue_count,
         };
         Ok(model)
@@ -612,8 +612,8 @@ impl IntoPy<PyContentCue> for ContentCue {
 impl FromPy<PyContentCue> for ContentCue {
     fn from_py(py: Python, model: PyRef<'_, PyContentCue>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -622,8 +622,8 @@ impl FromPy<PyContentCue> for ContentCue {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            ContentID: model.ContentID.clone(),
-            Cues: model.Cues.clone(),
+            content_id: model.content_id.clone(),
+            cues: model.cues.clone(),
             rb_cue_count: model.rb_cue_count,
         }
     }
@@ -632,8 +632,8 @@ impl FromPy<PyContentCue> for ContentCue {
 impl MutableMapping for PyContentCue {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -642,16 +642,16 @@ impl MutableMapping for PyContentCue {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "ContentID".to_string(),
-            "Cues".to_string(),
+            "content_id".to_string(),
+            "cues".to_string(),
             "rb_cue_count".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -660,8 +660,8 @@ impl MutableMapping for PyContentCue {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "ContentID" => Ok(self.ContentID.clone().into_pyobject(py)?.into()),
-            "Cues" => Ok(self.Cues.clone().into_pyobject(py)?.into()),
+            "content_id" => Ok(self.content_id.clone().into_pyobject(py)?.into()),
+            "cues" => Ok(self.cues.clone().into_pyobject(py)?.into()),
             "rb_cue_count" => Ok(self.rb_cue_count.into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
@@ -672,8 +672,8 @@ impl MutableMapping for PyContentCue {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -682,8 +682,8 @@ impl MutableMapping for PyContentCue {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "ContentID" => self.ContentID = value.extract::<Option<String>>(py)?,
-            "Cues" => self.Cues = value.extract::<Option<String>>(py)?,
+            "content_id" => self.content_id = value.extract::<Option<String>>(py)?,
+            "cues" => self.cues = value.extract::<Option<String>>(py)?,
             "rb_cue_count" => self.rb_cue_count = value.extract::<Option<i32>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
@@ -743,14 +743,14 @@ impl PyContentCue {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("ContentCue(ID: {})", self.ID))
+        Ok(format!("ContentCue(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "ContentFile", unsendable, get_all, set_all)]
 pub struct PyContentFile {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -759,10 +759,10 @@ pub struct PyContentFile {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub ContentID: Option<String>,
-    pub Path: Option<String>,
-    pub Hash: Option<String>,
-    pub Size: Option<i32>,
+    pub content_id: Option<String>,
+    pub path: Option<String>,
+    pub hash: Option<String>,
+    pub size: Option<i32>,
     pub rb_local_path: Option<String>,
     pub rb_insync_hash: Option<String>,
     pub rb_insync_local_usn: Option<i32>,
@@ -778,8 +778,8 @@ pub struct PyContentFile {
 impl IntoPy<PyContentFile> for ContentFile {
     fn into_py(self, py: Python) -> PyResult<PyContentFile> {
         let model = PyContentFile {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -788,10 +788,10 @@ impl IntoPy<PyContentFile> for ContentFile {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            ContentID: self.ContentID,
-            Path: self.Path,
-            Hash: self.Hash,
-            Size: self.Size,
+            content_id: self.content_id,
+            path: self.path,
+            hash: self.hash,
+            size: self.size,
             rb_local_path: self.rb_local_path,
             rb_insync_hash: self.rb_insync_hash,
             rb_insync_local_usn: self.rb_insync_local_usn,
@@ -810,8 +810,8 @@ impl IntoPy<PyContentFile> for ContentFile {
 impl FromPy<PyContentFile> for ContentFile {
     fn from_py(py: Python, model: PyRef<'_, PyContentFile>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -820,10 +820,10 @@ impl FromPy<PyContentFile> for ContentFile {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            ContentID: model.ContentID.clone(),
-            Path: model.Path.clone(),
-            Hash: model.Hash.clone(),
-            Size: model.Size,
+            content_id: model.content_id.clone(),
+            path: model.path.clone(),
+            hash: model.hash.clone(),
+            size: model.size,
             rb_local_path: model.rb_local_path.clone(),
             rb_insync_hash: model.rb_insync_hash.clone(),
             rb_insync_local_usn: model.rb_insync_local_usn,
@@ -841,8 +841,8 @@ impl FromPy<PyContentFile> for ContentFile {
 impl MutableMapping for PyContentFile {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -851,10 +851,10 @@ impl MutableMapping for PyContentFile {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "ContentID".to_string(),
-            "Path".to_string(),
-            "Hash".to_string(),
-            "Size".to_string(),
+            "content_id".to_string(),
+            "path".to_string(),
+            "hash".to_string(),
+            "size".to_string(),
             "rb_local_path".to_string(),
             "rb_insync_hash".to_string(),
             "rb_insync_local_usn".to_string(),
@@ -870,8 +870,8 @@ impl MutableMapping for PyContentFile {
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -880,10 +880,10 @@ impl MutableMapping for PyContentFile {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "ContentID" => Ok(self.ContentID.clone().into_pyobject(py)?.into()),
-            "Path" => Ok(self.Path.clone().into_pyobject(py)?.into()),
-            "Hash" => Ok(self.Hash.clone().into_pyobject(py)?.into()),
-            "Size" => Ok(self.Size.into_pyobject(py)?.into()),
+            "content_id" => Ok(self.content_id.clone().into_pyobject(py)?.into()),
+            "path" => Ok(self.path.clone().into_pyobject(py)?.into()),
+            "hash" => Ok(self.hash.clone().into_pyobject(py)?.into()),
+            "size" => Ok(self.size.into_pyobject(py)?.into()),
             "rb_local_path" => Ok(self.rb_local_path.clone().into_pyobject(py)?.into()),
             "rb_insync_hash" => Ok(self.rb_insync_hash.clone().into_pyobject(py)?.into()),
             "rb_insync_local_usn" => Ok(self.rb_insync_local_usn.into_pyobject(py)?.into()),
@@ -903,8 +903,8 @@ impl MutableMapping for PyContentFile {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -913,10 +913,10 @@ impl MutableMapping for PyContentFile {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "ContentID" => self.ContentID = value.extract::<Option<String>>(py)?,
-            "Path" => self.Path = value.extract::<Option<String>>(py)?,
-            "Hash" => self.Hash = value.extract::<Option<String>>(py)?,
-            "Size" => self.Size = value.extract::<Option<i32>>(py)?,
+            "content_id" => self.content_id = value.extract::<Option<String>>(py)?,
+            "path" => self.path = value.extract::<Option<String>>(py)?,
+            "hash" => self.hash = value.extract::<Option<String>>(py)?,
+            "size" => self.size = value.extract::<Option<i32>>(py)?,
             "rb_local_path" => self.rb_local_path = value.extract::<Option<String>>(py)?,
             "rb_insync_hash" => self.rb_insync_hash = value.extract::<Option<String>>(py)?,
             "rb_insync_local_usn" => self.rb_insync_local_usn = value.extract::<Option<i32>>(py)?,
@@ -987,14 +987,14 @@ impl PyContentFile {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("ContentFile(ID: {})", self.ID))
+        Ok(format!("ContentFile(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdActiveCensor", unsendable, get_all, set_all)]
 pub struct PyDjmdActiveCensor {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1003,19 +1003,19 @@ pub struct PyDjmdActiveCensor {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub ContentID: Option<String>,
-    pub InMsec: Option<i32>,
-    pub OutMsec: Option<i32>,
-    pub Info: Option<i32>,
-    pub ParameterList: Option<String>,
-    pub ContentUUID: Option<String>,
+    pub content_id: Option<String>,
+    pub in_msec: Option<i32>,
+    pub out_msec: Option<i32>,
+    pub info: Option<i32>,
+    pub parameter_list: Option<String>,
+    pub content_uuid: Option<String>,
 }
 
 impl IntoPy<PyDjmdActiveCensor> for DjmdActiveCensor {
     fn into_py(self, py: Python) -> PyResult<PyDjmdActiveCensor> {
         let model = PyDjmdActiveCensor {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -1024,12 +1024,12 @@ impl IntoPy<PyDjmdActiveCensor> for DjmdActiveCensor {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            ContentID: self.ContentID,
-            InMsec: self.InMsec,
-            OutMsec: self.OutMsec,
-            Info: self.Info,
-            ParameterList: self.ParameterList,
-            ContentUUID: self.ContentUUID,
+            content_id: self.content_id,
+            in_msec: self.in_msec,
+            out_msec: self.out_msec,
+            info: self.info,
+            parameter_list: self.parameter_list,
+            content_uuid: self.content_uuid,
         };
         Ok(model)
     }
@@ -1038,8 +1038,8 @@ impl IntoPy<PyDjmdActiveCensor> for DjmdActiveCensor {
 impl FromPy<PyDjmdActiveCensor> for DjmdActiveCensor {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdActiveCensor>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -1048,12 +1048,12 @@ impl FromPy<PyDjmdActiveCensor> for DjmdActiveCensor {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            ContentID: model.ContentID.clone(),
-            InMsec: model.InMsec,
-            OutMsec: model.OutMsec,
-            Info: model.Info,
-            ParameterList: model.ParameterList.clone(),
-            ContentUUID: model.ContentUUID.clone(),
+            content_id: model.content_id.clone(),
+            in_msec: model.in_msec,
+            out_msec: model.out_msec,
+            info: model.info,
+            parameter_list: model.parameter_list.clone(),
+            content_uuid: model.content_uuid.clone(),
         }
     }
 }
@@ -1061,8 +1061,8 @@ impl FromPy<PyDjmdActiveCensor> for DjmdActiveCensor {
 impl MutableMapping for PyDjmdActiveCensor {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -1071,19 +1071,19 @@ impl MutableMapping for PyDjmdActiveCensor {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "ContentID".to_string(),
-            "InMsec".to_string(),
-            "OutMsec".to_string(),
-            "Info".to_string(),
-            "ParameterList".to_string(),
-            "ContentUUID".to_string(),
+            "content_id".to_string(),
+            "in_msec".to_string(),
+            "out_msec".to_string(),
+            "info".to_string(),
+            "parameter_list".to_string(),
+            "content_uuid".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -1092,12 +1092,12 @@ impl MutableMapping for PyDjmdActiveCensor {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "ContentID" => Ok(self.ContentID.clone().into_pyobject(py)?.into()),
-            "InMsec" => Ok(self.InMsec.into_pyobject(py)?.into()),
-            "OutMsec" => Ok(self.OutMsec.into_pyobject(py)?.into()),
-            "Info" => Ok(self.Info.into_pyobject(py)?.into()),
-            "ParameterList" => Ok(self.ParameterList.clone().into_pyobject(py)?.into()),
-            "ContentUUID" => Ok(self.ContentUUID.clone().into_pyobject(py)?.into()),
+            "content_id" => Ok(self.content_id.clone().into_pyobject(py)?.into()),
+            "in_msec" => Ok(self.in_msec.into_pyobject(py)?.into()),
+            "out_msec" => Ok(self.out_msec.into_pyobject(py)?.into()),
+            "info" => Ok(self.info.into_pyobject(py)?.into()),
+            "parameter_list" => Ok(self.parameter_list.clone().into_pyobject(py)?.into()),
+            "content_uuid" => Ok(self.content_uuid.clone().into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -1107,8 +1107,8 @@ impl MutableMapping for PyDjmdActiveCensor {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -1117,12 +1117,12 @@ impl MutableMapping for PyDjmdActiveCensor {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "ContentID" => self.ContentID = value.extract::<Option<String>>(py)?,
-            "InMsec" => self.InMsec = value.extract::<Option<i32>>(py)?,
-            "OutMsec" => self.OutMsec = value.extract::<Option<i32>>(py)?,
-            "Info" => self.Info = value.extract::<Option<i32>>(py)?,
-            "ParameterList" => self.ParameterList = value.extract::<Option<String>>(py)?,
-            "ContentUUID" => self.ContentUUID = value.extract::<Option<String>>(py)?,
+            "content_id" => self.content_id = value.extract::<Option<String>>(py)?,
+            "in_msec" => self.in_msec = value.extract::<Option<i32>>(py)?,
+            "out_msec" => self.out_msec = value.extract::<Option<i32>>(py)?,
+            "info" => self.info = value.extract::<Option<i32>>(py)?,
+            "parameter_list" => self.parameter_list = value.extract::<Option<String>>(py)?,
+            "content_uuid" => self.content_uuid = value.extract::<Option<String>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -1181,14 +1181,14 @@ impl PyDjmdActiveCensor {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdActiveCensor(ID: {})", self.ID))
+        Ok(format!("DjmdActiveCensor(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdAlbum", unsendable, get_all, set_all)]
 pub struct PyDjmdAlbum {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1197,18 +1197,18 @@ pub struct PyDjmdAlbum {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub Name: Option<String>,
-    pub AlbumArtistID: Option<String>,
-    pub ImagePath: Option<String>,
-    pub Compilation: Option<i32>,
-    pub SearchStr: Option<String>,
+    pub name: Option<String>,
+    pub album_artist_id: Option<String>,
+    pub image_path: Option<String>,
+    pub compilation: Option<i32>,
+    pub search_str: Option<String>,
 }
 
 impl IntoPy<PyDjmdAlbum> for DjmdAlbum {
     fn into_py(self, py: Python) -> PyResult<PyDjmdAlbum> {
         let model = PyDjmdAlbum {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -1217,11 +1217,11 @@ impl IntoPy<PyDjmdAlbum> for DjmdAlbum {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            Name: self.Name,
-            AlbumArtistID: self.AlbumArtistID,
-            ImagePath: self.ImagePath,
-            Compilation: self.Compilation,
-            SearchStr: self.SearchStr,
+            name: self.name,
+            album_artist_id: self.album_artist_id,
+            image_path: self.image_path,
+            compilation: self.compilation,
+            search_str: self.search_str,
         };
         Ok(model)
     }
@@ -1230,8 +1230,8 @@ impl IntoPy<PyDjmdAlbum> for DjmdAlbum {
 impl FromPy<PyDjmdAlbum> for DjmdAlbum {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdAlbum>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -1240,11 +1240,11 @@ impl FromPy<PyDjmdAlbum> for DjmdAlbum {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            Name: model.Name.clone(),
-            AlbumArtistID: model.AlbumArtistID.clone(),
-            ImagePath: model.ImagePath.clone(),
-            Compilation: model.Compilation,
-            SearchStr: model.SearchStr.clone(),
+            name: model.name.clone(),
+            album_artist_id: model.album_artist_id.clone(),
+            image_path: model.image_path.clone(),
+            compilation: model.compilation,
+            search_str: model.search_str.clone(),
         }
     }
 }
@@ -1252,8 +1252,8 @@ impl FromPy<PyDjmdAlbum> for DjmdAlbum {
 impl MutableMapping for PyDjmdAlbum {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -1262,18 +1262,18 @@ impl MutableMapping for PyDjmdAlbum {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "Name".to_string(),
-            "AlbumArtistID".to_string(),
-            "ImagePath".to_string(),
-            "Compilation".to_string(),
-            "SearchStr".to_string(),
+            "name".to_string(),
+            "album_artist_id".to_string(),
+            "image_path".to_string(),
+            "compilation".to_string(),
+            "search_str".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -1282,11 +1282,11 @@ impl MutableMapping for PyDjmdAlbum {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "Name" => Ok(self.Name.clone().into_pyobject(py)?.into()),
-            "AlbumArtistID" => Ok(self.AlbumArtistID.clone().into_pyobject(py)?.into()),
-            "ImagePath" => Ok(self.ImagePath.clone().into_pyobject(py)?.into()),
-            "Compilation" => Ok(self.Compilation.into_pyobject(py)?.into()),
-            "SearchStr" => Ok(self.SearchStr.clone().into_pyobject(py)?.into()),
+            "name" => Ok(self.name.clone().into_pyobject(py)?.into()),
+            "album_artist_id" => Ok(self.album_artist_id.clone().into_pyobject(py)?.into()),
+            "image_path" => Ok(self.image_path.clone().into_pyobject(py)?.into()),
+            "compilation" => Ok(self.compilation.into_pyobject(py)?.into()),
+            "search_str" => Ok(self.search_str.clone().into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -1296,8 +1296,8 @@ impl MutableMapping for PyDjmdAlbum {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -1306,11 +1306,11 @@ impl MutableMapping for PyDjmdAlbum {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "Name" => self.Name = value.extract::<Option<String>>(py)?,
-            "AlbumArtistID" => self.AlbumArtistID = value.extract::<Option<String>>(py)?,
-            "ImagePath" => self.ImagePath = value.extract::<Option<String>>(py)?,
-            "Compilation" => self.Compilation = value.extract::<Option<i32>>(py)?,
-            "SearchStr" => self.SearchStr = value.extract::<Option<String>>(py)?,
+            "name" => self.name = value.extract::<Option<String>>(py)?,
+            "album_artist_id" => self.album_artist_id = value.extract::<Option<String>>(py)?,
+            "image_path" => self.image_path = value.extract::<Option<String>>(py)?,
+            "compilation" => self.compilation = value.extract::<Option<i32>>(py)?,
+            "search_str" => self.search_str = value.extract::<Option<String>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -1369,14 +1369,14 @@ impl PyDjmdAlbum {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdAlbum(ID: {})", self.ID))
+        Ok(format!("DjmdAlbum(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdArtist", unsendable, get_all, set_all)]
 pub struct PyDjmdArtist {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1385,15 +1385,15 @@ pub struct PyDjmdArtist {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub Name: Option<String>,
-    pub SearchStr: Option<String>,
+    pub name: Option<String>,
+    pub search_str: Option<String>,
 }
 
 impl IntoPy<PyDjmdArtist> for DjmdArtist {
     fn into_py(self, py: Python) -> PyResult<PyDjmdArtist> {
         let model = PyDjmdArtist {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -1402,8 +1402,8 @@ impl IntoPy<PyDjmdArtist> for DjmdArtist {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            Name: self.Name,
-            SearchStr: self.SearchStr,
+            name: self.name,
+            search_str: self.search_str,
         };
         Ok(model)
     }
@@ -1412,8 +1412,8 @@ impl IntoPy<PyDjmdArtist> for DjmdArtist {
 impl FromPy<PyDjmdArtist> for DjmdArtist {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdArtist>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -1422,8 +1422,8 @@ impl FromPy<PyDjmdArtist> for DjmdArtist {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            Name: model.Name.clone(),
-            SearchStr: model.SearchStr.clone(),
+            name: model.name.clone(),
+            search_str: model.search_str.clone(),
         }
     }
 }
@@ -1431,8 +1431,8 @@ impl FromPy<PyDjmdArtist> for DjmdArtist {
 impl MutableMapping for PyDjmdArtist {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -1441,15 +1441,15 @@ impl MutableMapping for PyDjmdArtist {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "Name".to_string(),
-            "SearchStr".to_string(),
+            "name".to_string(),
+            "search_str".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -1458,8 +1458,8 @@ impl MutableMapping for PyDjmdArtist {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "Name" => Ok(self.Name.clone().into_pyobject(py)?.into()),
-            "SearchStr" => Ok(self.SearchStr.clone().into_pyobject(py)?.into()),
+            "name" => Ok(self.name.clone().into_pyobject(py)?.into()),
+            "search_str" => Ok(self.search_str.clone().into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -1469,8 +1469,8 @@ impl MutableMapping for PyDjmdArtist {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -1479,8 +1479,8 @@ impl MutableMapping for PyDjmdArtist {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "Name" => self.Name = value.extract::<Option<String>>(py)?,
-            "SearchStr" => self.SearchStr = value.extract::<Option<String>>(py)?,
+            "name" => self.name = value.extract::<Option<String>>(py)?,
+            "search_str" => self.search_str = value.extract::<Option<String>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -1539,14 +1539,14 @@ impl PyDjmdArtist {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdArtist(ID: {})", self.ID))
+        Ok(format!("DjmdArtist(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdCategory", unsendable, get_all, set_all)]
 pub struct PyDjmdCategory {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1555,17 +1555,17 @@ pub struct PyDjmdCategory {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub MenuItemID: Option<String>,
-    pub Seq: Option<i32>,
-    pub Disable: Option<i32>,
-    pub InfoOrder: Option<i32>,
+    pub menu_item_id: Option<String>,
+    pub seq: Option<i32>,
+    pub disable: Option<i32>,
+    pub info_order: Option<i32>,
 }
 
 impl IntoPy<PyDjmdCategory> for DjmdCategory {
     fn into_py(self, py: Python) -> PyResult<PyDjmdCategory> {
         let model = PyDjmdCategory {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -1574,10 +1574,10 @@ impl IntoPy<PyDjmdCategory> for DjmdCategory {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            MenuItemID: self.MenuItemID,
-            Seq: self.Seq,
-            Disable: self.Disable,
-            InfoOrder: self.InfoOrder,
+            menu_item_id: self.menu_item_id,
+            seq: self.seq,
+            disable: self.disable,
+            info_order: self.info_order,
         };
         Ok(model)
     }
@@ -1586,8 +1586,8 @@ impl IntoPy<PyDjmdCategory> for DjmdCategory {
 impl FromPy<PyDjmdCategory> for DjmdCategory {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdCategory>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -1596,10 +1596,10 @@ impl FromPy<PyDjmdCategory> for DjmdCategory {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            MenuItemID: model.MenuItemID.clone(),
-            Seq: model.Seq,
-            Disable: model.Disable,
-            InfoOrder: model.InfoOrder,
+            menu_item_id: model.menu_item_id.clone(),
+            seq: model.seq,
+            disable: model.disable,
+            info_order: model.info_order,
         }
     }
 }
@@ -1607,8 +1607,8 @@ impl FromPy<PyDjmdCategory> for DjmdCategory {
 impl MutableMapping for PyDjmdCategory {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -1617,17 +1617,17 @@ impl MutableMapping for PyDjmdCategory {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "MenuItemID".to_string(),
-            "Seq".to_string(),
-            "Disable".to_string(),
-            "InfoOrder".to_string(),
+            "menu_item_id".to_string(),
+            "seq".to_string(),
+            "disable".to_string(),
+            "info_order".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -1636,10 +1636,10 @@ impl MutableMapping for PyDjmdCategory {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "MenuItemID" => Ok(self.MenuItemID.clone().into_pyobject(py)?.into()),
-            "Seq" => Ok(self.Seq.into_pyobject(py)?.into()),
-            "Disable" => Ok(self.Disable.into_pyobject(py)?.into()),
-            "InfoOrder" => Ok(self.InfoOrder.into_pyobject(py)?.into()),
+            "menu_item_id" => Ok(self.menu_item_id.clone().into_pyobject(py)?.into()),
+            "seq" => Ok(self.seq.into_pyobject(py)?.into()),
+            "disable" => Ok(self.disable.into_pyobject(py)?.into()),
+            "info_order" => Ok(self.info_order.into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -1649,8 +1649,8 @@ impl MutableMapping for PyDjmdCategory {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -1659,10 +1659,10 @@ impl MutableMapping for PyDjmdCategory {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "MenuItemID" => self.MenuItemID = value.extract::<Option<String>>(py)?,
-            "Seq" => self.Seq = value.extract::<Option<i32>>(py)?,
-            "Disable" => self.Disable = value.extract::<Option<i32>>(py)?,
-            "InfoOrder" => self.InfoOrder = value.extract::<Option<i32>>(py)?,
+            "menu_item_id" => self.menu_item_id = value.extract::<Option<String>>(py)?,
+            "seq" => self.seq = value.extract::<Option<i32>>(py)?,
+            "disable" => self.disable = value.extract::<Option<i32>>(py)?,
+            "info_order" => self.info_order = value.extract::<Option<i32>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -1721,14 +1721,14 @@ impl PyDjmdCategory {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdCategory(ID: {})", self.ID))
+        Ok(format!("DjmdCategory(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdColor", unsendable, get_all, set_all)]
 pub struct PyDjmdColor {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1737,16 +1737,16 @@ pub struct PyDjmdColor {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub ColorCode: Option<String>,
-    pub SortKey: Option<i32>,
-    pub Commnt: Option<String>,
+    pub color_code: Option<String>,
+    pub sort_key: Option<i32>,
+    pub commnt: Option<String>,
 }
 
 impl IntoPy<PyDjmdColor> for DjmdColor {
     fn into_py(self, py: Python) -> PyResult<PyDjmdColor> {
         let model = PyDjmdColor {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -1755,9 +1755,9 @@ impl IntoPy<PyDjmdColor> for DjmdColor {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            ColorCode: self.ColorCode,
-            SortKey: self.SortKey,
-            Commnt: self.Commnt,
+            color_code: self.color_code,
+            sort_key: self.sort_key,
+            commnt: self.commnt,
         };
         Ok(model)
     }
@@ -1766,8 +1766,8 @@ impl IntoPy<PyDjmdColor> for DjmdColor {
 impl FromPy<PyDjmdColor> for DjmdColor {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdColor>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -1776,9 +1776,9 @@ impl FromPy<PyDjmdColor> for DjmdColor {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            ColorCode: model.ColorCode.clone(),
-            SortKey: model.SortKey,
-            Commnt: model.Commnt.clone(),
+            color_code: model.color_code.clone(),
+            sort_key: model.sort_key,
+            commnt: model.commnt.clone(),
         }
     }
 }
@@ -1786,8 +1786,8 @@ impl FromPy<PyDjmdColor> for DjmdColor {
 impl MutableMapping for PyDjmdColor {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -1796,16 +1796,16 @@ impl MutableMapping for PyDjmdColor {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "ColorCode".to_string(),
-            "SortKey".to_string(),
-            "Commnt".to_string(),
+            "color_code".to_string(),
+            "sort_key".to_string(),
+            "commnt".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -1814,9 +1814,9 @@ impl MutableMapping for PyDjmdColor {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "ColorCode" => Ok(self.ColorCode.clone().into_pyobject(py)?.into()),
-            "SortKey" => Ok(self.SortKey.into_pyobject(py)?.into()),
-            "Commnt" => Ok(self.Commnt.clone().into_pyobject(py)?.into()),
+            "color_code" => Ok(self.color_code.clone().into_pyobject(py)?.into()),
+            "sort_key" => Ok(self.sort_key.into_pyobject(py)?.into()),
+            "commnt" => Ok(self.commnt.clone().into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -1826,8 +1826,8 @@ impl MutableMapping for PyDjmdColor {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -1836,9 +1836,9 @@ impl MutableMapping for PyDjmdColor {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "ColorCode" => self.ColorCode = value.extract::<Option<String>>(py)?,
-            "SortKey" => self.SortKey = value.extract::<Option<i32>>(py)?,
-            "Commnt" => self.Commnt = value.extract::<Option<String>>(py)?,
+            "color_code" => self.color_code = value.extract::<Option<String>>(py)?,
+            "sort_key" => self.sort_key = value.extract::<Option<i32>>(py)?,
+            "commnt" => self.commnt = value.extract::<Option<String>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -1897,14 +1897,14 @@ impl PyDjmdColor {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdColor(ID: {})", self.ID))
+        Ok(format!("DjmdColor(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdContent", unsendable, get_all, set_all)]
 pub struct PyDjmdContent {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -1913,81 +1913,81 @@ pub struct PyDjmdContent {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub FolderPath: Option<String>,
-    pub FileNameL: Option<String>,
-    pub FileNameS: Option<String>,
-    pub Title: Option<String>,
-    pub ArtistID: Option<String>,
-    pub AlbumID: Option<String>,
-    pub GenreID: Option<String>,
-    pub BPM: Option<i32>,
-    pub Length: Option<i32>,
-    pub TrackNo: Option<i32>,
-    pub BitRate: Option<i32>,
-    pub BitDepth: Option<i32>,
-    pub Commnt: Option<String>,
-    pub FileType: Option<i32>,
-    pub Rating: Option<i32>,
-    pub ReleaseYear: Option<i32>,
-    pub RemixerID: Option<String>,
-    pub LabelID: Option<String>,
-    pub OrgArtistID: Option<String>,
-    pub KeyID: Option<String>,
-    pub StockDate: Option<String>,
-    pub ColorID: Option<String>,
-    pub DJPlayCount: Option<i32>,
-    pub ImagePath: Option<String>,
-    pub MasterDBID: Option<String>,
-    pub MasterSongID: Option<String>,
-    pub AnalysisDataPath: Option<String>,
-    pub SearchStr: Option<String>,
-    pub FileSize: Option<i32>,
-    pub DiscNo: Option<i32>,
-    pub ComposerID: Option<String>,
-    pub Subtitle: Option<String>,
-    pub SampleRate: Option<i32>,
-    pub DisableQuantize: Option<i32>,
-    pub Analysed: Option<i32>,
-    pub ReleaseDate: Option<String>,
-    pub DateCreated: Option<String>,
-    pub ContentLink: Option<i32>,
-    pub Tag: Option<String>,
-    pub ModifiedByRBM: Option<String>,
-    pub HotCueAutoLoad: Option<String>,
-    pub DeliveryControl: Option<String>,
-    pub DeliveryComment: Option<String>,
-    pub CueUpdated: Option<String>,
-    pub AnalysisUpdated: Option<String>,
-    pub TrackInfoUpdated: Option<String>,
-    pub Lyricist: Option<String>,
-    pub ISRC: Option<String>,
-    pub SamplerTrackInfo: Option<i32>,
-    pub SamplerPlayOffset: Option<i32>,
-    pub SamplerGain: Option<f64>,
-    pub VideoAssociate: Option<String>,
-    pub LyricStatus: Option<i32>,
-    pub ServiceID: Option<i32>,
-    pub OrgFolderPath: Option<String>,
-    pub Reserved1: Option<String>,
-    pub Reserved2: Option<String>,
-    pub Reserved3: Option<String>,
-    pub Reserved4: Option<String>,
-    pub ExtInfo: Option<String>,
+    pub folder_path: Option<String>,
+    pub file_name_l: Option<String>,
+    pub file_name_s: Option<String>,
+    pub title: Option<String>,
+    pub artist_id: Option<String>,
+    pub album_id: Option<String>,
+    pub genre_id: Option<String>,
+    pub bpm: Option<i32>,
+    pub length: Option<i32>,
+    pub track_no: Option<i32>,
+    pub bit_rate: Option<i32>,
+    pub bit_depth: Option<i32>,
+    pub commnt: Option<String>,
+    pub file_type: Option<i32>,
+    pub rating: Option<i32>,
+    pub release_year: Option<i32>,
+    pub remixer_id: Option<String>,
+    pub label_id: Option<String>,
+    pub org_artist_id: Option<String>,
+    pub key_id: Option<String>,
+    pub stock_date: Option<String>,
+    pub color_id: Option<String>,
+    pub dj_play_count: Option<i32>,
+    pub image_path: Option<String>,
+    pub master_db_id: Option<String>,
+    pub master_song_id: Option<String>,
+    pub analysis_data_path: Option<String>,
+    pub search_str: Option<String>,
+    pub file_size: Option<i32>,
+    pub disc_no: Option<i32>,
+    pub composer_id: Option<String>,
+    pub subtitle: Option<String>,
+    pub sample_rate: Option<i32>,
+    pub disable_quantize: Option<i32>,
+    pub analysed: Option<i32>,
+    pub release_date: Option<String>,
+    pub date_created: Option<String>,
+    pub content_link: Option<i32>,
+    pub tag: Option<String>,
+    pub modified_by_rbm: Option<String>,
+    pub hot_cue_auto_load: Option<String>,
+    pub delivery_control: Option<String>,
+    pub delivery_comment: Option<String>,
+    pub cue_updated: Option<String>,
+    pub analysis_updated: Option<String>,
+    pub track_info_updated: Option<String>,
+    pub lyricist: Option<String>,
+    pub isrc: Option<String>,
+    pub sampler_track_info: Option<i32>,
+    pub sampler_play_offset: Option<i32>,
+    pub sampler_gain: Option<f64>,
+    pub video_associate: Option<String>,
+    pub lyric_status: Option<i32>,
+    pub service_id: Option<i32>,
+    pub org_folder_path: Option<String>,
+    pub reserved1: Option<String>,
+    pub reserved2: Option<String>,
+    pub reserved3: Option<String>,
+    pub reserved4: Option<String>,
+    pub ext_info: Option<String>,
     pub rb_file_id: Option<String>,
-    pub DeviceID: Option<String>,
-    pub rb_LocalFolderPath: Option<String>,
-    pub SrcID: Option<String>,
-    pub SrcTitle: Option<String>,
-    pub SrcArtistName: Option<String>,
-    pub SrcAlbumName: Option<String>,
-    pub SrcLength: Option<i32>,
+    pub device_id: Option<String>,
+    pub rb__local_folder_path: Option<String>,
+    pub src_id: Option<String>,
+    pub src_title: Option<String>,
+    pub src_artist_name: Option<String>,
+    pub src_album_name: Option<String>,
+    pub src_length: Option<i32>,
 }
 
 impl IntoPy<PyDjmdContent> for DjmdContent {
     fn into_py(self, py: Python) -> PyResult<PyDjmdContent> {
         let model = PyDjmdContent {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -1996,74 +1996,74 @@ impl IntoPy<PyDjmdContent> for DjmdContent {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            FolderPath: self.FolderPath,
-            FileNameL: self.FileNameL,
-            FileNameS: self.FileNameS,
-            Title: self.Title,
-            ArtistID: self.ArtistID,
-            AlbumID: self.AlbumID,
-            GenreID: self.GenreID,
-            BPM: self.BPM,
-            Length: self.Length,
-            TrackNo: self.TrackNo,
-            BitRate: self.BitRate,
-            BitDepth: self.BitDepth,
-            Commnt: self.Commnt,
-            FileType: self.FileType,
-            Rating: self.Rating,
-            ReleaseYear: self.ReleaseYear,
-            RemixerID: self.RemixerID,
-            LabelID: self.LabelID,
-            OrgArtistID: self.OrgArtistID,
-            KeyID: self.KeyID,
-            StockDate: self.StockDate,
-            ColorID: self.ColorID,
-            DJPlayCount: self.DJPlayCount,
-            ImagePath: self.ImagePath,
-            MasterDBID: self.MasterDBID,
-            MasterSongID: self.MasterSongID,
-            AnalysisDataPath: self.AnalysisDataPath,
-            SearchStr: self.SearchStr,
-            FileSize: self.FileSize,
-            DiscNo: self.DiscNo,
-            ComposerID: self.ComposerID,
-            Subtitle: self.Subtitle,
-            SampleRate: self.SampleRate,
-            DisableQuantize: self.DisableQuantize,
-            Analysed: self.Analysed,
-            ReleaseDate: self.ReleaseDate,
-            DateCreated: self.DateCreated,
-            ContentLink: self.ContentLink,
-            Tag: self.Tag,
-            ModifiedByRBM: self.ModifiedByRBM,
-            HotCueAutoLoad: self.HotCueAutoLoad,
-            DeliveryControl: self.DeliveryControl,
-            DeliveryComment: self.DeliveryComment,
-            CueUpdated: self.CueUpdated,
-            AnalysisUpdated: self.AnalysisUpdated,
-            TrackInfoUpdated: self.TrackInfoUpdated,
-            Lyricist: self.Lyricist,
-            ISRC: self.ISRC,
-            SamplerTrackInfo: self.SamplerTrackInfo,
-            SamplerPlayOffset: self.SamplerPlayOffset,
-            SamplerGain: self.SamplerGain,
-            VideoAssociate: self.VideoAssociate,
-            LyricStatus: self.LyricStatus,
-            ServiceID: self.ServiceID,
-            OrgFolderPath: self.OrgFolderPath,
-            Reserved1: self.Reserved1,
-            Reserved2: self.Reserved2,
-            Reserved3: self.Reserved3,
-            Reserved4: self.Reserved4,
-            ExtInfo: self.ExtInfo,
+            folder_path: self.folder_path,
+            file_name_l: self.file_name_l,
+            file_name_s: self.file_name_s,
+            title: self.title,
+            artist_id: self.artist_id,
+            album_id: self.album_id,
+            genre_id: self.genre_id,
+            bpm: self.bpm,
+            length: self.length,
+            track_no: self.track_no,
+            bit_rate: self.bit_rate,
+            bit_depth: self.bit_depth,
+            commnt: self.commnt,
+            file_type: self.file_type,
+            rating: self.rating,
+            release_year: self.release_year,
+            remixer_id: self.remixer_id,
+            label_id: self.label_id,
+            org_artist_id: self.org_artist_id,
+            key_id: self.key_id,
+            stock_date: self.stock_date,
+            color_id: self.color_id,
+            dj_play_count: self.dj_play_count,
+            image_path: self.image_path,
+            master_db_id: self.master_db_id,
+            master_song_id: self.master_song_id,
+            analysis_data_path: self.analysis_data_path,
+            search_str: self.search_str,
+            file_size: self.file_size,
+            disc_no: self.disc_no,
+            composer_id: self.composer_id,
+            subtitle: self.subtitle,
+            sample_rate: self.sample_rate,
+            disable_quantize: self.disable_quantize,
+            analysed: self.analysed,
+            release_date: self.release_date,
+            date_created: self.date_created,
+            content_link: self.content_link,
+            tag: self.tag,
+            modified_by_rbm: self.modified_by_rbm,
+            hot_cue_auto_load: self.hot_cue_auto_load,
+            delivery_control: self.delivery_control,
+            delivery_comment: self.delivery_comment,
+            cue_updated: self.cue_updated,
+            analysis_updated: self.analysis_updated,
+            track_info_updated: self.track_info_updated,
+            lyricist: self.lyricist,
+            isrc: self.isrc,
+            sampler_track_info: self.sampler_track_info,
+            sampler_play_offset: self.sampler_play_offset,
+            sampler_gain: self.sampler_gain,
+            video_associate: self.video_associate,
+            lyric_status: self.lyric_status,
+            service_id: self.service_id,
+            org_folder_path: self.org_folder_path,
+            reserved1: self.reserved1,
+            reserved2: self.reserved2,
+            reserved3: self.reserved3,
+            reserved4: self.reserved4,
+            ext_info: self.ext_info,
             rb_file_id: self.rb_file_id,
-            DeviceID: self.DeviceID,
-            rb_LocalFolderPath: self.rb_LocalFolderPath,
-            SrcID: self.SrcID,
-            SrcTitle: self.SrcTitle,
-            SrcArtistName: self.SrcArtistName,
-            SrcAlbumName: self.SrcAlbumName,
-            SrcLength: self.SrcLength,
+            device_id: self.device_id,
+            rb__local_folder_path: self.rb__local_folder_path,
+            src_id: self.src_id,
+            src_title: self.src_title,
+            src_artist_name: self.src_artist_name,
+            src_album_name: self.src_album_name,
+            src_length: self.src_length,
         };
         Ok(model)
     }
@@ -2072,8 +2072,8 @@ impl IntoPy<PyDjmdContent> for DjmdContent {
 impl FromPy<PyDjmdContent> for DjmdContent {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdContent>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -2082,74 +2082,74 @@ impl FromPy<PyDjmdContent> for DjmdContent {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            FolderPath: model.FolderPath.clone(),
-            FileNameL: model.FileNameL.clone(),
-            FileNameS: model.FileNameS.clone(),
-            Title: model.Title.clone(),
-            ArtistID: model.ArtistID.clone(),
-            AlbumID: model.AlbumID.clone(),
-            GenreID: model.GenreID.clone(),
-            BPM: model.BPM,
-            Length: model.Length,
-            TrackNo: model.TrackNo,
-            BitRate: model.BitRate,
-            BitDepth: model.BitDepth,
-            Commnt: model.Commnt.clone(),
-            FileType: model.FileType,
-            Rating: model.Rating,
-            ReleaseYear: model.ReleaseYear,
-            RemixerID: model.RemixerID.clone(),
-            LabelID: model.LabelID.clone(),
-            OrgArtistID: model.OrgArtistID.clone(),
-            KeyID: model.KeyID.clone(),
-            StockDate: model.StockDate.clone(),
-            ColorID: model.ColorID.clone(),
-            DJPlayCount: model.DJPlayCount,
-            ImagePath: model.ImagePath.clone(),
-            MasterDBID: model.MasterDBID.clone(),
-            MasterSongID: model.MasterSongID.clone(),
-            AnalysisDataPath: model.AnalysisDataPath.clone(),
-            SearchStr: model.SearchStr.clone(),
-            FileSize: model.FileSize,
-            DiscNo: model.DiscNo,
-            ComposerID: model.ComposerID.clone(),
-            Subtitle: model.Subtitle.clone(),
-            SampleRate: model.SampleRate,
-            DisableQuantize: model.DisableQuantize,
-            Analysed: model.Analysed,
-            ReleaseDate: model.ReleaseDate.clone(),
-            DateCreated: model.DateCreated.clone(),
-            ContentLink: model.ContentLink,
-            Tag: model.Tag.clone(),
-            ModifiedByRBM: model.ModifiedByRBM.clone(),
-            HotCueAutoLoad: model.HotCueAutoLoad.clone(),
-            DeliveryControl: model.DeliveryControl.clone(),
-            DeliveryComment: model.DeliveryComment.clone(),
-            CueUpdated: model.CueUpdated.clone(),
-            AnalysisUpdated: model.AnalysisUpdated.clone(),
-            TrackInfoUpdated: model.TrackInfoUpdated.clone(),
-            Lyricist: model.Lyricist.clone(),
-            ISRC: model.ISRC.clone(),
-            SamplerTrackInfo: model.SamplerTrackInfo,
-            SamplerPlayOffset: model.SamplerPlayOffset,
-            SamplerGain: model.SamplerGain,
-            VideoAssociate: model.VideoAssociate.clone(),
-            LyricStatus: model.LyricStatus,
-            ServiceID: model.ServiceID,
-            OrgFolderPath: model.OrgFolderPath.clone(),
-            Reserved1: model.Reserved1.clone(),
-            Reserved2: model.Reserved2.clone(),
-            Reserved3: model.Reserved3.clone(),
-            Reserved4: model.Reserved4.clone(),
-            ExtInfo: model.ExtInfo.clone(),
+            folder_path: model.folder_path.clone(),
+            file_name_l: model.file_name_l.clone(),
+            file_name_s: model.file_name_s.clone(),
+            title: model.title.clone(),
+            artist_id: model.artist_id.clone(),
+            album_id: model.album_id.clone(),
+            genre_id: model.genre_id.clone(),
+            bpm: model.bpm,
+            length: model.length,
+            track_no: model.track_no,
+            bit_rate: model.bit_rate,
+            bit_depth: model.bit_depth,
+            commnt: model.commnt.clone(),
+            file_type: model.file_type,
+            rating: model.rating,
+            release_year: model.release_year,
+            remixer_id: model.remixer_id.clone(),
+            label_id: model.label_id.clone(),
+            org_artist_id: model.org_artist_id.clone(),
+            key_id: model.key_id.clone(),
+            stock_date: model.stock_date.clone(),
+            color_id: model.color_id.clone(),
+            dj_play_count: model.dj_play_count,
+            image_path: model.image_path.clone(),
+            master_db_id: model.master_db_id.clone(),
+            master_song_id: model.master_song_id.clone(),
+            analysis_data_path: model.analysis_data_path.clone(),
+            search_str: model.search_str.clone(),
+            file_size: model.file_size,
+            disc_no: model.disc_no,
+            composer_id: model.composer_id.clone(),
+            subtitle: model.subtitle.clone(),
+            sample_rate: model.sample_rate,
+            disable_quantize: model.disable_quantize,
+            analysed: model.analysed,
+            release_date: model.release_date.clone(),
+            date_created: model.date_created.clone(),
+            content_link: model.content_link,
+            tag: model.tag.clone(),
+            modified_by_rbm: model.modified_by_rbm.clone(),
+            hot_cue_auto_load: model.hot_cue_auto_load.clone(),
+            delivery_control: model.delivery_control.clone(),
+            delivery_comment: model.delivery_comment.clone(),
+            cue_updated: model.cue_updated.clone(),
+            analysis_updated: model.analysis_updated.clone(),
+            track_info_updated: model.track_info_updated.clone(),
+            lyricist: model.lyricist.clone(),
+            isrc: model.isrc.clone(),
+            sampler_track_info: model.sampler_track_info,
+            sampler_play_offset: model.sampler_play_offset,
+            sampler_gain: model.sampler_gain,
+            video_associate: model.video_associate.clone(),
+            lyric_status: model.lyric_status,
+            service_id: model.service_id,
+            org_folder_path: model.org_folder_path.clone(),
+            reserved1: model.reserved1.clone(),
+            reserved2: model.reserved2.clone(),
+            reserved3: model.reserved3.clone(),
+            reserved4: model.reserved4.clone(),
+            ext_info: model.ext_info.clone(),
             rb_file_id: model.rb_file_id.clone(),
-            DeviceID: model.DeviceID.clone(),
-            rb_LocalFolderPath: model.rb_LocalFolderPath.clone(),
-            SrcID: model.SrcID.clone(),
-            SrcTitle: model.SrcTitle.clone(),
-            SrcArtistName: model.SrcArtistName.clone(),
-            SrcAlbumName: model.SrcAlbumName.clone(),
-            SrcLength: model.SrcLength,
+            device_id: model.device_id.clone(),
+            rb__local_folder_path: model.rb__local_folder_path.clone(),
+            src_id: model.src_id.clone(),
+            src_title: model.src_title.clone(),
+            src_artist_name: model.src_artist_name.clone(),
+            src_album_name: model.src_album_name.clone(),
+            src_length: model.src_length,
         }
     }
 }
@@ -2157,8 +2157,8 @@ impl FromPy<PyDjmdContent> for DjmdContent {
 impl MutableMapping for PyDjmdContent {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -2167,81 +2167,81 @@ impl MutableMapping for PyDjmdContent {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "FolderPath".to_string(),
-            "FileNameL".to_string(),
-            "FileNameS".to_string(),
-            "Title".to_string(),
-            "ArtistID".to_string(),
-            "AlbumID".to_string(),
-            "GenreID".to_string(),
-            "BPM".to_string(),
-            "Length".to_string(),
-            "TrackNo".to_string(),
-            "BitRate".to_string(),
-            "BitDepth".to_string(),
-            "Commnt".to_string(),
-            "FileType".to_string(),
-            "Rating".to_string(),
-            "ReleaseYear".to_string(),
-            "RemixerID".to_string(),
-            "LabelID".to_string(),
-            "OrgArtistID".to_string(),
-            "KeyID".to_string(),
-            "StockDate".to_string(),
-            "ColorID".to_string(),
-            "DJPlayCount".to_string(),
-            "ImagePath".to_string(),
-            "MasterDBID".to_string(),
-            "MasterSongID".to_string(),
-            "AnalysisDataPath".to_string(),
-            "SearchStr".to_string(),
-            "FileSize".to_string(),
-            "DiscNo".to_string(),
-            "ComposerID".to_string(),
-            "Subtitle".to_string(),
-            "SampleRate".to_string(),
-            "DisableQuantize".to_string(),
-            "Analysed".to_string(),
-            "ReleaseDate".to_string(),
-            "DateCreated".to_string(),
-            "ContentLink".to_string(),
-            "Tag".to_string(),
-            "ModifiedByRBM".to_string(),
-            "HotCueAutoLoad".to_string(),
-            "DeliveryControl".to_string(),
-            "DeliveryComment".to_string(),
-            "CueUpdated".to_string(),
-            "AnalysisUpdated".to_string(),
-            "TrackInfoUpdated".to_string(),
-            "Lyricist".to_string(),
-            "ISRC".to_string(),
-            "SamplerTrackInfo".to_string(),
-            "SamplerPlayOffset".to_string(),
-            "SamplerGain".to_string(),
-            "VideoAssociate".to_string(),
-            "LyricStatus".to_string(),
-            "ServiceID".to_string(),
-            "OrgFolderPath".to_string(),
-            "Reserved1".to_string(),
-            "Reserved2".to_string(),
-            "Reserved3".to_string(),
-            "Reserved4".to_string(),
-            "ExtInfo".to_string(),
+            "folder_path".to_string(),
+            "file_name_l".to_string(),
+            "file_name_s".to_string(),
+            "title".to_string(),
+            "artist_id".to_string(),
+            "album_id".to_string(),
+            "genre_id".to_string(),
+            "bpm".to_string(),
+            "length".to_string(),
+            "track_no".to_string(),
+            "bit_rate".to_string(),
+            "bit_depth".to_string(),
+            "commnt".to_string(),
+            "file_type".to_string(),
+            "rating".to_string(),
+            "release_year".to_string(),
+            "remixer_id".to_string(),
+            "label_id".to_string(),
+            "org_artist_id".to_string(),
+            "key_id".to_string(),
+            "stock_date".to_string(),
+            "color_id".to_string(),
+            "dj_play_count".to_string(),
+            "image_path".to_string(),
+            "master_db_id".to_string(),
+            "master_song_id".to_string(),
+            "analysis_data_path".to_string(),
+            "search_str".to_string(),
+            "file_size".to_string(),
+            "disc_no".to_string(),
+            "composer_id".to_string(),
+            "subtitle".to_string(),
+            "sample_rate".to_string(),
+            "disable_quantize".to_string(),
+            "analysed".to_string(),
+            "release_date".to_string(),
+            "date_created".to_string(),
+            "content_link".to_string(),
+            "tag".to_string(),
+            "modified_by_rbm".to_string(),
+            "hot_cue_auto_load".to_string(),
+            "delivery_control".to_string(),
+            "delivery_comment".to_string(),
+            "cue_updated".to_string(),
+            "analysis_updated".to_string(),
+            "track_info_updated".to_string(),
+            "lyricist".to_string(),
+            "isrc".to_string(),
+            "sampler_track_info".to_string(),
+            "sampler_play_offset".to_string(),
+            "sampler_gain".to_string(),
+            "video_associate".to_string(),
+            "lyric_status".to_string(),
+            "service_id".to_string(),
+            "org_folder_path".to_string(),
+            "reserved1".to_string(),
+            "reserved2".to_string(),
+            "reserved3".to_string(),
+            "reserved4".to_string(),
+            "ext_info".to_string(),
             "rb_file_id".to_string(),
-            "DeviceID".to_string(),
-            "rb_LocalFolderPath".to_string(),
-            "SrcID".to_string(),
-            "SrcTitle".to_string(),
-            "SrcArtistName".to_string(),
-            "SrcAlbumName".to_string(),
-            "SrcLength".to_string(),
+            "device_id".to_string(),
+            "rb__local_folder_path".to_string(),
+            "src_id".to_string(),
+            "src_title".to_string(),
+            "src_artist_name".to_string(),
+            "src_album_name".to_string(),
+            "src_length".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -2250,74 +2250,76 @@ impl MutableMapping for PyDjmdContent {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "FolderPath" => Ok(self.FolderPath.clone().into_pyobject(py)?.into()),
-            "FileNameL" => Ok(self.FileNameL.clone().into_pyobject(py)?.into()),
-            "FileNameS" => Ok(self.FileNameS.clone().into_pyobject(py)?.into()),
-            "Title" => Ok(self.Title.clone().into_pyobject(py)?.into()),
-            "ArtistID" => Ok(self.ArtistID.clone().into_pyobject(py)?.into()),
-            "AlbumID" => Ok(self.AlbumID.clone().into_pyobject(py)?.into()),
-            "GenreID" => Ok(self.GenreID.clone().into_pyobject(py)?.into()),
-            "BPM" => Ok(self.BPM.into_pyobject(py)?.into()),
-            "Length" => Ok(self.Length.into_pyobject(py)?.into()),
-            "TrackNo" => Ok(self.TrackNo.into_pyobject(py)?.into()),
-            "BitRate" => Ok(self.BitRate.into_pyobject(py)?.into()),
-            "BitDepth" => Ok(self.BitDepth.into_pyobject(py)?.into()),
-            "Commnt" => Ok(self.Commnt.clone().into_pyobject(py)?.into()),
-            "FileType" => Ok(self.FileType.into_pyobject(py)?.into()),
-            "Rating" => Ok(self.Rating.into_pyobject(py)?.into()),
-            "ReleaseYear" => Ok(self.ReleaseYear.into_pyobject(py)?.into()),
-            "RemixerID" => Ok(self.RemixerID.clone().into_pyobject(py)?.into()),
-            "LabelID" => Ok(self.LabelID.clone().into_pyobject(py)?.into()),
-            "OrgArtistID" => Ok(self.OrgArtistID.clone().into_pyobject(py)?.into()),
-            "KeyID" => Ok(self.KeyID.clone().into_pyobject(py)?.into()),
-            "StockDate" => Ok(self.StockDate.clone().into_pyobject(py)?.into()),
-            "ColorID" => Ok(self.ColorID.clone().into_pyobject(py)?.into()),
-            "DJPlayCount" => Ok(self.DJPlayCount.into_pyobject(py)?.into()),
-            "ImagePath" => Ok(self.ImagePath.clone().into_pyobject(py)?.into()),
-            "MasterDBID" => Ok(self.MasterDBID.clone().into_pyobject(py)?.into()),
-            "MasterSongID" => Ok(self.MasterSongID.clone().into_pyobject(py)?.into()),
-            "AnalysisDataPath" => Ok(self.AnalysisDataPath.clone().into_pyobject(py)?.into()),
-            "SearchStr" => Ok(self.SearchStr.clone().into_pyobject(py)?.into()),
-            "FileSize" => Ok(self.FileSize.into_pyobject(py)?.into()),
-            "DiscNo" => Ok(self.DiscNo.into_pyobject(py)?.into()),
-            "ComposerID" => Ok(self.ComposerID.clone().into_pyobject(py)?.into()),
-            "Subtitle" => Ok(self.Subtitle.clone().into_pyobject(py)?.into()),
-            "SampleRate" => Ok(self.SampleRate.into_pyobject(py)?.into()),
-            "DisableQuantize" => Ok(self.DisableQuantize.into_pyobject(py)?.into()),
-            "Analysed" => Ok(self.Analysed.into_pyobject(py)?.into()),
-            "ReleaseDate" => Ok(self.ReleaseDate.clone().into_pyobject(py)?.into()),
-            "DateCreated" => Ok(self.DateCreated.clone().into_pyobject(py)?.into()),
-            "ContentLink" => Ok(self.ContentLink.into_pyobject(py)?.into()),
-            "Tag" => Ok(self.Tag.clone().into_pyobject(py)?.into()),
-            "ModifiedByRBM" => Ok(self.ModifiedByRBM.clone().into_pyobject(py)?.into()),
-            "HotCueAutoLoad" => Ok(self.HotCueAutoLoad.clone().into_pyobject(py)?.into()),
-            "DeliveryControl" => Ok(self.DeliveryControl.clone().into_pyobject(py)?.into()),
-            "DeliveryComment" => Ok(self.DeliveryComment.clone().into_pyobject(py)?.into()),
-            "CueUpdated" => Ok(self.CueUpdated.clone().into_pyobject(py)?.into()),
-            "AnalysisUpdated" => Ok(self.AnalysisUpdated.clone().into_pyobject(py)?.into()),
-            "TrackInfoUpdated" => Ok(self.TrackInfoUpdated.clone().into_pyobject(py)?.into()),
-            "Lyricist" => Ok(self.Lyricist.clone().into_pyobject(py)?.into()),
-            "ISRC" => Ok(self.ISRC.clone().into_pyobject(py)?.into()),
-            "SamplerTrackInfo" => Ok(self.SamplerTrackInfo.into_pyobject(py)?.into()),
-            "SamplerPlayOffset" => Ok(self.SamplerPlayOffset.into_pyobject(py)?.into()),
-            "SamplerGain" => Ok(self.SamplerGain.into_pyobject(py)?.into()),
-            "VideoAssociate" => Ok(self.VideoAssociate.clone().into_pyobject(py)?.into()),
-            "LyricStatus" => Ok(self.LyricStatus.into_pyobject(py)?.into()),
-            "ServiceID" => Ok(self.ServiceID.into_pyobject(py)?.into()),
-            "OrgFolderPath" => Ok(self.OrgFolderPath.clone().into_pyobject(py)?.into()),
-            "Reserved1" => Ok(self.Reserved1.clone().into_pyobject(py)?.into()),
-            "Reserved2" => Ok(self.Reserved2.clone().into_pyobject(py)?.into()),
-            "Reserved3" => Ok(self.Reserved3.clone().into_pyobject(py)?.into()),
-            "Reserved4" => Ok(self.Reserved4.clone().into_pyobject(py)?.into()),
-            "ExtInfo" => Ok(self.ExtInfo.clone().into_pyobject(py)?.into()),
+            "folder_path" => Ok(self.folder_path.clone().into_pyobject(py)?.into()),
+            "file_name_l" => Ok(self.file_name_l.clone().into_pyobject(py)?.into()),
+            "file_name_s" => Ok(self.file_name_s.clone().into_pyobject(py)?.into()),
+            "title" => Ok(self.title.clone().into_pyobject(py)?.into()),
+            "artist_id" => Ok(self.artist_id.clone().into_pyobject(py)?.into()),
+            "album_id" => Ok(self.album_id.clone().into_pyobject(py)?.into()),
+            "genre_id" => Ok(self.genre_id.clone().into_pyobject(py)?.into()),
+            "bpm" => Ok(self.bpm.into_pyobject(py)?.into()),
+            "length" => Ok(self.length.into_pyobject(py)?.into()),
+            "track_no" => Ok(self.track_no.into_pyobject(py)?.into()),
+            "bit_rate" => Ok(self.bit_rate.into_pyobject(py)?.into()),
+            "bit_depth" => Ok(self.bit_depth.into_pyobject(py)?.into()),
+            "commnt" => Ok(self.commnt.clone().into_pyobject(py)?.into()),
+            "file_type" => Ok(self.file_type.into_pyobject(py)?.into()),
+            "rating" => Ok(self.rating.into_pyobject(py)?.into()),
+            "release_year" => Ok(self.release_year.into_pyobject(py)?.into()),
+            "remixer_id" => Ok(self.remixer_id.clone().into_pyobject(py)?.into()),
+            "label_id" => Ok(self.label_id.clone().into_pyobject(py)?.into()),
+            "org_artist_id" => Ok(self.org_artist_id.clone().into_pyobject(py)?.into()),
+            "key_id" => Ok(self.key_id.clone().into_pyobject(py)?.into()),
+            "stock_date" => Ok(self.stock_date.clone().into_pyobject(py)?.into()),
+            "color_id" => Ok(self.color_id.clone().into_pyobject(py)?.into()),
+            "dj_play_count" => Ok(self.dj_play_count.into_pyobject(py)?.into()),
+            "image_path" => Ok(self.image_path.clone().into_pyobject(py)?.into()),
+            "master_db_id" => Ok(self.master_db_id.clone().into_pyobject(py)?.into()),
+            "master_song_id" => Ok(self.master_song_id.clone().into_pyobject(py)?.into()),
+            "analysis_data_path" => Ok(self.analysis_data_path.clone().into_pyobject(py)?.into()),
+            "search_str" => Ok(self.search_str.clone().into_pyobject(py)?.into()),
+            "file_size" => Ok(self.file_size.into_pyobject(py)?.into()),
+            "disc_no" => Ok(self.disc_no.into_pyobject(py)?.into()),
+            "composer_id" => Ok(self.composer_id.clone().into_pyobject(py)?.into()),
+            "subtitle" => Ok(self.subtitle.clone().into_pyobject(py)?.into()),
+            "sample_rate" => Ok(self.sample_rate.into_pyobject(py)?.into()),
+            "disable_quantize" => Ok(self.disable_quantize.into_pyobject(py)?.into()),
+            "analysed" => Ok(self.analysed.into_pyobject(py)?.into()),
+            "release_date" => Ok(self.release_date.clone().into_pyobject(py)?.into()),
+            "date_created" => Ok(self.date_created.clone().into_pyobject(py)?.into()),
+            "content_link" => Ok(self.content_link.into_pyobject(py)?.into()),
+            "tag" => Ok(self.tag.clone().into_pyobject(py)?.into()),
+            "modified_by_rbm" => Ok(self.modified_by_rbm.clone().into_pyobject(py)?.into()),
+            "hot_cue_auto_load" => Ok(self.hot_cue_auto_load.clone().into_pyobject(py)?.into()),
+            "delivery_control" => Ok(self.delivery_control.clone().into_pyobject(py)?.into()),
+            "delivery_comment" => Ok(self.delivery_comment.clone().into_pyobject(py)?.into()),
+            "cue_updated" => Ok(self.cue_updated.clone().into_pyobject(py)?.into()),
+            "analysis_updated" => Ok(self.analysis_updated.clone().into_pyobject(py)?.into()),
+            "track_info_updated" => Ok(self.track_info_updated.clone().into_pyobject(py)?.into()),
+            "lyricist" => Ok(self.lyricist.clone().into_pyobject(py)?.into()),
+            "isrc" => Ok(self.isrc.clone().into_pyobject(py)?.into()),
+            "sampler_track_info" => Ok(self.sampler_track_info.into_pyobject(py)?.into()),
+            "sampler_play_offset" => Ok(self.sampler_play_offset.into_pyobject(py)?.into()),
+            "sampler_gain" => Ok(self.sampler_gain.into_pyobject(py)?.into()),
+            "video_associate" => Ok(self.video_associate.clone().into_pyobject(py)?.into()),
+            "lyric_status" => Ok(self.lyric_status.into_pyobject(py)?.into()),
+            "service_id" => Ok(self.service_id.into_pyobject(py)?.into()),
+            "org_folder_path" => Ok(self.org_folder_path.clone().into_pyobject(py)?.into()),
+            "reserved1" => Ok(self.reserved1.clone().into_pyobject(py)?.into()),
+            "reserved2" => Ok(self.reserved2.clone().into_pyobject(py)?.into()),
+            "reserved3" => Ok(self.reserved3.clone().into_pyobject(py)?.into()),
+            "reserved4" => Ok(self.reserved4.clone().into_pyobject(py)?.into()),
+            "ext_info" => Ok(self.ext_info.clone().into_pyobject(py)?.into()),
             "rb_file_id" => Ok(self.rb_file_id.clone().into_pyobject(py)?.into()),
-            "DeviceID" => Ok(self.DeviceID.clone().into_pyobject(py)?.into()),
-            "rb_LocalFolderPath" => Ok(self.rb_LocalFolderPath.clone().into_pyobject(py)?.into()),
-            "SrcID" => Ok(self.SrcID.clone().into_pyobject(py)?.into()),
-            "SrcTitle" => Ok(self.SrcTitle.clone().into_pyobject(py)?.into()),
-            "SrcArtistName" => Ok(self.SrcArtistName.clone().into_pyobject(py)?.into()),
-            "SrcAlbumName" => Ok(self.SrcAlbumName.clone().into_pyobject(py)?.into()),
-            "SrcLength" => Ok(self.SrcLength.into_pyobject(py)?.into()),
+            "device_id" => Ok(self.device_id.clone().into_pyobject(py)?.into()),
+            "rb__local_folder_path" => {
+                Ok(self.rb__local_folder_path.clone().into_pyobject(py)?.into())
+            }
+            "src_id" => Ok(self.src_id.clone().into_pyobject(py)?.into()),
+            "src_title" => Ok(self.src_title.clone().into_pyobject(py)?.into()),
+            "src_artist_name" => Ok(self.src_artist_name.clone().into_pyobject(py)?.into()),
+            "src_album_name" => Ok(self.src_album_name.clone().into_pyobject(py)?.into()),
+            "src_length" => Ok(self.src_length.into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -2327,8 +2329,8 @@ impl MutableMapping for PyDjmdContent {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -2337,76 +2339,80 @@ impl MutableMapping for PyDjmdContent {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "FolderPath" => self.FolderPath = value.extract::<Option<String>>(py)?,
-            "FileNameL" => self.FileNameL = value.extract::<Option<String>>(py)?,
-            "FileNameS" => self.FileNameS = value.extract::<Option<String>>(py)?,
-            "Title" => self.Title = value.extract::<Option<String>>(py)?,
-            "ArtistID" => self.ArtistID = value.extract::<Option<String>>(py)?,
-            "AlbumID" => self.AlbumID = value.extract::<Option<String>>(py)?,
-            "GenreID" => self.GenreID = value.extract::<Option<String>>(py)?,
-            "BPM" => self.BPM = value.extract::<Option<i32>>(py)?,
-            "Length" => self.Length = value.extract::<Option<i32>>(py)?,
-            "TrackNo" => self.TrackNo = value.extract::<Option<i32>>(py)?,
-            "BitRate" => self.BitRate = value.extract::<Option<i32>>(py)?,
-            "BitDepth" => self.BitDepth = value.extract::<Option<i32>>(py)?,
-            "Commnt" => self.Commnt = value.extract::<Option<String>>(py)?,
-            "FileType" => self.FileType = value.extract::<Option<i32>>(py)?,
-            "Rating" => self.Rating = value.extract::<Option<i32>>(py)?,
-            "ReleaseYear" => self.ReleaseYear = value.extract::<Option<i32>>(py)?,
-            "RemixerID" => self.RemixerID = value.extract::<Option<String>>(py)?,
-            "LabelID" => self.LabelID = value.extract::<Option<String>>(py)?,
-            "OrgArtistID" => self.OrgArtistID = value.extract::<Option<String>>(py)?,
-            "KeyID" => self.KeyID = value.extract::<Option<String>>(py)?,
-            "StockDate" => self.StockDate = value.extract::<Option<String>>(py)?,
-            "ColorID" => self.ColorID = value.extract::<Option<String>>(py)?,
-            "DJPlayCount" => self.DJPlayCount = value.extract::<Option<i32>>(py)?,
-            "ImagePath" => self.ImagePath = value.extract::<Option<String>>(py)?,
-            "MasterDBID" => self.MasterDBID = value.extract::<Option<String>>(py)?,
-            "MasterSongID" => self.MasterSongID = value.extract::<Option<String>>(py)?,
-            "AnalysisDataPath" => self.AnalysisDataPath = value.extract::<Option<String>>(py)?,
-            "SearchStr" => self.SearchStr = value.extract::<Option<String>>(py)?,
-            "FileSize" => self.FileSize = value.extract::<Option<i32>>(py)?,
-            "DiscNo" => self.DiscNo = value.extract::<Option<i32>>(py)?,
-            "ComposerID" => self.ComposerID = value.extract::<Option<String>>(py)?,
-            "Subtitle" => self.Subtitle = value.extract::<Option<String>>(py)?,
-            "SampleRate" => self.SampleRate = value.extract::<Option<i32>>(py)?,
-            "DisableQuantize" => self.DisableQuantize = value.extract::<Option<i32>>(py)?,
-            "Analysed" => self.Analysed = value.extract::<Option<i32>>(py)?,
-            "ReleaseDate" => self.ReleaseDate = value.extract::<Option<String>>(py)?,
-            "DateCreated" => self.DateCreated = value.extract::<Option<String>>(py)?,
-            "ContentLink" => self.ContentLink = value.extract::<Option<i32>>(py)?,
-            "Tag" => self.Tag = value.extract::<Option<String>>(py)?,
-            "ModifiedByRBM" => self.ModifiedByRBM = value.extract::<Option<String>>(py)?,
-            "HotCueAutoLoad" => self.HotCueAutoLoad = value.extract::<Option<String>>(py)?,
-            "DeliveryControl" => self.DeliveryControl = value.extract::<Option<String>>(py)?,
-            "DeliveryComment" => self.DeliveryComment = value.extract::<Option<String>>(py)?,
-            "CueUpdated" => self.CueUpdated = value.extract::<Option<String>>(py)?,
-            "AnalysisUpdated" => self.AnalysisUpdated = value.extract::<Option<String>>(py)?,
-            "TrackInfoUpdated" => self.TrackInfoUpdated = value.extract::<Option<String>>(py)?,
-            "Lyricist" => self.Lyricist = value.extract::<Option<String>>(py)?,
-            "ISRC" => self.ISRC = value.extract::<Option<String>>(py)?,
-            "SamplerTrackInfo" => self.SamplerTrackInfo = value.extract::<Option<i32>>(py)?,
-            "SamplerPlayOffset" => self.SamplerPlayOffset = value.extract::<Option<i32>>(py)?,
-            "SamplerGain" => self.SamplerGain = value.extract::<Option<f64>>(py)?,
-            "VideoAssociate" => self.VideoAssociate = value.extract::<Option<String>>(py)?,
-            "LyricStatus" => self.LyricStatus = value.extract::<Option<i32>>(py)?,
-            "ServiceID" => self.ServiceID = value.extract::<Option<i32>>(py)?,
-            "OrgFolderPath" => self.OrgFolderPath = value.extract::<Option<String>>(py)?,
-            "Reserved1" => self.Reserved1 = value.extract::<Option<String>>(py)?,
-            "Reserved2" => self.Reserved2 = value.extract::<Option<String>>(py)?,
-            "Reserved3" => self.Reserved3 = value.extract::<Option<String>>(py)?,
-            "Reserved4" => self.Reserved4 = value.extract::<Option<String>>(py)?,
-            "ExtInfo" => self.ExtInfo = value.extract::<Option<String>>(py)?,
-            "rb_file_id" => self.rb_file_id = value.extract::<Option<String>>(py)?,
-            "DeviceID" => self.DeviceID = value.extract::<Option<String>>(py)?,
-            "rb_LocalFolderPath" => {
-                self.rb_LocalFolderPath = value.extract::<Option<String>>(py)?
+            "folder_path" => self.folder_path = value.extract::<Option<String>>(py)?,
+            "file_name_l" => self.file_name_l = value.extract::<Option<String>>(py)?,
+            "file_name_s" => self.file_name_s = value.extract::<Option<String>>(py)?,
+            "title" => self.title = value.extract::<Option<String>>(py)?,
+            "artist_id" => self.artist_id = value.extract::<Option<String>>(py)?,
+            "album_id" => self.album_id = value.extract::<Option<String>>(py)?,
+            "genre_id" => self.genre_id = value.extract::<Option<String>>(py)?,
+            "bpm" => self.bpm = value.extract::<Option<i32>>(py)?,
+            "length" => self.length = value.extract::<Option<i32>>(py)?,
+            "track_no" => self.track_no = value.extract::<Option<i32>>(py)?,
+            "bit_rate" => self.bit_rate = value.extract::<Option<i32>>(py)?,
+            "bit_depth" => self.bit_depth = value.extract::<Option<i32>>(py)?,
+            "commnt" => self.commnt = value.extract::<Option<String>>(py)?,
+            "file_type" => self.file_type = value.extract::<Option<i32>>(py)?,
+            "rating" => self.rating = value.extract::<Option<i32>>(py)?,
+            "release_year" => self.release_year = value.extract::<Option<i32>>(py)?,
+            "remixer_id" => self.remixer_id = value.extract::<Option<String>>(py)?,
+            "label_id" => self.label_id = value.extract::<Option<String>>(py)?,
+            "org_artist_id" => self.org_artist_id = value.extract::<Option<String>>(py)?,
+            "key_id" => self.key_id = value.extract::<Option<String>>(py)?,
+            "stock_date" => self.stock_date = value.extract::<Option<String>>(py)?,
+            "color_id" => self.color_id = value.extract::<Option<String>>(py)?,
+            "dj_play_count" => self.dj_play_count = value.extract::<Option<i32>>(py)?,
+            "image_path" => self.image_path = value.extract::<Option<String>>(py)?,
+            "master_db_id" => self.master_db_id = value.extract::<Option<String>>(py)?,
+            "master_song_id" => self.master_song_id = value.extract::<Option<String>>(py)?,
+            "analysis_data_path" => {
+                self.analysis_data_path = value.extract::<Option<String>>(py)?
             }
-            "SrcID" => self.SrcID = value.extract::<Option<String>>(py)?,
-            "SrcTitle" => self.SrcTitle = value.extract::<Option<String>>(py)?,
-            "SrcArtistName" => self.SrcArtistName = value.extract::<Option<String>>(py)?,
-            "SrcAlbumName" => self.SrcAlbumName = value.extract::<Option<String>>(py)?,
-            "SrcLength" => self.SrcLength = value.extract::<Option<i32>>(py)?,
+            "search_str" => self.search_str = value.extract::<Option<String>>(py)?,
+            "file_size" => self.file_size = value.extract::<Option<i32>>(py)?,
+            "disc_no" => self.disc_no = value.extract::<Option<i32>>(py)?,
+            "composer_id" => self.composer_id = value.extract::<Option<String>>(py)?,
+            "subtitle" => self.subtitle = value.extract::<Option<String>>(py)?,
+            "sample_rate" => self.sample_rate = value.extract::<Option<i32>>(py)?,
+            "disable_quantize" => self.disable_quantize = value.extract::<Option<i32>>(py)?,
+            "analysed" => self.analysed = value.extract::<Option<i32>>(py)?,
+            "release_date" => self.release_date = value.extract::<Option<String>>(py)?,
+            "date_created" => self.date_created = value.extract::<Option<String>>(py)?,
+            "content_link" => self.content_link = value.extract::<Option<i32>>(py)?,
+            "tag" => self.tag = value.extract::<Option<String>>(py)?,
+            "modified_by_rbm" => self.modified_by_rbm = value.extract::<Option<String>>(py)?,
+            "hot_cue_auto_load" => self.hot_cue_auto_load = value.extract::<Option<String>>(py)?,
+            "delivery_control" => self.delivery_control = value.extract::<Option<String>>(py)?,
+            "delivery_comment" => self.delivery_comment = value.extract::<Option<String>>(py)?,
+            "cue_updated" => self.cue_updated = value.extract::<Option<String>>(py)?,
+            "analysis_updated" => self.analysis_updated = value.extract::<Option<String>>(py)?,
+            "track_info_updated" => {
+                self.track_info_updated = value.extract::<Option<String>>(py)?
+            }
+            "lyricist" => self.lyricist = value.extract::<Option<String>>(py)?,
+            "isrc" => self.isrc = value.extract::<Option<String>>(py)?,
+            "sampler_track_info" => self.sampler_track_info = value.extract::<Option<i32>>(py)?,
+            "sampler_play_offset" => self.sampler_play_offset = value.extract::<Option<i32>>(py)?,
+            "sampler_gain" => self.sampler_gain = value.extract::<Option<f64>>(py)?,
+            "video_associate" => self.video_associate = value.extract::<Option<String>>(py)?,
+            "lyric_status" => self.lyric_status = value.extract::<Option<i32>>(py)?,
+            "service_id" => self.service_id = value.extract::<Option<i32>>(py)?,
+            "org_folder_path" => self.org_folder_path = value.extract::<Option<String>>(py)?,
+            "reserved1" => self.reserved1 = value.extract::<Option<String>>(py)?,
+            "reserved2" => self.reserved2 = value.extract::<Option<String>>(py)?,
+            "reserved3" => self.reserved3 = value.extract::<Option<String>>(py)?,
+            "reserved4" => self.reserved4 = value.extract::<Option<String>>(py)?,
+            "ext_info" => self.ext_info = value.extract::<Option<String>>(py)?,
+            "rb_file_id" => self.rb_file_id = value.extract::<Option<String>>(py)?,
+            "device_id" => self.device_id = value.extract::<Option<String>>(py)?,
+            "rb__local_folder_path" => {
+                self.rb__local_folder_path = value.extract::<Option<String>>(py)?
+            }
+            "src_id" => self.src_id = value.extract::<Option<String>>(py)?,
+            "src_title" => self.src_title = value.extract::<Option<String>>(py)?,
+            "src_artist_name" => self.src_artist_name = value.extract::<Option<String>>(py)?,
+            "src_album_name" => self.src_album_name = value.extract::<Option<String>>(py)?,
+            "src_length" => self.src_length = value.extract::<Option<i32>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -2465,14 +2471,14 @@ impl PyDjmdContent {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdContent(ID: {})", self.ID))
+        Ok(format!("DjmdContent(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdCue", unsendable, get_all, set_all)]
 pub struct PyDjmdCue {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -2481,32 +2487,32 @@ pub struct PyDjmdCue {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub ContentID: Option<String>,
-    pub InMsec: Option<i32>,
-    pub InFrame: Option<i32>,
-    pub InMpegFrame: Option<i32>,
-    pub InMpegAbs: Option<i32>,
-    pub OutMsec: Option<i32>,
-    pub OutFrame: Option<i32>,
-    pub OutMpegFrame: Option<i32>,
-    pub OutMpegAbs: Option<i32>,
-    pub Kind: Option<i32>,
-    pub Color: Option<i32>,
-    pub ColorTableIndex: Option<i32>,
-    pub ActiveLoop: Option<i32>,
-    pub Comment: Option<String>,
-    pub BeatLoopSize: Option<i32>,
-    pub CueMicrosec: Option<i32>,
-    pub InPointSeekInfo: Option<String>,
-    pub OutPointSeekInfo: Option<String>,
-    pub ContentUUID: Option<String>,
+    pub content_id: Option<String>,
+    pub in_msec: Option<i32>,
+    pub in_frame: Option<i32>,
+    pub in_mpeg_frame: Option<i32>,
+    pub in_mpeg_abs: Option<i32>,
+    pub out_msec: Option<i32>,
+    pub out_frame: Option<i32>,
+    pub out_mpeg_frame: Option<i32>,
+    pub out_mpeg_abs: Option<i32>,
+    pub kind: Option<i32>,
+    pub color: Option<i32>,
+    pub color_table_index: Option<i32>,
+    pub active_loop: Option<i32>,
+    pub comment: Option<String>,
+    pub beat_loop_size: Option<i32>,
+    pub cue_microsec: Option<i32>,
+    pub in_point_seek_info: Option<String>,
+    pub out_point_seek_info: Option<String>,
+    pub content_uuid: Option<String>,
 }
 
 impl IntoPy<PyDjmdCue> for DjmdCue {
     fn into_py(self, py: Python) -> PyResult<PyDjmdCue> {
         let model = PyDjmdCue {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -2515,25 +2521,25 @@ impl IntoPy<PyDjmdCue> for DjmdCue {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            ContentID: self.ContentID,
-            InMsec: self.InMsec,
-            InFrame: self.InFrame,
-            InMpegFrame: self.InMpegFrame,
-            InMpegAbs: self.InMpegAbs,
-            OutMsec: self.OutMsec,
-            OutFrame: self.OutFrame,
-            OutMpegFrame: self.OutMpegFrame,
-            OutMpegAbs: self.OutMpegAbs,
-            Kind: self.Kind,
-            Color: self.Color,
-            ColorTableIndex: self.ColorTableIndex,
-            ActiveLoop: self.ActiveLoop,
-            Comment: self.Comment,
-            BeatLoopSize: self.BeatLoopSize,
-            CueMicrosec: self.CueMicrosec,
-            InPointSeekInfo: self.InPointSeekInfo,
-            OutPointSeekInfo: self.OutPointSeekInfo,
-            ContentUUID: self.ContentUUID,
+            content_id: self.content_id,
+            in_msec: self.in_msec,
+            in_frame: self.in_frame,
+            in_mpeg_frame: self.in_mpeg_frame,
+            in_mpeg_abs: self.in_mpeg_abs,
+            out_msec: self.out_msec,
+            out_frame: self.out_frame,
+            out_mpeg_frame: self.out_mpeg_frame,
+            out_mpeg_abs: self.out_mpeg_abs,
+            kind: self.kind,
+            color: self.color,
+            color_table_index: self.color_table_index,
+            active_loop: self.active_loop,
+            comment: self.comment,
+            beat_loop_size: self.beat_loop_size,
+            cue_microsec: self.cue_microsec,
+            in_point_seek_info: self.in_point_seek_info,
+            out_point_seek_info: self.out_point_seek_info,
+            content_uuid: self.content_uuid,
         };
         Ok(model)
     }
@@ -2542,8 +2548,8 @@ impl IntoPy<PyDjmdCue> for DjmdCue {
 impl FromPy<PyDjmdCue> for DjmdCue {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdCue>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -2552,25 +2558,25 @@ impl FromPy<PyDjmdCue> for DjmdCue {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            ContentID: model.ContentID.clone(),
-            InMsec: model.InMsec,
-            InFrame: model.InFrame,
-            InMpegFrame: model.InMpegFrame,
-            InMpegAbs: model.InMpegAbs,
-            OutMsec: model.OutMsec,
-            OutFrame: model.OutFrame,
-            OutMpegFrame: model.OutMpegFrame,
-            OutMpegAbs: model.OutMpegAbs,
-            Kind: model.Kind,
-            Color: model.Color,
-            ColorTableIndex: model.ColorTableIndex,
-            ActiveLoop: model.ActiveLoop,
-            Comment: model.Comment.clone(),
-            BeatLoopSize: model.BeatLoopSize,
-            CueMicrosec: model.CueMicrosec,
-            InPointSeekInfo: model.InPointSeekInfo.clone(),
-            OutPointSeekInfo: model.OutPointSeekInfo.clone(),
-            ContentUUID: model.ContentUUID.clone(),
+            content_id: model.content_id.clone(),
+            in_msec: model.in_msec,
+            in_frame: model.in_frame,
+            in_mpeg_frame: model.in_mpeg_frame,
+            in_mpeg_abs: model.in_mpeg_abs,
+            out_msec: model.out_msec,
+            out_frame: model.out_frame,
+            out_mpeg_frame: model.out_mpeg_frame,
+            out_mpeg_abs: model.out_mpeg_abs,
+            kind: model.kind,
+            color: model.color,
+            color_table_index: model.color_table_index,
+            active_loop: model.active_loop,
+            comment: model.comment.clone(),
+            beat_loop_size: model.beat_loop_size,
+            cue_microsec: model.cue_microsec,
+            in_point_seek_info: model.in_point_seek_info.clone(),
+            out_point_seek_info: model.out_point_seek_info.clone(),
+            content_uuid: model.content_uuid.clone(),
         }
     }
 }
@@ -2578,8 +2584,8 @@ impl FromPy<PyDjmdCue> for DjmdCue {
 impl MutableMapping for PyDjmdCue {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -2588,32 +2594,32 @@ impl MutableMapping for PyDjmdCue {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "ContentID".to_string(),
-            "InMsec".to_string(),
-            "InFrame".to_string(),
-            "InMpegFrame".to_string(),
-            "InMpegAbs".to_string(),
-            "OutMsec".to_string(),
-            "OutFrame".to_string(),
-            "OutMpegFrame".to_string(),
-            "OutMpegAbs".to_string(),
-            "Kind".to_string(),
-            "Color".to_string(),
-            "ColorTableIndex".to_string(),
-            "ActiveLoop".to_string(),
-            "Comment".to_string(),
-            "BeatLoopSize".to_string(),
-            "CueMicrosec".to_string(),
-            "InPointSeekInfo".to_string(),
-            "OutPointSeekInfo".to_string(),
-            "ContentUUID".to_string(),
+            "content_id".to_string(),
+            "in_msec".to_string(),
+            "in_frame".to_string(),
+            "in_mpeg_frame".to_string(),
+            "in_mpeg_abs".to_string(),
+            "out_msec".to_string(),
+            "out_frame".to_string(),
+            "out_mpeg_frame".to_string(),
+            "out_mpeg_abs".to_string(),
+            "kind".to_string(),
+            "color".to_string(),
+            "color_table_index".to_string(),
+            "active_loop".to_string(),
+            "comment".to_string(),
+            "beat_loop_size".to_string(),
+            "cue_microsec".to_string(),
+            "in_point_seek_info".to_string(),
+            "out_point_seek_info".to_string(),
+            "content_uuid".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -2622,25 +2628,25 @@ impl MutableMapping for PyDjmdCue {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "ContentID" => Ok(self.ContentID.clone().into_pyobject(py)?.into()),
-            "InMsec" => Ok(self.InMsec.into_pyobject(py)?.into()),
-            "InFrame" => Ok(self.InFrame.into_pyobject(py)?.into()),
-            "InMpegFrame" => Ok(self.InMpegFrame.into_pyobject(py)?.into()),
-            "InMpegAbs" => Ok(self.InMpegAbs.into_pyobject(py)?.into()),
-            "OutMsec" => Ok(self.OutMsec.into_pyobject(py)?.into()),
-            "OutFrame" => Ok(self.OutFrame.into_pyobject(py)?.into()),
-            "OutMpegFrame" => Ok(self.OutMpegFrame.into_pyobject(py)?.into()),
-            "OutMpegAbs" => Ok(self.OutMpegAbs.into_pyobject(py)?.into()),
-            "Kind" => Ok(self.Kind.into_pyobject(py)?.into()),
-            "Color" => Ok(self.Color.into_pyobject(py)?.into()),
-            "ColorTableIndex" => Ok(self.ColorTableIndex.into_pyobject(py)?.into()),
-            "ActiveLoop" => Ok(self.ActiveLoop.into_pyobject(py)?.into()),
-            "Comment" => Ok(self.Comment.clone().into_pyobject(py)?.into()),
-            "BeatLoopSize" => Ok(self.BeatLoopSize.into_pyobject(py)?.into()),
-            "CueMicrosec" => Ok(self.CueMicrosec.into_pyobject(py)?.into()),
-            "InPointSeekInfo" => Ok(self.InPointSeekInfo.clone().into_pyobject(py)?.into()),
-            "OutPointSeekInfo" => Ok(self.OutPointSeekInfo.clone().into_pyobject(py)?.into()),
-            "ContentUUID" => Ok(self.ContentUUID.clone().into_pyobject(py)?.into()),
+            "content_id" => Ok(self.content_id.clone().into_pyobject(py)?.into()),
+            "in_msec" => Ok(self.in_msec.into_pyobject(py)?.into()),
+            "in_frame" => Ok(self.in_frame.into_pyobject(py)?.into()),
+            "in_mpeg_frame" => Ok(self.in_mpeg_frame.into_pyobject(py)?.into()),
+            "in_mpeg_abs" => Ok(self.in_mpeg_abs.into_pyobject(py)?.into()),
+            "out_msec" => Ok(self.out_msec.into_pyobject(py)?.into()),
+            "out_frame" => Ok(self.out_frame.into_pyobject(py)?.into()),
+            "out_mpeg_frame" => Ok(self.out_mpeg_frame.into_pyobject(py)?.into()),
+            "out_mpeg_abs" => Ok(self.out_mpeg_abs.into_pyobject(py)?.into()),
+            "kind" => Ok(self.kind.into_pyobject(py)?.into()),
+            "color" => Ok(self.color.into_pyobject(py)?.into()),
+            "color_table_index" => Ok(self.color_table_index.into_pyobject(py)?.into()),
+            "active_loop" => Ok(self.active_loop.into_pyobject(py)?.into()),
+            "comment" => Ok(self.comment.clone().into_pyobject(py)?.into()),
+            "beat_loop_size" => Ok(self.beat_loop_size.into_pyobject(py)?.into()),
+            "cue_microsec" => Ok(self.cue_microsec.into_pyobject(py)?.into()),
+            "in_point_seek_info" => Ok(self.in_point_seek_info.clone().into_pyobject(py)?.into()),
+            "out_point_seek_info" => Ok(self.out_point_seek_info.clone().into_pyobject(py)?.into()),
+            "content_uuid" => Ok(self.content_uuid.clone().into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -2650,8 +2656,8 @@ impl MutableMapping for PyDjmdCue {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -2660,25 +2666,29 @@ impl MutableMapping for PyDjmdCue {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "ContentID" => self.ContentID = value.extract::<Option<String>>(py)?,
-            "InMsec" => self.InMsec = value.extract::<Option<i32>>(py)?,
-            "InFrame" => self.InFrame = value.extract::<Option<i32>>(py)?,
-            "InMpegFrame" => self.InMpegFrame = value.extract::<Option<i32>>(py)?,
-            "InMpegAbs" => self.InMpegAbs = value.extract::<Option<i32>>(py)?,
-            "OutMsec" => self.OutMsec = value.extract::<Option<i32>>(py)?,
-            "OutFrame" => self.OutFrame = value.extract::<Option<i32>>(py)?,
-            "OutMpegFrame" => self.OutMpegFrame = value.extract::<Option<i32>>(py)?,
-            "OutMpegAbs" => self.OutMpegAbs = value.extract::<Option<i32>>(py)?,
-            "Kind" => self.Kind = value.extract::<Option<i32>>(py)?,
-            "Color" => self.Color = value.extract::<Option<i32>>(py)?,
-            "ColorTableIndex" => self.ColorTableIndex = value.extract::<Option<i32>>(py)?,
-            "ActiveLoop" => self.ActiveLoop = value.extract::<Option<i32>>(py)?,
-            "Comment" => self.Comment = value.extract::<Option<String>>(py)?,
-            "BeatLoopSize" => self.BeatLoopSize = value.extract::<Option<i32>>(py)?,
-            "CueMicrosec" => self.CueMicrosec = value.extract::<Option<i32>>(py)?,
-            "InPointSeekInfo" => self.InPointSeekInfo = value.extract::<Option<String>>(py)?,
-            "OutPointSeekInfo" => self.OutPointSeekInfo = value.extract::<Option<String>>(py)?,
-            "ContentUUID" => self.ContentUUID = value.extract::<Option<String>>(py)?,
+            "content_id" => self.content_id = value.extract::<Option<String>>(py)?,
+            "in_msec" => self.in_msec = value.extract::<Option<i32>>(py)?,
+            "in_frame" => self.in_frame = value.extract::<Option<i32>>(py)?,
+            "in_mpeg_frame" => self.in_mpeg_frame = value.extract::<Option<i32>>(py)?,
+            "in_mpeg_abs" => self.in_mpeg_abs = value.extract::<Option<i32>>(py)?,
+            "out_msec" => self.out_msec = value.extract::<Option<i32>>(py)?,
+            "out_frame" => self.out_frame = value.extract::<Option<i32>>(py)?,
+            "out_mpeg_frame" => self.out_mpeg_frame = value.extract::<Option<i32>>(py)?,
+            "out_mpeg_abs" => self.out_mpeg_abs = value.extract::<Option<i32>>(py)?,
+            "kind" => self.kind = value.extract::<Option<i32>>(py)?,
+            "color" => self.color = value.extract::<Option<i32>>(py)?,
+            "color_table_index" => self.color_table_index = value.extract::<Option<i32>>(py)?,
+            "active_loop" => self.active_loop = value.extract::<Option<i32>>(py)?,
+            "comment" => self.comment = value.extract::<Option<String>>(py)?,
+            "beat_loop_size" => self.beat_loop_size = value.extract::<Option<i32>>(py)?,
+            "cue_microsec" => self.cue_microsec = value.extract::<Option<i32>>(py)?,
+            "in_point_seek_info" => {
+                self.in_point_seek_info = value.extract::<Option<String>>(py)?
+            }
+            "out_point_seek_info" => {
+                self.out_point_seek_info = value.extract::<Option<String>>(py)?
+            }
+            "content_uuid" => self.content_uuid = value.extract::<Option<String>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -2737,14 +2747,14 @@ impl PyDjmdCue {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdCue(ID: {})", self.ID))
+        Ok(format!("DjmdCue(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdDevice", unsendable, get_all, set_all)]
 pub struct PyDjmdDevice {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -2753,15 +2763,15 @@ pub struct PyDjmdDevice {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub MasterDBID: Option<String>,
-    pub Name: Option<String>,
+    pub master_db_id: Option<String>,
+    pub name: Option<String>,
 }
 
 impl IntoPy<PyDjmdDevice> for DjmdDevice {
     fn into_py(self, py: Python) -> PyResult<PyDjmdDevice> {
         let model = PyDjmdDevice {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -2770,8 +2780,8 @@ impl IntoPy<PyDjmdDevice> for DjmdDevice {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            MasterDBID: self.MasterDBID,
-            Name: self.Name,
+            master_db_id: self.master_db_id,
+            name: self.name,
         };
         Ok(model)
     }
@@ -2780,8 +2790,8 @@ impl IntoPy<PyDjmdDevice> for DjmdDevice {
 impl FromPy<PyDjmdDevice> for DjmdDevice {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdDevice>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -2790,8 +2800,8 @@ impl FromPy<PyDjmdDevice> for DjmdDevice {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            MasterDBID: model.MasterDBID.clone(),
-            Name: model.Name.clone(),
+            master_db_id: model.master_db_id.clone(),
+            name: model.name.clone(),
         }
     }
 }
@@ -2799,8 +2809,8 @@ impl FromPy<PyDjmdDevice> for DjmdDevice {
 impl MutableMapping for PyDjmdDevice {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -2809,15 +2819,15 @@ impl MutableMapping for PyDjmdDevice {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "MasterDBID".to_string(),
-            "Name".to_string(),
+            "master_db_id".to_string(),
+            "name".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -2826,8 +2836,8 @@ impl MutableMapping for PyDjmdDevice {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "MasterDBID" => Ok(self.MasterDBID.clone().into_pyobject(py)?.into()),
-            "Name" => Ok(self.Name.clone().into_pyobject(py)?.into()),
+            "master_db_id" => Ok(self.master_db_id.clone().into_pyobject(py)?.into()),
+            "name" => Ok(self.name.clone().into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -2837,8 +2847,8 @@ impl MutableMapping for PyDjmdDevice {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -2847,8 +2857,8 @@ impl MutableMapping for PyDjmdDevice {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "MasterDBID" => self.MasterDBID = value.extract::<Option<String>>(py)?,
-            "Name" => self.Name = value.extract::<Option<String>>(py)?,
+            "master_db_id" => self.master_db_id = value.extract::<Option<String>>(py)?,
+            "name" => self.name = value.extract::<Option<String>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -2907,14 +2917,14 @@ impl PyDjmdDevice {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdDevice(ID: {})", self.ID))
+        Ok(format!("DjmdDevice(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdGenre", unsendable, get_all, set_all)]
 pub struct PyDjmdGenre {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -2923,14 +2933,14 @@ pub struct PyDjmdGenre {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub Name: Option<String>,
+    pub name: Option<String>,
 }
 
 impl IntoPy<PyDjmdGenre> for DjmdGenre {
     fn into_py(self, py: Python) -> PyResult<PyDjmdGenre> {
         let model = PyDjmdGenre {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -2939,7 +2949,7 @@ impl IntoPy<PyDjmdGenre> for DjmdGenre {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            Name: self.Name,
+            name: self.name,
         };
         Ok(model)
     }
@@ -2948,8 +2958,8 @@ impl IntoPy<PyDjmdGenre> for DjmdGenre {
 impl FromPy<PyDjmdGenre> for DjmdGenre {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdGenre>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -2958,7 +2968,7 @@ impl FromPy<PyDjmdGenre> for DjmdGenre {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            Name: model.Name.clone(),
+            name: model.name.clone(),
         }
     }
 }
@@ -2966,8 +2976,8 @@ impl FromPy<PyDjmdGenre> for DjmdGenre {
 impl MutableMapping for PyDjmdGenre {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -2976,14 +2986,14 @@ impl MutableMapping for PyDjmdGenre {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "Name".to_string(),
+            "name".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -2992,7 +3002,7 @@ impl MutableMapping for PyDjmdGenre {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "Name" => Ok(self.Name.clone().into_pyobject(py)?.into()),
+            "name" => Ok(self.name.clone().into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -3002,8 +3012,8 @@ impl MutableMapping for PyDjmdGenre {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -3012,7 +3022,7 @@ impl MutableMapping for PyDjmdGenre {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "Name" => self.Name = value.extract::<Option<String>>(py)?,
+            "name" => self.name = value.extract::<Option<String>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -3071,14 +3081,14 @@ impl PyDjmdGenre {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdGenre(ID: {})", self.ID))
+        Ok(format!("DjmdGenre(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdHistory", unsendable, get_all, set_all)]
 pub struct PyDjmdHistory {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -3087,18 +3097,18 @@ pub struct PyDjmdHistory {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub Seq: Option<i32>,
-    pub Name: Option<String>,
-    pub Attribute: Option<i32>,
-    pub ParentID: Option<String>,
-    pub DateCreated: Option<String>,
+    pub seq: Option<i32>,
+    pub name: Option<String>,
+    pub attribute: Option<i32>,
+    pub parent_id: Option<String>,
+    pub date_created: Option<String>,
 }
 
 impl IntoPy<PyDjmdHistory> for DjmdHistory {
     fn into_py(self, py: Python) -> PyResult<PyDjmdHistory> {
         let model = PyDjmdHistory {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -3107,11 +3117,11 @@ impl IntoPy<PyDjmdHistory> for DjmdHistory {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            Seq: self.Seq,
-            Name: self.Name,
-            Attribute: self.Attribute,
-            ParentID: self.ParentID,
-            DateCreated: self.DateCreated,
+            seq: self.seq,
+            name: self.name,
+            attribute: self.attribute,
+            parent_id: self.parent_id,
+            date_created: self.date_created,
         };
         Ok(model)
     }
@@ -3120,8 +3130,8 @@ impl IntoPy<PyDjmdHistory> for DjmdHistory {
 impl FromPy<PyDjmdHistory> for DjmdHistory {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdHistory>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -3130,11 +3140,11 @@ impl FromPy<PyDjmdHistory> for DjmdHistory {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            Seq: model.Seq,
-            Name: model.Name.clone(),
-            Attribute: model.Attribute,
-            ParentID: model.ParentID.clone(),
-            DateCreated: model.DateCreated.clone(),
+            seq: model.seq,
+            name: model.name.clone(),
+            attribute: model.attribute,
+            parent_id: model.parent_id.clone(),
+            date_created: model.date_created.clone(),
         }
     }
 }
@@ -3142,8 +3152,8 @@ impl FromPy<PyDjmdHistory> for DjmdHistory {
 impl MutableMapping for PyDjmdHistory {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -3152,18 +3162,18 @@ impl MutableMapping for PyDjmdHistory {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "Seq".to_string(),
-            "Name".to_string(),
-            "Attribute".to_string(),
-            "ParentID".to_string(),
-            "DateCreated".to_string(),
+            "seq".to_string(),
+            "name".to_string(),
+            "attribute".to_string(),
+            "parent_id".to_string(),
+            "date_created".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -3172,11 +3182,11 @@ impl MutableMapping for PyDjmdHistory {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "Seq" => Ok(self.Seq.into_pyobject(py)?.into()),
-            "Name" => Ok(self.Name.clone().into_pyobject(py)?.into()),
-            "Attribute" => Ok(self.Attribute.into_pyobject(py)?.into()),
-            "ParentID" => Ok(self.ParentID.clone().into_pyobject(py)?.into()),
-            "DateCreated" => Ok(self.DateCreated.clone().into_pyobject(py)?.into()),
+            "seq" => Ok(self.seq.into_pyobject(py)?.into()),
+            "name" => Ok(self.name.clone().into_pyobject(py)?.into()),
+            "attribute" => Ok(self.attribute.into_pyobject(py)?.into()),
+            "parent_id" => Ok(self.parent_id.clone().into_pyobject(py)?.into()),
+            "date_created" => Ok(self.date_created.clone().into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -3186,8 +3196,8 @@ impl MutableMapping for PyDjmdHistory {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -3196,11 +3206,11 @@ impl MutableMapping for PyDjmdHistory {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "Seq" => self.Seq = value.extract::<Option<i32>>(py)?,
-            "Name" => self.Name = value.extract::<Option<String>>(py)?,
-            "Attribute" => self.Attribute = value.extract::<Option<i32>>(py)?,
-            "ParentID" => self.ParentID = value.extract::<Option<String>>(py)?,
-            "DateCreated" => self.DateCreated = value.extract::<Option<String>>(py)?,
+            "seq" => self.seq = value.extract::<Option<i32>>(py)?,
+            "name" => self.name = value.extract::<Option<String>>(py)?,
+            "attribute" => self.attribute = value.extract::<Option<i32>>(py)?,
+            "parent_id" => self.parent_id = value.extract::<Option<String>>(py)?,
+            "date_created" => self.date_created = value.extract::<Option<String>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -3259,14 +3269,14 @@ impl PyDjmdHistory {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdHistory(ID: {})", self.ID))
+        Ok(format!("DjmdHistory(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdSongHistory", unsendable, get_all, set_all)]
 pub struct PyDjmdSongHistory {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -3275,16 +3285,16 @@ pub struct PyDjmdSongHistory {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub HistoryID: Option<String>,
-    pub ContentID: Option<String>,
-    pub TrackNo: Option<i32>,
+    pub history_id: Option<String>,
+    pub content_id: Option<String>,
+    pub track_no: Option<i32>,
 }
 
 impl IntoPy<PyDjmdSongHistory> for DjmdSongHistory {
     fn into_py(self, py: Python) -> PyResult<PyDjmdSongHistory> {
         let model = PyDjmdSongHistory {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -3293,9 +3303,9 @@ impl IntoPy<PyDjmdSongHistory> for DjmdSongHistory {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            HistoryID: self.HistoryID,
-            ContentID: self.ContentID,
-            TrackNo: self.TrackNo,
+            history_id: self.history_id,
+            content_id: self.content_id,
+            track_no: self.track_no,
         };
         Ok(model)
     }
@@ -3304,8 +3314,8 @@ impl IntoPy<PyDjmdSongHistory> for DjmdSongHistory {
 impl FromPy<PyDjmdSongHistory> for DjmdSongHistory {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdSongHistory>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -3314,9 +3324,9 @@ impl FromPy<PyDjmdSongHistory> for DjmdSongHistory {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            HistoryID: model.HistoryID.clone(),
-            ContentID: model.ContentID.clone(),
-            TrackNo: model.TrackNo,
+            history_id: model.history_id.clone(),
+            content_id: model.content_id.clone(),
+            track_no: model.track_no,
         }
     }
 }
@@ -3324,8 +3334,8 @@ impl FromPy<PyDjmdSongHistory> for DjmdSongHistory {
 impl MutableMapping for PyDjmdSongHistory {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -3334,16 +3344,16 @@ impl MutableMapping for PyDjmdSongHistory {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "HistoryID".to_string(),
-            "ContentID".to_string(),
-            "TrackNo".to_string(),
+            "history_id".to_string(),
+            "content_id".to_string(),
+            "track_no".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -3352,9 +3362,9 @@ impl MutableMapping for PyDjmdSongHistory {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "HistoryID" => Ok(self.HistoryID.clone().into_pyobject(py)?.into()),
-            "ContentID" => Ok(self.ContentID.clone().into_pyobject(py)?.into()),
-            "TrackNo" => Ok(self.TrackNo.into_pyobject(py)?.into()),
+            "history_id" => Ok(self.history_id.clone().into_pyobject(py)?.into()),
+            "content_id" => Ok(self.content_id.clone().into_pyobject(py)?.into()),
+            "track_no" => Ok(self.track_no.into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -3364,8 +3374,8 @@ impl MutableMapping for PyDjmdSongHistory {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -3374,9 +3384,9 @@ impl MutableMapping for PyDjmdSongHistory {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "HistoryID" => self.HistoryID = value.extract::<Option<String>>(py)?,
-            "ContentID" => self.ContentID = value.extract::<Option<String>>(py)?,
-            "TrackNo" => self.TrackNo = value.extract::<Option<i32>>(py)?,
+            "history_id" => self.history_id = value.extract::<Option<String>>(py)?,
+            "content_id" => self.content_id = value.extract::<Option<String>>(py)?,
+            "track_no" => self.track_no = value.extract::<Option<i32>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -3435,14 +3445,14 @@ impl PyDjmdSongHistory {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongHistory(ID: {})", self.ID))
+        Ok(format!("DjmdSongHistory(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdHotCueBanklist", unsendable, get_all, set_all)]
 pub struct PyDjmdHotCueBanklist {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -3451,18 +3461,18 @@ pub struct PyDjmdHotCueBanklist {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub Seq: Option<i32>,
-    pub Name: Option<String>,
-    pub ImagePath: Option<String>,
-    pub Attribute: Option<i32>,
-    pub ParentID: Option<String>,
+    pub seq: Option<i32>,
+    pub name: Option<String>,
+    pub image_path: Option<String>,
+    pub attribute: Option<i32>,
+    pub parent_id: Option<String>,
 }
 
 impl IntoPy<PyDjmdHotCueBanklist> for DjmdHotCueBanklist {
     fn into_py(self, py: Python) -> PyResult<PyDjmdHotCueBanklist> {
         let model = PyDjmdHotCueBanklist {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -3471,11 +3481,11 @@ impl IntoPy<PyDjmdHotCueBanklist> for DjmdHotCueBanklist {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            Seq: self.Seq,
-            Name: self.Name,
-            ImagePath: self.ImagePath,
-            Attribute: self.Attribute,
-            ParentID: self.ParentID,
+            seq: self.seq,
+            name: self.name,
+            image_path: self.image_path,
+            attribute: self.attribute,
+            parent_id: self.parent_id,
         };
         Ok(model)
     }
@@ -3484,8 +3494,8 @@ impl IntoPy<PyDjmdHotCueBanklist> for DjmdHotCueBanklist {
 impl FromPy<PyDjmdHotCueBanklist> for DjmdHotCueBanklist {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdHotCueBanklist>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -3494,11 +3504,11 @@ impl FromPy<PyDjmdHotCueBanklist> for DjmdHotCueBanklist {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            Seq: model.Seq,
-            Name: model.Name.clone(),
-            ImagePath: model.ImagePath.clone(),
-            Attribute: model.Attribute,
-            ParentID: model.ParentID.clone(),
+            seq: model.seq,
+            name: model.name.clone(),
+            image_path: model.image_path.clone(),
+            attribute: model.attribute,
+            parent_id: model.parent_id.clone(),
         }
     }
 }
@@ -3506,8 +3516,8 @@ impl FromPy<PyDjmdHotCueBanklist> for DjmdHotCueBanklist {
 impl MutableMapping for PyDjmdHotCueBanklist {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -3516,18 +3526,18 @@ impl MutableMapping for PyDjmdHotCueBanklist {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "Seq".to_string(),
-            "Name".to_string(),
-            "ImagePath".to_string(),
-            "Attribute".to_string(),
-            "ParentID".to_string(),
+            "seq".to_string(),
+            "name".to_string(),
+            "image_path".to_string(),
+            "attribute".to_string(),
+            "parent_id".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -3536,11 +3546,11 @@ impl MutableMapping for PyDjmdHotCueBanklist {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "Seq" => Ok(self.Seq.into_pyobject(py)?.into()),
-            "Name" => Ok(self.Name.clone().into_pyobject(py)?.into()),
-            "ImagePath" => Ok(self.ImagePath.clone().into_pyobject(py)?.into()),
-            "Attribute" => Ok(self.Attribute.into_pyobject(py)?.into()),
-            "ParentID" => Ok(self.ParentID.clone().into_pyobject(py)?.into()),
+            "seq" => Ok(self.seq.into_pyobject(py)?.into()),
+            "name" => Ok(self.name.clone().into_pyobject(py)?.into()),
+            "image_path" => Ok(self.image_path.clone().into_pyobject(py)?.into()),
+            "attribute" => Ok(self.attribute.into_pyobject(py)?.into()),
+            "parent_id" => Ok(self.parent_id.clone().into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -3550,8 +3560,8 @@ impl MutableMapping for PyDjmdHotCueBanklist {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -3560,11 +3570,11 @@ impl MutableMapping for PyDjmdHotCueBanklist {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "Seq" => self.Seq = value.extract::<Option<i32>>(py)?,
-            "Name" => self.Name = value.extract::<Option<String>>(py)?,
-            "ImagePath" => self.ImagePath = value.extract::<Option<String>>(py)?,
-            "Attribute" => self.Attribute = value.extract::<Option<i32>>(py)?,
-            "ParentID" => self.ParentID = value.extract::<Option<String>>(py)?,
+            "seq" => self.seq = value.extract::<Option<i32>>(py)?,
+            "name" => self.name = value.extract::<Option<String>>(py)?,
+            "image_path" => self.image_path = value.extract::<Option<String>>(py)?,
+            "attribute" => self.attribute = value.extract::<Option<i32>>(py)?,
+            "parent_id" => self.parent_id = value.extract::<Option<String>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -3623,14 +3633,14 @@ impl PyDjmdHotCueBanklist {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdHotCueBanklist(ID: {})", self.ID))
+        Ok(format!("DjmdHotCueBanklist(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdSongHotCueBanklist", unsendable, get_all, set_all)]
 pub struct PyDjmdSongHotCueBanklist {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -3639,33 +3649,33 @@ pub struct PyDjmdSongHotCueBanklist {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub ContentID: Option<String>,
-    pub TrackNo: Option<i32>,
-    pub CueID: Option<String>,
-    pub InMsec: Option<i32>,
-    pub InFrame: Option<i32>,
-    pub InMpegFrame: Option<i32>,
-    pub InMpegAbs: Option<i32>,
-    pub OutMsec: Option<i32>,
-    pub OutFrame: Option<i32>,
-    pub OutMpegFrame: Option<i32>,
-    pub OutMpegAbs: Option<i32>,
-    pub Color: Option<i32>,
-    pub ColorTableIndex: Option<i32>,
-    pub ActiveLoop: Option<i32>,
-    pub Comment: Option<String>,
-    pub BeatLoopSize: Option<i32>,
-    pub CueMicrosec: Option<i32>,
-    pub InPointSeekInfo: Option<String>,
-    pub OutPointSeekInfo: Option<String>,
-    pub HotCueBanklistUUID: Option<String>,
+    pub content_id: Option<String>,
+    pub track_no: Option<i32>,
+    pub cue_id: Option<String>,
+    pub in_msec: Option<i32>,
+    pub in_frame: Option<i32>,
+    pub in_mpeg_frame: Option<i32>,
+    pub in_mpeg_abs: Option<i32>,
+    pub out_msec: Option<i32>,
+    pub out_frame: Option<i32>,
+    pub out_mpeg_frame: Option<i32>,
+    pub out_mpeg_abs: Option<i32>,
+    pub color: Option<i32>,
+    pub color_table_index: Option<i32>,
+    pub active_loop: Option<i32>,
+    pub comment: Option<String>,
+    pub beat_loop_size: Option<i32>,
+    pub cue_microsec: Option<i32>,
+    pub in_point_seek_info: Option<String>,
+    pub out_point_seek_info: Option<String>,
+    pub hot_cue_banklist_uuid: Option<String>,
 }
 
 impl IntoPy<PyDjmdSongHotCueBanklist> for DjmdSongHotCueBanklist {
     fn into_py(self, py: Python) -> PyResult<PyDjmdSongHotCueBanklist> {
         let model = PyDjmdSongHotCueBanklist {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -3674,26 +3684,26 @@ impl IntoPy<PyDjmdSongHotCueBanklist> for DjmdSongHotCueBanklist {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            ContentID: self.ContentID,
-            TrackNo: self.TrackNo,
-            CueID: self.CueID,
-            InMsec: self.InMsec,
-            InFrame: self.InFrame,
-            InMpegFrame: self.InMpegFrame,
-            InMpegAbs: self.InMpegAbs,
-            OutMsec: self.OutMsec,
-            OutFrame: self.OutFrame,
-            OutMpegFrame: self.OutMpegFrame,
-            OutMpegAbs: self.OutMpegAbs,
-            Color: self.Color,
-            ColorTableIndex: self.ColorTableIndex,
-            ActiveLoop: self.ActiveLoop,
-            Comment: self.Comment,
-            BeatLoopSize: self.BeatLoopSize,
-            CueMicrosec: self.CueMicrosec,
-            InPointSeekInfo: self.InPointSeekInfo,
-            OutPointSeekInfo: self.OutPointSeekInfo,
-            HotCueBanklistUUID: self.HotCueBanklistUUID,
+            content_id: self.content_id,
+            track_no: self.track_no,
+            cue_id: self.cue_id,
+            in_msec: self.in_msec,
+            in_frame: self.in_frame,
+            in_mpeg_frame: self.in_mpeg_frame,
+            in_mpeg_abs: self.in_mpeg_abs,
+            out_msec: self.out_msec,
+            out_frame: self.out_frame,
+            out_mpeg_frame: self.out_mpeg_frame,
+            out_mpeg_abs: self.out_mpeg_abs,
+            color: self.color,
+            color_table_index: self.color_table_index,
+            active_loop: self.active_loop,
+            comment: self.comment,
+            beat_loop_size: self.beat_loop_size,
+            cue_microsec: self.cue_microsec,
+            in_point_seek_info: self.in_point_seek_info,
+            out_point_seek_info: self.out_point_seek_info,
+            hot_cue_banklist_uuid: self.hot_cue_banklist_uuid,
         };
         Ok(model)
     }
@@ -3702,8 +3712,8 @@ impl IntoPy<PyDjmdSongHotCueBanklist> for DjmdSongHotCueBanklist {
 impl FromPy<PyDjmdSongHotCueBanklist> for DjmdSongHotCueBanklist {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdSongHotCueBanklist>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -3712,26 +3722,26 @@ impl FromPy<PyDjmdSongHotCueBanklist> for DjmdSongHotCueBanklist {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            ContentID: model.ContentID.clone(),
-            TrackNo: model.TrackNo,
-            CueID: model.CueID.clone(),
-            InMsec: model.InMsec,
-            InFrame: model.InFrame,
-            InMpegFrame: model.InMpegFrame,
-            InMpegAbs: model.InMpegAbs,
-            OutMsec: model.OutMsec,
-            OutFrame: model.OutFrame,
-            OutMpegFrame: model.OutMpegFrame,
-            OutMpegAbs: model.OutMpegAbs,
-            Color: model.Color,
-            ColorTableIndex: model.ColorTableIndex,
-            ActiveLoop: model.ActiveLoop,
-            Comment: model.Comment.clone(),
-            BeatLoopSize: model.BeatLoopSize,
-            CueMicrosec: model.CueMicrosec,
-            InPointSeekInfo: model.InPointSeekInfo.clone(),
-            OutPointSeekInfo: model.OutPointSeekInfo.clone(),
-            HotCueBanklistUUID: model.HotCueBanklistUUID.clone(),
+            content_id: model.content_id.clone(),
+            track_no: model.track_no,
+            cue_id: model.cue_id.clone(),
+            in_msec: model.in_msec,
+            in_frame: model.in_frame,
+            in_mpeg_frame: model.in_mpeg_frame,
+            in_mpeg_abs: model.in_mpeg_abs,
+            out_msec: model.out_msec,
+            out_frame: model.out_frame,
+            out_mpeg_frame: model.out_mpeg_frame,
+            out_mpeg_abs: model.out_mpeg_abs,
+            color: model.color,
+            color_table_index: model.color_table_index,
+            active_loop: model.active_loop,
+            comment: model.comment.clone(),
+            beat_loop_size: model.beat_loop_size,
+            cue_microsec: model.cue_microsec,
+            in_point_seek_info: model.in_point_seek_info.clone(),
+            out_point_seek_info: model.out_point_seek_info.clone(),
+            hot_cue_banklist_uuid: model.hot_cue_banklist_uuid.clone(),
         }
     }
 }
@@ -3739,8 +3749,8 @@ impl FromPy<PyDjmdSongHotCueBanklist> for DjmdSongHotCueBanklist {
 impl MutableMapping for PyDjmdSongHotCueBanklist {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -3749,33 +3759,33 @@ impl MutableMapping for PyDjmdSongHotCueBanklist {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "ContentID".to_string(),
-            "TrackNo".to_string(),
-            "CueID".to_string(),
-            "InMsec".to_string(),
-            "InFrame".to_string(),
-            "InMpegFrame".to_string(),
-            "InMpegAbs".to_string(),
-            "OutMsec".to_string(),
-            "OutFrame".to_string(),
-            "OutMpegFrame".to_string(),
-            "OutMpegAbs".to_string(),
-            "Color".to_string(),
-            "ColorTableIndex".to_string(),
-            "ActiveLoop".to_string(),
-            "Comment".to_string(),
-            "BeatLoopSize".to_string(),
-            "CueMicrosec".to_string(),
-            "InPointSeekInfo".to_string(),
-            "OutPointSeekInfo".to_string(),
-            "HotCueBanklistUUID".to_string(),
+            "content_id".to_string(),
+            "track_no".to_string(),
+            "cue_id".to_string(),
+            "in_msec".to_string(),
+            "in_frame".to_string(),
+            "in_mpeg_frame".to_string(),
+            "in_mpeg_abs".to_string(),
+            "out_msec".to_string(),
+            "out_frame".to_string(),
+            "out_mpeg_frame".to_string(),
+            "out_mpeg_abs".to_string(),
+            "color".to_string(),
+            "color_table_index".to_string(),
+            "active_loop".to_string(),
+            "comment".to_string(),
+            "beat_loop_size".to_string(),
+            "cue_microsec".to_string(),
+            "in_point_seek_info".to_string(),
+            "out_point_seek_info".to_string(),
+            "hot_cue_banklist_uuid".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -3784,26 +3794,28 @@ impl MutableMapping for PyDjmdSongHotCueBanklist {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "ContentID" => Ok(self.ContentID.clone().into_pyobject(py)?.into()),
-            "TrackNo" => Ok(self.TrackNo.into_pyobject(py)?.into()),
-            "CueID" => Ok(self.CueID.clone().into_pyobject(py)?.into()),
-            "InMsec" => Ok(self.InMsec.into_pyobject(py)?.into()),
-            "InFrame" => Ok(self.InFrame.into_pyobject(py)?.into()),
-            "InMpegFrame" => Ok(self.InMpegFrame.into_pyobject(py)?.into()),
-            "InMpegAbs" => Ok(self.InMpegAbs.into_pyobject(py)?.into()),
-            "OutMsec" => Ok(self.OutMsec.into_pyobject(py)?.into()),
-            "OutFrame" => Ok(self.OutFrame.into_pyobject(py)?.into()),
-            "OutMpegFrame" => Ok(self.OutMpegFrame.into_pyobject(py)?.into()),
-            "OutMpegAbs" => Ok(self.OutMpegAbs.into_pyobject(py)?.into()),
-            "Color" => Ok(self.Color.into_pyobject(py)?.into()),
-            "ColorTableIndex" => Ok(self.ColorTableIndex.into_pyobject(py)?.into()),
-            "ActiveLoop" => Ok(self.ActiveLoop.into_pyobject(py)?.into()),
-            "Comment" => Ok(self.Comment.clone().into_pyobject(py)?.into()),
-            "BeatLoopSize" => Ok(self.BeatLoopSize.into_pyobject(py)?.into()),
-            "CueMicrosec" => Ok(self.CueMicrosec.into_pyobject(py)?.into()),
-            "InPointSeekInfo" => Ok(self.InPointSeekInfo.clone().into_pyobject(py)?.into()),
-            "OutPointSeekInfo" => Ok(self.OutPointSeekInfo.clone().into_pyobject(py)?.into()),
-            "HotCueBanklistUUID" => Ok(self.HotCueBanklistUUID.clone().into_pyobject(py)?.into()),
+            "content_id" => Ok(self.content_id.clone().into_pyobject(py)?.into()),
+            "track_no" => Ok(self.track_no.into_pyobject(py)?.into()),
+            "cue_id" => Ok(self.cue_id.clone().into_pyobject(py)?.into()),
+            "in_msec" => Ok(self.in_msec.into_pyobject(py)?.into()),
+            "in_frame" => Ok(self.in_frame.into_pyobject(py)?.into()),
+            "in_mpeg_frame" => Ok(self.in_mpeg_frame.into_pyobject(py)?.into()),
+            "in_mpeg_abs" => Ok(self.in_mpeg_abs.into_pyobject(py)?.into()),
+            "out_msec" => Ok(self.out_msec.into_pyobject(py)?.into()),
+            "out_frame" => Ok(self.out_frame.into_pyobject(py)?.into()),
+            "out_mpeg_frame" => Ok(self.out_mpeg_frame.into_pyobject(py)?.into()),
+            "out_mpeg_abs" => Ok(self.out_mpeg_abs.into_pyobject(py)?.into()),
+            "color" => Ok(self.color.into_pyobject(py)?.into()),
+            "color_table_index" => Ok(self.color_table_index.into_pyobject(py)?.into()),
+            "active_loop" => Ok(self.active_loop.into_pyobject(py)?.into()),
+            "comment" => Ok(self.comment.clone().into_pyobject(py)?.into()),
+            "beat_loop_size" => Ok(self.beat_loop_size.into_pyobject(py)?.into()),
+            "cue_microsec" => Ok(self.cue_microsec.into_pyobject(py)?.into()),
+            "in_point_seek_info" => Ok(self.in_point_seek_info.clone().into_pyobject(py)?.into()),
+            "out_point_seek_info" => Ok(self.out_point_seek_info.clone().into_pyobject(py)?.into()),
+            "hot_cue_banklist_uuid" => {
+                Ok(self.hot_cue_banklist_uuid.clone().into_pyobject(py)?.into())
+            }
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -3813,8 +3825,8 @@ impl MutableMapping for PyDjmdSongHotCueBanklist {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -3823,27 +3835,31 @@ impl MutableMapping for PyDjmdSongHotCueBanklist {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "ContentID" => self.ContentID = value.extract::<Option<String>>(py)?,
-            "TrackNo" => self.TrackNo = value.extract::<Option<i32>>(py)?,
-            "CueID" => self.CueID = value.extract::<Option<String>>(py)?,
-            "InMsec" => self.InMsec = value.extract::<Option<i32>>(py)?,
-            "InFrame" => self.InFrame = value.extract::<Option<i32>>(py)?,
-            "InMpegFrame" => self.InMpegFrame = value.extract::<Option<i32>>(py)?,
-            "InMpegAbs" => self.InMpegAbs = value.extract::<Option<i32>>(py)?,
-            "OutMsec" => self.OutMsec = value.extract::<Option<i32>>(py)?,
-            "OutFrame" => self.OutFrame = value.extract::<Option<i32>>(py)?,
-            "OutMpegFrame" => self.OutMpegFrame = value.extract::<Option<i32>>(py)?,
-            "OutMpegAbs" => self.OutMpegAbs = value.extract::<Option<i32>>(py)?,
-            "Color" => self.Color = value.extract::<Option<i32>>(py)?,
-            "ColorTableIndex" => self.ColorTableIndex = value.extract::<Option<i32>>(py)?,
-            "ActiveLoop" => self.ActiveLoop = value.extract::<Option<i32>>(py)?,
-            "Comment" => self.Comment = value.extract::<Option<String>>(py)?,
-            "BeatLoopSize" => self.BeatLoopSize = value.extract::<Option<i32>>(py)?,
-            "CueMicrosec" => self.CueMicrosec = value.extract::<Option<i32>>(py)?,
-            "InPointSeekInfo" => self.InPointSeekInfo = value.extract::<Option<String>>(py)?,
-            "OutPointSeekInfo" => self.OutPointSeekInfo = value.extract::<Option<String>>(py)?,
-            "HotCueBanklistUUID" => {
-                self.HotCueBanklistUUID = value.extract::<Option<String>>(py)?
+            "content_id" => self.content_id = value.extract::<Option<String>>(py)?,
+            "track_no" => self.track_no = value.extract::<Option<i32>>(py)?,
+            "cue_id" => self.cue_id = value.extract::<Option<String>>(py)?,
+            "in_msec" => self.in_msec = value.extract::<Option<i32>>(py)?,
+            "in_frame" => self.in_frame = value.extract::<Option<i32>>(py)?,
+            "in_mpeg_frame" => self.in_mpeg_frame = value.extract::<Option<i32>>(py)?,
+            "in_mpeg_abs" => self.in_mpeg_abs = value.extract::<Option<i32>>(py)?,
+            "out_msec" => self.out_msec = value.extract::<Option<i32>>(py)?,
+            "out_frame" => self.out_frame = value.extract::<Option<i32>>(py)?,
+            "out_mpeg_frame" => self.out_mpeg_frame = value.extract::<Option<i32>>(py)?,
+            "out_mpeg_abs" => self.out_mpeg_abs = value.extract::<Option<i32>>(py)?,
+            "color" => self.color = value.extract::<Option<i32>>(py)?,
+            "color_table_index" => self.color_table_index = value.extract::<Option<i32>>(py)?,
+            "active_loop" => self.active_loop = value.extract::<Option<i32>>(py)?,
+            "comment" => self.comment = value.extract::<Option<String>>(py)?,
+            "beat_loop_size" => self.beat_loop_size = value.extract::<Option<i32>>(py)?,
+            "cue_microsec" => self.cue_microsec = value.extract::<Option<i32>>(py)?,
+            "in_point_seek_info" => {
+                self.in_point_seek_info = value.extract::<Option<String>>(py)?
+            }
+            "out_point_seek_info" => {
+                self.out_point_seek_info = value.extract::<Option<String>>(py)?
+            }
+            "hot_cue_banklist_uuid" => {
+                self.hot_cue_banklist_uuid = value.extract::<Option<String>>(py)?
             }
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
@@ -3903,14 +3919,14 @@ impl PyDjmdSongHotCueBanklist {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongHotCueBanklist(ID: {})", self.ID))
+        Ok(format!("DjmdSongHotCueBanklist(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "HotCueBanklistCue", unsendable, get_all, set_all)]
 pub struct PyHotCueBanklistCue {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -3919,16 +3935,16 @@ pub struct PyHotCueBanklistCue {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub HotCueBanklistID: Option<String>,
-    pub Cues: Option<String>,
+    pub hot_cue_banklist_id: Option<String>,
+    pub cues: Option<String>,
     pub rb_cue_count: Option<i32>,
 }
 
 impl IntoPy<PyHotCueBanklistCue> for HotCueBanklistCue {
     fn into_py(self, py: Python) -> PyResult<PyHotCueBanklistCue> {
         let model = PyHotCueBanklistCue {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -3937,8 +3953,8 @@ impl IntoPy<PyHotCueBanklistCue> for HotCueBanklistCue {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            HotCueBanklistID: self.HotCueBanklistID,
-            Cues: self.Cues,
+            hot_cue_banklist_id: self.hot_cue_banklist_id,
+            cues: self.cues,
             rb_cue_count: self.rb_cue_count,
         };
         Ok(model)
@@ -3948,8 +3964,8 @@ impl IntoPy<PyHotCueBanklistCue> for HotCueBanklistCue {
 impl FromPy<PyHotCueBanklistCue> for HotCueBanklistCue {
     fn from_py(py: Python, model: PyRef<'_, PyHotCueBanklistCue>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -3958,8 +3974,8 @@ impl FromPy<PyHotCueBanklistCue> for HotCueBanklistCue {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            HotCueBanklistID: model.HotCueBanklistID.clone(),
-            Cues: model.Cues.clone(),
+            hot_cue_banklist_id: model.hot_cue_banklist_id.clone(),
+            cues: model.cues.clone(),
             rb_cue_count: model.rb_cue_count,
         }
     }
@@ -3968,8 +3984,8 @@ impl FromPy<PyHotCueBanklistCue> for HotCueBanklistCue {
 impl MutableMapping for PyHotCueBanklistCue {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -3978,16 +3994,16 @@ impl MutableMapping for PyHotCueBanklistCue {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "HotCueBanklistID".to_string(),
-            "Cues".to_string(),
+            "hot_cue_banklist_id".to_string(),
+            "cues".to_string(),
             "rb_cue_count".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -3996,8 +4012,8 @@ impl MutableMapping for PyHotCueBanklistCue {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "HotCueBanklistID" => Ok(self.HotCueBanklistID.clone().into_pyobject(py)?.into()),
-            "Cues" => Ok(self.Cues.clone().into_pyobject(py)?.into()),
+            "hot_cue_banklist_id" => Ok(self.hot_cue_banklist_id.clone().into_pyobject(py)?.into()),
+            "cues" => Ok(self.cues.clone().into_pyobject(py)?.into()),
             "rb_cue_count" => Ok(self.rb_cue_count.into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
@@ -4008,8 +4024,8 @@ impl MutableMapping for PyHotCueBanklistCue {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -4018,8 +4034,10 @@ impl MutableMapping for PyHotCueBanklistCue {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "HotCueBanklistID" => self.HotCueBanklistID = value.extract::<Option<String>>(py)?,
-            "Cues" => self.Cues = value.extract::<Option<String>>(py)?,
+            "hot_cue_banklist_id" => {
+                self.hot_cue_banklist_id = value.extract::<Option<String>>(py)?
+            }
+            "cues" => self.cues = value.extract::<Option<String>>(py)?,
             "rb_cue_count" => self.rb_cue_count = value.extract::<Option<i32>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
@@ -4079,14 +4097,14 @@ impl PyHotCueBanklistCue {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("HotCueBanklistCue(ID: {})", self.ID))
+        Ok(format!("HotCueBanklistCue(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdKey", unsendable, get_all, set_all)]
 pub struct PyDjmdKey {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -4095,15 +4113,15 @@ pub struct PyDjmdKey {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub ScaleName: Option<String>,
-    pub Seq: Option<i32>,
+    pub scale_name: Option<String>,
+    pub seq: Option<i32>,
 }
 
 impl IntoPy<PyDjmdKey> for DjmdKey {
     fn into_py(self, py: Python) -> PyResult<PyDjmdKey> {
         let model = PyDjmdKey {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -4112,8 +4130,8 @@ impl IntoPy<PyDjmdKey> for DjmdKey {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            ScaleName: self.ScaleName,
-            Seq: self.Seq,
+            scale_name: self.scale_name,
+            seq: self.seq,
         };
         Ok(model)
     }
@@ -4122,8 +4140,8 @@ impl IntoPy<PyDjmdKey> for DjmdKey {
 impl FromPy<PyDjmdKey> for DjmdKey {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdKey>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -4132,8 +4150,8 @@ impl FromPy<PyDjmdKey> for DjmdKey {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            ScaleName: model.ScaleName.clone(),
-            Seq: model.Seq,
+            scale_name: model.scale_name.clone(),
+            seq: model.seq,
         }
     }
 }
@@ -4141,8 +4159,8 @@ impl FromPy<PyDjmdKey> for DjmdKey {
 impl MutableMapping for PyDjmdKey {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -4151,15 +4169,15 @@ impl MutableMapping for PyDjmdKey {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "ScaleName".to_string(),
-            "Seq".to_string(),
+            "scale_name".to_string(),
+            "seq".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -4168,8 +4186,8 @@ impl MutableMapping for PyDjmdKey {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "ScaleName" => Ok(self.ScaleName.clone().into_pyobject(py)?.into()),
-            "Seq" => Ok(self.Seq.into_pyobject(py)?.into()),
+            "scale_name" => Ok(self.scale_name.clone().into_pyobject(py)?.into()),
+            "seq" => Ok(self.seq.into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -4179,8 +4197,8 @@ impl MutableMapping for PyDjmdKey {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -4189,8 +4207,8 @@ impl MutableMapping for PyDjmdKey {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "ScaleName" => self.ScaleName = value.extract::<Option<String>>(py)?,
-            "Seq" => self.Seq = value.extract::<Option<i32>>(py)?,
+            "scale_name" => self.scale_name = value.extract::<Option<String>>(py)?,
+            "seq" => self.seq = value.extract::<Option<i32>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -4249,14 +4267,14 @@ impl PyDjmdKey {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdKey(ID: {})", self.ID))
+        Ok(format!("DjmdKey(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdLabel", unsendable, get_all, set_all)]
 pub struct PyDjmdLabel {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -4265,14 +4283,14 @@ pub struct PyDjmdLabel {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub Name: Option<String>,
+    pub name: Option<String>,
 }
 
 impl IntoPy<PyDjmdLabel> for DjmdLabel {
     fn into_py(self, py: Python) -> PyResult<PyDjmdLabel> {
         let model = PyDjmdLabel {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -4281,7 +4299,7 @@ impl IntoPy<PyDjmdLabel> for DjmdLabel {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            Name: self.Name,
+            name: self.name,
         };
         Ok(model)
     }
@@ -4290,8 +4308,8 @@ impl IntoPy<PyDjmdLabel> for DjmdLabel {
 impl FromPy<PyDjmdLabel> for DjmdLabel {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdLabel>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -4300,7 +4318,7 @@ impl FromPy<PyDjmdLabel> for DjmdLabel {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            Name: model.Name.clone(),
+            name: model.name.clone(),
         }
     }
 }
@@ -4308,8 +4326,8 @@ impl FromPy<PyDjmdLabel> for DjmdLabel {
 impl MutableMapping for PyDjmdLabel {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -4318,14 +4336,14 @@ impl MutableMapping for PyDjmdLabel {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "Name".to_string(),
+            "name".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -4334,7 +4352,7 @@ impl MutableMapping for PyDjmdLabel {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "Name" => Ok(self.Name.clone().into_pyobject(py)?.into()),
+            "name" => Ok(self.name.clone().into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -4344,8 +4362,8 @@ impl MutableMapping for PyDjmdLabel {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -4354,7 +4372,7 @@ impl MutableMapping for PyDjmdLabel {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "Name" => self.Name = value.extract::<Option<String>>(py)?,
+            "name" => self.name = value.extract::<Option<String>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -4413,14 +4431,14 @@ impl PyDjmdLabel {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdLabel(ID: {})", self.ID))
+        Ok(format!("DjmdLabel(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdMenuItems", unsendable, get_all, set_all)]
 pub struct PyDjmdMenuItems {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -4429,15 +4447,15 @@ pub struct PyDjmdMenuItems {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub Class: Option<i32>,
-    pub Name: Option<String>,
+    pub class_: Option<i32>,
+    pub name: Option<String>,
 }
 
 impl IntoPy<PyDjmdMenuItems> for DjmdMenuItems {
     fn into_py(self, py: Python) -> PyResult<PyDjmdMenuItems> {
         let model = PyDjmdMenuItems {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -4446,8 +4464,8 @@ impl IntoPy<PyDjmdMenuItems> for DjmdMenuItems {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            Class: self.Class,
-            Name: self.Name,
+            class_: self.class,
+            name: self.name,
         };
         Ok(model)
     }
@@ -4456,8 +4474,8 @@ impl IntoPy<PyDjmdMenuItems> for DjmdMenuItems {
 impl FromPy<PyDjmdMenuItems> for DjmdMenuItems {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdMenuItems>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -4466,8 +4484,8 @@ impl FromPy<PyDjmdMenuItems> for DjmdMenuItems {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            Class: model.Class,
-            Name: model.Name.clone(),
+            class: model.class_,
+            name: model.name.clone(),
         }
     }
 }
@@ -4475,8 +4493,8 @@ impl FromPy<PyDjmdMenuItems> for DjmdMenuItems {
 impl MutableMapping for PyDjmdMenuItems {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -4485,15 +4503,15 @@ impl MutableMapping for PyDjmdMenuItems {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "Class".to_string(),
-            "Name".to_string(),
+            "class_".to_string(),
+            "name".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -4502,8 +4520,8 @@ impl MutableMapping for PyDjmdMenuItems {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "Class" => Ok(self.Class.into_pyobject(py)?.into()),
-            "Name" => Ok(self.Name.clone().into_pyobject(py)?.into()),
+            "class_" => Ok(self.class_.into_pyobject(py)?.into()),
+            "name" => Ok(self.name.clone().into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -4513,8 +4531,8 @@ impl MutableMapping for PyDjmdMenuItems {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -4523,8 +4541,8 @@ impl MutableMapping for PyDjmdMenuItems {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "Class" => self.Class = value.extract::<Option<i32>>(py)?,
-            "Name" => self.Name = value.extract::<Option<String>>(py)?,
+            "class_" => self.class_ = value.extract::<Option<i32>>(py)?,
+            "name" => self.name = value.extract::<Option<String>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -4583,14 +4601,14 @@ impl PyDjmdMenuItems {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdMenuItems(ID: {})", self.ID))
+        Ok(format!("DjmdMenuItems(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdMixerParam", unsendable, get_all, set_all)]
 pub struct PyDjmdMixerParam {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -4599,18 +4617,18 @@ pub struct PyDjmdMixerParam {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub ContentID: Option<String>,
-    pub GainHigh: Option<i32>,
-    pub GainLow: Option<i32>,
-    pub PeakHigh: Option<i32>,
-    pub PeakLow: Option<i32>,
+    pub content_id: Option<String>,
+    pub gain_high: Option<i32>,
+    pub gain_low: Option<i32>,
+    pub peak_high: Option<i32>,
+    pub peak_low: Option<i32>,
 }
 
 impl IntoPy<PyDjmdMixerParam> for DjmdMixerParam {
     fn into_py(self, py: Python) -> PyResult<PyDjmdMixerParam> {
         let model = PyDjmdMixerParam {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -4619,11 +4637,11 @@ impl IntoPy<PyDjmdMixerParam> for DjmdMixerParam {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            ContentID: self.ContentID,
-            GainHigh: self.GainHigh,
-            GainLow: self.GainLow,
-            PeakHigh: self.PeakHigh,
-            PeakLow: self.PeakLow,
+            content_id: self.content_id,
+            gain_high: self.gain_high,
+            gain_low: self.gain_low,
+            peak_high: self.peak_high,
+            peak_low: self.peak_low,
         };
         Ok(model)
     }
@@ -4632,8 +4650,8 @@ impl IntoPy<PyDjmdMixerParam> for DjmdMixerParam {
 impl FromPy<PyDjmdMixerParam> for DjmdMixerParam {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdMixerParam>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -4642,11 +4660,11 @@ impl FromPy<PyDjmdMixerParam> for DjmdMixerParam {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            ContentID: model.ContentID.clone(),
-            GainHigh: model.GainHigh,
-            GainLow: model.GainLow,
-            PeakHigh: model.PeakHigh,
-            PeakLow: model.PeakLow,
+            content_id: model.content_id.clone(),
+            gain_high: model.gain_high,
+            gain_low: model.gain_low,
+            peak_high: model.peak_high,
+            peak_low: model.peak_low,
         }
     }
 }
@@ -4654,8 +4672,8 @@ impl FromPy<PyDjmdMixerParam> for DjmdMixerParam {
 impl MutableMapping for PyDjmdMixerParam {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -4664,18 +4682,18 @@ impl MutableMapping for PyDjmdMixerParam {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "ContentID".to_string(),
-            "GainHigh".to_string(),
-            "GainLow".to_string(),
-            "PeakHigh".to_string(),
-            "PeakLow".to_string(),
+            "content_id".to_string(),
+            "gain_high".to_string(),
+            "gain_low".to_string(),
+            "peak_high".to_string(),
+            "peak_low".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -4684,11 +4702,11 @@ impl MutableMapping for PyDjmdMixerParam {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "ContentID" => Ok(self.ContentID.clone().into_pyobject(py)?.into()),
-            "GainHigh" => Ok(self.GainHigh.into_pyobject(py)?.into()),
-            "GainLow" => Ok(self.GainLow.into_pyobject(py)?.into()),
-            "PeakHigh" => Ok(self.PeakHigh.into_pyobject(py)?.into()),
-            "PeakLow" => Ok(self.PeakLow.into_pyobject(py)?.into()),
+            "content_id" => Ok(self.content_id.clone().into_pyobject(py)?.into()),
+            "gain_high" => Ok(self.gain_high.into_pyobject(py)?.into()),
+            "gain_low" => Ok(self.gain_low.into_pyobject(py)?.into()),
+            "peak_high" => Ok(self.peak_high.into_pyobject(py)?.into()),
+            "peak_low" => Ok(self.peak_low.into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -4698,8 +4716,8 @@ impl MutableMapping for PyDjmdMixerParam {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -4708,11 +4726,11 @@ impl MutableMapping for PyDjmdMixerParam {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "ContentID" => self.ContentID = value.extract::<Option<String>>(py)?,
-            "GainHigh" => self.GainHigh = value.extract::<Option<i32>>(py)?,
-            "GainLow" => self.GainLow = value.extract::<Option<i32>>(py)?,
-            "PeakHigh" => self.PeakHigh = value.extract::<Option<i32>>(py)?,
-            "PeakLow" => self.PeakLow = value.extract::<Option<i32>>(py)?,
+            "content_id" => self.content_id = value.extract::<Option<String>>(py)?,
+            "gain_high" => self.gain_high = value.extract::<Option<i32>>(py)?,
+            "gain_low" => self.gain_low = value.extract::<Option<i32>>(py)?,
+            "peak_high" => self.peak_high = value.extract::<Option<i32>>(py)?,
+            "peak_low" => self.peak_low = value.extract::<Option<i32>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -4771,14 +4789,14 @@ impl PyDjmdMixerParam {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdMixerParam(ID: {})", self.ID))
+        Ok(format!("DjmdMixerParam(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdMyTag", unsendable, get_all, set_all)]
 pub struct PyDjmdMyTag {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -4787,17 +4805,17 @@ pub struct PyDjmdMyTag {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub Seq: Option<i32>,
-    pub Name: Option<String>,
-    pub Attribute: Option<i32>,
-    pub ParentID: Option<String>,
+    pub seq: Option<i32>,
+    pub name: Option<String>,
+    pub attribute: Option<i32>,
+    pub parent_id: Option<String>,
 }
 
 impl IntoPy<PyDjmdMyTag> for DjmdMyTag {
     fn into_py(self, py: Python) -> PyResult<PyDjmdMyTag> {
         let model = PyDjmdMyTag {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -4806,10 +4824,10 @@ impl IntoPy<PyDjmdMyTag> for DjmdMyTag {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            Seq: self.Seq,
-            Name: self.Name,
-            Attribute: self.Attribute,
-            ParentID: self.ParentID,
+            seq: self.seq,
+            name: self.name,
+            attribute: self.attribute,
+            parent_id: self.parent_id,
         };
         Ok(model)
     }
@@ -4818,8 +4836,8 @@ impl IntoPy<PyDjmdMyTag> for DjmdMyTag {
 impl FromPy<PyDjmdMyTag> for DjmdMyTag {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdMyTag>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -4828,10 +4846,10 @@ impl FromPy<PyDjmdMyTag> for DjmdMyTag {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            Seq: model.Seq,
-            Name: model.Name.clone(),
-            Attribute: model.Attribute,
-            ParentID: model.ParentID.clone(),
+            seq: model.seq,
+            name: model.name.clone(),
+            attribute: model.attribute,
+            parent_id: model.parent_id.clone(),
         }
     }
 }
@@ -4839,8 +4857,8 @@ impl FromPy<PyDjmdMyTag> for DjmdMyTag {
 impl MutableMapping for PyDjmdMyTag {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -4849,17 +4867,17 @@ impl MutableMapping for PyDjmdMyTag {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "Seq".to_string(),
-            "Name".to_string(),
-            "Attribute".to_string(),
-            "ParentID".to_string(),
+            "seq".to_string(),
+            "name".to_string(),
+            "attribute".to_string(),
+            "parent_id".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -4868,10 +4886,10 @@ impl MutableMapping for PyDjmdMyTag {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "Seq" => Ok(self.Seq.into_pyobject(py)?.into()),
-            "Name" => Ok(self.Name.clone().into_pyobject(py)?.into()),
-            "Attribute" => Ok(self.Attribute.into_pyobject(py)?.into()),
-            "ParentID" => Ok(self.ParentID.clone().into_pyobject(py)?.into()),
+            "seq" => Ok(self.seq.into_pyobject(py)?.into()),
+            "name" => Ok(self.name.clone().into_pyobject(py)?.into()),
+            "attribute" => Ok(self.attribute.into_pyobject(py)?.into()),
+            "parent_id" => Ok(self.parent_id.clone().into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -4881,8 +4899,8 @@ impl MutableMapping for PyDjmdMyTag {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -4891,10 +4909,10 @@ impl MutableMapping for PyDjmdMyTag {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "Seq" => self.Seq = value.extract::<Option<i32>>(py)?,
-            "Name" => self.Name = value.extract::<Option<String>>(py)?,
-            "Attribute" => self.Attribute = value.extract::<Option<i32>>(py)?,
-            "ParentID" => self.ParentID = value.extract::<Option<String>>(py)?,
+            "seq" => self.seq = value.extract::<Option<i32>>(py)?,
+            "name" => self.name = value.extract::<Option<String>>(py)?,
+            "attribute" => self.attribute = value.extract::<Option<i32>>(py)?,
+            "parent_id" => self.parent_id = value.extract::<Option<String>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -4953,14 +4971,14 @@ impl PyDjmdMyTag {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdMyTag(ID: {})", self.ID))
+        Ok(format!("DjmdMyTag(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdSongMyTag", unsendable, get_all, set_all)]
 pub struct PyDjmdSongMyTag {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -4969,16 +4987,16 @@ pub struct PyDjmdSongMyTag {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub MyTagID: Option<String>,
-    pub ContentID: Option<String>,
-    pub TrackNo: Option<i32>,
+    pub my_tag_id: Option<String>,
+    pub content_id: Option<String>,
+    pub track_no: Option<i32>,
 }
 
 impl IntoPy<PyDjmdSongMyTag> for DjmdSongMyTag {
     fn into_py(self, py: Python) -> PyResult<PyDjmdSongMyTag> {
         let model = PyDjmdSongMyTag {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -4987,9 +5005,9 @@ impl IntoPy<PyDjmdSongMyTag> for DjmdSongMyTag {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            MyTagID: self.MyTagID,
-            ContentID: self.ContentID,
-            TrackNo: self.TrackNo,
+            my_tag_id: self.my_tag_id,
+            content_id: self.content_id,
+            track_no: self.track_no,
         };
         Ok(model)
     }
@@ -4998,8 +5016,8 @@ impl IntoPy<PyDjmdSongMyTag> for DjmdSongMyTag {
 impl FromPy<PyDjmdSongMyTag> for DjmdSongMyTag {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdSongMyTag>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -5008,9 +5026,9 @@ impl FromPy<PyDjmdSongMyTag> for DjmdSongMyTag {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            MyTagID: model.MyTagID.clone(),
-            ContentID: model.ContentID.clone(),
-            TrackNo: model.TrackNo,
+            my_tag_id: model.my_tag_id.clone(),
+            content_id: model.content_id.clone(),
+            track_no: model.track_no,
         }
     }
 }
@@ -5018,8 +5036,8 @@ impl FromPy<PyDjmdSongMyTag> for DjmdSongMyTag {
 impl MutableMapping for PyDjmdSongMyTag {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -5028,16 +5046,16 @@ impl MutableMapping for PyDjmdSongMyTag {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "MyTagID".to_string(),
-            "ContentID".to_string(),
-            "TrackNo".to_string(),
+            "my_tag_id".to_string(),
+            "content_id".to_string(),
+            "track_no".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -5046,9 +5064,9 @@ impl MutableMapping for PyDjmdSongMyTag {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "MyTagID" => Ok(self.MyTagID.clone().into_pyobject(py)?.into()),
-            "ContentID" => Ok(self.ContentID.clone().into_pyobject(py)?.into()),
-            "TrackNo" => Ok(self.TrackNo.into_pyobject(py)?.into()),
+            "my_tag_id" => Ok(self.my_tag_id.clone().into_pyobject(py)?.into()),
+            "content_id" => Ok(self.content_id.clone().into_pyobject(py)?.into()),
+            "track_no" => Ok(self.track_no.into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -5058,8 +5076,8 @@ impl MutableMapping for PyDjmdSongMyTag {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -5068,9 +5086,9 @@ impl MutableMapping for PyDjmdSongMyTag {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "MyTagID" => self.MyTagID = value.extract::<Option<String>>(py)?,
-            "ContentID" => self.ContentID = value.extract::<Option<String>>(py)?,
-            "TrackNo" => self.TrackNo = value.extract::<Option<i32>>(py)?,
+            "my_tag_id" => self.my_tag_id = value.extract::<Option<String>>(py)?,
+            "content_id" => self.content_id = value.extract::<Option<String>>(py)?,
+            "track_no" => self.track_no = value.extract::<Option<i32>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -5129,14 +5147,14 @@ impl PyDjmdSongMyTag {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongMyTag(ID: {})", self.ID))
+        Ok(format!("DjmdSongMyTag(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdPlaylist", unsendable, get_all, set_all)]
 pub struct PyDjmdPlaylist {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -5145,19 +5163,19 @@ pub struct PyDjmdPlaylist {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub Seq: Option<i32>,
-    pub Name: Option<String>,
-    pub ImagePath: Option<String>,
-    pub Attribute: Option<i32>,
-    pub ParentID: Option<String>,
-    pub SmartList: Option<String>,
+    pub seq: Option<i32>,
+    pub name: Option<String>,
+    pub image_path: Option<String>,
+    pub attribute: Option<i32>,
+    pub parent_id: Option<String>,
+    pub smart_list: Option<String>,
 }
 
 impl IntoPy<PyDjmdPlaylist> for DjmdPlaylist {
     fn into_py(self, py: Python) -> PyResult<PyDjmdPlaylist> {
         let model = PyDjmdPlaylist {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -5166,12 +5184,12 @@ impl IntoPy<PyDjmdPlaylist> for DjmdPlaylist {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            Seq: self.Seq,
-            Name: self.Name,
-            ImagePath: self.ImagePath,
-            Attribute: self.Attribute,
-            ParentID: self.ParentID,
-            SmartList: self.SmartList,
+            seq: self.seq,
+            name: self.name,
+            image_path: self.image_path,
+            attribute: self.attribute,
+            parent_id: self.parent_id,
+            smart_list: self.smart_list,
         };
         Ok(model)
     }
@@ -5180,8 +5198,8 @@ impl IntoPy<PyDjmdPlaylist> for DjmdPlaylist {
 impl FromPy<PyDjmdPlaylist> for DjmdPlaylist {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdPlaylist>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -5190,12 +5208,12 @@ impl FromPy<PyDjmdPlaylist> for DjmdPlaylist {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            Seq: model.Seq,
-            Name: model.Name.clone(),
-            ImagePath: model.ImagePath.clone(),
-            Attribute: model.Attribute,
-            ParentID: model.ParentID.clone(),
-            SmartList: model.SmartList.clone(),
+            seq: model.seq,
+            name: model.name.clone(),
+            image_path: model.image_path.clone(),
+            attribute: model.attribute,
+            parent_id: model.parent_id.clone(),
+            smart_list: model.smart_list.clone(),
         }
     }
 }
@@ -5203,8 +5221,8 @@ impl FromPy<PyDjmdPlaylist> for DjmdPlaylist {
 impl MutableMapping for PyDjmdPlaylist {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -5213,19 +5231,19 @@ impl MutableMapping for PyDjmdPlaylist {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "Seq".to_string(),
-            "Name".to_string(),
-            "ImagePath".to_string(),
-            "Attribute".to_string(),
-            "ParentID".to_string(),
-            "SmartList".to_string(),
+            "seq".to_string(),
+            "name".to_string(),
+            "image_path".to_string(),
+            "attribute".to_string(),
+            "parent_id".to_string(),
+            "smart_list".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -5234,12 +5252,12 @@ impl MutableMapping for PyDjmdPlaylist {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "Seq" => Ok(self.Seq.into_pyobject(py)?.into()),
-            "Name" => Ok(self.Name.clone().into_pyobject(py)?.into()),
-            "ImagePath" => Ok(self.ImagePath.clone().into_pyobject(py)?.into()),
-            "Attribute" => Ok(self.Attribute.into_pyobject(py)?.into()),
-            "ParentID" => Ok(self.ParentID.clone().into_pyobject(py)?.into()),
-            "SmartList" => Ok(self.SmartList.clone().into_pyobject(py)?.into()),
+            "seq" => Ok(self.seq.into_pyobject(py)?.into()),
+            "name" => Ok(self.name.clone().into_pyobject(py)?.into()),
+            "image_path" => Ok(self.image_path.clone().into_pyobject(py)?.into()),
+            "attribute" => Ok(self.attribute.into_pyobject(py)?.into()),
+            "parent_id" => Ok(self.parent_id.clone().into_pyobject(py)?.into()),
+            "smart_list" => Ok(self.smart_list.clone().into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -5249,8 +5267,8 @@ impl MutableMapping for PyDjmdPlaylist {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -5259,12 +5277,12 @@ impl MutableMapping for PyDjmdPlaylist {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "Seq" => self.Seq = value.extract::<Option<i32>>(py)?,
-            "Name" => self.Name = value.extract::<Option<String>>(py)?,
-            "ImagePath" => self.ImagePath = value.extract::<Option<String>>(py)?,
-            "Attribute" => self.Attribute = value.extract::<Option<i32>>(py)?,
-            "ParentID" => self.ParentID = value.extract::<Option<String>>(py)?,
-            "SmartList" => self.SmartList = value.extract::<Option<String>>(py)?,
+            "seq" => self.seq = value.extract::<Option<i32>>(py)?,
+            "name" => self.name = value.extract::<Option<String>>(py)?,
+            "image_path" => self.image_path = value.extract::<Option<String>>(py)?,
+            "attribute" => self.attribute = value.extract::<Option<i32>>(py)?,
+            "parent_id" => self.parent_id = value.extract::<Option<String>>(py)?,
+            "smart_list" => self.smart_list = value.extract::<Option<String>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -5323,14 +5341,14 @@ impl PyDjmdPlaylist {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdPlaylist(ID: {})", self.ID))
+        Ok(format!("DjmdPlaylist(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdPlaylistTreeItem", unsendable, get_all, set_all)]
 pub struct PyDjmdPlaylistTreeItem {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -5339,25 +5357,25 @@ pub struct PyDjmdPlaylistTreeItem {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub Seq: Option<i32>,
-    pub Name: Option<String>,
-    pub ImagePath: Option<String>,
-    pub Attribute: Option<i32>,
-    pub ParentID: Option<String>,
-    pub SmartList: Option<String>,
-    pub Children: Py<PyList>,
+    pub seq: Option<i32>,
+    pub name: Option<String>,
+    pub image_path: Option<String>,
+    pub attribute: Option<i32>,
+    pub parent_id: Option<String>,
+    pub smart_list: Option<String>,
+    pub children: Py<PyList>,
 }
 
 impl IntoPy<PyDjmdPlaylistTreeItem> for DjmdPlaylistTreeItem {
     fn into_py(self, py: Python) -> PyResult<PyDjmdPlaylistTreeItem> {
         let py_list = PyList::empty(py);
-        for child in self.Children {
+        for child in self.children {
             let py_child = child.borrow().clone().into_py(py)?;
             let _ = py_list.append(py_child);
         }
         let model = PyDjmdPlaylistTreeItem {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -5366,13 +5384,13 @@ impl IntoPy<PyDjmdPlaylistTreeItem> for DjmdPlaylistTreeItem {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            Seq: self.Seq,
-            Name: self.Name,
-            ImagePath: self.ImagePath,
-            Attribute: self.Attribute,
-            ParentID: self.ParentID,
-            SmartList: self.SmartList,
-            Children: py_list.into(),
+            seq: self.seq,
+            name: self.name,
+            image_path: self.image_path,
+            attribute: self.attribute,
+            parent_id: self.parent_id,
+            smart_list: self.smart_list,
+            children: py_list.into(),
         };
         Ok(model)
     }
@@ -5380,8 +5398,8 @@ impl IntoPy<PyDjmdPlaylistTreeItem> for DjmdPlaylistTreeItem {
 
 #[pyclass(name = "DjmdSongPlaylist", unsendable, get_all, set_all)]
 pub struct PyDjmdSongPlaylist {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -5390,16 +5408,16 @@ pub struct PyDjmdSongPlaylist {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub PlaylistID: Option<String>,
-    pub ContentID: Option<String>,
-    pub TrackNo: Option<i32>,
+    pub playlist_id: Option<String>,
+    pub content_id: Option<String>,
+    pub track_no: Option<i32>,
 }
 
 impl IntoPy<PyDjmdSongPlaylist> for DjmdSongPlaylist {
     fn into_py(self, py: Python) -> PyResult<PyDjmdSongPlaylist> {
         let model = PyDjmdSongPlaylist {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -5408,9 +5426,9 @@ impl IntoPy<PyDjmdSongPlaylist> for DjmdSongPlaylist {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            PlaylistID: self.PlaylistID,
-            ContentID: self.ContentID,
-            TrackNo: self.TrackNo,
+            playlist_id: self.playlist_id,
+            content_id: self.content_id,
+            track_no: self.track_no,
         };
         Ok(model)
     }
@@ -5419,8 +5437,8 @@ impl IntoPy<PyDjmdSongPlaylist> for DjmdSongPlaylist {
 impl FromPy<PyDjmdSongPlaylist> for DjmdSongPlaylist {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdSongPlaylist>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -5429,9 +5447,9 @@ impl FromPy<PyDjmdSongPlaylist> for DjmdSongPlaylist {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            PlaylistID: model.PlaylistID.clone(),
-            ContentID: model.ContentID.clone(),
-            TrackNo: model.TrackNo,
+            playlist_id: model.playlist_id.clone(),
+            content_id: model.content_id.clone(),
+            track_no: model.track_no,
         }
     }
 }
@@ -5439,8 +5457,8 @@ impl FromPy<PyDjmdSongPlaylist> for DjmdSongPlaylist {
 impl MutableMapping for PyDjmdSongPlaylist {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -5449,16 +5467,16 @@ impl MutableMapping for PyDjmdSongPlaylist {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "PlaylistID".to_string(),
-            "ContentID".to_string(),
-            "TrackNo".to_string(),
+            "playlist_id".to_string(),
+            "content_id".to_string(),
+            "track_no".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -5467,9 +5485,9 @@ impl MutableMapping for PyDjmdSongPlaylist {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "PlaylistID" => Ok(self.PlaylistID.clone().into_pyobject(py)?.into()),
-            "ContentID" => Ok(self.ContentID.clone().into_pyobject(py)?.into()),
-            "TrackNo" => Ok(self.TrackNo.into_pyobject(py)?.into()),
+            "playlist_id" => Ok(self.playlist_id.clone().into_pyobject(py)?.into()),
+            "content_id" => Ok(self.content_id.clone().into_pyobject(py)?.into()),
+            "track_no" => Ok(self.track_no.into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -5479,8 +5497,8 @@ impl MutableMapping for PyDjmdSongPlaylist {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -5489,9 +5507,9 @@ impl MutableMapping for PyDjmdSongPlaylist {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "PlaylistID" => self.PlaylistID = value.extract::<Option<String>>(py)?,
-            "ContentID" => self.ContentID = value.extract::<Option<String>>(py)?,
-            "TrackNo" => self.TrackNo = value.extract::<Option<i32>>(py)?,
+            "playlist_id" => self.playlist_id = value.extract::<Option<String>>(py)?,
+            "content_id" => self.content_id = value.extract::<Option<String>>(py)?,
+            "track_no" => self.track_no = value.extract::<Option<i32>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -5550,22 +5568,22 @@ impl PyDjmdSongPlaylist {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongPlaylist(ID: {})", self.ID))
+        Ok(format!("DjmdSongPlaylist(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdProperty", unsendable, get_all, set_all)]
 pub struct PyDjmdProperty {
-    pub DBID: String,
-    pub DBVersion: Option<String>,
-    pub BaseDBDrive: Option<String>,
-    pub CurrentDBDrive: Option<String>,
-    pub DeviceID: Option<String>,
-    pub Reserved1: Option<String>,
-    pub Reserved2: Option<String>,
-    pub Reserved3: Option<String>,
-    pub Reserved4: Option<String>,
-    pub Reserved5: Option<String>,
+    pub db_id: String,
+    pub db_version: Option<String>,
+    pub base_db_drive: Option<String>,
+    pub current_db_drive: Option<String>,
+    pub device_id: Option<String>,
+    pub reserved1: Option<String>,
+    pub reserved2: Option<String>,
+    pub reserved3: Option<String>,
+    pub reserved4: Option<String>,
+    pub reserved5: Option<String>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
 }
@@ -5573,16 +5591,16 @@ pub struct PyDjmdProperty {
 impl IntoPy<PyDjmdProperty> for DjmdProperty {
     fn into_py(self, py: Python) -> PyResult<PyDjmdProperty> {
         let model = PyDjmdProperty {
-            DBID: self.DBID,
-            DBVersion: self.DBVersion,
-            BaseDBDrive: self.BaseDBDrive,
-            CurrentDBDrive: self.CurrentDBDrive,
-            DeviceID: self.DeviceID,
-            Reserved1: self.Reserved1,
-            Reserved2: self.Reserved2,
-            Reserved3: self.Reserved3,
-            Reserved4: self.Reserved4,
-            Reserved5: self.Reserved5,
+            db_id: self.db_id,
+            db_version: self.db_version,
+            base_db_drive: self.base_db_drive,
+            current_db_drive: self.current_db_drive,
+            device_id: self.device_id,
+            reserved1: self.reserved1,
+            reserved2: self.reserved2,
+            reserved3: self.reserved3,
+            reserved4: self.reserved4,
+            reserved5: self.reserved5,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
         };
@@ -5593,16 +5611,16 @@ impl IntoPy<PyDjmdProperty> for DjmdProperty {
 impl FromPy<PyDjmdProperty> for DjmdProperty {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdProperty>) -> Self {
         Self {
-            DBID: model.DBID.clone(),
-            DBVersion: model.DBVersion.clone(),
-            BaseDBDrive: model.BaseDBDrive.clone(),
-            CurrentDBDrive: model.CurrentDBDrive.clone(),
-            DeviceID: model.DeviceID.clone(),
-            Reserved1: model.Reserved1.clone(),
-            Reserved2: model.Reserved2.clone(),
-            Reserved3: model.Reserved3.clone(),
-            Reserved4: model.Reserved4.clone(),
-            Reserved5: model.Reserved5.clone(),
+            db_id: model.db_id.clone(),
+            db_version: model.db_version.clone(),
+            base_db_drive: model.base_db_drive.clone(),
+            current_db_drive: model.current_db_drive.clone(),
+            device_id: model.device_id.clone(),
+            reserved1: model.reserved1.clone(),
+            reserved2: model.reserved2.clone(),
+            reserved3: model.reserved3.clone(),
+            reserved4: model.reserved4.clone(),
+            reserved5: model.reserved5.clone(),
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
         }
@@ -5612,16 +5630,16 @@ impl FromPy<PyDjmdProperty> for DjmdProperty {
 impl MutableMapping for PyDjmdProperty {
     fn field_names() -> Vec<String> {
         vec![
-            "DBID".to_string(),
-            "DBVersion".to_string(),
-            "BaseDBDrive".to_string(),
-            "CurrentDBDrive".to_string(),
-            "DeviceID".to_string(),
-            "Reserved1".to_string(),
-            "Reserved2".to_string(),
-            "Reserved3".to_string(),
-            "Reserved4".to_string(),
-            "Reserved5".to_string(),
+            "db_id".to_string(),
+            "db_version".to_string(),
+            "base_db_drive".to_string(),
+            "current_db_drive".to_string(),
+            "device_id".to_string(),
+            "reserved1".to_string(),
+            "reserved2".to_string(),
+            "reserved3".to_string(),
+            "reserved4".to_string(),
+            "reserved5".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
         ]
@@ -5629,16 +5647,16 @@ impl MutableMapping for PyDjmdProperty {
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "DBID" => Ok(self.DBID.clone().into_pyobject(py)?.into()),
-            "DBVersion" => Ok(self.DBVersion.clone().into_pyobject(py)?.into()),
-            "BaseDBDrive" => Ok(self.BaseDBDrive.clone().into_pyobject(py)?.into()),
-            "CurrentDBDrive" => Ok(self.CurrentDBDrive.clone().into_pyobject(py)?.into()),
-            "DeviceID" => Ok(self.DeviceID.clone().into_pyobject(py)?.into()),
-            "Reserved1" => Ok(self.Reserved1.clone().into_pyobject(py)?.into()),
-            "Reserved2" => Ok(self.Reserved2.clone().into_pyobject(py)?.into()),
-            "Reserved3" => Ok(self.Reserved3.clone().into_pyobject(py)?.into()),
-            "Reserved4" => Ok(self.Reserved4.clone().into_pyobject(py)?.into()),
-            "Reserved5" => Ok(self.Reserved5.clone().into_pyobject(py)?.into()),
+            "db_id" => Ok(self.db_id.clone().into_pyobject(py)?.into()),
+            "db_version" => Ok(self.db_version.clone().into_pyobject(py)?.into()),
+            "base_db_drive" => Ok(self.base_db_drive.clone().into_pyobject(py)?.into()),
+            "current_db_drive" => Ok(self.current_db_drive.clone().into_pyobject(py)?.into()),
+            "device_id" => Ok(self.device_id.clone().into_pyobject(py)?.into()),
+            "reserved1" => Ok(self.reserved1.clone().into_pyobject(py)?.into()),
+            "reserved2" => Ok(self.reserved2.clone().into_pyobject(py)?.into()),
+            "reserved3" => Ok(self.reserved3.clone().into_pyobject(py)?.into()),
+            "reserved4" => Ok(self.reserved4.clone().into_pyobject(py)?.into()),
+            "reserved5" => Ok(self.reserved5.clone().into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
@@ -5650,16 +5668,16 @@ impl MutableMapping for PyDjmdProperty {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "DBID" => self.DBID = value.extract::<String>(py)?,
-            "DBVersion" => self.DBVersion = value.extract::<Option<String>>(py)?,
-            "BaseDBDrive" => self.BaseDBDrive = value.extract::<Option<String>>(py)?,
-            "CurrentDBDrive" => self.CurrentDBDrive = value.extract::<Option<String>>(py)?,
-            "DeviceID" => self.DeviceID = value.extract::<Option<String>>(py)?,
-            "Reserved1" => self.Reserved1 = value.extract::<Option<String>>(py)?,
-            "Reserved2" => self.Reserved2 = value.extract::<Option<String>>(py)?,
-            "Reserved3" => self.Reserved3 = value.extract::<Option<String>>(py)?,
-            "Reserved4" => self.Reserved4 = value.extract::<Option<String>>(py)?,
-            "Reserved5" => self.Reserved5 = value.extract::<Option<String>>(py)?,
+            "db_id" => self.db_id = value.extract::<String>(py)?,
+            "db_version" => self.db_version = value.extract::<Option<String>>(py)?,
+            "base_db_drive" => self.base_db_drive = value.extract::<Option<String>>(py)?,
+            "current_db_drive" => self.current_db_drive = value.extract::<Option<String>>(py)?,
+            "device_id" => self.device_id = value.extract::<Option<String>>(py)?,
+            "reserved1" => self.reserved1 = value.extract::<Option<String>>(py)?,
+            "reserved2" => self.reserved2 = value.extract::<Option<String>>(py)?,
+            "reserved3" => self.reserved3 = value.extract::<Option<String>>(py)?,
+            "reserved4" => self.reserved4 = value.extract::<Option<String>>(py)?,
+            "reserved5" => self.reserved5 = value.extract::<Option<String>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             _ => {
@@ -5720,14 +5738,14 @@ impl PyDjmdProperty {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdProperty(DBID: {})", self.DBID))
+        Ok(format!("DjmdProperty(db_id: {})", self.db_id))
     }
 }
 
 #[pyclass(name = "DjmdCloudProperty", unsendable, get_all, set_all)]
 pub struct PyDjmdCloudProperty {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -5736,18 +5754,18 @@ pub struct PyDjmdCloudProperty {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub Reserved1: Option<String>,
-    pub Reserved2: Option<String>,
-    pub Reserved3: Option<String>,
-    pub Reserved4: Option<String>,
-    pub Reserved5: Option<String>,
+    pub reserved1: Option<String>,
+    pub reserved2: Option<String>,
+    pub reserved3: Option<String>,
+    pub reserved4: Option<String>,
+    pub reserved5: Option<String>,
 }
 
 impl IntoPy<PyDjmdCloudProperty> for DjmdCloudProperty {
     fn into_py(self, py: Python) -> PyResult<PyDjmdCloudProperty> {
         let model = PyDjmdCloudProperty {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -5756,11 +5774,11 @@ impl IntoPy<PyDjmdCloudProperty> for DjmdCloudProperty {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            Reserved1: self.Reserved1,
-            Reserved2: self.Reserved2,
-            Reserved3: self.Reserved3,
-            Reserved4: self.Reserved4,
-            Reserved5: self.Reserved5,
+            reserved1: self.reserved1,
+            reserved2: self.reserved2,
+            reserved3: self.reserved3,
+            reserved4: self.reserved4,
+            reserved5: self.reserved5,
         };
         Ok(model)
     }
@@ -5769,8 +5787,8 @@ impl IntoPy<PyDjmdCloudProperty> for DjmdCloudProperty {
 impl FromPy<PyDjmdCloudProperty> for DjmdCloudProperty {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdCloudProperty>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -5779,11 +5797,11 @@ impl FromPy<PyDjmdCloudProperty> for DjmdCloudProperty {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            Reserved1: model.Reserved1.clone(),
-            Reserved2: model.Reserved2.clone(),
-            Reserved3: model.Reserved3.clone(),
-            Reserved4: model.Reserved4.clone(),
-            Reserved5: model.Reserved5.clone(),
+            reserved1: model.reserved1.clone(),
+            reserved2: model.reserved2.clone(),
+            reserved3: model.reserved3.clone(),
+            reserved4: model.reserved4.clone(),
+            reserved5: model.reserved5.clone(),
         }
     }
 }
@@ -5791,8 +5809,8 @@ impl FromPy<PyDjmdCloudProperty> for DjmdCloudProperty {
 impl MutableMapping for PyDjmdCloudProperty {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -5801,18 +5819,18 @@ impl MutableMapping for PyDjmdCloudProperty {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "Reserved1".to_string(),
-            "Reserved2".to_string(),
-            "Reserved3".to_string(),
-            "Reserved4".to_string(),
-            "Reserved5".to_string(),
+            "reserved1".to_string(),
+            "reserved2".to_string(),
+            "reserved3".to_string(),
+            "reserved4".to_string(),
+            "reserved5".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -5821,11 +5839,11 @@ impl MutableMapping for PyDjmdCloudProperty {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "Reserved1" => Ok(self.Reserved1.clone().into_pyobject(py)?.into()),
-            "Reserved2" => Ok(self.Reserved2.clone().into_pyobject(py)?.into()),
-            "Reserved3" => Ok(self.Reserved3.clone().into_pyobject(py)?.into()),
-            "Reserved4" => Ok(self.Reserved4.clone().into_pyobject(py)?.into()),
-            "Reserved5" => Ok(self.Reserved5.clone().into_pyobject(py)?.into()),
+            "reserved1" => Ok(self.reserved1.clone().into_pyobject(py)?.into()),
+            "reserved2" => Ok(self.reserved2.clone().into_pyobject(py)?.into()),
+            "reserved3" => Ok(self.reserved3.clone().into_pyobject(py)?.into()),
+            "reserved4" => Ok(self.reserved4.clone().into_pyobject(py)?.into()),
+            "reserved5" => Ok(self.reserved5.clone().into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -5835,8 +5853,8 @@ impl MutableMapping for PyDjmdCloudProperty {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -5845,11 +5863,11 @@ impl MutableMapping for PyDjmdCloudProperty {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "Reserved1" => self.Reserved1 = value.extract::<Option<String>>(py)?,
-            "Reserved2" => self.Reserved2 = value.extract::<Option<String>>(py)?,
-            "Reserved3" => self.Reserved3 = value.extract::<Option<String>>(py)?,
-            "Reserved4" => self.Reserved4 = value.extract::<Option<String>>(py)?,
-            "Reserved5" => self.Reserved5 = value.extract::<Option<String>>(py)?,
+            "reserved1" => self.reserved1 = value.extract::<Option<String>>(py)?,
+            "reserved2" => self.reserved2 = value.extract::<Option<String>>(py)?,
+            "reserved3" => self.reserved3 = value.extract::<Option<String>>(py)?,
+            "reserved4" => self.reserved4 = value.extract::<Option<String>>(py)?,
+            "reserved5" => self.reserved5 = value.extract::<Option<String>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -5908,14 +5926,14 @@ impl PyDjmdCloudProperty {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdCloudProperty(ID: {})", self.ID))
+        Ok(format!("DjmdCloudProperty(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdRecommendLike", unsendable, get_all, set_all)]
 pub struct PyDjmdRecommendLike {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -5924,18 +5942,18 @@ pub struct PyDjmdRecommendLike {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub ContentID1: Option<String>,
-    pub ContentID2: Option<String>,
-    pub LikeRate: Option<i32>,
-    pub DataCreatedH: Option<i32>,
-    pub DataCreatedL: Option<i32>,
+    pub content_id1: Option<String>,
+    pub content_id2: Option<String>,
+    pub like_rate: Option<i32>,
+    pub data_created_h: Option<i32>,
+    pub data_created_l: Option<i32>,
 }
 
 impl IntoPy<PyDjmdRecommendLike> for DjmdRecommendLike {
     fn into_py(self, py: Python) -> PyResult<PyDjmdRecommendLike> {
         let model = PyDjmdRecommendLike {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -5944,11 +5962,11 @@ impl IntoPy<PyDjmdRecommendLike> for DjmdRecommendLike {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            ContentID1: self.ContentID1,
-            ContentID2: self.ContentID2,
-            LikeRate: self.LikeRate,
-            DataCreatedH: self.DataCreatedH,
-            DataCreatedL: self.DataCreatedL,
+            content_id1: self.content_id1,
+            content_id2: self.content_id2,
+            like_rate: self.like_rate,
+            data_created_h: self.data_created_h,
+            data_created_l: self.data_created_l,
         };
         Ok(model)
     }
@@ -5957,8 +5975,8 @@ impl IntoPy<PyDjmdRecommendLike> for DjmdRecommendLike {
 impl FromPy<PyDjmdRecommendLike> for DjmdRecommendLike {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdRecommendLike>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -5967,11 +5985,11 @@ impl FromPy<PyDjmdRecommendLike> for DjmdRecommendLike {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            ContentID1: model.ContentID1.clone(),
-            ContentID2: model.ContentID2.clone(),
-            LikeRate: model.LikeRate,
-            DataCreatedH: model.DataCreatedH,
-            DataCreatedL: model.DataCreatedL,
+            content_id1: model.content_id1.clone(),
+            content_id2: model.content_id2.clone(),
+            like_rate: model.like_rate,
+            data_created_h: model.data_created_h,
+            data_created_l: model.data_created_l,
         }
     }
 }
@@ -5979,8 +5997,8 @@ impl FromPy<PyDjmdRecommendLike> for DjmdRecommendLike {
 impl MutableMapping for PyDjmdRecommendLike {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -5989,18 +6007,18 @@ impl MutableMapping for PyDjmdRecommendLike {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "ContentID1".to_string(),
-            "ContentID2".to_string(),
-            "LikeRate".to_string(),
-            "DataCreatedH".to_string(),
-            "DataCreatedL".to_string(),
+            "content_id1".to_string(),
+            "content_id2".to_string(),
+            "like_rate".to_string(),
+            "data_created_h".to_string(),
+            "data_created_l".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -6009,11 +6027,11 @@ impl MutableMapping for PyDjmdRecommendLike {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "ContentID1" => Ok(self.ContentID1.clone().into_pyobject(py)?.into()),
-            "ContentID2" => Ok(self.ContentID2.clone().into_pyobject(py)?.into()),
-            "LikeRate" => Ok(self.LikeRate.into_pyobject(py)?.into()),
-            "DataCreatedH" => Ok(self.DataCreatedH.into_pyobject(py)?.into()),
-            "DataCreatedL" => Ok(self.DataCreatedL.into_pyobject(py)?.into()),
+            "content_id1" => Ok(self.content_id1.clone().into_pyobject(py)?.into()),
+            "content_id2" => Ok(self.content_id2.clone().into_pyobject(py)?.into()),
+            "like_rate" => Ok(self.like_rate.into_pyobject(py)?.into()),
+            "data_created_h" => Ok(self.data_created_h.into_pyobject(py)?.into()),
+            "data_created_l" => Ok(self.data_created_l.into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -6023,8 +6041,8 @@ impl MutableMapping for PyDjmdRecommendLike {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -6033,11 +6051,11 @@ impl MutableMapping for PyDjmdRecommendLike {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "ContentID1" => self.ContentID1 = value.extract::<Option<String>>(py)?,
-            "ContentID2" => self.ContentID2 = value.extract::<Option<String>>(py)?,
-            "LikeRate" => self.LikeRate = value.extract::<Option<i32>>(py)?,
-            "DataCreatedH" => self.DataCreatedH = value.extract::<Option<i32>>(py)?,
-            "DataCreatedL" => self.DataCreatedL = value.extract::<Option<i32>>(py)?,
+            "content_id1" => self.content_id1 = value.extract::<Option<String>>(py)?,
+            "content_id2" => self.content_id2 = value.extract::<Option<String>>(py)?,
+            "like_rate" => self.like_rate = value.extract::<Option<i32>>(py)?,
+            "data_created_h" => self.data_created_h = value.extract::<Option<i32>>(py)?,
+            "data_created_l" => self.data_created_l = value.extract::<Option<i32>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -6096,14 +6114,14 @@ impl PyDjmdRecommendLike {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdRecommendLike(ID: {})", self.ID))
+        Ok(format!("DjmdRecommendLike(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdRelatedTracks", unsendable, get_all, set_all)]
 pub struct PyDjmdRelatedTracks {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -6112,18 +6130,18 @@ pub struct PyDjmdRelatedTracks {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub Seq: Option<i32>,
-    pub Name: Option<String>,
-    pub Attribute: Option<i32>,
-    pub ParentID: Option<String>,
-    pub Criteria: Option<String>,
+    pub seq: Option<i32>,
+    pub name: Option<String>,
+    pub attribute: Option<i32>,
+    pub parent_id: Option<String>,
+    pub criteria: Option<String>,
 }
 
 impl IntoPy<PyDjmdRelatedTracks> for DjmdRelatedTracks {
     fn into_py(self, py: Python) -> PyResult<PyDjmdRelatedTracks> {
         let model = PyDjmdRelatedTracks {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -6132,11 +6150,11 @@ impl IntoPy<PyDjmdRelatedTracks> for DjmdRelatedTracks {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            Seq: self.Seq,
-            Name: self.Name,
-            Attribute: self.Attribute,
-            ParentID: self.ParentID,
-            Criteria: self.Criteria,
+            seq: self.seq,
+            name: self.name,
+            attribute: self.attribute,
+            parent_id: self.parent_id,
+            criteria: self.criteria,
         };
         Ok(model)
     }
@@ -6145,8 +6163,8 @@ impl IntoPy<PyDjmdRelatedTracks> for DjmdRelatedTracks {
 impl FromPy<PyDjmdRelatedTracks> for DjmdRelatedTracks {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdRelatedTracks>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -6155,11 +6173,11 @@ impl FromPy<PyDjmdRelatedTracks> for DjmdRelatedTracks {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            Seq: model.Seq,
-            Name: model.Name.clone(),
-            Attribute: model.Attribute,
-            ParentID: model.ParentID.clone(),
-            Criteria: model.Criteria.clone(),
+            seq: model.seq,
+            name: model.name.clone(),
+            attribute: model.attribute,
+            parent_id: model.parent_id.clone(),
+            criteria: model.criteria.clone(),
         }
     }
 }
@@ -6167,8 +6185,8 @@ impl FromPy<PyDjmdRelatedTracks> for DjmdRelatedTracks {
 impl MutableMapping for PyDjmdRelatedTracks {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -6177,18 +6195,18 @@ impl MutableMapping for PyDjmdRelatedTracks {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "Seq".to_string(),
-            "Name".to_string(),
-            "Attribute".to_string(),
-            "ParentID".to_string(),
-            "Criteria".to_string(),
+            "seq".to_string(),
+            "name".to_string(),
+            "attribute".to_string(),
+            "parent_id".to_string(),
+            "criteria".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -6197,11 +6215,11 @@ impl MutableMapping for PyDjmdRelatedTracks {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "Seq" => Ok(self.Seq.into_pyobject(py)?.into()),
-            "Name" => Ok(self.Name.clone().into_pyobject(py)?.into()),
-            "Attribute" => Ok(self.Attribute.into_pyobject(py)?.into()),
-            "ParentID" => Ok(self.ParentID.clone().into_pyobject(py)?.into()),
-            "Criteria" => Ok(self.Criteria.clone().into_pyobject(py)?.into()),
+            "seq" => Ok(self.seq.into_pyobject(py)?.into()),
+            "name" => Ok(self.name.clone().into_pyobject(py)?.into()),
+            "attribute" => Ok(self.attribute.into_pyobject(py)?.into()),
+            "parent_id" => Ok(self.parent_id.clone().into_pyobject(py)?.into()),
+            "criteria" => Ok(self.criteria.clone().into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -6211,8 +6229,8 @@ impl MutableMapping for PyDjmdRelatedTracks {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -6221,11 +6239,11 @@ impl MutableMapping for PyDjmdRelatedTracks {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "Seq" => self.Seq = value.extract::<Option<i32>>(py)?,
-            "Name" => self.Name = value.extract::<Option<String>>(py)?,
-            "Attribute" => self.Attribute = value.extract::<Option<i32>>(py)?,
-            "ParentID" => self.ParentID = value.extract::<Option<String>>(py)?,
-            "Criteria" => self.Criteria = value.extract::<Option<String>>(py)?,
+            "seq" => self.seq = value.extract::<Option<i32>>(py)?,
+            "name" => self.name = value.extract::<Option<String>>(py)?,
+            "attribute" => self.attribute = value.extract::<Option<i32>>(py)?,
+            "parent_id" => self.parent_id = value.extract::<Option<String>>(py)?,
+            "criteria" => self.criteria = value.extract::<Option<String>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -6284,14 +6302,14 @@ impl PyDjmdRelatedTracks {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdRelatedTracks(ID: {})", self.ID))
+        Ok(format!("DjmdRelatedTracks(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdSongRelatedTracks", unsendable, get_all, set_all)]
 pub struct PyDjmdSongRelatedTracks {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -6300,16 +6318,16 @@ pub struct PyDjmdSongRelatedTracks {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub RelatedTracksID: Option<String>,
-    pub ContentID: Option<String>,
-    pub TrackNo: Option<i32>,
+    pub related_tracks_id: Option<String>,
+    pub content_id: Option<String>,
+    pub track_no: Option<i32>,
 }
 
 impl IntoPy<PyDjmdSongRelatedTracks> for DjmdSongRelatedTracks {
     fn into_py(self, py: Python) -> PyResult<PyDjmdSongRelatedTracks> {
         let model = PyDjmdSongRelatedTracks {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -6318,9 +6336,9 @@ impl IntoPy<PyDjmdSongRelatedTracks> for DjmdSongRelatedTracks {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            RelatedTracksID: self.RelatedTracksID,
-            ContentID: self.ContentID,
-            TrackNo: self.TrackNo,
+            related_tracks_id: self.related_tracks_id,
+            content_id: self.content_id,
+            track_no: self.track_no,
         };
         Ok(model)
     }
@@ -6329,8 +6347,8 @@ impl IntoPy<PyDjmdSongRelatedTracks> for DjmdSongRelatedTracks {
 impl FromPy<PyDjmdSongRelatedTracks> for DjmdSongRelatedTracks {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdSongRelatedTracks>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -6339,9 +6357,9 @@ impl FromPy<PyDjmdSongRelatedTracks> for DjmdSongRelatedTracks {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            RelatedTracksID: model.RelatedTracksID.clone(),
-            ContentID: model.ContentID.clone(),
-            TrackNo: model.TrackNo,
+            related_tracks_id: model.related_tracks_id.clone(),
+            content_id: model.content_id.clone(),
+            track_no: model.track_no,
         }
     }
 }
@@ -6349,8 +6367,8 @@ impl FromPy<PyDjmdSongRelatedTracks> for DjmdSongRelatedTracks {
 impl MutableMapping for PyDjmdSongRelatedTracks {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -6359,16 +6377,16 @@ impl MutableMapping for PyDjmdSongRelatedTracks {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "RelatedTracksID".to_string(),
-            "ContentID".to_string(),
-            "TrackNo".to_string(),
+            "related_tracks_id".to_string(),
+            "content_id".to_string(),
+            "track_no".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -6377,9 +6395,9 @@ impl MutableMapping for PyDjmdSongRelatedTracks {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "RelatedTracksID" => Ok(self.RelatedTracksID.clone().into_pyobject(py)?.into()),
-            "ContentID" => Ok(self.ContentID.clone().into_pyobject(py)?.into()),
-            "TrackNo" => Ok(self.TrackNo.into_pyobject(py)?.into()),
+            "related_tracks_id" => Ok(self.related_tracks_id.clone().into_pyobject(py)?.into()),
+            "content_id" => Ok(self.content_id.clone().into_pyobject(py)?.into()),
+            "track_no" => Ok(self.track_no.into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -6389,8 +6407,8 @@ impl MutableMapping for PyDjmdSongRelatedTracks {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -6399,9 +6417,9 @@ impl MutableMapping for PyDjmdSongRelatedTracks {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "RelatedTracksID" => self.RelatedTracksID = value.extract::<Option<String>>(py)?,
-            "ContentID" => self.ContentID = value.extract::<Option<String>>(py)?,
-            "TrackNo" => self.TrackNo = value.extract::<Option<i32>>(py)?,
+            "related_tracks_id" => self.related_tracks_id = value.extract::<Option<String>>(py)?,
+            "content_id" => self.content_id = value.extract::<Option<String>>(py)?,
+            "track_no" => self.track_no = value.extract::<Option<i32>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -6460,14 +6478,14 @@ impl PyDjmdSongRelatedTracks {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongRelatedTracks(ID: {})", self.ID))
+        Ok(format!("DjmdSongRelatedTracks(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdSampler", unsendable, get_all, set_all)]
 pub struct PyDjmdSampler {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -6476,17 +6494,17 @@ pub struct PyDjmdSampler {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub Seq: Option<i32>,
-    pub Name: Option<String>,
-    pub Attribute: Option<i32>,
-    pub ParentID: Option<String>,
+    pub seq: Option<i32>,
+    pub name: Option<String>,
+    pub attribute: Option<i32>,
+    pub parent_id: Option<String>,
 }
 
 impl IntoPy<PyDjmdSampler> for DjmdSampler {
     fn into_py(self, py: Python) -> PyResult<PyDjmdSampler> {
         let model = PyDjmdSampler {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -6495,10 +6513,10 @@ impl IntoPy<PyDjmdSampler> for DjmdSampler {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            Seq: self.Seq,
-            Name: self.Name,
-            Attribute: self.Attribute,
-            ParentID: self.ParentID,
+            seq: self.seq,
+            name: self.name,
+            attribute: self.attribute,
+            parent_id: self.parent_id,
         };
         Ok(model)
     }
@@ -6507,8 +6525,8 @@ impl IntoPy<PyDjmdSampler> for DjmdSampler {
 impl FromPy<PyDjmdSampler> for DjmdSampler {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdSampler>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -6517,10 +6535,10 @@ impl FromPy<PyDjmdSampler> for DjmdSampler {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            Seq: model.Seq,
-            Name: model.Name.clone(),
-            Attribute: model.Attribute,
-            ParentID: model.ParentID.clone(),
+            seq: model.seq,
+            name: model.name.clone(),
+            attribute: model.attribute,
+            parent_id: model.parent_id.clone(),
         }
     }
 }
@@ -6528,8 +6546,8 @@ impl FromPy<PyDjmdSampler> for DjmdSampler {
 impl MutableMapping for PyDjmdSampler {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -6538,17 +6556,17 @@ impl MutableMapping for PyDjmdSampler {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "Seq".to_string(),
-            "Name".to_string(),
-            "Attribute".to_string(),
-            "ParentID".to_string(),
+            "seq".to_string(),
+            "name".to_string(),
+            "attribute".to_string(),
+            "parent_id".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -6557,10 +6575,10 @@ impl MutableMapping for PyDjmdSampler {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "Seq" => Ok(self.Seq.into_pyobject(py)?.into()),
-            "Name" => Ok(self.Name.clone().into_pyobject(py)?.into()),
-            "Attribute" => Ok(self.Attribute.into_pyobject(py)?.into()),
-            "ParentID" => Ok(self.ParentID.clone().into_pyobject(py)?.into()),
+            "seq" => Ok(self.seq.into_pyobject(py)?.into()),
+            "name" => Ok(self.name.clone().into_pyobject(py)?.into()),
+            "attribute" => Ok(self.attribute.into_pyobject(py)?.into()),
+            "parent_id" => Ok(self.parent_id.clone().into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -6570,8 +6588,8 @@ impl MutableMapping for PyDjmdSampler {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -6580,10 +6598,10 @@ impl MutableMapping for PyDjmdSampler {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "Seq" => self.Seq = value.extract::<Option<i32>>(py)?,
-            "Name" => self.Name = value.extract::<Option<String>>(py)?,
-            "Attribute" => self.Attribute = value.extract::<Option<i32>>(py)?,
-            "ParentID" => self.ParentID = value.extract::<Option<String>>(py)?,
+            "seq" => self.seq = value.extract::<Option<i32>>(py)?,
+            "name" => self.name = value.extract::<Option<String>>(py)?,
+            "attribute" => self.attribute = value.extract::<Option<i32>>(py)?,
+            "parent_id" => self.parent_id = value.extract::<Option<String>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -6642,14 +6660,14 @@ impl PyDjmdSampler {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSampler(ID: {})", self.ID))
+        Ok(format!("DjmdSampler(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdSongSampler", unsendable, get_all, set_all)]
 pub struct PyDjmdSongSampler {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -6658,16 +6676,16 @@ pub struct PyDjmdSongSampler {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub SamplerID: Option<String>,
-    pub ContentID: Option<String>,
-    pub TrackNo: Option<i32>,
+    pub sampler_id: Option<String>,
+    pub content_id: Option<String>,
+    pub track_no: Option<i32>,
 }
 
 impl IntoPy<PyDjmdSongSampler> for DjmdSongSampler {
     fn into_py(self, py: Python) -> PyResult<PyDjmdSongSampler> {
         let model = PyDjmdSongSampler {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -6676,9 +6694,9 @@ impl IntoPy<PyDjmdSongSampler> for DjmdSongSampler {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            SamplerID: self.SamplerID,
-            ContentID: self.ContentID,
-            TrackNo: self.TrackNo,
+            sampler_id: self.sampler_id,
+            content_id: self.content_id,
+            track_no: self.track_no,
         };
         Ok(model)
     }
@@ -6687,8 +6705,8 @@ impl IntoPy<PyDjmdSongSampler> for DjmdSongSampler {
 impl FromPy<PyDjmdSongSampler> for DjmdSongSampler {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdSongSampler>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -6697,9 +6715,9 @@ impl FromPy<PyDjmdSongSampler> for DjmdSongSampler {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            SamplerID: model.SamplerID.clone(),
-            ContentID: model.ContentID.clone(),
-            TrackNo: model.TrackNo,
+            sampler_id: model.sampler_id.clone(),
+            content_id: model.content_id.clone(),
+            track_no: model.track_no,
         }
     }
 }
@@ -6707,8 +6725,8 @@ impl FromPy<PyDjmdSongSampler> for DjmdSongSampler {
 impl MutableMapping for PyDjmdSongSampler {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -6717,16 +6735,16 @@ impl MutableMapping for PyDjmdSongSampler {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "SamplerID".to_string(),
-            "ContentID".to_string(),
-            "TrackNo".to_string(),
+            "sampler_id".to_string(),
+            "content_id".to_string(),
+            "track_no".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -6735,9 +6753,9 @@ impl MutableMapping for PyDjmdSongSampler {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "SamplerID" => Ok(self.SamplerID.clone().into_pyobject(py)?.into()),
-            "ContentID" => Ok(self.ContentID.clone().into_pyobject(py)?.into()),
-            "TrackNo" => Ok(self.TrackNo.into_pyobject(py)?.into()),
+            "sampler_id" => Ok(self.sampler_id.clone().into_pyobject(py)?.into()),
+            "content_id" => Ok(self.content_id.clone().into_pyobject(py)?.into()),
+            "track_no" => Ok(self.track_no.into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -6747,8 +6765,8 @@ impl MutableMapping for PyDjmdSongSampler {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -6757,9 +6775,9 @@ impl MutableMapping for PyDjmdSongSampler {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "SamplerID" => self.SamplerID = value.extract::<Option<String>>(py)?,
-            "ContentID" => self.ContentID = value.extract::<Option<String>>(py)?,
-            "TrackNo" => self.TrackNo = value.extract::<Option<i32>>(py)?,
+            "sampler_id" => self.sampler_id = value.extract::<Option<String>>(py)?,
+            "content_id" => self.content_id = value.extract::<Option<String>>(py)?,
+            "track_no" => self.track_no = value.extract::<Option<i32>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -6818,14 +6836,14 @@ impl PyDjmdSongSampler {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongSampler(ID: {})", self.ID))
+        Ok(format!("DjmdSongSampler(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdSongTagList", unsendable, get_all, set_all)]
 pub struct PyDjmdSongTagList {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -6834,15 +6852,15 @@ pub struct PyDjmdSongTagList {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub ContentID: Option<String>,
-    pub TrackNo: Option<i32>,
+    pub content_id: Option<String>,
+    pub track_no: Option<i32>,
 }
 
 impl IntoPy<PyDjmdSongTagList> for DjmdSongTagList {
     fn into_py(self, py: Python) -> PyResult<PyDjmdSongTagList> {
         let model = PyDjmdSongTagList {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -6851,8 +6869,8 @@ impl IntoPy<PyDjmdSongTagList> for DjmdSongTagList {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            ContentID: self.ContentID,
-            TrackNo: self.TrackNo,
+            content_id: self.content_id,
+            track_no: self.track_no,
         };
         Ok(model)
     }
@@ -6861,8 +6879,8 @@ impl IntoPy<PyDjmdSongTagList> for DjmdSongTagList {
 impl FromPy<PyDjmdSongTagList> for DjmdSongTagList {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdSongTagList>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -6871,8 +6889,8 @@ impl FromPy<PyDjmdSongTagList> for DjmdSongTagList {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            ContentID: model.ContentID.clone(),
-            TrackNo: model.TrackNo,
+            content_id: model.content_id.clone(),
+            track_no: model.track_no,
         }
     }
 }
@@ -6880,8 +6898,8 @@ impl FromPy<PyDjmdSongTagList> for DjmdSongTagList {
 impl MutableMapping for PyDjmdSongTagList {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -6890,15 +6908,15 @@ impl MutableMapping for PyDjmdSongTagList {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "ContentID".to_string(),
-            "TrackNo".to_string(),
+            "content_id".to_string(),
+            "track_no".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -6907,8 +6925,8 @@ impl MutableMapping for PyDjmdSongTagList {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "ContentID" => Ok(self.ContentID.clone().into_pyobject(py)?.into()),
-            "TrackNo" => Ok(self.TrackNo.into_pyobject(py)?.into()),
+            "content_id" => Ok(self.content_id.clone().into_pyobject(py)?.into()),
+            "track_no" => Ok(self.track_no.into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -6918,8 +6936,8 @@ impl MutableMapping for PyDjmdSongTagList {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -6928,8 +6946,8 @@ impl MutableMapping for PyDjmdSongTagList {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "ContentID" => self.ContentID = value.extract::<Option<String>>(py)?,
-            "TrackNo" => self.TrackNo = value.extract::<Option<i32>>(py)?,
+            "content_id" => self.content_id = value.extract::<Option<String>>(py)?,
+            "track_no" => self.track_no = value.extract::<Option<i32>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -6988,14 +7006,14 @@ impl PyDjmdSongTagList {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSongTagList(ID: {})", self.ID))
+        Ok(format!("DjmdSongTagList(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "DjmdSort", unsendable, get_all, set_all)]
 pub struct PyDjmdSort {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -7004,16 +7022,16 @@ pub struct PyDjmdSort {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub MenuItemID: Option<String>,
-    pub Seq: Option<i32>,
-    pub Disable: Option<i32>,
+    pub menu_item_id: Option<String>,
+    pub seq: Option<i32>,
+    pub disable: Option<i32>,
 }
 
 impl IntoPy<PyDjmdSort> for DjmdSort {
     fn into_py(self, py: Python) -> PyResult<PyDjmdSort> {
         let model = PyDjmdSort {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -7022,9 +7040,9 @@ impl IntoPy<PyDjmdSort> for DjmdSort {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            MenuItemID: self.MenuItemID,
-            Seq: self.Seq,
-            Disable: self.Disable,
+            menu_item_id: self.menu_item_id,
+            seq: self.seq,
+            disable: self.disable,
         };
         Ok(model)
     }
@@ -7033,8 +7051,8 @@ impl IntoPy<PyDjmdSort> for DjmdSort {
 impl FromPy<PyDjmdSort> for DjmdSort {
     fn from_py(py: Python, model: PyRef<'_, PyDjmdSort>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -7043,9 +7061,9 @@ impl FromPy<PyDjmdSort> for DjmdSort {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            MenuItemID: model.MenuItemID.clone(),
-            Seq: model.Seq,
-            Disable: model.Disable,
+            menu_item_id: model.menu_item_id.clone(),
+            seq: model.seq,
+            disable: model.disable,
         }
     }
 }
@@ -7053,8 +7071,8 @@ impl FromPy<PyDjmdSort> for DjmdSort {
 impl MutableMapping for PyDjmdSort {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -7063,16 +7081,16 @@ impl MutableMapping for PyDjmdSort {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "MenuItemID".to_string(),
-            "Seq".to_string(),
-            "Disable".to_string(),
+            "menu_item_id".to_string(),
+            "seq".to_string(),
+            "disable".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -7081,9 +7099,9 @@ impl MutableMapping for PyDjmdSort {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "MenuItemID" => Ok(self.MenuItemID.clone().into_pyobject(py)?.into()),
-            "Seq" => Ok(self.Seq.into_pyobject(py)?.into()),
-            "Disable" => Ok(self.Disable.into_pyobject(py)?.into()),
+            "menu_item_id" => Ok(self.menu_item_id.clone().into_pyobject(py)?.into()),
+            "seq" => Ok(self.seq.into_pyobject(py)?.into()),
+            "disable" => Ok(self.disable.into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -7093,8 +7111,8 @@ impl MutableMapping for PyDjmdSort {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -7103,9 +7121,9 @@ impl MutableMapping for PyDjmdSort {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "MenuItemID" => self.MenuItemID = value.extract::<Option<String>>(py)?,
-            "Seq" => self.Seq = value.extract::<Option<i32>>(py)?,
-            "Disable" => self.Disable = value.extract::<Option<i32>>(py)?,
+            "menu_item_id" => self.menu_item_id = value.extract::<Option<String>>(py)?,
+            "seq" => self.seq = value.extract::<Option<i32>>(py)?,
+            "disable" => self.disable = value.extract::<Option<i32>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -7164,14 +7182,14 @@ impl PyDjmdSort {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("DjmdSort(ID: {})", self.ID))
+        Ok(format!("DjmdSort(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "ImageFile", unsendable, get_all, set_all)]
 pub struct PyImageFile {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -7180,12 +7198,12 @@ pub struct PyImageFile {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub TableName: Option<String>,
-    pub TargetUUID: Option<String>,
-    pub TargetID: Option<String>,
-    pub Path: Option<String>,
-    pub Hash: Option<String>,
-    pub Size: Option<i32>,
+    pub table_name: Option<String>,
+    pub target_uuid: Option<String>,
+    pub target_id: Option<String>,
+    pub path: Option<String>,
+    pub hash: Option<String>,
+    pub size: Option<i32>,
     pub rb_local_path: Option<String>,
     pub rb_insync_hash: Option<String>,
     pub rb_insync_local_usn: Option<i32>,
@@ -7201,8 +7219,8 @@ pub struct PyImageFile {
 impl IntoPy<PyImageFile> for ImageFile {
     fn into_py(self, py: Python) -> PyResult<PyImageFile> {
         let model = PyImageFile {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -7211,12 +7229,12 @@ impl IntoPy<PyImageFile> for ImageFile {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            TableName: self.TableName,
-            TargetUUID: self.TargetUUID,
-            TargetID: self.TargetID,
-            Path: self.Path,
-            Hash: self.Hash,
-            Size: self.Size,
+            table_name: self.table_name,
+            target_uuid: self.target_uuid,
+            target_id: self.target_id,
+            path: self.path,
+            hash: self.hash,
+            size: self.size,
             rb_local_path: self.rb_local_path,
             rb_insync_hash: self.rb_insync_hash,
             rb_insync_local_usn: self.rb_insync_local_usn,
@@ -7235,8 +7253,8 @@ impl IntoPy<PyImageFile> for ImageFile {
 impl FromPy<PyImageFile> for ImageFile {
     fn from_py(py: Python, model: PyRef<'_, PyImageFile>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -7245,12 +7263,12 @@ impl FromPy<PyImageFile> for ImageFile {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            TableName: model.TableName.clone(),
-            TargetUUID: model.TargetUUID.clone(),
-            TargetID: model.TargetID.clone(),
-            Path: model.Path.clone(),
-            Hash: model.Hash.clone(),
-            Size: model.Size,
+            table_name: model.table_name.clone(),
+            target_uuid: model.target_uuid.clone(),
+            target_id: model.target_id.clone(),
+            path: model.path.clone(),
+            hash: model.hash.clone(),
+            size: model.size,
             rb_local_path: model.rb_local_path.clone(),
             rb_insync_hash: model.rb_insync_hash.clone(),
             rb_insync_local_usn: model.rb_insync_local_usn,
@@ -7268,8 +7286,8 @@ impl FromPy<PyImageFile> for ImageFile {
 impl MutableMapping for PyImageFile {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -7278,12 +7296,12 @@ impl MutableMapping for PyImageFile {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "TableName".to_string(),
-            "TargetUUID".to_string(),
-            "TargetID".to_string(),
-            "Path".to_string(),
-            "Hash".to_string(),
-            "Size".to_string(),
+            "table_name".to_string(),
+            "target_uuid".to_string(),
+            "target_id".to_string(),
+            "path".to_string(),
+            "hash".to_string(),
+            "size".to_string(),
             "rb_local_path".to_string(),
             "rb_insync_hash".to_string(),
             "rb_insync_local_usn".to_string(),
@@ -7299,8 +7317,8 @@ impl MutableMapping for PyImageFile {
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -7309,12 +7327,12 @@ impl MutableMapping for PyImageFile {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "TableName" => Ok(self.TableName.clone().into_pyobject(py)?.into()),
-            "TargetUUID" => Ok(self.TargetUUID.clone().into_pyobject(py)?.into()),
-            "TargetID" => Ok(self.TargetID.clone().into_pyobject(py)?.into()),
-            "Path" => Ok(self.Path.clone().into_pyobject(py)?.into()),
-            "Hash" => Ok(self.Hash.clone().into_pyobject(py)?.into()),
-            "Size" => Ok(self.Size.into_pyobject(py)?.into()),
+            "table_name" => Ok(self.table_name.clone().into_pyobject(py)?.into()),
+            "target_uuid" => Ok(self.target_uuid.clone().into_pyobject(py)?.into()),
+            "target_id" => Ok(self.target_id.clone().into_pyobject(py)?.into()),
+            "path" => Ok(self.path.clone().into_pyobject(py)?.into()),
+            "hash" => Ok(self.hash.clone().into_pyobject(py)?.into()),
+            "size" => Ok(self.size.into_pyobject(py)?.into()),
             "rb_local_path" => Ok(self.rb_local_path.clone().into_pyobject(py)?.into()),
             "rb_insync_hash" => Ok(self.rb_insync_hash.clone().into_pyobject(py)?.into()),
             "rb_insync_local_usn" => Ok(self.rb_insync_local_usn.into_pyobject(py)?.into()),
@@ -7334,8 +7352,8 @@ impl MutableMapping for PyImageFile {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -7344,12 +7362,12 @@ impl MutableMapping for PyImageFile {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "TableName" => self.TableName = value.extract::<Option<String>>(py)?,
-            "TargetUUID" => self.TargetUUID = value.extract::<Option<String>>(py)?,
-            "TargetID" => self.TargetID = value.extract::<Option<String>>(py)?,
-            "Path" => self.Path = value.extract::<Option<String>>(py)?,
-            "Hash" => self.Hash = value.extract::<Option<String>>(py)?,
-            "Size" => self.Size = value.extract::<Option<i32>>(py)?,
+            "table_name" => self.table_name = value.extract::<Option<String>>(py)?,
+            "target_uuid" => self.target_uuid = value.extract::<Option<String>>(py)?,
+            "target_id" => self.target_id = value.extract::<Option<String>>(py)?,
+            "path" => self.path = value.extract::<Option<String>>(py)?,
+            "hash" => self.hash = value.extract::<Option<String>>(py)?,
+            "size" => self.size = value.extract::<Option<i32>>(py)?,
             "rb_local_path" => self.rb_local_path = value.extract::<Option<String>>(py)?,
             "rb_insync_hash" => self.rb_insync_hash = value.extract::<Option<String>>(py)?,
             "rb_insync_local_usn" => self.rb_insync_local_usn = value.extract::<Option<i32>>(py)?,
@@ -7420,14 +7438,14 @@ impl PyImageFile {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("ImageFile(ID: {})", self.ID))
+        Ok(format!("ImageFile(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "SettingFile", unsendable, get_all, set_all)]
 pub struct PySettingFile {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -7436,9 +7454,9 @@ pub struct PySettingFile {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub Path: Option<String>,
-    pub Hash: Option<String>,
-    pub Size: Option<i32>,
+    pub path: Option<String>,
+    pub hash: Option<String>,
+    pub size: Option<i32>,
     pub rb_local_path: Option<String>,
     pub rb_insync_hash: Option<String>,
     pub rb_insync_local_usn: Option<i32>,
@@ -7449,8 +7467,8 @@ pub struct PySettingFile {
 impl IntoPy<PySettingFile> for SettingFile {
     fn into_py(self, py: Python) -> PyResult<PySettingFile> {
         let model = PySettingFile {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -7459,9 +7477,9 @@ impl IntoPy<PySettingFile> for SettingFile {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            Path: self.Path,
-            Hash: self.Hash,
-            Size: self.Size,
+            path: self.path,
+            hash: self.hash,
+            size: self.size,
             rb_local_path: self.rb_local_path,
             rb_insync_hash: self.rb_insync_hash,
             rb_insync_local_usn: self.rb_insync_local_usn,
@@ -7475,8 +7493,8 @@ impl IntoPy<PySettingFile> for SettingFile {
 impl FromPy<PySettingFile> for SettingFile {
     fn from_py(py: Python, model: PyRef<'_, PySettingFile>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -7485,9 +7503,9 @@ impl FromPy<PySettingFile> for SettingFile {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            Path: model.Path.clone(),
-            Hash: model.Hash.clone(),
-            Size: model.Size,
+            path: model.path.clone(),
+            hash: model.hash.clone(),
+            size: model.size,
             rb_local_path: model.rb_local_path.clone(),
             rb_insync_hash: model.rb_insync_hash.clone(),
             rb_insync_local_usn: model.rb_insync_local_usn,
@@ -7500,8 +7518,8 @@ impl FromPy<PySettingFile> for SettingFile {
 impl MutableMapping for PySettingFile {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -7510,9 +7528,9 @@ impl MutableMapping for PySettingFile {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "Path".to_string(),
-            "Hash".to_string(),
-            "Size".to_string(),
+            "path".to_string(),
+            "hash".to_string(),
+            "size".to_string(),
             "rb_local_path".to_string(),
             "rb_insync_hash".to_string(),
             "rb_insync_local_usn".to_string(),
@@ -7523,8 +7541,8 @@ impl MutableMapping for PySettingFile {
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -7533,9 +7551,9 @@ impl MutableMapping for PySettingFile {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "Path" => Ok(self.Path.clone().into_pyobject(py)?.into()),
-            "Hash" => Ok(self.Hash.clone().into_pyobject(py)?.into()),
-            "Size" => Ok(self.Size.into_pyobject(py)?.into()),
+            "path" => Ok(self.path.clone().into_pyobject(py)?.into()),
+            "hash" => Ok(self.hash.clone().into_pyobject(py)?.into()),
+            "size" => Ok(self.size.into_pyobject(py)?.into()),
             "rb_local_path" => Ok(self.rb_local_path.clone().into_pyobject(py)?.into()),
             "rb_insync_hash" => Ok(self.rb_insync_hash.clone().into_pyobject(py)?.into()),
             "rb_insync_local_usn" => Ok(self.rb_insync_local_usn.into_pyobject(py)?.into()),
@@ -7550,8 +7568,8 @@ impl MutableMapping for PySettingFile {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -7560,9 +7578,9 @@ impl MutableMapping for PySettingFile {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "Path" => self.Path = value.extract::<Option<String>>(py)?,
-            "Hash" => self.Hash = value.extract::<Option<String>>(py)?,
-            "Size" => self.Size = value.extract::<Option<i32>>(py)?,
+            "path" => self.path = value.extract::<Option<String>>(py)?,
+            "hash" => self.hash = value.extract::<Option<String>>(py)?,
+            "size" => self.size = value.extract::<Option<i32>>(py)?,
             "rb_local_path" => self.rb_local_path = value.extract::<Option<String>>(py)?,
             "rb_insync_hash" => self.rb_insync_hash = value.extract::<Option<String>>(py)?,
             "rb_insync_local_usn" => self.rb_insync_local_usn = value.extract::<Option<i32>>(py)?,
@@ -7626,14 +7644,14 @@ impl PySettingFile {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("SettingFile(ID: {})", self.ID))
+        Ok(format!("SettingFile(id: {})", self.id))
     }
 }
 
 #[pyclass(name = "UuidIDMap", unsendable, get_all, set_all)]
 pub struct PyUuidIDMap {
-    pub ID: String,
-    pub UUID: String,
+    pub id: String,
+    pub uuid: String,
     pub rb_data_status: i32,
     pub rb_local_data_status: i32,
     pub rb_local_deleted: i32,
@@ -7642,16 +7660,16 @@ pub struct PyUuidIDMap {
     pub rb_local_usn: Option<i32>,
     pub created_at: Py<PyDateTime>,
     pub updated_at: Py<PyDateTime>,
-    pub TableName: Option<String>,
-    pub TargetUUID: Option<String>,
-    pub CurrentID: Option<String>,
+    pub table_name: Option<String>,
+    pub target_uuid: Option<String>,
+    pub current_id: Option<String>,
 }
 
 impl IntoPy<PyUuidIDMap> for UuidIDMap {
     fn into_py(self, py: Python) -> PyResult<PyUuidIDMap> {
         let model = PyUuidIDMap {
-            ID: self.ID,
-            UUID: self.UUID,
+            id: self.id,
+            uuid: self.uuid,
             rb_data_status: self.rb_data_status,
             rb_local_data_status: self.rb_local_data_status,
             rb_local_deleted: self.rb_local_deleted,
@@ -7660,9 +7678,9 @@ impl IntoPy<PyUuidIDMap> for UuidIDMap {
             rb_local_usn: self.rb_local_usn,
             created_at: self.created_at.into_pyobject(py)?.into(),
             updated_at: self.updated_at.into_pyobject(py)?.into(),
-            TableName: self.TableName,
-            TargetUUID: self.TargetUUID,
-            CurrentID: self.CurrentID,
+            table_name: self.table_name,
+            target_uuid: self.target_uuid,
+            current_id: self.current_id,
         };
         Ok(model)
     }
@@ -7671,8 +7689,8 @@ impl IntoPy<PyUuidIDMap> for UuidIDMap {
 impl FromPy<PyUuidIDMap> for UuidIDMap {
     fn from_py(py: Python, model: PyRef<'_, PyUuidIDMap>) -> Self {
         Self {
-            ID: model.ID.clone(),
-            UUID: model.UUID.clone(),
+            id: model.id.clone(),
+            uuid: model.uuid.clone(),
             rb_data_status: model.rb_data_status,
             rb_local_data_status: model.rb_local_data_status,
             rb_local_deleted: model.rb_local_deleted,
@@ -7681,9 +7699,9 @@ impl FromPy<PyUuidIDMap> for UuidIDMap {
             rb_local_usn: model.rb_local_usn,
             created_at: model.created_at.extract::<DateTime<Utc>>(py).unwrap(),
             updated_at: model.updated_at.extract::<DateTime<Utc>>(py).unwrap(),
-            TableName: model.TableName.clone(),
-            TargetUUID: model.TargetUUID.clone(),
-            CurrentID: model.CurrentID.clone(),
+            table_name: model.table_name.clone(),
+            target_uuid: model.target_uuid.clone(),
+            current_id: model.current_id.clone(),
         }
     }
 }
@@ -7691,8 +7709,8 @@ impl FromPy<PyUuidIDMap> for UuidIDMap {
 impl MutableMapping for PyUuidIDMap {
     fn field_names() -> Vec<String> {
         vec![
-            "ID".to_string(),
-            "UUID".to_string(),
+            "id".to_string(),
+            "uuid".to_string(),
             "rb_data_status".to_string(),
             "rb_local_data_status".to_string(),
             "rb_local_deleted".to_string(),
@@ -7701,16 +7719,16 @@ impl MutableMapping for PyUuidIDMap {
             "rb_local_usn".to_string(),
             "created_at".to_string(),
             "updated_at".to_string(),
-            "TableName".to_string(),
-            "TargetUUID".to_string(),
-            "CurrentID".to_string(),
+            "table_name".to_string(),
+            "target_uuid".to_string(),
+            "current_id".to_string(),
         ]
     }
 
     fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
         match key {
-            "ID" => Ok(self.ID.clone().into_pyobject(py)?.into()),
-            "UUID" => Ok(self.UUID.clone().into_pyobject(py)?.into()),
+            "id" => Ok(self.id.clone().into_pyobject(py)?.into()),
+            "uuid" => Ok(self.uuid.clone().into_pyobject(py)?.into()),
             "rb_data_status" => Ok(self.rb_data_status.into_pyobject(py)?.into()),
             "rb_local_data_status" => Ok(self.rb_local_data_status.into_pyobject(py)?.into()),
             "rb_local_deleted" => Ok(self.rb_local_deleted.into_pyobject(py)?.into()),
@@ -7719,9 +7737,9 @@ impl MutableMapping for PyUuidIDMap {
             "rb_local_usn" => Ok(self.rb_local_usn.into_pyobject(py)?.into()),
             "created_at" => Ok(self.created_at.clone_ref(py).into()),
             "updated_at" => Ok(self.updated_at.clone_ref(py).into()),
-            "TableName" => Ok(self.TableName.clone().into_pyobject(py)?.into()),
-            "TargetUUID" => Ok(self.TargetUUID.clone().into_pyobject(py)?.into()),
-            "CurrentID" => Ok(self.CurrentID.clone().into_pyobject(py)?.into()),
+            "table_name" => Ok(self.table_name.clone().into_pyobject(py)?.into()),
+            "target_uuid" => Ok(self.target_uuid.clone().into_pyobject(py)?.into()),
+            "current_id" => Ok(self.current_id.clone().into_pyobject(py)?.into()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                 "Key '{}' not found",
                 key
@@ -7731,8 +7749,8 @@ impl MutableMapping for PyUuidIDMap {
 
     fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         match key {
-            "ID" => self.ID = value.extract::<String>(py)?,
-            "UUID" => self.UUID = value.extract::<String>(py)?,
+            "id" => self.id = value.extract::<String>(py)?,
+            "uuid" => self.uuid = value.extract::<String>(py)?,
             "rb_data_status" => self.rb_data_status = value.extract::<i32>(py)?,
             "rb_local_data_status" => self.rb_local_data_status = value.extract::<i32>(py)?,
             "rb_local_deleted" => self.rb_local_deleted = value.extract::<i32>(py)?,
@@ -7741,9 +7759,9 @@ impl MutableMapping for PyUuidIDMap {
             "rb_local_usn" => self.rb_local_usn = value.extract::<Option<i32>>(py)?,
             "created_at" => self.created_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
             "updated_at" => self.updated_at = value.extract::<Py<PyDateTime>>(py).unwrap(),
-            "TableName" => self.TableName = value.extract::<Option<String>>(py)?,
-            "TargetUUID" => self.TargetUUID = value.extract::<Option<String>>(py)?,
-            "CurrentID" => self.CurrentID = value.extract::<Option<String>>(py)?,
+            "table_name" => self.table_name = value.extract::<Option<String>>(py)?,
+            "target_uuid" => self.target_uuid = value.extract::<Option<String>>(py)?,
+            "current_id" => self.current_id = value.extract::<Option<String>>(py)?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyKeyError, _>(format!(
                     "Key '{}' not found",
@@ -7802,6 +7820,6 @@ impl PyUuidIDMap {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("UuidIDMap(ID: {})", self.ID))
+        Ok(format!("UuidIDMap(id: {})", self.id))
     }
 }

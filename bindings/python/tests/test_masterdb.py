@@ -48,7 +48,7 @@ def test_insert_album(db):
     item = db.insert_album("Name")
     assert isinstance(item, models.DjmdAlbum)
 
-    id_ = item.ID
+    id_ = item.id
     album = db.get_album_by_id(id_)
     assert album is not None
 
@@ -67,16 +67,16 @@ def test_update_album(db):
     item = db.insert_album("Name")
     assert isinstance(item, models.DjmdAlbum)
 
-    id_ = item.ID
+    id_ = item.id
     new_item = db.get_album_by_id(id_)
     assert new_item is not None
 
     # Update the album name
     new_name = "New Name"
-    new_item.Name = new_name
+    new_item.name = new_name
     db.update_album(new_item)
 
     # Verify the update
     updated = db.get_album_by_id(id_)
     assert updated is not None
-    assert updated.Name == new_name
+    assert updated.name == new_name

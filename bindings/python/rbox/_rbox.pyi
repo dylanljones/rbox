@@ -107,8 +107,8 @@ class _RustMutableMapping:
         ...
 
 class _StatsFull:
-    ID: str
-    UUID: str
+    id: str
+    uuid: str
     rb_data_status: int
     rb_local_data_status: int
     rb_local_deleted: int
@@ -120,8 +120,8 @@ class _StatsFull:
 
 class AgentRegistry(_RustMutableMapping):
     registry_id: str
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: datetime
     id_1: Optional[str]
     id_2: Optional[str]
     int_1: Optional[int]
@@ -144,20 +144,20 @@ class CloudAgentRegistry(_StatsFull, _RustMutableMapping):
     text_2: Optional[str]
 
 class ContentActiveCensor(_StatsFull, _RustMutableMapping):
-    ContentID: Optional[str]
-    ActiveCensors: Optional[str]
+    content_id: Optional[str]
+    active_censors: Optional[str]
     rb_activecensor_count: Optional[int]
 
 class ContentCue(_StatsFull, _RustMutableMapping):
-    ContentID: Optional[str]
-    Cues: Optional[str]
+    content_id: Optional[str]
+    cues: Optional[str]
     rb_cue_count: Optional[int]
 
 class ContentFile(_StatsFull, _RustMutableMapping):
-    ContentID: Optional[str]
-    Path: Optional[str]
-    Hash: Optional[str]
-    Size: Optional[int]
+    content_id: Optional[str]
+    path: Optional[str]
+    hash: Optional[str]
+    size: Optional[int]
     rb_local_path: Optional[str]
     rb_insync_hash: Optional[str]
     rb_insync_local_usn: Optional[int]
@@ -170,298 +170,297 @@ class ContentFile(_StatsFull, _RustMutableMapping):
     rb_file_size_dirty: Optional[int]
 
 class DjmdActiveCensor(_StatsFull, _RustMutableMapping):
-    ContentID: Optional[str]
-    InMsec: Optional[int]
-    OutMsec: Optional[int]
-    Info: Optional[int]
-    ParameterList: Optional[str]
-    ContentUUID: Optional[str]
+    content_id: Optional[str]
+    in_msec: Optional[int]
+    out_msec: Optional[int]
+    info: Optional[int]
+    parameter_list: Optional[str]
+    content_uuid: Optional[str]
 
 class DjmdAlbum(_StatsFull, _RustMutableMapping):
-    Name: Optional[str]
-    AlbumArtistID: Optional[str]
-    ImagePath: Optional[str]
-    Compilation: Optional[int]
-    SearchStr: Optional[str]
+    name: Optional[str]
+    album_artist_id: Optional[str]
+    image_path: Optional[str]
+    compilation: Optional[int]
+    search_str: Optional[str]
 
 class DjmdArtist(_StatsFull, _RustMutableMapping):
-    Name: Optional[str]
-    SearchStr: Optional[str]
+    name: Optional[str]
+    search_str: Optional[str]
 
 class DjmdCategory(_StatsFull, _RustMutableMapping):
-    MenuItemID: Optional[str]
-    Seq: Optional[int]
-    Disable: Optional[int]
-    InfoOrder: Optional[int]
+    menu_item_id: Optional[str]
+    seq: Optional[int]
+    disable: Optional[int]
+    info_order: Optional[int]
 
 class DjmdColor(_StatsFull, _RustMutableMapping):
-    ColorCode: Optional[str]
-    SortKey: Optional[int]
-    Commnt: Optional[str]
+    color_code: Optional[str]
+    sort_key: Optional[int]
+    commnt: Optional[str]
 
 class DjmdContent(_StatsFull, _RustMutableMapping):
-    FolderPath: Optional[str]
-    FileNameL: Optional[str]
-    FileNameS: Optional[str]
-    Title: Optional[str]
-    ArtistID: Optional[str]
-    AlbumID: Optional[str]
-    GenreID: Optional[str]
-    BPM: Optional[int]
-    Length: Optional[int]
-    TrackNo: Optional[int]
-    BitRate: Optional[int]
-    BitDepth: Optional[int]
-    Commnt: Optional[str]
-    FileType: Optional[int]
-    Rating: Optional[int]
-    ReleaseYear: Optional[int]
-    RemixerID: Optional[str]
-    LabelID: Optional[str]
-    OrgArtistID: Optional[str]
-    KeyID: Optional[str]
-    StockDate: Optional[str]
-    ColorID: Optional[str]
-    DJPlayCount: Optional[int]
-    ImagePath: Optional[str]
-    MasterDBID: Optional[str]
-    MasterSongID: Optional[str]
-    AnalysisDataPath: Optional[str]
-    SearchStr: Optional[str]
-    FileSize: Optional[int]
-    DiscNo: Optional[int]
-    ComposerID: Optional[str]
-    Subtitle: Optional[str]
-    SampleRate: Optional[int]
-    DisableQuantize: Optional[int]
-    Analysed: Optional[int]
-    ReleaseDate: Optional[str]
-    DateCreated: Optional[str]
-    ContentLink: Optional[int]
-    Tag: Optional[str]
-    ModifiedByRBM: Optional[str]
-    HotCueAutoLoad: Optional[str]
-    DeliveryControl: Optional[str]
-    DeliveryComment: Optional[str]
-    CueUpdated: Optional[str]
-    AnalysisUpdated: Optional[str]
-    TrackInfoUpdated: Optional[str]
-    Lyricist: Optional[str]
-    ISRC: Optional[str]
-    SamplerTrackInfo: Optional[int]
-    SamplerPlayOffset: Optional[int]
-    SamplerGain: Optional[float]
-    VideoAssociate: Optional[str]
-    LyricStatus: Optional[int]
-    ServiceID: Optional[int]
-    OrgFolderPath: Optional[str]
-    Reserved1: Optional[str]
-    Reserved2: Optional[str]
-    Reserved3: Optional[str]
-    Reserved4: Optional[str]
-    ExtInfo: Optional[str]
+    folder_path: Optional[str]
+    file_name_l: Optional[str]
+    file_name_s: Optional[str]
+    title: Optional[str]
+    artist_id: Optional[str]
+    album_id: Optional[str]
+    genre_id: Optional[str]
+    bpm: Optional[int]
+    length: Optional[int]
+    track_no: Optional[int]
+    bit_rate: Optional[int]
+    bit_depth: Optional[int]
+    commnt: Optional[str]
+    file_type: Optional[int]
+    rating: Optional[int]
+    release_year: Optional[int]
+    remixer_id: Optional[str]
+    label_id: Optional[str]
+    org_artist_id: Optional[str]
+    key_id: Optional[str]
+    stock_date: Optional[str]
+    color_id: Optional[str]
+    dj_play_count: Optional[int]
+    image_path: Optional[str]
+    master_db_id: Optional[str]
+    master_song_id: Optional[str]
+    analysis_data_path: Optional[str]
+    search_str: Optional[str]
+    file_size: Optional[int]
+    disc_no: Optional[int]
+    composer_id: Optional[str]
+    subtitle: Optional[str]
+    sample_rate: Optional[int]
+    disable_quantize: Optional[int]
+    analysed: Optional[int]
+    release_date: Optional[str]
+    date_created: Optional[str]
+    content_link: Optional[int]
+    tag: Optional[str]
+    modified_by_rbm: Optional[str]
+    hot_cue_auto_load: Optional[str]
+    delivery_control: Optional[str]
+    delivery_comment: Optional[str]
+    cue_updated: Optional[str]
+    analysis_updated: Optional[str]
+    track_info_updated: Optional[str]
+    lyricist: Optional[str]
+    isrc: Optional[str]
+    sampler_track_info: Optional[int]
+    sampler_play_offset: Optional[int]
+    sampler_gain: Optional[float]
+    video_associate: Optional[str]
+    lyric_status: Optional[int]
+    service_id: Optional[int]
+    org_folder_path: Optional[str]
+    reserved1: Optional[str]
+    reserved2: Optional[str]
+    reserved3: Optional[str]
+    reserved4: Optional[str]
+    ext_info: Optional[str]
     rb_file_id: Optional[str]
-    DeviceID: Optional[str]
-    rb_LocalFolderPath: Optional[str]
-    SrcID: Optional[str]
-    SrcTitle: Optional[str]
-    SrcArtistName: Optional[str]
-    SrcAlbumName: Optional[str]
-    SrcLength: Optional[int]
+    device_id: Optional[str]
+    rb__local_folder_path: Optional[str]
+    src_id: Optional[str]
+    src_title: Optional[str]
+    src_artist_name: Optional[str]
+    src_album_name: Optional[str]
+    src_length: Optional[int]
 
 class DjmdCue(_StatsFull, _RustMutableMapping):
-    ContentID: Optional[str]
-    InMsec: Optional[int]
-    InFrame: Optional[int]
-    InMpegFrame: Optional[int]
-    InMpegAbs: Optional[int]
-    OutMsec: Optional[int]
-    OutFrame: Optional[int]
-    OutMpegFrame: Optional[int]
-    OutMpegAbs: Optional[int]
-    Kind: Optional[int]
-    Color: Optional[int]
-    ColorTableIndex: Optional[int]
-    ActiveLoop: Optional[int]
-    Comment: Optional[str]
-    BeatLoopSize: Optional[int]
-    CueMicrosec: Optional[int]
-    InPointSeekInfo: Optional[str]
-    OutPointSeekInfo: Optional[str]
-    ContentUUID: Optional[str]
+    content_id: Optional[str]
+    in_msec: Optional[int]
+    in_frame: Optional[int]
+    in_mpeg_frame: Optional[int]
+    in_mpeg_abs: Optional[int]
+    out_msec: Optional[int]
+    out_frame: Optional[int]
+    out_mpeg_frame: Optional[int]
+    out_mpeg_abs: Optional[int]
+    kind: Optional[int]
+    color: Optional[int]
+    color_table_index: Optional[int]
+    active_loop: Optional[int]
+    comment: Optional[str]
+    beat_loop_size: Optional[int]
+    cue_microsec: Optional[int]
+    in_point_seek_info: Optional[str]
+    out_point_seek_info: Optional[str]
+    content_uuid: Optional[str]
 
 class DjmdDevice(_StatsFull, _RustMutableMapping):
-    MasterDBID: Optional[str]
-    Name: Optional[str]
+    master_db_id: Optional[str]
+    name: Optional[str]
 
 class DjmdGenre(_StatsFull, _RustMutableMapping):
-    Name: Optional[str]
+    name: Optional[str]
 
 class DjmdHistory(_StatsFull, _RustMutableMapping):
-    Seq: Optional[int]
-    Name: Optional[str]
-    Attribute: Optional[int]
-    ParentID: Optional[str]
-    DateCreated: Optional[str]
+    seq: Optional[int]
+    name: Optional[str]
+    attribute: Optional[int]
+    parent_id: Optional[str]
+    date_created: Optional[str]
 
 class DjmdSongHistory(_StatsFull, _RustMutableMapping):
-    HistoryID: Optional[str]
-    ContentID: Optional[str]
-    TrackNo: Optional[int]
+    history_id: Optional[str]
+    content_id: Optional[str]
+    track_no: Optional[int]
 
 class DjmdHotCueBanklist(_StatsFull, _RustMutableMapping):
-    Seq: Optional[int]
-    Name: Optional[str]
-    ImagePath: Optional[str]
-    Attribute: Optional[int]
-    ParentID: Optional[str]
+    seq: Optional[int]
+    name: Optional[str]
+    image_path: Optional[str]
+    attribute: Optional[int]
+    parent_id: Optional[str]
 
 class DjmdSongHotCueBanklist(_StatsFull, _RustMutableMapping):
-    ContentID: Optional[str]
-    TrackNo: Optional[int]
-    CueID: Optional[str]
-    InMsec: Optional[int]
-    InFrame: Optional[int]
-    InMpegFrame: Optional[int]
-    InMpegAbs: Optional[int]
-    OutMsec: Optional[int]
-    OutFrame: Optional[int]
-    OutMpegFrame: Optional[int]
-    OutMpegAbs: Optional[int]
-    Color: Optional[int]
-    ColorTableIndex: Optional[int]
-    ActiveLoop: Optional[int]
-    Comment: Optional[str]
-    BeatLoopSize: Optional[int]
-    CueMicrosec: Optional[int]
-    InPointSeekInfo: Optional[str]
-    OutPointSeekInfo: Optional[str]
-    HotCueBanklistUUID: Optional[str]
-
-class DjmdKey(_StatsFull, _RustMutableMapping):
-    ScaleName: Optional[str]
-    Seq: Optional[int]
-
-class DjmdLabel(_StatsFull, _RustMutableMapping):
-    Name: Optional[str]
-
-class DjmdMenuItems(_StatsFull, _RustMutableMapping):
-    Class: Optional[int]
-    Name: Optional[str]
-
-class DjmdMixerParam(_StatsFull, _RustMutableMapping):
-    ContentID: Optional[str]
-    GainHigh: Optional[int]
-    GainLow: Optional[int]
-    PeakHigh: Optional[int]
-    PeakLow: Optional[int]
-
-class DjmdMyTag(_StatsFull, _RustMutableMapping):
-    Seq: Optional[int]
-    Name: Optional[str]
-    Attribute: Optional[int]
-    ParentID: Optional[str]
-
-class DjmdSongMyTag(_StatsFull, _RustMutableMapping):
-    MyTagID: Optional[str]
-    ContentID: Optional[str]
-    TrackNo: Optional[int]
-
-class DjmdPlaylist(_StatsFull, _RustMutableMapping):
-    Seq: Optional[int]
-    Name: Optional[str]
-    ImagePath: Optional[str]
-    Attribute: Optional[int]
-    ParentID: Optional[str]
-    SmartList: Optional[str]
-
-class DjmdPlaylistTreeItem(_StatsFull, _RustMutableMapping):
-    Seq: Optional[int]
-    Name: Optional[str]
-    ImagePath: Optional[str]
-    Attribute: Optional[int]
-    ParentID: Optional[str]
-    SmartList: Optional[str]
-
-    Children: List["DjmdPlaylistTreeItem"]
-
-class DjmdSongPlaylist(_StatsFull, _RustMutableMapping):
-    PlaylistID: Optional[str]
-    ContentID: Optional[str]
-    TrackNo: Optional[int]
-
-class DjmdProperty(_RustMutableMapping):
-    DBID: str
-    created_at: str
-    updated_at: str
-    DBVersion: Optional[str]
-    BaseDBDrive: Optional[str]
-    CurrentDBDrive: Optional[str]
-    DeviceID: Optional[str]
-    Reserved1: Optional[str]
-    Reserved2: Optional[str]
-    Reserved3: Optional[str]
-    Reserved4: Optional[str]
-    Reserved5: Optional[str]
-
-class DjmdCloudProperty(_StatsFull, _RustMutableMapping):
-    Reserved1: Optional[str]
-    Reserved2: Optional[str]
-    Reserved3: Optional[str]
-    Reserved4: Optional[str]
-    Reserved5: Optional[str]
-
-class DjmdRecommendLike(_StatsFull, _RustMutableMapping):
-    ContentID1: Optional[str]
-    ContentID2: Optional[str]
-    LikeRate: Optional[int]
-    DataCreatedH: Optional[int]
-    DataCreatedL: Optional[int]
-
-class DjmdRelatedTracks(_StatsFull, _RustMutableMapping):
-    Seq: Optional[int]
-    Name: Optional[str]
-    Attribute: Optional[int]
-    ParentID: Optional[str]
-    Criteria: Optional[str]
-
-class DjmdSongRelatedTracks(_StatsFull, _RustMutableMapping):
-    RelatedTracksID: Optional[str]
-    ContentID: Optional[str]
-    TrackNo: Optional[int]
-
-class DjmdSampler(_StatsFull, _RustMutableMapping):
-    Seq: Optional[int]
-    Name: Optional[str]
-    Attribute: Optional[int]
-    ParentID: Optional[str]
-
-class DjmdSongSampler(_StatsFull, _RustMutableMapping):
-    SamplerID: Optional[str]
-    ContentID: Optional[str]
-    TrackNo: Optional[int]
-
-class DjmdSongTagList(_StatsFull, _RustMutableMapping):
-    ContentID: Optional[str]
-    TrackNo: Optional[int]
-
-class DjmdSort(_StatsFull, _RustMutableMapping):
-    MenuItemID: Optional[str]
-    Seq: Optional[int]
-    Disable: Optional[int]
+    content_id: Optional[str]
+    track_no: Optional[int]
+    cue_id: Optional[str]
+    in_msec: Optional[int]
+    in_frame: Optional[int]
+    in_mpeg_frame: Optional[int]
+    in_mpeg_abs: Optional[int]
+    out_msec: Optional[int]
+    out_frame: Optional[int]
+    out_mpeg_frame: Optional[int]
+    out_mpeg_abs: Optional[int]
+    color: Optional[int]
+    color_table_index: Optional[int]
+    active_loop: Optional[int]
+    comment: Optional[str]
+    beat_loop_size: Optional[int]
+    cue_microsec: Optional[int]
+    in_point_seek_info: Optional[str]
+    out_point_seek_info: Optional[str]
+    hot_cue_banklist_uuid: Optional[str]
 
 class HotCueBanklistCue(_StatsFull, _RustMutableMapping):
-    HotCueBanklistID: Optional[str]
-    Cues: Optional[str]
+    hot_cue_banklist_id: Optional[str]
+    cues: Optional[str]
     rb_cue_count: Optional[int]
 
+class DjmdKey(_StatsFull, _RustMutableMapping):
+    scale_name: Optional[str]
+    seq: Optional[int]
+
+class DjmdLabel(_StatsFull, _RustMutableMapping):
+    name: Optional[str]
+
+class DjmdMenuItems(_StatsFull, _RustMutableMapping):
+    class_: Optional[int]
+    name: Optional[str]
+
+class DjmdMixerParam(_StatsFull, _RustMutableMapping):
+    content_id: Optional[str]
+    gain_high: Optional[int]
+    gain_low: Optional[int]
+    peak_high: Optional[int]
+    peak_low: Optional[int]
+
+class DjmdMyTag(_StatsFull, _RustMutableMapping):
+    seq: Optional[int]
+    name: Optional[str]
+    attribute: Optional[int]
+    parent_id: Optional[str]
+
+class DjmdSongMyTag(_StatsFull, _RustMutableMapping):
+    my_tag_id: Optional[str]
+    content_id: Optional[str]
+    track_no: Optional[int]
+
+class DjmdPlaylist(_StatsFull, _RustMutableMapping):
+    seq: Optional[int]
+    name: Optional[str]
+    image_path: Optional[str]
+    attribute: Optional[int]
+    parent_id: Optional[str]
+    smart_list: Optional[str]
+
+class DjmdPlaylistTreeItem(_StatsFull, _RustMutableMapping):
+    seq: Optional[int]
+    name: Optional[str]
+    image_path: Optional[str]
+    attribute: Optional[int]
+    parent_id: Optional[str]
+    smart_list: Optional[str]
+    children: List["DjmdPlaylistTreeItem"]
+
+class DjmdSongPlaylist(_StatsFull, _RustMutableMapping):
+    playlist_id: Optional[str]
+    content_id: Optional[str]
+    track_no: Optional[int]
+
+class DjmdProperty(_RustMutableMapping):
+    db_id: str
+    db_version: Optional[str]
+    base_db_drive: Optional[str]
+    current_db_drive: Optional[str]
+    device_id: Optional[str]
+    reserved1: Optional[str]
+    reserved2: Optional[str]
+    reserved3: Optional[str]
+    reserved4: Optional[str]
+    reserved5: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+
+class DjmdCloudProperty(_StatsFull, _RustMutableMapping):
+    reserved1: Optional[str]
+    reserved2: Optional[str]
+    reserved3: Optional[str]
+    reserved4: Optional[str]
+    reserved5: Optional[str]
+
+class DjmdRecommendLike(_StatsFull, _RustMutableMapping):
+    content_id1: Optional[str]
+    content_id2: Optional[str]
+    like_rate: Optional[int]
+    data_created_h: Optional[int]
+    data_created_l: Optional[int]
+
+class DjmdRelatedTracks(_StatsFull, _RustMutableMapping):
+    seq: Optional[int]
+    name: Optional[str]
+    attribute: Optional[int]
+    parent_id: Optional[str]
+    criteria: Optional[str]
+
+class DjmdSongRelatedTracks(_StatsFull, _RustMutableMapping):
+    related_tracks_id: Optional[str]
+    content_id: Optional[str]
+    track_no: Optional[int]
+
+class DjmdSampler(_StatsFull, _RustMutableMapping):
+    seq: Optional[int]
+    name: Optional[str]
+    attribute: Optional[int]
+    parent_id: Optional[str]
+
+class DjmdSongSampler(_StatsFull, _RustMutableMapping):
+    sampler_id: Optional[str]
+    content_id: Optional[str]
+    track_no: Optional[int]
+
+class DjmdSongTagList(_StatsFull, _RustMutableMapping):
+    content_id: Optional[str]
+    track_no: Optional[int]
+
+class DjmdSort(_StatsFull, _RustMutableMapping):
+    menu_item_id: Optional[str]
+    seq: Optional[int]
+    disable: Optional[int]
+
 class ImageFile(_StatsFull, _RustMutableMapping):
-    TableName: Optional[str]
-    TargetUUID: Optional[str]
-    TargetID: Optional[str]
-    Path: Optional[str]
-    Hash: Optional[str]
-    Size: Optional[int]
+    table_name: Optional[str]
+    target_uuid: Optional[str]
+    target_id: Optional[str]
+    path: Optional[str]
+    hash: Optional[str]
+    size: Optional[int]
     rb_local_path: Optional[str]
     rb_insync_hash: Optional[str]
     rb_insync_local_usn: Optional[int]
@@ -474,9 +473,9 @@ class ImageFile(_StatsFull, _RustMutableMapping):
     rb_file_size_dirty: Optional[int]
 
 class SettingFile(_StatsFull, _RustMutableMapping):
-    Path: Optional[str]
-    Hash: Optional[str]
-    Size: Optional[int]
+    path: Optional[str]
+    hash: Optional[str]
+    size: Optional[int]
     rb_local_path: Optional[str]
     rb_insync_hash: Optional[str]
     rb_insync_local_usn: Optional[int]
@@ -484,9 +483,9 @@ class SettingFile(_StatsFull, _RustMutableMapping):
     rb_file_size_dirty: Optional[int]
 
 class UuidIDMap(_StatsFull, _RustMutableMapping):
-    TableName: Optional[str]
-    TargetUUID: Optional[str]
-    CurrentID: Optional[str]
+    table_name: Optional[str]
+    target_uuid: Optional[str]
+    current_id: Optional[str]
 
 class PyMasterDb:
     def __init__(self, path: str) -> None: ...

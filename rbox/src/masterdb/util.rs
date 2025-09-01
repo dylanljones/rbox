@@ -38,13 +38,13 @@ impl RekordboxDateString for String {
 
 fn sort_tree(item: &mut Rc<RefCell<DjmdPlaylistTreeItem>>) {
     // Sort the current node's children by a chosen criterion (e.g., ID or name)
-    item.borrow_mut().Children.sort_by(|a, b| {
-        let a_seq = a.borrow().Seq;
-        let b_seq = b.borrow().Seq;
+    item.borrow_mut().children.sort_by(|a, b| {
+        let a_seq = a.borrow().seq;
+        let b_seq = b.borrow().seq;
         a_seq.cmp(&b_seq)
     });
     // Recursively sort each child
-    for child in &mut item.borrow_mut().Children {
+    for child in &mut item.borrow_mut().children {
         sort_tree(child);
     }
 }
@@ -52,8 +52,8 @@ fn sort_tree(item: &mut Rc<RefCell<DjmdPlaylistTreeItem>>) {
 pub fn sort_tree_list(tree: &mut Vec<Rc<RefCell<DjmdPlaylistTreeItem>>>) {
     // Sort the root nodes
     tree.sort_by(|a, b| {
-        let a_seq = a.borrow().Seq;
-        let b_seq = b.borrow().Seq;
+        let a_seq = a.borrow().seq;
+        let b_seq = b.borrow().seq;
         a_seq.cmp(&b_seq)
     });
     // Sort each tree item recursively

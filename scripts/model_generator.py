@@ -71,13 +71,13 @@ PY_TMPLT_INTO_TREE = """
 impl IntoPy<Py{name}> for {name} {{
     fn into_py(self, py: Python) -> PyResult<Py{name}> {{
         let py_list = PyList::empty(py);
-        for child in self.Children {{
+        for child in self.children {{
             let py_child = child.borrow().clone().into_py(py)?;
             let _ = py_list.append(py_child);
         }}
         let model = Py{name} {{
             {into_fields}
-            Children: py_list.into(),
+            children: py_list.into(),
         }};
         Ok(model)
     }}
@@ -89,7 +89,7 @@ impl Into<Js{name}> for {name} {{
     fn into(self) -> Js{name} {{
         let mut model = Js{name} {{
             {into_fields}
-            Children: Vec::new(),
+            children: Vec::new(),
         }};
         for child in self.Children {{
             let js_child = child.borrow().clone().into();
@@ -374,7 +374,7 @@ def generate_py_models(models: list[Model], out_file: str | Path) -> None:
             name = model.name
             fields = model.fields
             if name == "DjmdPlaylistTreeItem":
-                base_fields = [field for field in fields if field.name != "Children"]
+                base_fields = [field for field in fields if field.name != "children"]
                 py_fields = get_py_fields(fields)
                 into_py_fields = get_into_py_fields(base_fields)
 
@@ -405,6 +405,53 @@ def generate_py_models(models: list[Model], out_file: str | Path) -> None:
     print(f"Generated Python models in     {out_file}")
 
 
+def generate_py_stubs(models: list[Model]):
+    full_models = ["AgentRegistry", "DjmdProperty"]
+    lines = list()
+
+    for model in models:
+        name = model.name
+        fields = model.fields
+        ignore = list()
+        if name in full_models:
+            lines.append(f"class {name}(_RustMutableMapping):")
+        else:
+            lines.append(f"class {name}(_StatsFull, _RustMutableMapping):")
+            ignore = [
+                "id",
+                "uuid",
+                "rb_data_status",
+                "rb_local_data_status",
+                "rb_local_deleted",
+                "rb_local_synced",
+                "created_at",
+                "updated_at",
+                "usn",
+                "rb_local_usn",
+            ]
+        ind = "    "
+        for field in fields:
+            if field.name in ignore:
+                continue
+
+            py_type = field.type
+            py_type = py_type.replace("Option", "Optional")
+            py_type = py_type.replace("String", "str")
+            py_type = py_type.replace("i32", "int")
+            py_type = py_type.replace("i64", "int")
+            py_type = py_type.replace("f64", "float")
+            py_type = py_type.replace("bool", "bool")
+            py_type = py_type.replace("DateTime<Utc>", "datetime")
+            py_type = py_type.replace("Date", "datetime")
+            py_type = py_type.replace("<", "[").replace(">", "]")
+
+            lines.append(f"{ind}{field.name}: {py_type}")
+        lines.append("")
+
+    text = "\n".join(lines)
+    print(text)
+
+
 def generate_js_models(models: list[Model], out_file: str | Path) -> None:
     with open(out_file, "w") as f:
         f.write(JS_HEADER)
@@ -413,7 +460,7 @@ def generate_js_models(models: list[Model], out_file: str | Path) -> None:
             name = model.name
             fields = model.fields
             if name == "DjmdPlaylistTreeItem":
-                base_fields = [field for field in fields if field.name != "Children"]
+                base_fields = [field for field in fields if field.name != "children"]
                 js_fields = get_js_fields(fields)
                 into_js_fields = get_into_js_fields(base_fields)
                 f.write(JS_TMPLT_STRUCT.format(name=name, fields=js_fields))
@@ -434,10 +481,11 @@ def main():
     models = list(parse_models("../rbox/src/masterdb/models.rs"))
 
     output = "../bindings/python/src/py_models.rs"
-    # generate_py_models(models, output)
+    generate_py_models(models, output)
+    generate_py_stubs(models)
 
     output = "../bindings/javascript/src/js_models.rs"
-    generate_js_models(models, output)
+    # generate_js_models(models, output)
 
 
 if __name__ == "__main__":
