@@ -218,7 +218,6 @@ diesel::table! {
         rb_local_usn -> Nullable<Integer>,
         created_at -> Text,
         updated_at -> Text,
-
         FolderPath -> Nullable<Text>,
         FileNameL -> Nullable<Text>,
         FileNameS -> Nullable<Text>,
@@ -289,8 +288,6 @@ diesel::table! {
         SrcLength -> Nullable<Integer>,
     }
 }
-
-diesel::joinable!(djmdContent -> djmdArtist (ArtistID));
 
 diesel::table! {
     djmdCue (ID) {
@@ -854,3 +851,5 @@ diesel::table! {
         CurrentID -> Nullable<Text>,
     }
 }
+
+diesel::joinable!(djmdContent -> djmdArtist (ArtistID));
