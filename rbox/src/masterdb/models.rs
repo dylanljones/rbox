@@ -1,19 +1,19 @@
 // Author: Dylan Jones
 // Date:   2025-05-01
 
-//! Rekordbox master.db database models
+//! # Rekordbox master.db database models
 //!
 //! This module defines the data models that map to the tables in the Rekordbox SQLite database.
 //! It uses Diesel ORM for database interactions and provides structures for various tables,
 //! including content, playlists, artists, albums, and more. These models facilitate reading,
 //! writing, and updating data in the Rekordbox database.
 //!
-//! # Features
+//! ## Features
 //! - Comprehensive mapping of Rekordbox database tables to Rust structs.
 //! - Support for Diesel ORM operations like querying, inserting, and updating records.
 //! - Associations between related tables for seamless navigation of relationships.
 //!
-//! # Usage
+//! ## Usage
 //! Import the necessary models and use them with Diesel's query builder to interact with the
 //! database.
 //!

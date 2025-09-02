@@ -1,7 +1,7 @@
 // Author: Dylan Jones
 // Date:   2025-05-01
 
-//! Rekordbox master.db database schemas
+//! # Rekordbox master.db database schemas
 //!
 //! This module defines the Diesel schema for the Rekordbox SQLite database.
 //! It includes table definitions and relationships for various entities such as
