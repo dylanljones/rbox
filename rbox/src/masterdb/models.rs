@@ -2043,6 +2043,11 @@ pub struct DjmdCloudProperty {
     pub reserved5: Option<String>,
 }
 
+/// Represents the `DjmdRecommendLike` table in the Rekordbox database.
+///
+/// This struct maps to the `DjmdRecommendLike` table in the SQLite database used by Rekordbox.
+/// It stores information about recommended track relationships, including metadata such as
+/// like rate, creation timestamps, and associated content IDs.
 #[derive(
     Debug,
     Clone,
@@ -2085,13 +2090,23 @@ pub struct DjmdRecommendLike {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
+    /// An optional string representing the ID of the first associated content in [`DjmdContent`].
     pub content_id1: Option<String>,
+    /// An optional string representing the ID of the second associated content in [`DjmdContent`].
     pub content_id2: Option<String>,
+    /// An optional integer representing the like rate between the two associated contents.
     pub like_rate: Option<i32>,
+    /// An optional integer representing the high part of the creation timestamp.
     pub data_created_h: Option<i32>,
+    /// An optional integer representing the low part of the creation timestamp.
     pub data_created_l: Option<i32>,
 }
 
+/// Represents the `DjmdRelatedTracks` table in the Rekordbox database.
+///
+/// This struct maps to the `DjmdRelatedTracks` table in the SQLite database used by Rekordbox.
+/// It stores information about related tracks, including metadata such as sequence, name,
+/// attributes, and parent relationships.
 #[derive(
     Debug,
     Clone,
@@ -2133,13 +2148,23 @@ pub struct DjmdRelatedTracks {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
+    /// An optional integer representing the sequence/order of the related track entry.
     pub seq: Option<i32>,
+    /// An optional string representing the name of the related track entry.
     pub name: Option<String>,
+    /// An optional integer representing additional attributes of the related track entry.
     pub attribute: Option<i32>,
+    /// An optional string representing the ID of the parent [`DjmdRelatedTracks`] entry.
     pub parent_id: Option<String>,
+    /// An optional string containing criteria for the related track entry.
     pub criteria: Option<String>,
 }
 
+/// Represents the `DjmdSongRelatedTracks` table in the Rekordbox database.
+///
+/// This struct maps to the `DjmdSongRelatedTracks` table in the SQLite database used by Rekordbox.
+/// It stores information about the relationship between songs and related tracks, including
+/// metadata such as update sequence numbers, timestamps, and associated content or related tracks IDs.
 #[derive(
     Debug,
     Clone,
@@ -2182,11 +2207,19 @@ pub struct DjmdSongRelatedTracks {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
+    /// An optional string representing the ID of the associated related tracks entry in [`DjmdSongRelatedTracks`].
     pub related_tracks_id: Option<String>,
+    /// An optional string representing the ID of the associated content entry in [`DjmdContent`].
     pub content_id: Option<String>,
+    /// An optional integer representing the track number in the related tracks entry.
     pub track_no: Option<i32>,
 }
 
+/// Represents the `DjmdSampler` table in the Rekordbox database.
+///
+/// This struct maps to the `DjmdSampler` table in the SQLite database used by Rekordbox.
+/// It stores information about samplers, including metadata such as sequence, name,
+/// attributes, and parent relationships.
 #[derive(
     Debug,
     Clone,
@@ -2228,12 +2261,21 @@ pub struct DjmdSampler {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
+    /// An optional integer representing the sequence/order of the sampler.
     pub seq: Option<i32>,
+    /// An optional string representing the name of the sampler.
     pub name: Option<String>,
+    /// An optional integer representing additional attributes of the sampler.
     pub attribute: Option<i32>,
+    /// An optional string representing the ID of the parent [`DjmdSampler`] entry.
     pub parent_id: Option<String>,
 }
 
+/// Represents the `DjmdSongSampler` table in the Rekordbox database.
+///
+/// This struct maps to the `DjmdSongSampler` table in the SQLite database used by Rekordbox.
+/// It stores information about the relationship between songs and samplers, including
+/// metadata such as update sequence numbers, timestamps, and associated sampler or content IDs.
 #[derive(
     Debug,
     Clone,
@@ -2276,11 +2318,19 @@ pub struct DjmdSongSampler {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
+    /// An optional string representing the ID of the associated sampler in [`DjmdSongSampler`].
     pub sampler_id: Option<String>,
+    /// An optional string representing the ID of the associated content in [`DjmdContent`].
     pub content_id: Option<String>,
+    /// An optional integer representing the track number in the sampler.
     pub track_no: Option<i32>,
 }
 
+/// Represents the `DjmdSongTagList` table in the Rekordbox database.
+///
+/// This struct maps to the `DjmdSongTagList` table in the SQLite database used by Rekordbox.
+/// It stores information about the relationship between songs and tag lists, including
+/// metadata such as update sequence numbers, timestamps, and associated content IDs.
 #[derive(
     Debug,
     Clone,
@@ -2322,10 +2372,17 @@ pub struct DjmdSongTagList {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
+    /// An optional string representing the ID of the associated content in [`DjmdContent`].
     pub content_id: Option<String>,
+    /// An optional integer representing the track number in the tag list.
     pub track_no: Option<i32>,
 }
 
+/// Represents the `DjmdSort` table in the Rekordbox database.
+///
+/// This struct maps to the `DjmdSort` table in the SQLite database used by Rekordbox.
+/// It stores information about sorting options, including metadata such as sequence,
+/// menu item associations, and disable status.
 #[derive(
     Debug,
     Clone,
@@ -2367,11 +2424,19 @@ pub struct DjmdSort {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
+    /// An optional string representing the ID of the associated menu item in [`DjmdMenuItems`].
     pub menu_item_id: Option<String>,
+    /// An optional integer representing the sequence/order of the sort entry.
     pub seq: Option<i32>,
+    /// An optional integer indicating whether the sort entry is disabled.
     pub disable: Option<i32>,
 }
 
+/// Represents the `ImageFile` table in the Rekordbox database.
+///
+/// This struct maps to the `ImageFile` table in the SQLite database used by Rekordbox.
+/// It stores information about image files, including metadata such as file paths,
+/// hashes, and synchronization details.
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::imageFile)]
 #[diesel(primary_key(id))]
@@ -2402,24 +2467,45 @@ pub struct ImageFile {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
+    /// An optional string representing the table name associated with the image file.
     pub table_name: Option<String>,
+    /// An optional string representing the target UUID associated with the image file.
     pub target_uuid: Option<String>,
+    /// An optional string representing the target ID associated with the image file.
     pub target_id: Option<String>,
+    /// An optional string representing the file path of the image.
     pub path: Option<String>,
+    /// An optional string representing the hash of the image file.
     pub hash: Option<String>,
+    /// An optional integer representing the size of the image file.
     pub size: Option<i32>,
+    /// An optional string representing the local path of the image file in Rekordbox.
     pub rb_local_path: Option<String>,
+    /// An optional string representing the in-sync hash of the image file.
     pub rb_insync_hash: Option<String>,
+    /// An optional integer representing the in-sync local update sequence number.
     pub rb_insync_local_usn: Option<i32>,
+    /// An optional integer indicating whether the file hash is dirty.
     pub rb_file_hash_dirty: Option<i32>,
+    /// An optional integer representing the local file status in Rekordbox.
     pub rb_local_file_status: Option<i32>,
+    /// An optional integer indicating whether the file is in progress.
     pub rb_in_progress: Option<i32>,
+    /// An optional integer representing the process type of the file.
     pub rb_process_type: Option<i32>,
+    /// An optional string representing the temporary path of the file.
     pub rb_temp_path: Option<String>,
+    /// An optional integer representing the priority of the file.
     pub rb_priority: Option<i32>,
+    /// An optional integer indicating whether the file size is dirty.
     pub rb_file_size_dirty: Option<i32>,
 }
 
+/// Represents the `SettingFile` table in the Rekordbox database.
+///
+/// This struct maps to the `SettingFile` table in the SQLite database used by Rekordbox.
+/// It stores information about setting files, including metadata such as file paths,
+/// hashes, and synchronization details.
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::settingFile)]
 #[diesel(primary_key(id))]
@@ -2450,16 +2536,29 @@ pub struct SettingFile {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
+    /// An optional string representing the file path of the setting file.
     pub path: Option<String>,
+    /// An optional string representing the hash of the setting file.
     pub hash: Option<String>,
+    /// An optional integer representing the size of the setting file.
     pub size: Option<i32>,
+    /// An optional string representing the local path of the setting file in Rekordbox.
     pub rb_local_path: Option<String>,
+    /// An optional string representing the in-sync hash of the setting file.
     pub rb_insync_hash: Option<String>,
+    /// An optional integer representing the in-sync local update sequence number.
     pub rb_insync_local_usn: Option<i32>,
+    /// An optional integer indicating whether the file hash is dirty.
     pub rb_file_hash_dirty: Option<i32>,
+    /// An optional integer indicating whether the file size is dirty.
     pub rb_file_size_dirty: Option<i32>,
 }
 
+/// Represents the `UuidIDMap` table in the Rekordbox database.
+///
+/// This struct maps to the `UuidIDMap` table in the SQLite database used by Rekordbox.
+/// It stores information about UUID-to-ID mappings, including metadata such as table names,
+/// target UUIDs, and current IDs.
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::uuidIDMap)]
 #[diesel(primary_key(id))]
@@ -2490,7 +2589,10 @@ pub struct UuidIDMap {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
+    /// An optional string representing the table name associated with the mapping.
     pub table_name: Option<String>,
+    /// An optional string representing the target UUID in the mapping.
     pub target_uuid: Option<String>,
+    /// An optional string representing the current ID in the mapping.
     pub current_id: Option<String>,
 }
