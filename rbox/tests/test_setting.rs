@@ -871,6 +871,102 @@ fn assert_set_talk_over_mode(dir: &PathBuf, name: &str, value: TalkOverMode) -> 
     Ok(())
 }
 
+fn assert_get_overview_waveform_type(
+    dir: &PathBuf,
+    name: &str,
+    value: OverviewWaveformType,
+) -> anyhow::Result<()> {
+    let sett = load(dir, "DEVSETTING.DAT", "overview_waveform_type", name)?;
+    assert_eq!(sett.get_overview_waveform_type()?, value);
+    Ok(())
+}
+
+fn assert_set_overview_waveform_type(
+    dir: &PathBuf,
+    name: &str,
+    value: OverviewWaveformType,
+) -> anyhow::Result<()> {
+    let in_file = path(dir, "DEVSETTING.DAT", "overview_waveform_type", name);
+    let out_file = dir.parent().unwrap().join("out").join("DEVSETTING.DAT");
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_overview_waveform_type(value)?;
+    sett.dump_copy(&out_file)?;
+    assert_file(&out_file, &in_file);
+    Ok(())
+}
+
+fn assert_get_waveform_color(
+    dir: &PathBuf,
+    name: &str,
+    value: WaveformColor,
+) -> anyhow::Result<()> {
+    let sett = load(dir, "DEVSETTING.DAT", "waveform_color", name)?;
+    assert_eq!(sett.get_waveform_color()?, value);
+    Ok(())
+}
+
+fn assert_set_waveform_color(
+    dir: &PathBuf,
+    name: &str,
+    value: WaveformColor,
+) -> anyhow::Result<()> {
+    let in_file = path(dir, "DEVSETTING.DAT", "waveform_color", name);
+    let out_file = dir.parent().unwrap().join("out").join("DEVSETTING.DAT");
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_waveform_color(value)?;
+    sett.dump_copy(&out_file)?;
+    assert_file(&out_file, &in_file);
+    Ok(())
+}
+
+fn assert_get_key_display_format(
+    dir: &PathBuf,
+    name: &str,
+    value: KeyDisplayFormat,
+) -> anyhow::Result<()> {
+    let sett = load(dir, "DEVSETTING.DAT", "key_display_format", name)?;
+    assert_eq!(sett.get_key_display_format()?, value);
+    Ok(())
+}
+
+fn assert_set_key_display_format(
+    dir: &PathBuf,
+    name: &str,
+    value: KeyDisplayFormat,
+) -> anyhow::Result<()> {
+    let in_file = path(dir, "DEVSETTING.DAT", "key_display_format", name);
+    let out_file = dir.parent().unwrap().join("out").join("DEVSETTING.DAT");
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_key_display_format(value)?;
+    sett.dump_copy(&out_file)?;
+    assert_file(&out_file, &in_file);
+    Ok(())
+}
+
+fn assert_get_waveform_pos(
+    dir: &PathBuf,
+    name: &str,
+    value: WaveformCurrentPosition,
+) -> anyhow::Result<()> {
+    let sett = load(dir, "DEVSETTING.DAT", "waveform_current_pos", name)?;
+    assert_eq!(sett.get_waveform_current_position()?, value);
+    Ok(())
+}
+
+fn assert_set_waveform_pos(
+    dir: &PathBuf,
+    name: &str,
+    value: WaveformCurrentPosition,
+) -> anyhow::Result<()> {
+    let in_file = path(dir, "DEVSETTING.DAT", "waveform_current_pos", name);
+    let out_file = dir.parent().unwrap().join("out").join("DEVSETTING.DAT");
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_waveform_current_position(value)?;
+    sett.dump_copy(&out_file)?;
+    assert_file(&out_file, &in_file);
+    Ok(())
+}
+
 // ---- MySetting ----------------------------------------------------------------------------------
 
 #[test]
@@ -1383,6 +1479,70 @@ fn test_djmdmysetting_defaults() -> anyhow::Result<()> {
     assert_eq!(sett.get_midi_channel()?, default.get_midi_channel()?);
     assert_eq!(sett.get_talk_over_level()?, default.get_talk_over_level()?);
     assert_eq!(sett.get_talk_over_mode()?, default.get_talk_over_mode()?);
+
+    Ok(())
+}
+
+// ---- DevSetting ---------------------------------------------------------------------------------
+
+#[test]
+fn test_get_devsetting() -> anyhow::Result<()> {
+    let root = common::testdata_settings_dir()?;
+    let dir = root.join("devsetting");
+
+    assert_get_overview_waveform_type(&dir, "half", OverviewWaveformType::HalfWaveform)?;
+    assert_get_overview_waveform_type(&dir, "full", OverviewWaveformType::FullWaveform)?;
+    assert_get_waveform_color(&dir, "blue", WaveformColor::Blue)?;
+    assert_get_waveform_color(&dir, "rgb", WaveformColor::Rgb)?;
+    assert_get_waveform_color(&dir, "tri_band", WaveformColor::TriBand)?;
+    assert_get_key_display_format(&dir, "classic", KeyDisplayFormat::Classic)?;
+    assert_get_key_display_format(&dir, "alpha_numeric", KeyDisplayFormat::Alphanumeric)?;
+    assert_get_waveform_pos(&dir, "center", WaveformCurrentPosition::Center)?;
+    assert_get_waveform_pos(&dir, "left", WaveformCurrentPosition::Left)?;
+
+    Ok(())
+}
+
+#[test]
+fn test_set_devsetting() -> anyhow::Result<()> {
+    let root = common::testdata_settings_dir()?;
+    let name = "DEVSETTING.DAT";
+    let dir = root.join("devsetting");
+    let out_file = root.join("out").join(name);
+    std::fs::create_dir_all(out_file.parent().unwrap())?;
+
+    assert_set_overview_waveform_type(&dir, "half", OverviewWaveformType::HalfWaveform)?;
+    assert_set_overview_waveform_type(&dir, "full", OverviewWaveformType::FullWaveform)?;
+    assert_set_waveform_color(&dir, "blue", WaveformColor::Blue)?;
+    assert_set_waveform_color(&dir, "rgb", WaveformColor::Rgb)?;
+    assert_set_waveform_color(&dir, "tri_band", WaveformColor::TriBand)?;
+    assert_set_key_display_format(&dir, "classic", KeyDisplayFormat::Classic)?;
+    assert_set_key_display_format(&dir, "alpha_numeric", KeyDisplayFormat::Alphanumeric)?;
+    assert_set_waveform_pos(&dir, "center", WaveformCurrentPosition::Center)?;
+    assert_set_waveform_pos(&dir, "left", WaveformCurrentPosition::Left)?;
+
+    Ok(())
+}
+
+#[test]
+fn test_devsetting_defaults() -> anyhow::Result<()> {
+    let root = common::testdata_settings_dir()?;
+    let sett = Setting::load(root.join("DEVSETTING.DAT"))?;
+    let default = Setting::new_devsetting("DEVSETTING.DAT")?;
+
+    assert_eq!(
+        sett.get_overview_waveform_type()?,
+        default.get_overview_waveform_type()?
+    );
+    assert_eq!(sett.get_waveform_color()?, default.get_waveform_color()?);
+    assert_eq!(
+        sett.get_key_display_format()?,
+        default.get_key_display_format()?
+    );
+    assert_eq!(
+        sett.get_waveform_current_position()?,
+        default.get_waveform_current_position()?
+    );
 
     Ok(())
 }
