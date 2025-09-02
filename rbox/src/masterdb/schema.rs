@@ -2,6 +2,14 @@
 // Date:   2025-05-01
 
 //! Rekordbox master.db database schemas
+//!
+//! This module defines the Diesel schema for the Rekordbox SQLite database.
+//! It includes table definitions and relationships for various entities such as
+//! content, playlists, artists, albums, and more. These schema definitions are
+//! used to map database tables to Rust structs and enable ORM operations.
+//!
+//! *Note*: The fields in the database tables have been renamed to follow Rust's
+//! `snake_case` naming convention and to unify naming inconsistencies.
 
 #![allow(non_snake_case)]
 

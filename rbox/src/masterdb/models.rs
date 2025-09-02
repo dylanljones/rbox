@@ -2,65 +2,39 @@
 // Date:   2025-05-01
 
 //! Rekordbox master.db database models
+//!
+//! This module defines the data models that map to the tables in the Rekordbox SQLite database.
+//! It uses Diesel ORM for database interactions and provides structures for various tables,
+//! including content, playlists, artists, albums, and more. These models facilitate reading,
+//! writing, and updating data in the Rekordbox database.
+//!
+//! # Features
+//! - Comprehensive mapping of Rekordbox database tables to Rust structs.
+//! - Support for Diesel ORM operations like querying, inserting, and updating records.
+//! - Associations between related tables for seamless navigation of relationships.
+//!
+//! # Usage
+//! Import the necessary models and use them with Diesel's query builder to interact with the
+//! database.
+//!
+//! ```no_run
+//! use crate::masterdb::models::DjmdContent;
+//! use diesel::prelude::*;
+//!
+//! let results = djmdContent
+//!     .filter(schema::djmdContent::title.eq("Track Title"))
+//!     .load::<DjmdContent>(&connection)?;
+//! println!("Found {} tracks", results.len());
+//! ```
 
 #![allow(non_snake_case)]
 
-use chrono::{DateTime, Utc};
-use diesel::backend::Backend;
-use diesel::deserialize::{FromSql, Result as DResult};
 use diesel::prelude::*;
-use diesel::serialize::{IsNull, Output, Result as SResult, ToSql};
-use diesel::sql_types::Text;
-use diesel::{AsExpression, FromSqlRow};
 use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::schema;
-use super::util::{format_datetime, parse_datetime};
-
-type Date = DateTime<Utc>;
-
-/// Wrapper for DateTime<Utc> for diesel serialization/deserialization
-#[derive(Debug, FromSqlRow, AsExpression)]
-#[diesel(sql_type = Text)]
-pub struct DateString(pub Date);
-
-impl From<DateString> for Date {
-    fn from(s: DateString) -> Self {
-        s.0
-    }
-}
-
-impl From<Date> for DateString {
-    fn from(dt: Date) -> Self {
-        DateString(dt)
-    }
-}
-
-impl<B> FromSql<Text, B> for DateString
-where
-    B: Backend,
-    String: FromSql<Text, B>,
-{
-    fn from_sql(bytes: B::RawValue<'_>) -> DResult<Self> {
-        let s = <String as FromSql<Text, B>>::from_sql(bytes)?;
-        Ok(parse_datetime(&s).map(DateString).map_err(|_| {
-            let msg = format!("Invalid datetime string: {}", s);
-            diesel::result::Error::DeserializationError(msg.into())
-        })?)
-    }
-}
-
-impl ToSql<Text, diesel::sqlite::Sqlite> for DateString
-where
-    str: ToSql<Text, diesel::sqlite::Sqlite>,
-{
-    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, diesel::sqlite::Sqlite>) -> SResult {
-        let s = format_datetime(&self.0); // Format the DateTime<Utc> as a string
-        out.set_value(s); // Set the value in the output buffer
-        Ok(IsNull::No)
-    }
-}
+use super::util::{Date, DateString};
 
 /// Represents the `AgentRegistry` table in the Rekordbox database.
 ///
