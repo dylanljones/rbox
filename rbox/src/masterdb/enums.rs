@@ -8,8 +8,10 @@ use std::convert::TryFrom;
 pub enum FileType {
     MP3 = 0,
     MP3_2 = 1,
-    M4A = 4,
+    MP4 = 3,
+    ALAC = 4,
     FLAC = 5,
+    M4A = 6,
     WAV = 11,
     AIFF = 12,
 }
@@ -21,8 +23,10 @@ impl TryFrom<i32> for FileType {
         match value {
             0 => Ok(FileType::MP3),
             1 => Ok(FileType::MP3_2),
-            4 => Ok(FileType::M4A),
+            3 => Ok(FileType::MP4),
+            4 => Ok(FileType::ALAC),
             5 => Ok(FileType::FLAC),
+            6 => Ok(FileType::M4A),
             11 => Ok(FileType::WAV),
             12 => Ok(FileType::AIFF),
             _ => Err("Invalid value for FileType"),
@@ -34,7 +38,8 @@ impl FileType {
     pub fn try_from_extension(ext: &str) -> anyhow::Result<Self> {
         match ext.to_lowercase().as_str() {
             "mp3" => Ok(FileType::MP3),
-            "m4a" => Ok(FileType::M4A),
+            "mp4" => Ok(FileType::MP4),
+            "m4a" => Ok(FileType::ALAC),
             "flac" => Ok(FileType::FLAC),
             "wav" => Ok(FileType::WAV),
             "aiff" => Ok(FileType::AIFF),
