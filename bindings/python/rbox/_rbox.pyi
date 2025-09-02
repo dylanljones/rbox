@@ -262,7 +262,7 @@ class DjmdContent(_StatsFull, _RustMutableMapping):
     ext_info: Optional[str]
     rb_file_id: Optional[str]
     device_id: Optional[str]
-    rb__local_folder_path: Optional[str]
+    rb_local_folder_path: Optional[str]
     src_id: Optional[str]
     src_title: Optional[str]
     src_artist_name: Optional[str]

@@ -1975,7 +1975,7 @@ pub struct PyDjmdContent {
     pub ext_info: Option<String>,
     pub rb_file_id: Option<String>,
     pub device_id: Option<String>,
-    pub rb__local_folder_path: Option<String>,
+    pub rb_local_folder_path: Option<String>,
     pub src_id: Option<String>,
     pub src_title: Option<String>,
     pub src_artist_name: Option<String>,
@@ -2058,7 +2058,7 @@ impl IntoPy<PyDjmdContent> for DjmdContent {
             ext_info: self.ext_info,
             rb_file_id: self.rb_file_id,
             device_id: self.device_id,
-            rb__local_folder_path: self.rb__local_folder_path,
+            rb_local_folder_path: self.rb_local_folder_path,
             src_id: self.src_id,
             src_title: self.src_title,
             src_artist_name: self.src_artist_name,
@@ -2144,7 +2144,7 @@ impl FromPy<PyDjmdContent> for DjmdContent {
             ext_info: model.ext_info.clone(),
             rb_file_id: model.rb_file_id.clone(),
             device_id: model.device_id.clone(),
-            rb__local_folder_path: model.rb__local_folder_path.clone(),
+            rb_local_folder_path: model.rb_local_folder_path.clone(),
             src_id: model.src_id.clone(),
             src_title: model.src_title.clone(),
             src_artist_name: model.src_artist_name.clone(),
@@ -2229,7 +2229,7 @@ impl MutableMapping for PyDjmdContent {
             "ext_info".to_string(),
             "rb_file_id".to_string(),
             "device_id".to_string(),
-            "rb__local_folder_path".to_string(),
+            "rb_local_folder_path".to_string(),
             "src_id".to_string(),
             "src_title".to_string(),
             "src_artist_name".to_string(),
@@ -2312,8 +2312,8 @@ impl MutableMapping for PyDjmdContent {
             "ext_info" => Ok(self.ext_info.clone().into_pyobject(py)?.into()),
             "rb_file_id" => Ok(self.rb_file_id.clone().into_pyobject(py)?.into()),
             "device_id" => Ok(self.device_id.clone().into_pyobject(py)?.into()),
-            "rb__local_folder_path" => {
-                Ok(self.rb__local_folder_path.clone().into_pyobject(py)?.into())
+            "rb_local_folder_path" => {
+                Ok(self.rb_local_folder_path.clone().into_pyobject(py)?.into())
             }
             "src_id" => Ok(self.src_id.clone().into_pyobject(py)?.into()),
             "src_title" => Ok(self.src_title.clone().into_pyobject(py)?.into()),
@@ -2405,8 +2405,8 @@ impl MutableMapping for PyDjmdContent {
             "ext_info" => self.ext_info = value.extract::<Option<String>>(py)?,
             "rb_file_id" => self.rb_file_id = value.extract::<Option<String>>(py)?,
             "device_id" => self.device_id = value.extract::<Option<String>>(py)?,
-            "rb__local_folder_path" => {
-                self.rb__local_folder_path = value.extract::<Option<String>>(py)?
+            "rb_local_folder_path" => {
+                self.rb_local_folder_path = value.extract::<Option<String>>(py)?
             }
             "src_id" => self.src_id = value.extract::<Option<String>>(py)?,
             "src_title" => self.src_title = value.extract::<Option<String>>(py)?,

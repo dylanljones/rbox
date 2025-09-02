@@ -1,7 +1,7 @@
 // Author: Dylan Jones
 // Date:   2025-05-01
-//
-// Rekordbox master.db database models
+
+//! Rekordbox master.db database models
 
 #![allow(non_snake_case)]
 
@@ -23,16 +23,16 @@ type Date = DateTime<Utc>;
 /// Wrapper for DateTime<Utc> for diesel serialization/deserialization
 #[derive(Debug, FromSqlRow, AsExpression)]
 #[diesel(sql_type = Text)]
-pub struct DateString(pub DateTime<Utc>);
+pub struct DateString(pub Date);
 
-impl From<DateString> for DateTime<Utc> {
+impl From<DateString> for Date {
     fn from(s: DateString) -> Self {
         s.0
     }
 }
 
-impl From<DateTime<Utc>> for DateString {
-    fn from(dt: DateTime<Utc>) -> Self {
+impl From<Date> for DateString {
+    fn from(dt: Date) -> Self {
         DateString(dt)
     }
 }
@@ -75,7 +75,7 @@ where
 /// * SyncSettingsRootPath
 /// * LangPath
 ///
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, AsChangeset)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::agentRegistry)]
 #[diesel(primary_key(registry_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -169,9 +169,20 @@ pub struct CloudAgentRegistry {
 ///
 /// This struct maps to the `ContentActiveCensor` table in the SQLite database used by Rekordbox.
 /// It contains the active censor entries [`DjmdActiveCensor`] of a file as stringified JSON data.
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::contentActiveCensor)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct ContentActiveCensor {
     /// A unique identifier for the entry.
@@ -211,9 +222,20 @@ pub struct ContentActiveCensor {
 ///
 /// This struct maps to the `ContentCue` table in the SQLite database used by Rekordbox.
 /// It contains the cue entry [`DjmdCue`] of a file as stringified JSON data.
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::contentCue)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct ContentCue {
     /// A unique identifier for the entry.
@@ -254,9 +276,20 @@ pub struct ContentCue {
 /// This struct maps to the `ContentFile` table in the SQLite database used by Rekordbox.
 /// It contains metadata and attributes of the additional file of contents. These include
 /// the analysis and artwork files linked to a track
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::contentFile)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct ContentFile {
     /// A unique identifier for the entry.
@@ -320,9 +353,20 @@ pub struct ContentFile {
 /// It contains information for actively censoring explicit content of tracks in the Rekordbox
 /// collection. Active Censor items behave like two cue points, between which an effect is applied
 /// to the audio of a track.
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdActiveCensor)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdActiveCensor {
     /// A unique identifier for the entry.
@@ -369,9 +413,21 @@ pub struct DjmdActiveCensor {
 /// This struct maps to the `DjmdAlbum` table in the SQLite database used by Rekordbox.
 /// It stores album-related data, allowing multiple tracks to be associated with the same album.
 /// This table includes metadata such as album name, artist, and compilation status.
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdAlbum)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdArtist, foreign_key = album_artist_id))]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdAlbum {
     /// A unique identifier for the entry.
     pub id: String,
@@ -446,7 +502,7 @@ impl DjmdAlbum {
             rb_local_deleted: 0,
             rb_local_synced: 0,
             usn: None,
-            rb_local_usn: Some(usn.clone()),
+            rb_local_usn: Some(usn),
             created_at: now.clone(),
             updated_at: now.clone(),
             name: Some(name.clone()),
@@ -527,7 +583,7 @@ impl DjmdArtist {
             rb_local_deleted: 0,
             rb_local_synced: 0,
             usn: None,
-            rb_local_usn: Some(usn.clone()),
+            rb_local_usn: Some(usn),
             created_at: now.clone(),
             updated_at: now.clone(),
             name: Some(name.clone()),
@@ -536,9 +592,20 @@ impl DjmdArtist {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdCategory)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdMenuItems, foreign_key = menu_item_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdCategory {
     pub id: String,
@@ -586,9 +653,27 @@ pub struct DjmdColor {
     pub commnt: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Default,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdContent)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdArtist, foreign_key = artist_id))]
+#[diesel(belongs_to(DjmdAlbum, foreign_key = album_id))]
+#[diesel(belongs_to(DjmdGenre, foreign_key = genre_id))]
+#[diesel(belongs_to(DjmdLabel, foreign_key = label_id))]
+#[diesel(belongs_to(DjmdKey, foreign_key = key_id))]
+#[diesel(belongs_to(DjmdColor, foreign_key = color_id))]
+#[diesel(belongs_to(DjmdDevice, foreign_key = device_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdContent {
     pub id: String,
@@ -668,7 +753,7 @@ pub struct DjmdContent {
     pub ext_info: Option<String>,
     pub rb_file_id: Option<String>,
     pub device_id: Option<String>,
-    pub rb__local_folder_path: Option<String>,
+    pub rb_local_folder_path: Option<String>,
     pub src_id: Option<String>,
     pub src_title: Option<String>,
     pub src_artist_name: Option<String>,
@@ -695,90 +780,44 @@ impl DjmdContent {
         Ok(Self {
             id: id.clone(),
             uuid: uuid.clone(),
-            rb_data_status: 0,
-            rb_local_data_status: 0,
-            rb_local_deleted: 0,
-            rb_local_synced: 0,
-            usn: None,
-            rb_local_usn: Some(usn.clone()),
+            rb_local_usn: Some(usn),
             created_at: now.clone(),
             updated_at: now.clone(),
-
             folder_path: Some(path.clone()),
             file_name_l: Some(file_name.clone()),
             file_name_s: Some("".to_string()),
-            title: None,
-            artist_id: None,
-            album_id: None,
-            genre_id: None,
-            bpm: None,
-            length: None,
-            track_no: None,
-            bit_rate: None,
-            bit_depth: None,
-            commnt: None,
             file_type: Some(file_type),
-            rating: None,
-            release_year: None,
-            remixer_id: None,
-            label_id: None,
-            org_artist_id: None,
-            key_id: None,
-            stock_date: None,
-            color_id: None,
-            dj_play_count: None,
-            image_path: None,
             master_db_id: Some(db_id),
             master_song_id: Some(id),
-            analysis_data_path: None,
-            search_str: None,
             file_size: Some(size),
-            disc_no: None,
-            composer_id: None,
-            subtitle: None,
-            sample_rate: None,
-            disable_quantize: None,
-            analysed: None,
-            release_date: None,
-            date_created: None,
             content_link: content_link,
-            tag: None,
-            modified_by_rbm: None,
             hot_cue_auto_load: Some(hot_cue_auto_load),
             delivery_control: Some(deliver_control),
-            delivery_comment: None,
-            cue_updated: None,
-            analysis_updated: None,
-            track_info_updated: None,
-            lyricist: None,
-            isrc: None,
             sampler_track_info: Some(0),
             sampler_play_offset: Some(0),
             sampler_gain: Some(0.0),
-            video_associate: None,
             lyric_status: Some(0),
             service_id: Some(0),
-            org_folder_path: None,
-            reserved1: None,
-            reserved2: None,
-            reserved3: None,
-            reserved4: None,
-            ext_info: None,
             rb_file_id: Some(file_id),
-            device_id: None,
-            rb__local_folder_path: None,
-            src_id: None,
-            src_title: None,
-            src_artist_name: None,
-            src_album_name: None,
-            src_length: None,
+            ..Default::default()
         })
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdCue)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdCue {
     pub id: String,
@@ -880,7 +919,7 @@ impl DjmdGenre {
             rb_local_deleted: 0,
             rb_local_synced: 0,
             usn: None,
-            rb_local_usn: Some(usn.clone()),
+            rb_local_usn: Some(usn),
             created_at: now.clone(),
             updated_at: now.clone(),
             name: Some(name.clone()),
@@ -888,9 +927,20 @@ impl DjmdGenre {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdHistory)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdHistory, foreign_key = parent_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdHistory {
     pub id: String,
@@ -915,9 +965,21 @@ pub struct DjmdHistory {
     pub date_created: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdSongHistory)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdHistory, foreign_key = history_id))]
+#[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdSongHistory {
     pub id: String,
@@ -940,9 +1002,20 @@ pub struct DjmdSongHistory {
     pub track_no: Option<i32>,
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdHotCueBanklist)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdHotCueBanklist, foreign_key = parent_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdHotCueBanklist {
     pub id: String,
@@ -967,9 +1040,20 @@ pub struct DjmdHotCueBanklist {
     pub parent_id: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdSongHotCueBanklist)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdSongHotCueBanklist {
     pub id: String,
@@ -1009,9 +1093,20 @@ pub struct DjmdSongHotCueBanklist {
     pub hot_cue_banklist_uuid: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::hotCueBanklistCue)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdSongHotCueBanklist, foreign_key = hot_cue_banklist_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct HotCueBanklistCue {
     pub id: String,
@@ -1075,11 +1170,11 @@ impl DjmdKey {
             rb_local_deleted: 0,
             rb_local_synced: 0,
             usn: None,
-            rb_local_usn: Some(usn.clone()),
+            rb_local_usn: Some(usn),
             created_at: now.clone(),
             updated_at: now.clone(),
             scale_name: Some(name.clone()),
-            seq: Some(seq.clone()),
+            seq: Some(seq),
         })
     }
 }
@@ -1123,7 +1218,7 @@ impl DjmdLabel {
             rb_local_deleted: 0,
             rb_local_synced: 0,
             usn: None,
-            rb_local_usn: Some(usn.clone()),
+            rb_local_usn: Some(usn),
             created_at: now.clone(),
             updated_at: now.clone(),
             name: Some(name.clone()),
@@ -1155,9 +1250,20 @@ pub struct DjmdMenuItems {
     pub name: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdMixerParam)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdMixerParam {
     pub id: String,
@@ -1182,9 +1288,20 @@ pub struct DjmdMixerParam {
     pub peak_low: Option<i32>,
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdMyTag)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdMyTag, foreign_key = parent_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdMyTag {
     pub id: String,
@@ -1208,9 +1325,21 @@ pub struct DjmdMyTag {
     pub parent_id: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdSongMyTag)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdMyTag, foreign_key = my_tag_id))]
+#[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdSongMyTag {
     pub id: String,
@@ -1233,9 +1362,20 @@ pub struct DjmdSongMyTag {
     pub track_no: Option<i32>,
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdPlaylist)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdPlaylist, foreign_key = parent_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdPlaylist {
     pub id: String,
@@ -1282,13 +1422,13 @@ impl DjmdPlaylist {
             rb_local_deleted: 0,
             rb_local_synced: 0,
             usn: None,
-            rb_local_usn: Some(usn.clone()),
+            rb_local_usn: Some(usn),
             created_at: now.clone(),
             updated_at: now.clone(),
-            seq: Some(seq.clone()),
+            seq: Some(seq),
             name: Some(name.clone()),
             image_path: image_path.clone(),
-            attribute: Some(attribute.clone()),
+            attribute: Some(attribute),
             parent_id: Some(parent_id.clone()),
             smart_list: smart_list.clone(),
         })
@@ -1343,9 +1483,21 @@ impl DjmdPlaylistTreeItem {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdSongPlaylist)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdPlaylist, foreign_key = playlist_id))]
+#[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdSongPlaylist {
     pub id: String,
@@ -1386,19 +1538,30 @@ impl DjmdSongPlaylist {
             rb_local_deleted: 0,
             rb_local_synced: 0,
             usn: None,
-            rb_local_usn: Some(usn.clone()),
+            rb_local_usn: Some(usn),
             created_at: now.clone(),
             updated_at: now.clone(),
             playlist_id: Some(playlist_id.clone()),
             content_id: Some(content_id.clone()),
-            track_no: Some(seq.clone()),
+            track_no: Some(seq),
         })
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdProperty)]
 #[diesel(primary_key(db_id))]
+#[diesel(belongs_to(DjmdDevice, foreign_key = device_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdProperty {
     pub db_id: String,
@@ -1446,9 +1609,21 @@ pub struct DjmdCloudProperty {
     pub reserved5: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdRecommendLike)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdContent, foreign_key = content_id1))]
+// #[diesel(belongs_to(DjmdContent, foreign_key = content_id2))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdRecommendLike {
     pub id: String,
@@ -1473,9 +1648,20 @@ pub struct DjmdRecommendLike {
     pub data_created_l: Option<i32>,
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdRelatedTracks)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdRelatedTracks, foreign_key = parent_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdRelatedTracks {
     pub id: String,
@@ -1500,9 +1686,21 @@ pub struct DjmdRelatedTracks {
     pub criteria: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdSongRelatedTracks)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdSongRelatedTracks, foreign_key = related_tracks_id))]
+#[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdSongRelatedTracks {
     pub id: String,
@@ -1525,9 +1723,20 @@ pub struct DjmdSongRelatedTracks {
     pub track_no: Option<i32>,
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdSampler)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdSampler, foreign_key = parent_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdSampler {
     pub id: String,
@@ -1551,9 +1760,21 @@ pub struct DjmdSampler {
     pub parent_id: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdSongSampler)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdSongSampler, foreign_key = sampler_id))]
+#[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdSongSampler {
     pub id: String,
@@ -1576,9 +1797,20 @@ pub struct DjmdSongSampler {
     pub track_no: Option<i32>,
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdSongTagList)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdSongTagList {
     pub id: String,
@@ -1600,9 +1832,20 @@ pub struct DjmdSongTagList {
     pub track_no: Option<i32>,
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Queryable,
+    Selectable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Associations,
+)]
 #[diesel(table_name = schema::djmdSort)]
 #[diesel(primary_key(id))]
+#[diesel(belongs_to(DjmdMenuItems, foreign_key = menu_item_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdSort {
     pub id: String,

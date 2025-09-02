@@ -390,7 +390,7 @@ diesel::table! {
         #[sql_name = "DeviceID"]
         device_id -> Nullable<Text>,
         #[sql_name = "rb_LocalFolderPath"]
-        rb__local_folder_path -> Nullable<Text>,
+        rb_local_folder_path -> Nullable<Text>,
         #[sql_name = "SrcID"]
         src_id -> Nullable<Text>,
         #[sql_name = "SrcTitle"]
@@ -1156,4 +1156,61 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(contentActiveCensor -> djmdContent (content_id));
+diesel::joinable!(contentCue -> djmdContent (content_id));
+diesel::joinable!(contentFile -> djmdContent (content_id));
+diesel::joinable!(djmdActiveCensor -> djmdContent (content_id));
+diesel::joinable!(djmdAlbum -> djmdArtist (album_artist_id));
+diesel::joinable!(djmdCategory -> djmdMenuItems (menu_item_id));
 diesel::joinable!(djmdContent -> djmdArtist (artist_id));
+diesel::joinable!(djmdContent -> djmdAlbum (album_id));
+diesel::joinable!(djmdContent -> djmdGenre (genre_id));
+diesel::joinable!(djmdContent -> djmdLabel (label_id));
+diesel::joinable!(djmdContent -> djmdKey (key_id));
+diesel::joinable!(djmdContent -> djmdColor (color_id));
+diesel::joinable!(djmdContent -> djmdDevice (device_id));
+diesel::joinable!(djmdCue -> djmdContent (content_id));
+diesel::joinable!(djmdSongHistory -> djmdHistory (history_id));
+diesel::joinable!(djmdSongHistory -> djmdContent (content_id));
+diesel::joinable!(djmdSongHotCueBanklist -> djmdContent (content_id));
+diesel::joinable!(djmdMixerParam -> djmdContent (content_id));
+diesel::joinable!(djmdSongPlaylist -> djmdContent (content_id));
+diesel::joinable!(djmdSongRelatedTracks -> djmdContent (content_id));
+diesel::joinable!(djmdSongSampler -> djmdContent (content_id));
+diesel::joinable!(djmdSongTagList -> djmdContent (content_id));
+diesel::joinable!(djmdSort -> djmdMenuItems (menu_item_id));
+
+diesel::allow_tables_to_appear_in_same_query!(
+    contentActiveCensor,
+    contentCue,
+    contentFile,
+    djmdActiveCensor,
+    djmdAlbum,
+    djmdArtist,
+    djmdCategory,
+    djmdColor,
+    djmdContent,
+    djmdCue,
+    djmdDevice,
+    djmdGenre,
+    djmdHistory,
+    djmdSongHistory,
+    djmdHotCueBanklist,
+    djmdSongHotCueBanklist,
+    djmdKey,
+    djmdLabel,
+    djmdMenuItems,
+    djmdMixerParam,
+    djmdMyTag,
+    djmdSongMyTag,
+    djmdPlaylist,
+    djmdSongPlaylist,
+    djmdRecommendLike,
+    djmdRelatedTracks,
+    djmdSongRelatedTracks,
+    djmdSampler,
+    djmdSongSampler,
+    djmdSongTagList,
+    djmdSort,
+    hotCueBanklistCue,
+);
