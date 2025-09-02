@@ -1512,6 +1512,10 @@ impl DjmdLabel {
     }
 }
 
+/// Represents the `DjmdMenuItems` table in the Rekordbox database.
+///
+/// This struct maps to the `DjmdMenuItems` table in the SQLite database used by Rekordbox.
+/// It stores information about menu items, including their class, name, and metadata.
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdMenuItems)]
 #[diesel(primary_key(id))]
@@ -1542,10 +1546,16 @@ pub struct DjmdMenuItems {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
+    /// An optional integer representing the class of the menu item.
     pub class: Option<i32>,
+    /// An optional string representing the name of the menu item.
     pub name: Option<String>,
 }
 
+/// Represents the `DjmdMixerParam` table in the Rekordbox database.
+///
+/// This struct maps to the `DjmdMixerParam` table in the SQLite database used by Rekordbox.
+/// It stores information about mixer parameters, including gain and peak values for high and low frequencies.
 #[derive(
     Debug,
     Clone,
@@ -1587,13 +1597,23 @@ pub struct DjmdMixerParam {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
+    /// An optional string representing the ID of the associated [`DjmdContent`].
     pub content_id: Option<String>,
+    /// An optional integer representing the high-frequency gain value.
     pub gain_high: Option<i32>,
+    /// An optional integer representing the low-frequency gain value.
     pub gain_low: Option<i32>,
+    /// An optional integer representing the high-frequency peak value.
     pub peak_high: Option<i32>,
+    /// An optional integer representing the low-frequency peak value.
     pub peak_low: Option<i32>,
 }
 
+/// Represents the `DjmdMyTag` table in the Rekordbox database.
+///
+/// This struct maps to the `DjmdMyTag` table in the SQLite database used by Rekordbox.
+/// It stores information about custom tags (MyTags) that can be associated with tracks,
+/// including metadata such as sequence, name, attributes, and parent relationships.
 #[derive(
     Debug,
     Clone,
@@ -1635,12 +1655,21 @@ pub struct DjmdMyTag {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
+    /// An optional integer representing the sequence/order of the tag.
     pub seq: Option<i32>,
+    /// An optional string representing the name of the tag.
     pub name: Option<String>,
+    /// An optional integer representing additional attributes of the tag.
     pub attribute: Option<i32>,
+    /// An optional string representing the ID of the parent [`DjmdMyTag`].
     pub parent_id: Option<String>,
 }
 
+/// Represents the `DjmdSongMyTag` table in the Rekordbox database.
+///
+/// This struct maps to the `DjmdSongMyTag` table in the SQLite database used by Rekordbox.
+/// It stores information about the relationship between songs and custom tags (MyTags),
+/// including metadata such as track number and associated tag or content IDs.
 #[derive(
     Debug,
     Clone,
@@ -1683,11 +1712,19 @@ pub struct DjmdSongMyTag {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
+    /// An optional string representing the ID of the associated [`DjmdMyTag`].
     pub my_tag_id: Option<String>,
+    /// An optional string representing the ID of the associated [`DjmdContent`].
     pub content_id: Option<String>,
+    /// An optional integer representing the track number in the tag.
     pub track_no: Option<i32>,
 }
 
+/// Represents the `DjmdPlaylist` table in the Rekordbox database.
+///
+/// This struct maps to the `DjmdPlaylist` table in the SQLite database used by Rekordbox.
+/// It stores information about playlists, including metadata such as sequence, name, image path,
+/// attributes, and parent relationships.
 #[derive(
     Debug,
     Clone,
@@ -1729,11 +1766,17 @@ pub struct DjmdPlaylist {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
+    /// An optional integer representing the sequence/order of the playlist.
     pub seq: Option<i32>,
+    /// An optional string representing the name of the playlist.
     pub name: Option<String>,
+    /// An optional string representing the path to the image associated with the playlist.
     pub image_path: Option<String>,
+    /// An optional integer representing additional attributes of the playlist.
     pub attribute: Option<i32>,
+    /// An optional string representing the ID of the parent [`DjmdPlaylist`] entry.
     pub parent_id: Option<String>,
+    /// An optional string containing the smart list configuration for the playlist.
     pub smart_list: Option<String>,
 }
 
@@ -1819,6 +1862,11 @@ impl DjmdPlaylistTreeItem {
     }
 }
 
+/// Represents the `DjmdSongPlaylist` table in the Rekordbox database.
+///
+/// This struct maps to the `DjmdSongPlaylist` table in the SQLite database used by Rekordbox.
+/// It stores information about the relationship between songs and playlists, including
+/// metadata such as track number and associated playlist or content IDs.
 #[derive(
     Debug,
     Clone,
@@ -1861,8 +1909,11 @@ pub struct DjmdSongPlaylist {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
+    /// An optional string representing the ID of the associated playlist in [`DjmdPlaylist`].
     pub playlist_id: Option<String>,
+    /// An optional string representing the ID of the associated content in [`DjmdContent`].
     pub content_id: Option<String>,
+    /// An optional integer representing the track number in the playlist.
     pub track_no: Option<i32>,
 }
 
@@ -1894,6 +1945,11 @@ impl DjmdSongPlaylist {
     }
 }
 
+/// Represents the `DjmdProperty` table in the Rekordbox database.
+///
+/// This struct maps to the `DjmdProperty` table in the SQLite database used by Rekordbox.
+/// It stores metadata and properties related to the database, including versioning,
+/// drive information, and associated device details.
 #[derive(
     Debug,
     Clone,
@@ -1910,24 +1966,41 @@ impl DjmdSongPlaylist {
 #[diesel(belongs_to(DjmdDevice, foreign_key = device_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DjmdProperty {
+    /// A unique identifier for the database entry.
     pub db_id: String,
+    /// An optional string representing the version of the database.
     pub db_version: Option<String>,
+    /// An optional string representing the base drive of the database.
     pub base_db_drive: Option<String>,
+    /// An optional string representing the current drive of the database.
     pub current_db_drive: Option<String>,
+    /// An optional string representing the ID of the associated device in [`DjmdDevice`].
     pub device_id: Option<String>,
+    /// An optional string for reserved data.
     pub reserved1: Option<String>,
+    /// An optional string for reserved data.
     pub reserved2: Option<String>,
+    /// An optional string for reserved data.
     pub reserved3: Option<String>,
+    /// An optional string for reserved data.
     pub reserved4: Option<String>,
+    /// An optional string for reserved data.
     pub reserved5: Option<String>,
+    /// The timestamp when the entry was created, serialized/deserialized as `DateString`.
     #[diesel(serialize_as = DateString)]
     #[diesel(deserialize_as = DateString)]
     pub created_at: Date,
+    /// The timestamp when the entry was last updated, serialized/deserialized as `DateString`.
     #[diesel(serialize_as = DateString)]
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 }
 
+/// Represents the `DjmdCloudProperty` table in the Rekordbox database.
+///
+/// This struct maps to the `DjmdCloudProperty` table in the SQLite database used by Rekordbox.
+/// It stores metadata and properties related to cloud-based entries, including status,
+/// synchronization details, and reserved fields for future use.
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::djmdCloudProperty)]
 #[diesel(primary_key(id))]
@@ -1958,10 +2031,15 @@ pub struct DjmdCloudProperty {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
+    /// An optional string for reserved data.
     pub reserved1: Option<String>,
+    /// An optional string for reserved data.
     pub reserved2: Option<String>,
+    /// An optional string for reserved data.
     pub reserved3: Option<String>,
+    /// An optional string for reserved data.
     pub reserved4: Option<String>,
+    /// An optional string for reserved data.
     pub reserved5: Option<String>,
 }
 
