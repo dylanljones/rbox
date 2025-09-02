@@ -132,7 +132,7 @@ impl MasterDb {
     pub fn new<P: AsRef<OsStr>>(path: P) -> Result<Self> {
         let path_obj = Path::new(&path);
         if !path_obj.exists() {
-            return Err(anyhow::anyhow!("Database file does not exist"));
+            return Err(anyhow!("Database file does not exist"));
         }
         let parent_dir = path_obj.parent().expect("Failed to get parent directory");
         let share_dir_path = parent_dir.join("share");
@@ -192,6 +192,17 @@ impl MasterDb {
     /// where Rekordbox may be actively using the database.
     pub fn set_unsafe_writes(&mut self, unsafe_writes: bool) {
         self.unsafe_writes = unsafe_writes;
+    }
+
+    /// Checks if write operations to the database are allowed.
+    fn assert_write_mode(&self) -> Result<()> {
+        // Check if Rekordbox is running
+        if !self.unsafe_writes && is_rekordbox_running() {
+            return Err(anyhow!(
+                "Rekordbox is running, unsafe writes are not allowed!"
+            ));
+        }
+        Ok(())
     }
 
     // -- AgentRegistry ----------------------------------------------------------------------------
@@ -272,7 +283,7 @@ impl MasterDb {
         if let Some(value) = result {
             Ok(value)
         } else {
-            Err(anyhow::anyhow!("localUpdateCount not found"))
+            Err(anyhow!("localUpdateCount not found"))
         }
     }
 
@@ -672,7 +683,7 @@ impl MasterDb {
             Ok(Some(result))
         } else {
             // More than one item, return error
-            Err(anyhow::anyhow!("More than one element found!"))
+            Err(anyhow!("More than one element found!"))
         }
     }
 
@@ -741,12 +752,8 @@ impl MasterDb {
         image_path: Option<String>,
         compilation: Option<i32>,
     ) -> Result<DjmdAlbum> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         // Generate ID/UUID
         let id: String = self.generate_album_id()?;
         let uuid: String = Uuid::new_v4().to_string();
@@ -830,12 +837,8 @@ impl MasterDb {
     /// println!("{:?}", updated_album);
     /// ```
     pub fn update_album(&mut self, item: &mut DjmdAlbum) -> Result<DjmdAlbum> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         // Count differences
         let existing: DjmdAlbum = self.get_album_by_id(&item.id)?.unwrap();
         let mut n: i32 = 0;
@@ -893,12 +896,8 @@ impl MasterDb {
     /// println!("Number of rows deleted: {}", rows_deleted);
     /// ```
     pub fn delete_album(&mut self, id: &str) -> Result<usize> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         let result = diesel::delete(djmdAlbum.filter(schema::djmdAlbum::id.eq(id)))
             .execute(&mut self.conn)?;
 
@@ -999,7 +998,7 @@ impl MasterDb {
             Ok(Some(result))
         } else {
             // More than one item, return error
-            Err(anyhow::anyhow!("More than one element found!"))
+            Err(anyhow!("More than one element found!"))
         }
     }
 
@@ -1054,12 +1053,8 @@ impl MasterDb {
     /// println!("{:?}", artist);
     /// ```
     pub fn insert_artist(&mut self, name: String) -> Result<DjmdArtist> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         // Generate ID/UUID
         let id: String = self.generate_artist_id()?;
         let uuid: String = Uuid::new_v4().to_string();
@@ -1134,12 +1129,8 @@ impl MasterDb {
     /// println!("{:?}", updated_artist);
     /// ```
     pub fn update_artist(&mut self, item: &mut DjmdArtist) -> Result<DjmdArtist> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         // Count differences
         let existing: DjmdArtist = self.get_artist_by_id(&item.id)?.unwrap();
         let mut n: i32 = 0;
@@ -1189,12 +1180,8 @@ impl MasterDb {
     /// println!("Number of rows deleted: {}", rows_deleted);
     /// ```
     pub fn delete_artist(&mut self, id: &str) -> Result<usize> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         let result: usize = diesel::delete(djmdArtist.filter(schema::djmdArtist::id.eq(id)))
             .execute(&mut self.conn)?;
         self.increment_local_usn(1)?;
@@ -1460,7 +1447,7 @@ impl MasterDb {
     /// ```
     fn get_content_analysis_data_path(&mut self, id: &str) -> Result<PathBuf> {
         if self.share_dir.is_none() {
-            return Err(anyhow::anyhow!("Share dir not set!"));
+            return Err(anyhow!("Share dir not set!"));
         }
         let result = djmdContent
             .filter(schema::djmdContent::id.eq(id))
@@ -1473,12 +1460,12 @@ impl MasterDb {
                 let anlz_file = self.share_dir.clone().unwrap().join(striped);
                 let anlz_files_canonicalized = dunce::canonicalize(&anlz_file);
                 if let Err(e) = anlz_files_canonicalized {
-                    return Err(anyhow::anyhow!("Failed to canonicalize path: {}", e));
+                    return Err(anyhow!("Failed to canonicalize path: {}", e));
                 }
                 return Ok(anlz_files_canonicalized?);
             }
         }
-        Err(anyhow::anyhow!("Failed to get AnalysisDataPath"))
+        Err(anyhow!("Failed to get AnalysisDataPath"))
     }
 
     /// Returns the path to the directory containing the ANLZxxxx.xxx files for a given content ID.
@@ -1670,12 +1657,8 @@ impl MasterDb {
         &mut self,
         path: P,
     ) -> Result<DjmdContent> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         // prepare path and check if it exists
         let path = Path::new(&path);
         let rb_path = path.normalize_sep("/");
@@ -1684,16 +1667,13 @@ impl MasterDb {
             .to_str()
             .expect("Failed to convert path to string");
         if !path.is_file() || !path.exists() {
-            return Err(anyhow::anyhow!(format!(
+            return Err(anyhow!(
                 "File {} is not a file or doesn't exist!",
                 rb_path_str
-            )));
+            ));
         }
         if self.content_path_exists(&rb_path_str)? {
-            return Err(anyhow::anyhow!(format!(
-                "Content with path {} already exists",
-                rb_path_str
-            )));
+            return Err(anyhow!("Content with path {} already exists", rb_path_str));
         }
         // Generate ID/UUID
         let id: String = self.generate_content_id()?;
@@ -1714,7 +1694,7 @@ impl MasterDb {
             .select(schema::djmdDevice::master_db_id)
             .first::<Option<String>>(&mut self.conn)?;
         if db_id.is_none() {
-            return Err(anyhow::anyhow!("No master DB ID found in djmdDevice"));
+            return Err(anyhow!("No master DB ID found in djmdDevice"));
         }
         // TODO: No clue what content link should be, for now we just choose the last value used
         let content_link = djmdContent
@@ -1765,12 +1745,8 @@ impl MasterDb {
     /// println!("Rows updated: {}", rows_updated);
     /// ```
     pub fn update_content(&mut self, item: &DjmdContent) -> Result<usize> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         let result = diesel::update(&*item)
             .set(item.clone())
             .execute(&mut self.conn)?;
@@ -1782,12 +1758,8 @@ impl MasterDb {
     /// Sets the [DjmdContent.album_id] to the corresponding ID of the album.
     /// If the album does not exist yet, a new [DjmdAlbum] row will be created.
     pub fn update_content_album(&mut self, content_id: &str, name: &str) -> Result<usize> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         let album = self.insert_album_if_not_exists(name)?;
 
         let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
@@ -1801,12 +1773,8 @@ impl MasterDb {
     /// Sets the [DjmdContent.artist_id] to the corresponding ID of the artist.
     /// If the artist does not exist yet, a new [DjmdArtist] row will be created.
     pub fn update_content_artist(&mut self, content_id: &str, name: &str) -> Result<usize> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         let artist = self.insert_artist_if_not_exists(name)?;
 
         let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
@@ -1820,12 +1788,8 @@ impl MasterDb {
     /// Sets the [DjmdContent.remixer_id] to the corresponding ID of the artist.
     /// If the artist does not exist yet, a new [DjmdArtist] row will be created.
     pub fn update_content_remixer(&mut self, content_id: &str, name: &str) -> Result<usize> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         let artist = self.insert_artist_if_not_exists(name)?;
 
         let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
@@ -1843,12 +1807,8 @@ impl MasterDb {
         content_id: &str,
         name: &str,
     ) -> Result<usize> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         let artist = self.insert_artist_if_not_exists(name)?;
 
         let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
@@ -1862,12 +1822,8 @@ impl MasterDb {
     /// Sets the [DjmdContent.composer_id] to the corresponding ID of the artist.
     /// If the artist does not exist yet, a new [DjmdArtist] row will be created.
     pub fn update_content_composer(&mut self, content_id: &str, name: &str) -> Result<usize> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         let artist = self.insert_artist_if_not_exists(name)?;
 
         let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
@@ -1881,12 +1837,8 @@ impl MasterDb {
     /// Sets the [DjmdContent.genre_id] to the corresponding ID of the genre.
     /// If the genre does not exist yet, a new [DjmdGenre] row will be created.
     pub fn update_content_genre(&mut self, content_id: &str, name: &str) -> Result<usize> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         let genre = self.insert_genre_if_not_exists(name)?;
 
         let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
@@ -1900,12 +1852,8 @@ impl MasterDb {
     /// Sets the [DjmdContent.label_id] to the corresponding ID of the label.
     /// If the label does not exist yet, a new [DjmdLabel] row will be created.
     pub fn update_content_label(&mut self, content_id: &str, name: &str) -> Result<usize> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         let label = self.insert_label_if_not_exists(name)?;
 
         let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
@@ -1919,12 +1867,8 @@ impl MasterDb {
     /// Sets the [DjmdContent.key_id] to the corresponding ID of the label.
     /// If the key does not exist yet, a new [DjmdKey] row will be created.
     pub fn update_content_key(&mut self, content_id: &str, name: &str) -> Result<usize> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         let key = self.insert_key_if_not_exists(name)?;
 
         let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
@@ -1933,13 +1877,81 @@ impl MasterDb {
         Ok(result)
     }
 
+    /// Updates the file path of a content entry in the database.
+    ///
+    /// This function performs the following steps:
+    /// 1. Checks if unsafe writes are allowed when Rekordbox is running.
+    /// 2. Validates the provided file path to ensure it exists and is a file.
+    /// 3. Ensures the new path does not already exist in the database.
+    /// 4. Updates the analysis data files (if any) with the new path.
+    /// 5. Updates the database entry with the new path.
+    ///
+    /// # Arguments
+    /// * `content_id` - A string slice representing the unique identifier of the [`DjmdContent`] entry.
+    /// * `path` - A string slice representing the new file path to be set.
+    ///
+    /// # Returns
+    /// * `Result<usize>` - The number of rows affected by the update operation.
+    ///
+    /// # Errors
+    /// * Returns an error if:
+    ///   - Rekordbox is running and unsafe writes are not allowed.
+    ///   - The provided path does not exist or is not a file.
+    ///   - The new path already exists in the database.
+    ///   - Updating the analysis data or database fails.
+    ///
+    /// # Example
+    /// ```no_run
+    /// let mut db = MasterDb::open().unwrap();
+    /// let rows_updated = db.update_content_path("content_id", "/new/path/to/file.mp3").unwrap();
+    /// println!("Rows updated: {}", rows_updated);
+    /// ```
+    pub fn update_content_path(&mut self, content_id: &str, path: &str) -> Result<usize> {
+        self.assert_write_mode()?;
+
+        // prepare path and check if it exists
+        let path = Path::new(&path);
+        let rb_path = path.normalize_sep("/");
+        let rb_path_str = rb_path
+            .as_os_str()
+            .to_str()
+            .expect("Failed to convert path to string");
+        if !path.is_file() || !path.exists() {
+            return Err(anyhow!(
+                "File {} is not a file or doesn't exist!",
+                rb_path_str
+            ));
+        }
+        if self.content_path_exists(&rb_path_str)? {
+            return Err(anyhow!("Content with path {} already exists", rb_path_str));
+        }
+
+        // Update path in analysis data
+        let anlz_files: Option<AnlzFiles> = self.get_content_anlz_files(content_id)?;
+        if anlz_files.is_some() {
+            let mut anlz_files = anlz_files.unwrap();
+            anlz_files.dat.set_path(&rb_path_str)?;
+            anlz_files.dat.dump()?;
+
+            if let Some(ext) = &mut anlz_files.ext {
+                ext.set_path(&rb_path_str)?;
+                ext.dump()?;
+            }
+            if let Some(ex2) = &mut anlz_files.ex2 {
+                ex2.set_path(&rb_path_str)?;
+                ex2.dump()?;
+            }
+        }
+
+        // Update path in database
+        let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
+            .set(schema::djmdContent::folder_path.eq(rb_path_str.to_string()))
+            .execute(&mut self.conn)?;
+        Ok(result)
+    }
+
     // pub fn delete_content(&mut self, id: &str) -> Result<usize> {
-    //     // Check if Rekordbox is running
-    //     if !self.unsafe_writes && is_rekordbox_running() {
-    //         return Err(anyhow::anyhow!(
-    //             "Rekordbox is running, unsafe writes are not allowed!"
-    //         ));
-    //     }
+    //     self.assert_write_mode()?;
     //     let result = diesel::delete(djmdContent.filter(schema::djmdContent::id.eq(id)))
     //         .execute(&mut self.conn)?;
     //     Ok(result)
@@ -2114,7 +2126,7 @@ impl MasterDb {
             Ok(Some(result))
         } else {
             // More than one item, return error
-            Err(anyhow::anyhow!("More than one element found!"))
+            Err(anyhow!("More than one element found!"))
         }
     }
 
@@ -2168,12 +2180,8 @@ impl MasterDb {
     /// println!("{:?}", genre);
     /// ```
     pub fn insert_genre(&mut self, name: String) -> Result<DjmdGenre> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         // Generate ID/UUID
         let id: String = self.generate_genre_id()?;
         let uuid: String = Uuid::new_v4().to_string();
@@ -2243,12 +2251,8 @@ impl MasterDb {
     /// println!("{:?}", updated_genre);
     /// ```
     pub fn update_genre(&mut self, item: &mut DjmdGenre) -> Result<DjmdGenre> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         // Count differences
         let existing: DjmdGenre = self.get_genre_by_id(&item.id)?.unwrap();
         let mut n: i32 = 0;
@@ -2293,12 +2297,8 @@ impl MasterDb {
     /// println!("Number of rows deleted: {}", rows_deleted);
     /// ```
     pub fn delete_genre(&mut self, id: &str) -> Result<usize> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         let result = diesel::delete(djmdGenre.filter(schema::djmdGenre::id.eq(id)))
             .execute(&mut self.conn)?;
         self.increment_local_usn(1)?;
@@ -2660,7 +2660,7 @@ impl MasterDb {
             Ok(Some(result))
         } else {
             // More than one item, return error
-            Err(anyhow::anyhow!("More than one element found!"))
+            Err(anyhow!("More than one element found!"))
         }
     }
 
@@ -2714,12 +2714,8 @@ impl MasterDb {
     /// println!("{:?}", key);
     /// ```
     pub fn insert_key(&mut self, name: String) -> Result<DjmdKey> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         // Generate ID/UUID
         let id: String = self.generate_key_id()?;
         let uuid: String = Uuid::new_v4().to_string();
@@ -2788,12 +2784,8 @@ impl MasterDb {
     /// println!("{:?}", updated_key);
     /// ```
     pub fn update_key(&mut self, item: &mut DjmdKey) -> Result<DjmdKey> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         // Count differences
         let existing: DjmdKey = self.get_key_by_id(&item.id)?.unwrap();
         let mut n: i32 = 0;
@@ -2841,12 +2833,8 @@ impl MasterDb {
     /// println!("Number of rows deleted: {}", rows_deleted);
     /// ```
     pub fn delete_key(&mut self, id: &str) -> Result<usize> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         let result =
             diesel::delete(djmdKey.filter(schema::djmdKey::id.eq(id))).execute(&mut self.conn)?;
         self.increment_local_usn(1)?;
@@ -2940,7 +2928,7 @@ impl MasterDb {
             Ok(Some(result))
         } else {
             // More than one item, return error
-            Err(anyhow::anyhow!("More than one element found!"))
+            Err(anyhow!("More than one element found!"))
         }
     }
 
@@ -2994,12 +2982,8 @@ impl MasterDb {
     /// println!("{:?}", label);
     /// ```
     pub fn insert_label(&mut self, name: String) -> Result<DjmdLabel> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         // Generate ID/UUID
         let id: String = self.generate_label_id()?;
         let uuid: String = Uuid::new_v4().to_string();
@@ -3063,12 +3047,8 @@ impl MasterDb {
     /// let updated_label = db.update_label(&mut label).unwrap();
     /// println
     pub fn update_label(&mut self, item: &mut DjmdLabel) -> Result<DjmdLabel> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         // Count differences
         let existing: DjmdLabel = self.get_label_by_id(&item.id)?.unwrap();
         let mut n: i32 = 0;
@@ -3113,12 +3093,8 @@ impl MasterDb {
     /// println!("Number of rows deleted: {}", rows_deleted);
     /// ```
     pub fn delete_label(&mut self, id: &str) -> Result<usize> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         let result = diesel::delete(djmdLabel.filter(schema::djmdLabel::id.eq(id)))
             .execute(&mut self.conn)?;
         self.increment_local_usn(1)?;
@@ -3765,11 +3741,8 @@ impl MasterDb {
         smart_list: Option<String>,
     ) -> Result<DjmdPlaylist> {
         // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         // Handle defaults
         let parent_id = parent_id.unwrap_or("root".to_string());
         if self.playlist_type(&parent_id)? != PlaylistType::Folder {
@@ -3932,12 +3905,8 @@ impl MasterDb {
     /// let updated = db.rename_playlist(&"playlist_id".to_string(), "New Name".to_string()).unwrap();
     /// ```
     pub fn rename_playlist(&mut self, id: &String, name: String) -> Result<DjmdPlaylist> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         let utcnow = Utc::now();
         let usn: i32 = self.increment_local_usn(1)?;
         let result: DjmdPlaylist =
@@ -3992,12 +3961,8 @@ impl MasterDb {
         seq: Option<i32>,
         parent_id: Option<String>,
     ) -> Result<DjmdPlaylist> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         // Get playlist
         let playlist: DjmdPlaylist = self.get_playlist_by_id(id)?.expect("Playlist not found");
 
@@ -4175,12 +4140,8 @@ impl MasterDb {
     /// println!("Number of rows deleted: {}", rows_deleted);
     /// ```
     pub fn delete_playlist(&mut self, id: &str) -> Result<usize> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         let usn = self.increment_local_usn(1)?;
         // Generate date
         let utcnow: DateTime<Utc> = Utc::now();
@@ -4271,12 +4232,8 @@ impl MasterDb {
         content_id: &String,
         seq: Option<i32>,
     ) -> Result<DjmdSongPlaylist> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         if self.playlist_type(&playlist_id)? != PlaylistType::Playlist {
             return Err(anyhow!(
                 "Playlist with ID {} must be a Playlist!",
@@ -4372,12 +4329,8 @@ impl MasterDb {
     /// println!("{:?}", moved);
     /// ```
     pub fn move_playlist_song(&mut self, id: &String, seq: i32) -> Result<DjmdSongPlaylist> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         // Get playlistID and seq number
         let song: DjmdSongPlaylist = self.get_playlist_song_by_id(id)?.expect("Song not found");
         if song.track_no.unwrap() == seq {
@@ -4468,12 +4421,8 @@ impl MasterDb {
     /// println!("Number of rows deleted: {}", rows_deleted);
     /// ```
     pub fn delete_playlist_song(&mut self, id: &str) -> Result<usize> {
-        // Check if Rekordbox is running
-        if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow::anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
-        }
+        self.assert_write_mode()?;
+
         let usn = self.increment_local_usn(1)?;
         let utcnow: DateTime<Utc> = Utc::now();
         let datestr: String = format_datetime(&utcnow);
