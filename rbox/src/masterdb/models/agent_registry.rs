@@ -14,9 +14,9 @@ use pyo3::prelude::*;
 use super::schema;
 use super::util::{Date, DateString};
 
-/// Represents the `AgentRegistry` table in the Rekordbox database.
+/// Represents the `agentRegistry` table in the Rekordbox database.
 ///
-/// This struct maps to the `AgentRegistry` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `agentRegistry` table in the SQLite database used by Rekordbox.
 /// It contains various fields representing metadata and attributes of the Rekordbox collection.
 /// Each entry has a unique name as `registry_id`. The local update sequence number (`USN`), for
 /// example, is used to track changes made to the entry locally and if stored in the entry
@@ -66,10 +66,10 @@ pub struct AgentRegistry {
     pub text_2: Option<String>,
 }
 
-/// Represents the `CloudAgentRegistry` table in the Rekordbox database.
+/// Represents the `cloudAgentRegistry` table in the Rekordbox database.
 ///
-/// This struct maps to the `CloudAgentRegistry` table in the SQLite database used by Rekordbox.
-/// It contains similar fields as the [`crate::masterdb::AgentRegistry`], but is specifically used for cloud-related
+/// This struct maps to the `cloudAgentRegistry` table in the SQLite database used by Rekordbox.
+/// It contains similar fields as the [`AgentRegistry`], but is specifically used for cloud-related
 /// registry entries.
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::cloudAgentRegistry)]
