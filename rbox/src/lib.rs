@@ -98,6 +98,8 @@ pub mod masterdb;
 mod options;
 mod pathlib;
 pub mod prelude;
+#[cfg(feature = "pyo3")]
+mod py_mapping;
 pub mod settings;
 pub mod util;
 pub mod xml;

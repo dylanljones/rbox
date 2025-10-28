@@ -7,6 +7,7 @@ use napi_derive::napi;
 
 use rbox::masterdb::models::*;
 
+/*
 #[napi(object, js_name = "AgentRegistry")]
 pub struct JsAgentRegistry {
     pub registry_id: String,
@@ -135,6 +136,7 @@ impl From<JsCloudAgentRegistry> for CloudAgentRegistry {
         }
     }
 }
+*/
 
 #[napi(object, js_name = "ContentActiveCensor")]
 pub struct JsContentActiveCensor {

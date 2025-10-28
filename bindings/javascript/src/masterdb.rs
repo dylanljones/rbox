@@ -37,15 +37,15 @@ impl JsMasterDb {
     // -- AgentRegistry ----------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_agent_registry(&mut self) -> Result<Vec<JsAgentRegistry>> {
+    pub fn get_agent_registry(&mut self) -> Result<Vec<AgentRegistry>> {
         let models = self.db.get_agent_registry()?;
-        Ok(models.into_iter().map(|m| m.into()).collect())
+        Ok(models)
     }
 
     #[napi]
-    pub fn get_agent_registry_by_id(&mut self, id: String) -> Result<Option<JsAgentRegistry>> {
+    pub fn get_agent_registry_by_id(&mut self, id: String) -> Result<Option<AgentRegistry>> {
         let model = self.db.get_agent_registry_by_id(id.as_str())?;
-        Ok(model.map(|m| m.into()))
+        Ok(model)
     }
 
     #[napi]
@@ -56,18 +56,18 @@ impl JsMasterDb {
     // -- CloudAgentRegistry -----------------------------------------------------------------------
 
     #[napi]
-    pub fn get_cloud_agent_registry(&mut self) -> Result<Vec<JsCloudAgentRegistry>> {
+    pub fn get_cloud_agent_registry(&mut self) -> Result<Vec<CloudAgentRegistry>> {
         let models = self.db.get_cloud_agent_registry()?;
-        Ok(models.into_iter().map(|m| m.into()).collect())
+        Ok(models)
     }
 
     #[napi]
     pub fn get_cloud_agent_registry_by_id(
         &mut self,
         id: String,
-    ) -> Result<Option<JsCloudAgentRegistry>> {
+    ) -> Result<Option<CloudAgentRegistry>> {
         let model = self.db.get_cloud_agent_registry_by_id(id.as_str())?;
-        Ok(model.map(|m| m.into()))
+        Ok(model)
     }
 
     // -- ContentActiveCensor ----------------------------------------------------------------------

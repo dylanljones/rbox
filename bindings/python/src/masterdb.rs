@@ -35,28 +35,20 @@ impl PyMasterDb {
 
     // -- AgentRegistry ----------------------------------------------------------------------------
 
-    pub fn get_agent_registry(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_agent_registry(&mut self) -> PyResult<Vec<AgentRegistry>> {
         let models = self
             .db
             .get_agent_registry()
             .map_err(|e| PyErr::new::<DatabaseError, _>(e.to_string()))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
-    pub fn get_agent_registry_by_id(
-        &mut self,
-        py: Python,
-        id: &str,
-    ) -> PyResult<Option<PyAgentRegistry>> {
+    pub fn get_agent_registry_by_id(&mut self, id: &str) -> PyResult<Option<AgentRegistry>> {
         let model = self
             .db
             .get_agent_registry_by_id(id)
             .map_err(|e| PyErr::new::<DatabaseError, _>(e.to_string()))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     pub fn get_local_usn(&mut self, _py: Python) -> PyResult<i32> {
@@ -69,28 +61,23 @@ impl PyMasterDb {
 
     // -- CloudAgentRegistry -----------------------------------------------------------------------
 
-    pub fn get_cloud_agent_registry(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_cloud_agent_registry(&mut self) -> PyResult<Vec<CloudAgentRegistry>> {
         let models = self
             .db
             .get_cloud_agent_registry()
             .map_err(|e| PyErr::new::<DatabaseError, _>(e.to_string()))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_cloud_agent_registry_by_id(
         &mut self,
-        py: Python,
         id: &str,
-    ) -> PyResult<Option<PyCloudAgentRegistry>> {
+    ) -> PyResult<Option<CloudAgentRegistry>> {
         let model = self
             .db
             .get_cloud_agent_registry_by_id(id)
             .map_err(|e| PyErr::new::<DatabaseError, _>(e.to_string()))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     // -- ContentActiveCensor ----------------------------------------------------------------------

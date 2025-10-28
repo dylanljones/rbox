@@ -12,11 +12,10 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-rbox            = { path = "../../rbox" }
-# Default enable napi5 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
-napi            = { version = "3.2", default-features = false, features = ["napi5", "serde-json", "chrono_date", "error_anyhow"] }
-napi-derive     = { version = "3.2"}
-chrono          = { version = "0.4", features = ["serde"] }
+rbox            = { path = "../../rbox", features = ["bundled", "napi"] }
+napi            = { workspace = true }
+napi-derive     = { workspace = true}
+chrono          = { workspace = true }
 
 [build-dependencies]
 napi-build = "2.2"

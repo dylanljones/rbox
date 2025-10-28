@@ -2,8 +2,8 @@
 resolver = "3"
 members = [
     "rbox",
-    "bindings/python",
-    "bindings/javascript",
+    "bindings/*",
+    "py-derives",
 ]
 
 [workspace.package]
@@ -17,4 +17,9 @@ repository = "https://github.com/dylanljones/rbox"
 edition = "2021"
 
 [workspace.dependencies]
-rbox = { path = "rbox" }
+chrono          = { version = "0.4", features = ["serde"] }
+serde           = { version = "1.0", features = ["derive"] }
+serde_json      = { version = "1.0" }
+pyo3            = { version = "0.25", features = ["anyhow", "serde", "chrono"] }
+napi            = { version = "3.2", default-features = false, features = ["napi5", "serde-json", "chrono_date", "error_anyhow"] }
+napi-derive     = { version = "3.2"}

@@ -11,6 +11,7 @@ mod traits;
 mod xml;
 
 use pyo3::prelude::*;
+use rbox::masterdb::models;
 
 #[pyfunction]
 fn get_rekordbox_app_dir_path() -> PyResult<String> {
@@ -46,8 +47,8 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     let _ = m.add_function(wrap_pyfunction!(is_rekordbox_running, m)?);
 
     m.add_class::<masterdb::PyMasterDb>()?;
-    m.add_class::<py_models::PyAgentRegistry>()?;
-    m.add_class::<py_models::PyCloudAgentRegistry>()?;
+    m.add_class::<models::AgentRegistry>()?;
+    m.add_class::<models::CloudAgentRegistry>()?;
     m.add_class::<py_models::PyContentActiveCensor>()?;
     m.add_class::<py_models::PyContentCue>()?;
     m.add_class::<py_models::PyContentFile>()?;

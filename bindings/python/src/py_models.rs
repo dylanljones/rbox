@@ -11,6 +11,7 @@ use std::collections::HashMap;
 use super::iter::{PyItemsIter, PyObjectIter, PyStrIter};
 use super::traits::{FromPy, IntoPy, MutableMapping};
 
+/*
 #[pyclass(name = "AgentRegistry", unsendable, get_all, set_all)]
 pub struct PyAgentRegistry {
     pub registry_id: String,
@@ -392,6 +393,7 @@ impl PyCloudAgentRegistry {
         Ok(format!("CloudAgentRegistry(id: {})", self.id))
     }
 }
+*/
 
 #[pyclass(name = "ContentActiveCensor", unsendable, get_all, set_all)]
 pub struct PyContentActiveCensor {

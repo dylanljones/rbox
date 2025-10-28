@@ -1,7 +1,15 @@
 // Author: Dylan Jones
 // Date:   2025-09-02
 
+#[cfg(feature = "pyo3")]
+use crate::py_mapping::{PyItemsIter, PyObjectIter, PyStrIter};
 use diesel::prelude::*;
+#[cfg(feature = "napi")]
+use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use py_derives::PyMutableMapping;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
 
 use super::schema;
 use super::util::{Date, DateString};
@@ -21,9 +29,12 @@ use super::util::{Date, DateString};
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::agentRegistry)]
 #[diesel(primary_key(registry_id))]
-#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(unsendable, get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct AgentRegistry {
     /// A unique identifier for the registry entry.
+    #[cfg_attr(feature = "pyo3", repr_field)]
     pub registry_id: String,
     /// The timestamp when the entry was created, serialized/deserialized as `DateString`.
     #[diesel(serialize_as = DateString)]
@@ -63,9 +74,12 @@ pub struct AgentRegistry {
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::cloudAgentRegistry)]
 #[diesel(primary_key(id))]
-#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(unsendable, get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct CloudAgentRegistry {
     /// A unique identifier for the entry.
+    #[cfg_attr(feature = "pyo3", repr_field)]
     pub id: String,
     /// A unique universal identifier for the entry.
     pub uuid: String,
