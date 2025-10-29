@@ -81,16 +81,12 @@ impl PyMasterDb {
 
     // -- ContentActiveCensor ----------------------------------------------------------------------
 
-    pub fn get_content_active_censor(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_content_active_censor(&mut self) -> PyResult<Vec<ContentActiveCensor>> {
         let models = self
             .db
             .get_content_active_censor()
             .map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_content_active_censor_by_id(
@@ -107,13 +103,9 @@ impl PyMasterDb {
 
     // -- ContentCue -------------------------------------------------------------------------------
 
-    pub fn get_content_cue(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_content_cue(&mut self) -> PyResult<Vec<ContentCue>> {
         let models = self.db.get_content_cue().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_content_cue_by_id(
@@ -127,13 +119,9 @@ impl PyMasterDb {
 
     // -- ContentFile ------------------------------------------------------------------------------
 
-    pub fn get_content_file(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_content_file(&mut self) -> PyResult<Vec<ContentFile>> {
         let models = self.db.get_content_file().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_content_file_by_id(
@@ -150,13 +138,9 @@ impl PyMasterDb {
 
     // -- ActiveCensor -----------------------------------------------------------------------------
 
-    pub fn get_active_censor(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_active_censor(&mut self) -> PyResult<Vec<DjmdActiveCensor>> {
         let models = self.db.get_active_censor().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_active_censor_by_id(
@@ -173,13 +157,9 @@ impl PyMasterDb {
 
     // -- Album ------------------------------------------------------------------------------------
 
-    pub fn get_album(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_album(&mut self) -> PyResult<Vec<DjmdAlbum>> {
         let models = self.db.get_album().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_album_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdAlbum>> {
@@ -227,13 +207,9 @@ impl PyMasterDb {
 
     // -- Artist -----------------------------------------------------------------------------------
 
-    pub fn get_artist(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_artist(&mut self) -> PyResult<Vec<DjmdArtist>> {
         let models = self.db.get_artist().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_artist_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdArtist>> {
@@ -271,13 +247,9 @@ impl PyMasterDb {
 
     // -- Category ---------------------------------------------------------------------------------
 
-    pub fn get_category(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_category(&mut self) -> PyResult<Vec<DjmdCategory>> {
         let models = self.db.get_category().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_category_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdCategory>> {
@@ -287,13 +259,9 @@ impl PyMasterDb {
 
     // -- Color ------------------------------------------------------------------------------------
 
-    pub fn get_color(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_color(&mut self) -> PyResult<Vec<DjmdColor>> {
         let models = self.db.get_color().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_color_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdColor>> {
@@ -303,13 +271,9 @@ impl PyMasterDb {
 
     // -- Content ----------------------------------------------------------------------------------
 
-    pub fn get_content(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_content(&mut self) -> PyResult<Vec<DjmdContent>> {
         let models = self.db.get_content().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_content_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdContent>> {
@@ -437,13 +401,9 @@ impl PyMasterDb {
 
     // -- Cue --------------------------------------------------------------------------------------
 
-    pub fn get_cue(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_cue(&mut self) -> PyResult<Vec<DjmdCue>> {
         let models = self.db.get_cue().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_cue_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdCue>> {
@@ -453,13 +413,9 @@ impl PyMasterDb {
 
     // -- Device -----------------------------------------------------------------------------------
 
-    pub fn get_device(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_device(&mut self) -> PyResult<Vec<DjmdDevice>> {
         let models = self.db.get_device().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_device_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdDevice>> {
@@ -469,13 +425,9 @@ impl PyMasterDb {
 
     // -- Genre ------------------------------------------------------------------------------------
 
-    pub fn get_genre(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_genre(&mut self) -> PyResult<Vec<DjmdGenre>> {
         let models = self.db.get_genre().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_genre_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdGenre>> {
@@ -513,13 +465,9 @@ impl PyMasterDb {
 
     // -- History ----------------------------------------------------------------------------------
 
-    pub fn get_history(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_history(&mut self) -> PyResult<Vec<DjmdHistory>> {
         let models = self.db.get_history().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_history_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdHistory>> {
@@ -527,33 +475,21 @@ impl PyMasterDb {
         Ok(model.map(|m| m.into_py(py).unwrap()))
     }
 
-    pub fn get_history_songs(&mut self, py: Python, id: &str) -> PyResult<Py<PyList>> {
+    pub fn get_history_songs(&mut self, id: &str) -> PyResult<Vec<DjmdSongHistory>> {
         let models = self.db.get_history_songs(id).map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
-    pub fn get_history_contents(&mut self, py: Python, id: &str) -> PyResult<Py<PyList>> {
+    pub fn get_history_contents(&mut self, id: &str) -> PyResult<Vec<DjmdContent>> {
         let models = self.db.get_history_contents(id).map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     // -- HotCueBanklist ---------------------------------------------------------------------------
 
-    pub fn get_hot_cue_banklist(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_hot_cue_banklist(&mut self) -> PyResult<Vec<DjmdHotCueBanklist>> {
         let models = self.db.get_hot_cue_banklist().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_hot_cue_banklist_by_id(
@@ -570,65 +506,47 @@ impl PyMasterDb {
 
     pub fn get_hot_cue_banklist_children(
         &mut self,
-        py: Python,
         parent_id: &str,
-    ) -> PyResult<Py<PyList>> {
+    ) -> PyResult<Vec<DjmdHotCueBanklist>> {
         let models = self
             .db
             .get_hot_cue_banklist_children(parent_id)
             .map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
-    pub fn get_hot_cue_banklist_songs(&mut self, py: Python, id: &str) -> PyResult<Py<PyList>> {
+    pub fn get_hot_cue_banklist_songs(
+        &mut self,
+        id: &str,
+    ) -> PyResult<Vec<DjmdSongHotCueBanklist>> {
         let models = self
             .db
             .get_hot_cue_banklist_songs(id)
             .map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
-    pub fn get_hot_cue_banklist_contents(&mut self, py: Python, id: &str) -> PyResult<Py<PyList>> {
+    pub fn get_hot_cue_banklist_contents(&mut self, id: &str) -> PyResult<Vec<DjmdContent>> {
         let models = self
             .db
             .get_hot_cue_banklist_contents(id)
             .map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
-    pub fn get_hot_cue_banklist_cues(&mut self, py: Python, id: &str) -> PyResult<Py<PyList>> {
+    pub fn get_hot_cue_banklist_cues(&mut self, id: &str) -> PyResult<Vec<HotCueBanklistCue>> {
         let models = self
             .db
             .get_hot_cue_banklist_cues(id)
             .map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     // -- Key --------------------------------------------------------------------------------------
 
-    pub fn get_key(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_key(&mut self) -> PyResult<Vec<DjmdKey>> {
         let models = self.db.get_key().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_key_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdKey>> {
@@ -666,13 +584,9 @@ impl PyMasterDb {
 
     // -- Label ------------------------------------------------------------------------------------
 
-    pub fn get_label(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_label(&mut self) -> PyResult<Vec<DjmdLabel>> {
         let models = self.db.get_label().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_label_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdLabel>> {
@@ -710,13 +624,9 @@ impl PyMasterDb {
 
     // -- MenuItems --------------------------------------------------------------------------------
 
-    pub fn get_menu_item(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_menu_item(&mut self) -> PyResult<Vec<DjmdMenuItems>> {
         let models = self.db.get_menu_item().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_menu_item_by_id(
@@ -730,13 +640,9 @@ impl PyMasterDb {
 
     // -- MixerParam -------------------------------------------------------------------------------
 
-    pub fn get_mixer_param(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_mixer_param(&mut self) -> PyResult<Vec<DjmdMixerParam>> {
         let models = self.db.get_mixer_param().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_mixer_param_by_id(
@@ -750,25 +656,17 @@ impl PyMasterDb {
 
     // -- MyTag ------------------------------------------------------------------------------------
 
-    pub fn get_my_tag(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_my_tag(&mut self) -> PyResult<Vec<DjmdMyTag>> {
         let models = self.db.get_my_tag().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
-    pub fn get_my_tag_children(&mut self, py: Python, parent_id: &str) -> PyResult<Py<PyList>> {
+    pub fn get_my_tag_children(&mut self, parent_id: &str) -> PyResult<Vec<DjmdMyTag>> {
         let models = self
             .db
             .get_my_tag_children(parent_id)
             .map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_my_tag_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdMyTag>> {
@@ -776,33 +674,21 @@ impl PyMasterDb {
         Ok(model.map(|m| m.into_py(py).unwrap()))
     }
 
-    pub fn get_my_tag_songs(&mut self, py: Python, id: &str) -> PyResult<Py<PyList>> {
+    pub fn get_my_tag_songs(&mut self, id: &str) -> PyResult<Vec<DjmdSongMyTag>> {
         let models = self.db.get_my_tag_songs(id).map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
-    pub fn get_my_tag_contents(&mut self, py: Python, id: &str) -> PyResult<Py<PyList>> {
+    pub fn get_my_tag_contents(&mut self, id: &str) -> PyResult<Vec<DjmdContent>> {
         let models = self.db.get_my_tag_contents(id).map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     // -- Playlist ---------------------------------------------------------------------------------
 
-    pub fn get_playlist(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_playlist(&mut self) -> PyResult<Vec<DjmdPlaylist>> {
         let models = self.db.get_playlist().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_playlist_tree(&mut self, py: Python) -> PyResult<Py<PyList>> {
@@ -816,16 +702,12 @@ impl PyMasterDb {
         Ok(PyList::new(py, items)?.into())
     }
 
-    pub fn get_playlist_children(&mut self, py: Python, parent_id: &str) -> PyResult<Py<PyList>> {
+    pub fn get_playlist_children(&mut self, parent_id: &str) -> PyResult<Vec<DjmdPlaylist>> {
         let models = self
             .db
             .get_playlist_children(parent_id)
             .map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_playlist_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdPlaylist>> {
@@ -847,22 +729,14 @@ impl PyMasterDb {
         Ok(model.map(|m| m.into_py(py).unwrap()))
     }
 
-    pub fn get_playlist_songs(&mut self, py: Python, id: &str) -> PyResult<Py<PyList>> {
+    pub fn get_playlist_songs(&mut self, id: &str) -> PyResult<Vec<DjmdSongPlaylist>> {
         let models = self.db.get_playlist_songs(id).map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
-    pub fn get_playlist_contents(&mut self, py: Python, id: &str) -> PyResult<Py<PyList>> {
+    pub fn get_playlist_contents(&mut self, id: &str) -> PyResult<Vec<DjmdContent>> {
         let models = self.db.get_playlist_contents(id).map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_playlist_song_by_id(
@@ -974,13 +848,9 @@ impl PyMasterDb {
 
     // -- Property ---------------------------------------------------------------------------------
 
-    pub fn get_property(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_property(&mut self) -> PyResult<Vec<DjmdProperty>> {
         let models = self.db.get_property().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_property_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdProperty>> {
@@ -990,13 +860,9 @@ impl PyMasterDb {
 
     // -- CloudProperty ----------------------------------------------------------------------------
 
-    pub fn get_cloud_property(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_cloud_property(&mut self) -> PyResult<Vec<DjmdCloudProperty>> {
         let models = self.db.get_cloud_property().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_cloud_property_by_id(
@@ -1013,13 +879,9 @@ impl PyMasterDb {
 
     // -- RecommendLike ----------------------------------------------------------------------------
 
-    pub fn get_recommend_like(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_recommend_like(&mut self) -> PyResult<Vec<DjmdRecommendLike>> {
         let models = self.db.get_recommend_like().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_recommend_like_by_id(
@@ -1036,29 +898,20 @@ impl PyMasterDb {
 
     // -- RelatedTracks ----------------------------------------------------------------------------
 
-    pub fn get_related_tracks(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_related_tracks(&mut self) -> PyResult<Vec<DjmdRelatedTracks>> {
         let models = self.db.get_related_tracks().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_related_tracks_children(
         &mut self,
-        py: Python,
         parent_id: &str,
-    ) -> PyResult<Py<PyList>> {
+    ) -> PyResult<Vec<DjmdRelatedTracks>> {
         let models = self
             .db
             .get_related_tracks_children(parent_id)
             .map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_related_tracks_by_id(
@@ -1073,51 +926,35 @@ impl PyMasterDb {
         Ok(model.map(|m| m.into_py(py).unwrap()))
     }
 
-    pub fn get_related_tracks_songs(&mut self, py: Python, id: &str) -> PyResult<Py<PyList>> {
+    pub fn get_related_tracks_songs(&mut self, id: &str) -> PyResult<Vec<DjmdSongRelatedTracks>> {
         let models = self
             .db
             .get_related_tracks_songs(id)
             .map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
-    pub fn get_related_tracks_contents(&mut self, py: Python, id: &str) -> PyResult<Py<PyList>> {
+    pub fn get_related_tracks_contents(&mut self, id: &str) -> PyResult<Vec<DjmdContent>> {
         let models = self
             .db
             .get_related_tracks_contents(id)
             .map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     // -- Sampler ----------------------------------------------------------------------------------
 
-    pub fn get_sampler(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_sampler(&mut self) -> PyResult<Vec<DjmdSampler>> {
         let models = self.db.get_sampler().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
-    pub fn get_sampler_children(&mut self, py: Python, parent_id: &str) -> PyResult<Py<PyList>> {
+    pub fn get_sampler_children(&mut self, parent_id: &str) -> PyResult<Vec<DjmdSampler>> {
         let models = self
             .db
             .get_sampler_children(parent_id)
             .map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_sampler_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdSampler>> {
@@ -1125,33 +962,21 @@ impl PyMasterDb {
         Ok(model.map(|m| m.into_py(py).unwrap()))
     }
 
-    pub fn get_sampler_songs(&mut self, py: Python, id: &str) -> PyResult<Py<PyList>> {
+    pub fn get_sampler_songs(&mut self, id: &str) -> PyResult<Vec<DjmdSongSampler>> {
         let models = self.db.get_sampler_songs(id).map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
-    pub fn get_sampler_contents(&mut self, py: Python, id: &str) -> PyResult<Py<PyList>> {
+    pub fn get_sampler_contents(&mut self, id: &str) -> PyResult<Vec<DjmdContent>> {
         let models = self.db.get_sampler_contents(id).map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     // -- SongTagList ------------------------------------------------------------------------------
 
-    pub fn get_song_tag_list(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_song_tag_list(&mut self) -> PyResult<Vec<DjmdSongTagList>> {
         let models = self.db.get_song_tag_list().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_song_tag_list_by_id(
@@ -1168,13 +993,9 @@ impl PyMasterDb {
 
     // -- Sort -------------------------------------------------------------------------------------
 
-    pub fn get_sort(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_sort(&mut self) -> PyResult<Vec<DjmdSort>> {
         let models = self.db.get_sort().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_sort_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdSort>> {
@@ -1184,13 +1005,9 @@ impl PyMasterDb {
 
     // -- ImageFile --------------------------------------------------------------------------------
 
-    pub fn get_image_file(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_image_file(&mut self) -> PyResult<Vec<ImageFile>> {
         let models = self.db.get_image_file().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_image_file_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyImageFile>> {
@@ -1200,13 +1017,9 @@ impl PyMasterDb {
 
     // -- SettingFile ------------------------------------------------------------------------------
 
-    pub fn get_setting_file(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_setting_file(&mut self) -> PyResult<Vec<SettingFile>> {
         let models = self.db.get_setting_file().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_setting_file_by_id(
@@ -1223,13 +1036,9 @@ impl PyMasterDb {
 
     // -- UuidIDMap --------------------------------------------------------------------------------
 
-    pub fn get_uuid_id_map(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_uuid_id_map(&mut self) -> PyResult<Vec<UuidIDMap>> {
         let models = self.db.get_uuid_id_map().map_err(|e| db_error(e))?;
-        let items = models
-            .into_iter()
-            .map(|m| m.into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+        Ok(models)
     }
 
     pub fn get_uuid_id_map_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyUuidIDMap>> {
