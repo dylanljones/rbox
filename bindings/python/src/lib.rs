@@ -5,7 +5,7 @@ mod anlz;
 mod errors;
 mod iter;
 mod masterdb;
-mod py_models;
+// mod py_models;
 mod settings;
 mod traits;
 mod xml;
@@ -73,7 +73,7 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<models::DjmdMyTag>()?;
     m.add_class::<models::DjmdSongMyTag>()?;
     m.add_class::<models::DjmdPlaylist>()?;
-    m.add_class::<py_models::PyDjmdPlaylistTreeItem>()?;
+    m.add_class::<masterdb::PyDjmdPlaylistTreeItem>()?;
     m.add_class::<models::DjmdSongPlaylist>()?;
     m.add_class::<models::DjmdProperty>()?;
     m.add_class::<models::DjmdCloudProperty>()?;

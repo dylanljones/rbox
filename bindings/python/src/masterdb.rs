@@ -1,17 +1,69 @@
 // Author: Dylan Jones
 // Date:   2025-05-01
 
+use chrono::{DateTime, Utc};
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyList, PyString, PyType};
+use pyo3::types::{PyDict, PyString, PyType};
 use rbox::masterdb::{enums::PlaylistType, models::*, MasterDb};
 
 use super::errors::DatabaseError;
-use super::py_models::*;
-use super::traits::{FromPy, IntoPy};
+use super::traits::IntoPy;
 
 #[inline]
 fn db_error<E: ToString>(e: E) -> PyErr {
     PyErr::new::<DatabaseError, _>(e.to_string())
+}
+
+#[derive(Clone)]
+#[pyclass(name = "DjmdPlaylistTreeItem", unsendable, get_all, set_all)]
+pub struct PyDjmdPlaylistTreeItem {
+    pub id: String,
+    pub uuid: String,
+    pub rb_data_status: i32,
+    pub rb_local_data_status: i32,
+    pub rb_local_deleted: i32,
+    pub rb_local_synced: i32,
+    pub usn: Option<i32>,
+    pub rb_local_usn: Option<i32>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub seq: Option<i32>,
+    pub name: Option<String>,
+    pub image_path: Option<String>,
+    pub attribute: Option<i32>,
+    pub parent_id: Option<String>,
+    pub smart_list: Option<String>,
+    pub children: Vec<PyDjmdPlaylistTreeItem>,
+}
+
+impl IntoPy<PyDjmdPlaylistTreeItem> for DjmdPlaylistTreeItem {
+    fn into_py(self, py: Python) -> PyResult<PyDjmdPlaylistTreeItem> {
+        let children = self
+            .children
+            .into_iter()
+            .map(|c| c.borrow().clone().into_py(py).unwrap())
+            .collect();
+        let model = PyDjmdPlaylistTreeItem {
+            id: self.id,
+            uuid: self.uuid,
+            rb_data_status: self.rb_data_status,
+            rb_local_data_status: self.rb_local_data_status,
+            rb_local_deleted: self.rb_local_deleted,
+            rb_local_synced: self.rb_local_synced,
+            usn: self.usn,
+            rb_local_usn: self.rb_local_usn,
+            created_at: self.created_at.clone(),
+            updated_at: self.updated_at.clone(),
+            seq: self.seq,
+            name: self.name,
+            image_path: self.image_path,
+            attribute: self.attribute,
+            parent_id: self.parent_id,
+            smart_list: self.smart_list,
+            children,
+        };
+        Ok(model)
+    }
 }
 
 #[pyclass(unsendable)]
@@ -91,14 +143,13 @@ impl PyMasterDb {
 
     pub fn get_content_active_censor_by_id(
         &mut self,
-        py: Python,
         id: &str,
-    ) -> PyResult<Option<PyContentActiveCensor>> {
+    ) -> PyResult<Option<ContentActiveCensor>> {
         let model = self
             .db
             .get_content_active_censor_by_id(id)
             .map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     // -- ContentCue -------------------------------------------------------------------------------
@@ -108,13 +159,9 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_content_cue_by_id(
-        &mut self,
-        py: Python,
-        id: &str,
-    ) -> PyResult<Option<PyContentCue>> {
+    pub fn get_content_cue_by_id(&mut self, id: &str) -> PyResult<Option<ContentCue>> {
         let model = self.db.get_content_cue_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     // -- ContentFile ------------------------------------------------------------------------------
@@ -124,16 +171,12 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_content_file_by_id(
-        &mut self,
-        py: Python,
-        id: &str,
-    ) -> PyResult<Option<PyContentFile>> {
+    pub fn get_content_file_by_id(&mut self, id: &str) -> PyResult<Option<ContentFile>> {
         let model = self
             .db
             .get_content_file_by_id(id)
             .map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     // -- ActiveCensor -----------------------------------------------------------------------------
@@ -143,16 +186,12 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_active_censor_by_id(
-        &mut self,
-        py: Python,
-        id: &str,
-    ) -> PyResult<Option<PyDjmdActiveCensor>> {
+    pub fn get_active_censor_by_id(&mut self, id: &str) -> PyResult<Option<DjmdActiveCensor>> {
         let model = self
             .db
             .get_active_censor_by_id(id)
             .map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     // -- Album ------------------------------------------------------------------------------------
@@ -162,24 +201,23 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_album_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdAlbum>> {
+    pub fn get_album_by_id(&mut self, id: &str) -> PyResult<Option<DjmdAlbum>> {
         let model = self.db.get_album_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
-    pub fn get_album_by_name(&mut self, py: Python, name: &str) -> PyResult<Option<PyDjmdAlbum>> {
+    pub fn get_album_by_name(&mut self, name: &str) -> PyResult<Option<DjmdAlbum>> {
         let model = self.db.get_album_by_name(name).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     pub fn insert_album(
         &mut self,
-        py: Python,
         name: &str,
         artist_id: Option<&str>,
         image_path: Option<&str>,
         compilation: Option<i32>,
-    ) -> PyResult<PyDjmdAlbum> {
+    ) -> PyResult<DjmdAlbum> {
         // Convert to str if it's Some
         let artist_id = artist_id.map(|s| s.to_string());
         let image_path = image_path.map(|s| s.to_string());
@@ -187,17 +225,12 @@ impl PyMasterDb {
             .db
             .insert_album(name.to_string(), artist_id, image_path, compilation)
             .map_err(|e| db_error(e))?;
-        model.into_py(py)
+        Ok(model)
     }
 
-    pub fn update_album(
-        &mut self,
-        py: Python,
-        py_model: PyRef<'_, PyDjmdAlbum>,
-    ) -> PyResult<PyDjmdAlbum> {
-        let mut model = DjmdAlbum::from_py(py, py_model);
-        let item = self.db.update_album(&mut model).map_err(|e| db_error(e))?;
-        item.into_py(py)
+    pub fn update_album(&mut self, mut item: PyRefMut<'_, DjmdAlbum>) -> PyResult<DjmdAlbum> {
+        let model = self.db.update_album(&mut item).map_err(|e| db_error(e))?;
+        Ok(model)
     }
 
     pub fn delete_album(&mut self, id: &str) -> PyResult<()> {
@@ -212,32 +245,27 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_artist_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdArtist>> {
+    pub fn get_artist_by_id(&mut self, id: &str) -> PyResult<Option<DjmdArtist>> {
         let model = self.db.get_artist_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
-    pub fn get_artist_by_name(&mut self, py: Python, name: &str) -> PyResult<Option<PyDjmdArtist>> {
+    pub fn get_artist_by_name(&mut self, name: &str) -> PyResult<Option<DjmdArtist>> {
         let model = self.db.get_artist_by_name(name).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
-    pub fn insert_artist(&mut self, py: Python, name: &str) -> PyResult<PyDjmdArtist> {
+    pub fn insert_artist(&mut self, name: &str) -> PyResult<DjmdArtist> {
         let model = self
             .db
             .insert_artist(name.to_string())
             .map_err(|e| db_error(e))?;
-        model.into_py(py)
+        Ok(model)
     }
 
-    pub fn update_artist(
-        &mut self,
-        py: Python,
-        py_model: PyRef<'_, PyDjmdArtist>,
-    ) -> PyResult<PyDjmdArtist> {
-        let mut model = DjmdArtist::from_py(py, py_model);
-        let item = self.db.update_artist(&mut model).map_err(|e| db_error(e))?;
-        item.into_py(py)
+    pub fn update_artist(&mut self, mut item: PyRefMut<'_, DjmdArtist>) -> PyResult<DjmdArtist> {
+        let model = self.db.update_artist(&mut item).map_err(|e| db_error(e))?;
+        Ok(model)
     }
 
     pub fn delete_artist(&mut self, id: &str) -> PyResult<()> {
@@ -252,9 +280,9 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_category_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdCategory>> {
+    pub fn get_category_by_id(&mut self, id: &str) -> PyResult<Option<DjmdCategory>> {
         let model = self.db.get_category_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     // -- Color ------------------------------------------------------------------------------------
@@ -264,9 +292,9 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_color_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdColor>> {
+    pub fn get_color_by_id(&mut self, id: &str) -> PyResult<Option<DjmdColor>> {
         let model = self.db.get_color_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     // -- Content ----------------------------------------------------------------------------------
@@ -276,19 +304,15 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_content_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdContent>> {
+    pub fn get_content_by_id(&mut self, id: &str) -> PyResult<Option<DjmdContent>> {
         // Get the content by ID from the database
         let model = self.db.get_content_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
-    pub fn get_content_by_path(
-        &mut self,
-        py: Python,
-        path: &str,
-    ) -> PyResult<Option<PyDjmdContent>> {
+    pub fn get_content_by_path(&mut self, path: &str) -> PyResult<Option<DjmdContent>> {
         let model = self.db.get_content_by_path(path).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     pub fn get_content_anlz_dir(&mut self, id: &str) -> PyResult<Option<String>> {
@@ -321,18 +345,13 @@ impl PyMasterDb {
         }
     }
 
-    pub fn insert_content(&mut self, py: Python, path: &str) -> PyResult<PyDjmdContent> {
+    pub fn insert_content(&mut self, path: &str) -> PyResult<DjmdContent> {
         let model = self.db.insert_content(path).map_err(|e| db_error(e))?;
-        model.into_py(py)
+        Ok(model)
     }
 
-    pub fn update_content(
-        &mut self,
-        py: Python,
-        py_model: PyRef<'_, PyDjmdContent>,
-    ) -> PyResult<()> {
-        let model = DjmdContent::from_py(py, py_model);
-        self.db.update_content(&model).map_err(|e| db_error(e))?;
+    pub fn update_content(&mut self, item: PyRef<'_, DjmdContent>) -> PyResult<()> {
+        self.db.update_content(&item).map_err(|e| db_error(e))?;
         Ok(())
     }
 
@@ -406,9 +425,9 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_cue_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdCue>> {
+    pub fn get_cue_by_id(&mut self, id: &str) -> PyResult<Option<DjmdCue>> {
         let model = self.db.get_cue_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     // -- Device -----------------------------------------------------------------------------------
@@ -418,9 +437,9 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_device_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdDevice>> {
+    pub fn get_device_by_id(&mut self, id: &str) -> PyResult<Option<DjmdDevice>> {
         let model = self.db.get_device_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     // -- Genre ------------------------------------------------------------------------------------
@@ -430,32 +449,27 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_genre_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdGenre>> {
+    pub fn get_genre_by_id(&mut self, id: &str) -> PyResult<Option<DjmdGenre>> {
         let model = self.db.get_genre_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
-    pub fn get_genre_by_name(&mut self, py: Python, name: &str) -> PyResult<Option<PyDjmdGenre>> {
+    pub fn get_genre_by_name(&mut self, name: &str) -> PyResult<Option<DjmdGenre>> {
         let model = self.db.get_genre_by_name(name).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
-    pub fn insert_genre(&mut self, py: Python, name: &str) -> PyResult<PyDjmdGenre> {
+    pub fn insert_genre(&mut self, name: &str) -> PyResult<DjmdGenre> {
         let model = self
             .db
             .insert_genre(name.to_string())
             .map_err(|e| db_error(e))?;
-        model.into_py(py)
+        Ok(model)
     }
 
-    pub fn update_genre(
-        &mut self,
-        py: Python,
-        py_model: PyRef<'_, PyDjmdGenre>,
-    ) -> PyResult<PyDjmdGenre> {
-        let mut model = DjmdGenre::from_py(py, py_model);
-        let item = self.db.update_genre(&mut model).map_err(|e| db_error(e))?;
-        item.into_py(py)
+    pub fn update_genre(&mut self, mut item: PyRefMut<'_, DjmdGenre>) -> PyResult<DjmdGenre> {
+        let model = self.db.update_genre(&mut item).map_err(|e| db_error(e))?;
+        Ok(model)
     }
 
     pub fn delete_genre(&mut self, id: &str) -> PyResult<()> {
@@ -470,9 +484,9 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_history_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdHistory>> {
+    pub fn get_history_by_id(&mut self, id: &str) -> PyResult<Option<DjmdHistory>> {
         let model = self.db.get_history_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     pub fn get_history_songs(&mut self, id: &str) -> PyResult<Vec<DjmdSongHistory>> {
@@ -492,16 +506,12 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_hot_cue_banklist_by_id(
-        &mut self,
-        py: Python,
-        id: &str,
-    ) -> PyResult<Option<PyDjmdHotCueBanklist>> {
+    pub fn get_hot_cue_banklist_by_id(&mut self, id: &str) -> PyResult<Option<DjmdHotCueBanklist>> {
         let model = self
             .db
             .get_hot_cue_banklist_by_id(id)
             .map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     pub fn get_hot_cue_banklist_children(
@@ -549,32 +559,27 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_key_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdKey>> {
+    pub fn get_key_by_id(&mut self, id: &str) -> PyResult<Option<DjmdKey>> {
         let model = self.db.get_key_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
-    pub fn get_key_by_name(&mut self, py: Python, name: &str) -> PyResult<Option<PyDjmdKey>> {
+    pub fn get_key_by_name(&mut self, name: &str) -> PyResult<Option<DjmdKey>> {
         let model = self.db.get_key_by_name(name).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
-    pub fn insert_key(&mut self, py: Python, name: &str) -> PyResult<PyDjmdKey> {
+    pub fn insert_key(&mut self, name: &str) -> PyResult<DjmdKey> {
         let model = self
             .db
             .insert_key(name.to_string())
             .map_err(|e| db_error(e))?;
-        model.into_py(py)
+        Ok(model)
     }
 
-    pub fn update_key(
-        &mut self,
-        py: Python,
-        py_model: PyRef<'_, PyDjmdKey>,
-    ) -> PyResult<PyDjmdKey> {
-        let mut model = DjmdKey::from_py(py, py_model);
-        let item = self.db.update_key(&mut model).map_err(|e| db_error(e))?;
-        item.into_py(py)
+    pub fn update_key(&mut self, mut item: PyRefMut<'_, DjmdKey>) -> PyResult<DjmdKey> {
+        let model = self.db.update_key(&mut item).map_err(|e| db_error(e))?;
+        Ok(model)
     }
 
     pub fn delete_key(&mut self, id: &str) -> PyResult<()> {
@@ -589,32 +594,27 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_label_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdLabel>> {
+    pub fn get_label_by_id(&mut self, id: &str) -> PyResult<Option<DjmdLabel>> {
         let model = self.db.get_label_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
-    pub fn get_label_by_name(&mut self, py: Python, name: &str) -> PyResult<Option<PyDjmdLabel>> {
+    pub fn get_label_by_name(&mut self, name: &str) -> PyResult<Option<DjmdLabel>> {
         let model = self.db.get_label_by_name(name).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
-    pub fn insert_label(&mut self, py: Python, name: &str) -> PyResult<PyDjmdLabel> {
+    pub fn insert_label(&mut self, name: &str) -> PyResult<DjmdLabel> {
         let model = self
             .db
             .insert_label(name.to_string())
             .map_err(|e| db_error(e))?;
-        model.into_py(py)
+        Ok(model)
     }
 
-    pub fn update_label(
-        &mut self,
-        py: Python,
-        py_model: PyRef<'_, PyDjmdLabel>,
-    ) -> PyResult<PyDjmdLabel> {
-        let mut model = DjmdLabel::from_py(py, py_model);
-        let item = self.db.update_label(&mut model).map_err(|e| db_error(e))?;
-        item.into_py(py)
+    pub fn update_label(&mut self, mut item: PyRefMut<'_, DjmdLabel>) -> PyResult<DjmdLabel> {
+        let model = self.db.update_label(&mut item).map_err(|e| db_error(e))?;
+        Ok(model)
     }
 
     pub fn delete_label(&mut self, id: &str) -> PyResult<()> {
@@ -629,13 +629,9 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_menu_item_by_id(
-        &mut self,
-        py: Python,
-        id: &str,
-    ) -> PyResult<Option<PyDjmdMenuItems>> {
+    pub fn get_menu_item_by_id(&mut self, id: &str) -> PyResult<Option<DjmdMenuItems>> {
         let model = self.db.get_menu_item_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     // -- MixerParam -------------------------------------------------------------------------------
@@ -645,13 +641,9 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_mixer_param_by_id(
-        &mut self,
-        py: Python,
-        id: &str,
-    ) -> PyResult<Option<PyDjmdMixerParam>> {
+    pub fn get_mixer_param_by_id(&mut self, id: &str) -> PyResult<Option<DjmdMixerParam>> {
         let model = self.db.get_mixer_param_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     // -- MyTag ------------------------------------------------------------------------------------
@@ -669,9 +661,9 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_my_tag_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdMyTag>> {
+    pub fn get_my_tag_by_id(&mut self, id: &str) -> PyResult<Option<DjmdMyTag>> {
         let model = self.db.get_my_tag_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     pub fn get_my_tag_songs(&mut self, id: &str) -> PyResult<Vec<DjmdSongMyTag>> {
@@ -691,15 +683,13 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_playlist_tree(&mut self, py: Python) -> PyResult<Py<PyList>> {
+    pub fn get_playlist_tree(&mut self, py: Python) -> PyResult<Vec<PyDjmdPlaylistTreeItem>> {
         let models = self.db.get_playlist_tree().map_err(|e| db_error(e))?;
-        // let serializable_items: Vec<PlaylistTreeItem> =
-        //     items.iter().map(|item| item.borrow().clone()).collect();
         let items = models
             .into_iter()
             .map(|m| m.borrow().clone().into_py(py).unwrap())
-            .collect::<Vec<_>>();
-        Ok(PyList::new(py, items)?.into())
+            .collect();
+        Ok(items)
     }
 
     pub fn get_playlist_children(&mut self, parent_id: &str) -> PyResult<Vec<DjmdPlaylist>> {
@@ -710,23 +700,22 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_playlist_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdPlaylist>> {
+    pub fn get_playlist_by_id(&mut self, id: &str) -> PyResult<Option<DjmdPlaylist>> {
         let model = self.db.get_playlist_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     pub fn get_playlist_by_path(
         &mut self,
-        py: Python,
         path: Vec<Bound<'_, PyString>>,
-    ) -> PyResult<Option<PyDjmdPlaylist>> {
+    ) -> PyResult<Option<DjmdPlaylist>> {
         let rpath: Vec<String> = path.iter().map(|item| item.to_string()).collect();
         let rpath_str: Vec<&str> = rpath.iter().map(|item| item.as_str()).collect();
         let model = self
             .db
             .get_playlist_by_path(rpath_str)
             .map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     pub fn get_playlist_songs(&mut self, id: &str) -> PyResult<Vec<DjmdSongPlaylist>> {
@@ -739,28 +728,23 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_playlist_song_by_id(
-        &mut self,
-        py: Python,
-        id: &str,
-    ) -> PyResult<Option<PyDjmdSongPlaylist>> {
+    pub fn get_playlist_song_by_id(&mut self, id: &str) -> PyResult<Option<DjmdSongPlaylist>> {
         let model = self
             .db
             .get_playlist_song_by_id(id)
             .map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     pub fn insert_playlist(
         &mut self,
-        py: Python,
         name: &str,
         attribute: i32,
         parent_id: Option<&str>,
         seq: Option<i32>,
         image_path: Option<&str>,
         smart_list: Option<&str>,
-    ) -> PyResult<PyDjmdPlaylist> {
+    ) -> PyResult<DjmdPlaylist> {
         // Convert to str if it's Some
         let parent_id = parent_id.map(|s| s.to_string());
         let image_path = image_path.map(|s| s.to_string());
@@ -777,36 +761,30 @@ impl PyMasterDb {
                 smart_list,
             )
             .map_err(|e| db_error(e))?;
-        model.into_py(py)
+        Ok(model)
     }
 
-    pub fn rename_playlist(
-        &mut self,
-        py: Python,
-        id: &str,
-        name: &str,
-    ) -> PyResult<PyDjmdPlaylist> {
+    pub fn rename_playlist(&mut self, id: &str, name: &str) -> PyResult<DjmdPlaylist> {
         let model = self
             .db
             .rename_playlist(&id.to_string(), name.to_string())
             .map_err(|e| db_error(e))?;
-        model.into_py(py)
+        Ok(model)
     }
 
     pub fn move_playlist(
         &mut self,
-        py: Python,
         id: &str,
         seq: Option<i32>,
         parent_id: Option<&str>,
-    ) -> PyResult<PyDjmdPlaylist> {
+    ) -> PyResult<DjmdPlaylist> {
         // Convert to str if it's Some
         let parent_id = parent_id.map(|s| s.to_string());
         let model = self
             .db
             .move_playlist(&id.to_string(), seq, parent_id)
             .map_err(|e| db_error(e))?;
-        model.into_py(py)
+        Ok(model)
     }
 
     pub fn delete_playlist(&mut self, id: &str) -> PyResult<()> {
@@ -816,29 +794,23 @@ impl PyMasterDb {
 
     pub fn insert_playlist_song(
         &mut self,
-        py: Python,
         playlist_id: &str,
         content_id: &str,
         seq: Option<i32>,
-    ) -> PyResult<PyDjmdSongPlaylist> {
+    ) -> PyResult<DjmdSongPlaylist> {
         let model = self
             .db
             .insert_playlist_song(&playlist_id.to_string(), &content_id.to_string(), seq)
             .map_err(|e| db_error(e))?;
-        model.into_py(py)
+        Ok(model)
     }
 
-    pub fn move_playlist_song(
-        &mut self,
-        py: Python,
-        id: &str,
-        seq: i32,
-    ) -> PyResult<PyDjmdSongPlaylist> {
+    pub fn move_playlist_song(&mut self, id: &str, seq: i32) -> PyResult<DjmdSongPlaylist> {
         let model = self
             .db
             .move_playlist_song(&id.to_string(), seq)
             .map_err(|e| db_error(e))?;
-        model.into_py(py)
+        Ok(model)
     }
 
     pub fn delete_playlist_song(&mut self, id: &str) -> PyResult<()> {
@@ -853,9 +825,9 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_property_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdProperty>> {
+    pub fn get_property_by_id(&mut self, id: &str) -> PyResult<Option<DjmdProperty>> {
         let model = self.db.get_property_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     // -- CloudProperty ----------------------------------------------------------------------------
@@ -865,16 +837,12 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_cloud_property_by_id(
-        &mut self,
-        py: Python,
-        id: &str,
-    ) -> PyResult<Option<PyDjmdCloudProperty>> {
+    pub fn get_cloud_property_by_id(&mut self, id: &str) -> PyResult<Option<DjmdCloudProperty>> {
         let model = self
             .db
             .get_cloud_property_by_id(id)
             .map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     // -- RecommendLike ----------------------------------------------------------------------------
@@ -884,16 +852,12 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_recommend_like_by_id(
-        &mut self,
-        py: Python,
-        id: &str,
-    ) -> PyResult<Option<PyDjmdRecommendLike>> {
+    pub fn get_recommend_like_by_id(&mut self, id: &str) -> PyResult<Option<DjmdRecommendLike>> {
         let model = self
             .db
             .get_recommend_like_by_id(id)
             .map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     // -- RelatedTracks ----------------------------------------------------------------------------
@@ -914,16 +878,12 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_related_tracks_by_id(
-        &mut self,
-        py: Python,
-        id: &str,
-    ) -> PyResult<Option<PyDjmdRelatedTracks>> {
+    pub fn get_related_tracks_by_id(&mut self, id: &str) -> PyResult<Option<DjmdRelatedTracks>> {
         let model = self
             .db
             .get_related_tracks_by_id(id)
             .map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     pub fn get_related_tracks_songs(&mut self, id: &str) -> PyResult<Vec<DjmdSongRelatedTracks>> {
@@ -957,9 +917,9 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_sampler_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdSampler>> {
+    pub fn get_sampler_by_id(&mut self, id: &str) -> PyResult<Option<DjmdSampler>> {
         let model = self.db.get_sampler_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     pub fn get_sampler_songs(&mut self, id: &str) -> PyResult<Vec<DjmdSongSampler>> {
@@ -979,16 +939,12 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_song_tag_list_by_id(
-        &mut self,
-        py: Python,
-        id: &str,
-    ) -> PyResult<Option<PyDjmdSongTagList>> {
+    pub fn get_song_tag_list_by_id(&mut self, id: &str) -> PyResult<Option<DjmdSongTagList>> {
         let model = self
             .db
             .get_song_tag_list_by_id(id)
             .map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     // -- Sort -------------------------------------------------------------------------------------
@@ -998,9 +954,9 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_sort_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyDjmdSort>> {
+    pub fn get_sort_by_id(&mut self, id: &str) -> PyResult<Option<DjmdSort>> {
         let model = self.db.get_sort_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     // -- ImageFile --------------------------------------------------------------------------------
@@ -1010,9 +966,9 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_image_file_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyImageFile>> {
+    pub fn get_image_file_by_id(&mut self, id: &str) -> PyResult<Option<ImageFile>> {
         let model = self.db.get_image_file_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     // -- SettingFile ------------------------------------------------------------------------------
@@ -1022,16 +978,12 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_setting_file_by_id(
-        &mut self,
-        py: Python,
-        id: &str,
-    ) -> PyResult<Option<PySettingFile>> {
+    pub fn get_setting_file_by_id(&mut self, id: &str) -> PyResult<Option<SettingFile>> {
         let model = self
             .db
             .get_setting_file_by_id(id)
             .map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 
     // -- UuidIDMap --------------------------------------------------------------------------------
@@ -1041,8 +993,8 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_uuid_id_map_by_id(&mut self, py: Python, id: &str) -> PyResult<Option<PyUuidIDMap>> {
+    pub fn get_uuid_id_map_by_id(&mut self, id: &str) -> PyResult<Option<UuidIDMap>> {
         let model = self.db.get_uuid_id_map_by_id(id).map_err(|e| db_error(e))?;
-        Ok(model.map(|m| m.into_py(py).unwrap()))
+        Ok(model)
     }
 }
