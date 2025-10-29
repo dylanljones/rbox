@@ -3,6 +3,8 @@
 
 use anyhow::Result;
 use dirs::data_dir;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
 use std::path::PathBuf;
 use sysinfo::System;
 
@@ -133,4 +135,88 @@ pub fn get_rekordbox_pid() -> Option<i32> {
 /// - `false`: If Rekordbox is not running.
 pub fn is_rekordbox_running() -> bool {
     get_rekordbox_pid().is_some()
+}
+
+/// String iterator used for Python bindings.
+#[cfg(feature = "pyo3")]
+#[pyclass]
+pub(crate) struct PyStrIter {
+    pub inner: std::vec::IntoIter<String>,
+}
+
+#[cfg(feature = "pyo3")]
+impl PyStrIter {
+    pub fn new(items: Vec<String>) -> Self {
+        Self {
+            inner: items.into_iter(),
+        }
+    }
+}
+
+#[cfg(feature = "pyo3")]
+#[pymethods]
+impl PyStrIter {
+    pub fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+
+    pub fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<String> {
+        slf.inner.next()
+    }
+}
+
+/// Object iterator used for Python bindings.
+#[cfg(feature = "pyo3")]
+#[pyclass]
+pub(crate) struct PyObjectIter {
+    pub inner: std::vec::IntoIter<PyObject>,
+}
+
+#[cfg(feature = "pyo3")]
+impl PyObjectIter {
+    pub fn new(items: Vec<PyObject>) -> Self {
+        Self {
+            inner: items.into_iter(),
+        }
+    }
+}
+
+#[cfg(feature = "pyo3")]
+#[pymethods]
+impl PyObjectIter {
+    pub fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+
+    pub fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<PyObject> {
+        slf.inner.next()
+    }
+}
+
+/// Items iterator used for Python bindings.
+#[cfg(feature = "pyo3")]
+#[pyclass]
+pub(crate) struct PyItemsIter {
+    pub inner: std::vec::IntoIter<(String, PyObject)>,
+}
+
+#[cfg(feature = "pyo3")]
+impl PyItemsIter {
+    pub fn new(items: Vec<(String, PyObject)>) -> Self {
+        Self {
+            inner: items.into_iter(),
+        }
+    }
+}
+
+#[cfg(feature = "pyo3")]
+#[pymethods]
+impl PyItemsIter {
+    pub fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+
+    pub fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<(String, PyObject)> {
+        slf.inner.next()
+    }
 }

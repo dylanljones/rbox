@@ -12,7 +12,7 @@ use pyo3::prelude::*;
 use super::schema;
 use super::util::{Date, DateString};
 #[cfg(feature = "pyo3")]
-use crate::py_mapping::{PyItemsIter, PyObjectIter, PyStrIter};
+use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
 /// Represents the `UuidIDMap` table in the Rekordbox database.
 ///
