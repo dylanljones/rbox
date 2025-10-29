@@ -37,6 +37,25 @@ or add the following line to your Cargo.toml:
 rbox = "0.1.4"
 ```
 
+### Features
+
+The library requires SQLCipher for working with Rekordbox's encrypted database files.
+Choose one of the following features:
+
+- `bundled-vendored-openssl` (default):
+  Builds and statically links both SQLCipher and OpenSSL.
+  This is the most portable option and requires no system dependencies,
+  but increases compilation time.
+- `bundled`: Builds and statically links SQLCipher, but uses the system's OpenSSL installation.
+  Choose this if you already have OpenSSL installed and want to reduce compilation time.
+- `system`: Uses the system's SQLCipher and OpenSSL installations.
+  This is the fastest to compile but requires both SQLCipher and OpenSSL to be installed on your system.
+
+The library can be compiled with bindings for other programming languages.
+These features are used in the bindings and should not be enabled manually:
+
+- `pyo3`: Enables Python bindings
+- `napi`: Enables Node.js/JavaScript bindings through N-API
 
 ## 🚀 Quick-Start
 
