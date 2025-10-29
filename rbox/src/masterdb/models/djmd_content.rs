@@ -2,6 +2,12 @@
 // Date:   2025-09-02
 
 use diesel::prelude::*;
+#[cfg(feature = "napi")]
+use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use py_derives::PyMutableMapping;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
 
 use super::djmd_album::DjmdAlbum;
 use super::djmd_artist::DjmdArtist;
@@ -12,6 +18,8 @@ use super::djmd_key::DjmdKey;
 use super::djmd_label::DjmdLabel;
 use super::schema;
 use super::util::{Date, DateString};
+#[cfg(feature = "pyo3")]
+use crate::py_mapping::{PyItemsIter, PyObjectIter, PyStrIter};
 
 /// Represents the `DjmdContent` table in the Rekordbox database.
 ///
@@ -40,6 +48,9 @@ use super::util::{Date, DateString};
 #[diesel(belongs_to(DjmdColor, foreign_key = color_id))]
 #[diesel(belongs_to(DjmdDevice, foreign_key = device_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct DjmdContent {
     /// A unique identifier for the entry.
     pub id: String,

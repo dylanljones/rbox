@@ -2,10 +2,18 @@
 // Date:   2025-09-02
 
 use diesel::prelude::*;
+#[cfg(feature = "napi")]
+use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use py_derives::PyMutableMapping;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
 
 use super::djmd_content::DjmdContent;
 use super::schema;
 use super::util::{Date, DateString};
+#[cfg(feature = "pyo3")]
+use crate::py_mapping::{PyItemsIter, PyObjectIter, PyStrIter};
 
 /// Represents the `DjmdHotCueBanklist` table in the Rekordbox database.
 ///
@@ -27,6 +35,9 @@ use super::util::{Date, DateString};
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdHotCueBanklist, foreign_key = parent_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct DjmdHotCueBanklist {
     /// A unique identifier for the entry.
     pub id: String,
@@ -80,6 +91,9 @@ pub struct DjmdHotCueBanklist {
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct DjmdSongHotCueBanklist {
     /// A unique identifier for the entry.
     pub id: String,
@@ -168,6 +182,9 @@ pub struct DjmdSongHotCueBanklist {
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdSongHotCueBanklist, foreign_key = hot_cue_banklist_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct HotCueBanklistCue {
     /// A unique identifier for the entry.
     pub id: String,

@@ -1,8 +1,6 @@
 // Author: Dylan Jones
 // Date:   2025-09-02
 
-#[cfg(feature = "pyo3")]
-use crate::py_mapping::{PyItemsIter, PyObjectIter, PyStrIter};
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -13,6 +11,8 @@ use pyo3::prelude::*;
 
 use super::schema;
 use super::util::{Date, DateString};
+#[cfg(feature = "pyo3")]
+use crate::py_mapping::{PyItemsIter, PyObjectIter, PyStrIter};
 
 /// Represents the `agentRegistry` table in the Rekordbox database.
 ///
@@ -29,7 +29,8 @@ use super::util::{Date, DateString};
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = schema::agentRegistry)]
 #[diesel(primary_key(registry_id))]
-#[cfg_attr(feature = "pyo3", pyclass(unsendable, get_all, set_all, mapping))]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct AgentRegistry {

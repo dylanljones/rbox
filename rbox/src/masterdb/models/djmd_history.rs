@@ -2,10 +2,18 @@
 // Date:   2025-09-02
 
 use diesel::prelude::*;
+#[cfg(feature = "napi")]
+use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use py_derives::PyMutableMapping;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
 
 use super::schema;
 use super::util::{Date, DateString};
 use super::DjmdContent;
+#[cfg(feature = "pyo3")]
+use crate::py_mapping::{PyItemsIter, PyObjectIter, PyStrIter};
 
 /// Represents the `DjmdHistory` table in the Rekordbox database.
 ///
@@ -27,6 +35,9 @@ use super::DjmdContent;
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdHistory, foreign_key = parent_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct DjmdHistory {
     /// A unique identifier for the entry.
     pub id: String,
@@ -86,6 +97,9 @@ pub struct DjmdHistory {
 #[diesel(belongs_to(DjmdHistory, foreign_key = history_id))]
 #[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct DjmdSongHistory {
     /// A unique identifier for the entry.
     pub id: String,
