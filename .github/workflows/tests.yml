@@ -208,7 +208,7 @@ jobs:
         with:
           node-version: 20
           cache: yarn
-          cache-dependency-path: bindings/javascript
+          # cache-dependency-path: bindings/javascript
 
       # - name: Set Windows OpenSSL env
       #   if: runner.os == 'Windows'
