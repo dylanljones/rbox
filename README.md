@@ -8,6 +8,7 @@
 </p>
 
 <p align="center">
+  <a title="Tests" target="_blank" href="https://github.com/dylanljones/rbox/actions/workflows/tests.yml"><img src="https://img.shields.io/github/actions/workflow/status/dylanljones/rbox/tests.yml?style=for-the-badge&label=tests&labelColor=555555" style="height:20px;"></a>
   <a title="Rust" target="_blank" href="https://crates.io/crates/rbox"><img alt="Crates.io" src="https://img.shields.io/crates/v/rbox.svg?style=for-the-badge&color=fc8d62&logo=rust" style="height:20px;"></a>
   <a title="Python" target="_blank" href="https://pypi.org/project/rbox/"><img alt="PyPI" src="https://img.shields.io/pypi/v/rbox.svg?style=for-the-badge&color=fc8d62&logo=python" style="height:20px;"></a>
   <a title="JavaScript" target="_blank" href="https://www.npmjs.com/package/rbox-js"><img alt="JS" src="https://img.shields.io/npm/v/rbox-js.svg?style=for-the-badge&color=fc8d62&logo=npm" style="height:20px;"></a>
