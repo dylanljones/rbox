@@ -55,8 +55,9 @@ The following is a list of possible scopes:
 - **db**: Rekordbox v6 database handling
 - **anlz**: ANLZ file handling
 - **mysetting**: MySettings file handling
-- **python**: Python bindings
-- **javascript**: JavaScript bindings
+- **binding**: General language binding changes
+- **py**: Python bindings
+- **js**: JavaScript bindings
 
 
 ### Subject

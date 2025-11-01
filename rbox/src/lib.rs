@@ -94,6 +94,7 @@
 //!
 
 pub mod anlz;
+mod error;
 pub mod masterdb;
 mod options;
 mod pathlib;
@@ -103,6 +104,7 @@ pub mod util;
 pub mod xml;
 
 pub use anlz::{Anlz, AnlzTag};
+pub use error::{Error, Result};
 pub use masterdb::MasterDb;
 pub use options::RekordboxOptions;
 pub use pathlib::NormalizePath;

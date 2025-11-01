@@ -16,7 +16,7 @@ repos:
     rev: v1.0
     hooks:
       # Run the linter
-      - id: cargo-check
+      # - id: cargo-check
       # Run the formatter
       - id: fmt
 

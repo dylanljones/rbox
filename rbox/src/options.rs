@@ -31,10 +31,11 @@
 //! }
 //! ```
 
-use dirs::data_dir;
 use serde::Deserialize;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
+
+use super::util::app_dir;
 
 /// Represents the Rekordbox options, including paths for the database, analysis data, and settings.
 #[derive(Debug)]
@@ -117,8 +118,7 @@ impl RekordboxOptions {
     /// - `Ok(Self)` if the options file is successfully loaded.
     /// - `Err(anyhow::Error)` if the file or required directories are not found.
     pub fn open() -> anyhow::Result<Self> {
-        let binding = data_dir().expect("Failed to get app data directory");
-        let app_dir = binding.as_path();
+        let app_dir = app_dir()?;
         let pioneer_app_dir = app_dir.join("Pioneer");
         if !pioneer_app_dir.exists() {
             return Err(anyhow::anyhow!("Pioneer directory not found!"));

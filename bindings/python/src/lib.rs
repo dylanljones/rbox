@@ -14,7 +14,7 @@ use rbox::masterdb::models;
 
 #[pyfunction]
 fn get_rekordbox_app_dir_path() -> PyResult<String> {
-    let path = rbox::util::get_rekordbox_app_dir_path()
+    let path = rbox::util::rekordbox_app_dir()
         .map_err(|e| PyErr::new::<errors::Error, _>(format!("{}", e)))?;
     Ok(path.to_str().unwrap().to_string())
 }

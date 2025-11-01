@@ -7,7 +7,7 @@ use rbox;
 
 #[napi]
 fn get_rekordbox_app_dir_path() -> Result<String> {
-    let path = rbox::util::get_rekordbox_app_dir_path()?;
+    let path = rbox::util::rekordbox_app_dir()?;
     Ok(path.to_str().unwrap().to_string())
 }
 
