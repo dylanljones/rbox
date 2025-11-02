@@ -162,7 +162,7 @@ impl MasterDb {
     /// and the `masterPlaylist6.xml` file will be extracted from the options.
     pub fn from_options(options: &RekordboxOptions) -> Result<Self> {
         let share_dir = options.analysis_root.normalize();
-        let plxml_path = options.get_db_dir()?.normalize();
+        let plxml_path = options.get_db_dir().normalize();
         let conn = open_connection(options.db_path.to_str().unwrap())?;
 
         Ok(Self {

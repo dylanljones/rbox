@@ -23,9 +23,8 @@
 //!         println!("Settings root: {:?}", options.settings_root);
 //!
 //!         // Get the database directory
-//!         if let Ok(db_dir) = options.get_db_dir() {
-//!             println!("Database directory: {:?}", db_dir);
-//!         }
+//!         let db_dir = options.get_db_dir();
+//!         println!("Database directory: {:?}", db_dir);
 //!     },
 //!     Err(e) => println!("Failed to load Rekordbox options: {}", e),
 //! }
@@ -35,7 +34,8 @@ use serde::Deserialize;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
-use super::util::app_dir;
+use super::util::options_json_path;
+use crate::error::{Error, Result};
 
 /// Represents the Rekordbox options, including paths for the database, analysis data, and settings.
 #[derive(Debug)]
@@ -58,12 +58,12 @@ impl RekordboxOptions {
     ///
     /// # Returns
     /// - `Ok(Self)` if the instance is successfully created.
-    /// - `Err(anyhow::Error)` if an error occurs.
+    /// - `Err(Error)` if an error occurs.
     pub fn new<P: AsRef<Path> + AsRef<OsStr>>(
         db_path: P,
         analysis_root: P,
         settings_root: P,
-    ) -> anyhow::Result<Self> {
+    ) -> Result<Self> {
         Ok(Self {
             db_path: Path::new(&db_path).to_path_buf(),
             analysis_root: Path::new(&analysis_root).to_path_buf(),
@@ -78,16 +78,18 @@ impl RekordboxOptions {
     ///
     /// # Returns
     /// - `Ok(Self)` if the options are successfully loaded.
-    /// - `Err(anyhow::Error)` if an error occurs during loading or parsing.
-    pub fn load<P: AsRef<Path> + AsRef<OsStr>>(path: P) -> anyhow::Result<Self> {
+    /// - `Err(Error)` if an error occurs during loading or parsing.
+    pub fn load<P: AsRef<Path> + AsRef<OsStr>>(path: P) -> Result<Self> {
         #[derive(Debug, Deserialize)]
         struct OptionsRaw {
             options: Vec<Vec<String>>,
         }
 
-        let file = std::fs::File::open(path).expect("File not found");
+        let file = std::fs::File::open(&path).map_err(|e| Error::FileNotFound(e.to_string()))?;
+
+        let file = file;
         let reader = std::io::BufReader::new(file);
-        let raw: OptionsRaw = serde_json::from_reader(reader).expect("JSON was not well-formatted");
+        let raw: OptionsRaw = serde_json::from_reader(reader)?;
 
         let mut db_path_opt: Option<String> = None;
         // let mut port_opt: Option<String> = None;
@@ -105,10 +107,25 @@ impl RekordboxOptions {
                 &_ => {}
             }
         }
+        if db_path_opt.is_none() {
+            return Err(Error::OptionError(
+                "Database path not found in options".to_string(),
+            ));
+        }
+        if analysis_root_path_opt.is_none() {
+            return Err(Error::OptionError(
+                "Analysis root path not found in options".to_string(),
+            ));
+        }
+        if settings_root_path_opt.is_none() {
+            return Err(Error::OptionError(
+                "Settings root path not found in options".to_string(),
+            ));
+        }
         Self::new(
-            db_path_opt.expect("No db path"),
-            analysis_root_path_opt.expect("No analysis root path"),
-            settings_root_path_opt.expect("No settings root path"),
+            db_path_opt.unwrap(),
+            analysis_root_path_opt.unwrap(),
+            settings_root_path_opt.unwrap(),
         )
     }
 
@@ -116,33 +133,21 @@ impl RekordboxOptions {
     ///
     /// # Returns
     /// - `Ok(Self)` if the options file is successfully loaded.
-    /// - `Err(anyhow::Error)` if the file or required directories are not found.
-    pub fn open() -> anyhow::Result<Self> {
-        let app_dir = app_dir()?;
-        let pioneer_app_dir = app_dir.join("Pioneer");
-        if !pioneer_app_dir.exists() {
-            return Err(anyhow::anyhow!("Pioneer directory not found!"));
-        };
-        let file = pioneer_app_dir
-            .join("rekordboxAgent")
-            .join("storage")
-            .join("options.json");
-        if !file.exists() {
-            return Err(anyhow::anyhow!("Rekordbox options.json not found!"));
-        };
+    /// - `Err(Error)` if the file or required directories are not found.
+    pub fn open() -> Result<Self> {
+        let file = options_json_path()?;
         Self::load(&file)
     }
 
     /// Retrieves the directory containing the Rekordbox database.
     ///
     /// # Returns
-    /// - `Ok(PathBuf)` containing the database directory path.
-    /// - `Err(anyhow::Error)` if the database directory cannot be determined.
-    pub fn get_db_dir(&self) -> anyhow::Result<PathBuf> {
+    /// The directory containing the database file
+    pub fn get_db_dir(&self) -> PathBuf {
         let path = self
             .db_path
             .parent()
             .expect("Failed to get database directory");
-        Ok(path.to_path_buf())
+        path.to_path_buf()
     }
 }

@@ -123,6 +123,27 @@ pub fn rekordbox_app_dir() -> Result<PathBuf> {
     }
 }
 
+/// Retrieves the path to the `options.json` file used by the Rekordbox Agent.
+///
+/// The `options.json` file is typically located in the `storage` subdirectory
+/// within the Rekordbox Agent application directory.
+///
+/// # Returns
+/// The path to the `options.json` file if it exists.
+///
+/// # Errors
+/// * `Error::EnvionmentError` if the required environment variable is not set or is empty.
+/// * `Error::FileNotFound` if the `options.json` file does not exist.
+pub fn options_json_path() -> Result<PathBuf> {
+    let app_dir = rekordbox_agent_app_dir()?;
+    let path = app_dir.join("storage").join("options.json");
+    if !path.exists() {
+        Err(Error::FileNotFound(path.display().to_string()))
+    } else {
+        Ok(path)
+    }
+}
+
 /// Retrieves the default path to the Rekordbox master database file.
 ///
 /// On macOS, the function first checks for the database file in the `~/Library/Pioneer/rekordbox`

@@ -11,6 +11,10 @@ pub enum Error {
     EnvionmentNotFound(String),
     #[error("File not found: {0}")]
     FileNotFound(String),
+    #[error("Failed to parse JSON: {0}")]
+    JsonError(#[from] serde_json::Error),
+    #[error("Failed to parse options.json: {0}")]
+    OptionError(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
