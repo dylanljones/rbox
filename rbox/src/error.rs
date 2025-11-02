@@ -9,12 +9,24 @@ use thiserror::Error;
 pub enum Error {
     #[error("Enviroment variable {0} is not set")]
     EnvionmentNotFound(String),
+
     #[error("File not found: {0}")]
     FileNotFound(String),
-    #[error("Failed to parse JSON: {0}")]
+
+    #[error(transparent)]
     JsonError(#[from] serde_json::Error),
+
     #[error("Failed to parse options.json: {0}")]
     OptionError(String),
+
+    #[error(transparent)]
+    IOError(#[from] std::io::Error),
+
+    #[error("XML Error: {0}")]
+    XmlError(String),
+
+    #[error(transparent)]
+    Utf8Error(#[from] std::str::Utf8Error),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

@@ -36,11 +36,13 @@ use chrono::NaiveDate;
 use lazy_regex::regex_replace_all;
 use quick_xml;
 use quick_xml::events::{BytesDecl, Event};
-use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{de::Error as DeError, Deserialize, Deserializer, Serialize, Serializer};
 use std::ffi::OsStr;
 use std::fmt::{Debug, Display};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+
+use crate::error::{Error, Result};
 
 fn octet_to_hex(arg: u8) -> String {
     let r = format!("{:x}", arg);
@@ -95,7 +97,7 @@ fn decode_uri(s: impl AsRef<str>) -> String {
         .to_string()
 }
 
-fn serialize_location<S>(value: &String, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_location<S>(value: &String, serializer: S) -> std::result::Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -103,7 +105,7 @@ where
     value_encoded.serialize(serializer)
 }
 
-fn deserialize_location<'de, D>(deserializer: D) -> Result<String, D::Error>
+fn deserialize_location<'de, D>(deserializer: D) -> std::result::Result<String, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -131,7 +133,7 @@ pub struct Product {
 // -- Collection ----------------------------------------------------------------------------------
 
 /// Tempo element representing the beat grid of a track.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Tempo {
     /// Start position of BeatGrid
     /// Unit : Second (with decimal numbers)
@@ -381,7 +383,7 @@ pub struct Collection {
 }
 
 impl Serialize for Collection {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -447,7 +449,7 @@ impl Into<u16> for PlaylistNodeType {
 impl TryFrom<u16> for PlaylistNodeType {
     type Error = String;
 
-    fn try_from(value: u16) -> Result<Self, Self::Error> {
+    fn try_from(value: u16) -> std::result::Result<Self, Self::Error> {
         match value {
             0 => Ok(PlaylistNodeType::Folder),
             1 => Ok(PlaylistNodeType::Playlist),
@@ -457,7 +459,7 @@ impl TryFrom<u16> for PlaylistNodeType {
 }
 
 impl<'de> Deserialize<'de> for PlaylistNodeType {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -471,7 +473,7 @@ impl<'de> Deserialize<'de> for PlaylistNodeType {
 }
 
 impl Serialize for PlaylistNodeType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -502,7 +504,7 @@ impl Into<u16> for PlaylistKeyType {
 impl TryFrom<u16> for PlaylistKeyType {
     type Error = String;
 
-    fn try_from(value: u16) -> Result<Self, Self::Error> {
+    fn try_from(value: u16) -> std::result::Result<Self, Self::Error> {
         match value {
             0 => Ok(PlaylistKeyType::TrackID),
             1 => Ok(PlaylistKeyType::Location),
@@ -512,7 +514,7 @@ impl TryFrom<u16> for PlaylistKeyType {
 }
 
 impl<'de> Deserialize<'de> for PlaylistKeyType {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -526,7 +528,7 @@ impl<'de> Deserialize<'de> for PlaylistKeyType {
 }
 
 impl Serialize for PlaylistKeyType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -541,7 +543,7 @@ impl Serialize for PlaylistKeyType {
 impl TryFrom<i32> for PlaylistKeyType {
     type Error = &'static str;
 
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
+    fn try_from(value: i32) -> std::result::Result<Self, Self::Error> {
         match value {
             0 => Ok(PlaylistKeyType::TrackID),
             1 => Ok(PlaylistKeyType::Location),
@@ -573,7 +575,7 @@ pub struct PlaylistNode {
 }
 
 impl Serialize for PlaylistNode {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -675,9 +677,11 @@ impl PlaylistNode {
         &mut self,
         name: &str,
         key_type: PlaylistKeyType,
-    ) -> anyhow::Result<&mut PlaylistNode> {
+    ) -> Result<&mut PlaylistNode> {
         if self.node_type == PlaylistNodeType::Playlist {
-            return Err(anyhow::anyhow!("Cannot add child node to playlist node"));
+            return Err(Error::XmlError(
+                "Cannot add child node to playlist node".into(),
+            ));
         };
         let idx = self.nodes.as_ref().unwrap().len();
         let node = Self::playlist(name, key_type);
@@ -687,9 +691,11 @@ impl PlaylistNode {
         Ok(node_out)
     }
 
-    pub fn new_folder(&mut self, name: &str) -> anyhow::Result<&mut PlaylistNode> {
+    pub fn new_folder(&mut self, name: &str) -> Result<&mut PlaylistNode> {
         if self.node_type == PlaylistNodeType::Playlist {
-            return Err(anyhow::anyhow!("Cannot add child node to playlist node"));
+            return Err(Error::XmlError(
+                "Cannot add child node to playlist node".into(),
+            ));
         };
         let idx = self.nodes.as_ref().unwrap().len();
         let node = Self::folder(name);
@@ -699,43 +705,44 @@ impl PlaylistNode {
         Ok(node_out)
     }
 
-    pub fn remove_node(&mut self, index: usize) -> anyhow::Result<()> {
+    pub fn remove_node(&mut self, index: usize) -> Result<()> {
         if self.node_type == PlaylistNodeType::Playlist {
-            return Err(anyhow::anyhow!("Cannot add child node to playlist node"));
+            return Err(Error::XmlError(
+                "Cannot add child node to playlist node".into(),
+            ));
         };
         self.nodes.as_mut().unwrap().remove(index);
         Ok(())
     }
 
-    pub fn clear_nodes(&mut self) -> anyhow::Result<()> {
+    pub fn clear_nodes(&mut self) -> Result<()> {
         if self.node_type == PlaylistNodeType::Playlist {
-            return Err(anyhow::anyhow!("Cannot add child node to playlist node"));
+            return Err(Error::XmlError(
+                "Cannot add child node to playlist node".into(),
+            ));
         };
         self.nodes.as_mut().unwrap().clear();
         Ok(())
     }
 
-    pub fn get_child(&mut self, idx: usize) -> anyhow::Result<Option<&mut PlaylistNode>> {
+    pub fn get_child(&mut self, idx: usize) -> Result<Option<&mut PlaylistNode>> {
         if self.node_type == PlaylistNodeType::Playlist {
-            return Err(anyhow::anyhow!("Cannot get child of playlist node"));
+            return Err(Error::XmlError("Cannot get child of playlist node".into()));
         };
         let nodes = self.nodes.as_mut().unwrap();
         Ok(nodes.get_mut(idx))
     }
 
-    pub fn find_child(&mut self, name: &str) -> anyhow::Result<Option<&mut PlaylistNode>> {
+    pub fn find_child(&mut self, name: &str) -> Result<Option<&mut PlaylistNode>> {
         if self.node_type == PlaylistNodeType::Playlist {
-            return Err(anyhow::anyhow!("Cannot get child of playlist node"));
+            return Err(Error::XmlError("Cannot get child of playlist node".into()));
         };
         let nodes = self.nodes.as_mut().unwrap();
         let node = nodes.iter_mut().find(|n| n.name == name);
         Ok(node)
     }
 
-    pub fn get_child_by_path(
-        &mut self,
-        path: Vec<String>,
-    ) -> anyhow::Result<Option<&mut PlaylistNode>> {
+    pub fn get_child_by_path(&mut self, path: Vec<String>) -> Result<Option<&mut PlaylistNode>> {
         let mut parent = self;
 
         for name in path {
@@ -748,33 +755,33 @@ impl PlaylistNode {
         Ok(Some(parent))
     }
 
-    pub fn get_track(&mut self, idx: usize) -> anyhow::Result<Option<&PlaylistTrack>> {
+    pub fn get_track(&mut self, idx: usize) -> Result<Option<&PlaylistTrack>> {
         if self.node_type == PlaylistNodeType::Folder {
-            return Err(anyhow::anyhow!("Cannot get track of folder node"));
+            return Err(Error::XmlError("Cannot get track of folder node".into()));
         };
         let tracks = self.tracks.as_mut().unwrap();
         Ok(tracks.get(idx))
     }
 
-    pub fn new_track(&mut self, key: &str) -> anyhow::Result<()> {
+    pub fn new_track(&mut self, key: &str) -> Result<()> {
         if self.node_type == PlaylistNodeType::Folder {
-            return Err(anyhow::anyhow!("Cannot add track to folder node"));
+            return Err(Error::XmlError("Cannot add track to folder node".into()));
         };
         let track_item = PlaylistTrack::new(key);
         self.tracks.as_mut().unwrap().push(track_item);
         Ok(())
     }
-    pub fn add_track_key(&mut self, key: &str) -> anyhow::Result<()> {
+    pub fn add_track_key(&mut self, key: &str) -> Result<()> {
         if self.node_type == PlaylistNodeType::Folder {
-            return Err(anyhow::anyhow!("Cannot add track to folder node"));
+            return Err(Error::XmlError("Cannot add track to folder node".into()));
         };
         let track_item = PlaylistTrack::new(key);
         self.tracks.as_mut().unwrap().push(track_item);
         Ok(())
     }
-    pub fn add_track(&mut self, track: &Track) -> anyhow::Result<()> {
+    pub fn add_track(&mut self, track: &Track) -> Result<()> {
         if self.node_type == PlaylistNodeType::Folder {
-            return Err(anyhow::anyhow!("Cannot add track to folder node"));
+            return Err(Error::XmlError("Cannot add track to folder node".into()));
         };
         let key_type = self.key_type.as_ref().unwrap();
         let track_item = PlaylistTrack::from_track(track, key_type);
@@ -782,9 +789,11 @@ impl PlaylistNode {
         Ok(())
     }
 
-    pub fn remove_track(&mut self, key: &str) -> anyhow::Result<()> {
+    pub fn remove_track(&mut self, key: &str) -> Result<()> {
         if self.node_type == PlaylistNodeType::Folder {
-            return Err(anyhow::anyhow!("Cannot remove track from folder node"));
+            return Err(Error::XmlError(
+                "Cannot remove track from folder node".into(),
+            ));
         };
         let mut index: Option<usize> = None;
         for (i, track) in self.tracks.as_mut().unwrap().iter_mut().enumerate() {
@@ -793,15 +802,17 @@ impl PlaylistNode {
             }
         }
         if index.is_none() {
-            return Err(anyhow::anyhow!("Track not found"));
+            return Err(Error::XmlError("Track not found".into()));
         }
         self.tracks.as_mut().unwrap().remove(index.unwrap());
         Ok(())
     }
 
-    pub fn clear_tracks(&mut self) -> anyhow::Result<()> {
+    pub fn clear_tracks(&mut self) -> Result<()> {
         if self.node_type == PlaylistNodeType::Folder {
-            return Err(anyhow::anyhow!("Cannot clear tracks of a folder node"));
+            return Err(Error::XmlError(
+                "Cannot clear tracks of a folder node".into(),
+            ));
         };
         self.tracks.as_mut().unwrap().clear();
         Ok(())
@@ -922,18 +933,20 @@ impl RekordboxXml {
     }
 
     /// Dump the XML document to a string.
-    pub fn to_string(&self) -> anyhow::Result<String> {
+    pub fn to_string(&self) -> Result<String> {
         // Create XML declaration
         let buffer: Vec<u8> = Vec::new();
         let mut writer = quick_xml::Writer::new(buffer);
         writer.write_event(Event::Decl(BytesDecl::new("1.0", Some("UTF-8"), None)))?;
-        let mut decl_string = String::from_utf8(writer.into_inner())?;
+        let mut decl_string = String::from_utf8(writer.into_inner()).map_err(|e| e.utf8_error())?;
 
         // Serialize the XML document to a string
         let mut string = String::new();
         let mut ser = quick_xml::se::Serializer::new(&mut string);
         ser.indent(' ', 2);
-        self.doc.serialize(ser)?;
+        self.doc
+            .serialize(ser)
+            .map_err(|e| Error::XmlError(e.to_string()))?;
 
         // Prepend the XML declaration to the serialized string
         decl_string.push('\n');
@@ -942,7 +955,7 @@ impl RekordboxXml {
     }
 
     /// Write the XML document to a file.
-    pub fn dump_copy<P: AsRef<Path>>(&self, path: P) -> anyhow::Result<()> {
+    pub fn dump_copy<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         // Serialize the XML document to a string
         let xml_string = self.to_string()?;
         // Write the XML string to a file
@@ -952,7 +965,7 @@ impl RekordboxXml {
     }
 
     /// Write the XML document to the original file.
-    pub fn dump(&self) -> anyhow::Result<()> {
+    pub fn dump(&self) -> Result<()> {
         self.dump_copy(&self.path)?;
         Ok(())
     }
@@ -1017,7 +1030,7 @@ impl RekordboxXml {
         self.doc.collection.tracks.get_mut(index).unwrap()
     }
 
-    pub fn update_track(&mut self, track: Track) -> anyhow::Result<()> {
+    pub fn update_track(&mut self, track: Track) -> Result<()> {
         if let Some(existing_track) = self
             .doc
             .collection
@@ -1028,11 +1041,11 @@ impl RekordboxXml {
             *existing_track = track;
             Ok(())
         } else {
-            Err(anyhow::anyhow!("Track not found"))
+            Err(Error::XmlError("Track not found".into()))
         }
     }
 
-    pub fn remove_track(&mut self, track_id: &str) -> anyhow::Result<()> {
+    pub fn remove_track(&mut self, track_id: &str) -> Result<()> {
         // Remove the track from the collection
         let index = self
             .doc
@@ -1040,7 +1053,7 @@ impl RekordboxXml {
             .tracks
             .iter()
             .position(|t| t.trackid == track_id)
-            .ok_or_else(|| anyhow::anyhow!("Track not found"))?;
+            .ok_or_else(|| Error::XmlError("Track not found".into()))?;
         self.doc.collection.tracks.remove(index);
 
         // Remove any references to the track in playlists
@@ -1061,10 +1074,7 @@ impl RekordboxXml {
         self.doc.playlists.node = node;
     }
 
-    pub fn get_playlist_by_path(
-        &mut self,
-        path: Vec<String>,
-    ) -> anyhow::Result<Option<&mut PlaylistNode>> {
+    pub fn get_playlist_by_path(&mut self, path: Vec<String>) -> Result<Option<&mut PlaylistNode>> {
         let root = &mut self.doc.playlists.node;
         root.get_child_by_path(path)
     }
@@ -1074,45 +1084,37 @@ impl RekordboxXml {
         name: &str,
         key_type: PlaylistKeyType,
         parent_path: Vec<String>,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         let parent = self.get_playlist_by_path(parent_path)?;
         if parent.is_none() {
-            return Err(anyhow::anyhow!("Parent playlist not found"));
+            return Err(Error::XmlError("Parent playlist not found".into()));
         }
         parent.unwrap().new_playlist(name, key_type)?;
         Ok(())
     }
 
-    pub fn new_folder(&mut self, name: &str, parent_path: Vec<String>) -> anyhow::Result<()> {
+    pub fn new_folder(&mut self, name: &str, parent_path: Vec<String>) -> Result<()> {
         let parent = self.get_playlist_by_path(parent_path)?;
         if parent.is_none() {
-            return Err(anyhow::anyhow!("Parent playlist not found"));
+            return Err(Error::XmlError("Parent playlist not found".into()));
         }
         parent.unwrap().new_folder(name)?;
         Ok(())
     }
 
-    pub fn add_track_key_to_playlist(
-        &mut self,
-        key: &str,
-        parent_path: Vec<String>,
-    ) -> anyhow::Result<()> {
+    pub fn add_track_key_to_playlist(&mut self, key: &str, parent_path: Vec<String>) -> Result<()> {
         let parent = self.get_playlist_by_path(parent_path)?;
         if parent.is_none() {
-            return Err(anyhow::anyhow!("Parent playlist not found"));
+            return Err(Error::XmlError("Parent playlist not found".into()));
         }
         parent.unwrap().new_track(key)?;
         Ok(())
     }
 
-    pub fn add_track_to_playlist(
-        &mut self,
-        track: &Track,
-        parent_path: Vec<String>,
-    ) -> anyhow::Result<()> {
+    pub fn add_track_to_playlist(&mut self, track: &Track, parent_path: Vec<String>) -> Result<()> {
         let parent = self.get_playlist_by_path(parent_path)?;
         if parent.is_none() {
-            return Err(anyhow::anyhow!("Parent playlist not found"));
+            return Err(Error::XmlError("Parent playlist not found".into()));
         }
         parent.unwrap().add_track(track)?;
         Ok(())

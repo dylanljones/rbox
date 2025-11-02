@@ -1170,7 +1170,10 @@ impl PyRekordboxXml {
 
     pub fn to_string(&mut self, py: Python) -> PyResult<String> {
         self.update_xml(py);
-        let s = self.xml.to_string()?;
+        let s = self
+            .xml
+            .to_string()
+            .map_err(|e| PyErr::new::<XmlError, _>(e.to_string()))?;
         Ok(s)
     }
 
