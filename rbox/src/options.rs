@@ -86,46 +86,44 @@ impl RekordboxOptions {
         }
 
         let file = std::fs::File::open(&path).map_err(|e| Error::FileNotFound(e.to_string()))?;
-
-        let file = file;
         let reader = std::io::BufReader::new(file);
         let raw: OptionsRaw = serde_json::from_reader(reader)?;
 
-        let mut db_path_opt: Option<String> = None;
+        let mut db_path: Option<String> = None;
         // let mut port_opt: Option<String> = None;
-        let mut analysis_root_path_opt: Option<String> = None;
-        let mut settings_root_path_opt = None;
+        let mut analysis_root_path: Option<String> = None;
+        let mut settings_root_path: Option<String> = None;
 
         for opt in raw.options {
-            let name = opt.get(0).expect("No name");
-            let value = opt.get(1).expect("No value");
-            match name.as_str() {
-                "db-path" => db_path_opt = Some(value.to_string()),
-                // "port" => port_opt = Some(value.to_string()),
-                "analysis-data-root-path" => analysis_root_path_opt = Some(value.to_string()),
-                "settings-root-path" => settings_root_path_opt = Some(value.to_string()),
-                &_ => {}
+            if opt.len() < 2 {
+                continue; // Skip invalid entries
+            }
+            match opt[0].as_str() {
+                "db-path" => db_path = Some(opt[1].clone()),
+                "analysis-data-root-path" => analysis_root_path = Some(opt[1].clone()),
+                "settings-root-path" => settings_root_path = Some(opt[1].clone()),
+                _ => {}
             }
         }
-        if db_path_opt.is_none() {
+        if db_path.is_none() {
             return Err(Error::OptionError(
                 "Database path not found in options".to_string(),
             ));
         }
-        if analysis_root_path_opt.is_none() {
+        if analysis_root_path.is_none() {
             return Err(Error::OptionError(
                 "Analysis root path not found in options".to_string(),
             ));
         }
-        if settings_root_path_opt.is_none() {
+        if settings_root_path.is_none() {
             return Err(Error::OptionError(
                 "Settings root path not found in options".to_string(),
             ));
         }
         Self::new(
-            db_path_opt.unwrap(),
-            analysis_root_path_opt.unwrap(),
-            settings_root_path_opt.unwrap(),
+            db_path.unwrap(),
+            analysis_root_path.unwrap(),
+            settings_root_path.unwrap(),
         )
     }
 
