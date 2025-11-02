@@ -508,7 +508,6 @@ if (!nativeBinding) {
 }
 
 module.exports = nativeBinding
-module.exports.AgentRegistry = nativeBinding.AgentRegistry
 module.exports.Anlz = nativeBinding.Anlz
 module.exports.JsAnlz = nativeBinding.JsAnlz
 module.exports.MasterDb = nativeBinding.MasterDb
