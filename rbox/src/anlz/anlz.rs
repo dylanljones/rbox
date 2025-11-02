@@ -1,6 +1,8 @@
 // Author: Dylan Jones
 // Date:   2025-05-08
 
+#![allow(unused_parens)] // Supress warnings coming from binrw macros
+
 use super::xor::XorStream;
 use binrw::{
     binrw,
