@@ -3,14 +3,12 @@
 
 #![allow(unused_parens)] // Supress warnings coming from binrw macros
 
-use super::xor::XorStream;
-use binrw::{
-    binrw,
-    io::{Read, Seek, Write},
-    BinRead, BinResult, BinWrite, Endian, NullWideString,
-};
+use binrw::io::{Read, Seek, Write};
+use binrw::{binrw, BinRead, BinResult, BinWrite, Endian, NullWideString};
 use modular_bitfield::prelude::*;
 use std::ffi::OsStr;
+
+use super::xor::XorStream;
 
 /// The tag of section.
 #[binrw]
