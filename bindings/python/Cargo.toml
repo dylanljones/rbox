@@ -19,11 +19,8 @@ extension-module = ["pyo3/extension-module"]
 
 [dependencies]
 rbox            = { path = "../../rbox", features = ["bundled-vendored-openssl", "pyo3"] }
-py-derives      = { path = "../../py-derives" }
 pyo3            = { workspace = true }
 chrono          = { workspace = true }
-serde           = { workspace = true }
-serde_json      = { workspace = true }
 
 [build-dependencies]
 # version_check = "0.9.5"
