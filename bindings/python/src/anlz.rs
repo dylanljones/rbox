@@ -537,7 +537,9 @@ impl PyAnlz {
     }
 
     pub fn set_path(&mut self, path: &str) -> PyResult<()> {
-        self.anlz.set_path(path)?;
+        self.anlz
+            .set_path(path)
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?;
         Ok(())
     }
 

@@ -78,6 +78,7 @@ impl From<quick_xml::se::SeError> for Error {
         Error::XmlError(error.to_string())
     }
 }
+
 #[cfg(feature = "napi")]
 impl From<Error> for NapiError {
     fn from(error: Error) -> Self {
