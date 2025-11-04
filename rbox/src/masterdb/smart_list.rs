@@ -1,11 +1,12 @@
 // Author: Dylan Jones
 // Date:   2025-08-12
 
-use anyhow::anyhow;
 use serde::de::Error as DError;
 use serde::ser::Error as SError;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashSet;
+
+use crate::error::{Error, Result};
 
 /// Converts a 32-bit unsigned integer to a signed integer, wrapping if needed.
 ///
@@ -51,19 +52,22 @@ pub enum LogicalOperator {
 
 /// Implements conversion from `i32` to `LogicalOperator`.
 impl TryFrom<i32> for LogicalOperator {
-    type Error = &'static str;
+    type Error = String;
 
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
+    fn try_from(value: i32) -> std::result::Result<Self, Self::Error> {
         match value {
             1 => Ok(LogicalOperator::All),
             2 => Ok(LogicalOperator::Any),
-            _ => Err("Invalid value for LogicalOperator"),
+            _ => Err("Invalid value for LogicalOperator".into()),
         }
     }
 }
 
 /// Serializes the `LogicalOperator` enum to an integer.
-fn serialize_logical_op<S>(op: &LogicalOperator, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_logical_op<S>(
+    op: &LogicalOperator,
+    serializer: S,
+) -> std::result::Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -71,7 +75,7 @@ where
 }
 
 /// Deserializes an integer to the `LogicalOperator` enum.
-fn deserialize_logical_op<'de, D>(deserializer: D) -> Result<LogicalOperator, D::Error>
+fn deserialize_logical_op<'de, D>(deserializer: D) -> std::result::Result<LogicalOperator, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -115,9 +119,9 @@ pub enum Operator {
 
 /// Implements conversion from `i32` to `Operator`.
 impl TryFrom<i32> for Operator {
-    type Error = &'static str;
+    type Error = String;
 
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
+    fn try_from(value: i32) -> std::result::Result<Self, Self::Error> {
         match value {
             1 => Ok(Operator::Equal),
             2 => Ok(Operator::NotEqual),
@@ -130,13 +134,13 @@ impl TryFrom<i32> for Operator {
             9 => Ok(Operator::NotContains),
             10 => Ok(Operator::StartsWith),
             11 => Ok(Operator::EndsWith),
-            _ => Err("Invalid value for Operator"),
+            _ => Err("Invalid value for Operator".into()),
         }
     }
 }
 
 /// Serializes the `Operator` enum to an integer.
-fn serialize_op<S>(op: &Operator, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_op<S>(op: &Operator, serializer: S) -> std::result::Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -144,7 +148,7 @@ where
 }
 
 /// Deserializes an integer to the `Operator` enum.
-fn deserialize_op<'de, D>(deserializer: D) -> Result<Operator, D::Error>
+fn deserialize_op<'de, D>(deserializer: D) -> std::result::Result<Operator, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -259,7 +263,7 @@ impl Condition {
 }
 
 /// Serializes the ID by left bit-shifting it.
-fn serialize_id<S>(id: &String, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_id<S>(id: &String, serializer: S) -> std::result::Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -275,7 +279,7 @@ where
 }
 
 /// Deserializes the ID by right bit-shifting it.
-fn deserialize_id<'de, D>(deserializer: D) -> Result<String, D::Error>
+fn deserialize_id<'de, D>(deserializer: D) -> std::result::Result<String, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -333,13 +337,13 @@ impl SmartList {
     }
 
     /// Parse the smart list XML string
-    pub fn parse(data: &str) -> anyhow::Result<Self> {
+    pub fn parse(data: &str) -> Result<Self> {
         let smart: Self = quick_xml::de::from_str(data)?;
         Ok(smart)
     }
 
     /// Parse the smart list XML string
-    pub fn to_string(&self) -> anyhow::Result<String> {
+    pub fn to_string(&self) -> Result<String> {
         let mut string = String::new();
         let ser = quick_xml::se::Serializer::new(&mut string);
         self.serialize(ser)?;
@@ -363,7 +367,7 @@ impl SmartList {
         self.add_condition(condition);
     }
 
-    pub fn build_sql(&self) -> anyhow::Result<String> {
+    pub fn build_sql(&self) -> Result<String> {
         let mut sql = "SELECT * FROM djmdContent".to_string();
         let (joins, filters) = build_clauses(&self.conditions)?;
 
@@ -393,7 +397,7 @@ impl SmartList {
     }
 }
 
-fn build_string_filter(column: &str, condition: &Condition) -> anyhow::Result<String> {
+fn build_string_filter(column: &str, condition: &Condition) -> Result<String> {
     let value = condition.left.replace("'", "''"); // Escape single quotes
     match condition.operator {
         Operator::Equal => Ok(format!("{} = '{}'", column, value)),
@@ -402,15 +406,14 @@ fn build_string_filter(column: &str, condition: &Condition) -> anyhow::Result<St
         Operator::NotContains => Ok(format!("{} NOT LIKE '%{}%'", column, value)),
         Operator::StartsWith => Ok(format!("{} LIKE '{}%'", column, value)),
         Operator::EndsWith => Ok(format!("{} LIKE '%{}'", column, value)),
-        _ => Err(anyhow!(
+        _ => Err(Error::Error(format!(
             "Unsupported operator {:?} for {}",
-            condition.operator,
-            column
-        )),
+            condition.operator, column
+        ))),
     }
 }
 
-fn build_number_filter(column: &str, condition: &Condition) -> anyhow::Result<String> {
+fn build_number_filter(column: &str, condition: &Condition) -> Result<String> {
     match condition.operator {
         Operator::Equal => Ok(format!("{} = '{}'", column, condition.left)),
         Operator::NotEqual => Ok(format!("{} != '{}'", column, condition.left)),
@@ -420,27 +423,25 @@ fn build_number_filter(column: &str, condition: &Condition) -> anyhow::Result<St
             "{} > '{}' AND {} < {}",
             column, condition.left, column, condition.right
         )),
-        _ => Err(anyhow!(
+        _ => Err(Error::Error(format!(
             "Unsupported operator {:?} for {:?}",
-            condition.operator,
-            condition.property
-        )),
+            condition.operator, condition.property
+        ))),
     }
 }
 
-fn build_grouping_filter(condition: &Condition) -> anyhow::Result<String> {
+fn build_grouping_filter(condition: &Condition) -> Result<String> {
     match condition.operator {
         Operator::Equal => Ok(format!("ColorID = '{}'", condition.left)),
         Operator::NotEqual => Ok(format!("ColorID != '{}'", condition.left)),
-        _ => Err(anyhow!(
+        _ => Err(Error::Error(format!(
             "Unsupported operator {:?} for {:?}",
-            condition.operator,
-            condition.property
-        )),
+            condition.operator, condition.property
+        ))),
     }
 }
 
-fn build_clauses(conditions: &Vec<Condition>) -> anyhow::Result<(Vec<String>, Vec<String>)> {
+fn build_clauses(conditions: &Vec<Condition>) -> Result<(Vec<String>, Vec<String>)> {
     let mut joins: Vec<String> = Vec::new();
     let mut filters: Vec<String> = Vec::new();
     for condition in conditions {
@@ -500,7 +501,9 @@ fn build_clauses(conditions: &Vec<Condition>) -> anyhow::Result<(Vec<String>, Ve
             }
             Property::MixName => {
                 // MixName is not a direct property in djmdContent, so we skip it
-                return Err(anyhow!("MixName is not supported in smart lists"));
+                return Err(Error::Error(
+                    "MixName is not supported in smart lists".into(),
+                ));
             }
             Property::MyTag => {
                 todo!()

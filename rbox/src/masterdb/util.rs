@@ -11,19 +11,20 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::models::DjmdPlaylistTreeItem;
+use crate::error::{Error, Result};
 
 pub type Date = DateTime<Utc>;
 
 const DATEFMT: &str = "%Y-%m-%d %H:%M:%S%.3f %:z";
 
 /// Parse a Rekordbox date string into a chrono DateTime<Utc>
-pub fn parse_datetime(s: &str) -> anyhow::Result<Date> {
+pub fn parse_datetime(s: &str) -> Result<Date> {
     // If string contains additional info in brackets (...), remove it
     let idx = s.find('(');
     let s = if let Some(idx) = idx { &s[..idx] } else { s };
     DateTime::parse_from_str(s, DATEFMT)
         .map(|dt| dt.with_timezone(&Utc))
-        .map_err(|e| anyhow::anyhow!("Failed to parse datetime: {}", e))
+        .map_err(|e| Error::Error(format!("Failed to parse datetime: {}", e)))
 }
 
 /// Format a chrono DateTime<Tz> into a Rekordbox date string
@@ -76,7 +77,7 @@ where
 /// Trait for converting between Rekordbox date strings and chrono DateTime
 pub trait RekordboxDateString {
     fn from_date<Tz: TimeZone>(dt: DateTime<Tz>) -> Self;
-    fn into_date(self) -> anyhow::Result<Date>;
+    fn into_date(self) -> Result<Date>;
 }
 
 impl RekordboxDateString for String {
@@ -84,7 +85,7 @@ impl RekordboxDateString for String {
         format_datetime(&dt)
     }
 
-    fn into_date(self) -> anyhow::Result<Date> {
+    fn into_date(self) -> Result<Date> {
         parse_datetime(&self)
     }
 }

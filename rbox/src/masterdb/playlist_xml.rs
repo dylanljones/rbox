@@ -9,10 +9,12 @@ use std::ffi::OsStr;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+use crate::error::Result;
+
 /// Custom serializer for the Node ID
 ///
 /// Converts from normal ID to hexadecimal format for XML
-fn serialize_node_id<S>(id: &String, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_node_id<S>(id: &String, serializer: S) -> std::result::Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -31,7 +33,7 @@ where
 /// Custom deserializer for the Node ID
 ///
 /// Converts from hexadecimal format in XML to normal ID
-fn deserialize_node_id<'de, D>(deserializer: D) -> Result<String, D::Error>
+fn deserialize_node_id<'de, D>(deserializer: D) -> std::result::Result<String, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -53,7 +55,10 @@ where
 
 /// Custom serializer for timestamps
 /// Converts from chrono DateTime to milliseconds timestamp for XML
-fn serialize_timestamp<S>(datetime: &NaiveDateTime, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_timestamp<S>(
+    datetime: &NaiveDateTime,
+    serializer: S,
+) -> std::result::Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -64,7 +69,7 @@ where
 
 /// Custom deserializer for timestamps
 /// Converts from milliseconds timestamp in XML to chrono DateTime
-fn deserialize_timestamp<'de, D>(deserializer: D) -> Result<NaiveDateTime, D::Error>
+fn deserialize_timestamp<'de, D>(deserializer: D) -> std::result::Result<NaiveDateTime, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -206,12 +211,12 @@ impl MasterPlaylistXml {
     }
 
     /// Dump the XML document to a string.
-    pub fn to_string(&self) -> anyhow::Result<String> {
+    pub fn to_string(&self) -> Result<String> {
         // Create XML declaration
         let buffer: Vec<u8> = Vec::new();
         let mut writer = quick_xml::Writer::new(buffer);
         writer.write_event(Event::Decl(BytesDecl::new("1.0", Some("UTF-8"), None)))?;
-        let mut decl_string = String::from_utf8(writer.into_inner())?;
+        let mut decl_string = String::from_utf8(writer.into_inner()).map_err(|e| e.to_string())?;
 
         // Serialize the XML document to a string
         let mut string = String::new();
@@ -226,7 +231,7 @@ impl MasterPlaylistXml {
     }
 
     /// Write the XML document to a file.
-    pub fn dump_copy<P: AsRef<Path>>(&self, path: P) -> anyhow::Result<()> {
+    pub fn dump_copy<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         // Serialize the XML document to a string
         let xml_string = self.to_string()?;
         // Write the XML string to a file
@@ -236,7 +241,7 @@ impl MasterPlaylistXml {
     }
 
     /// Write the XML document to the original file.
-    pub fn dump(&self) -> anyhow::Result<()> {
+    pub fn dump(&self) -> Result<()> {
         self.dump_copy(&self.path)?;
         Ok(())
     }

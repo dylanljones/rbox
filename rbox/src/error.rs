@@ -13,6 +13,9 @@ pub enum Error {
     #[error("File not found: {0}")]
     FileNotFound(String),
 
+    #[error("{0}")]
+    Error(String),
+
     #[error(transparent)]
     JsonError(#[from] serde_json::Error),
 
@@ -39,10 +42,42 @@ pub enum Error {
 
     #[error("Not a {0} file")]
     SettingInvalidFile(String),
+
+    #[error("Anlz Error: {0}")]
+    AnlzError(String),
+
+    #[error("Diesel error: {0}")]
+    Diesel(#[from] diesel::result::Error),
+
+    #[error("Database error: {0}")]
+    Database(String),
+
+    #[error("Connection error: {0}")]
+    Connection(#[from] diesel::ConnectionError),
+
+    #[error("Rekordbox is running. Please close Rekordbox and try again.")]
+    RekordboxRunning,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+impl From<String> for Error {
+    fn from(s: String) -> Self {
+        Error::Error(s)
+    }
+}
+
+impl From<quick_xml::de::DeError> for Error {
+    fn from(error: quick_xml::de::DeError) -> Self {
+        Error::XmlError(error.to_string())
+    }
+}
+
+impl From<quick_xml::se::SeError> for Error {
+    fn from(error: quick_xml::se::SeError) -> Self {
+        Error::XmlError(error.to_string())
+    }
+}
 #[cfg(feature = "napi")]
 impl From<Error> for NapiError {
     fn from(error: Error) -> Self {

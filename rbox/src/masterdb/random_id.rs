@@ -3,6 +3,8 @@
 
 use rand::RngCore;
 
+use crate::error::{Error, Result};
+
 pub struct RandomIdGenerator {
     is_28_bit: bool,
 }
@@ -14,7 +16,7 @@ impl RandomIdGenerator {
 }
 
 impl Iterator for RandomIdGenerator {
-    type Item = anyhow::Result<String>;
+    type Item = Result<String>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let mut rng = rand::rng();
@@ -34,9 +36,9 @@ impl Iterator for RandomIdGenerator {
             }
             return Some(Ok(format!("{}", id)));
         }
-        Some(Err(anyhow::anyhow!(
+        Some(Err(Error::Error(format!(
             "Failed to generate a unique ID after {} attempts",
             max_retry
-        )))
+        ))))
     }
 }

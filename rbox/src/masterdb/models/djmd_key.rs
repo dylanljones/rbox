@@ -58,15 +58,8 @@ pub struct DjmdKey {
 }
 
 impl DjmdKey {
-    pub fn new(
-        id: String,
-        uuid: String,
-        usn: i32,
-        now: Date,
-        name: String,
-        seq: i32,
-    ) -> anyhow::Result<Self> {
-        Ok(Self {
+    pub fn new(id: String, uuid: String, usn: i32, now: Date, name: String, seq: i32) -> Self {
+        Self {
             id: id.clone(),
             uuid: uuid.clone(),
             rb_data_status: 0,
@@ -79,6 +72,6 @@ impl DjmdKey {
             updated_at: now.clone(),
             scale_name: Some(name.clone()),
             seq: Some(seq),
-        })
+        }
     }
 }

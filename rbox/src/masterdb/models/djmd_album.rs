@@ -102,9 +102,9 @@ impl DjmdAlbum {
         artist_id: Option<String>,
         image_path: Option<String>,
         compilation: Option<i32>,
-    ) -> anyhow::Result<Self> {
+    ) -> Self {
         let comp = compilation.unwrap_or(0);
-        Ok(Self {
+        Self {
             id: id.clone(),
             uuid: uuid.clone(),
             rb_data_status: 0,
@@ -120,6 +120,6 @@ impl DjmdAlbum {
             image_path: image_path.clone(),
             compilation: Some(comp),
             search_str: None,
-        })
+        }
     }
 }

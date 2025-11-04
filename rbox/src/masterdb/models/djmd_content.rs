@@ -228,10 +228,10 @@ impl DjmdContent {
         db_id: String,
         file_id: String,
         content_link: Option<i32>,
-    ) -> anyhow::Result<Self> {
+    ) -> Self {
         let hot_cue_auto_load = "on".to_string();
         let deliver_control = "on".to_string();
-        Ok(Self {
+        Self {
             id: id.clone(),
             uuid: uuid.clone(),
             rb_local_usn: Some(usn),
@@ -254,6 +254,6 @@ impl DjmdContent {
             service_id: Some(0),
             rb_file_id: Some(file_id),
             ..Default::default()
-        })
+        }
     }
 }

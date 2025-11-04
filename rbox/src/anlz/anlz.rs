@@ -9,6 +9,7 @@ use modular_bitfield::prelude::*;
 use std::ffi::OsStr;
 
 use super::xor::XorStream;
+use crate::error::{Error, Result};
 
 /// The tag of section.
 #[binrw]
@@ -1399,13 +1400,12 @@ impl AnlzData {
         Ok(sections)
     }
 
-    pub fn update_total_size(&mut self) -> anyhow::Result<()> {
+    pub fn update_total_size(&mut self) {
         let mut total = self.header.size;
         for section in self.sections.iter_mut() {
             total += section.content.size();
         }
         self.header.total_size = total;
-        Ok(())
     }
 }
 
@@ -1421,7 +1421,7 @@ pub struct Anlz {
 
 impl Anlz {
     /// Read a Rekordbox masterPlaylist6 XML file.
-    pub fn load<P: AsRef<std::path::Path> + AsRef<OsStr>>(path: P) -> anyhow::Result<Self> {
+    pub fn load<P: AsRef<std::path::Path> + AsRef<OsStr>>(path: P) -> Result<Self> {
         let p = std::path::Path::new(&path).to_path_buf();
         let mut file = std::fs::File::open(&p).expect("File not found");
         let data = AnlzData::read(&mut file).expect("Can't read ANLZ");
@@ -1429,15 +1429,15 @@ impl Anlz {
     }
 
     /// Write the XML document to a file.
-    pub fn dump_copy<P: AsRef<std::path::Path>>(&mut self, path: P) -> anyhow::Result<()> {
-        self.data.update_total_size()?;
+    pub fn dump_copy<P: AsRef<std::path::Path>>(&mut self, path: P) -> Result<()> {
+        self.data.update_total_size();
         let mut file = std::fs::File::create(path).expect("Failed to create file");
         self.data.write(&mut file)?;
         Ok(())
     }
 
     /// Write the XML document to the original file.
-    pub fn dump(&mut self) -> anyhow::Result<()> {
+    pub fn dump(&mut self) -> Result<()> {
         let path = &self.path.clone();
         self.dump_copy(path)?;
         Ok(())
@@ -1464,7 +1464,7 @@ impl Anlz {
     }
 
     /// Return a list of all tag types present in the file
-    pub fn get_tags(&self) -> anyhow::Result<Vec<String>> {
+    pub fn get_tags(&self) -> Result<Vec<String>> {
         let mut names = Vec::new();
         for section in &self.data.sections {
             let name = &section.tag;
@@ -1567,17 +1567,14 @@ impl Anlz {
     /// Sets the path value (PPTH)
     ///
     /// If no PPTH tag is present, a new one is created
-    pub fn set_path<P: AsRef<std::path::Path> + AsRef<OsStr>>(
-        &mut self,
-        path: P,
-    ) -> anyhow::Result<()> {
+    pub fn set_path<P: AsRef<std::path::Path> + AsRef<OsStr>>(&mut self, path: P) -> Result<()> {
         let section = self.find_section_by_tag(AnlzTag::Path);
         if let Some(section) = section {
             // Found PPTH tag
             if let Content::Path(content) = &mut section.content {
                 content.set(path);
             } else {
-                return Err(anyhow::anyhow!("Path not found"));
+                return Err(Error::AnlzError("Path not found".into()));
             }
         } else {
             // No PPTH tag, create a new one
@@ -1588,7 +1585,7 @@ impl Anlz {
             };
             self.data.sections.push(section);
         }
-        self.data.update_total_size()?;
+        self.data.update_total_size();
         Ok(())
     }
 
@@ -1711,7 +1708,7 @@ pub struct AnlzFiles {
 /// Scan a directory for ANLZ files.
 pub fn find_anlz_files<P: AsRef<std::path::Path> + AsRef<OsStr>>(
     root: P,
-) -> anyhow::Result<Option<AnlzPaths>> {
+) -> Result<Option<AnlzPaths>> {
     let root = std::path::Path::new(&root).to_path_buf();
     let mut dat: Option<std::path::PathBuf> = None;
     let mut ext: Option<std::path::PathBuf> = None;

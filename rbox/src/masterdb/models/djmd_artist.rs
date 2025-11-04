@@ -71,14 +71,8 @@ impl DjmdArtist {
     /// # Returns
     ///
     /// Returns a `Result` containing the new [`DjmdArtist`] instance or an error.
-    pub fn new(
-        id: String,
-        uuid: String,
-        usn: i32,
-        now: Date,
-        name: String,
-    ) -> anyhow::Result<Self> {
-        Ok(Self {
+    pub fn new(id: String, uuid: String, usn: i32, now: Date, name: String) -> Self {
+        Self {
             id: id.clone(),
             uuid: uuid.clone(),
             rb_data_status: 0,
@@ -91,6 +85,6 @@ impl DjmdArtist {
             updated_at: now.clone(),
             name: Some(name.clone()),
             search_str: None,
-        })
+        }
     }
 }

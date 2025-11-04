@@ -17,9 +17,9 @@ pub enum FileType {
 }
 
 impl TryFrom<i32> for FileType {
-    type Error = &'static str;
+    type Error = String;
 
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
+    fn try_from(value: i32) -> std::result::Result<Self, Self::Error> {
         match value {
             0 => Ok(FileType::MP3),
             1 => Ok(FileType::MP3_2),
@@ -29,13 +29,13 @@ impl TryFrom<i32> for FileType {
             6 => Ok(FileType::M4A),
             11 => Ok(FileType::WAV),
             12 => Ok(FileType::AIFF),
-            _ => Err("Invalid value for FileType"),
+            _ => Err("Invalid value for FileType".into()),
         }
     }
 }
 
 impl FileType {
-    pub fn try_from_extension(ext: &str) -> anyhow::Result<Self> {
+    pub fn try_from_extension(ext: &str) -> std::result::Result<Self, String> {
         match ext.to_lowercase().as_str() {
             "mp3" => Ok(FileType::MP3),
             "mp4" => Ok(FileType::MP4),
@@ -44,7 +44,7 @@ impl FileType {
             "wav" => Ok(FileType::WAV),
             "aiff" => Ok(FileType::AIFF),
             "aif" => Ok(FileType::AIFF),
-            &_ => Err(anyhow::anyhow!("Unknown file type '{}'", ext)),
+            &_ => Err(format!("Unknown file type '{}'", ext)),
         }
     }
 }
@@ -59,15 +59,15 @@ pub enum Analyzed {
 }
 
 impl TryFrom<i32> for Analyzed {
-    type Error = &'static str;
+    type Error = String;
 
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
+    fn try_from(value: i32) -> std::result::Result<Self, Self::Error> {
         match value {
             0 => Ok(Analyzed::NotAnalyzed),
             105 => Ok(Analyzed::Standard),
             121 => Ok(Analyzed::Advanced),
             233 => Ok(Analyzed::Locked),
-            _ => Err("Invalid value for Analyzed"),
+            _ => Err("Invalid value for Analyzed".into()),
         }
     }
 }
@@ -80,13 +80,13 @@ pub enum AnalysisUpdated {
 }
 
 impl TryFrom<i32> for AnalysisUpdated {
-    type Error = &'static str;
+    type Error = String;
 
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
+    fn try_from(value: i32) -> std::result::Result<Self, Self::Error> {
         match value {
             0 => Ok(AnalysisUpdated::Normal),
             1 => Ok(AnalysisUpdated::Advanced),
-            _ => Err("Invalid value for AnalysisUpdated"),
+            _ => Err("Invalid value for AnalysisUpdated".into()),
         }
     }
 }
@@ -100,14 +100,14 @@ pub enum PlaylistType {
 }
 
 impl TryFrom<i32> for PlaylistType {
-    type Error = &'static str;
+    type Error = String;
 
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
+    fn try_from(value: i32) -> std::result::Result<Self, Self::Error> {
         match value {
             0 => Ok(PlaylistType::Playlist),
             1 => Ok(PlaylistType::Folder),
             4 => Ok(PlaylistType::SmartPlaylist),
-            _ => Err("Invalid value for PlaylistType"),
+            _ => Err("Invalid value for PlaylistType".into()),
         }
     }
 }

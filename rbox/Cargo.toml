@@ -28,7 +28,6 @@ napi = ["dep:napi", "dep:napi-derive"]
 serde            = { workspace = true }
 serde_json       = { workspace = true }
 chrono           = { workspace = true }
-anyhow           = { version = "1.0.98" }
 libsqlite3-sys   = { version = "0.33", features = ["sqlcipher"]}
 diesel           = { version = "2.2", features = ["sqlite", "128-column-tables", "returning_clauses_for_sqlite_3_35"] }
 rand             = { version = "0.9" }
@@ -47,3 +46,6 @@ pyo3             = { workspace = true, optional = true }
 py-derives       = { path = "../py-derives", optional = true }
 napi             = { workspace = true, optional = true }
 napi-derive      = { workspace = true, optional = true }
+
+[dev-dependencies]
+anyhow           = { workspace = true }

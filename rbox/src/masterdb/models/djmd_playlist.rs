@@ -92,8 +92,8 @@ impl DjmdPlaylist {
         seq: i32,
         image_path: Option<String>,
         smart_list: Option<String>,
-    ) -> anyhow::Result<Self> {
-        Ok(Self {
+    ) -> Self {
+        Self {
             id: id.clone(),
             uuid: uuid.clone(),
             rb_data_status: 0,
@@ -110,7 +110,7 @@ impl DjmdPlaylist {
             attribute: Some(attribute),
             parent_id: Some(parent_id.clone()),
             smart_list: smart_list.clone(),
-        })
+        }
     }
 }
 
@@ -229,8 +229,8 @@ impl DjmdSongPlaylist {
         playlist_id: String,
         content_id: String,
         seq: i32,
-    ) -> anyhow::Result<Self> {
-        Ok(Self {
+    ) -> Self {
+        Self {
             id: id.clone(),
             uuid: uuid.clone(),
             rb_data_status: 0,
@@ -244,6 +244,6 @@ impl DjmdSongPlaylist {
             playlist_id: Some(playlist_id.clone()),
             content_id: Some(content_id.clone()),
             track_no: Some(seq),
-        })
+        }
     }
 }

@@ -56,14 +56,8 @@ pub struct DjmdLabel {
 }
 
 impl DjmdLabel {
-    pub fn new(
-        id: String,
-        uuid: String,
-        usn: i32,
-        now: Date,
-        name: String,
-    ) -> anyhow::Result<Self> {
-        Ok(Self {
+    pub fn new(id: String, uuid: String, usn: i32, now: Date, name: String) -> Self {
+        Self {
             id: id.clone(),
             uuid: uuid.clone(),
             rb_data_status: 0,
@@ -75,6 +69,6 @@ impl DjmdLabel {
             created_at: now.clone(),
             updated_at: now.clone(),
             name: Some(name.clone()),
-        })
+        }
     }
 }

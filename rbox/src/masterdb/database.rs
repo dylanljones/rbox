@@ -26,15 +26,17 @@
 //! ```
 //!
 //! ## Safety
-//! By default, write operations are restricted if Rekordbox is running. Use `set_unsafe_writes(true)` to override this behavior if necessary.
+//! By default, write operations are restricted if Rekordbox is running. Use `set_unsafe_writes(true)`
+//! to override this behavior if necessary.
 //!
 //! ## Tables Supported
-//! - AgentRegistry, CloudAgentRegistry, ContentActiveCensor, DjmdPlaylist, DjmdSongPlaylist, DjmdProperty, DjmdCloudProperty, DjmdRecommendLike, DjmdRelatedTracks, DjmdSampler, DjmdSongTagList, DjmdSort, ImageFile, SettingFile, UuidIDMap, and more.
+//! - AgentRegistry, CloudAgentRegistry, ContentActiveCensor, DjmdPlaylist, DjmdSongPlaylist,
+//!   DjmdProperty, DjmdCloudProperty, DjmdRecommendLike, DjmdRelatedTracks, DjmdSampler, DjmdSongTagList,
+//!   DjmdSort, ImageFile, SettingFile, UuidIDMap, and more.
 //!
 //! See individual method documentation for details on arguments, return values, and error handling.
 
 // #![allow(unused)]
-use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use diesel::dsl::{exists, select};
 use diesel::{connection::SimpleConnection, prelude::*, query_dsl::RunQueryDsl, SqliteConnection};
@@ -54,6 +56,7 @@ use super::random_id::RandomIdGenerator;
 use super::schema;
 use super::util::{format_datetime, sort_tree_list};
 use crate::anlz::{find_anlz_files, Anlz, AnlzFiles, AnlzPaths};
+use crate::error::{Error, Result};
 use crate::options::RekordboxOptions;
 use crate::pathlib::NormalizePath;
 use crate::util::is_rekordbox_running;
@@ -88,7 +91,8 @@ const MAGIC: &str = "513ge593d49928d46ggb9ggc9d8e:4254c85:f8e426eg8b92843b2gg547
 /// }
 /// ```
 fn open_connection(path: &str) -> Result<SqliteConnection> {
-    let key = String::from_utf8(MAGIC.as_bytes().iter().map(|&b| b - 1).collect())?;
+    let key = String::from_utf8(MAGIC.as_bytes().iter().map(|&b| b - 1).collect())
+        .map_err(|e| e.utf8_error())?;
 
     let mut conn = SqliteConnection::establish(path)?;
     conn.batch_execute(format!("PRAGMA key = '{key}';").as_str())?;
@@ -126,7 +130,7 @@ impl MasterDb {
     pub fn new<P: AsRef<OsStr>>(path: P) -> Result<Self> {
         let path_obj = Path::new(&path);
         if !path_obj.exists() {
-            return Err(anyhow!("Database file does not exist"));
+            return Err(Error::FileNotFound(path_obj.to_str().unwrap().to_string()));
         }
         let parent_dir = path_obj.parent().expect("Failed to get parent directory");
         let share_dir_path = parent_dir.join("share");
@@ -192,9 +196,7 @@ impl MasterDb {
     fn assert_write_mode(&self) -> Result<()> {
         // Check if Rekordbox is running
         if !self.unsafe_writes && is_rekordbox_running() {
-            return Err(anyhow!(
-                "Rekordbox is running, unsafe writes are not allowed!"
-            ));
+            return Err(Error::RekordboxRunning);
         }
         Ok(())
     }
@@ -277,7 +279,7 @@ impl MasterDb {
         if let Some(value) = result {
             Ok(value)
         } else {
-            Err(anyhow!("localUpdateCount not found"))
+            Err(Error::Database("localUpdateCount not found".into()))
         }
     }
 
@@ -677,7 +679,7 @@ impl MasterDb {
             Ok(Some(result))
         } else {
             // More than one item, return error
-            Err(anyhow!("More than one element found!"))
+            Err(Error::Database("More than one element found!".into()))
         }
     }
 
@@ -765,7 +767,7 @@ impl MasterDb {
             artist_id,
             image_path,
             compilation,
-        )?;
+        );
         let result: DjmdAlbum = diesel::insert_into(djmdAlbum)
             .values(item)
             .get_result(&mut self.conn)?;
@@ -992,7 +994,7 @@ impl MasterDb {
             Ok(Some(result))
         } else {
             // More than one item, return error
-            Err(anyhow!("More than one element found!"))
+            Err(Error::Database("More than one element found!".into()))
         }
     }
 
@@ -1057,7 +1059,7 @@ impl MasterDb {
         // Generate date
         let utcnow: DateTime<Utc> = Utc::now();
         // Create and insert model
-        let item: DjmdArtist = DjmdArtist::new(id, uuid, usn, utcnow, name)?;
+        let item: DjmdArtist = DjmdArtist::new(id, uuid, usn, utcnow, name);
         let result: DjmdArtist = diesel::insert_into(djmdArtist)
             .values(item)
             .get_result(&mut self.conn)?;
@@ -1441,7 +1443,7 @@ impl MasterDb {
     /// ```
     fn get_content_analysis_data_path(&mut self, id: &str) -> Result<PathBuf> {
         if self.share_dir.is_none() {
-            return Err(anyhow!("Share dir not set!"));
+            return Err(Error::Database("Share dir not set!".into()));
         }
         let result = djmdContent
             .filter(schema::djmdContent::id.eq(id))
@@ -1454,12 +1456,15 @@ impl MasterDb {
                 let anlz_file = self.share_dir.clone().unwrap().join(striped);
                 let anlz_files_canonicalized = dunce::canonicalize(&anlz_file);
                 if let Err(e) = anlz_files_canonicalized {
-                    return Err(anyhow!("Failed to canonicalize path: {}", e));
+                    return Err(Error::Database(format!(
+                        "Failed to canonicalize path: {}",
+                        e
+                    )));
                 }
                 return Ok(anlz_files_canonicalized?);
             }
         }
-        Err(anyhow!("Failed to get AnalysisDataPath"))
+        Err(Error::Database("Failed to get AnalysisDataPath".into()))
     }
 
     /// Returns the path to the directory containing the ANLZxxxx.xxx files for a given content ID.
@@ -1661,13 +1666,13 @@ impl MasterDb {
             .to_str()
             .expect("Failed to convert path to string");
         if !path.is_file() || !path.exists() {
-            return Err(anyhow!(
-                "File {} is not a file or doesn't exist!",
-                rb_path_str
-            ));
+            return Err(Error::FileNotFound(rb_path_str.to_string()));
         }
         if self.content_path_exists(&rb_path_str)? {
-            return Err(anyhow!("Content with path {} already exists", rb_path_str));
+            return Err(Error::Database(format!(
+                "Content with path {} already exists",
+                rb_path_str
+            )));
         }
         // Generate ID/UUID
         let id: String = self.generate_content_id()?;
@@ -1688,7 +1693,9 @@ impl MasterDb {
             .select(schema::djmdDevice::master_db_id)
             .first::<Option<String>>(&mut self.conn)?;
         if db_id.is_none() {
-            return Err(anyhow!("No master DB ID found in djmdDevice"));
+            return Err(Error::Database(
+                "No master DB ID found in djmdDevice".into(),
+            ));
         }
         // TODO: No clue what content link should be, for now we just choose the last value used
         let content_link = djmdContent
@@ -1709,7 +1716,7 @@ impl MasterDb {
             db_id.unwrap(),
             file_id,
             content_link,
-        )?;
+        );
 
         let result: DjmdContent = diesel::insert_into(djmdContent)
             .values(item)
@@ -1911,13 +1918,13 @@ impl MasterDb {
             .to_str()
             .expect("Failed to convert path to string");
         if !path.is_file() || !path.exists() {
-            return Err(anyhow!(
-                "File {} is not a file or doesn't exist!",
-                rb_path_str
-            ));
+            return Err(Error::FileNotFound(rb_path_str.to_string()));
         }
         if self.content_path_exists(&rb_path_str)? {
-            return Err(anyhow!("Content with path {} already exists", rb_path_str));
+            return Err(Error::Database(format!(
+                "Content with path {} already exists",
+                rb_path_str
+            )));
         }
 
         // Update path in analysis data
@@ -2120,7 +2127,7 @@ impl MasterDb {
             Ok(Some(result))
         } else {
             // More than one item, return error
-            Err(anyhow!("More than one element found!"))
+            Err(Error::Database("More than one element found!".into()))
         }
     }
 
@@ -2184,7 +2191,7 @@ impl MasterDb {
         // Generate date
         let utcnow: DateTime<Utc> = Utc::now();
         // Create and insert model
-        let item: DjmdGenre = DjmdGenre::new(id, uuid, usn, utcnow, name)?;
+        let item: DjmdGenre = DjmdGenre::new(id, uuid, usn, utcnow, name);
         let result: DjmdGenre = diesel::insert_into(djmdGenre)
             .values(item)
             .get_result(&mut self.conn)?;
@@ -2654,7 +2661,7 @@ impl MasterDb {
             Ok(Some(result))
         } else {
             // More than one item, return error
-            Err(anyhow!("More than one element found!"))
+            Err(Error::Database("More than one element found!".into()))
         }
     }
 
@@ -2722,7 +2729,7 @@ impl MasterDb {
         let seq: i32 = count + 1;
 
         // Create and insert model
-        let item: DjmdKey = DjmdKey::new(id, uuid, usn, utcnow, name, seq)?;
+        let item: DjmdKey = DjmdKey::new(id, uuid, usn, utcnow, name, seq);
         let result: DjmdKey = diesel::insert_into(djmdKey)
             .values(item)
             .get_result(&mut self.conn)?;
@@ -2922,7 +2929,7 @@ impl MasterDb {
             Ok(Some(result))
         } else {
             // More than one item, return error
-            Err(anyhow!("More than one element found!"))
+            Err(Error::Database("More than one element found!".into()))
         }
     }
 
@@ -2986,7 +2993,7 @@ impl MasterDb {
         // Generate date
         let utcnow: DateTime<Utc> = Utc::now();
         // Create and insert model
-        let item: DjmdLabel = DjmdLabel::new(id, uuid, usn, utcnow, name)?;
+        let item: DjmdLabel = DjmdLabel::new(id, uuid, usn, utcnow, name);
         let result: DjmdLabel = diesel::insert_into(djmdLabel)
             .values(item)
             .get_result(&mut self.conn)?;
@@ -3740,10 +3747,10 @@ impl MasterDb {
         // Handle defaults
         let parent_id = parent_id.unwrap_or("root".to_string());
         if self.playlist_type(&parent_id)? != PlaylistType::Folder {
-            return Err(anyhow!("Parent playlist must be a Folder!"));
+            return Err(Error::Database("Parent playlist must be a Folder!".into()));
         };
         if parent_id.as_str() != "root" && !self.playlist_exists(&parent_id)? {
-            return Err(anyhow!("Parent playlist does not exist!"));
+            return Err(Error::Database("Parent playlist does not exist!".into()));
         };
         // Generate ID/UUID for new playlist
         let id: String = self.generate_playlist_id()?;
@@ -3760,9 +3767,9 @@ impl MasterDb {
         let seq = if let Some(seq) = seq {
             // Playlist is not inserted at end
             if seq <= 0 {
-                return Err(anyhow!("seq must be greater than 0!"));
+                return Err(Error::Database("seq must be greater than 0!".into()));
             } else if seq > count + 1 {
-                return Err(anyhow!("seq is too high!"));
+                return Err(Error::Database("seq is too high!".into()));
             };
             // Shift playlists with seq higher than the new seq number by one
             // Shifting the other playlists increments the USN by 1 for *all* moved playlists
@@ -3799,7 +3806,7 @@ impl MasterDb {
             seq,
             image_path,
             smart_list,
-        )?;
+        );
         let result: DjmdPlaylist = diesel::insert_into(djmdPlaylist)
             .values(item)
             .get_result(&mut self.conn)?;
@@ -3975,10 +3982,10 @@ impl MasterDb {
             let sequence: i32;
             // parent changed, move to new parent
             if self.playlist_type(&parent_id)? != PlaylistType::Folder {
-                return Err(anyhow!("Parent playlist must be a Folder!"));
+                return Err(Error::Database("Parent playlist must be a Folder!".into()));
             };
             if parent_id.as_str() != "root" && !self.playlist_exists(&parent_id)? {
-                return Err(anyhow!("Parent playlist does not exist!"));
+                return Err(Error::Database("Parent playlist does not exist!".into()));
             };
 
             // Update seq of playlists in old parent:
@@ -4000,9 +4007,9 @@ impl MasterDb {
                     .count()
                     .get_result::<i64>(&mut self.conn)? as i32;
                 if seq <= 0 {
-                    return Err(anyhow!("seq must be greater than 0!"));
+                    return Err(Error::Database("seq must be greater than 0!".into()));
                 } else if seq > count {
-                    return Err(anyhow!("seq is too high!"));
+                    return Err(Error::Database("seq is too high!".into()));
                 }
                 // Move to seq in new parent
                 diesel::update(
@@ -4043,9 +4050,9 @@ impl MasterDb {
                 .count()
                 .get_result::<i64>(&mut self.conn)? as i32;
             if seq <= 0 {
-                return Err(anyhow!("seq must be greater than 0!"));
+                return Err(Error::Database("seq must be greater than 0!".into()));
             } else if seq > count {
-                return Err(anyhow!("seq is too high!"));
+                return Err(Error::Database("seq is too high!".into()));
             }
 
             // Move to seq in current parent
@@ -4229,16 +4236,22 @@ impl MasterDb {
         self.assert_write_mode()?;
 
         if self.playlist_type(&playlist_id)? != PlaylistType::Playlist {
-            return Err(anyhow!(
+            return Err(Error::Database(format!(
                 "Playlist with ID {} must be a Playlist!",
                 playlist_id
-            ));
+            )));
         };
         if !self.playlist_exists(&playlist_id)? {
-            return Err(anyhow!("Playlist with ID {} does not exist!", playlist_id));
+            return Err(Error::Database(format!(
+                "Playlist with ID {} does not exist!",
+                playlist_id
+            )));
         };
         if !self.content_exists(&content_id)? {
-            return Err(anyhow!("Content with ID {} does not exist!", content_id));
+            return Err(Error::Database(format!(
+                "Content with ID {} does not exist!",
+                content_id
+            )));
         };
 
         // Generate ID/UUID/Date for new playlist song
@@ -4259,9 +4272,9 @@ impl MasterDb {
         let seq = if let Some(seq) = seq {
             // Song is not inserted at end
             if seq <= 0 {
-                return Err(anyhow!("seq must be greater than 0!"));
+                return Err(Error::Database("seq must be greater than 0!".into()));
             } else if seq > count {
-                return Err(anyhow!("seq is too high!"));
+                return Err(Error::Database("seq is too high!".into()));
             };
             // Shift songs with seq higher than the new seq number by one
             // Shifting the other songs increments the USN by 1 for *all* moved songs
@@ -4291,7 +4304,7 @@ impl MasterDb {
             playlist_id.clone(),
             content_id.clone(),
             seq,
-        )?;
+        );
         let result: DjmdSongPlaylist = diesel::insert_into(djmdSongPlaylist)
             .values(item)
             .get_result(&mut self.conn)?;
@@ -4337,9 +4350,9 @@ impl MasterDb {
             .get_result::<i64>(&mut self.conn)? as i32;
 
         if seq <= 0 {
-            return Err(anyhow!("seq must be greater than 0!"));
+            return Err(Error::Database("seq must be greater than 0!".into()));
         } else if seq > count {
-            return Err(anyhow!("seq is too high!"));
+            return Err(Error::Database("seq is too high!".into()));
         }
 
         let playlist_id = song.playlist_id.unwrap();
