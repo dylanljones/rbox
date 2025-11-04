@@ -18,7 +18,7 @@ crate-type = ["cdylib"]
 extension-module = ["pyo3/extension-module"]
 
 [dependencies]
-rbox            = { path = "../../rbox", features = ["bundled", "pyo3"] }
+rbox            = { path = "../../rbox", features = ["bundled-vendored-openssl", "pyo3"] }
 py-derives      = { path = "../../py-derives" }
 pyo3            = { workspace = true }
 chrono          = { workspace = true }

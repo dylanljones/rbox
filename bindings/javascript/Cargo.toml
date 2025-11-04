@@ -12,7 +12,7 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-rbox            = { path = "../../rbox", features = ["bundled", "napi"] }
+rbox            = { path = "../../rbox", features = ["bundled-vendored-openssl", "napi"] }
 napi            = { workspace = true }
 napi-derive     = { workspace = true}
 chrono          = { workspace = true }
