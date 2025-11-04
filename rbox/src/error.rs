@@ -16,17 +16,29 @@ pub enum Error {
     #[error(transparent)]
     JsonError(#[from] serde_json::Error),
 
-    #[error("Failed to parse options.json: {0}")]
-    OptionError(String),
-
     #[error(transparent)]
     IOError(#[from] std::io::Error),
+
+    #[error(transparent)]
+    Utf8Error(#[from] std::str::Utf8Error),
+
+    #[error(transparent)]
+    BinReadError(#[from] binrw::error::Error),
 
     #[error("XML Error: {0}")]
     XmlError(String),
 
-    #[error(transparent)]
-    Utf8Error(#[from] std::str::Utf8Error),
+    #[error("Failed to parse options.json: {0}")]
+    OptionError(String),
+
+    #[error("Setting Error: {0}")]
+    SettingError(String),
+
+    #[error("Invalid {0} value: {1}")]
+    SettingInvalidValue(String, String),
+
+    #[error("Not a {0} file")]
+    SettingInvalidFile(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

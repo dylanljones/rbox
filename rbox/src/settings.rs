@@ -14,11 +14,12 @@
 //! Rekordbox preferences. These include language, LCD brightness, tempo fader range, crossfader
 //! curve and other settings for Pioneer professional DJ equipment.
 
-use anyhow::anyhow;
 use binrw::{binrw, io::Cursor, BinRead, BinWrite, Endian, NullString};
 use parse_display::Display;
 use std::ffi::OsStr;
 use std::path::Path;
+
+use super::error::{Error, Result};
 
 // -- MySetting ------------------------------------------------------------------------------------
 
@@ -36,13 +37,13 @@ pub enum OnAirDisplay {
 }
 
 impl TryFrom<String> for OnAirDisplay {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<OnAirDisplay, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<OnAirDisplay, Self::Error> {
         match value.as_str() {
             "Off" => Ok(Self::Off),
             "On" => Ok(Self::On),
-            _ => Err(format!("Invalid OnAirDisplay value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("OnAirDisplay".into(), value)),
         }
     }
 }
@@ -72,16 +73,16 @@ pub enum LCDBrightness {
 }
 
 impl TryFrom<String> for LCDBrightness {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<LCDBrightness, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<LCDBrightness, Self::Error> {
         match value.as_str() {
             "One" => Ok(Self::One),
             "Two" => Ok(Self::Two),
             "Three" => Ok(Self::Three),
             "Four" => Ok(Self::Four),
             "Five" => Ok(Self::Five),
-            _ => Err(format!("Invalid LCDBrightness value: {}", value)),
+            x => Err(Error::SettingInvalidValue("LCDBrightness".into(), x.into())),
         }
     }
 }
@@ -100,13 +101,13 @@ pub enum Quantize {
 }
 
 impl TryFrom<String> for Quantize {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<Quantize, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<Quantize, Self::Error> {
         match value.as_str() {
             "Off" => Ok(Self::Off),
             "On" => Ok(Self::On),
-            _ => Err(format!("Invalid Quantize value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("Quantize".into(), value)),
         }
     }
 }
@@ -147,21 +148,21 @@ pub enum AutoCueLevel {
 }
 
 impl TryFrom<String> for AutoCue {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<AutoCue, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<AutoCue, Self::Error> {
         match value.as_str() {
             "Off" => Ok(Self::Off),
             "On" => Ok(Self::On),
-            _ => Err(format!("Invalid AutoCue value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("AutoCue".into(), value)),
         }
     }
 }
 
 impl TryFrom<String> for AutoCueLevel {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<AutoCueLevel, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<AutoCueLevel, Self::Error> {
         match value.as_str() {
             "Minus78dB" => Ok(Self::Minus78dB),
             "Minus72dB" => Ok(Self::Minus72dB),
@@ -172,7 +173,7 @@ impl TryFrom<String> for AutoCueLevel {
             "Minus42dB" => Ok(Self::Minus42dB),
             "Minus36dB" => Ok(Self::Minus36dB),
             "Memory" => Ok(Self::Memory),
-            _ => Err(format!("Invalid AutoCueLevel value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("AutoCueLevel".into(), value)),
         }
     }
 }
@@ -240,9 +241,9 @@ pub enum Language {
 }
 
 impl TryFrom<String> for Language {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<Language, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<Language, Self::Error> {
         match value.as_str() {
             "English" => Ok(Self::English),
             "French" => Ok(Self::French),
@@ -262,7 +263,7 @@ impl TryFrom<String> for Language {
             "Danish" => Ok(Self::Danish),
             "Greek" => Ok(Self::Greek),
             "Turkish" => Ok(Self::Turkish),
-            _ => Err(format!("Invalid Language value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("Language".into(), value)),
         }
     }
 }
@@ -285,14 +286,17 @@ pub enum JogRingBrightness {
 }
 
 impl TryFrom<String> for JogRingBrightness {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<JogRingBrightness, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<JogRingBrightness, Self::Error> {
         match value.as_str() {
             "Off" => Ok(Self::Off),
             "Dark" => Ok(Self::Dark),
             "Bright" => Ok(Self::Bright),
-            _ => Err(format!("Invalid JogRingBrightness value: {}", value)),
+            _ => Err(Error::SettingInvalidValue(
+                "JogRingBrightness".into(),
+                value,
+            )),
         }
     }
 }
@@ -311,13 +315,13 @@ pub enum JogRingIndicator {
 }
 
 impl TryFrom<String> for JogRingIndicator {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<JogRingIndicator, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<JogRingIndicator, Self::Error> {
         match value.as_str() {
             "Off" => Ok(Self::Off),
             "On" => Ok(Self::On),
-            _ => Err(format!("Invalid JogRingIndicator value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("JogRingIndicator".into(), value)),
         }
     }
 }
@@ -336,13 +340,13 @@ pub enum SlipFlashing {
 }
 
 impl TryFrom<String> for SlipFlashing {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<SlipFlashing, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<SlipFlashing, Self::Error> {
         match value.as_str() {
             "Off" => Ok(Self::Off),
             "On" => Ok(Self::On),
-            _ => Err(format!("Invalid SlipFlashing value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("SlipFlashing".into(), value)),
         }
     }
 }
@@ -365,14 +369,17 @@ pub enum DiscSlotIllumination {
 }
 
 impl TryFrom<String> for DiscSlotIllumination {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<DiscSlotIllumination, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<DiscSlotIllumination, Self::Error> {
         match value.as_str() {
             "Off" => Ok(Self::Off),
             "Dark" => Ok(Self::Dark),
             "Bright" => Ok(Self::Bright),
-            _ => Err(format!("Invalid DiscSlotIllumination value: {}", value)),
+            _ => Err(Error::SettingInvalidValue(
+                "DiscSlotIllumination".into(),
+                value,
+            )),
         }
     }
 }
@@ -391,13 +398,13 @@ pub enum EjectLock {
 }
 
 impl TryFrom<String> for EjectLock {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<EjectLock, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<EjectLock, Self::Error> {
         match value.as_str() {
             "Unlock" => Ok(Self::Unlock),
             "Lock" => Ok(Self::Lock),
-            _ => Err(format!("Invalid EjectLock value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("EjectLock".into(), value)),
         }
     }
 }
@@ -416,13 +423,13 @@ pub enum Sync {
 }
 
 impl TryFrom<String> for Sync {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<Sync, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<Sync, Self::Error> {
         match value.as_str() {
             "Off" => Ok(Self::Off),
             "On" => Ok(Self::On),
-            _ => Err(format!("Invalid Sync value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("Sync".into(), value)),
         }
     }
 }
@@ -443,13 +450,13 @@ pub enum PlayMode {
 }
 
 impl TryFrom<String> for PlayMode {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<PlayMode, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<PlayMode, Self::Error> {
         match value.as_str() {
             "Continue" => Ok(Self::Continue),
             "Single" => Ok(Self::Single),
-            _ => Err(format!("Invalid PlayMode value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("PlayMode".into(), value)),
         }
     }
 }
@@ -476,15 +483,18 @@ pub enum QuantizeBeatValue {
 }
 
 impl TryFrom<String> for QuantizeBeatValue {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<QuantizeBeatValue, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<QuantizeBeatValue, Self::Error> {
         match value.as_str() {
             "EighthBeat" => Ok(Self::EighthBeat),
             "QuarterBeat" => Ok(Self::QuarterBeat),
             "HalfBeat" => Ok(Self::HalfBeat),
             "FullBeat" => Ok(Self::FullBeat),
-            _ => Err(format!("Invalid QuantizeBeatValue value: {}", value)),
+            _ => Err(Error::SettingInvalidValue(
+                "QuantizeBeatValue".into(),
+                value,
+            )),
         }
     }
 }
@@ -506,14 +516,14 @@ pub enum HotCueAutoLoad {
 }
 
 impl TryFrom<String> for HotCueAutoLoad {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<HotCueAutoLoad, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<HotCueAutoLoad, Self::Error> {
         match value.as_str() {
             "Off" => Ok(Self::Off),
             "RekordboxSetting" => Ok(Self::RekordboxSetting),
             "On" => Ok(Self::On),
-            _ => Err(format!("Invalid HotCueAutoLoad value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("HotCueAutoLoad".into(), value)),
         }
     }
 }
@@ -532,13 +542,13 @@ pub enum HotCueColor {
 }
 
 impl TryFrom<String> for HotCueColor {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<HotCueColor, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<HotCueColor, Self::Error> {
         match value.as_str() {
             "Off" => Ok(Self::Off),
             "On" => Ok(Self::On),
-            _ => Err(format!("Invalid HotCueColor value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("HotCueColor".into(), value)),
         }
     }
 }
@@ -557,13 +567,13 @@ pub enum NeedleLock {
 }
 
 impl TryFrom<String> for NeedleLock {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<NeedleLock, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<NeedleLock, Self::Error> {
         match value.as_str() {
             "Unlock" => Ok(Self::Unlock),
             "Lock" => Ok(Self::Lock),
-            _ => Err(format!("Invalid NeedleLock value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("NeedleLock".into(), value)),
         }
     }
 }
@@ -582,13 +592,13 @@ pub enum TimeMode {
 }
 
 impl TryFrom<String> for TimeMode {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<TimeMode, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<TimeMode, Self::Error> {
         match value.as_str() {
             "Elapsed" => Ok(Self::Elapsed),
             "Remain" => Ok(Self::Remain),
-            _ => Err(format!("Invalid TimeMode value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("TimeMode".into(), value)),
         }
     }
 }
@@ -607,13 +617,13 @@ pub enum JogMode {
 }
 
 impl TryFrom<String> for JogMode {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<JogMode, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<JogMode, Self::Error> {
         match value.as_str() {
             "Vinyl" => Ok(Self::Vinyl),
             "CDJ" => Ok(Self::CDJ),
-            _ => Err(format!("Invalid JogMode value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("JogMode".into(), value)),
         }
     }
 }
@@ -645,13 +655,13 @@ pub enum MasterTempo {
 }
 
 impl TryFrom<String> for MasterTempo {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<MasterTempo, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<MasterTempo, Self::Error> {
         match value.as_str() {
             "Off" => Ok(Self::Off),
             "On" => Ok(Self::On),
-            _ => Err(format!("Invalid MasterTempo value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("MasterTempo".into(), value)),
         }
     }
 }
@@ -677,15 +687,15 @@ pub enum TempoRange {
 }
 
 impl TryFrom<String> for TempoRange {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<TempoRange, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<TempoRange, Self::Error> {
         match value.as_str() {
             "SixPercent" => Ok(Self::SixPercent),
             "TenPercent" => Ok(Self::TenPercent),
             "SixteenPercent" => Ok(Self::SixteenPercent),
             "Wide" => Ok(Self::Wide),
-            _ => Err(format!("Invalid TempoRange value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("TempoRange".into(), value)),
         }
     }
 }
@@ -706,13 +716,13 @@ pub enum PhaseMeter {
 }
 
 impl TryFrom<String> for PhaseMeter {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<PhaseMeter, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<PhaseMeter, Self::Error> {
         match value.as_str() {
             "Type1" => Ok(Self::Type1),
             "Type2" => Ok(Self::Type2),
-            _ => Err(format!("Invalid PhaseMeter value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("PhaseMeter".into(), value)),
         }
     }
 }
@@ -843,14 +853,14 @@ pub enum VinylSpeedAdjust {
 }
 
 impl TryFrom<String> for VinylSpeedAdjust {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<VinylSpeedAdjust, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<VinylSpeedAdjust, Self::Error> {
         match value.as_str() {
             "TouchRelease" => Ok(Self::TouchRelease),
             "Touch" => Ok(Self::Touch),
             "Release" => Ok(Self::Release),
-            _ => Err(format!("Invalid VinylSpeedAdjust value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("VinylSpeedAdjust".into(), value)),
         }
     }
 }
@@ -873,15 +883,15 @@ pub enum JogDisplayMode {
 }
 
 impl TryFrom<String> for JogDisplayMode {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<JogDisplayMode, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<JogDisplayMode, Self::Error> {
         match value.as_str() {
             "Auto" => Ok(Self::Auto),
             "Info" => Ok(Self::Info),
             "Simple" => Ok(Self::Simple),
             "Artwork" => Ok(Self::Artwork),
-            _ => Err(format!("Invalid JogDisplayMode value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("JogDisplayMode".into(), value)),
         }
     }
 }
@@ -908,15 +918,18 @@ pub enum PadButtonBrightness {
 }
 
 impl TryFrom<String> for PadButtonBrightness {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<PadButtonBrightness, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<PadButtonBrightness, Self::Error> {
         match value.as_str() {
             "One" => Ok(Self::One),
             "Two" => Ok(Self::Two),
             "Three" => Ok(Self::Three),
             "Four" => Ok(Self::Four),
-            _ => Err(format!("Invalid PadButtonBrightness value: {}", value)),
+            _ => Err(Error::SettingInvalidValue(
+                "PadButtonBrightness".into(),
+                value,
+            )),
         }
     }
 }
@@ -946,16 +959,16 @@ pub enum JogLCDBrightness {
 }
 
 impl TryFrom<String> for JogLCDBrightness {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<JogLCDBrightness, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<JogLCDBrightness, Self::Error> {
         match value.as_str() {
             "One" => Ok(Self::One),
             "Two" => Ok(Self::Two),
             "Three" => Ok(Self::Three),
             "Four" => Ok(Self::Four),
             "Five" => Ok(Self::Five),
-            _ => Err(format!("Invalid JogLCDBrightness value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("JogLCDBrightness".into(), value)),
         }
     }
 }
@@ -975,25 +988,28 @@ pub enum WaveformDivisions {
 }
 
 impl TryFrom<String> for Waveform {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<Waveform, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<Waveform, Self::Error> {
         match value.as_str() {
             "Waveform" => Ok(Self::Waveform),
             "PhaseMeter" => Ok(Self::PhaseMeter),
-            _ => Err(format!("Invalid Waveform value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("Waveform".into(), value)),
         }
     }
 }
 
 impl TryFrom<String> for WaveformDivisions {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<WaveformDivisions, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<WaveformDivisions, Self::Error> {
         match value.as_str() {
             "TimeScale" => Ok(Self::TimeScale),
             "Phrase" => Ok(Self::Phrase),
-            _ => Err(format!("Invalid WaveformDivisions value: {}", value)),
+            _ => Err(Error::SettingInvalidValue(
+                "WaveformDivisions".into(),
+                value,
+            )),
         }
     }
 }
@@ -1046,9 +1062,9 @@ pub enum BeatJumpBeatValue {
 }
 
 impl TryFrom<String> for BeatJumpBeatValue {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<BeatJumpBeatValue, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<BeatJumpBeatValue, Self::Error> {
         match value.as_str() {
             "HalfBeat" => Ok(Self::HalfBeat),
             "OneBeat" => Ok(Self::OneBeat),
@@ -1058,7 +1074,10 @@ impl TryFrom<String> for BeatJumpBeatValue {
             "SixteenBeat" => Ok(Self::SixteenBeat),
             "ThirtytwoBeat" => Ok(Self::ThirtytwoBeat),
             "SixtyfourBeat" => Ok(Self::SixtyfourBeat),
-            _ => Err(format!("Invalid BeatJumpBeatValue value: {}", value)),
+            _ => Err(Error::SettingInvalidValue(
+                "BeatJumpBeatValue".into(),
+                value,
+            )),
         }
     }
 }
@@ -1136,14 +1155,17 @@ pub enum ChannelFaderCurve {
 }
 
 impl TryFrom<String> for ChannelFaderCurve {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<ChannelFaderCurve, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<ChannelFaderCurve, Self::Error> {
         match value.as_str() {
             "SteepTop" => Ok(Self::SteepTop),
             "Linear" => Ok(Self::Linear),
             "SteepBottom" => Ok(Self::SteepBottom),
-            _ => Err(format!("Invalid ChannelFaderCurve value: {}", value)),
+            _ => Err(Error::SettingInvalidValue(
+                "ChannelFaderCurve".into(),
+                value,
+            )),
         }
     }
 }
@@ -1169,14 +1191,14 @@ pub enum CrossfaderCurve {
 }
 
 impl TryFrom<String> for CrossfaderCurve {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<CrossfaderCurve, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<CrossfaderCurve, Self::Error> {
         match value.as_str() {
             "ConstantPower" => Ok(Self::ConstantPower),
             "SlowCut" => Ok(Self::SlowCut),
             "FastCut" => Ok(Self::FastCut),
-            _ => Err(format!("Invalid CrossfaderCurve value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("CrossfaderCurve".into(), value)),
         }
     }
 }
@@ -1197,13 +1219,13 @@ pub enum HeadphonesPreEQ {
 }
 
 impl TryFrom<String> for HeadphonesPreEQ {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<HeadphonesPreEQ, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<HeadphonesPreEQ, Self::Error> {
         match value.as_str() {
             "PostEQ" => Ok(Self::PostEQ),
             "PreEQ" => Ok(Self::PreEQ),
-            _ => Err(format!("Invalid HeadphonesPreEQ value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("HeadphonesPreEQ".into(), value)),
         }
     }
 }
@@ -1223,13 +1245,16 @@ pub enum HeadphonesMonoSplit {
 }
 
 impl TryFrom<String> for HeadphonesMonoSplit {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<HeadphonesMonoSplit, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<HeadphonesMonoSplit, Self::Error> {
         match value.as_str() {
             "MonoSplit" => Ok(Self::MonoSplit),
             "Stereo" => Ok(Self::Stereo),
-            _ => Err(format!("Invalid HeadphonesMonoSplit value: {}", value)),
+            _ => Err(Error::SettingInvalidValue(
+                "HeadphonesMonoSplit".into(),
+                value,
+            )),
         }
     }
 }
@@ -1248,13 +1273,13 @@ pub enum BeatFXQuantize {
 }
 
 impl TryFrom<String> for BeatFXQuantize {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<BeatFXQuantize, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<BeatFXQuantize, Self::Error> {
         match value.as_str() {
             "Off" => Ok(Self::Off),
             "On" => Ok(Self::On),
-            _ => Err(format!("Invalid BeatFXQuantize value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("BeatFXQuantize".into(), value)),
         }
     }
 }
@@ -1273,13 +1298,13 @@ pub enum MicLowCut {
 }
 
 impl TryFrom<String> for MicLowCut {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<MicLowCut, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<MicLowCut, Self::Error> {
         match value.as_str() {
             "Off" => Ok(Self::Off),
             "On" => Ok(Self::On),
-            _ => Err(format!("Invalid MicLowCut value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("MicLowCut".into(), value)),
         }
     }
 }
@@ -1298,13 +1323,13 @@ pub enum TalkOverMode {
 }
 
 impl TryFrom<String> for TalkOverMode {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<TalkOverMode, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<TalkOverMode, Self::Error> {
         match value.as_str() {
             "Advanced" => Ok(Self::Advanced),
             "Normal" => Ok(Self::Normal),
-            _ => Err(format!("Invalid TalkOverMode value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("TalkOverMode".into(), value)),
         }
     }
 }
@@ -1331,15 +1356,15 @@ pub enum TalkOverLevel {
 }
 
 impl TryFrom<String> for TalkOverLevel {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<TalkOverLevel, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<TalkOverLevel, Self::Error> {
         match value.as_str() {
             "Minus24dB" => Ok(Self::Minus24dB),
             "Minus18dB" => Ok(Self::Minus18dB),
             "Minus12dB" => Ok(Self::Minus12dB),
             "Minus6dB" => Ok(Self::Minus6dB),
-            _ => Err(format!("Invalid TalkOverLevel value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("TalkOverLevel".into(), value)),
         }
     }
 }
@@ -1402,9 +1427,9 @@ pub enum MidiChannel {
 }
 
 impl TryFrom<String> for MidiChannel {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<MidiChannel, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<MidiChannel, Self::Error> {
         match value.as_str() {
             "One" => Ok(Self::One),
             "Two" => Ok(Self::Two),
@@ -1422,7 +1447,7 @@ impl TryFrom<String> for MidiChannel {
             "Fourteen" => Ok(Self::Fourteen),
             "Fifteen" => Ok(Self::Fifteen),
             "Sixteen" => Ok(Self::Sixteen),
-            _ => Err(format!("Invalid MidiChannel value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("MidiChannel".into(), value)),
         }
     }
 }
@@ -1441,13 +1466,13 @@ pub enum MidiButtonType {
 }
 
 impl TryFrom<String> for MidiButtonType {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<MidiButtonType, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<MidiButtonType, Self::Error> {
         match value.as_str() {
             "Toggle" => Ok(Self::Toggle),
             "Trigger" => Ok(Self::Trigger),
-            _ => Err(format!("Invalid MidiButtonType value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("MidiButtonType".into(), value)),
         }
     }
 }
@@ -1479,9 +1504,9 @@ pub enum MixerDisplayBrightness {
 }
 
 impl TryFrom<String> for MixerDisplayBrightness {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<MixerDisplayBrightness, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<MixerDisplayBrightness, Self::Error> {
         match value.as_str() {
             "White" => Ok(Self::White),
             "One" => Ok(Self::One),
@@ -1489,7 +1514,10 @@ impl TryFrom<String> for MixerDisplayBrightness {
             "Three" => Ok(Self::Three),
             "Four" => Ok(Self::Four),
             "Five" => Ok(Self::Five),
-            _ => Err(format!("Invalid MixerDisplayBrightness value: {}", value)),
+            _ => Err(Error::SettingInvalidValue(
+                "MixerDisplayBrightness".into(),
+                value,
+            )),
         }
     }
 }
@@ -1513,14 +1541,17 @@ pub enum MixerIndicatorBrightness {
 }
 
 impl TryFrom<String> for MixerIndicatorBrightness {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<MixerIndicatorBrightness, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<MixerIndicatorBrightness, Self::Error> {
         match value.as_str() {
             "One" => Ok(Self::One),
             "Two" => Ok(Self::Two),
             "Three" => Ok(Self::Three),
-            _ => Err(format!("Invalid MixerIndicatorBrightness value: {}", value)),
+            _ => Err(Error::SettingInvalidValue(
+                "MixerIndicatorBrightness".into(),
+                value,
+            )),
         }
     }
 }
@@ -1541,16 +1572,16 @@ pub enum ChannelFaderCurveLongFader {
 }
 
 impl TryFrom<String> for ChannelFaderCurveLongFader {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<ChannelFaderCurveLongFader, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<ChannelFaderCurveLongFader, Self::Error> {
         match value.as_str() {
             "Exponential" => Ok(Self::Exponential),
             "Smooth" => Ok(Self::Smooth),
             "Linear" => Ok(Self::Linear),
-            _ => Err(format!(
-                "Invalid ChannelFaderCurveLongFader value: {}",
-                value
+            _ => Err(Error::SettingInvalidValue(
+                "ChannelFaderCurveLongFader".into(),
+                value,
             )),
         }
     }
@@ -1643,13 +1674,16 @@ pub enum OverviewWaveformType {
 }
 
 impl TryFrom<String> for OverviewWaveformType {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<OverviewWaveformType, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<OverviewWaveformType, Self::Error> {
         match value.as_str() {
             "HalfWaveform" => Ok(Self::HalfWaveform),
             "FullWaveform" => Ok(Self::FullWaveform),
-            _ => Err(format!("Invalid OverviewWaveformType value: {}", value)),
+            _ => Err(Error::SettingInvalidValue(
+                "OverviewWaveformType".into(),
+                value,
+            )),
         }
     }
 }
@@ -1673,14 +1707,14 @@ pub enum WaveformColor {
 }
 
 impl TryFrom<String> for WaveformColor {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<WaveformColor, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<WaveformColor, Self::Error> {
         match value.as_str() {
             "Blue" => Ok(Self::Blue),
             "Rgb" => Ok(Self::Rgb),
             "TriBand" => Ok(Self::TriBand),
-            _ => Err(format!("Invalid WaveformColor value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("WaveformColor".into(), value)),
         }
     }
 }
@@ -1700,13 +1734,13 @@ pub enum KeyDisplayFormat {
 }
 
 impl TryFrom<String> for KeyDisplayFormat {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<KeyDisplayFormat, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<KeyDisplayFormat, Self::Error> {
         match value.as_str() {
             "Classic" => Ok(Self::Classic),
             "Alphanumeric" => Ok(Self::Alphanumeric),
-            _ => Err(format!("Invalid KeyDisplayFormat value: {}", value)),
+            _ => Err(Error::SettingInvalidValue("KeyDisplayFormat".into(), value)),
         }
     }
 }
@@ -1726,13 +1760,16 @@ pub enum WaveformCurrentPosition {
 }
 
 impl TryFrom<String> for WaveformCurrentPosition {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(value: String) -> Result<WaveformCurrentPosition, Self::Error> {
+    fn try_from(value: String) -> std::result::Result<WaveformCurrentPosition, Self::Error> {
         match value.as_str() {
             "Left" => Ok(Self::Left),
             "Center" => Ok(Self::Center),
-            _ => Err(format!("Invalid WaveformCurrentPosition value: {}", value)),
+            _ => Err(Error::SettingInvalidValue(
+                "WaveformCurrentPosition".into(),
+                value,
+            )),
         }
     }
 }
@@ -1954,91 +1991,71 @@ pub struct Setting {
 
 impl Setting {
     /// Create a new `MYSETTING.DAT` file filled with the default values.
-    pub fn new_mysetting<P: AsRef<Path> + AsRef<OsStr>>(path: P) -> anyhow::Result<Self> {
+    pub fn new_mysetting<P: AsRef<Path> + AsRef<OsStr>>(path: P) -> Result<Self> {
         let p = Path::new(&path).to_path_buf();
         let file_name = p.file_name().unwrap().to_str().unwrap();
         if file_name != &MySetting::file_name() {
-            return Err(anyhow!(format!(
-                "Invalid file name: expected {}, got {:?}",
-                MySetting::file_name(),
-                file_name
-            )));
+            return Err(Error::SettingInvalidFile(MySetting::file_name()));
         }
         let data = SettingData::default_mysetting();
         Ok(Self { path: p, data })
     }
 
     /// Create a new `MYSETTING2.DAT` file filled with the default values.
-    pub fn new_mysetting2<P: AsRef<Path> + AsRef<OsStr>>(path: P) -> anyhow::Result<Self> {
+    pub fn new_mysetting2<P: AsRef<Path> + AsRef<OsStr>>(path: P) -> Result<Self> {
         let p = Path::new(&path).to_path_buf();
         let file_name = p.file_name().unwrap().to_str().unwrap();
         if file_name != &MySetting2::file_name() {
-            return Err(anyhow!(format!(
-                "Invalid file name: expected {}, got {:?}",
-                MySetting::file_name(),
-                file_name
-            )));
+            return Err(Error::SettingInvalidFile(MySetting2::file_name()));
         }
         let data = SettingData::default_mysetting2();
         Ok(Self { path: p, data })
     }
 
     /// Create a new `DJMMYSETTING.DAT` file filled with the default values.
-    pub fn new_djmmysetting<P: AsRef<Path> + AsRef<OsStr>>(path: P) -> anyhow::Result<Self> {
+    pub fn new_djmmysetting<P: AsRef<Path> + AsRef<OsStr>>(path: P) -> Result<Self> {
         let p = Path::new(&path).to_path_buf();
         let file_name = p.file_name().unwrap().to_str().unwrap();
         if file_name != &DJMMySetting::file_name() {
-            return Err(anyhow!(format!(
-                "Invalid file name: expected {}, got {:?}",
-                MySetting::file_name(),
-                file_name
-            )));
+            return Err(Error::SettingInvalidFile(DJMMySetting::file_name()));
         }
         let data = SettingData::default_djmmysetting();
         Ok(Self { path: p, data })
     }
 
     /// Create a new `DEVSETTING.DAT` file filled with the default values.
-    pub fn new_devsetting<P: AsRef<Path> + AsRef<OsStr>>(path: P) -> anyhow::Result<Self> {
+    pub fn new_devsetting<P: AsRef<Path> + AsRef<OsStr>>(path: P) -> Result<Self> {
         let p = Path::new(&path).to_path_buf();
         let file_name = p.file_name().unwrap().to_str().unwrap();
         if file_name != &DevSetting::file_name() {
-            return Err(anyhow!(format!(
-                "Invalid file name: expected {}, got {:?}",
-                MySetting::file_name(),
-                file_name
-            )));
+            return Err(Error::SettingInvalidFile(DevSetting::file_name()));
         }
         let data = SettingData::default_devsetting();
         Ok(Self { path: p, data })
     }
 
     /// Read a Rekordbox Setting file.
-    pub fn load<P: AsRef<Path> + AsRef<OsStr>>(path: P) -> anyhow::Result<Self> {
+    pub fn load<P: AsRef<Path> + AsRef<OsStr>>(path: P) -> Result<Self> {
         let p = Path::new(&path).to_path_buf();
-        let mut file = std::fs::File::open(&p).expect("File not found");
-        let data = SettingData::read(&mut file).expect("Can't read Setting file");
+        let mut file = std::fs::File::open(&p)?;
+        let data = SettingData::read(&mut file)?;
         Ok(Self { path: p, data })
     }
 
     /// Write the Setting file.
-    pub fn dump_copy<P: AsRef<Path> + AsRef<OsStr>>(&mut self, path: P) -> anyhow::Result<()> {
+    pub fn dump_copy<P: AsRef<Path> + AsRef<OsStr>>(&mut self, path: P) -> Result<()> {
         let p = Path::new(&path).to_path_buf();
         let file_name = p.file_name().unwrap().to_str().unwrap();
         if file_name != self.data.file_name() {
-            return Err(anyhow!(format!(
-                "Invalid file name: expected {}, got {:?}",
-                self.data.file_name(),
-                file_name
-            )));
+            return Err(Error::SettingInvalidFile(self.data.file_name().into()));
         }
-        let mut file = std::fs::File::create(path).expect("Failed to create file");
+        let mut file = std::fs::File::create(path)?;
         self.data.write(&mut file)?;
         Ok(())
     }
 
     /// Write the Setting file to the original file.
-    pub fn dump(&mut self) -> anyhow::Result<()> {
+    pub fn dump(&mut self) -> Result<()> {
         let path = &self.path.clone();
         self.dump_copy(path)?;
         Ok(())
@@ -2050,15 +2067,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(OnAirDisplay)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_on_air_display(&self) -> anyhow::Result<OnAirDisplay> {
+    pub fn get_on_air_display(&self) -> Result<OnAirDisplay> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.on_air_display)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2069,16 +2086,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn set_on_air_display(&mut self, on_air_display: OnAirDisplay) -> anyhow::Result<()> {
+    pub fn set_on_air_display(&mut self, on_air_display: OnAirDisplay) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.on_air_display = on_air_display;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2086,15 +2103,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(LCDBrightness)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_lcd_brightness(&self) -> anyhow::Result<LCDBrightness> {
+    pub fn get_lcd_brightness(&self) -> Result<LCDBrightness> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.lcd_brightness)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2105,16 +2122,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn set_lcd_brightness(&mut self, lcd_brightness: LCDBrightness) -> anyhow::Result<()> {
+    pub fn set_lcd_brightness(&mut self, lcd_brightness: LCDBrightness) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.lcd_brightness = lcd_brightness;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2122,15 +2139,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(Quantize)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_quantize(&self) -> anyhow::Result<Quantize> {
+    pub fn get_quantize(&self) -> Result<Quantize> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.quantize)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2141,16 +2158,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn set_quantize(&mut self, quantize: Quantize) -> anyhow::Result<()> {
+    pub fn set_quantize(&mut self, quantize: Quantize) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.quantize = quantize;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2158,15 +2175,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(AutoCueLevel)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_auto_cue_level(&self) -> anyhow::Result<AutoCueLevel> {
+    pub fn get_auto_cue_level(&self) -> Result<AutoCueLevel> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.auto_cue_level)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2177,16 +2194,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn set_auto_cue_level(&mut self, auto_cue_level: AutoCueLevel) -> anyhow::Result<()> {
+    pub fn set_auto_cue_level(&mut self, auto_cue_level: AutoCueLevel) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.auto_cue_level = auto_cue_level;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2194,15 +2211,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(Language)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_language(&self) -> anyhow::Result<Language> {
+    pub fn get_language(&self) -> Result<Language> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.language)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2213,16 +2230,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn set_language(&mut self, language: Language) -> anyhow::Result<()> {
+    pub fn set_language(&mut self, language: Language) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.language = language;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2230,15 +2247,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(JogRingBrightness)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_jog_ring_brightness(&self) -> anyhow::Result<JogRingBrightness> {
+    pub fn get_jog_ring_brightness(&self) -> Result<JogRingBrightness> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.jog_ring_brightness)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2249,19 +2266,19 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
     pub fn set_jog_ring_brightness(
         &mut self,
         jog_ring_brightness: JogRingBrightness,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.jog_ring_brightness = jog_ring_brightness;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2269,15 +2286,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(JogRingIndicator)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_jog_ring_indicator(&self) -> anyhow::Result<JogRingIndicator> {
+    pub fn get_jog_ring_indicator(&self) -> Result<JogRingIndicator> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.jog_ring_indicator)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2288,34 +2305,31 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn set_jog_ring_indicator(
-        &mut self,
-        jog_ring_indicator: JogRingIndicator,
-    ) -> anyhow::Result<()> {
+    pub fn set_jog_ring_indicator(&mut self, jog_ring_indicator: JogRingIndicator) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.jog_ring_indicator = jog_ring_indicator;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
     /// Gets the value of the "SLIP FLASHING" setting.
     ///
     /// # Returns
     /// - `Ok(SlipFlashing)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_slip_flashing(&self) -> anyhow::Result<SlipFlashing> {
+    pub fn get_slip_flashing(&self) -> Result<SlipFlashing> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.slip_flashing)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2326,16 +2340,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn set_slip_flashing(&mut self, slip_flashing: SlipFlashing) -> anyhow::Result<()> {
+    pub fn set_slip_flashing(&mut self, slip_flashing: SlipFlashing) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.slip_flashing = slip_flashing;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2343,15 +2357,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(DiscSlotIllumination)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_disc_slot_illumination(&self) -> anyhow::Result<DiscSlotIllumination> {
+    pub fn get_disc_slot_illumination(&self) -> Result<DiscSlotIllumination> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.disc_slot_illumination)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2362,19 +2376,19 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
     pub fn set_disc_slot_illumination(
         &mut self,
         disc_slot_illumination: DiscSlotIllumination,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.disc_slot_illumination = disc_slot_illumination;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2382,15 +2396,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(EjectLock)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_eject_lock(&self) -> anyhow::Result<EjectLock> {
+    pub fn get_eject_lock(&self) -> Result<EjectLock> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.eject_lock)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2401,16 +2415,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn set_eject_lock(&mut self, eject_lock: EjectLock) -> anyhow::Result<()> {
+    pub fn set_eject_lock(&mut self, eject_lock: EjectLock) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.eject_lock = eject_lock;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2418,15 +2432,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(Sync)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_sync(&self) -> anyhow::Result<Sync> {
+    pub fn get_sync(&self) -> Result<Sync> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.sync)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2437,31 +2451,31 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn set_sync(&mut self, sync: Sync) -> anyhow::Result<()> {
+    pub fn set_sync(&mut self, sync: Sync) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.sync = sync;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
     /// Gets the value of the "PLAY MODE" setting.
     ///
     /// # Returns
     /// - `Ok(PlayMode)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_play_mode(&self) -> anyhow::Result<PlayMode> {
+    pub fn get_play_mode(&self) -> Result<PlayMode> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.play_mode)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2472,16 +2486,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn set_play_mode(&mut self, play_mode: PlayMode) -> anyhow::Result<()> {
+    pub fn set_play_mode(&mut self, play_mode: PlayMode) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.play_mode = play_mode;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2489,15 +2503,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(QuantizeBeatValue)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_quantize_beat_value(&self) -> anyhow::Result<QuantizeBeatValue> {
+    pub fn get_quantize_beat_value(&self) -> Result<QuantizeBeatValue> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.quantize_beat_value)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2508,19 +2522,19 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
     pub fn set_quantize_beat_value(
         &mut self,
         quantize_beat_value: QuantizeBeatValue,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.quantize_beat_value = quantize_beat_value;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2528,15 +2542,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(HotCueAutoLoad)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_hotcue_autoload(&self) -> anyhow::Result<HotCueAutoLoad> {
+    pub fn get_hotcue_autoload(&self) -> Result<HotCueAutoLoad> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.hotcue_autoload)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2547,16 +2561,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn set_hotcue_autoload(&mut self, hotcue_autoload: HotCueAutoLoad) -> anyhow::Result<()> {
+    pub fn set_hotcue_autoload(&mut self, hotcue_autoload: HotCueAutoLoad) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.hotcue_autoload = hotcue_autoload;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2564,15 +2578,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(HotCueColor)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_hotcue_color(&self) -> anyhow::Result<HotCueColor> {
+    pub fn get_hotcue_color(&self) -> Result<HotCueColor> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.hotcue_color)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2583,16 +2597,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn set_hotcue_color(&mut self, hotcue_color: HotCueColor) -> anyhow::Result<()> {
+    pub fn set_hotcue_color(&mut self, hotcue_color: HotCueColor) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.hotcue_color = hotcue_color;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2600,15 +2614,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(NeedleLock)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_needle_lock(&self) -> anyhow::Result<NeedleLock> {
+    pub fn get_needle_lock(&self) -> Result<NeedleLock> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.needle_lock)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2619,16 +2633,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn set_needle_lock(&mut self, needle_lock: NeedleLock) -> anyhow::Result<()> {
+    pub fn set_needle_lock(&mut self, needle_lock: NeedleLock) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.needle_lock = needle_lock;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2636,15 +2650,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(TimeMode)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_time_mode(&self) -> anyhow::Result<TimeMode> {
+    pub fn get_time_mode(&self) -> Result<TimeMode> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.time_mode)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2655,16 +2669,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn set_time_mode(&mut self, time_mode: TimeMode) -> anyhow::Result<()> {
+    pub fn set_time_mode(&mut self, time_mode: TimeMode) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.time_mode = time_mode;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2672,15 +2686,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(JogMode)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_jog_mode(&self) -> anyhow::Result<JogMode> {
+    pub fn get_jog_mode(&self) -> Result<JogMode> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.jog_mode)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2691,16 +2705,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn set_jog_mode(&mut self, jog_mode: JogMode) -> anyhow::Result<()> {
+    pub fn set_jog_mode(&mut self, jog_mode: JogMode) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.jog_mode = jog_mode;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2708,15 +2722,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(AutoCue)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_auto_cue(&self) -> anyhow::Result<AutoCue> {
+    pub fn get_auto_cue(&self) -> Result<AutoCue> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.auto_cue)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2727,16 +2741,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn set_auto_cue(&mut self, auto_cue: AutoCue) -> anyhow::Result<()> {
+    pub fn set_auto_cue(&mut self, auto_cue: AutoCue) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.auto_cue = auto_cue;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2744,15 +2758,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(MasterTempo)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_master_tempo(&self) -> anyhow::Result<MasterTempo> {
+    pub fn get_master_tempo(&self) -> Result<MasterTempo> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.master_tempo)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2763,16 +2777,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn set_master_tempo(&mut self, master_tempo: MasterTempo) -> anyhow::Result<()> {
+    pub fn set_master_tempo(&mut self, master_tempo: MasterTempo) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.master_tempo = master_tempo;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2780,15 +2794,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(TempoRange)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_tempo_range(&self) -> anyhow::Result<TempoRange> {
+    pub fn get_tempo_range(&self) -> Result<TempoRange> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.tempo_range)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2799,16 +2813,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn set_tempo_range(&mut self, tempo_range: TempoRange) -> anyhow::Result<()> {
+    pub fn set_tempo_range(&mut self, tempo_range: TempoRange) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.tempo_range = tempo_range;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2816,15 +2830,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(PhaseMeter)` if the `SettingContent` is of type `MySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn get_phase_meter(&self) -> anyhow::Result<PhaseMeter> {
+    pub fn get_phase_meter(&self) -> Result<PhaseMeter> {
         if let SettingContent::MySetting(content) = &self.data.content {
             Ok(content.phase_meter)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2835,16 +2849,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting` file.
-    pub fn set_phase_meter(&mut self, phase_meter: PhaseMeter) -> anyhow::Result<()> {
+    pub fn set_phase_meter(&mut self, phase_meter: PhaseMeter) -> Result<()> {
         if let SettingContent::MySetting(content) = &mut self.data.content {
             content.phase_meter = phase_meter;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting::file_name())))
+            Err(Error::SettingInvalidFile(MySetting::file_name()))
         }
     }
 
@@ -2854,15 +2868,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(VinylSpeedAdjust)` if the `SettingContent` is of type `MySetting2`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting2`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting2` file.
-    pub fn get_vinyl_speed_adjust(&self) -> anyhow::Result<VinylSpeedAdjust> {
+    pub fn get_vinyl_speed_adjust(&self) -> Result<VinylSpeedAdjust> {
         if let SettingContent::MySetting2(content) = &self.data.content {
             Ok(content.vinyl_speed_adjust)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+            Err(Error::SettingInvalidFile(MySetting2::file_name()))
         }
     }
 
@@ -2873,19 +2887,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting2`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting2` file.
-    pub fn set_vinyl_speed_adjust(
-        &mut self,
-        vinyl_speed_adjust: VinylSpeedAdjust,
-    ) -> anyhow::Result<()> {
+    pub fn set_vinyl_speed_adjust(&mut self, vinyl_speed_adjust: VinylSpeedAdjust) -> Result<()> {
         if let SettingContent::MySetting2(content) = &mut self.data.content {
             content.vinyl_speed_adjust = vinyl_speed_adjust;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+            Err(Error::SettingInvalidFile(MySetting2::file_name()))
         }
     }
 
@@ -2893,15 +2904,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(JogDisplayMode)` if the `SettingContent` is of type `MySetting2`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting2`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting2` file.
-    pub fn get_jog_display_mode(&self) -> anyhow::Result<JogDisplayMode> {
+    pub fn get_jog_display_mode(&self) -> Result<JogDisplayMode> {
         if let SettingContent::MySetting2(content) = &self.data.content {
             Ok(content.jog_display_mode)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+            Err(Error::SettingInvalidFile(MySetting2::file_name()))
         }
     }
 
@@ -2912,16 +2923,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting2`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting2` file.
-    pub fn set_jog_display_mode(&mut self, jog_display_mode: JogDisplayMode) -> anyhow::Result<()> {
+    pub fn set_jog_display_mode(&mut self, jog_display_mode: JogDisplayMode) -> Result<()> {
         if let SettingContent::MySetting2(content) = &mut self.data.content {
             content.jog_display_mode = jog_display_mode;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+            Err(Error::SettingInvalidFile(MySetting2::file_name()))
         }
     }
 
@@ -2929,15 +2940,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(PadButtonBrightness)` if the `SettingContent` is of type `MySetting2`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting2`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting2` file.
-    pub fn get_pad_button_brightness(&self) -> anyhow::Result<PadButtonBrightness> {
+    pub fn get_pad_button_brightness(&self) -> Result<PadButtonBrightness> {
         if let SettingContent::MySetting2(content) = &self.data.content {
             Ok(content.pad_button_brightness)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+            Err(Error::SettingInvalidFile(MySetting2::file_name()))
         }
     }
 
@@ -2948,19 +2959,19 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting2`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting2` file.
     pub fn set_pad_button_brightness(
         &mut self,
         pad_button_brightness: PadButtonBrightness,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if let SettingContent::MySetting2(content) = &mut self.data.content {
             content.pad_button_brightness = pad_button_brightness;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+            Err(Error::SettingInvalidFile(MySetting2::file_name()))
         }
     }
 
@@ -2968,15 +2979,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(JogLCDBrightness)` if the `SettingContent` is of type `MySetting2`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting2`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting2` file.
-    pub fn get_jog_lcd_brightness(&self) -> anyhow::Result<JogLCDBrightness> {
+    pub fn get_jog_lcd_brightness(&self) -> Result<JogLCDBrightness> {
         if let SettingContent::MySetting2(content) = &self.data.content {
             Ok(content.jog_lcd_brightness)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+            Err(Error::SettingInvalidFile(MySetting2::file_name()))
         }
     }
 
@@ -2987,19 +2998,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting2`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting2` file.
-    pub fn set_jog_lcd_brightness(
-        &mut self,
-        jog_lcd_brightness: JogLCDBrightness,
-    ) -> anyhow::Result<()> {
+    pub fn set_jog_lcd_brightness(&mut self, jog_lcd_brightness: JogLCDBrightness) -> Result<()> {
         if let SettingContent::MySetting2(content) = &mut self.data.content {
             content.jog_lcd_brightness = jog_lcd_brightness;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+            Err(Error::SettingInvalidFile(MySetting2::file_name()))
         }
     }
 
@@ -3007,15 +3015,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(WaveformDivisions)` if the `SettingContent` is of type `MySetting2`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting2`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting2` file.
-    pub fn get_waveform_divisions(&self) -> anyhow::Result<WaveformDivisions> {
+    pub fn get_waveform_divisions(&self) -> Result<WaveformDivisions> {
         if let SettingContent::MySetting2(content) = &self.data.content {
             Ok(content.waveform_divisions)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+            Err(Error::SettingInvalidFile(MySetting2::file_name()))
         }
     }
 
@@ -3026,19 +3034,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting2`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting2` file.
-    pub fn set_waveform_divisions(
-        &mut self,
-        waveform_divisions: WaveformDivisions,
-    ) -> anyhow::Result<()> {
+    pub fn set_waveform_divisions(&mut self, waveform_divisions: WaveformDivisions) -> Result<()> {
         if let SettingContent::MySetting2(content) = &mut self.data.content {
             content.waveform_divisions = waveform_divisions;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+            Err(Error::SettingInvalidFile(MySetting2::file_name()))
         }
     }
 
@@ -3046,15 +3051,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(Waveform)` if the `SettingContent` is of type `MySetting2`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting2`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting2` file.
-    pub fn get_waveform(&self) -> anyhow::Result<Waveform> {
+    pub fn get_waveform(&self) -> Result<Waveform> {
         if let SettingContent::MySetting2(content) = &self.data.content {
             Ok(content.waveform)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+            Err(Error::SettingInvalidFile(MySetting2::file_name()))
         }
     }
 
@@ -3065,16 +3070,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting2`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting2` file.
-    pub fn set_waveform(&mut self, waveform: Waveform) -> anyhow::Result<()> {
+    pub fn set_waveform(&mut self, waveform: Waveform) -> Result<()> {
         if let SettingContent::MySetting2(content) = &mut self.data.content {
             content.waveform = waveform;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+            Err(Error::SettingInvalidFile(MySetting2::file_name()))
         }
     }
 
@@ -3082,15 +3087,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(BeatJumpBeatValue)` if the `SettingContent` is of type `MySetting2`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting2`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting2` file.
-    pub fn get_beat_jump_beat_value(&self) -> anyhow::Result<BeatJumpBeatValue> {
+    pub fn get_beat_jump_beat_value(&self) -> Result<BeatJumpBeatValue> {
         if let SettingContent::MySetting2(content) = &self.data.content {
             Ok(content.beat_jump_beat_value)
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+            Err(Error::SettingInvalidFile(MySetting2::file_name()))
         }
     }
 
@@ -3101,19 +3106,19 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `MySetting2`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `MySetting2`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `MySetting2` file.
     pub fn set_beat_jump_beat_value(
         &mut self,
         beat_jump_beat_value: BeatJumpBeatValue,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if let SettingContent::MySetting2(content) = &mut self.data.content {
             content.beat_jump_beat_value = beat_jump_beat_value;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", MySetting2::file_name())))
+            Err(Error::SettingInvalidFile(MySetting2::file_name()))
         }
     }
 
@@ -3123,15 +3128,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(ChannelFaderCurve)` if the `SettingContent` is of type `DJMMySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn get_channel_fader_curve(&self) -> anyhow::Result<ChannelFaderCurve> {
+    pub fn get_channel_fader_curve(&self) -> Result<ChannelFaderCurve> {
         if let SettingContent::DJMMySetting(content) = &self.data.content {
             Ok(content.channel_fader_curve)
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3142,19 +3147,19 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
     pub fn set_channel_fader_curve(
         &mut self,
         channel_fader_curve: ChannelFaderCurve,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if let SettingContent::DJMMySetting(content) = &mut self.data.content {
             content.channel_fader_curve = channel_fader_curve;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3162,15 +3167,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(CrossfaderCurve)` if the `SettingContent` is of type `DJMMySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn get_crossfader_curve(&self) -> anyhow::Result<CrossfaderCurve> {
+    pub fn get_crossfader_curve(&self) -> Result<CrossfaderCurve> {
         if let SettingContent::DJMMySetting(content) = &self.data.content {
             Ok(content.crossfader_curve)
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3181,19 +3186,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn set_crossfader_curve(
-        &mut self,
-        crossfader_curve: CrossfaderCurve,
-    ) -> anyhow::Result<()> {
+    pub fn set_crossfader_curve(&mut self, crossfader_curve: CrossfaderCurve) -> Result<()> {
         if let SettingContent::DJMMySetting(content) = &mut self.data.content {
             content.crossfader_curve = crossfader_curve;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3201,15 +3203,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(HeadphonesPreEQ)` if the `SettingContent` is of type `DJMMySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn get_headphones_pre_eq(&self) -> anyhow::Result<HeadphonesPreEQ> {
+    pub fn get_headphones_pre_eq(&self) -> Result<HeadphonesPreEQ> {
         if let SettingContent::DJMMySetting(content) = &self.data.content {
             Ok(content.headphones_pre_eq)
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3220,19 +3222,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn set_headphones_pre_eq(
-        &mut self,
-        headphones_pre_eq: HeadphonesPreEQ,
-    ) -> anyhow::Result<()> {
+    pub fn set_headphones_pre_eq(&mut self, headphones_pre_eq: HeadphonesPreEQ) -> Result<()> {
         if let SettingContent::DJMMySetting(content) = &mut self.data.content {
             content.headphones_pre_eq = headphones_pre_eq;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3240,15 +3239,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(HeadphonesMonoSplit)` if the `SettingContent` is of type `DJMMySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn get_headphones_mono_split(&self) -> anyhow::Result<HeadphonesMonoSplit> {
+    pub fn get_headphones_mono_split(&self) -> Result<HeadphonesMonoSplit> {
         if let SettingContent::DJMMySetting(content) = &self.data.content {
             Ok(content.headphones_mono_split)
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3259,19 +3258,19 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
     pub fn set_headphones_mono_split(
         &mut self,
         headphones_mono_split: HeadphonesMonoSplit,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if let SettingContent::DJMMySetting(content) = &mut self.data.content {
             content.headphones_mono_split = headphones_mono_split;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3279,15 +3278,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(BeatFXQuantize)` if the `SettingContent` is of type `DJMMySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn get_beat_fx_quantize(&self) -> anyhow::Result<BeatFXQuantize> {
+    pub fn get_beat_fx_quantize(&self) -> Result<BeatFXQuantize> {
         if let SettingContent::DJMMySetting(content) = &self.data.content {
             Ok(content.beat_fx_quantize)
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3298,16 +3297,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn set_beat_fx_quantize(&mut self, beat_fx_quantize: BeatFXQuantize) -> anyhow::Result<()> {
+    pub fn set_beat_fx_quantize(&mut self, beat_fx_quantize: BeatFXQuantize) -> Result<()> {
         if let SettingContent::DJMMySetting(content) = &mut self.data.content {
             content.beat_fx_quantize = beat_fx_quantize;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3315,15 +3314,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(MicLowCut)` if the `SettingContent` is of type `DJMMySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn get_mic_low_cut(&self) -> anyhow::Result<MicLowCut> {
+    pub fn get_mic_low_cut(&self) -> Result<MicLowCut> {
         if let SettingContent::DJMMySetting(content) = &self.data.content {
             Ok(content.mic_low_cut)
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3334,16 +3333,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn set_mic_low_cut(&mut self, mic_low_cut: MicLowCut) -> anyhow::Result<()> {
+    pub fn set_mic_low_cut(&mut self, mic_low_cut: MicLowCut) -> Result<()> {
         if let SettingContent::DJMMySetting(content) = &mut self.data.content {
             content.mic_low_cut = mic_low_cut;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3351,15 +3350,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(TalkOverMode)` if the `SettingContent` is of type `DJMMySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn get_talk_over_mode(&self) -> anyhow::Result<TalkOverMode> {
+    pub fn get_talk_over_mode(&self) -> Result<TalkOverMode> {
         if let SettingContent::DJMMySetting(content) = &self.data.content {
             Ok(content.talk_over_mode)
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3370,16 +3369,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn set_talk_over_mode(&mut self, talk_over_mode: TalkOverMode) -> anyhow::Result<()> {
+    pub fn set_talk_over_mode(&mut self, talk_over_mode: TalkOverMode) -> Result<()> {
         if let SettingContent::DJMMySetting(content) = &mut self.data.content {
             content.talk_over_mode = talk_over_mode;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3387,15 +3386,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(TalkOverLevel)` if the `SettingContent` is of type `DJMMySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn get_talk_over_level(&self) -> anyhow::Result<TalkOverLevel> {
+    pub fn get_talk_over_level(&self) -> Result<TalkOverLevel> {
         if let SettingContent::DJMMySetting(content) = &self.data.content {
             Ok(content.talk_over_level)
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3406,16 +3405,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn set_talk_over_level(&mut self, talk_over_level: TalkOverLevel) -> anyhow::Result<()> {
+    pub fn set_talk_over_level(&mut self, talk_over_level: TalkOverLevel) -> Result<()> {
         if let SettingContent::DJMMySetting(content) = &mut self.data.content {
             content.talk_over_level = talk_over_level;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3423,15 +3422,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(MidiChannel)` if the `SettingContent` is of type `DJMMySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn get_midi_channel(&self) -> anyhow::Result<MidiChannel> {
+    pub fn get_midi_channel(&self) -> Result<MidiChannel> {
         if let SettingContent::DJMMySetting(content) = &self.data.content {
             Ok(content.midi_channel)
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3442,16 +3441,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn set_midi_channel(&mut self, midi_channel: MidiChannel) -> anyhow::Result<()> {
+    pub fn set_midi_channel(&mut self, midi_channel: MidiChannel) -> Result<()> {
         if let SettingContent::DJMMySetting(content) = &mut self.data.content {
             content.midi_channel = midi_channel;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3459,15 +3458,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(MidiButtonType)` if the `SettingContent` is of type `DJMMySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn get_midi_button_type(&self) -> anyhow::Result<MidiButtonType> {
+    pub fn get_midi_button_type(&self) -> Result<MidiButtonType> {
         if let SettingContent::DJMMySetting(content) = &self.data.content {
             Ok(content.midi_button_type)
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3478,16 +3477,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn set_midi_button_type(&mut self, midi_button_type: MidiButtonType) -> anyhow::Result<()> {
+    pub fn set_midi_button_type(&mut self, midi_button_type: MidiButtonType) -> Result<()> {
         if let SettingContent::DJMMySetting(content) = &mut self.data.content {
             content.midi_button_type = midi_button_type;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3495,15 +3494,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(MixerDisplayBrightness)` if the `SettingContent` is of type `DJMMySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn get_mixer_display_brightness(&self) -> anyhow::Result<MixerDisplayBrightness> {
+    pub fn get_mixer_display_brightness(&self) -> Result<MixerDisplayBrightness> {
         if let SettingContent::DJMMySetting(content) = &self.data.content {
             Ok(content.display_brightness)
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3514,19 +3513,19 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
     pub fn set_mixer_display_brightness(
         &mut self,
         mixer_display_brightness: MixerDisplayBrightness,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if let SettingContent::DJMMySetting(content) = &mut self.data.content {
             content.display_brightness = mixer_display_brightness;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3534,15 +3533,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(MixerIndicatorBrightness)` if the `SettingContent` is of type `DJMMySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn get_mixer_indicator_brightness(&self) -> anyhow::Result<MixerIndicatorBrightness> {
+    pub fn get_mixer_indicator_brightness(&self) -> Result<MixerIndicatorBrightness> {
         if let SettingContent::DJMMySetting(content) = &self.data.content {
             Ok(content.indicator_brightness)
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3553,19 +3552,19 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
     pub fn set_mixer_indicator_brightness(
         &mut self,
         mixer_indicator_brightness: MixerIndicatorBrightness,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if let SettingContent::DJMMySetting(content) = &mut self.data.content {
             content.indicator_brightness = mixer_indicator_brightness;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3573,15 +3572,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(ChannelFaderCurveLongFader)` if the `SettingContent` is of type `DJMMySetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
-    pub fn get_channel_fader_curve_long_fader(&self) -> anyhow::Result<ChannelFaderCurveLongFader> {
+    pub fn get_channel_fader_curve_long_fader(&self) -> Result<ChannelFaderCurveLongFader> {
         if let SettingContent::DJMMySetting(content) = &self.data.content {
             Ok(content.channel_fader_curve_long_fader)
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3592,19 +3591,19 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DJMMySetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DJMMySetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DJMMySetting` file.
     pub fn set_channel_fader_curve_long_fader(
         &mut self,
         channel_fader_curve_long_fader: ChannelFaderCurveLongFader,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if let SettingContent::DJMMySetting(content) = &mut self.data.content {
             content.channel_fader_curve_long_fader = channel_fader_curve_long_fader;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", DJMMySetting::file_name())))
+            Err(Error::SettingInvalidFile(DJMMySetting::file_name()))
         }
     }
 
@@ -3614,15 +3613,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(OverviewWaveformType)` if the `SettingContent` is of type `DevSetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DevSetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DevSetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DevSetting` file.
-    pub fn get_overview_waveform_type(&self) -> anyhow::Result<OverviewWaveformType> {
+    pub fn get_overview_waveform_type(&self) -> Result<OverviewWaveformType> {
         if let SettingContent::DevSetting(content) = &self.data.content {
             Ok(content.overview_waveform_type)
         } else {
-            Err(anyhow!(format!("Not a {} file", DevSetting::file_name())))
+            Err(Error::SettingInvalidFile(DevSetting::file_name()))
         }
     }
 
@@ -3633,19 +3632,19 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DevSetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DevSetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DevSetting` file.
     pub fn set_overview_waveform_type(
         &mut self,
         overview_waveform_type: OverviewWaveformType,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if let SettingContent::DevSetting(content) = &mut self.data.content {
             content.overview_waveform_type = overview_waveform_type;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", DevSetting::file_name())))
+            Err(Error::SettingInvalidFile(DevSetting::file_name()))
         }
     }
 
@@ -3653,15 +3652,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(WaveformColor)` if the `SettingContent` is of type `DevSetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DevSetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DevSetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DevSetting` file.
-    pub fn get_waveform_color(&self) -> anyhow::Result<WaveformColor> {
+    pub fn get_waveform_color(&self) -> Result<WaveformColor> {
         if let SettingContent::DevSetting(content) = &self.data.content {
             Ok(content.waveform_color)
         } else {
-            Err(anyhow!(format!("Not a {} file", DevSetting::file_name())))
+            Err(Error::SettingInvalidFile(DevSetting::file_name()))
         }
     }
 
@@ -3672,16 +3671,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DevSetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DevSetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DevSetting` file.
-    pub fn set_waveform_color(&mut self, waveform_color: WaveformColor) -> anyhow::Result<()> {
+    pub fn set_waveform_color(&mut self, waveform_color: WaveformColor) -> Result<()> {
         if let SettingContent::DevSetting(content) = &mut self.data.content {
             content.waveform_color = waveform_color;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", DevSetting::file_name())))
+            Err(Error::SettingInvalidFile(DevSetting::file_name()))
         }
     }
 
@@ -3689,15 +3688,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(KeyDisplayFormat)` if the `SettingContent` is of type `DevSetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DevSetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DevSetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DevSetting` file.
-    pub fn get_key_display_format(&self) -> anyhow::Result<KeyDisplayFormat> {
+    pub fn get_key_display_format(&self) -> Result<KeyDisplayFormat> {
         if let SettingContent::DevSetting(content) = &self.data.content {
             Ok(content.key_display_format)
         } else {
-            Err(anyhow!(format!("Not a {} file", DevSetting::file_name())))
+            Err(Error::SettingInvalidFile(DevSetting::file_name()))
         }
     }
 
@@ -3708,19 +3707,16 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DevSetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DevSetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DevSetting` file.
-    pub fn set_key_display_format(
-        &mut self,
-        key_display_format: KeyDisplayFormat,
-    ) -> anyhow::Result<()> {
+    pub fn set_key_display_format(&mut self, key_display_format: KeyDisplayFormat) -> Result<()> {
         if let SettingContent::DevSetting(content) = &mut self.data.content {
             content.key_display_format = key_display_format;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", DevSetting::file_name())))
+            Err(Error::SettingInvalidFile(DevSetting::file_name()))
         }
     }
 
@@ -3728,15 +3724,15 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(WaveformCurrentPosition)` if the `SettingContent` is of type `DevSetting`.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DevSetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DevSetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DevSetting` file.
-    pub fn get_waveform_current_position(&self) -> anyhow::Result<WaveformCurrentPosition> {
+    pub fn get_waveform_current_position(&self) -> Result<WaveformCurrentPosition> {
         if let SettingContent::DevSetting(content) = &self.data.content {
             Ok(content.waveform_current_position)
         } else {
-            Err(anyhow!(format!("Not a {} file", DevSetting::file_name())))
+            Err(Error::SettingInvalidFile(DevSetting::file_name()))
         }
     }
 
@@ -3747,19 +3743,19 @@ impl Setting {
     ///
     /// # Returns
     /// - `Ok(())` if the value is successfully set.
-    /// - `Err(anyhow::Error)` if the `SettingContent` is not of type `DevSetting`.
+    /// - `Err(Error::SettingInvalidFile)` if the `SettingContent` is not of type `DevSetting`.
     ///
     /// # Errors
     /// Returns an error if the `SettingContent` is not a `DevSetting` file.
     pub fn set_waveform_current_position(
         &mut self,
         waveform_current_position: WaveformCurrentPosition,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if let SettingContent::DevSetting(content) = &mut self.data.content {
             content.waveform_current_position = waveform_current_position;
             Ok(())
         } else {
-            Err(anyhow!(format!("Not a {} file", DevSetting::file_name())))
+            Err(Error::SettingInvalidFile(DevSetting::file_name()))
         }
     }
 }

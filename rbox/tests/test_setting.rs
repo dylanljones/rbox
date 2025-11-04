@@ -11,7 +11,7 @@ fn path(dir: &PathBuf, file_name: &str, key: &str, value: &str) -> PathBuf {
 }
 
 fn load(dir: &PathBuf, file_name: &str, key: &str, value: &str) -> anyhow::Result<Setting> {
-    Setting::load(path(dir, file_name, key, value))
+    Ok(Setting::load(path(dir, file_name, key, value))?)
 }
 
 fn assert_file(expected: &PathBuf, actual: &PathBuf) {
