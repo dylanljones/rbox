@@ -12,8 +12,7 @@
   <a title="Docs" target="_blank" href="https://docs.rs/rbox"><img src="https://img.shields.io/badge/docs.rs-rbox-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs" style="height:20px;"></a>
 </p>
 
-> [!IMPORTANT]
-> This project is **not** affiliated with Pioneer DJ, AlphaTheta Corp., or any related entities.
+> **⚠️ Disclaimer**: This project is **not** affiliated with Pioneer DJ, AlphaTheta Corp., or any related entities.
 > The maintainers and contributors assume no liability for any data loss or damage to your Rekordbox library.
 > "Rekordbox" is a registered trademark of AlphaTheta Corporation.
 
@@ -74,7 +73,7 @@ These features are used in the bindings and *should not be enabled manually*:
 
 ## 🚀 Quick-Start
 
-> [!CAUTION]
+> **❗ Caution**:
 > Please make sure to back up your Rekordbox collection before making changes to rekordbox data.
 > The backup dialog can be found under "File" > "Library" > "Backup Library"
 
