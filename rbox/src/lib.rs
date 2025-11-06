@@ -93,22 +93,31 @@
 //! ```
 //!
 
+#[cfg(feature = "anlz")]
 pub mod anlz;
+#[cfg(feature = "devlib-plus")]
 pub mod devlib_plus;
 mod error;
+#[cfg(feature = "master-db")]
 pub mod masterdb;
 mod options;
 mod pathlib;
 pub mod prelude;
+#[cfg(feature = "settings")]
 pub mod settings;
 pub mod util;
+#[cfg(feature = "xml")]
 pub mod xml;
 
-pub use anlz::{Anlz, AnlzTag};
+#[cfg(feature = "anlz")]
+pub use anlz::Anlz;
 pub use error::{Error, Result};
+#[cfg(feature = "master-db")]
 pub use masterdb::MasterDb;
 pub use options::RekordboxOptions;
 pub use pathlib::NormalizePath;
+#[cfg(feature = "settings")]
 pub use settings::Setting;
 pub use util::*;
+#[cfg(feature = "xml")]
 pub use xml::RekordboxXml;

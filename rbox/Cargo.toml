@@ -13,7 +13,14 @@ edition.workspace = true
 name = "rbox"
 
 [features]
-default = ["bundled-vendored-openssl"]
+default = ["bundled-vendored-openssl", "full"]
+# Component features
+full = ["master-db", "devlib-plus", "anlz", "xml", "settings"]
+devlib-plus = []
+master-db  = []
+anlz = []
+xml = []
+settings = []
 # Features for SQLCipher support
 system = ["libsqlite3-sys/sqlcipher"]
 bundled = ["libsqlite3-sys/bundled-sqlcipher"]
