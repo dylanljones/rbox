@@ -17,9 +17,9 @@ pub type Date = DateTime<Utc>;
 
 const DATEFMT: &str = "%Y-%m-%d %H:%M:%S%.3f %:z";
 
-/// Parse a Rekordbox date string into a chrono DateTime<Utc>
+/// Parse a Rekordbox database date string into a chrono DateTime<Utc>
 pub fn parse_datetime(s: &str) -> Result<Date> {
-    // If string contains additional info in brackets (...), remove it
+    // If the string contains additional info in brackets (...), remove it
     let idx = s.find('(');
     let s = if let Some(idx) = idx { &s[..idx] } else { s };
     DateTime::parse_from_str(s, DATEFMT)

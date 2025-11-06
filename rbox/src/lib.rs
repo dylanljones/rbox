@@ -94,6 +94,7 @@
 //!
 
 pub mod anlz;
+pub mod devlib_plus;
 mod error;
 pub mod masterdb;
 mod options;

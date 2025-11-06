@@ -19,16 +19,16 @@ pub enum FileType {
 impl TryFrom<i32> for FileType {
     type Error = String;
 
-    fn try_from(value: i32) -> std::result::Result<Self, Self::Error> {
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
         match value {
-            0 => Ok(FileType::MP3),
-            1 => Ok(FileType::MP3_2),
-            3 => Ok(FileType::MP4),
-            4 => Ok(FileType::ALAC),
-            5 => Ok(FileType::FLAC),
-            6 => Ok(FileType::M4A),
-            11 => Ok(FileType::WAV),
-            12 => Ok(FileType::AIFF),
+            0 => Ok(Self::MP3),
+            1 => Ok(Self::MP3_2),
+            3 => Ok(Self::MP4),
+            4 => Ok(Self::ALAC),
+            5 => Ok(Self::FLAC),
+            6 => Ok(Self::M4A),
+            11 => Ok(Self::WAV),
+            12 => Ok(Self::AIFF),
             _ => Err("Invalid value for FileType".into()),
         }
     }
@@ -37,13 +37,13 @@ impl TryFrom<i32> for FileType {
 impl FileType {
     pub fn try_from_extension(ext: &str) -> std::result::Result<Self, String> {
         match ext.to_lowercase().as_str() {
-            "mp3" => Ok(FileType::MP3),
-            "mp4" => Ok(FileType::MP4),
-            "m4a" => Ok(FileType::ALAC),
-            "flac" => Ok(FileType::FLAC),
-            "wav" => Ok(FileType::WAV),
-            "aiff" => Ok(FileType::AIFF),
-            "aif" => Ok(FileType::AIFF),
+            "mp3" => Ok(Self::MP3),
+            "mp4" => Ok(Self::MP4),
+            "m4a" => Ok(Self::ALAC),
+            "flac" => Ok(Self::FLAC),
+            "wav" => Ok(Self::WAV),
+            "aiff" => Ok(Self::AIFF),
+            "aif" => Ok(Self::AIFF),
             &_ => Err(format!("Unknown file type '{}'", ext)),
         }
     }
@@ -84,8 +84,8 @@ impl TryFrom<i32> for AnalysisUpdated {
 
     fn try_from(value: i32) -> std::result::Result<Self, Self::Error> {
         match value {
-            0 => Ok(AnalysisUpdated::Normal),
-            1 => Ok(AnalysisUpdated::Advanced),
+            0 => Ok(Self::Normal),
+            1 => Ok(Self::Advanced),
             _ => Err("Invalid value for AnalysisUpdated".into()),
         }
     }
@@ -104,9 +104,9 @@ impl TryFrom<i32> for PlaylistType {
 
     fn try_from(value: i32) -> std::result::Result<Self, Self::Error> {
         match value {
-            0 => Ok(PlaylistType::Playlist),
-            1 => Ok(PlaylistType::Folder),
-            4 => Ok(PlaylistType::SmartPlaylist),
+            0 => Ok(Self::Playlist),
+            1 => Ok(Self::Folder),
+            4 => Ok(Self::SmartPlaylist),
             _ => Err("Invalid value for PlaylistType".into()),
         }
     }
