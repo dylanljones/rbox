@@ -21,7 +21,7 @@ pub fn datetime_to_js_date<'a>(env: &'a Env, date: &NaiveDate) -> JsDate<'a> {
     env.create_date(dt.timestamp_millis() as f64).unwrap()
 }
 
-pub fn datetime_opt_to_js_date(env: &Env, date: Option<NaiveDate>) -> Option<JsDate> {
+pub fn datetime_opt_to_js_date(env: &Env, date: Option<NaiveDate>) -> Option<JsDate<'_>> {
     date.map(|d| datetime_to_js_date(env, &d))
 }
 

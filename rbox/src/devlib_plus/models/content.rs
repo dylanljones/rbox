@@ -413,6 +413,7 @@ pub struct NewContent {
     #[diesel(serialize_as = DateString)]
     #[diesel(deserialize_as = DateString)]
     pub date_added: Date,
+    #[cfg_attr(feature = "pyo3", repr_field)]
     pub path: String,
     pub file_name: Option<String>,
     pub file_size: Option<i32>,

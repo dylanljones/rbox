@@ -44,6 +44,49 @@ export interface AgentRegistry {
 }
 
 /**
+ * Represents the raw structure of an album in the database.
+ *
+ * This struct is used to map the `album` table in the database and provides
+ * Diesel ORM annotations for querying and manipulating album records.
+ */
+export interface AlbumRaw {
+  /** The unique identifier of the album. */
+  id: number
+  /** The name of the album. */
+  name: string
+  /** The optional foreign key referencing the artist associated with the album. */
+  artistId?: number
+  /** The optional foreign key referencing the image associated with the album. */
+  imageId?: number
+  /** Indicates whether the album is a compilation (1 for true, 0 for false). */
+  isComplation: number
+  /** An optional field for storing a search-optimized version of the album name. */
+  nameForSearch?: string
+}
+
+/**
+ * Represents an artist in the database.
+ *
+ * This struct is used to map the `artist` table in the database and provides
+ * Diesel ORM annotations for querying and manipulating artist records.
+ */
+export interface Artist {
+  /** The unique identifier of the artist. */
+  id: number
+  /** The name of the artist. */
+  name: string
+  /** An optional field for storing a search-optimized version of the artist name. */
+  nameForSearch?: string
+}
+
+export interface CategoryRaw {
+  id: number
+  menuItemId: number
+  sequenceNo: number
+  isVisible: number
+}
+
+/**
  * Represents the `cloudAgentRegistry` table in the Rekordbox database.
  *
  * This struct maps to the `cloudAgentRegistry` table in the SQLite database used by Rekordbox.
@@ -87,6 +130,17 @@ export interface CloudAgentRegistry {
   text1?: string
   /** An optional string field for extended text data. */
   text2?: string
+}
+
+export interface Color {
+  id: number
+  name: string
+}
+
+export interface Composer {
+  id: number
+  name: string
+  nameForSearch?: string
 }
 
 /**
@@ -215,6 +269,79 @@ export interface ContentFile {
   rbPriority?: number
   /** An optional integer indicating whether the file size is dirty. */
   rbFileSizeDirty?: number
+}
+
+export interface ContentRaw {
+  id: number
+  title?: string
+  titleForSearch?: string
+  subtitle?: string
+  bpmx100?: number
+  length?: number
+  trackNo?: number
+  discNo?: number
+  artistId?: number
+  remixerId?: number
+  originalArtistId?: number
+  composerId?: number
+  lyricistId?: number
+  albumId?: number
+  genreId?: number
+  labelId?: number
+  keyId?: number
+  colorId?: number
+  imageId?: number
+  djComment?: string
+  rating?: number
+  releaseYear?: number
+  releaseDate?: string
+  dateCreated: Date
+  dateAdded: Date
+  path: string
+  fileName?: string
+  fileSize?: number
+  fileType?: number
+  bitrate?: number
+  bitDepth?: number
+  samplingRate?: number
+  isrc?: string
+  isHotCueAutoLoadOn?: number
+  isKuvoDeliverStatusOn?: number
+  kuvoDeliveryComment?: string
+  masterDbId?: number
+  masterContentId?: number
+  analysisDataFilePath?: string
+  analysedBits?: number
+  contentLink?: number
+  hasModified?: number
+  cueUpdateCount?: number
+  analysisDataUpdateCount?: number
+  informationUpdateCount?: number
+}
+
+export interface Cue {
+  id: number
+  contentId: number
+  kind?: number
+  colorTableIndex?: number
+  cueComment?: string
+  isActiveLoop?: number
+  beatLoopNumerator?: number
+  beatLoopDenominator?: number
+  inUsec?: number
+  outUsec?: number
+  in150FramePerSec?: number
+  out150FramePerSec?: number
+  inMpegFrameNumber?: number
+  outMpegFrameNumber?: number
+  inMpegAbs?: number
+  outMpegAbs?: number
+  inDecodingStartFramePosition?: number
+  outDecodingStartFramePosition?: number
+  inFileOffsetInBlock?: number
+  outFileOffsetInBlock?: number
+  inNumberOfSampleInBlock?: number
+  outNumberOfSampleInBlock?: number
 }
 
 /**
@@ -1505,6 +1632,34 @@ export interface DjmdSort {
   disable?: number
 }
 
+export interface Genre {
+  id: number
+  name: string
+}
+
+export interface History {
+  id: number
+  sequenceNo: number
+  name: string
+  attribute: number
+  historyIdParent?: number
+}
+
+export interface HistoryContent {
+  historyId: number
+  contentId: number
+  sequenceNo: number
+}
+
+export interface HotCueBankList {
+  id: number
+  sequenceNo: number
+  name?: string
+  imageId?: number
+  attribute: number
+  hotCueBankListIdParent?: number
+}
+
 /**
  * Represents the `HotCueBanklistCue` table in the Rekordbox database.
  *
@@ -1539,6 +1694,17 @@ export interface HotCueBanklistCue {
   cues?: string
   /** An optional integer representing the count of cues. */
   rbCueCount?: number
+}
+
+export interface HotCueBankListCue {
+  hotCueBankListId: number
+  cueId: number
+  sequenceNo: number
+}
+
+export interface Image {
+  id: number
+  path: string
 }
 
 /**
@@ -1603,6 +1769,251 @@ export interface ImageFile {
   rbFileSizeDirty?: number
 }
 
+export interface Key {
+  id: number
+  name: string
+}
+
+export interface Label {
+  id: number
+  name: string
+}
+
+export interface Lyricist {
+  id: number
+  name: string
+  nameForSearch?: string
+}
+
+export interface MenuItem {
+  id: number
+  kind: number
+  name: string
+}
+
+export interface MyTag {
+  id: number
+  sequenceNo: number
+  name: string
+  attribute: number
+  myTagIdParent?: number
+}
+
+export interface MyTagContent {
+  myTagId: number
+  contentId: number
+}
+
+/**
+ * Represents a new album to be inserted into the database.
+ *
+ * This struct is used for creating new album records in the `album` table
+ * and includes Diesel ORM annotations for database interactions.
+ */
+export interface NewAlbum {
+  /** The name of the album. */
+  name: string
+  /** The optional foreign key referencing the artist associated with the album. */
+  artistId?: number
+  /** The optional foreign key referencing the image associated with the album. */
+  imageId?: number
+  /** Indicates whether the album is a compilation (1 for true, 0 for false). */
+  isComplation: number
+  /** An optional field for storing a search-optimized version of the album name. */
+  nameForSearch?: string
+}
+
+/**
+ * Represents a new artist to be inserted into the database.
+ *
+ * This struct is used for creating new artist records in the `artist` table
+ * and includes Diesel ORM annotations for database interactions.
+ */
+export interface NewArtist {
+  /** The name of the artist. */
+  name: string
+  /** An optional field for storing a search-optimized version of the artist name. */
+  nameForSearch?: string
+}
+
+export interface NewCategory {
+  menuItemId: number
+  sequenceNo: number
+  isVisible: number
+}
+
+export interface NewColor {
+  name: string
+}
+
+export interface NewContent {
+  title?: string
+  titleForSearch?: string
+  subtitle?: string
+  bpmx100?: number
+  length?: number
+  trackNo?: number
+  discNo?: number
+  artistId?: number
+  remixerId?: number
+  originalArtistId?: number
+  composerId?: number
+  lyricistId?: number
+  albumId?: number
+  genreId?: number
+  labelId?: number
+  keyId?: number
+  colorId?: number
+  imageId?: number
+  djComment?: string
+  rating?: number
+  releaseYear?: number
+  releaseDate?: string
+  dateCreated: Date
+  dateAdded: Date
+  path: string
+  fileName?: string
+  fileSize?: number
+  fileType?: number
+  bitrate?: number
+  bitDepth?: number
+  samplingRate?: number
+  isrc?: string
+  isHotCueAutoLoadOn?: number
+  isKuvoDeliverStatusOn?: number
+  kuvoDeliveryComment?: string
+  masterDbId?: number
+  masterContentId?: number
+  analysisDataFilePath?: string
+  analysedBits?: number
+  contentLink?: number
+  hasModified?: number
+  cueUpdateCount?: number
+  analysisDataUpdateCount?: number
+  informationUpdateCount?: number
+}
+
+export interface NewCue {
+  contentId: number
+  kind?: number
+  colorTableIndex?: number
+  cueComment?: string
+  isActiveLoop?: number
+  beatLoopNumerator?: number
+  beatLoopDenominator?: number
+  inUsec?: number
+  outUsec?: number
+  in150FramePerSec?: number
+  out150FramePerSec?: number
+  inMpegFrameNumber?: number
+  outMpegFrameNumber?: number
+  inMpegAbs?: number
+  outMpegAbs?: number
+  inDecodingStartFramePosition?: number
+  outDecodingStartFramePosition?: number
+  inFileOffsetInBlock?: number
+  outFileOffsetInBlock?: number
+  inNumberOfSampleInBlock?: number
+  outNumberOfSampleInBlock?: number
+}
+
+export interface NewGenre {
+  name: string
+}
+
+export interface NewHistory {
+  id: number
+  sequenceNo: number
+  name: string
+  attribute: number
+  historyIdParent?: number
+}
+
+export interface NewHotCueBankList {
+  sequenceNo: number
+  name?: string
+  imageId?: number
+  attribute: number
+  hotCueBankListIdParent?: number
+}
+
+export interface NewImage {
+  path: string
+}
+
+export interface NewKey {
+  name: string
+}
+
+export interface NewLabel {
+  name: string
+}
+
+export interface NewMenuItem {
+  kind: number
+  name: string
+}
+
+export interface NewMyTag {
+  sequenceNo: number
+  name: string
+  attribute: number
+  myTagIdParent?: number
+}
+
+export interface NewPlaylist {
+  sequenceNo: number
+  name: string
+}
+
+export interface NewSort {
+  id: number
+  menuItemId: number
+  sequenceNo: number
+  isVisible: number
+  isSelectedAsSubColumn: number
+}
+
+export interface OriginalArtist {
+  id: number
+  name: string
+  nameForSearch?: string
+}
+
+export interface Playlist {
+  id: number
+  sequenceNo: number
+  name: string
+}
+
+export interface PlaylistContent {
+  playlistId: number
+  contentId: number
+  sequenceNo: number
+}
+
+export interface Property {
+  deviceName: string
+  dbVersion: number
+  numberOfContents: number
+  createdDate: Date
+  backGroundColorType?: number
+  myTagMasterDbid?: number
+}
+
+export interface RecommendedLike {
+  contentId1: number
+  contentId2: number
+  rating: number
+  createdDate: Date
+}
+
+export interface Remixer {
+  id: number
+  name: string
+  nameForSearch?: string
+}
+
 /**
  * Represents the `SettingFile` table in the Rekordbox database.
  *
@@ -1647,6 +2058,14 @@ export interface SettingFile {
   rbFileHashDirty?: number
   /** An optional integer indicating whether the file size is dirty. */
   rbFileSizeDirty?: number
+}
+
+export interface Sort {
+  id: number
+  menuItemId: number
+  sequenceNo: number
+  isVisible: number
+  isSelectedAsSubColumn: number
 }
 
 /**

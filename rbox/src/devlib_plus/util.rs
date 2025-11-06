@@ -1,7 +1,7 @@
 // Author: Dylan Jones
 // Date:   2025-09-02
 
-use chrono::NaiveDate;
+use chrono::{DateTime, Utc};
 use diesel::backend::Backend;
 use diesel::deserialize::{FromSql, Result as DResult};
 use diesel::serialize::{IsNull, Output, Result as SResult, ToSql};
@@ -10,14 +10,16 @@ use diesel::{AsExpression, FromSqlRow};
 
 use crate::error::{Error, Result};
 
-pub type Date = NaiveDate;
+pub type Date = DateTime<Utc>;
 
 const DATEFMT: &str = "%Y-%m-%d";
 
 /// Parse a Devicelib Plus date string into a chrono NaiveDate.
 pub fn parse_datetime(s: &str) -> Result<Date> {
-    Date::parse_from_str(s, DATEFMT)
-        .map_err(|e| Error::Error(format!("Failed to parse datetime: {}", e)))
+    let date = DateTime::parse_from_str(s, DATEFMT)
+        .map(|dt| dt.with_timezone(&Utc))
+        .map_err(|e| Error::Error(format!("Failed to parse datetime: {}", e)))?;
+    Ok(date)
 }
 
 /// Format a chrono DateTime<Tz> into a Devicelib Plus date string.
