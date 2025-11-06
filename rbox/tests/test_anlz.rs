@@ -1,7 +1,7 @@
 // Author: Dylan Jones
 // Date:   2025-05-08
 
-use rbox::{Anlz, AnlzTag};
+use rbox::anlz::{Anlz, AnlzTag};
 use std::path::PathBuf;
 
 mod common;
