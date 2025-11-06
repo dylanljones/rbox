@@ -93,31 +93,42 @@
 //! ```
 //!
 
+// Compile-time feature validation
+#[cfg(all(
+    any(feature = "bundled", feature = "bundled-vendored-openssl"),
+    not(any(feature = "master-db", feature = "devlib-plus"))
+))]
+compile_error!(
+    "The 'bundled' or 'bundled-vendored-openssl' features require either 'master-db' or 'devlib-plus' to be enabled"
+);
+
+mod error;
+mod options;
+mod pathlib;
+pub mod prelude;
+pub mod util;
+
 #[cfg(feature = "anlz")]
 pub mod anlz;
 #[cfg(feature = "devlib-plus")]
 pub mod devlib_plus;
-mod error;
 #[cfg(feature = "master-db")]
 pub mod masterdb;
-mod options;
-mod pathlib;
-pub mod prelude;
 #[cfg(feature = "settings")]
 pub mod settings;
-pub mod util;
 #[cfg(feature = "xml")]
 pub mod xml;
 
-#[cfg(feature = "anlz")]
-pub use anlz::Anlz;
 pub use error::{Error, Result};
-#[cfg(feature = "master-db")]
-pub use masterdb::MasterDb;
 pub use options::RekordboxOptions;
 pub use pathlib::NormalizePath;
+pub use util::*;
+
+#[cfg(feature = "anlz")]
+pub use anlz::Anlz;
+#[cfg(feature = "master-db")]
+pub use masterdb::MasterDb;
 #[cfg(feature = "settings")]
 pub use settings::Setting;
-pub use util::*;
 #[cfg(feature = "xml")]
 pub use xml::RekordboxXml;
