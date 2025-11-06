@@ -1,6 +1,9 @@
 // Author: Dylan Jones
 // Date:   2025-11-06
 
+#![allow(unused_imports)]
+#![allow(dead_code)]
+
 use diesel::{connection::SimpleConnection, prelude::*, SqliteConnection};
 
 use super::dsl::*;
