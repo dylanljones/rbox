@@ -33,9 +33,9 @@ It supports the following Rekordbox files:
 #### Language support
 
 rbox is built with Rust for maximum performance and safety, with additional language bindings:
-- **🦀 [Rust](rbox/README.md)**: The core library, providing fast and efficient access to Rekordbox data
-- **🐍 [Python](bindings/python/README.md)**: Integrate with Python applications for easy data manipulation
-- **✨ [JavaScript](bindings/javascript/README.md)**: Integrate with electron applications and Node.js environments
+- **🦀 [Rust](rbox)**: The core library, providing fast and efficient access to Rekordbox data
+- **🐍 [Python](bindings/python)**: Integrate with Python applications for easy data manipulation
+- **✨ [JavaScript](bindings/javascript)**: Integrate with electron applications and Node.js environments
 
 
 ## Installation
@@ -100,6 +100,28 @@ Licensed under either of [Apache License, Version 2.0][LICENSE-APACHE] or [MIT l
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in this crate by you, as defined in the Apache-2.0 license, shall
 be dual licensed as above, without any additional terms or conditions.
+
+
+## FAQ
+
+<details>
+<summary>Can I use `rbox` to prepare device exports without Rekordbox?</summary>
+
+Although `rbox` does support the new Device Library Plus export format, the library
+cannot create new analysis files. Existing analysis files, however, can be copied to the export device.
+
+</details>
+
+<details>
+<summary>Does this library support the old Device Library export files?</summary>
+
+`rbox` does not support the old device library export files and support is not planned anytime soon.
+
+Check out [rekordcrate](https://github.com/Holzhaus/rekordcrate) for a library focused more on export files
+and their awesome work of reverse engineering that format.
+
+</details>
+
 
 
 ## Sponsor
