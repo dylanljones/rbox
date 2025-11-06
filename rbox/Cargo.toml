@@ -14,8 +14,8 @@ name = "rbox"
 
 [features]
 default = ["bundled-vendored-openssl", "full"]
-full = ["master-db", "devlib-plus", "anlz", "xml", "settings"]
 # Component features
+full = ["master-db", "devlib-plus", "anlz", "xml", "settings"]
 master-db  = ["anlz", "dep:diesel", "dep:libsqlite3-sys", "dep:quick-xml", "dep:rand", "dep:uuid", "dep:dunce"]
 devlib-plus = ["dep:diesel", "dep:libsqlite3-sys", "dep:dunce"]
 anlz = ["dep:binrw", "dep:modular-bitfield"]
@@ -24,9 +24,8 @@ xml = ["dep:quick-xml", "dep:lazy-regex"]
 # Features for SQLCipher support
 bundled = ["libsqlite3-sys/bundled-sqlcipher"]
 bundled-vendored-openssl = ["libsqlite3-sys/bundled-sqlcipher-vendored-openssl"]
-# Features for the Python bindings
+# Features for the bindings
 pyo3 = ["dep:pyo3", "dep:py-derives"]
-# Features for the JavaScript bindings
 napi = ["dep:napi", "dep:napi-derive"]
 
 [dependencies]
