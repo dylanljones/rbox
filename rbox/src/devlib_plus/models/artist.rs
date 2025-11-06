@@ -2,8 +2,16 @@
 // Date:   2025-09-02
 
 use diesel::prelude::*;
+#[cfg(feature = "napi")]
+use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use py_derives::PyMutableMapping;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
 
 use super::schema;
+#[cfg(feature = "pyo3")]
+use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
 /// Represents an artist in the database.
 ///
@@ -13,6 +21,9 @@ use super::schema;
 #[diesel(table_name = schema::artist)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct Artist {
     /// The unique identifier of the artist.
     pub id: i32,
@@ -29,6 +40,9 @@ pub struct Artist {
 #[derive(PartialEq, Debug, Clone, Default, Insertable)]
 #[diesel(table_name = schema::artist)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct NewArtist {
     /// The name of the artist.
     pub name: String,
@@ -51,6 +65,9 @@ impl NewArtist {
 #[diesel(table_name = schema::artist)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct Remixer {
     pub id: i32,
     pub name: String,
@@ -61,6 +78,9 @@ pub struct Remixer {
 #[diesel(table_name = schema::artist)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct OriginalArtist {
     pub id: i32,
     pub name: String,
@@ -71,6 +91,9 @@ pub struct OriginalArtist {
 #[diesel(table_name = schema::artist)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct Composer {
     pub id: i32,
     pub name: String,
@@ -81,6 +104,9 @@ pub struct Composer {
 #[diesel(table_name = schema::artist)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct Lyricist {
     pub id: i32,
     pub name: String,

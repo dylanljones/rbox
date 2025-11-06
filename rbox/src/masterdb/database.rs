@@ -91,11 +91,11 @@ const MAGIC: &str = "513ge593d49928d46ggb9ggc9d8e:4254c85:f8e426eg8b92843b2gg547
 /// }
 /// ```
 fn open_connection(path: &str) -> Result<SqliteConnection> {
-    let key = String::from_utf8(MAGIC.as_bytes().iter().map(|&b| b - 1).collect())
+    let db_key = String::from_utf8(MAGIC.as_bytes().iter().map(|&b| b - 1).collect())
         .map_err(|e| e.utf8_error())?;
 
     let mut conn = SqliteConnection::establish(path)?;
-    conn.batch_execute(format!("PRAGMA key = '{key}';").as_str())?;
+    conn.batch_execute(format!("PRAGMA key = '{db_key}';").as_str())?;
     conn.batch_execute("PRAGMA foreign_keys = ON")?;
     conn.batch_execute("PRAGMA journal_mode = WAL")?;
     conn.batch_execute("PRAGMA synchronous = NORMAL")?;

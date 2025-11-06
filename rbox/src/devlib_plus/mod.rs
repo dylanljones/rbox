@@ -1,6 +1,7 @@
 // Author: Dylan Jones
 // Date:   2025-11-06
 
+mod database;
 pub mod enums;
 pub mod models;
 pub mod schema;

@@ -2,9 +2,17 @@
 // Date:   2025-09-02
 
 use diesel::prelude::*;
+#[cfg(feature = "napi")]
+use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use py_derives::PyMutableMapping;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
 
 use super::menu_item::MenuItem;
 use super::schema;
+#[cfg(feature = "pyo3")]
+use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
 type JoinTuple = (CategoryRaw, Option<MenuItem>);
 
@@ -15,6 +23,9 @@ type JoinTuple = (CategoryRaw, Option<MenuItem>);
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(MenuItem, foreign_key = menu_item_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct CategoryRaw {
     pub id: i32,
     pub menu_item_id: i32,
@@ -66,6 +77,9 @@ impl Category {
 #[derive(Debug, Clone, PartialEq, Default, Insertable)]
 #[diesel(table_name = schema::category)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct NewCategory {
     pub menu_item_id: i32,
     pub sequence_no: i32,

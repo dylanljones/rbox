@@ -2,6 +2,12 @@
 // Date:   2025-09-02
 
 use diesel::prelude::*;
+#[cfg(feature = "napi")]
+use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use py_derives::PyMutableMapping;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
 
 use super::album::AlbumRaw;
 use super::artist::{Artist, Composer, Lyricist, OriginalArtist, Remixer};
@@ -12,6 +18,8 @@ use super::key::Key;
 use super::label::Label;
 use super::schema;
 use super::util::{Date, DateString};
+#[cfg(feature = "pyo3")]
+use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
 type JoinTuple = (
     ContentRaw,
@@ -45,6 +53,9 @@ type JoinTuple = (
 #[diesel(belongs_to(Color, foreign_key = color_id))]
 #[diesel(belongs_to(Image, foreign_key = image_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct ContentRaw {
     pub id: i32,
     pub title: Option<String>,
@@ -370,6 +381,9 @@ impl Content {
 #[derive(Debug, Clone, PartialEq, Default, Insertable)]
 #[diesel(table_name = schema::content)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct NewContent {
     pub title: Option<String>,
     pub title_for_search: Option<String>,

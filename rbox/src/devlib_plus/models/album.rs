@@ -2,11 +2,19 @@
 // Date:   2025-09-02
 
 use diesel::prelude::*;
+#[cfg(feature = "napi")]
+use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use py_derives::PyMutableMapping;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
 
 use super::artist::Artist;
 use super::image::Image;
 use super::schema;
 use crate::masterdb::models::DjmdAlbum;
+#[cfg(feature = "pyo3")]
+use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
 type JoinTuple = (AlbumRaw, Option<Artist>, Option<Image>);
 
@@ -22,6 +30,9 @@ type JoinTuple = (AlbumRaw, Option<Artist>, Option<Image>);
 #[diesel(belongs_to(Artist, foreign_key = artist_id))]
 #[diesel(belongs_to(Image, foreign_key = image_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct AlbumRaw {
     /// The unique identifier of the album.
     pub id: i32,
@@ -91,7 +102,7 @@ impl From<AlbumRaw> for Album {
 }
 
 impl Album {
-    fn from_join(tuple: JoinTuple) -> Self {
+    pub fn from_join(tuple: JoinTuple) -> Self {
         let mut result = Self::from(tuple.0);
         result.artist = tuple.1;
         result.image = tuple.2;
@@ -106,6 +117,9 @@ impl Album {
 #[derive(PartialEq, Debug, Clone, Default, Insertable)]
 #[diesel(table_name = schema::album)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct NewAlbum {
     /// The name of the album.
     pub name: String,

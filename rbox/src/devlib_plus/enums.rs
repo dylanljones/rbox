@@ -4,7 +4,7 @@
 use std::convert::TryFrom;
 
 #[repr(i32)]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FileType {
     MP3 = 0,
     MP3_2 = 1,
@@ -35,7 +35,7 @@ impl TryFrom<i32> for FileType {
 }
 
 impl FileType {
-    pub fn try_from_extension(ext: &str) -> std::result::Result<Self, String> {
+    pub fn try_from_extension(ext: &str) -> Result<Self, String> {
         match ext.to_lowercase().as_str() {
             "mp3" => Ok(Self::MP3),
             "mp4" => Ok(Self::MP4),
@@ -50,7 +50,7 @@ impl FileType {
 }
 
 #[repr(i32)]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PlaylistType {
     Playlist = 0,
     Folder = 1,
@@ -60,7 +60,7 @@ pub enum PlaylistType {
 impl TryFrom<i32> for PlaylistType {
     type Error = String;
 
-    fn try_from(value: i32) -> std::result::Result<Self, Self::Error> {
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(Self::Playlist),
             1 => Ok(Self::Folder),
