@@ -43,7 +43,7 @@ The library is organized into modular components that can be enabled individuall
 
 - `full` (default): Enables all component features
 - `master-db`: Access to the Rekordbox 6/7 master.db database (enables `anlz` feature)
-- `devlib-plus`: Access to the DeviceLibrary database (enables `master-db` feature)
+- `devlib-plus`: Access to the DeviceLibrary database
 - `anlz`: Support for ANLZ analysis files
 - `xml`: Support for Rekordbox XML database files
 - `settings`: Support for My-Setting files

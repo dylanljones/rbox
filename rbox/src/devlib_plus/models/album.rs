@@ -12,7 +12,6 @@ use pyo3::prelude::*;
 use super::artist::Artist;
 use super::image::Image;
 use super::schema;
-use crate::masterdb::models::DjmdAlbum;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -133,18 +132,6 @@ pub struct NewAlbum {
     pub name_for_search: Option<String>,
 }
 
-impl Into<NewAlbum> for DjmdAlbum {
-    fn into(self) -> NewAlbum {
-        NewAlbum {
-            name: self.name.unwrap_or("".into()),
-            artist_id: None,
-            image_id: None,
-            is_complation: self.compilation.unwrap_or(0),
-            name_for_search: self.search_str,
-        }
-    }
-}
-
 impl NewAlbum {
     pub fn new(
         name: String,
@@ -159,6 +146,19 @@ impl NewAlbum {
             image_id,
             is_complation,
             name_for_search: None,
+        }
+    }
+}
+
+#[cfg(feature = "master-db")]
+impl Into<NewAlbum> for crate::masterdb::models::DjmdAlbum {
+    fn into(self) -> NewAlbum {
+        NewAlbum {
+            name: self.name.unwrap_or("".into()),
+            artist_id: None,
+            image_id: None,
+            is_complation: self.compilation.unwrap_or(0),
+            name_for_search: self.search_str,
         }
     }
 }

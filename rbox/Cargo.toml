@@ -17,7 +17,7 @@ default = ["bundled-vendored-openssl", "full"]
 full = ["master-db", "devlib-plus", "anlz", "xml", "settings"]
 # Component features
 master-db  = ["anlz", "dep:diesel", "dep:libsqlite3-sys", "dep:quick-xml", "dep:rand", "dep:uuid", "dep:dunce"]
-devlib-plus = ["master-db", "dep:diesel", "dep:libsqlite3-sys", "dep:dunce"]
+devlib-plus = ["dep:diesel", "dep:libsqlite3-sys", "dep:dunce"]
 anlz = ["dep:binrw", "dep:modular-bitfield"]
 settings = ["dep:binrw", "dep:parse-display", "dep:crc16"]
 xml = ["dep:quick-xml", "dep:lazy-regex"]
