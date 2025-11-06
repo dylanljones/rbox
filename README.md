@@ -106,20 +106,40 @@ be dual licensed as above, without any additional terms or conditions.
 ## FAQ
 
 <details>
-<summary>Can I use `rbox` to prepare device exports without Rekordbox?</summary>
+<summary>
 
-Although `rbox` does support the new Device Library Plus export format, the library
-cannot create new analysis files. Existing analysis files, however, can be copied to the export device.
+#### Can I run the analysis provided by Rekordbox with `rbox`?
+</summary>
+
+No, `rbox` is only an interface to Rekordbox's data. It can read and write Rekordbox analysis
+files (waveforms, beat grids, hot cues, etc.), but it does not implement or run Rekordbox’s audio
+analysis algorithms.
 
 </details>
 
 <details>
-<summary>Does this library support the old Device Library export files?</summary>
+
+<summary>
+
+#### Can I use ``rbox`` to prepare device exports without Rekordbox?
+</summary>
+
+Although `rbox` does support the new Device Library Plus export format, the library
+cannot run the analysis provided by Rekordbox.
+Once files have been analyzed, the analysis data can be exported to the device.
+
+</details>
+
+<details>
+<summary>
+
+#### Does this library support the old Device Library export files?
+</summary>
 
 `rbox` does not support the old device library export files and support is not planned anytime soon.
 
 Check out [rekordcrate](https://github.com/Holzhaus/rekordcrate) for a library focused more on export files
-and their awesome work of reverse engineering that format.
+and their awesome work of reverse engineering the `.pdb` format.
 
 </details>
 
