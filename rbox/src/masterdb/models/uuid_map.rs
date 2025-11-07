@@ -9,18 +9,18 @@ use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-use super::schema;
+use super::schema::uuidIDMap;
 use super::util::{Date, DateString};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `UuidIDMap` table in the Rekordbox database.
+/// Represents the `uuidIDMap` table in the Rekordbox database.
 ///
-/// This struct maps to the `UuidIDMap` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `uuidIDMap` table in the SQLite database used by Rekordbox.
 /// It stores information about UUID-to-ID mappings, including metadata such as table names,
 /// target UUIDs, and current IDs.
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
-#[diesel(table_name = schema::uuidIDMap)]
+#[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
+#[diesel(table_name = uuidIDMap)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
@@ -58,4 +58,16 @@ pub struct UuidIDMap {
     pub target_uuid: Option<String>,
     /// An optional string representing the current ID in the mapping.
     pub current_id: Option<String>,
+}
+
+impl UuidIDMap {
+    /// Queries all records from the `uuidIDMap` table.
+    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    /// Queries a record from the `uuidIDMap` table by its `id`.
+    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
 }

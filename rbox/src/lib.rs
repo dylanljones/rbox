@@ -93,6 +93,8 @@
 //! ```
 //!
 
+extern crate core;
+
 // Compile-time feature validation
 #[cfg(all(
     any(feature = "bundled", feature = "bundled-vendored-openssl"),

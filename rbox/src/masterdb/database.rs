@@ -2014,10 +2014,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_key(&mut self) -> Result<Vec<DjmdKey>> {
-        let results = djmdKey
-            .order_by(schema::djmdKey::seq)
-            .load::<DjmdKey>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdKey::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`DjmdKey`] entry by its unique identifier.
@@ -2040,11 +2037,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_key_by_id(&mut self, id: &str) -> Result<Option<DjmdKey>> {
-        let result = djmdKey
-            .filter(schema::djmdKey::id.eq(id))
-            .first::<DjmdKey>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdKey::find(&mut self.conn, id)?)
     }
 
     /// Retrieves a [`DjmdKey`] entry by its scale name.
@@ -2068,51 +2061,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_key_by_name(&mut self, name: &str) -> Result<Option<DjmdKey>> {
-        let results: Vec<DjmdKey> = djmdKey
-            .filter(schema::djmdKey::scale_name.eq(name))
-            .load(&mut self.conn)?;
-        let n = results.len();
-        if n == 0 {
-            Ok(None)
-        } else if n == 1 {
-            let result = results[0].clone();
-            Ok(Some(result))
-        } else {
-            // More than one item, return error
-            Err(Error::Database("More than one element found!".into()))
-        }
-    }
-
-    /// Checks if a [`DjmdKey`] with the given ID exists in the database.
-    ///
-    /// # Arguments
-    /// * `id` - A reference to a string representing the key ID.
-    ///
-    /// # Returns
-    /// * `Result<bool>` - Returns `true` if the key exists, `false` otherwise.
-    fn key_exists(&mut self, id: &String) -> Result<bool> {
-        let id_exists: bool = select(exists(djmdKey.filter(schema::djmdKey::id.eq(id))))
-            .get_result(&mut self.conn)?;
-        Ok(id_exists)
-    }
-
-    /// Generates a unique key ID that does not exist in the database.
-    ///
-    /// # Returns
-    /// * `Result<String>` - Returns a new unique key ID as a string.
-    fn generate_key_id(&mut self) -> Result<String> {
-        let generator = RandomIdGenerator::new(true);
-        let mut id: String = String::new();
-        for id_result in generator {
-            if let Ok(tmp_id) = id_result {
-                let id_exists: bool = self.key_exists(&tmp_id)?;
-                if !id_exists {
-                    id = tmp_id;
-                    break;
-                }
-            }
-        }
-        Ok(id)
+        Ok(DjmdKey::find_by_name(&mut self.conn, name)?)
     }
 
     /// Inserts a new key into the [`DjmdKey`] table in the database.
@@ -2134,25 +2083,8 @@ impl MasterDb {
     /// ```
     pub fn insert_key(&mut self, name: String) -> Result<DjmdKey> {
         self.assert_write_mode()?;
-
-        // Generate ID/UUID
-        let id: String = self.generate_key_id()?;
-        let uuid: String = Uuid::new_v4().to_string();
-        // Get next USN
-        let usn: i32 = self.increment_local_usn(1)?;
-        // Generate date
-        let utcnow: DateTime<Utc> = Utc::now();
-        // Count existing items for inserting at end
-        let count = djmdKey.count().get_result::<i64>(&mut self.conn)? as i32;
-        let seq: i32 = count + 1;
-
-        // Create and insert model
-        let item: DjmdKey = DjmdKey::new(id, uuid, usn, utcnow, name, seq);
-        let result: DjmdKey = diesel::insert_into(djmdKey)
-            .values(item)
-            .get_result(&mut self.conn)?;
-
-        Ok(result)
+        let item = NewDjmdKey::new(name);
+        Ok(item.insert(&mut self.conn)?)
     }
 
     /// Inserts a new [`DjmdKey`] with the given name if it does not already exist.
@@ -2166,13 +2098,9 @@ impl MasterDb {
     /// # Errors
     /// * Returns an error if the key cannot be inserted or retrieved.
     fn insert_key_if_not_exists(&mut self, name: &str) -> Result<DjmdKey> {
-        let key = self.get_key_by_name(name)?;
-        if let Some(key) = key {
-            Ok(key)
-        } else {
-            let new = self.insert_key(name.to_string())?;
-            Ok(new)
-        }
+        self.assert_write_mode()?;
+        let item = NewDjmdKey::new(name.to_string());
+        Ok(item.insert_if_not_exists(&mut self.conn)?)
     }
 
     /// Updates an existing [`DjmdKey`] entry in the database.
@@ -2204,29 +2132,7 @@ impl MasterDb {
     /// ```
     pub fn update_key(&mut self, item: &mut DjmdKey) -> Result<DjmdKey> {
         self.assert_write_mode()?;
-
-        // Count differences
-        let existing: DjmdKey = self.get_key_by_id(&item.id)?.unwrap();
-        let mut n = 0;
-        if item.scale_name != existing.scale_name {
-            n += 1
-        }
-        if item.seq != existing.seq {
-            n += 1
-        }
-        if n == 0 {
-            return Ok(existing);
-        }
-        // Update update-time
-        item.updated_at = Utc::now();
-        // Update USN
-        let usn: i32 = self.increment_local_usn(n)?;
-        item.rb_local_usn = Some(usn);
-
-        let result: DjmdKey = diesel::update(&*item)
-            .set(item.clone())
-            .get_result(&mut self.conn)?;
-        Ok(result)
+        Ok(item.clone().update(&mut self.conn)?)
     }
 
     /// Deletes a key entry from the [`DjmdKey`] table in the database.
@@ -2253,17 +2159,7 @@ impl MasterDb {
     /// ```
     pub fn delete_key(&mut self, id: &str) -> Result<usize> {
         self.assert_write_mode()?;
-
-        let result =
-            diesel::delete(djmdKey.filter(schema::djmdKey::id.eq(id))).execute(&mut self.conn)?;
-        self.increment_local_usn(1)?;
-
-        // Remove any references to the key in DjmdContent
-        let _ = diesel::update(djmdContent.filter(schema::djmdContent::key_id.eq(id)))
-            .set(schema::djmdContent::key_id.eq(None::<String>))
-            .execute(&mut self.conn)?;
-
-        Ok(result)
+        Ok(DjmdKey::delete(&mut self.conn, id)?)
     }
 
     // -- Label ------------------------------------------------------------------------------------
@@ -2284,8 +2180,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_label(&mut self) -> Result<Vec<DjmdLabel>> {
-        let results = djmdLabel.load::<DjmdLabel>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdLabel::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`DjmdLabel`] entry by its unique identifier.
@@ -2308,11 +2203,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_label_by_id(&mut self, id: &str) -> Result<Option<DjmdLabel>> {
-        let result = djmdLabel
-            .filter(schema::djmdLabel::id.eq(id))
-            .first::<DjmdLabel>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdLabel::find(&mut self.conn, id)?)
     }
 
     /// Retrieves a [`DjmdLabel`] entry by its name.
@@ -2336,51 +2227,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_label_by_name(&mut self, name: &str) -> Result<Option<DjmdLabel>> {
-        let results: Vec<DjmdLabel> = djmdLabel
-            .filter(schema::djmdLabel::name.eq(name))
-            .load(&mut self.conn)?;
-        let n = results.len();
-        if n == 0 {
-            Ok(None)
-        } else if n == 1 {
-            let result = results[0].clone();
-            Ok(Some(result))
-        } else {
-            // More than one item, return error
-            Err(Error::Database("More than one element found!".into()))
-        }
-    }
-
-    /// Checks if a [`DjmdLabel`] with the given ID exists in the database.
-    ///
-    /// # Arguments
-    /// * `id` - A reference to a string representing the label ID.
-    ///
-    /// # Returns
-    /// * `Result<bool>` - Returns `true` if the label exists, `false` otherwise.
-    fn label_exists(&mut self, id: &String) -> Result<bool> {
-        let id_exists: bool = select(exists(djmdLabel.filter(schema::djmdLabel::id.eq(id))))
-            .get_result(&mut self.conn)?;
-        Ok(id_exists)
-    }
-
-    /// Generates a unique label ID that does not exist in the database.
-    ///
-    /// # Returns
-    /// * `Result<String>` - Returns a new unique label ID as a string.
-    fn generate_label_id(&mut self) -> Result<String> {
-        let generator = RandomIdGenerator::new(true);
-        let mut id: String = String::new();
-        for id_result in generator {
-            if let Ok(tmp_id) = id_result {
-                let id_exists: bool = self.label_exists(&tmp_id)?;
-                if !id_exists {
-                    id = tmp_id;
-                    break;
-                }
-            }
-        }
-        Ok(id)
+        Ok(DjmdLabel::find_by_name(&mut self.conn, name)?)
     }
 
     /// Inserts a new label into the [`DjmdLabel`] table in the database.
@@ -2402,21 +2249,8 @@ impl MasterDb {
     /// ```
     pub fn insert_label(&mut self, name: String) -> Result<DjmdLabel> {
         self.assert_write_mode()?;
-
-        // Generate ID/UUID
-        let id: String = self.generate_label_id()?;
-        let uuid: String = Uuid::new_v4().to_string();
-        // Get next USN
-        let usn: i32 = self.increment_local_usn(1)?;
-        // Generate date
-        let utcnow: DateTime<Utc> = Utc::now();
-        // Create and insert model
-        let item: DjmdLabel = DjmdLabel::new(id, uuid, usn, utcnow, name);
-        let result: DjmdLabel = diesel::insert_into(djmdLabel)
-            .values(item)
-            .get_result(&mut self.conn)?;
-
-        Ok(result)
+        let item = NewDjmdLabel::new(name);
+        Ok(item.insert(&mut self.conn)?)
     }
 
     /// Inserts a new [`DjmdLabel`] with the given name if it does not already exist.
@@ -2430,13 +2264,9 @@ impl MasterDb {
     /// # Errors
     /// * Returns an error if the label cannot be inserted or retrieved.
     fn insert_label_if_not_exists(&mut self, name: &str) -> Result<DjmdLabel> {
-        let label = self.get_label_by_name(name)?;
-        if let Some(label) = label {
-            Ok(label)
-        } else {
-            let new = self.insert_label(name.to_string())?;
-            Ok(new)
-        }
+        self.assert_write_mode()?;
+        let item = NewDjmdLabel::new(name.to_string());
+        Ok(item.insert_if_not_exists(&mut self.conn)?)
     }
 
     /// Updates an existing [`DjmdLabel`] entry in the database.
@@ -2467,26 +2297,7 @@ impl MasterDb {
     /// println
     pub fn update_label(&mut self, item: &mut DjmdLabel) -> Result<DjmdLabel> {
         self.assert_write_mode()?;
-
-        // Count differences
-        let existing: DjmdLabel = self.get_label_by_id(&item.id)?.unwrap();
-        let mut n = 0;
-        if item.name != existing.name {
-            n += 1
-        }
-        if n == 0 {
-            return Ok(existing);
-        }
-        // Update update-time
-        item.updated_at = Utc::now();
-        // Update USN
-        let usn: i32 = self.increment_local_usn(n)?;
-        item.rb_local_usn = Some(usn);
-
-        let result: DjmdLabel = diesel::update(&*item)
-            .set(item.clone())
-            .get_result(&mut self.conn)?;
-        Ok(result)
+        Ok(item.clone().update(&mut self.conn)?)
     }
 
     /// Deletes a label entry from the [`DjmdLabel`] table in the database.
@@ -2513,17 +2324,7 @@ impl MasterDb {
     /// ```
     pub fn delete_label(&mut self, id: &str) -> Result<usize> {
         self.assert_write_mode()?;
-
-        let result = diesel::delete(djmdLabel.filter(schema::djmdLabel::id.eq(id)))
-            .execute(&mut self.conn)?;
-        self.increment_local_usn(1)?;
-
-        // Remove any references to the key in DjmdContent
-        let _ = diesel::update(djmdContent.filter(schema::djmdContent::label_id.eq(id)))
-            .set(schema::djmdContent::label_id.eq(None::<String>))
-            .execute(&mut self.conn)?;
-
-        Ok(result)
+        Ok(DjmdLabel::delete(&mut self.conn, id)?)
     }
 
     // -- MenuItems --------------------------------------------------------------------------------
@@ -4404,8 +4205,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_image_file(&mut self) -> Result<Vec<ImageFile>> {
-        let results = imageFile.load::<ImageFile>(&mut self.conn)?;
-        Ok(results)
+        Ok(ImageFile::all(&mut self.conn)?)
     }
 
     /// Retrieves an [`ImageFile`] entry by its unique identifier.
@@ -4428,11 +4228,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_image_file_by_id(&mut self, id: &str) -> Result<Option<ImageFile>> {
-        let result = imageFile
-            .filter(schema::imageFile::id.eq(id))
-            .first::<ImageFile>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(ImageFile::find(&mut self.conn, id)?)
     }
 
     // -- SettingFile ------------------------------------------------------------------------------
@@ -4453,8 +4249,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_setting_file(&mut self) -> Result<Vec<SettingFile>> {
-        let results = settingFile.load::<SettingFile>(&mut self.conn)?;
-        Ok(results)
+        Ok(SettingFile::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`SettingFile`] entry by its unique identifier.
@@ -4477,11 +4272,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_setting_file_by_id(&mut self, id: &str) -> Result<Option<SettingFile>> {
-        let result = settingFile
-            .filter(schema::settingFile::id.eq(id))
-            .first::<SettingFile>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(SettingFile::find(&mut self.conn, id)?)
     }
 
     // -- UuidIDMap --------------------------------------------------------------------------------
@@ -4502,8 +4293,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_uuid_id_map(&mut self) -> Result<Vec<UuidIDMap>> {
-        let results = uuidIDMap.load::<UuidIDMap>(&mut self.conn)?;
-        Ok(results)
+        Ok(UuidIDMap::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`UuidIDMap`] entry by its unique identifier.
@@ -4526,10 +4316,6 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_uuid_id_map_by_id(&mut self, id: &str) -> Result<Option<UuidIDMap>> {
-        let result = uuidIDMap
-            .filter(schema::uuidIDMap::id.eq(id))
-            .first::<UuidIDMap>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(UuidIDMap::find(&mut self.conn, id)?)
     }
 }
