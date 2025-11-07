@@ -221,8 +221,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_agent_registry(&mut self) -> Result<Vec<AgentRegistry>> {
-        let results = agentRegistry.load::<AgentRegistry>(&mut self.conn)?;
-        Ok(results)
+        Ok(AgentRegistry::all(&mut self.conn)?)
     }
 
     /// Retrieves an [`AgentRegistry`] entry by its unique identifier.
@@ -247,11 +246,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_agent_registry_by_id(&mut self, id: &str) -> Result<Option<AgentRegistry>> {
-        let result = agentRegistry
-            .filter(schema::agentRegistry::registry_id.eq(id))
-            .first::<AgentRegistry>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(AgentRegistry::find(&mut self.conn, id)?)
     }
 
     /// Retrieves the local update sequence number (USN) from the [`AgentRegistry`] table.
@@ -271,31 +266,13 @@ impl MasterDb {
     /// println!("Local USN: {}", local_usn);
     /// ```
     pub fn get_local_usn(&mut self) -> Result<i32> {
-        let result = agentRegistry
-            .filter(schema::agentRegistry::registry_id.eq("localUpdateCount"))
-            .select(schema::agentRegistry::int_1)
-            .first::<Option<i32>>(&mut self.conn)?;
-        // Raise error if not found, otherwise return value
-        if let Some(value) = result {
-            Ok(value)
-        } else {
-            Err(Error::Database("localUpdateCount not found".into()))
-        }
+        Ok(AgentRegistry::local_usn(&mut self.conn)?)
     }
-
-    // fn set_local_usn(&mut self, usn: i32) -> Result<usize> {
-    //     let result = diesel::update(
-    //         agentRegistry.filter(schema::agentRegistry::registry_id.eq("localUpdateCount")),
-    //     )
-    //     .set(schema::agentRegistry::int_1.eq(usn))
-    //     .execute(&mut self.conn)?;
-    //     Ok(result)
-    // }
 
     /// Increments the local update sequence number (USN) in the [`AgentRegistry`] table.
     ///
     /// # Arguments
-    /// * `usn` - An integer value representing the amount to increment the local USN.
+    /// * `n` - An integer value representing the amount to increment the local USN.
     ///
     /// # Returns
     /// * `Result<i32>` - Returns the updated USN as an integer if successful, or an error.
@@ -309,15 +286,8 @@ impl MasterDb {
     /// let new_usn = db.increment_local_usn(1).unwrap();
     /// println!("Updated USN: {}", new_usn);
     /// ```
-    fn increment_local_usn(&mut self, usn: i32) -> Result<i32> {
-        let result = diesel::update(
-            agentRegistry.filter(schema::agentRegistry::registry_id.eq("localUpdateCount")),
-        )
-        .set(schema::agentRegistry::int_1.eq(schema::agentRegistry::int_1 + usn))
-        .returning(schema::agentRegistry::int_1)
-        .get_result::<Option<i32>>(&mut self.conn)?;
-        let new_usn = result.expect("No new USN");
-        Ok(new_usn)
+    fn increment_local_usn(&mut self, n: usize) -> Result<i32> {
+        Ok(AgentRegistry::increment_local_usn_by(&mut self.conn, n)?)
     }
 
     // -- CloudAgentRegistry -----------------------------------------------------------------------
@@ -340,8 +310,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_cloud_agent_registry(&mut self) -> Result<Vec<CloudAgentRegistry>> {
-        let results = cloudAgentRegistry.load::<CloudAgentRegistry>(&mut self.conn)?;
-        Ok(results)
+        Ok(CloudAgentRegistry::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`CloudAgentRegistry`] entry by its unique identifier.
@@ -369,11 +338,7 @@ impl MasterDb {
         &mut self,
         id: &str,
     ) -> Result<Option<CloudAgentRegistry>> {
-        let result = cloudAgentRegistry
-            .filter(schema::cloudAgentRegistry::id.eq(id))
-            .first::<CloudAgentRegistry>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(CloudAgentRegistry::find(&mut self.conn, id)?)
     }
 
     // -- ContentActiveCensor ----------------------------------------------------------------------
@@ -396,8 +361,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_content_active_censor(&mut self) -> Result<Vec<ContentActiveCensor>> {
-        let results = contentActiveCensor.load::<ContentActiveCensor>(&mut self.conn)?;
-        Ok(results)
+        Ok(ContentActiveCensor::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`ContentActiveCensor`] entry by its unique identifier.
@@ -425,11 +389,7 @@ impl MasterDb {
         &mut self,
         id: &str,
     ) -> Result<Option<ContentActiveCensor>> {
-        let result = contentActiveCensor
-            .filter(schema::contentActiveCensor::id.eq(id))
-            .first::<ContentActiveCensor>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(ContentActiveCensor::find(&mut self.conn, id)?)
     }
 
     // -- ContentCue -------------------------------------------------------------------------------
@@ -452,8 +412,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_content_cue(&mut self) -> Result<Vec<ContentCue>> {
-        let results = contentCue.load::<ContentCue>(&mut self.conn)?;
-        Ok(results)
+        Ok(ContentCue::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`ContentCue`] entry by its unique identifier.
@@ -478,11 +437,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_content_cue_by_id(&mut self, id: &str) -> Result<Option<ContentCue>> {
-        let result = contentCue
-            .filter(schema::contentCue::id.eq(id))
-            .first::<ContentCue>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(ContentCue::find(&mut self.conn, id)?)
     }
 
     // -- ContentFile ------------------------------------------------------------------------------
@@ -505,8 +460,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_content_file(&mut self) -> Result<Vec<ContentFile>> {
-        let results = contentFile.load::<ContentFile>(&mut self.conn)?;
-        Ok(results)
+        Ok(ContentFile::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`ContentFile`] entry by its unique identifier.
@@ -531,11 +485,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_content_file_by_id(&mut self, id: &str) -> Result<Option<ContentFile>> {
-        let result = contentFile
-            .filter(schema::contentFile::id.eq(id))
-            .first::<ContentFile>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(ContentFile::find(&mut self.conn, id)?)
     }
 
     // -- ActiveCensor -----------------------------------------------------------------------------
@@ -558,8 +508,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_active_censor(&mut self) -> Result<Vec<DjmdActiveCensor>> {
-        let results = djmdActiveCensor.load::<DjmdActiveCensor>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdActiveCensor::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`DjmdActiveCensor`] entry by its unique identifier.
@@ -584,11 +533,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_active_censor_by_id(&mut self, id: &str) -> Result<Option<DjmdActiveCensor>> {
-        let result = djmdActiveCensor
-            .filter(schema::djmdActiveCensor::id.eq(id))
-            .first::<DjmdActiveCensor>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdActiveCensor::find(&mut self.conn, id)?)
     }
 
     // -- Album ------------------------------------------------------------------------------------
@@ -611,8 +556,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_album(&mut self) -> Result<Vec<DjmdAlbum>> {
-        let results: Vec<DjmdAlbum> = djmdAlbum.load(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdAlbum::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`DjmdAlbum`] entry by its unique identifier.
@@ -637,11 +581,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_album_by_id(&mut self, id: &str) -> Result<Option<DjmdAlbum>> {
-        let result: Option<DjmdAlbum> = djmdAlbum
-            .filter(schema::djmdAlbum::id.eq(id))
-            .first(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdAlbum::find(&mut self.conn, id)?)
     }
 
     /// Retrieves a [`DjmdAlbum`] entry by its name.
@@ -668,51 +608,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_album_by_name(&mut self, name: &str) -> Result<Option<DjmdAlbum>> {
-        let results: Vec<DjmdAlbum> = djmdAlbum
-            .filter(schema::djmdAlbum::name.eq(name))
-            .load(&mut self.conn)?;
-        let n = results.len();
-        if n == 0 {
-            Ok(None)
-        } else if n == 1 {
-            let result = results[0].clone();
-            Ok(Some(result))
-        } else {
-            // More than one item, return error
-            Err(Error::Database("More than one element found!".into()))
-        }
-    }
-
-    /// Checks if an album with the given ID exists in the database.
-    ///
-    /// # Arguments
-    /// * `id` - A reference to a string representing the album ID.
-    ///
-    /// # Returns
-    /// * `Result<bool>` - Returns `true` if the album exists, `false` otherwise.
-    fn album_exists(&mut self, id: &String) -> Result<bool> {
-        let id_exists: bool = select(exists(djmdAlbum.filter(schema::djmdAlbum::id.eq(id))))
-            .get_result(&mut self.conn)?;
-        Ok(id_exists)
-    }
-
-    /// Generates a unique album ID that does not exist in the database.
-    ///
-    /// # Returns
-    /// * `Result<String>` - Returns a new unique album ID as a string.
-    fn generate_album_id(&mut self) -> Result<String> {
-        let generator = RandomIdGenerator::new(true);
-        let mut id: String = String::new();
-        for id_result in generator {
-            if let Ok(tmp_id) = id_result {
-                let id_exists: bool = self.album_exists(&tmp_id)?;
-                if !id_exists {
-                    id = tmp_id;
-                    break;
-                }
-            }
-        }
-        Ok(id)
+        Ok(DjmdAlbum::find_by_name(&mut self.conn, name)?)
     }
 
     /// Inserts a new album into the [`DjmdAlbum`] table in the database.
@@ -749,30 +645,14 @@ impl MasterDb {
         compilation: Option<i32>,
     ) -> Result<DjmdAlbum> {
         self.assert_write_mode()?;
-
-        // Generate ID/UUID
-        let id: String = self.generate_album_id()?;
-        let uuid: String = Uuid::new_v4().to_string();
-        // Get next USN
-        let usn: i32 = self.increment_local_usn(1)?;
-        // Generate date
-        let utcnow: DateTime<Utc> = Utc::now();
-        // Create and insert model
-        let item: DjmdAlbum = DjmdAlbum::new(
-            id,
-            uuid,
-            usn,
-            utcnow,
+        let item = NewDjmdAlbum {
             name,
-            artist_id,
+            album_artist_id: artist_id,
             image_path,
             compilation,
-        );
-        let result: DjmdAlbum = diesel::insert_into(djmdAlbum)
-            .values(item)
-            .get_result(&mut self.conn)?;
-
-        Ok(result)
+            search_str: None,
+        };
+        Ok(item.insert(&mut self.conn)?)
     }
 
     /// Inserts a new album into the [`DjmdAlbum`] table with the given name if it does not already exist.
@@ -795,13 +675,9 @@ impl MasterDb {
     /// let album = db.insert_album_if_not_exists("Album 1").unwrap();
     /// ```
     fn insert_album_if_not_exists(&mut self, name: &str) -> Result<DjmdAlbum> {
-        let album = self.get_album_by_name(name)?;
-        if let Some(album) = album {
-            Ok(album)
-        } else {
-            let new = self.insert_album(name.to_string(), None, None, None)?;
-            Ok(new)
-        }
+        self.assert_write_mode()?;
+        let item = NewDjmdAlbum::new(name.to_string());
+        Ok(item.insert_if_not_exists(&mut self.conn)?)
     }
 
     /// Updates an existing [`DjmdAlbum`] entry in the database.
@@ -834,38 +710,7 @@ impl MasterDb {
     /// ```
     pub fn update_album(&mut self, item: &mut DjmdAlbum) -> Result<DjmdAlbum> {
         self.assert_write_mode()?;
-
-        // Count differences
-        let existing: DjmdAlbum = self.get_album_by_id(&item.id)?.unwrap();
-        let mut n: i32 = 0;
-        if item.name != existing.name {
-            n += 1
-        }
-        if item.album_artist_id != existing.album_artist_id {
-            n += 1
-        }
-        if item.image_path != existing.image_path {
-            n += 1
-        }
-        if item.compilation != existing.compilation {
-            n += 1
-        }
-        if item.search_str != existing.search_str {
-            n += 1
-        }
-        if n == 0 {
-            return Ok(existing);
-        }
-        // Update update-time
-        item.updated_at = Utc::now();
-        // Update USN
-        let usn: i32 = self.increment_local_usn(n)?;
-        item.rb_local_usn = Some(usn);
-
-        let result: DjmdAlbum = diesel::update(&*item)
-            .set(item.clone())
-            .get_result(&mut self.conn)?;
-        Ok(result)
+        Ok(item.clone().update(&mut self.conn)?)
     }
 
     /// Deletes an album entry from the [`DjmdAlbum`] table in the database.
@@ -893,17 +738,7 @@ impl MasterDb {
     /// ```
     pub fn delete_album(&mut self, id: &str) -> Result<usize> {
         self.assert_write_mode()?;
-
-        let result = diesel::delete(djmdAlbum.filter(schema::djmdAlbum::id.eq(id)))
-            .execute(&mut self.conn)?;
-
-        // Remove any references to the album in DjmdContent
-        let _ = diesel::update(djmdContent.filter(schema::djmdContent::album_id.eq(id)))
-            .set(schema::djmdContent::album_id.eq(None::<String>))
-            .execute(&mut self.conn)?;
-
-        let _ = self.increment_local_usn(1);
-        Ok(result)
+        Ok(DjmdAlbum::delete(&mut self.conn, id)?)
     }
 
     // -- Artist -----------------------------------------------------------------------------------
@@ -926,8 +761,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_artist(&mut self) -> Result<Vec<DjmdArtist>> {
-        let results: Vec<DjmdArtist> = djmdArtist.load(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdArtist::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`DjmdArtist`] entry by its unique identifier.
@@ -952,11 +786,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_artist_by_id(&mut self, id: &str) -> Result<Option<DjmdArtist>> {
-        let result: Option<DjmdArtist> = djmdArtist
-            .filter(schema::djmdArtist::id.eq(id))
-            .first(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdArtist::find(&mut self.conn, id)?)
     }
 
     /// Retrieves a [`DjmdArtist`] entry by its name.
@@ -983,51 +813,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_artist_by_name(&mut self, name: &str) -> Result<Option<DjmdArtist>> {
-        let results: Vec<DjmdArtist> = djmdArtist
-            .filter(schema::djmdArtist::name.eq(name))
-            .load(&mut self.conn)?;
-        let n = results.len();
-        if n == 0 {
-            Ok(None)
-        } else if n == 1 {
-            let result = results[0].clone();
-            Ok(Some(result))
-        } else {
-            // More than one item, return error
-            Err(Error::Database("More than one element found!".into()))
-        }
-    }
-
-    /// Checks if a [`DjmdArtist`] with the given ID exists in the database.
-    ///
-    /// # Arguments
-    /// * `id` - A reference to a string representing the artist ID.
-    ///
-    /// # Returns
-    /// * `Result<bool>` - Returns `true` if the artist exists, `false` otherwise.
-    fn artist_exists(&mut self, id: &String) -> Result<bool> {
-        let id_exists: bool = select(exists(djmdArtist.filter(schema::djmdArtist::id.eq(id))))
-            .get_result(&mut self.conn)?;
-        Ok(id_exists)
-    }
-
-    /// Generates a unique artist ID that does not exist in the database.
-    ///
-    /// # Returns
-    /// * `Result<String>` - Returns a new unique artist ID as a string.
-    fn generate_artist_id(&mut self) -> Result<String> {
-        let generator = RandomIdGenerator::new(true);
-        let mut id: String = String::new();
-        for id_result in generator {
-            if let Ok(tmp_id) = id_result {
-                let id_exists: bool = self.artist_exists(&tmp_id)?;
-                if !id_exists {
-                    id = tmp_id;
-                    break;
-                }
-            }
-        }
-        Ok(id)
+        Ok(DjmdArtist::find_by_name(&mut self.conn, name)?)
     }
 
     /// Inserts a new artist into the [`DjmdArtist`] table in the database.
@@ -1050,21 +836,8 @@ impl MasterDb {
     /// ```
     pub fn insert_artist(&mut self, name: String) -> Result<DjmdArtist> {
         self.assert_write_mode()?;
-
-        // Generate ID/UUID
-        let id: String = self.generate_artist_id()?;
-        let uuid: String = Uuid::new_v4().to_string();
-        // Get next USN
-        let usn: i32 = self.increment_local_usn(1)?;
-        // Generate date
-        let utcnow: DateTime<Utc> = Utc::now();
-        // Create and insert model
-        let item: DjmdArtist = DjmdArtist::new(id, uuid, usn, utcnow, name);
-        let result: DjmdArtist = diesel::insert_into(djmdArtist)
-            .values(item)
-            .get_result(&mut self.conn)?;
-
-        Ok(result)
+        let item = NewDjmdArtist::new(name);
+        Ok(item.insert(&mut self.conn)?)
     }
 
     /// Inserts a new [`DjmdArtist`] with the given name if it does not already exist.
@@ -1087,13 +860,9 @@ impl MasterDb {
     /// let artist = db.insert_artist_if_not_exists("Artist 1").unwrap();
     /// ```
     fn insert_artist_if_not_exists(&mut self, name: &str) -> Result<DjmdArtist> {
-        let artist = self.get_artist_by_name(name)?;
-        if let Some(artist) = artist {
-            Ok(artist)
-        } else {
-            let new = self.insert_artist(name.to_string())?;
-            Ok(new)
-        }
+        self.assert_write_mode()?;
+        let item = NewDjmdArtist::new(name.to_string());
+        Ok(item.insert_if_not_exists(&mut self.conn)?)
     }
 
     /// Updates an existing [`DjmdArtist`] entry in the database.
@@ -1126,29 +895,7 @@ impl MasterDb {
     /// ```
     pub fn update_artist(&mut self, item: &mut DjmdArtist) -> Result<DjmdArtist> {
         self.assert_write_mode()?;
-
-        // Count differences
-        let existing: DjmdArtist = self.get_artist_by_id(&item.id)?.unwrap();
-        let mut n: i32 = 0;
-        if item.name != existing.name {
-            n += 1
-        }
-        if item.search_str != existing.search_str {
-            n += 1
-        }
-        if n == 0 {
-            return Ok(existing);
-        }
-        // Update update-time
-        item.updated_at = Utc::now();
-        // Update USN
-        let usn: i32 = self.increment_local_usn(n)?;
-        item.rb_local_usn = Some(usn);
-
-        let result: DjmdArtist = diesel::update(&*item)
-            .set(item.clone())
-            .get_result(&mut self.conn)?;
-        Ok(result)
+        Ok(item.clone().update(&mut self.conn)?)
     }
 
     /// Deletes an artist entry from the [`DjmdArtist`] table in the database.
@@ -1177,25 +924,7 @@ impl MasterDb {
     /// ```
     pub fn delete_artist(&mut self, id: &str) -> Result<usize> {
         self.assert_write_mode()?;
-
-        let result: usize = diesel::delete(djmdArtist.filter(schema::djmdArtist::id.eq(id)))
-            .execute(&mut self.conn)?;
-        self.increment_local_usn(1)?;
-
-        // Remove any references to the artist in DjmdContent
-        let _ = diesel::update(djmdContent.filter(schema::djmdContent::artist_id.eq(id)))
-            .set(schema::djmdContent::artist_id.eq(None::<String>))
-            .execute(&mut self.conn)?;
-        let _ = diesel::update(djmdContent.filter(schema::djmdContent::org_artist_id.eq(id)))
-            .set(schema::djmdContent::org_artist_id.eq(None::<String>))
-            .execute(&mut self.conn)?;
-
-        // Remove any references to the artist in DjmdAlbum
-        let _ = diesel::update(djmdAlbum.filter(schema::djmdAlbum::album_artist_id.eq(id)))
-            .set(schema::djmdAlbum::album_artist_id.eq(None::<String>))
-            .execute(&mut self.conn)?;
-
-        Ok(result)
+        Ok(DjmdArtist::delete(&mut self.conn, id)?)
     }
 
     // -- Category ---------------------------------------------------------------------------------
@@ -1218,10 +947,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_category(&mut self) -> Result<Vec<DjmdCategory>> {
-        let results = djmdCategory
-            .order_by(schema::djmdCategory::seq)
-            .load::<DjmdCategory>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdCategory::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`DjmdCategory`] entry by its unique identifier.
@@ -1246,11 +972,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_category_by_id(&mut self, id: &str) -> Result<Option<DjmdCategory>> {
-        let result = djmdCategory
-            .filter(schema::djmdCategory::id.eq(id))
-            .first::<DjmdCategory>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdCategory::find(&mut self.conn, id)?)
     }
 
     // -- Color ------------------------------------------------------------------------------------
@@ -1273,10 +995,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_color(&mut self) -> Result<Vec<DjmdColor>> {
-        let results = djmdColor
-            .order_by(schema::djmdColor::sort_key)
-            .load::<DjmdColor>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdColor::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`DjmdColor`] entry by its unique identifier.
@@ -1301,11 +1020,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_color_by_id(&mut self, id: &str) -> Result<Option<DjmdColor>> {
-        let result = djmdColor
-            .filter(schema::djmdColor::id.eq(id))
-            .first::<DjmdColor>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdColor::find(&mut self.conn, id)?)
     }
 
     // -- Content ----------------------------------------------------------------------------------
@@ -1328,8 +1043,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_content(&mut self) -> Result<Vec<DjmdContent>> {
-        let results = djmdContent.load::<DjmdContent>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdContent::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`DjmdContent`] entry by its unique identifier.
@@ -1354,11 +1068,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_content_by_id(&mut self, id: &str) -> Result<Option<DjmdContent>> {
-        let result = djmdContent
-            .filter(schema::djmdContent::id.eq(id))
-            .first::<DjmdContent>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdContent::find(&mut self.conn, id)?)
     }
 
     /// Retrieves multiple [`DjmdContent`] entries by their unique identifiers.
@@ -1380,19 +1090,8 @@ impl MasterDb {
     ///     println!("{:?}", content);
     /// }
     /// ```
-    pub fn get_contents_by_ids(&mut self, ids: Vec<&str>) -> Result<Vec<DjmdContent>> {
-        let mut result: Vec<DjmdContent> = Vec::new();
-        for id in ids {
-            let content = djmdContent
-                .filter(schema::djmdContent::id.eq(id))
-                .first::<DjmdContent>(&mut self.conn)
-                .optional()?;
-
-            if let Some(content) = content {
-                result.push(content);
-            }
-        }
-        Ok(result)
+    pub fn get_contents_by_ids(&mut self, ids: &[&str]) -> Result<Vec<DjmdContent>> {
+        Ok(DjmdContent::by_ids(&mut self.conn, ids)?)
     }
 
     /// Retrieves a [`DjmdContent`] entry by its folder path.
@@ -1417,11 +1116,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_content_by_path(&mut self, path: &str) -> Result<Option<DjmdContent>> {
-        let result = djmdContent
-            .filter(schema::djmdContent::folder_path.eq(path))
-            .first::<DjmdContent>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdContent::find_by_path(&mut self.conn, path)?)
     }
 
     /// Returns the path to the corresponding ANLZxxxx.DAT file for a given content ID.
@@ -1445,10 +1140,7 @@ impl MasterDb {
         if self.share_dir.is_none() {
             return Err(Error::Database("Share dir not set!".into()));
         }
-        let result = djmdContent
-            .filter(schema::djmdContent::id.eq(id))
-            .select(schema::djmdContent::analysis_data_path)
-            .first::<Option<String>>(&mut self.conn)?;
+        let result = DjmdContent::find_anlz_path(&mut self.conn, id)?;
         if let Some(result) = result {
             // Strip first "/" in result
             let striped = result.strip_prefix("/");
@@ -1484,7 +1176,7 @@ impl MasterDb {
     pub fn get_content_anlz_dir(&mut self, id: &str) -> Result<Option<PathBuf>> {
         let anlz_file = self.get_content_analysis_data_path(id)?;
         let root = anlz_file.parent().unwrap();
-        return Ok(Some(root.to_path_buf()));
+        Ok(Some(root.to_path_buf()))
     }
 
     /// Returns a struct containing the paths to ANLZxxxx.DAT, ANLZxxxx.EXT, and ANLZxxxx.EX2 files.
@@ -1543,87 +1235,6 @@ impl MasterDb {
         Ok(Some(files))
     }
 
-    /// Checks if a content entry with the given ID exists in the database.
-    ///
-    /// # Arguments
-    /// * `id` - A reference to a string representing the content ID.
-    ///
-    /// # Returns
-    /// * `Result<bool>` - Returns `true` if the content exists, `false` otherwise.
-    fn content_exists(&mut self, id: &String) -> Result<bool> {
-        let id_exists: bool = select(exists(djmdContent.filter(schema::djmdContent::id.eq(id))))
-            .get_result(&mut self.conn)?;
-        Ok(id_exists)
-    }
-
-    /// Checks if a content entry with the given folder path exists in the database.
-    ///
-    /// # Arguments
-    /// * `path` - A string slice representing the folder path.
-    ///
-    /// # Returns
-    /// * `Result<bool>` - Returns `true` if the content exists, `false` otherwise.
-    fn content_path_exists(&mut self, path: &str) -> Result<bool> {
-        let exists: bool = select(exists(
-            djmdContent.filter(schema::djmdContent::folder_path.eq(path)),
-        ))
-        .get_result(&mut self.conn)?;
-        Ok(exists)
-    }
-
-    /// Checks if a content entry with the given file ID exists in the database.
-    ///
-    /// # Arguments
-    /// * `id` - A reference to a string representing the file ID.
-    ///
-    /// # Returns
-    /// * `Result<bool>` - Returns `true` if the file ID exists, `false` otherwise.
-    fn content_file_id_exists(&mut self, id: &String) -> Result<bool> {
-        let id_exists: bool = select(exists(
-            djmdContent.filter(schema::djmdContent::rb_file_id.eq(id)),
-        ))
-        .get_result(&mut self.conn)?;
-        Ok(id_exists)
-    }
-
-    /// Generates a unique content ID that does not exist in the database.
-    ///
-    /// # Returns
-    /// * `Result<String>` - Returns a new unique content ID as a string.
-    fn generate_content_id(&mut self) -> Result<String> {
-        let generator = RandomIdGenerator::new(true);
-        let mut id: String = String::new();
-        for id_result in generator {
-            if let Ok(tmp_id) = id_result {
-                let id_exists: bool = self.content_exists(&tmp_id)?;
-                if !id_exists {
-                    id = tmp_id;
-                    break;
-                }
-            }
-        }
-        Ok(id)
-    }
-
-    /// Generates a unique content file ID that does not exist in the database.
-    ///
-    /// # Returns
-    /// * `Result<String>` - Returns a new unique content file ID as a string.
-    fn generate_content_file_id(&mut self) -> Result<String> {
-        let generator = RandomIdGenerator::new(true);
-        let mut id: String = String::new();
-        for id_result in generator {
-            if let Ok(tmp_id) = id_result {
-                let id_exists: bool = self.content_file_id_exists(&tmp_id)?;
-                if !id_exists {
-                    id = tmp_id;
-                    break;
-                }
-            }
-        }
-        Ok(id)
-    }
-
     /// Inserts a new entry into the [`DjmdContent`] table for the specified file path.
     ///
     /// **Note:** Not all fields of [`DjmdContent`] are set by this function. The user should update
@@ -1657,72 +1268,9 @@ impl MasterDb {
         path: P,
     ) -> Result<DjmdContent> {
         self.assert_write_mode()?;
-
-        // prepare path and check if it exists
-        let path = Path::new(&path);
-        let rb_path = path.normalize_sep("/");
-        let rb_path_str = rb_path
-            .as_os_str()
-            .to_str()
-            .expect("Failed to convert path to string");
-        if !path.is_file() || !path.exists() {
-            return Err(Error::FileNotFound(rb_path_str.to_string()));
-        }
-        if self.content_path_exists(&rb_path_str)? {
-            return Err(Error::Database(format!(
-                "Content with path {} already exists",
-                rb_path_str
-            )));
-        }
-        // Generate ID/UUID
-        let id: String = self.generate_content_id()?;
-        let file_id: String = self.generate_content_file_id()?;
-        let uuid: String = Uuid::new_v4().to_string();
-        // Get next USN
-        let usn: i32 = self.increment_local_usn(1)?;
-        // Generate date
-        let utcnow: DateTime<Utc> = Utc::now();
-        // Get file metadata
-        let meta = std::fs::metadata(&rb_path)?;
-        let file_size: u64 = meta.len();
-        let ext: &str = path.extension().unwrap().to_str().unwrap();
-        let file_type = FileType::try_from_extension(ext)?;
-        let file_name = path.file_name().unwrap().to_str().unwrap().to_string();
-        // Get master DB ID
-        let db_id = djmdDevice
-            .select(schema::djmdDevice::master_db_id)
-            .first::<Option<String>>(&mut self.conn)?;
-        if db_id.is_none() {
-            return Err(Error::Database(
-                "No master DB ID found in djmdDevice".into(),
-            ));
-        }
-        // TODO: No clue what content link should be, for now we just choose the last value used
-        let content_link = djmdContent
-            .select(schema::djmdContent::content_link)
-            .order(schema::djmdContent::rb_local_usn.desc())
-            .limit(1)
-            .first::<Option<i32>>(&mut self.conn)?;
-
-        let item: DjmdContent = DjmdContent::new(
-            id,
-            uuid,
-            usn,
-            utcnow,
-            rb_path_str.to_string(),
-            file_name,
-            file_type as i32,
-            file_size.try_into().unwrap(),
-            db_id.unwrap(),
-            file_id,
-            content_link,
-        );
-
-        let result: DjmdContent = diesel::insert_into(djmdContent)
-            .values(item)
-            .get_result(&mut self.conn)?;
-
-        Ok(result)
+        let path = Path::new(&path).as_os_str().to_str().unwrap().to_string();
+        let item = NewDjmdContent::new(path);
+        Ok(item.insert(&mut self.conn)?)
     }
 
     /// Updates an existing [`DjmdContent`] entry in the database.
@@ -1747,11 +1295,8 @@ impl MasterDb {
     /// ```
     pub fn update_content(&mut self, item: &DjmdContent) -> Result<usize> {
         self.assert_write_mode()?;
-
-        let result = diesel::update(&*item)
-            .set(item.clone())
-            .execute(&mut self.conn)?;
-        Ok(result)
+        let _ = item.clone().update(&mut self.conn)?;
+        Ok(1)
     }
 
     /// Update the content album field.
@@ -1760,13 +1305,12 @@ impl MasterDb {
     /// If the album does not exist yet, a new [DjmdAlbum] row will be created.
     pub fn update_content_album(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
-
         let album = self.insert_album_if_not_exists(name)?;
-
-        let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
-            .set(schema::djmdContent::album_id.eq(album.id.clone()))
-            .execute(&mut self.conn)?;
-        Ok(result)
+        Ok(DjmdContent::set_album_id(
+            &mut self.conn,
+            content_id,
+            &album.id,
+        )?)
     }
 
     /// Update the content artist name.
@@ -1775,13 +1319,12 @@ impl MasterDb {
     /// If the artist does not exist yet, a new [DjmdArtist] row will be created.
     pub fn update_content_artist(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
-
         let artist = self.insert_artist_if_not_exists(name)?;
-
-        let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
-            .set(schema::djmdContent::artist_id.eq(artist.id.clone()))
-            .execute(&mut self.conn)?;
-        Ok(result)
+        Ok(DjmdContent::set_artist_id(
+            &mut self.conn,
+            content_id,
+            &artist.id,
+        )?)
     }
 
     /// Update the content remixer name.
@@ -1790,13 +1333,12 @@ impl MasterDb {
     /// If the artist does not exist yet, a new [DjmdArtist] row will be created.
     pub fn update_content_remixer(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
-
         let artist = self.insert_artist_if_not_exists(name)?;
-
-        let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
-            .set(schema::djmdContent::remixer_id.eq(artist.id.clone()))
-            .execute(&mut self.conn)?;
-        Ok(result)
+        Ok(DjmdContent::set_remixer_id(
+            &mut self.conn,
+            content_id,
+            &artist.id,
+        )?)
     }
 
     /// Update the content original artist name.
@@ -1809,13 +1351,12 @@ impl MasterDb {
         name: &str,
     ) -> Result<usize> {
         self.assert_write_mode()?;
-
         let artist = self.insert_artist_if_not_exists(name)?;
-
-        let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
-            .set(schema::djmdContent::org_artist_id.eq(artist.id.clone()))
-            .execute(&mut self.conn)?;
-        Ok(result)
+        Ok(DjmdContent::set_original_artist_id(
+            &mut self.conn,
+            content_id,
+            &artist.id,
+        )?)
     }
 
     /// Update the content composer name.
@@ -1824,13 +1365,12 @@ impl MasterDb {
     /// If the artist does not exist yet, a new [DjmdArtist] row will be created.
     pub fn update_content_composer(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
-
         let artist = self.insert_artist_if_not_exists(name)?;
-
-        let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
-            .set(schema::djmdContent::composer_id.eq(artist.id.clone()))
-            .execute(&mut self.conn)?;
-        Ok(result)
+        Ok(DjmdContent::set_composer_id(
+            &mut self.conn,
+            content_id,
+            &artist.id,
+        )?)
     }
 
     /// Update the content genre name.
@@ -1839,13 +1379,12 @@ impl MasterDb {
     /// If the genre does not exist yet, a new [DjmdGenre] row will be created.
     pub fn update_content_genre(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
-
         let genre = self.insert_genre_if_not_exists(name)?;
-
-        let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
-            .set(schema::djmdContent::genre_id.eq(genre.id.clone()))
-            .execute(&mut self.conn)?;
-        Ok(result)
+        Ok(DjmdContent::set_genre_id(
+            &mut self.conn,
+            content_id,
+            &genre.id,
+        )?)
     }
 
     /// Update the content label name.
@@ -1854,13 +1393,12 @@ impl MasterDb {
     /// If the label does not exist yet, a new [DjmdLabel] row will be created.
     pub fn update_content_label(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
-
         let label = self.insert_label_if_not_exists(name)?;
-
-        let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
-            .set(schema::djmdContent::label_id.eq(label.id.clone()))
-            .execute(&mut self.conn)?;
-        Ok(result)
+        Ok(DjmdContent::set_label_id(
+            &mut self.conn,
+            content_id,
+            &label.id,
+        )?)
     }
 
     /// Update the content key name.
@@ -1869,13 +1407,12 @@ impl MasterDb {
     /// If the key does not exist yet, a new [DjmdKey] row will be created.
     pub fn update_content_key(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
-
         let key = self.insert_key_if_not_exists(name)?;
-
-        let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
-            .set(schema::djmdContent::key_id.eq(key.id.clone()))
-            .execute(&mut self.conn)?;
-        Ok(result)
+        Ok(DjmdContent::set_key_id(
+            &mut self.conn,
+            content_id,
+            &key.id,
+        )?)
     }
 
     /// Updates the file path of a content entry in the database.
@@ -1920,7 +1457,7 @@ impl MasterDb {
         if !path.is_file() || !path.exists() {
             return Err(Error::FileNotFound(rb_path_str.to_string()));
         }
-        if self.content_path_exists(&rb_path_str)? {
+        if DjmdContent::path_exists(&mut self.conn, &rb_path_str)? {
             return Err(Error::Database(format!(
                 "Content with path {} already exists",
                 rb_path_str
@@ -1944,11 +1481,11 @@ impl MasterDb {
             }
         }
 
-        // Update path in database
-        let result = diesel::update(djmdContent.filter(schema::djmdContent::id.eq(content_id)))
-            .set(schema::djmdContent::folder_path.eq(rb_path_str.to_string()))
-            .execute(&mut self.conn)?;
-        Ok(result)
+        Ok(DjmdContent::set_path(
+            &mut self.conn,
+            content_id,
+            &rb_path_str,
+        )?)
     }
 
     // pub fn delete_content(&mut self, id: &str) -> Result<usize> {
@@ -1973,8 +1510,7 @@ impl MasterDb {
     /// let cues = db.get_cue()?;
     /// ```
     pub fn get_cue(&mut self) -> Result<Vec<DjmdCue>> {
-        let results = djmdCue.load::<DjmdCue>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdCue::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`DjmdCue`] entry by its unique identifier.
@@ -1993,11 +1529,7 @@ impl MasterDb {
     /// let cue = db.get_cue_by_id("cue_id")?;
     /// ```
     pub fn get_cue_by_id(&mut self, id: &str) -> Result<Option<DjmdCue>> {
-        let result = djmdCue
-            .filter(schema::djmdCue::id.eq(id))
-            .first::<DjmdCue>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdCue::find(&mut self.conn, id)?)
     }
 
     // -- Device -----------------------------------------------------------------------------------
@@ -2015,8 +1547,7 @@ impl MasterDb {
     /// let devices = db.get_device()?;
     /// ```
     pub fn get_device(&mut self) -> Result<Vec<DjmdDevice>> {
-        let results = djmdDevice.load::<DjmdDevice>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdDevice::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`DjmdDevice`] entry by its unique identifier.
@@ -2035,11 +1566,7 @@ impl MasterDb {
     /// let device = db.get_device_by_id("device_id")?;
     /// ```
     pub fn get_device_by_id(&mut self, id: &str) -> Result<Option<DjmdDevice>> {
-        let result = djmdDevice
-            .filter(schema::djmdDevice::id.eq(id))
-            .first::<DjmdDevice>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdDevice::find(&mut self.conn, id)?)
     }
 
     // -- Genre ------------------------------------------------------------------------------------
@@ -2061,8 +1588,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_genre(&mut self) -> Result<Vec<DjmdGenre>> {
-        let results = djmdGenre.load::<DjmdGenre>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdGenre::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`DjmdGenre`] entry by its unique identifier.
@@ -2086,11 +1612,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_genre_by_id(&mut self, id: &str) -> Result<Option<DjmdGenre>> {
-        let result = djmdGenre
-            .filter(schema::djmdGenre::id.eq(id))
-            .first::<DjmdGenre>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdGenre::find(&mut self.conn, id)?)
     }
 
     /// Retrieves a [`DjmdGenre`] entry by its name.
@@ -2116,51 +1638,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_genre_by_name(&mut self, name: &str) -> Result<Option<DjmdGenre>> {
-        let results: Vec<DjmdGenre> = djmdGenre
-            .filter(schema::djmdGenre::name.eq(name))
-            .load(&mut self.conn)?;
-        let n = results.len();
-        if n == 0 {
-            Ok(None)
-        } else if n == 1 {
-            let result = results[0].clone();
-            Ok(Some(result))
-        } else {
-            // More than one item, return error
-            Err(Error::Database("More than one element found!".into()))
-        }
-    }
-
-    /// Checks if a genre with the given ID exists in the database.
-    ///
-    /// # Arguments
-    /// * `id` - A reference to a string representing the genre ID.
-    ///
-    /// # Returns
-    /// * `Result<bool>` - Returns `true` if the genre exists, `false` otherwise.
-    fn genre_exists(&mut self, id: &String) -> Result<bool> {
-        let id_exists: bool = select(exists(djmdGenre.filter(schema::djmdGenre::id.eq(id))))
-            .get_result(&mut self.conn)?;
-        Ok(id_exists)
-    }
-
-    /// Generates a unique genre ID that does not exist in the database.
-    ///
-    /// # Returns
-    /// * `Result<String>` - Returns a new unique genre ID as a string.
-    fn generate_genre_id(&mut self) -> Result<String> {
-        let generator = RandomIdGenerator::new(true);
-        let mut id: String = String::new();
-        for id_result in generator {
-            if let Ok(tmp_id) = id_result {
-                let id_exists: bool = self.genre_exists(&tmp_id)?;
-                if !id_exists {
-                    id = tmp_id;
-                    break;
-                }
-            }
-        }
-        Ok(id)
+        Ok(DjmdGenre::find_by_name(&mut self.conn, name)?)
     }
 
     /// Inserts a new genre into the [`DjmdGenre`] table in the database.
@@ -2182,21 +1660,8 @@ impl MasterDb {
     /// ```
     pub fn insert_genre(&mut self, name: String) -> Result<DjmdGenre> {
         self.assert_write_mode()?;
-
-        // Generate ID/UUID
-        let id: String = self.generate_genre_id()?;
-        let uuid: String = Uuid::new_v4().to_string();
-        // Get next USN
-        let usn: i32 = self.increment_local_usn(1)?;
-        // Generate date
-        let utcnow: DateTime<Utc> = Utc::now();
-        // Create and insert model
-        let item: DjmdGenre = DjmdGenre::new(id, uuid, usn, utcnow, name);
-        let result: DjmdGenre = diesel::insert_into(djmdGenre)
-            .values(item)
-            .get_result(&mut self.conn)?;
-
-        Ok(result)
+        let item = NewDjmdGenre::new(name);
+        Ok(item.insert(&mut self.conn)?)
     }
 
     /// Inserts a new [`DjmdGenre`] with the given name if it does not already exist.
@@ -2215,13 +1680,9 @@ impl MasterDb {
     /// let genre = db.insert_genre_if_not_exists("Genre 1").unwrap();
     /// ```
     fn insert_genre_if_not_exists(&mut self, name: &str) -> Result<DjmdGenre> {
-        let genre = self.get_genre_by_name(name)?;
-        if let Some(genre) = genre {
-            Ok(genre)
-        } else {
-            let new = self.insert_genre(name.to_string())?;
-            Ok(new)
-        }
+        self.assert_write_mode()?;
+        let item = NewDjmdGenre::new(name.to_string());
+        Ok(item.insert_if_not_exists(&mut self.conn)?)
     }
 
     /// Updates an existing [`DjmdGenre`] entry in the database.
@@ -2253,26 +1714,7 @@ impl MasterDb {
     /// ```
     pub fn update_genre(&mut self, item: &mut DjmdGenre) -> Result<DjmdGenre> {
         self.assert_write_mode()?;
-
-        // Count differences
-        let existing: DjmdGenre = self.get_genre_by_id(&item.id)?.unwrap();
-        let mut n: i32 = 0;
-        if item.name != existing.name {
-            n += 1
-        }
-        if n == 0 {
-            return Ok(existing);
-        }
-        // Update update-time
-        item.updated_at = Utc::now();
-        // Update USN
-        let usn: i32 = self.increment_local_usn(n)?;
-        item.rb_local_usn = Some(usn);
-
-        let result: DjmdGenre = diesel::update(&*item)
-            .set(item.clone())
-            .get_result(&mut self.conn)?;
-        Ok(result)
+        Ok(item.clone().update(&mut self.conn)?)
     }
 
     /// Deletes a genre entry from the [`DjmdGenre`] table in the database.
@@ -2299,17 +1741,7 @@ impl MasterDb {
     /// ```
     pub fn delete_genre(&mut self, id: &str) -> Result<usize> {
         self.assert_write_mode()?;
-
-        let result = diesel::delete(djmdGenre.filter(schema::djmdGenre::id.eq(id)))
-            .execute(&mut self.conn)?;
-        self.increment_local_usn(1)?;
-
-        // Remove any references to the genre in DjmdContent
-        let _ = diesel::update(djmdContent.filter(schema::djmdContent::genre_id.eq(id)))
-            .set(schema::djmdContent::genre_id.eq(None::<String>))
-            .execute(&mut self.conn)?;
-
-        Ok(result)
+        Ok(DjmdGenre::delete(&mut self.conn, id)?)
     }
 
     // -- History ----------------------------------------------------------------------------------
@@ -2331,10 +1763,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_history(&mut self) -> Result<Vec<DjmdHistory>> {
-        let results = djmdHistory
-            .order_by(schema::djmdHistory::seq)
-            .load::<DjmdHistory>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdHistory::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`DjmdHistory`] entry by its unique identifier.
@@ -2358,11 +1787,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_history_by_id(&mut self, id: &str) -> Result<Option<DjmdHistory>> {
-        let result = djmdHistory
-            .filter(schema::djmdHistory::id.eq(id))
-            .first::<DjmdHistory>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdHistory::find(&mut self.conn, id)?)
     }
 
     /// Retrieves all song history entries for a given history ID, ordered by track number.
@@ -2384,11 +1809,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_history_songs(&mut self, id: &str) -> Result<Vec<DjmdSongHistory>> {
-        let results = schema::djmdSongHistory::table
-            .filter(schema::djmdSongHistory::history_id.eq(id))
-            .order_by(schema::djmdSongHistory::track_no)
-            .load::<DjmdSongHistory>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdSongHistory::find_by_history(&mut self.conn, id)?)
     }
 
     /// Retrieves all content entries referenced by the song history for a given history ID.
@@ -2410,13 +1831,10 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_history_contents(&mut self, id: &str) -> Result<Vec<DjmdContent>> {
-        let songs = self.get_history_songs(id)?;
-        let ids: Vec<&str> = songs
-            .iter()
-            .map(|s| s.content_id.as_ref().unwrap().as_str())
-            .collect();
-        let result = self.get_contents_by_ids(ids)?;
-        Ok(result)
+        Ok(DjmdSongHistory::find_contents_by_history(
+            &mut self.conn,
+            id,
+        )?)
     }
 
     // -- HotCueBanklist ---------------------------------------------------------------------------
@@ -2549,7 +1967,7 @@ impl MasterDb {
             .iter()
             .map(|s| s.content_id.as_ref().unwrap().as_str())
             .collect();
-        let result = self.get_contents_by_ids(ids)?;
+        let result = self.get_contents_by_ids(&ids)?;
         Ok(result)
     }
 
@@ -2789,7 +2207,7 @@ impl MasterDb {
 
         // Count differences
         let existing: DjmdKey = self.get_key_by_id(&item.id)?.unwrap();
-        let mut n: i32 = 0;
+        let mut n = 0;
         if item.scale_name != existing.scale_name {
             n += 1
         }
@@ -3052,7 +2470,7 @@ impl MasterDb {
 
         // Count differences
         let existing: DjmdLabel = self.get_label_by_id(&item.id)?.unwrap();
-        let mut n: i32 = 0;
+        let mut n = 0;
         if item.name != existing.name {
             n += 1
         }
@@ -3331,7 +2749,7 @@ impl MasterDb {
             .iter()
             .map(|s| s.content_id.as_ref().unwrap().as_str())
             .collect();
-        let result = self.get_contents_by_ids(ids)?;
+        let result = self.get_contents_by_ids(&ids)?;
         Ok(result)
     }
 
@@ -3546,7 +2964,7 @@ impl MasterDb {
             .iter()
             .map(|s| s.content_id.as_ref().unwrap().as_str())
             .collect();
-        let result = self.get_contents_by_ids(ids)?;
+        let result = self.get_contents_by_ids(&ids)?;
         Ok(result)
     }
 
@@ -4247,7 +3665,7 @@ impl MasterDb {
                 playlist_id
             )));
         };
-        if !self.content_exists(&content_id)? {
+        if !DjmdContent::id_exists(&mut self.conn, &content_id)? {
             return Err(Error::Database(format!(
                 "Content with ID {} does not exist!",
                 content_id
@@ -4733,7 +4151,7 @@ impl MasterDb {
             .iter()
             .map(|s| s.content_id.as_ref().unwrap().as_str())
             .collect();
-        let result = self.get_contents_by_ids(ids)?;
+        let result = self.get_contents_by_ids(&ids)?;
         Ok(result)
     }
 
@@ -4862,7 +4280,7 @@ impl MasterDb {
             .iter()
             .map(|s| s.content_id.as_ref().unwrap().as_str())
             .collect();
-        let result = self.get_contents_by_ids(ids)?;
+        let result = self.get_contents_by_ids(&ids)?;
         Ok(result)
     }
 

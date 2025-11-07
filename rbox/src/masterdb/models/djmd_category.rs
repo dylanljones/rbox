@@ -10,27 +10,19 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::djmd_menu_items::DjmdMenuItems;
-use super::schema;
+use super::schema::djmdCategory;
 use super::util::{Date, DateString};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `DjmdCategory` table in the Rekordbox database.
+/// Represents the `djmdCategory` table in the Rekordbox database.
 ///
-/// This struct maps to the `DjmdCategory` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `djmdCategory` table in the SQLite database used by Rekordbox.
 /// It stores category-related data, which can be associated with menu items.
 #[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Insertable,
-    AsChangeset,
-    Associations,
+    Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
-#[diesel(table_name = schema::djmdCategory)]
+#[diesel(table_name = djmdCategory)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdMenuItems, foreign_key = menu_item_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -71,4 +63,16 @@ pub struct DjmdCategory {
     pub disable: Option<i32>,
     /// An optional integer representing the info order for the category.
     pub info_order: Option<i32>,
+}
+
+impl DjmdCategory {
+    /// Queries all records from the `djmdCategory` table.
+    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    /// Queries a record from the `djmdCategory` table by its `id`.
+    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
 }

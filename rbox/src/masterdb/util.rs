@@ -33,7 +33,7 @@ pub fn format_datetime<Tz: TimeZone>(dt: &DateTime<Tz>) -> String {
 }
 
 /// Wrapper for DateTime<Utc> for diesel serialization/deserialization
-#[derive(Debug, FromSqlRow, AsExpression)]
+#[derive(Debug, Clone, Copy, FromSqlRow, AsExpression)]
 #[diesel(sql_type = Text)]
 pub struct DateString(pub Date);
 

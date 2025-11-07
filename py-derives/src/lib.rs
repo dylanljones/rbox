@@ -203,7 +203,8 @@ pub fn derive_py_mutable_mapping(input: TokenStream) -> TokenStream {
                 }
             }
 
-            pub fn update(&mut self, py: Python, data: std::collections::HashMap<String, PyObject>) -> PyResult<()> {
+            #[pyo3(name = "update")]
+            pub fn update_py(&mut self, py: Python, data: std::collections::HashMap<String, PyObject>) -> PyResult<()> {
                 for (key, value) in data {
                     self.__setitem__(py, &key, value)?;
                 }

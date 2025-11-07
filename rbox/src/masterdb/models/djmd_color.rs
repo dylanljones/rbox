@@ -9,17 +9,17 @@ use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-use super::schema;
+use super::schema::djmdColor;
 use super::util::{Date, DateString};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `DjmdColor` table in the Rekordbox database.
+/// Represents the `djmdColor` table in the Rekordbox database.
 ///
-/// This struct maps to the `DjmdColor` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `djmdColor` table in the SQLite database used by Rekordbox.
 /// It stores color-related data, which can be associated with tracks and other entities.
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
-#[diesel(table_name = schema::djmdColor)]
+#[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
+#[diesel(table_name = djmdColor)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
@@ -57,4 +57,16 @@ pub struct DjmdColor {
     pub sort_key: Option<i32>,
     /// An optional string for comments or additional information about the color.
     pub commnt: Option<String>,
+}
+
+impl DjmdColor {
+    /// Queries all records from the `djmdColor` table.
+    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    /// Queries a record from the `djmdColor` table by its `id`.
+    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
 }

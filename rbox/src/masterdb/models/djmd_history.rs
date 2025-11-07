@@ -9,29 +9,19 @@ use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-use super::schema;
+use super::djmd_content::DjmdContent;
+use super::schema::{djmdContent, djmdHistory, djmdSongHistory};
 use super::util::{Date, DateString};
-use super::DjmdContent;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `DjmdHistory` table in the Rekordbox database.
+/// Represents the `djmdHistory` table in the Rekordbox database.
 ///
-/// This struct maps to the `DjmdHistory` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `djmdHistory` table in the SQLite database used by Rekordbox.
 /// It stores information about history entries, including metadata such as sequence, name,
 /// attributes, and parent relationships.
-#[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Insertable,
-    AsChangeset,
-    Associations,
-)]
-#[diesel(table_name = schema::djmdHistory)]
+#[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
+#[diesel(table_name = djmdHistory)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdHistory, foreign_key = parent_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -76,23 +66,60 @@ pub struct DjmdHistory {
     pub date_created: Option<String>,
 }
 
-/// Represents the `DjmdSongHistory` table in the Rekordbox database.
+impl DjmdHistory {
+    /// Queries all records from the `djmdHistory` table.
+    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    /// Queries a record from the `djmdHistory` table by its `id`.
+    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
+
+    /// Queries all child records from the `djmdHistory` table.
+    pub fn find_children(
+        conn: &mut SqliteConnection,
+        history_id: Option<String>,
+    ) -> QueryResult<Vec<DjmdHistory>> {
+        if let Some(history_id) = history_id {
+            Self::query()
+                .filter(djmdHistory::parent_id.eq(history_id))
+                .load(conn)
+        } else {
+            Self::query()
+                .filter(djmdHistory::parent_id.is_null())
+                .load(conn)
+        }
+    }
+
+    /// Queries the parent record from the `djmdHistory` table for the given history entry.
+    pub fn parent(&self, conn: &mut SqliteConnection) -> QueryResult<Option<DjmdHistory>> {
+        if let Some(parent_id) = &self.parent_id {
+            Self::find(conn, parent_id)
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Queries all child records from the `djmdHistory` table for the given history entry.
+    pub fn children(&self, conn: &mut SqliteConnection) -> QueryResult<Vec<DjmdHistory>> {
+        Self::find_children(conn, Some(self.id.clone()))
+    }
+
+    /// Queries all records from the `djmdSongHistory` table for the given history entry.
+    pub fn songs(&self, conn: &mut SqliteConnection) -> QueryResult<Vec<DjmdSongHistory>> {
+        DjmdSongHistory::find_by_history(conn, &self.id)
+    }
+}
+
+/// Represents the `djmdSongHistory` table in the Rekordbox database.
 ///
-/// This struct maps to the `DjmdSongHistory` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `djmdSongHistory` table in the SQLite database used by Rekordbox.
 /// It stores information about the relationship between songs and history entries, including
 /// metadata such as track number and associated history or content IDs.
-#[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Insertable,
-    AsChangeset,
-    Associations,
-)]
-#[diesel(table_name = schema::djmdSongHistory)]
+#[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
+#[diesel(table_name = djmdSongHistory)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdHistory, foreign_key = history_id))]
 #[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
@@ -132,4 +159,45 @@ pub struct DjmdSongHistory {
     pub content_id: Option<String>,
     /// An optional integer representing the track number in the history entry.
     pub track_no: Option<i32>,
+}
+
+impl DjmdSongHistory {
+    /// Queries all records from the `djmdSongHistory` table.
+    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    /// Queries a record from the `djmdSongHistory` table by its `id`.
+    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
+
+    /// Queries all records from the `djmdSongHistory` table by its `history_id`
+    pub fn find_by_history(
+        conn: &mut SqliteConnection,
+        history_id: &str,
+    ) -> QueryResult<Vec<Self>> {
+        Self::query()
+            .filter(djmdSongHistory::history_id.eq(history_id))
+            .load(conn)
+    }
+
+    /// Queries all records from the `djmdContent` table by its `history_id`
+    pub fn find_contents_by_history(
+        conn: &mut SqliteConnection,
+        history_id: &str,
+    ) -> QueryResult<Vec<DjmdContent>> {
+        djmdSongHistory::table
+            .inner_join(
+                djmdContent::table.on(djmdContent::id.nullable().eq(djmdSongHistory::content_id)),
+            )
+            .filter(djmdSongHistory::history_id.eq(history_id))
+            .select(DjmdContent::as_select())
+            .load(conn)
+    }
+
+    /// Queries the parent record from the `djmdHistory` table for the given history song entry.
+    pub fn history(&self, conn: &mut SqliteConnection) -> QueryResult<DjmdHistory> {
+        Ok(DjmdHistory::find(conn, self.history_id.as_ref().unwrap())?.unwrap())
+    }
 }

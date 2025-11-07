@@ -10,27 +10,19 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::djmd_content::DjmdContent;
-use super::schema;
+use super::schema::contentCue;
 use super::util::{Date, DateString};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `ContentCue` table in the Rekordbox database.
+/// Represents the `contentCue` table in the Rekordbox database.
 ///
-/// This struct maps to the `ContentCue` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `contentCue` table in the SQLite database used by Rekordbox.
 /// It contains the cue entry [`DjmdCue`] of a file as stringified JSON data.
 #[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Insertable,
-    AsChangeset,
-    Associations,
+    Debug, Clone, PartialEq, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
-#[diesel(table_name = schema::contentCue)]
+#[diesel(table_name = contentCue)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -69,4 +61,16 @@ pub struct ContentCue {
     pub cues: Option<String>,
     /// An optional integer representing the count of cues.
     pub rb_cue_count: Option<i32>,
+}
+
+impl ContentCue {
+    /// Queries all records from the `contentCue` table.
+    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    /// Queries a record from the `contentCue` table by its `id`.
+    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
 }

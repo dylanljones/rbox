@@ -48,6 +48,8 @@ mod image_file;
 mod setting_file;
 mod uuid_map;
 
+use super::dsl;
+use super::random_id::RandomIdGenerator;
 use super::schema;
 use super::util;
 
@@ -56,14 +58,14 @@ pub use content_active_censor::ContentActiveCensor;
 pub use content_cue::ContentCue;
 pub use content_file::ContentFile;
 pub use djmd_active_sensor::DjmdActiveCensor;
-pub use djmd_album::DjmdAlbum;
-pub use djmd_artist::DjmdArtist;
+pub use djmd_album::{DjmdAlbum, NewDjmdAlbum};
+pub use djmd_artist::{DjmdArtist, NewDjmdArtist};
 pub use djmd_category::DjmdCategory;
 pub use djmd_color::DjmdColor;
-pub use djmd_content::DjmdContent;
+pub use djmd_content::{DjmdContent, NewDjmdContent};
 pub use djmd_cue::DjmdCue;
 pub use djmd_device::DjmdDevice;
-pub use djmd_genre::DjmdGenre;
+pub use djmd_genre::{DjmdGenre, NewDjmdGenre};
 pub use djmd_history::{DjmdHistory, DjmdSongHistory};
 pub use djmd_hot_cue_bank_list::{DjmdHotCueBanklist, DjmdSongHotCueBanklist, HotCueBanklistCue};
 pub use djmd_key::DjmdKey;

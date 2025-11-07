@@ -9,18 +9,18 @@ use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-use super::schema;
+use super::schema::djmdDevice;
 use super::util::{Date, DateString};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `DjmdDevice` table in the Rekordbox database.
+/// Represents the `djmdDevice` table in the Rekordbox database.
 ///
-/// This struct maps to the `DjmdDevice` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `djmdDevice` table in the SQLite database used by Rekordbox.
 /// It stores information about devices associated with the Rekordbox collection, including
 /// metadata such as device name and master database ID.
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
-#[diesel(table_name = schema::djmdDevice)]
+#[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
+#[diesel(table_name = djmdDevice)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
@@ -56,4 +56,22 @@ pub struct DjmdDevice {
     pub master_db_id: Option<String>,
     /// An optional string representing the name of the device.
     pub name: Option<String>,
+}
+
+impl DjmdDevice {
+    /// Queries all records from the `djmdDevice` table.
+    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    /// Queries a record from the `djmdDevice` table by its `id`.
+    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
+
+    pub fn master_db_id(conn: &mut SqliteConnection) -> QueryResult<Option<String>> {
+        djmdDevice::table
+            .select(djmdDevice::master_db_id)
+            .first(conn)
+    }
 }

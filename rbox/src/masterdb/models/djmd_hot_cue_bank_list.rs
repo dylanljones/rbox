@@ -10,7 +10,7 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::djmd_content::DjmdContent;
-use super::schema;
+use super::schema::{djmdHotCueBanklist, djmdSongHotCueBanklist, hotCueBanklistCue};
 use super::util::{Date, DateString};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
@@ -21,17 +21,9 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 /// It stores information about hot cue bank lists, including metadata such as sequence, name,
 /// image path, and parent relationships.
 #[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Insertable,
-    AsChangeset,
-    Associations,
+    Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
-#[diesel(table_name = schema::djmdHotCueBanklist)]
+#[diesel(table_name = djmdHotCueBanklist)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdHotCueBanklist, foreign_key = parent_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -76,18 +68,15 @@ pub struct DjmdHotCueBanklist {
     pub parent_id: Option<String>,
 }
 
+/// Represents the `djmdSongHotCueBanklist` table in the Rekordbox database.
+///
+/// This struct maps to the `djmdSongHotCueBanklist` table in the SQLite database used by Rekordbox.
+/// It stores information about the relationship between hot cue bank lists and their associated songs,
+/// including the actual cue data
 #[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Insertable,
-    AsChangeset,
-    Associations,
+    Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
-#[diesel(table_name = schema::djmdSongHotCueBanklist)]
+#[diesel(table_name = djmdSongHotCueBanklist)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -162,23 +151,15 @@ pub struct DjmdSongHotCueBanklist {
     pub hot_cue_banklist_uuid: Option<String>,
 }
 
-/// Represents the `HotCueBanklistCue` table in the Rekordbox database.
+/// Represents the `hotCueBanklistCue` table in the Rekordbox database.
 ///
-/// This struct maps to the `HotCueBanklistCue` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `hotCueBanklistCue` table in the SQLite database used by Rekordbox.
 /// It stores information about the relationship between hot cue bank lists and their associated cues,
-/// including metadata such as update sequence numbers, timestamps, and cue data.
+/// including metadata such as update sequence numbers, timestamps, and cue data as JSON string.
 #[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Insertable,
-    AsChangeset,
-    Associations,
+    Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
-#[diesel(table_name = schema::hotCueBanklistCue)]
+#[diesel(table_name = hotCueBanklistCue)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdSongHotCueBanklist, foreign_key = hot_cue_banklist_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]

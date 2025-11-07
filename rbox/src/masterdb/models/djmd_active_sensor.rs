@@ -10,29 +10,21 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::djmd_content::DjmdContent;
-use super::schema;
+use super::schema::djmdActiveCensor;
 use super::util::{Date, DateString};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `DjmdActiveCensor` table in the Rekordbox database.
+/// Represents the `djmdActiveCensor` table in the Rekordbox database.
 ///
-/// This struct maps to the `DjmdActiveCensor` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `djmdActiveCensor` table in the SQLite database used by Rekordbox.
 /// It contains information for actively censoring explicit content of tracks in the Rekordbox
 /// collection. Active Censor items behave like two cue points, between which an effect is applied
 /// to the audio of a track.
 #[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Insertable,
-    AsChangeset,
-    Associations,
+    Debug, Clone, PartialEq, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
-#[diesel(table_name = schema::djmdActiveCensor)]
+#[diesel(table_name = djmdActiveCensor)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -77,4 +69,16 @@ pub struct DjmdActiveCensor {
     pub parameter_list: Option<String>,
     /// An optional string representing the uuid of the associated [`DjmdContent`].
     pub content_uuid: Option<String>,
+}
+
+impl DjmdActiveCensor {
+    /// Queries all records from the `djmdActiveCensor` table.
+    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    /// Queries a record from the `djmdActiveCensor` table by its `id`.
+    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
 }

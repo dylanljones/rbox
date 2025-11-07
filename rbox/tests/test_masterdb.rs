@@ -251,7 +251,7 @@ fn test_delete_artist() -> anyhow::Result<()> {
     let id = item.id.clone();
     let deleted = db.delete_artist(id.as_str());
     let new_usn = db.get_local_usn()?;
-    assert!(deleted.is_ok());
+    assert!(deleted.is_ok(), "delete failed: {:?}", deleted);
     assert_eq!(new_usn, old_usn + 1);
 
     // Verify the deletion

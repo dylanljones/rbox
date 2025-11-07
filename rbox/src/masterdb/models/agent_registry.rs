@@ -9,7 +9,8 @@ use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-use super::schema;
+use super::dsl;
+use super::schema::{agentRegistry, cloudAgentRegistry};
 use super::util::{Date, DateString};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
@@ -18,7 +19,7 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 ///
 /// This struct maps to the `agentRegistry` table in the SQLite database used by Rekordbox.
 /// It contains various fields representing metadata and attributes of the Rekordbox collection.
-/// Each entry has a unique name as `registry_id`. The local update sequence number (`USN`), for
+/// Each entry has a unique name as `registry_id`. The local update sequence number (USN), for
 /// example, is used to track changes made to the entry locally and if stored in the entry
 /// with `registry_id="localUpdateCount"`.
 /// Some important fields include:
@@ -26,8 +27,8 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 /// * SyncAnalysisDataRootPath
 /// * SyncSettingsRootPath
 /// * LangPath
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
-#[diesel(table_name = schema::agentRegistry)]
+#[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, Insertable, AsChangeset)]
+#[diesel(table_name = agentRegistry)]
 #[diesel(primary_key(registry_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
@@ -67,13 +68,67 @@ pub struct AgentRegistry {
     pub text_2: Option<String>,
 }
 
+impl AgentRegistry {
+    /// Queries all records from the `agentRegistry` table.
+    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    /// Queries a record from the `agentRegistry` table by its `registry_id`.
+    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
+
+    /// Queries the local update sequence number (USN) from the `agentRegistry` table.
+    ///
+    /// Returns a [`diesel::result::Error::NotFound`] error if the `localUpdateCount` entry is not
+    /// found or the `int_1` column is `NULL`.
+    pub fn local_usn(conn: &mut SqliteConnection) -> QueryResult<i32> {
+        let result = dsl::agentRegistry
+            .find("localUpdateCount")
+            .select(agentRegistry::int_1)
+            .first(conn)?;
+        if let Some(value) = result {
+            Ok(value)
+        } else {
+            Err(diesel::result::Error::NotFound)
+        }
+    }
+
+    /// Increments the local update sequence number (USN) and returns the new value.
+    ///
+    /// # Arguments
+    /// * `n` - An integer value representing the amount to increment the local USN.
+    ///
+    /// Returns a [`diesel::result::Error::NotFound`] error if the `localUpdateCount` entry is not
+    /// found or the `int_1` column is `NULL`.
+    pub fn increment_local_usn_by(conn: &mut SqliteConnection, n: usize) -> QueryResult<i32> {
+        let result = diesel::update(dsl::agentRegistry.find("localUpdateCount"))
+            .set(agentRegistry::int_1.eq(agentRegistry::int_1 + n as i32))
+            .returning(agentRegistry::int_1)
+            .get_result(conn)?;
+        if let Some(value) = result {
+            Ok(value)
+        } else {
+            Err(diesel::result::Error::NotFound)
+        }
+    }
+
+    /// Increments the local update sequence number (USN) by one and returns the new value.
+    ///
+    /// See [`AgentRegistry::increment_local_usn_by`] for more details.
+    pub fn increment_local_usn(conn: &mut SqliteConnection) -> QueryResult<i32> {
+        Self::increment_local_usn_by(conn, 1)
+    }
+}
+
 /// Represents the `cloudAgentRegistry` table in the Rekordbox database.
 ///
 /// This struct maps to the `cloudAgentRegistry` table in the SQLite database used by Rekordbox.
 /// It contains similar fields as the [`AgentRegistry`], but is specifically used for cloud-related
 /// registry entries.
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
-#[diesel(table_name = schema::cloudAgentRegistry)]
+#[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, Insertable, AsChangeset)]
+#[diesel(table_name = cloudAgentRegistry)]
 #[diesel(primary_key(id))]
 #[cfg_attr(feature = "pyo3", pyclass(unsendable, get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
@@ -121,4 +176,16 @@ pub struct CloudAgentRegistry {
     pub text_1: Option<String>,
     /// An optional string field for extended text data.
     pub text_2: Option<String>,
+}
+
+impl CloudAgentRegistry {
+    /// Queries all records from the `cloudAgentRegistry` table.
+    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    /// Queries a record from the `cloudAgentRegistry` table by its `id`.
+    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
 }

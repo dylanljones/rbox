@@ -10,28 +10,20 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::djmd_content::DjmdContent;
-use super::schema;
+use super::schema::djmdCue;
 use super::util::{Date, DateString};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `DjmdCue` table in the Rekordbox database.
+/// Represents the `djmdCue` table in the Rekordbox database.
 ///
-/// This struct maps to the `DjmdCue` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `djmdCue` table in the SQLite database used by Rekordbox.
 /// It stores information about cue points for tracks, including their timing, type, and
 /// additional metadata.
 #[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Insertable,
-    AsChangeset,
-    Associations,
+    Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
-#[diesel(table_name = schema::djmdCue)]
+#[diesel(table_name = djmdCue)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -102,4 +94,16 @@ pub struct DjmdCue {
     pub out_point_seek_info: Option<String>,
     /// An optional string representing the UUID of the associated track in [`DjmdContent`].
     pub content_uuid: Option<String>,
+}
+
+impl DjmdCue {
+    /// Queries all records from the `djmdCue` table.
+    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    /// Queries a record from the `djmdCue` table by its `id`.
+    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
 }
