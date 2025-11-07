@@ -6,10 +6,12 @@ use diesel::r2d2::{self, ConnectionManager, CustomizeConnection, Pool};
 
 use crate::Result;
 
+pub type DbConn = SqliteConnection;
+pub type DbPool = Pool<ConnectionManager<DbConn>>;
 const MAGIC: &str = "s9heeos5l958941bs7dr{cll1fm7rzunc4usccy916kn85wf{75j6p9gosrszrmt";
 
 /// Execute Sqlite pragmas on a connection.
-fn setup_connection(conn: &mut SqliteConnection) -> QueryResult<()> {
+fn setup_connection(conn: &mut DbConn) -> QueryResult<()> {
     let db_key = String::from_utf8(MAGIC.as_bytes().iter().map(|&b| b - 1).collect()).unwrap();
     diesel::sql_query(format!("PRAGMA key = '{db_key}';").as_str()).execute(conn)?;
     diesel::sql_query("PRAGMA foreign_keys = ON;").execute(conn)?;
@@ -36,7 +38,7 @@ fn setup_connection(conn: &mut SqliteConnection) -> QueryResult<()> {
 ///     Err(e) => println!("Failed to open connection: {}", e),
 /// }
 /// ```
-pub fn establish_connection(database_url: &str) -> Result<SqliteConnection> {
+pub fn establish_connection(database_url: &str) -> Result<DbConn> {
     let mut conn = SqliteConnection::establish(database_url)?;
     setup_connection(&mut conn)?;
     Ok(conn)
@@ -45,11 +47,8 @@ pub fn establish_connection(database_url: &str) -> Result<SqliteConnection> {
 #[derive(Clone, Debug)]
 struct SqlitePragmas;
 
-impl CustomizeConnection<SqliteConnection, r2d2::Error> for SqlitePragmas {
-    fn on_acquire(
-        &self,
-        conn: &mut SqliteConnection,
-    ) -> std::result::Result<(), diesel::r2d2::Error> {
+impl CustomizeConnection<DbConn, r2d2::Error> for SqlitePragmas {
+    fn on_acquire(&self, conn: &mut DbConn) -> std::result::Result<(), diesel::r2d2::Error> {
         setup_connection(conn)?;
         Ok(())
     }
@@ -66,7 +65,7 @@ impl CustomizeConnection<SqliteConnection, r2d2::Error> for SqlitePragmas {
 ///
 /// # Example
 /// ```no_run
-/// let pool = establish_pool(":memory:");
+/// let pool = establish_pool(":memory:", 8);
 /// match pool {
 ///     Ok(pool) => {
 ///         let conn = pool.get().expect("Failed to get connection.");
@@ -75,12 +74,10 @@ impl CustomizeConnection<SqliteConnection, r2d2::Error> for SqlitePragmas {
 ///     Err(e) => println!("Failed to create pool: {}", e),
 /// }
 /// ```
-pub fn create_connection_pool(
-    database_url: &str,
-) -> Result<Pool<ConnectionManager<SqliteConnection>>> {
-    let manager = ConnectionManager::<SqliteConnection>::new(database_url);
+pub fn create_connection_pool(database_url: &str, max_size: u32) -> Result<DbPool> {
+    let manager = ConnectionManager::<DbConn>::new(database_url);
     let pool = Pool::builder()
-        .max_size(8)
+        .max_size(max_size)
         .connection_customizer(Box::new(SqlitePragmas))
         .build(manager)?;
     Ok(pool)
