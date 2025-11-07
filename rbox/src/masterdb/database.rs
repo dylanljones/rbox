@@ -36,10 +36,10 @@
 //!
 //! See individual method documentation for details on arguments, return values, and error handling.
 
-// #![allow(unused)]
 use chrono::{DateTime, Utc};
 use diesel::dsl::{exists, select};
-use diesel::{connection::SimpleConnection, prelude::*, query_dsl::RunQueryDsl, SqliteConnection};
+use diesel::prelude::*;
+use diesel::query_dsl::RunQueryDsl;
 use dunce;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -48,6 +48,7 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use uuid::Uuid;
 
+use super::conn::establish_connection;
 use super::dsl::*;
 use super::enums::*;
 use super::models::*;
@@ -60,50 +61,6 @@ use crate::error::{Error, Result};
 use crate::options::RekordboxOptions;
 use crate::pathlib::NormalizePath;
 use crate::util::is_rekordbox_running;
-
-const MAGIC: &str = "513ge593d49928d46ggb9ggc9d8e:4254c85:f8e426eg8b92843b2gg547195:8";
-
-/// Opens a connection to a SQLite database and configures it with specific settings.
-///
-/// # Arguments
-/// * `path` - A string slice that holds the path to the SQLite database file.
-///
-/// # Returns
-/// * `Result<SqliteConnection>` - Returns a `SqliteConnection` object if successful, or an error.
-///
-/// # Errors
-/// * Returns an error if the database connection cannot be established or if any of the
-///   configuration commands fail.
-///
-/// # Configuration
-/// The function applies the following settings to the SQLite connection:
-/// - Sets the encryption key using the `PRAGMA key` command.
-/// - Enables foreign key constraints using the `PRAGMA foreign_keys = ON` command.
-/// - Sets the journal mode to Write-Ahead Logging (WAL) using the `PRAGMA journal_mode = WAL` command.
-/// - Sets the synchronous mode to NORMAL using the `PRAGMA synchronous = NORMAL` command.
-///
-/// # Example
-/// ```no_run
-/// let connection = open_connection(":memory:");
-/// match connection {
-///     Ok(conn) => println!("Connection established successfully!"),
-///     Err(e) => println!("Failed to open connection: {}", e),
-/// }
-/// ```
-fn open_connection(path: &str) -> Result<SqliteConnection> {
-    let db_key = String::from_utf8(MAGIC.as_bytes().iter().map(|&b| b - 1).collect())
-        .map_err(|e| e.utf8_error())?;
-
-    let mut conn = SqliteConnection::establish(path)?;
-    conn.batch_execute(format!("PRAGMA key = '{db_key}';").as_str())?;
-    conn.batch_execute("PRAGMA foreign_keys = ON")?;
-    conn.batch_execute("PRAGMA journal_mode = WAL")?;
-    conn.batch_execute("PRAGMA synchronous = NORMAL")?;
-    // conn.batch_execute("PRAGMA busy_timeout = 100")?;
-    // conn.batch_execute("PRAGMA wal_autocheckpoint = 1000")?;
-    // conn.batch_execute("PRAGMA wal_checkpoint(TRUNCATE)")?;
-    Ok(conn)
-}
 
 pub struct MasterDb {
     /// Represents the SQLite database connection used for interacting with the database.
@@ -145,7 +102,7 @@ impl MasterDb {
         } else {
             None
         };
-        let conn = open_connection(path_obj.to_str().unwrap())?;
+        let conn = establish_connection(path_obj.to_str().unwrap())?;
         Ok(Self {
             conn,
             share_dir: share_dir_str,
@@ -161,7 +118,7 @@ impl MasterDb {
     pub fn from_options(options: &RekordboxOptions) -> Result<Self> {
         let share_dir = options.analysis_root.normalize();
         let plxml_path = options.get_db_dir().normalize();
-        let conn = open_connection(options.db_path.to_str().unwrap())?;
+        let conn = establish_connection(options.db_path.to_str().unwrap())?;
 
         Ok(Self {
             conn,

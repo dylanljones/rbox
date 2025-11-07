@@ -1,6 +1,7 @@
 // Author: Dylan Jones
 // Date:   2025-05-01
 
+mod conn;
 pub mod database;
 pub mod enums;
 pub mod models;
@@ -10,6 +11,7 @@ pub mod schema;
 pub mod smart_list;
 mod util;
 
+pub use conn::{create_connection_pool, establish_connection};
 pub use database::MasterDb;
 pub use playlist_xml::MasterPlaylistXml;
 pub use smart_list::{Condition, LogicalOperator, Operator, Property, SmartList};

@@ -57,6 +57,10 @@ pub enum Error {
     Diesel(#[from] diesel::result::Error),
 
     #[cfg(any(feature = "master-db", feature = "devlib-plus"))]
+    #[error("Connection pool error: {0}")]
+    Pool(#[from] diesel::r2d2::PoolError),
+
+    #[cfg(any(feature = "master-db", feature = "devlib-plus"))]
     #[error("Database error: {0}")]
     Database(String),
 
