@@ -211,7 +211,7 @@ impl PyMasterDb {
         Ok(model)
     }
 
-    pub fn insert_album(
+    pub fn create_album(
         &mut self,
         name: &str,
         artist_id: Option<&str>,
@@ -223,7 +223,7 @@ impl PyMasterDb {
         let image_path = image_path.map(|s| s.to_string());
         let model = self
             .db
-            .insert_album(name.to_string(), artist_id, image_path, compilation)
+            .create_album(name.to_string(), artist_id, image_path, compilation)
             .map_err(|e| db_error(e))?;
         Ok(model)
     }
@@ -255,10 +255,10 @@ impl PyMasterDb {
         Ok(model)
     }
 
-    pub fn insert_artist(&mut self, name: &str) -> PyResult<DjmdArtist> {
+    pub fn create_artist(&mut self, name: &str) -> PyResult<DjmdArtist> {
         let model = self
             .db
-            .insert_artist(name.to_string())
+            .create_artist(name.to_string())
             .map_err(|e| db_error(e))?;
         Ok(model)
     }
@@ -345,8 +345,8 @@ impl PyMasterDb {
         }
     }
 
-    pub fn insert_content(&mut self, path: &str) -> PyResult<DjmdContent> {
-        let model = self.db.insert_content(path).map_err(|e| db_error(e))?;
+    pub fn create_content(&mut self, path: &str) -> PyResult<DjmdContent> {
+        let model = self.db.create_content(path).map_err(|e| db_error(e))?;
         Ok(model)
     }
 
@@ -459,10 +459,10 @@ impl PyMasterDb {
         Ok(model)
     }
 
-    pub fn insert_genre(&mut self, name: &str) -> PyResult<DjmdGenre> {
+    pub fn create_genre(&mut self, name: &str) -> PyResult<DjmdGenre> {
         let model = self
             .db
-            .insert_genre(name.to_string())
+            .create_genre(name.to_string())
             .map_err(|e| db_error(e))?;
         Ok(model)
     }
@@ -569,10 +569,10 @@ impl PyMasterDb {
         Ok(model)
     }
 
-    pub fn insert_key(&mut self, name: &str) -> PyResult<DjmdKey> {
+    pub fn create_key(&mut self, name: &str) -> PyResult<DjmdKey> {
         let model = self
             .db
-            .insert_key(name.to_string())
+            .create_key(name.to_string())
             .map_err(|e| db_error(e))?;
         Ok(model)
     }
@@ -604,10 +604,10 @@ impl PyMasterDb {
         Ok(model)
     }
 
-    pub fn insert_label(&mut self, name: &str) -> PyResult<DjmdLabel> {
+    pub fn create_label(&mut self, name: &str) -> PyResult<DjmdLabel> {
         let model = self
             .db
-            .insert_label(name.to_string())
+            .create_label(name.to_string())
             .map_err(|e| db_error(e))?;
         Ok(model)
     }
@@ -736,7 +736,7 @@ impl PyMasterDb {
         Ok(model)
     }
 
-    pub fn insert_playlist(
+    pub fn create_playlist_node(
         &mut self,
         name: &str,
         attribute: i32,
@@ -752,7 +752,7 @@ impl PyMasterDb {
         let attr = PlaylistType::try_from(attribute).map_err(|e| db_error(e))?;
         let model = self
             .db
-            .insert_playlist(
+            .create_playlist_node(
                 name.to_string(),
                 attr,
                 parent_id,
@@ -792,7 +792,7 @@ impl PyMasterDb {
         Ok(())
     }
 
-    pub fn insert_playlist_song(
+    pub fn create_playlist_song(
         &mut self,
         playlist_id: &str,
         content_id: &str,
@@ -800,7 +800,7 @@ impl PyMasterDb {
     ) -> PyResult<DjmdSongPlaylist> {
         let model = self
             .db
-            .insert_playlist_song(&playlist_id.to_string(), &content_id.to_string(), seq)
+            .create_playlist_song(&playlist_id.to_string(), &content_id.to_string(), seq)
             .map_err(|e| db_error(e))?;
         Ok(model)
     }

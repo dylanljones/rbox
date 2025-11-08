@@ -200,7 +200,7 @@ impl JsMasterDb {
     }
 
     #[napi]
-    pub fn insert_album(
+    pub fn create_album(
         &mut self,
         name: String,
         artist_id: Option<String>,
@@ -209,7 +209,7 @@ impl JsMasterDb {
     ) -> Result<DjmdAlbum> {
         let model = self
             .db
-            .insert_album(name, artist_id, image_path, compilation)?;
+            .create_album(name, artist_id, image_path, compilation)?;
         Ok(model)
     }
 
@@ -246,8 +246,8 @@ impl JsMasterDb {
     }
 
     #[napi]
-    pub fn insert_artist(&mut self, name: String) -> Result<DjmdArtist> {
-        let model = self.db.insert_artist(name)?;
+    pub fn create_artist(&mut self, name: String) -> Result<DjmdArtist> {
+        let model = self.db.create_artist(name)?;
         Ok(model)
     }
 
@@ -330,8 +330,8 @@ impl JsMasterDb {
     }
 
     #[napi]
-    pub fn insert_content(&mut self, path: String) -> Result<DjmdContent> {
-        let model = self.db.insert_content(path)?;
+    pub fn create_content(&mut self, path: String) -> Result<DjmdContent> {
+        let model = self.db.create_content(path)?;
         Ok(model)
     }
 
@@ -445,8 +445,8 @@ impl JsMasterDb {
     }
 
     #[napi]
-    pub fn insert_genre(&mut self, name: String) -> Result<DjmdGenre> {
-        let model = self.db.insert_genre(name)?;
+    pub fn create_genre(&mut self, name: String) -> Result<DjmdGenre> {
+        let model = self.db.create_genre(name)?;
         Ok(model)
     }
 
@@ -550,8 +550,8 @@ impl JsMasterDb {
     }
 
     #[napi]
-    pub fn insert_key(&mut self, name: String) -> Result<DjmdKey> {
-        let model = self.db.insert_key(name)?;
+    pub fn create_key(&mut self, name: String) -> Result<DjmdKey> {
+        let model = self.db.create_key(name)?;
         Ok(model)
     }
 
@@ -588,8 +588,8 @@ impl JsMasterDb {
     }
 
     #[napi]
-    pub fn insert_label(&mut self, name: String) -> Result<DjmdLabel> {
-        let model = self.db.insert_label(name)?;
+    pub fn create_label(&mut self, name: String) -> Result<DjmdLabel> {
+        let model = self.db.create_label(name)?;
         Ok(model)
     }
 
@@ -720,7 +720,7 @@ impl JsMasterDb {
     }
 
     #[napi]
-    pub fn insert_playlist(
+    pub fn create_playlist_node(
         &mut self,
         name: String,
         attribute: i32,
@@ -732,7 +732,7 @@ impl JsMasterDb {
         let attr = PlaylistType::try_from(attribute).expect("Wrong Playlist attribute");
         let model = self
             .db
-            .insert_playlist(name, attr, parent_id, seq, image_path, smart_list)?;
+            .create_playlist_node(name, attr, parent_id, seq, image_path, smart_list)?;
         Ok(model)
     }
 
@@ -760,7 +760,7 @@ impl JsMasterDb {
     }
 
     #[napi]
-    pub fn insert_playlist_song(
+    pub fn create_playlist_song(
         &mut self,
         playlist_id: String,
         content_id: String,
@@ -768,7 +768,7 @@ impl JsMasterDb {
     ) -> Result<DjmdSongPlaylist> {
         let model = self
             .db
-            .insert_playlist_song(&playlist_id, &content_id, seq)?;
+            .create_playlist_song(&playlist_id, &content_id, seq)?;
         Ok(model)
     }
 

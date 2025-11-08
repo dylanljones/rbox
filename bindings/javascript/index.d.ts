@@ -2422,13 +2422,13 @@ export declare class MasterDb {
   getAlbum(): Array<DjmdAlbum>
   getAlbumById(id: string): DjmdAlbum | null
   getAlbumByName(name: string): DjmdAlbum | null
-  insertAlbum(name: string, artistId?: string | undefined | null, imagePath?: string | undefined | null, compilation?: number | undefined | null): DjmdAlbum
+  createAlbum(name: string, artistId?: string | undefined | null, imagePath?: string | undefined | null, compilation?: number | undefined | null): DjmdAlbum
   updateAlbum(model: DjmdAlbum): DjmdAlbum
   deleteAlbum(id: string): void
   getArtist(): Array<DjmdArtist>
   getArtistById(id: string): DjmdArtist | null
   getArtistByName(name: string): DjmdArtist | null
-  insertArtist(name: string): DjmdArtist
+  createArtist(name: string): DjmdArtist
   updateArtist(model: DjmdArtist): DjmdArtist
   deleteArtist(id: string): void
   getCategory(): Array<DjmdCategory>
@@ -2440,7 +2440,7 @@ export declare class MasterDb {
   getContentByPath(id: string): DjmdContent | null
   getContentAnlzDir(id: string): string | null
   getContentAnlzPaths(id: string): AnlzPaths | null
-  insertContent(path: string): DjmdContent
+  createContent(path: string): DjmdContent
   updateContent(model: DjmdContent): number
   updateContentAlbum(id: string, name: string): number
   updateContentArtist(id: string, name: string): number
@@ -2457,7 +2457,7 @@ export declare class MasterDb {
   getGenre(): Array<DjmdGenre>
   getGenreById(id: string): DjmdGenre | null
   getGenreByName(name: string): DjmdGenre | null
-  insertGenre(name: string): DjmdGenre
+  createGenre(name: string): DjmdGenre
   updateGenre(model: DjmdGenre): DjmdGenre
   deleteGenre(id: string): void
   getHistory(): Array<DjmdHistory>
@@ -2473,13 +2473,13 @@ export declare class MasterDb {
   getKey(): Array<DjmdKey>
   getKeyById(id: string): DjmdKey | null
   getKeyByName(name: string): DjmdKey | null
-  insertKey(name: string): DjmdKey
+  createKey(name: string): DjmdKey
   updateKey(model: DjmdKey): DjmdKey
   deleteKey(id: string): void
   getLabel(): Array<DjmdLabel>
   getLabelById(id: string): DjmdLabel | null
   getLabelByName(name: string): DjmdLabel | null
-  insertLabel(name: string): DjmdLabel
+  createLabel(name: string): DjmdLabel
   updateLabel(model: DjmdLabel): DjmdLabel
   deleteLabel(id: string): void
   getMenuItem(): Array<DjmdMenuItems>
@@ -2499,11 +2499,11 @@ export declare class MasterDb {
   getPlaylistSongs(id: string): Array<DjmdSongPlaylist>
   getPlaylistContents(id: string): Array<DjmdContent>
   getPlaylistSongById(id: string): DjmdSongPlaylist | null
-  insertPlaylist(name: string, attribute: number, parentId?: string | undefined | null, seq?: number | undefined | null, imagePath?: string | undefined | null, smartList?: string | undefined | null): DjmdPlaylist
+  createPlaylistNode(name: string, attribute: number, parentId?: string | undefined | null, seq?: number | undefined | null, imagePath?: string | undefined | null, smartList?: string | undefined | null): DjmdPlaylist
   renamePlaylist(id: string, name: string): DjmdPlaylist
   movePlaylist(id: string, seq?: number | undefined | null, parentId?: string | undefined | null): DjmdPlaylist
   deletePlaylist(id: string): void
-  insertPlaylistSong(playlistId: string, contentId: string, seq?: number | undefined | null): DjmdSongPlaylist
+  createPlaylistSong(playlistId: string, contentId: string, seq?: number | undefined | null): DjmdSongPlaylist
   movePlaylistSong(id: string, seq: number): DjmdSongPlaylist
   deletePlaylistSong(id: string): void
   getProperty(): Array<DjmdProperty>

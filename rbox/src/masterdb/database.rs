@@ -95,7 +95,8 @@ impl MasterDb {
         } else {
             None
         };
-        let conn = establish_connection(path_obj.to_str().unwrap())?;
+        let url = path_obj.to_str().unwrap();
+        let conn = establish_connection(url)?;
         Ok(Self {
             conn,
             share_dir: share_dir_str,
@@ -111,7 +112,8 @@ impl MasterDb {
     pub fn from_options(options: &RekordboxOptions) -> Result<Self> {
         let share_dir = options.analysis_root.normalize();
         let plxml_path = options.get_db_dir().normalize();
-        let conn = establish_connection(options.db_path.to_str().unwrap())?;
+        let url = options.db_path.to_str().unwrap();
+        let conn = establish_connection(url)?;
 
         Ok(Self {
             conn,
@@ -540,6 +542,11 @@ impl MasterDb {
         Ok(DjmdAlbum::find_by_name(&mut self.conn, name)?)
     }
 
+    pub fn insert_album(&mut self, item: NewDjmdAlbum) -> Result<DjmdAlbum> {
+        self.assert_write_mode()?;
+        Ok(item.insert(&mut self.conn)?)
+    }
+
     /// Inserts a new album into the [`DjmdAlbum`] table in the database.
     ///
     /// # Arguments
@@ -558,7 +565,7 @@ impl MasterDb {
     /// # Example
     /// ```no_run
     /// let mut db = MasterDb::open().unwrap();
-    /// let album = db.insert_album(
+    /// let album = db.create_album(
     ///     "Album Name".to_string(),
     ///     Some("ArtistID".to_string()),
     ///     Some("/path/to/image.jpg".to_string()),
@@ -566,7 +573,7 @@ impl MasterDb {
     /// ).unwrap();
     /// println!("{:?}", album);
     /// ```
-    pub fn insert_album(
+    pub fn create_album(
         &mut self,
         name: String,
         artist_id: Option<String>,
@@ -599,11 +606,11 @@ impl MasterDb {
     /// ```no_run
     /// let mut db = MasterDb::open().unwrap();
     /// // Creates a new album
-    /// let album = db.insert_album_if_not_exists("Album 1").unwrap();
+    /// let album = db.create_album_if_not_exists("Album 1").unwrap();
     /// // Retrieves the existing album
-    /// let album = db.insert_album_if_not_exists("Album 1").unwrap();
+    /// let album = db.create_album_if_not_exists("Album 1").unwrap();
     /// ```
-    fn insert_album_if_not_exists(&mut self, name: &str) -> Result<DjmdAlbum> {
+    fn create_album_if_not_exists(&mut self, name: &str) -> Result<DjmdAlbum> {
         self.assert_write_mode()?;
         let item = NewDjmdAlbum::new(name.to_string());
         Ok(item.insert_if_not_exists(&mut self.conn)?)
@@ -745,6 +752,11 @@ impl MasterDb {
         Ok(DjmdArtist::find_by_name(&mut self.conn, name)?)
     }
 
+    pub fn insert_artist(&mut self, item: NewDjmdArtist) -> Result<DjmdArtist> {
+        self.assert_write_mode()?;
+        Ok(item.insert(&mut self.conn)?)
+    }
+
     /// Inserts a new artist into the [`DjmdArtist`] table in the database.
     ///
     /// # Arguments
@@ -760,10 +772,10 @@ impl MasterDb {
     /// # Example
     /// ```no_run
     /// let mut db = MasterDb::open().unwrap();
-    /// let artist = db.insert_artist("Artist Name".to_string()).unwrap();
+    /// let artist = db.create_artist("Artist Name".to_string()).unwrap();
     /// println!("{:?}", artist);
     /// ```
-    pub fn insert_artist(&mut self, name: String) -> Result<DjmdArtist> {
+    pub fn create_artist(&mut self, name: String) -> Result<DjmdArtist> {
         self.assert_write_mode()?;
         let item = NewDjmdArtist::new(name);
         Ok(item.insert(&mut self.conn)?)
@@ -784,11 +796,11 @@ impl MasterDb {
     /// ```no_run
     /// let mut db = MasterDb::open().unwrap();
     /// // Creates a new artist
-    /// let artist = db.insert_artist_if_not_exists("Artist 1").unwrap();
+    /// let artist = db.create_artist_if_not_exists("Artist 1").unwrap();
     /// // Retrieves the existing artist
-    /// let artist = db.insert_artist_if_not_exists("Artist 1").unwrap();
+    /// let artist = db.create_artist_if_not_exists("Artist 1").unwrap();
     /// ```
-    fn insert_artist_if_not_exists(&mut self, name: &str) -> Result<DjmdArtist> {
+    fn create_artist_if_not_exists(&mut self, name: &str) -> Result<DjmdArtist> {
         self.assert_write_mode()?;
         let item = NewDjmdArtist::new(name.to_string());
         Ok(item.insert_if_not_exists(&mut self.conn)?)
@@ -1187,12 +1199,12 @@ impl MasterDb {
     /// # Example
     /// ```no_run
     /// let mut db = MasterDb::open().unwrap();
-    /// let content = db.insert_content("/music/track.mp3").unwrap();
+    /// let content = db.create_content("/music/track.mp3").unwrap();
     /// // Update additional fields as needed
     /// // Run "reload tags" in Rekordbox to generate analysis files
     /// println!("{:?}", content);
     /// ```
-    pub fn insert_content<P: AsRef<Path> + AsRef<OsStr>>(
+    pub fn create_content<P: AsRef<Path> + AsRef<OsStr>>(
         &mut self,
         path: P,
     ) -> Result<DjmdContent> {
@@ -1234,7 +1246,7 @@ impl MasterDb {
     /// If the album does not exist yet, a new [DjmdAlbum] row will be created.
     pub fn update_content_album(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
-        let album = self.insert_album_if_not_exists(name)?;
+        let album = self.create_album_if_not_exists(name)?;
         Ok(DjmdContent::set_album_id(
             &mut self.conn,
             content_id,
@@ -1248,7 +1260,7 @@ impl MasterDb {
     /// If the artist does not exist yet, a new [DjmdArtist] row will be created.
     pub fn update_content_artist(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
-        let artist = self.insert_artist_if_not_exists(name)?;
+        let artist = self.create_artist_if_not_exists(name)?;
         Ok(DjmdContent::set_artist_id(
             &mut self.conn,
             content_id,
@@ -1262,7 +1274,7 @@ impl MasterDb {
     /// If the artist does not exist yet, a new [DjmdArtist] row will be created.
     pub fn update_content_remixer(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
-        let artist = self.insert_artist_if_not_exists(name)?;
+        let artist = self.create_artist_if_not_exists(name)?;
         Ok(DjmdContent::set_remixer_id(
             &mut self.conn,
             content_id,
@@ -1280,7 +1292,7 @@ impl MasterDb {
         name: &str,
     ) -> Result<usize> {
         self.assert_write_mode()?;
-        let artist = self.insert_artist_if_not_exists(name)?;
+        let artist = self.create_artist_if_not_exists(name)?;
         Ok(DjmdContent::set_original_artist_id(
             &mut self.conn,
             content_id,
@@ -1294,7 +1306,7 @@ impl MasterDb {
     /// If the artist does not exist yet, a new [DjmdArtist] row will be created.
     pub fn update_content_composer(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
-        let artist = self.insert_artist_if_not_exists(name)?;
+        let artist = self.create_artist_if_not_exists(name)?;
         Ok(DjmdContent::set_composer_id(
             &mut self.conn,
             content_id,
@@ -1308,7 +1320,7 @@ impl MasterDb {
     /// If the genre does not exist yet, a new [DjmdGenre] row will be created.
     pub fn update_content_genre(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
-        let genre = self.insert_genre_if_not_exists(name)?;
+        let genre = self.create_genre_if_not_exists(name)?;
         Ok(DjmdContent::set_genre_id(
             &mut self.conn,
             content_id,
@@ -1322,7 +1334,7 @@ impl MasterDb {
     /// If the label does not exist yet, a new [DjmdLabel] row will be created.
     pub fn update_content_label(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
-        let label = self.insert_label_if_not_exists(name)?;
+        let label = self.create_label_if_not_exists(name)?;
         Ok(DjmdContent::set_label_id(
             &mut self.conn,
             content_id,
@@ -1336,7 +1348,7 @@ impl MasterDb {
     /// If the key does not exist yet, a new [DjmdKey] row will be created.
     pub fn update_content_key(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
-        let key = self.insert_key_if_not_exists(name)?;
+        let key = self.create_key_if_not_exists(name)?;
         Ok(DjmdContent::set_key_id(
             &mut self.conn,
             content_id,
@@ -1570,6 +1582,11 @@ impl MasterDb {
         Ok(DjmdGenre::find_by_name(&mut self.conn, name)?)
     }
 
+    pub fn insert_genre(&mut self, item: NewDjmdGenre) -> Result<DjmdGenre> {
+        self.assert_write_mode()?;
+        Ok(item.insert(&mut self.conn)?)
+    }
+
     /// Inserts a new genre into the [`DjmdGenre`] table in the database.
     ///
     /// # Arguments
@@ -1584,10 +1601,10 @@ impl MasterDb {
     ///
     /// # Example
     /// ```no_run
-    /// let genre = db.insert_genre("Genre Name".to_string()).unwrap();
+    /// let genre = db.create_genre("Genre Name".to_string()).unwrap();
     /// println!("{:?}", genre);
     /// ```
-    pub fn insert_genre(&mut self, name: String) -> Result<DjmdGenre> {
+    pub fn create_genre(&mut self, name: String) -> Result<DjmdGenre> {
         self.assert_write_mode()?;
         let item = NewDjmdGenre::new(name);
         Ok(item.insert(&mut self.conn)?)
@@ -1606,9 +1623,9 @@ impl MasterDb {
     ///
     /// # Example
     /// ```no_run
-    /// let genre = db.insert_genre_if_not_exists("Genre 1").unwrap();
+    /// let genre = db.create_genre_if_not_exists("Genre 1").unwrap();
     /// ```
-    fn insert_genre_if_not_exists(&mut self, name: &str) -> Result<DjmdGenre> {
+    fn create_genre_if_not_exists(&mut self, name: &str) -> Result<DjmdGenre> {
         self.assert_write_mode()?;
         let item = NewDjmdGenre::new(name.to_string());
         Ok(item.insert_if_not_exists(&mut self.conn)?)
@@ -1974,6 +1991,11 @@ impl MasterDb {
         Ok(DjmdKey::find_by_name(&mut self.conn, name)?)
     }
 
+    pub fn insert_key(&mut self, item: NewDjmdKey) -> Result<DjmdKey> {
+        self.assert_write_mode()?;
+        Ok(item.insert(&mut self.conn)?)
+    }
+
     /// Inserts a new key into the [`DjmdKey`] table in the database.
     ///
     /// # Arguments
@@ -1988,10 +2010,10 @@ impl MasterDb {
     ///
     /// # Example
     /// ```no_run
-    /// let key = db.insert_key("C#m".to_string()).unwrap();
+    /// let key = db.create_key("C#m".to_string()).unwrap();
     /// println!("{:?}", key);
     /// ```
-    pub fn insert_key(&mut self, name: String) -> Result<DjmdKey> {
+    pub fn create_key(&mut self, name: String) -> Result<DjmdKey> {
         self.assert_write_mode()?;
         let item = NewDjmdKey::new(name);
         Ok(item.insert(&mut self.conn)?)
@@ -2007,7 +2029,7 @@ impl MasterDb {
     ///
     /// # Errors
     /// * Returns an error if the key cannot be inserted or retrieved.
-    fn insert_key_if_not_exists(&mut self, name: &str) -> Result<DjmdKey> {
+    fn create_key_if_not_exists(&mut self, name: &str) -> Result<DjmdKey> {
         self.assert_write_mode()?;
         let item = NewDjmdKey::new(name.to_string());
         Ok(item.insert_if_not_exists(&mut self.conn)?)
@@ -2140,6 +2162,11 @@ impl MasterDb {
         Ok(DjmdLabel::find_by_name(&mut self.conn, name)?)
     }
 
+    pub fn insert_label(&mut self, item: NewDjmdLabel) -> Result<DjmdLabel> {
+        self.assert_write_mode()?;
+        Ok(item.insert(&mut self.conn)?)
+    }
+
     /// Inserts a new label into the [`DjmdLabel`] table in the database.
     ///
     /// # Arguments
@@ -2154,10 +2181,10 @@ impl MasterDb {
     ///
     /// # Example
     /// ```no_run
-    /// let label = db.insert_label("Label Name".to_string()).unwrap();
+    /// let label = db.create_label("Label Name".to_string()).unwrap();
     /// println!("{:?}", label);
     /// ```
-    pub fn insert_label(&mut self, name: String) -> Result<DjmdLabel> {
+    pub fn create_label(&mut self, name: String) -> Result<DjmdLabel> {
         self.assert_write_mode()?;
         let item = NewDjmdLabel::new(name);
         Ok(item.insert(&mut self.conn)?)
@@ -2173,7 +2200,7 @@ impl MasterDb {
     ///
     /// # Errors
     /// * Returns an error if the label cannot be inserted or retrieved.
-    fn insert_label_if_not_exists(&mut self, name: &str) -> Result<DjmdLabel> {
+    fn create_label_if_not_exists(&mut self, name: &str) -> Result<DjmdLabel> {
         self.assert_write_mode()?;
         let item = NewDjmdLabel::new(name.to_string());
         Ok(item.insert_if_not_exists(&mut self.conn)?)
@@ -2638,6 +2665,22 @@ impl MasterDb {
         Ok(DjmdSongPlaylist::find(&mut self.conn, id)?)
     }
 
+    pub fn insert_playlist(&mut self, item: NewDjmdPlaylist) -> Result<DjmdPlaylist> {
+        self.assert_write_mode()?;
+        let result = item.insert(&mut self.conn)?;
+        if let Some(pl_xml_path) = self.plxml_path.clone() {
+            let mut pl_xml = MasterPlaylistXml::load(pl_xml_path);
+            pl_xml.add(
+                result.id.clone(),
+                result.parent_id.clone(),
+                result.attribute,
+                result.updated_at.naive_utc(),
+            );
+            let _ = pl_xml.dump();
+        }
+        Ok(result)
+    }
+
     /// Inserts a new playlist into the [`DjmdPlaylist`] table in the database.
     ///
     /// # Arguments
@@ -2664,7 +2707,7 @@ impl MasterDb {
     ///
     /// # Example
     /// ```no_run
-    /// let playlist = db.insert_playlist(
+    /// let playlist = db.create_playlist(
     ///     "My Playlist".to_string(),
     ///     PlaylistType::Regular,
     ///     Some("parent_id".to_string()),
@@ -2674,7 +2717,7 @@ impl MasterDb {
     /// ).unwrap();
     /// println!("{:?}", playlist);
     /// ```
-    pub fn insert_playlist(
+    pub fn create_playlist_node(
         &mut self,
         name: String,
         attribute: PlaylistType,
@@ -2683,9 +2726,6 @@ impl MasterDb {
         image_path: Option<String>,
         smart_list: Option<String>,
     ) -> Result<DjmdPlaylist> {
-        // Check if Rekordbox is running
-        self.assert_write_mode()?;
-
         let item = NewDjmdPlaylist {
             name,
             attribute: attribute as i32,
@@ -2694,21 +2734,7 @@ impl MasterDb {
             image_path,
             smart_list,
         };
-
-        let result = item.insert(&mut self.conn)?;
-
-        if let Some(pl_xml_path) = self.plxml_path.clone() {
-            let mut pl_xml = MasterPlaylistXml::load(pl_xml_path);
-            pl_xml.add(
-                result.id.clone(),
-                result.parent_id.clone(),
-                result.attribute,
-                result.updated_at.naive_utc(),
-            );
-            let _ = pl_xml.dump();
-        }
-
-        Ok(result)
+        self.insert_playlist(item)
     }
 
     /// Creates a new regular playlist in the [`DjmdPlaylist`] table.
@@ -2738,7 +2764,7 @@ impl MasterDb {
         image_path: Option<String>,
         smart_list: Option<String>,
     ) -> Result<DjmdPlaylist> {
-        self.insert_playlist(
+        self.create_playlist_node(
             name,
             PlaylistType::Playlist,
             parent_id,
@@ -2771,7 +2797,7 @@ impl MasterDb {
         parent_id: Option<String>,
         seq: Option<i32>,
     ) -> Result<DjmdPlaylist> {
-        self.insert_playlist(name, PlaylistType::Folder, parent_id, seq, None, None)
+        self.create_playlist_node(name, PlaylistType::Folder, parent_id, seq, None, None)
     }
 
     /// Renames an existing playlist.
@@ -2906,6 +2932,12 @@ impl MasterDb {
         Ok(deleted_ids.len())
     }
 
+    pub fn insert_playlist_song(&mut self, item: NewDjmdSongPlaylist) -> Result<DjmdSongPlaylist> {
+        self.assert_write_mode()?;
+        let result = item.insert(&mut self.conn)?;
+        Ok(result)
+    }
+
     /// Inserts a [`DjmdSongPlaylist`] song into a playlist at a specified sequence position.
     ///
     /// # Arguments
@@ -2927,10 +2959,10 @@ impl MasterDb {
     ///
     /// # Example
     /// ```no_run
-    /// let song = db.insert_playlist_song(&"playlist_id".to_string(), &"content_id".to_string(), Some(2)).unwrap();
+    /// let song = db.create_playlist_song(&"playlist_id".to_string(), &"content_id".to_string(), Some(2)).unwrap();
     /// println!("{:?}", song);
     /// ```
-    pub fn insert_playlist_song(
+    pub fn create_playlist_song(
         &mut self,
         playlist_id: &String,
         content_id: &String,
