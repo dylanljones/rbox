@@ -522,15 +522,15 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "Seq"]
-        seq -> Nullable<Integer>,
+        seq -> Integer,
         #[sql_name = "Name"]
-        name -> Nullable<Text>,
+        name -> Text,
         #[sql_name = "Attribute"]
-        attribute -> Nullable<Integer>,
+        attribute -> Integer,
         #[sql_name = "ParentID"]
-        parent_id -> Nullable<Text>,
+        parent_id -> Text,
         #[sql_name = "DateCreated"]
-        date_created -> Nullable<Text>,
+        date_created -> Text,
     }
 }
 
@@ -549,11 +549,11 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "HistoryID"]
-        history_id -> Nullable<Text>,
+        history_id -> Text,
         #[sql_name = "ContentID"]
-        content_id -> Nullable<Text>,
+        content_id -> Text,
         #[sql_name = "TrackNo"]
-        track_no -> Nullable<Integer>,
+        track_no -> Integer,
     }
 }
 
@@ -572,15 +572,15 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "Seq"]
-        seq -> Nullable<Integer>,
+        seq -> Integer,
         #[sql_name = "Name"]
-        name -> Nullable<Text>,
+        name -> Text,
         #[sql_name = "ImagePath"]
         image_path -> Nullable<Text>,
         #[sql_name = "Attribute"]
-        attribute -> Nullable<Integer>,
+        attribute -> Integer,
         #[sql_name = "ParentID"]
-        parent_id -> Nullable<Text>,
+        parent_id -> Text,
     }
 }
 
@@ -598,12 +598,14 @@ diesel::table! {
         rb_local_usn -> Nullable<Integer>,
         created_at -> Text,
         updated_at -> Text,
+        #[sql_name = "HotCueBanklistID"]
+        hot_cue_banklist_id -> Text,
         #[sql_name = "ContentID"]
-        content_id -> Nullable<Text>,
+        content_id -> Text,
         #[sql_name = "TrackNo"]
-        track_no -> Nullable<Integer>,
+        track_no -> Integer,
         #[sql_name = "CueID"]
-        cue_id -> Nullable<Text>,
+        cue_id -> Text,
         #[sql_name = "InMsec"]
         in_msec -> Nullable<Integer>,
         #[sql_name = "InFrame"]
@@ -744,13 +746,13 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "Seq"]
-        seq -> Nullable<Integer>,
+        seq -> Integer,
         #[sql_name = "Name"]
-        name -> Nullable<Text>,
+        name -> Text,
         #[sql_name = "Attribute"]
-        attribute -> Nullable<Integer>,
+        attribute -> Integer,
         #[sql_name = "ParentID"]
-        parent_id -> Nullable<Text>,
+        parent_id -> Text,
     }
 }
 
@@ -769,11 +771,11 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "MyTagID"]
-        my_tag_id -> Nullable<Text>,
+        my_tag_id -> Text,
         #[sql_name = "ContentID"]
-        content_id -> Nullable<Text>,
+        content_id -> Text,
         #[sql_name = "TrackNo"]
-        track_no -> Nullable<Integer>,
+        track_no -> Integer,
     }
 }
 
@@ -792,15 +794,15 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "Seq"]
-        seq -> Nullable<Integer>,
+        seq -> Integer,
         #[sql_name = "Name"]
-        name -> Nullable<Text>,
+        name -> Text,
         #[sql_name = "ImagePath"]
         image_path -> Nullable<Text>,
         #[sql_name = "Attribute"]
-        attribute -> Nullable<Integer>,
+        attribute -> Integer,
         #[sql_name = "ParentID"]
-        parent_id -> Nullable<Text>,
+        parent_id -> Text,
         #[sql_name = "SmartList"]
         smart_list -> Nullable<Text>,
     }
@@ -821,11 +823,11 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "PlaylistID"]
-        playlist_id -> Nullable<Text>,
+        playlist_id -> Text,
         #[sql_name = "ContentID"]
-        content_id -> Nullable<Text>,
+        content_id -> Text,
         #[sql_name = "TrackNo"]
-        track_no -> Nullable<Integer>,
+        track_no -> Integer,
     }
 }
 
@@ -925,13 +927,13 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "Seq"]
-        seq -> Nullable<Integer>,
+        seq -> Integer,
         #[sql_name = "Name"]
-        name -> Nullable<Text>,
+        name -> Text,
         #[sql_name = "Attribute"]
-        attribute -> Nullable<Integer>,
+        attribute -> Integer,
         #[sql_name = "ParentID"]
-        parent_id -> Nullable<Text>,
+        parent_id -> Text,
         #[sql_name = "Criteria"]
         criteria -> Nullable<Text>,
     }
@@ -952,11 +954,11 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "RelatedTracksID"]
-        related_tracks_id -> Nullable<Text>,
+        related_tracks_id -> Text,
         #[sql_name = "ContentID"]
-        content_id -> Nullable<Text>,
+        content_id -> Text,
         #[sql_name = "TrackNo"]
-        track_no -> Nullable<Integer>,
+        track_no -> Integer,
     }
 }
 
@@ -975,13 +977,13 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "Seq"]
-        seq -> Nullable<Integer>,
+        seq -> Integer,
         #[sql_name = "Name"]
-        name -> Nullable<Text>,
+        name -> Text,
         #[sql_name = "Attribute"]
-        attribute -> Nullable<Integer>,
+        attribute -> Integer,
         #[sql_name = "ParentID"]
-        parent_id -> Nullable<Text>,
+        parent_id -> Text,
     }
 }
 
@@ -1000,11 +1002,11 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "SamplerID"]
-        sampler_id -> Nullable<Text>,
+        sampler_id -> Text,
         #[sql_name = "ContentID"]
-        content_id -> Nullable<Text>,
+        content_id -> Text,
         #[sql_name = "TrackNo"]
-        track_no -> Nullable<Integer>,
+        track_no -> Integer,
     }
 }
 
@@ -1067,7 +1069,7 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "HotCueBanklistID"]
-        hot_cue_banklist_id -> Nullable<Text>,
+        hot_cue_banklist_id -> Text,
         #[sql_name = "Cues"]
         cues -> Nullable<Text>,
         rb_cue_count -> Nullable<Integer>,

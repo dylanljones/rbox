@@ -10,28 +10,20 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::djmd_device::DjmdDevice;
-use super::schema;
+use super::schema::{djmdCloudProperty, djmdProperty};
 use super::util::{Date, DateString};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `DjmdProperty` table in the Rekordbox database.
+/// Represents the `djmdProperty` table in the Rekordbox database.
 ///
-/// This struct maps to the `DjmdProperty` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `djmdProperty` table in the SQLite database used by Rekordbox.
 /// It stores metadata and properties related to the database, including versioning,
 /// drive information, and associated device details.
 #[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Insertable,
-    AsChangeset,
-    Associations,
+    Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
-#[diesel(table_name = schema::djmdProperty)]
+#[diesel(table_name = djmdProperty)]
 #[diesel(primary_key(db_id))]
 #[diesel(belongs_to(DjmdDevice, foreign_key = device_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -69,13 +61,25 @@ pub struct DjmdProperty {
     pub updated_at: Date,
 }
 
-/// Represents the `DjmdCloudProperty` table in the Rekordbox database.
+impl DjmdProperty {
+    /// Queries all records from the `djmdProperty` table.
+    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    /// Queries a record from the `djmdProperty` table by its `db_id`.
+    pub fn find(conn: &mut SqliteConnection, db_id: &str) -> QueryResult<Option<Self>> {
+        Self::query().find(db_id).first(conn).optional()
+    }
+}
+
+/// Represents the `djmdCloudProperty` table in the Rekordbox database.
 ///
-/// This struct maps to the `DjmdCloudProperty` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `djmdCloudProperty` table in the SQLite database used by Rekordbox.
 /// It stores metadata and properties related to cloud-based entries, including status,
 /// synchronization details, and reserved fields for future use.
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
-#[diesel(table_name = schema::djmdCloudProperty)]
+#[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
+#[diesel(table_name = djmdCloudProperty)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
@@ -117,4 +121,16 @@ pub struct DjmdCloudProperty {
     pub reserved4: Option<String>,
     /// An optional string for reserved data.
     pub reserved5: Option<String>,
+}
+
+impl DjmdCloudProperty {
+    /// Queries all records from the `djmdCloudProperty` table.
+    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    /// Queries a record from the `djmdCloudProperty` table by its `id`.
+    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
 }

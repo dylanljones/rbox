@@ -10,27 +10,19 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::djmd_content::DjmdContent;
-use super::schema;
+use super::schema::djmdMixerParam;
 use super::util::{Date, DateString};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `DjmdMixerParam` table in the Rekordbox database.
+/// Represents the `djmdMixerParam` table in the Rekordbox database.
 ///
-/// This struct maps to the `DjmdMixerParam` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `djmdMixerParam` table in the SQLite database used by Rekordbox.
 /// It stores information about mixer parameters, including gain and peak values for high and low frequencies.
 #[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Insertable,
-    AsChangeset,
-    Associations,
+    Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
-#[diesel(table_name = schema::djmdMixerParam)]
+#[diesel(table_name = djmdMixerParam)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -73,4 +65,16 @@ pub struct DjmdMixerParam {
     pub peak_high: Option<i32>,
     /// An optional integer representing the low-frequency peak value.
     pub peak_low: Option<i32>,
+}
+
+impl DjmdMixerParam {
+    /// Queries all records from the `djmdMixerParam` table.
+    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    /// Queries a record from the `djmdMixerParam` table by its `id`.
+    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
 }

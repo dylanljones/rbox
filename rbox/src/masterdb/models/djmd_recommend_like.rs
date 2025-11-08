@@ -10,28 +10,20 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::djmd_content::DjmdContent;
-use super::schema;
+use super::schema::djmdRecommendLike;
 use super::util::{Date, DateString};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `DjmdRecommendLike` table in the Rekordbox database.
+/// Represents the `djmdRecommendLike` table in the Rekordbox database.
 ///
-/// This struct maps to the `DjmdRecommendLike` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `djmdRecommendLike` table in the SQLite database used by Rekordbox.
 /// It stores information about recommended track relationships, including metadata such as
 /// like rate, creation timestamps, and associated content IDs.
 #[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Insertable,
-    AsChangeset,
-    Associations,
+    Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
-#[diesel(table_name = schema::djmdRecommendLike)]
+#[diesel(table_name = djmdRecommendLike)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdContent, foreign_key = content_id1))]
 // #[diesel(belongs_to(DjmdContent, foreign_key = content_id2))]
@@ -75,4 +67,16 @@ pub struct DjmdRecommendLike {
     pub data_created_h: Option<i32>,
     /// An optional integer representing the low part of the creation timestamp.
     pub data_created_l: Option<i32>,
+}
+
+impl DjmdRecommendLike {
+    /// Queries all records from the `djmdRecommendLike` table.
+    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    /// Queries a record from the `djmdRecommendLike` table by its `id`.
+    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
 }

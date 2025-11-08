@@ -111,3 +111,22 @@ impl TryFrom<i32> for PlaylistType {
         }
     }
 }
+
+#[repr(i32)]
+#[derive(Debug, Clone, PartialEq)]
+pub enum MyTagType {
+    MyTag = 0,
+    Folder = 1,
+}
+
+impl TryFrom<i32> for MyTagType {
+    type Error = String;
+
+    fn try_from(value: i32) -> std::result::Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Self::MyTag),
+            1 => Ok(Self::Folder),
+            _ => Err("Invalid value for MyTagType".into()),
+        }
+    }
+}

@@ -9,17 +9,17 @@ use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-use super::schema;
+use super::schema::djmdMenuItems;
 use super::util::{Date, DateString};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `DjmdMenuItems` table in the Rekordbox database.
+/// Represents the `djmdMenuItems` table in the Rekordbox database.
 ///
-/// This struct maps to the `DjmdMenuItems` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `djmdMenuItems` table in the SQLite database used by Rekordbox.
 /// It stores information about menu items, including their class, name, and metadata.
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
-#[diesel(table_name = schema::djmdMenuItems)]
+#[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
+#[diesel(table_name = djmdMenuItems)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
@@ -55,4 +55,16 @@ pub struct DjmdMenuItems {
     pub class: Option<i32>,
     /// An optional string representing the name of the menu item.
     pub name: Option<String>,
+}
+
+impl DjmdMenuItems {
+    /// Queries all records from the `djmdMenuItems` table.
+    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    /// Queries a record from the `djmdMenuItems` table by its `id`.
+    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
 }

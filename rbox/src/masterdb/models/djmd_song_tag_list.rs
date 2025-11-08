@@ -10,28 +10,20 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::djmd_content::DjmdContent;
-use super::schema;
+use super::schema::djmdSongTagList;
 use super::util::{Date, DateString};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `DjmdSongTagList` table in the Rekordbox database.
+/// Represents the `djmdSongTagList` table in the Rekordbox database.
 ///
-/// This struct maps to the `DjmdSongTagList` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `djmdSongTagList` table in the SQLite database used by Rekordbox.
 /// It stores information about the relationship between songs and tag lists, including
 /// metadata such as update sequence numbers, timestamps, and associated content IDs.
 #[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Insertable,
-    AsChangeset,
-    Associations,
+    Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
-#[diesel(table_name = schema::djmdSongTagList)]
+#[diesel(table_name = djmdSongTagList)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -68,4 +60,16 @@ pub struct DjmdSongTagList {
     pub content_id: Option<String>,
     /// An optional integer representing the track number in the tag list.
     pub track_no: Option<i32>,
+}
+
+impl DjmdSongTagList {
+    /// Queries all records from the `djmdSongTagList` table.
+    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    /// Queries a record from the `djmdSongTagList` table by its `id`.
+    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
 }

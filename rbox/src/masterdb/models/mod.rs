@@ -48,7 +48,6 @@ mod image_file;
 mod setting_file;
 mod uuid_map;
 
-use super::dsl;
 use super::random_id::RandomIdGenerator;
 use super::schema;
 use super::util;
@@ -72,8 +71,10 @@ pub use djmd_key::{DjmdKey, NewDjmdKey};
 pub use djmd_label::{DjmdLabel, NewDjmdLabel};
 pub use djmd_menu_items::DjmdMenuItems;
 pub use djmd_mixer_param::DjmdMixerParam;
-pub use djmd_my_tag::{DjmdMyTag, DjmdSongMyTag};
-pub use djmd_playlist::{DjmdPlaylist, DjmdPlaylistTreeItem, DjmdSongPlaylist};
+pub use djmd_my_tag::{DjmdMyTag, DjmdSongMyTag, NewDjmdMyTag, NewDjmdSongMyTag};
+pub use djmd_playlist::{
+    DjmdPlaylist, DjmdPlaylistTreeItem, DjmdSongPlaylist, NewDjmdPlaylist, NewDjmdSongPlaylist,
+};
 pub use djmd_property::{DjmdCloudProperty, DjmdProperty};
 pub use djmd_recommend_like::DjmdRecommendLike;
 pub use djmd_related_tracks::{DjmdRelatedTracks, DjmdSongRelatedTracks};

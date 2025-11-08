@@ -9,7 +9,6 @@ use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-use super::dsl;
 use super::schema::{agentRegistry, cloudAgentRegistry};
 use super::util::{Date, DateString};
 #[cfg(feature = "pyo3")]
@@ -84,7 +83,7 @@ impl AgentRegistry {
     /// Returns a [`diesel::result::Error::NotFound`] error if the `localUpdateCount` entry is not
     /// found or the `int_1` column is `NULL`.
     pub fn local_usn(conn: &mut SqliteConnection) -> QueryResult<i32> {
-        let result = dsl::agentRegistry
+        let result = agentRegistry::table
             .find("localUpdateCount")
             .select(agentRegistry::int_1)
             .first(conn)?;
@@ -103,7 +102,7 @@ impl AgentRegistry {
     /// Returns a [`diesel::result::Error::NotFound`] error if the `localUpdateCount` entry is not
     /// found or the `int_1` column is `NULL`.
     pub fn increment_local_usn_by(conn: &mut SqliteConnection, n: usize) -> QueryResult<i32> {
-        let result = diesel::update(dsl::agentRegistry.find("localUpdateCount"))
+        let result = diesel::update(agentRegistry::table.find("localUpdateCount"))
             .set(agentRegistry::int_1.eq(agentRegistry::int_1 + n as i32))
             .returning(agentRegistry::int_1)
             .get_result(conn)?;

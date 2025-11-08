@@ -36,26 +36,19 @@
 //!
 //! See individual method documentation for details on arguments, return values, and error handling.
 
-use chrono::{DateTime, Utc};
-use diesel::dsl::{exists, select};
 use diesel::prelude::*;
-use diesel::query_dsl::RunQueryDsl;
 use dunce;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use uuid::Uuid;
 
 use super::conn::establish_connection;
-use super::dsl::*;
 use super::enums::*;
 use super::models::*;
 use super::playlist_xml::MasterPlaylistXml;
-use super::random_id::RandomIdGenerator;
-use super::schema;
-use super::util::{format_datetime, sort_tree_list};
+use super::util::sort_tree_list;
 use crate::anlz::{find_anlz_files, Anlz, AnlzFiles, AnlzPaths};
 use crate::error::{Error, Result};
 use crate::options::RekordboxOptions;
@@ -224,27 +217,6 @@ impl MasterDb {
     /// ```
     pub fn get_local_usn(&mut self) -> Result<i32> {
         Ok(AgentRegistry::local_usn(&mut self.conn)?)
-    }
-
-    /// Increments the local update sequence number (USN) in the [`AgentRegistry`] table.
-    ///
-    /// # Arguments
-    /// * `n` - An integer value representing the amount to increment the local USN.
-    ///
-    /// # Returns
-    /// * `Result<i32>` - Returns the updated USN as an integer if successful, or an error.
-    ///
-    /// # Errors
-    /// * Returns an error if the database update operation fails or if the updated USN is not found.
-    ///
-    /// # Example
-    /// ```no_run
-    /// let mut db = MasterDb::open().unwrap();
-    /// let new_usn = db.increment_local_usn(1).unwrap();
-    /// println!("Updated USN: {}", new_usn);
-    /// ```
-    fn increment_local_usn(&mut self, n: usize) -> Result<i32> {
-        Ok(AgentRegistry::increment_local_usn_by(&mut self.conn, n)?)
     }
 
     // -- CloudAgentRegistry -----------------------------------------------------------------------
@@ -1766,7 +1738,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_history_songs(&mut self, id: &str) -> Result<Vec<DjmdSongHistory>> {
-        Ok(DjmdSongHistory::find_by_history(&mut self.conn, id)?)
+        Ok(DjmdSongHistory::by_history_id(&mut self.conn, id)?)
     }
 
     /// Retrieves all content entries referenced by the song history for a given history ID.
@@ -1788,10 +1760,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_history_contents(&mut self, id: &str) -> Result<Vec<DjmdContent>> {
-        Ok(DjmdSongHistory::find_contents_by_history(
-            &mut self.conn,
-            id,
-        )?)
+        Ok(DjmdHistory::get_contents(&mut self.conn, id)?)
     }
 
     // -- HotCueBanklist ---------------------------------------------------------------------------
@@ -1813,8 +1782,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_hot_cue_banklist(&mut self) -> Result<Vec<DjmdHotCueBanklist>> {
-        let results = djmdHotCueBanklist.load::<DjmdHotCueBanklist>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdHotCueBanklist::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`DjmdHotCueBanklist`] entry by its unique identifier.
@@ -1838,11 +1806,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_hot_cue_banklist_by_id(&mut self, id: &str) -> Result<Option<DjmdHotCueBanklist>> {
-        let result = djmdHotCueBanklist
-            .filter(schema::djmdHotCueBanklist::id.eq(id))
-            .first::<DjmdHotCueBanklist>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdHotCueBanklist::find(&mut self.conn, id)?)
     }
 
     /// Retrieves all child [`DjmdHotCueBanklist`] entries for a given parent ID, ordered by sequence.
@@ -1867,11 +1831,7 @@ impl MasterDb {
         &mut self,
         parent_id: &str,
     ) -> Result<Vec<DjmdHotCueBanklist>> {
-        let results = djmdHotCueBanklist
-            .filter(schema::djmdHotCueBanklist::parent_id.eq(parent_id))
-            .order_by(schema::djmdHotCueBanklist::seq)
-            .load::<DjmdHotCueBanklist>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdHotCueBanklist::by_parent_id(&mut self.conn, parent_id)?)
     }
 
     /// Retrieves all [`DjmdSongHotCueBanklist`] entries for a given hot cue banklist ID, ordered by track number.
@@ -1893,11 +1853,10 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_hot_cue_banklist_songs(&mut self, id: &str) -> Result<Vec<DjmdSongHotCueBanklist>> {
-        let results = schema::djmdSongHotCueBanklist::table
-            .filter(schema::djmdSongHotCueBanklist::cue_id.eq(id))
-            .order_by(schema::djmdSongHotCueBanklist::track_no)
-            .load::<DjmdSongHotCueBanklist>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdSongHotCueBanklist::by_hot_cue_banklist_id(
+            &mut self.conn,
+            id,
+        )?)
     }
 
     /// Retrieves all [`DjmdContent`] entries referenced by the song hot cue banklist for a given hot cue banklist ID.
@@ -1919,13 +1878,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_hot_cue_banklist_contents(&mut self, id: &str) -> Result<Vec<DjmdContent>> {
-        let songs = self.get_hot_cue_banklist_songs(id)?;
-        let ids: Vec<&str> = songs
-            .iter()
-            .map(|s| s.content_id.as_ref().unwrap().as_str())
-            .collect();
-        let result = self.get_contents_by_ids(&ids)?;
-        Ok(result)
+        Ok(DjmdHotCueBanklist::get_contents(&mut self.conn, id)?)
     }
 
     /// Retrieves all [`HotCueBanklistCue`] entries for a given hot cue banklist ID.
@@ -1947,10 +1900,10 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_hot_cue_banklist_cues(&mut self, id: &str) -> Result<Vec<HotCueBanklistCue>> {
-        let results = schema::hotCueBanklistCue::table
-            .filter(schema::hotCueBanklistCue::hot_cue_banklist_id.eq(id))
-            .load::<HotCueBanklistCue>(&mut self.conn)?;
-        Ok(results)
+        Ok(HotCueBanklistCue::by_hot_cue_banklist_id(
+            &mut self.conn,
+            id,
+        )?)
     }
 
     // -- Key --------------------------------------------------------------------------------------
@@ -2302,8 +2255,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_menu_item(&mut self) -> Result<Vec<DjmdMenuItems>> {
-        let results = djmdMenuItems.load::<DjmdMenuItems>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdMenuItems::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`DjmdMenuItems`] entry by its unique identifier.
@@ -2326,11 +2278,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_menu_item_by_id(&mut self, id: &str) -> Result<Option<DjmdMenuItems>> {
-        let result = djmdMenuItems
-            .filter(schema::djmdMenuItems::id.eq(id))
-            .first::<DjmdMenuItems>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdMenuItems::find(&mut self.conn, id)?)
     }
 
     // -- MixerParam -------------------------------------------------------------------------------
@@ -2351,8 +2299,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_mixer_param(&mut self) -> Result<Vec<DjmdMixerParam>> {
-        let results = djmdMixerParam.load::<DjmdMixerParam>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdMixerParam::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`DjmdMixerParam`] entry by its unique identifier.
@@ -2375,11 +2322,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_mixer_param_by_id(&mut self, id: &str) -> Result<Option<DjmdMixerParam>> {
-        let result = djmdMixerParam
-            .filter(schema::djmdMixerParam::id.eq(id))
-            .first::<DjmdMixerParam>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdMixerParam::find(&mut self.conn, id)?)
     }
 
     // -- MyTag ------------------------------------------------------------------------------------
@@ -2400,8 +2343,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_my_tag(&mut self) -> Result<Vec<DjmdMyTag>> {
-        let results = djmdMyTag.load::<DjmdMyTag>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdMyTag::all(&mut self.conn)?)
     }
 
     /// Retrieves all child [`DjmdMyTag`] entries for a given parent ID, ordered by sequence.
@@ -2423,11 +2365,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_my_tag_children(&mut self, parent_id: &str) -> Result<Vec<DjmdMyTag>> {
-        let results = djmdMyTag
-            .filter(schema::djmdMyTag::parent_id.eq(parent_id))
-            .order_by(schema::djmdMyTag::seq)
-            .load::<DjmdMyTag>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdMyTag::by_parent_id(&mut self.conn, parent_id)?)
     }
 
     /// Retrieves a [`DjmdMyTag`] entry by its unique identifier.
@@ -2450,11 +2388,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_my_tag_by_id(&mut self, id: &str) -> Result<Option<DjmdMyTag>> {
-        let result = djmdMyTag
-            .filter(schema::djmdMyTag::id.eq(id))
-            .first::<DjmdMyTag>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdMyTag::find(&mut self.conn, id)?)
     }
 
     /// Retrieves all [`DjmdSongMyTag`] entries for a given tag ID, ordered by track number.
@@ -2476,11 +2410,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_my_tag_songs(&mut self, id: &str) -> Result<Vec<DjmdSongMyTag>> {
-        let results = schema::djmdSongMyTag::table
-            .filter(schema::djmdSongMyTag::my_tag_id.eq(id))
-            .order_by(schema::djmdSongMyTag::track_no)
-            .load::<DjmdSongMyTag>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdSongMyTag::by_tag_id(&mut self.conn, id)?)
     }
 
     /// Retrieves all [`DjmdContent`] entries referenced by the songs for a given tag ID.
@@ -2502,13 +2432,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_my_tag_contents(&mut self, id: &str) -> Result<Vec<DjmdContent>> {
-        let songs = self.get_my_tag_songs(id)?;
-        let ids: Vec<&str> = songs
-            .iter()
-            .map(|s| s.content_id.as_ref().unwrap().as_str())
-            .collect();
-        let result = self.get_contents_by_ids(&ids)?;
-        Ok(result)
+        Ok(DjmdMyTag::get_contents(&mut self.conn, id)?)
     }
 
     // -- Playlist ---------------------------------------------------------------------------------
@@ -2529,14 +2453,13 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_playlist(&mut self) -> Result<Vec<DjmdPlaylist>> {
-        let results = djmdPlaylist.load::<DjmdPlaylist>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdPlaylist::all(&mut self.conn)?)
     }
 
     /// Returns a sorted tree of playlists as [`DjmdPlaylistTreeItem`] nodes.
     ///
     /// # Returns
-    /// * `Result<Vec<Rc<RefCell<DjmdPlaylistTreeItem>>>>` - A vector of root nodes representing the playlist tree.
+    /// * A vector of root nodes representing the playlist tree.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -2552,7 +2475,7 @@ impl MasterDb {
         let playlists: Vec<DjmdPlaylistTreeItem> = self
             .get_playlist()?
             .iter()
-            .map(|p: &DjmdPlaylist| DjmdPlaylistTreeItem::from_playlist(p.clone()))
+            .map(|p: &DjmdPlaylist| DjmdPlaylistTreeItem::from(p.clone()))
             .collect();
 
         let mut map = HashMap::<String, Rc<RefCell<DjmdPlaylistTreeItem>>>::new();
@@ -2562,7 +2485,7 @@ impl MasterDb {
         for pl in playlists.iter() {
             let item = Rc::new(RefCell::new(pl.clone()));
             map.insert(pl.id.clone(), item.clone());
-            if pl.parent_id.is_none() || pl.parent_id == Some("root".to_string()) {
+            if pl.parent_id == "root".to_string() {
                 roots.push(item.clone());
             }
         }
@@ -2570,10 +2493,9 @@ impl MasterDb {
         // Build the tree structure
         for id in map.keys() {
             let node = map.get(id).unwrap();
-            if let Some(parent_id) = node.borrow().parent_id.clone() {
-                if let Some(parent_node) = map.get(&parent_id) {
-                    parent_node.borrow_mut().children.push(node.clone());
-                }
+            let parent_id = node.borrow().parent_id.clone();
+            if let Some(parent_node) = map.get(&parent_id) {
+                parent_node.borrow_mut().children.push(node.clone());
             }
         }
         sort_tree_list(&mut roots);
@@ -2600,11 +2522,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_playlist_children(&mut self, parent_id: &str) -> Result<Vec<DjmdPlaylist>> {
-        let results = djmdPlaylist
-            .filter(schema::djmdPlaylist::parent_id.eq(parent_id))
-            .order_by(schema::djmdPlaylist::seq)
-            .load::<DjmdPlaylist>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdPlaylist::by_parent_id(&mut self.conn, parent_id)?)
     }
 
     /// Retrieves a [`DjmdPlaylist`] entry by its unique identifier.
@@ -2627,11 +2545,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_playlist_by_id(&mut self, id: &str) -> Result<Option<DjmdPlaylist>> {
-        let result = djmdPlaylist
-            .filter(schema::djmdPlaylist::id.eq(id))
-            .first::<DjmdPlaylist>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdPlaylist::find(&mut self.conn, id)?)
     }
 
     /// Retrieves a [`DjmdPlaylist`] entry by its hierarchical path.
@@ -2654,22 +2568,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_playlist_by_path(&mut self, path: Vec<&str>) -> Result<Option<DjmdPlaylist>> {
-        let mut parent_id: String = "root".to_string();
-        let mut playlist: Option<DjmdPlaylist> = None;
-        for name in path {
-            let result = djmdPlaylist
-                .filter(schema::djmdPlaylist::parent_id.eq(&parent_id))
-                .filter(schema::djmdPlaylist::name.eq(name))
-                .first::<DjmdPlaylist>(&mut self.conn)
-                .optional()?;
-            playlist = result.clone();
-            if let Some(result) = result {
-                parent_id = result.id.clone();
-            } else {
-                return Ok(None);
-            }
-        }
-        Ok(playlist)
+        Ok(DjmdPlaylist::find_by_path(&mut self.conn, path)?)
     }
 
     /// Retrieves all [`DjmdSongPlaylist`] entries for a given playlist ID, ordered by track number.
@@ -2691,11 +2590,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_playlist_songs(&mut self, id: &str) -> Result<Vec<DjmdSongPlaylist>> {
-        let results = schema::djmdSongPlaylist::table
-            .filter(schema::djmdSongPlaylist::playlist_id.eq(id))
-            .order_by(schema::djmdSongPlaylist::track_no)
-            .load::<DjmdSongPlaylist>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdSongPlaylist::by_playlist_id(&mut self.conn, id)?)
     }
 
     /// Retrieves all [`DjmdContent`] entries referenced by the songs for a given playlist ID.
@@ -2717,13 +2612,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_playlist_contents(&mut self, id: &str) -> Result<Vec<DjmdContent>> {
-        let songs = self.get_playlist_songs(id)?;
-        let ids: Vec<&str> = songs
-            .iter()
-            .map(|s| s.content_id.as_ref().unwrap().as_str())
-            .collect();
-        let result = self.get_contents_by_ids(&ids)?;
-        Ok(result)
+        Ok(DjmdPlaylist::get_contents(&mut self.conn, id)?)
     }
 
     /// Retrieves a [`DjmdSongPlaylist`] entry by its unique identifier.
@@ -2746,130 +2635,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_playlist_song_by_id(&mut self, id: &str) -> Result<Option<DjmdSongPlaylist>> {
-        let result = djmdSongPlaylist
-            .filter(schema::djmdSongPlaylist::id.eq(id))
-            .first::<DjmdSongPlaylist>(&mut self.conn)
-            .optional()?;
-        Ok(result)
-    }
-
-    /// Returns the [`PlaylistType`] for a given playlist ID.
-    ///
-    /// # Arguments
-    /// * `id` - A reference to a string representing the playlist ID.
-    ///
-    /// # Returns
-    /// * `Result<PlaylistType>` - The type of the playlist (e.g., folder, regular).
-    ///
-    /// # Errors
-    /// * Returns an error if the playlist does not exist or has an invalid attribute.
-    ///
-    /// # Example
-    /// ```no_run
-    /// let ptype = db.playlist_type(&"playlist_id".to_string()).unwrap();
-    /// println!("{:?}", ptype);
-    /// ```
-    fn playlist_type(&mut self, id: &String) -> Result<PlaylistType> {
-        if id == "root" {
-            return Ok(PlaylistType::Folder);
-        }
-        let result = djmdPlaylist
-            .filter(schema::djmdPlaylist::id.eq(id))
-            .select(schema::djmdPlaylist::attribute)
-            .first::<Option<i32>>(&mut self.conn)?;
-        let attr = result.expect("Playlist not found");
-        let ptype = PlaylistType::try_from(attr).expect("Invalid playlist Attribute");
-        Ok(ptype)
-    }
-
-    /// Checks if a playlist with the given ID exists in the database.
-    ///
-    /// # Arguments
-    /// * `id` - A reference to a string representing the playlist ID.
-    ///
-    /// # Returns
-    /// * `Result<bool>` - Returns `true` if the playlist exists, `false` otherwise.
-    ///
-    /// # Example
-    /// ```no_run
-    /// let exists = db.playlist_exists(&"playlist_id".to_string()).unwrap();
-    /// println!("Exists: {}", exists);
-    /// ```
-    fn playlist_exists(&mut self, id: &String) -> Result<bool> {
-        let id_exists: bool = select(exists(djmdPlaylist.filter(schema::djmdPlaylist::id.eq(id))))
-            .get_result(&mut self.conn)?;
-        Ok(id_exists)
-    }
-
-    /// Checks if a playlist song entry with the given ID exists in the database.
-    ///
-    /// # Arguments
-    /// * `id` - A reference to a string representing the song playlist ID.
-    ///
-    /// # Returns
-    /// * `Result<bool>` - Returns `true` if the song playlist entry exists, `false` otherwise.
-    ///
-    /// # Example
-    /// ```no_run
-    /// let exists = db.playlist_song_exists(&"song_id".to_string()).unwrap();
-    /// println!("Exists: {}", exists);
-    /// ```
-    fn playlist_song_exists(&mut self, id: &String) -> Result<bool> {
-        let id_exists: bool = select(exists(
-            djmdSongPlaylist.filter(schema::djmdSongPlaylist::id.eq(id)),
-        ))
-        .get_result(&mut self.conn)?;
-        Ok(id_exists)
-    }
-
-    /// Generates a unique playlist ID that does not exist in the database.
-    ///
-    /// # Returns
-    /// * `Result<String>` - Returns a new unique playlist ID as a string.
-    ///
-    /// # Example
-    /// ```no_run
-    /// let id = db.generate_playlist_id().unwrap();
-    /// println!("Generated ID: {}", id);
-    /// ```
-    fn generate_playlist_id(&mut self) -> Result<String> {
-        let generator = RandomIdGenerator::new(true);
-        let mut id: String = String::new();
-        for id_result in generator {
-            if let Ok(tmp_id) = id_result {
-                let id_exists: bool = self.playlist_exists(&tmp_id)?;
-                if !id_exists {
-                    id = tmp_id;
-                    break;
-                }
-            }
-        }
-        Ok(id)
-    }
-
-    /// Generates a unique playlist song ID that does not exist in the database.
-    ///
-    /// # Returns
-    /// * `Result<String>` - Returns a new unique playlist song ID as a string.
-    ///
-    /// # Example
-    /// ```no_run
-    /// let id = db.generate_playlist_song_id().unwrap();
-    /// println!("Generated Song ID: {}", id);
-    /// ```
-    fn generate_playlist_song_id(&mut self) -> Result<String> {
-        let generator = RandomIdGenerator::new(true);
-        let mut id: String = String::new();
-        for id_result in generator {
-            if let Ok(tmp_id) = id_result {
-                let id_exists: bool = self.playlist_song_exists(&tmp_id)?;
-                if !id_exists {
-                    id = tmp_id;
-                    break;
-                }
-            }
-        }
-        Ok(id)
+        Ok(DjmdSongPlaylist::find(&mut self.conn, id)?)
     }
 
     /// Inserts a new playlist into the [`DjmdPlaylist`] table in the database.
@@ -2920,79 +2686,23 @@ impl MasterDb {
         // Check if Rekordbox is running
         self.assert_write_mode()?;
 
-        // Handle defaults
-        let parent_id = parent_id.unwrap_or("root".to_string());
-        if self.playlist_type(&parent_id)? != PlaylistType::Folder {
-            return Err(Error::Database("Parent playlist must be a Folder!".into()));
-        };
-        if parent_id.as_str() != "root" && !self.playlist_exists(&parent_id)? {
-            return Err(Error::Database("Parent playlist does not exist!".into()));
-        };
-        // Generate ID/UUID for new playlist
-        let id: String = self.generate_playlist_id()?;
-        let uuid: String = Uuid::new_v4().to_string();
-        // Generate date
-        let utcnow = Utc::now();
-        // Count existing playlists with same parent
-        let count = djmdPlaylist
-            .filter(schema::djmdPlaylist::parent_id.eq(parent_id.clone()))
-            .count()
-            .get_result::<i64>(&mut self.conn)? as i32;
-
-        // Handle seq
-        let seq = if let Some(seq) = seq {
-            // Playlist is not inserted at end
-            if seq <= 0 {
-                return Err(Error::Database("seq must be greater than 0!".into()));
-            } else if seq > count + 1 {
-                return Err(Error::Database("seq is too high!".into()));
-            };
-            // Shift playlists with seq higher than the new seq number by one
-            // Shifting the other playlists increments the USN by 1 for *all* moved playlists
-            let move_usn = self.increment_local_usn(1)?;
-            diesel::update(
-                djmdPlaylist
-                    .filter(schema::djmdPlaylist::parent_id.eq(parent_id.clone()))
-                    .filter(schema::djmdPlaylist::seq.ge(seq)),
-            )
-            .set((
-                schema::djmdPlaylist::seq.eq(schema::djmdPlaylist::seq + 1),
-                schema::djmdPlaylist::rb_local_usn.eq(move_usn.clone()),
-                schema::djmdPlaylist::updated_at.eq(format_datetime(&utcnow)),
-            ))
-            .execute(&mut self.conn)?;
-            seq
-        } else {
-            // Insert at end (count + 1)
-            count + 1
-        };
-
-        // Get next USN: We increment by 2 (1 for creating, 1 for renaming from 'New Playlist')
-        let usn: i32 = self.increment_local_usn(2)?;
-
-        // Create and insert model
-        let item: DjmdPlaylist = DjmdPlaylist::new(
-            id.clone(),
-            uuid,
-            usn,
-            utcnow,
+        let item = NewDjmdPlaylist {
             name,
-            attribute.clone() as i32,
-            parent_id.clone(),
+            attribute: attribute as i32,
             seq,
+            parent_id,
             image_path,
             smart_list,
-        );
-        let result: DjmdPlaylist = diesel::insert_into(djmdPlaylist)
-            .values(item)
-            .get_result(&mut self.conn)?;
+        };
+
+        let result = item.insert(&mut self.conn)?;
 
         if let Some(pl_xml_path) = self.plxml_path.clone() {
             let mut pl_xml = MasterPlaylistXml::load(pl_xml_path);
             pl_xml.add(
-                id.clone(),
-                parent_id.clone(),
-                attribute as i32,
+                result.id.clone(),
+                result.parent_id.clone(),
+                result.attribute,
                 result.updated_at.naive_utc(),
             );
             let _ = pl_xml.dump();
@@ -3083,19 +2793,8 @@ impl MasterDb {
     /// ```
     pub fn rename_playlist(&mut self, id: &String, name: String) -> Result<DjmdPlaylist> {
         self.assert_write_mode()?;
-
-        let utcnow = Utc::now();
-        let usn: i32 = self.increment_local_usn(1)?;
-        let result: DjmdPlaylist =
-            diesel::update(djmdPlaylist.filter(schema::djmdPlaylist::id.eq(id)))
-                .set((
-                    schema::djmdPlaylist::name.eq(name),
-                    schema::djmdPlaylist::rb_local_usn.eq(usn),
-                    schema::djmdPlaylist::updated_at.eq(format_datetime(&utcnow)),
-                ))
-                .get_result(&mut self.conn)?;
-
-        if let Some(pl_xml_path) = self.plxml_path.clone() {
+        let result = DjmdPlaylist::rename(&mut self.conn, id.as_str(), &name)?;
+        if let Some(pl_xml_path) = self.plxml_path.as_ref() {
             let mut pl_xml = MasterPlaylistXml::load(pl_xml_path);
             pl_xml.update(id.to_string(), result.updated_at.naive_utc());
             let _ = pl_xml.dump();
@@ -3140,141 +2839,15 @@ impl MasterDb {
     ) -> Result<DjmdPlaylist> {
         self.assert_write_mode()?;
 
-        // Get playlist
+        // Move playlist
         let playlist: DjmdPlaylist = self.get_playlist_by_id(id)?.expect("Playlist not found");
-
-        // Get parentID (old parentID if None)
-        let old_parent_id = playlist.parent_id.expect("No ParentID set");
-        let old_seq = playlist.seq.expect("No Seq set");
-        let parent_id: String = parent_id.unwrap_or(old_parent_id.clone());
-
-        // Moving increments USN by 1 for all changes
-        let usn = self.increment_local_usn(1)?;
-        // Generate date string
-        let utcnow = Utc::now();
-        let datestr: String = format_datetime(&utcnow);
-
-        if parent_id != old_parent_id {
-            let sequence: i32;
-            // parent changed, move to new parent
-            if self.playlist_type(&parent_id)? != PlaylistType::Folder {
-                return Err(Error::Database("Parent playlist must be a Folder!".into()));
-            };
-            if parent_id.as_str() != "root" && !self.playlist_exists(&parent_id)? {
-                return Err(Error::Database("Parent playlist does not exist!".into()));
-            };
-
-            // Update seq of playlists in old parent:
-            // Decrease seq of playlists with seq higher than old seq
-            diesel::update(
-                djmdPlaylist
-                    .filter(schema::djmdPlaylist::parent_id.eq(old_parent_id.clone()))
-                    .filter(schema::djmdPlaylist::seq.gt(old_seq)),
-            )
-            .set((
-                schema::djmdPlaylist::seq.eq(schema::djmdPlaylist::seq - 1),
-                schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
-                schema::djmdPlaylist::updated_at.eq(datestr.clone()),
-            ))
-            .execute(&mut self.conn)?;
-            if let Some(seq) = seq {
-                let count = djmdPlaylist
-                    .filter(schema::djmdPlaylist::parent_id.eq(parent_id.clone()))
-                    .count()
-                    .get_result::<i64>(&mut self.conn)? as i32;
-                if seq <= 0 {
-                    return Err(Error::Database("seq must be greater than 0!".into()));
-                } else if seq > count {
-                    return Err(Error::Database("seq is too high!".into()));
-                }
-                // Move to seq in new parent
-                diesel::update(
-                    djmdPlaylist
-                        .filter(schema::djmdPlaylist::parent_id.eq(parent_id.clone()))
-                        .filter(schema::djmdPlaylist::seq.ge(seq)),
-                )
-                .set((
-                    schema::djmdPlaylist::seq.eq(schema::djmdPlaylist::seq + 1),
-                    schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
-                    schema::djmdPlaylist::updated_at.eq(datestr.clone()),
-                ))
-                .execute(&mut self.conn)?;
-
-                sequence = seq;
-            } else {
-                // If no seq given, move to end of new parent:
-                // No seq in new parent have to be updated
-                let count = djmdPlaylist
-                    .filter(schema::djmdPlaylist::parent_id.eq(parent_id.clone()))
-                    .count()
-                    .get_result::<i64>(&mut self.conn)? as i32;
-                sequence = count + 1;
-            };
-            // Update Seq and parent of actual playlist
-            diesel::update(djmdPlaylist.filter(schema::djmdPlaylist::id.eq(id)))
-                .set((
-                    schema::djmdPlaylist::seq.eq(sequence),
-                    schema::djmdPlaylist::parent_id.eq(parent_id.clone()),
-                    schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
-                    schema::djmdPlaylist::updated_at.eq(datestr.clone()),
-                ))
-                .execute(&mut self.conn)?;
-        } else {
-            let seq = seq.unwrap_or(old_seq.clone());
-            let count = djmdPlaylist
-                .filter(schema::djmdPlaylist::parent_id.eq(parent_id.clone()))
-                .count()
-                .get_result::<i64>(&mut self.conn)? as i32;
-            if seq <= 0 {
-                return Err(Error::Database("seq must be greater than 0!".into()));
-            } else if seq > count {
-                return Err(Error::Database("seq is too high!".into()));
-            }
-
-            // Move to seq in current parent
-            if seq > old_seq {
-                // Seq is increased (move down in playlist):
-                // Decrease seq of all playlists with seq between old seq and new seq
-                diesel::update(
-                    djmdPlaylist
-                        .filter(schema::djmdPlaylist::parent_id.eq(parent_id.clone()))
-                        .filter(schema::djmdPlaylist::seq.gt(old_seq))
-                        .filter(schema::djmdPlaylist::seq.le(seq)),
-                )
-                .set((
-                    schema::djmdPlaylist::seq.eq(schema::djmdPlaylist::seq - 1),
-                    schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
-                    schema::djmdPlaylist::updated_at.eq(datestr.clone()),
-                ))
-                .execute(&mut self.conn)?;
-            } else if seq < old_seq {
-                // Seq is decreased (moved up in playlist):
-                // Increase seq of all playlists with seq between old seq and new seq
-                diesel::update(
-                    djmdPlaylist
-                        .filter(schema::djmdPlaylist::parent_id.eq(parent_id.clone()))
-                        .filter(schema::djmdPlaylist::seq.lt(old_seq))
-                        .filter(schema::djmdPlaylist::seq.ge(seq)),
-                )
-                .set((
-                    schema::djmdPlaylist::seq.eq(schema::djmdPlaylist::seq + 1),
-                    schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
-                    schema::djmdPlaylist::updated_at.eq(datestr.clone()),
-                ))
-                .execute(&mut self.conn)?;
-            };
-            // Update Seq of actual playlist
-            diesel::update(djmdPlaylist.filter(schema::djmdPlaylist::id.eq(id)))
-                .set((
-                    schema::djmdPlaylist::seq.eq(seq),
-                    schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
-                    schema::djmdPlaylist::updated_at.eq(datestr.clone()),
-                ))
-                .execute(&mut self.conn)?;
-        };
-
+        let parent_id = parent_id.unwrap_or(playlist.parent_id.clone());
+        let result = DjmdPlaylist::move_to(&mut self.conn, id, &parent_id, seq)?;
+        if result == 0 {
+            return Ok(playlist);
+        }
+        // Update playlist XML
         let playlist: DjmdPlaylist = self.get_playlist_by_id(id)?.expect("Playlist not found");
-
         if let Some(pl_xml_path) = self.plxml_path.clone() {
             let mut pl_xml = MasterPlaylistXml::load(pl_xml_path);
             pl_xml.update_parent(
@@ -3290,7 +2863,6 @@ impl MasterDb {
         } else {
             eprintln!("WARNING: Coulnd't update playlist XML, file not found!");
         }
-
         Ok(playlist)
     }
 
@@ -3319,64 +2891,19 @@ impl MasterDb {
     pub fn delete_playlist(&mut self, id: &str) -> Result<usize> {
         self.assert_write_mode()?;
 
-        let usn = self.increment_local_usn(1)?;
-        // Generate date
-        let utcnow: DateTime<Utc> = Utc::now();
-
-        // Get parentID and seq number
-        let playlist: DjmdPlaylist = self.get_playlist_by_id(id)?.expect("Playlist not found");
-        let attr = playlist.attribute.unwrap();
-        let playlist_type = PlaylistType::try_from(attr).expect("Invalid playlist Attribute");
-        let parent_id = playlist.parent_id.unwrap();
-        let seq = playlist.seq.unwrap();
-
-        // Decrease seq of all playlists with seq higher then seq of deleted playlist
-        diesel::update(
-            djmdPlaylist
-                .filter(schema::djmdPlaylist::parent_id.eq(parent_id.clone()))
-                .filter(schema::djmdPlaylist::seq.gt(seq)),
-        )
-        .set((
-            schema::djmdPlaylist::seq.eq(schema::djmdPlaylist::seq - 1),
-            schema::djmdPlaylist::rb_local_usn.eq(usn.clone()),
-            schema::djmdPlaylist::updated_at.eq(format_datetime(&utcnow)),
-        ))
-        .execute(&mut self.conn)?;
-
-        // Delete playlist
-        let mut result = diesel::delete(djmdPlaylist.filter(schema::djmdPlaylist::id.eq(id)))
-            .execute(&mut self.conn)?;
-
-        // Cascade delete references
-        if playlist_type == PlaylistType::Playlist {
-            // Delete all songs in playlist
-            let n = diesel::delete(
-                djmdSongPlaylist.filter(schema::djmdSongPlaylist::playlist_id.eq(id)),
-            )
-            .execute(&mut self.conn)?;
-            result += n;
-        } else if playlist_type == PlaylistType::Folder {
-            // Select child ids
-            let children: Vec<String> = djmdPlaylist
-                .filter(schema::djmdPlaylist::parent_id.eq(id))
-                .select(schema::djmdPlaylist::id)
-                .load::<String>(&mut self.conn)?;
-            // Delete all children recursively
-            for child_id in children {
-                let n = self.delete_playlist(&child_id)?;
-                result += n;
-            }
-        }
+        let deleted_ids = DjmdPlaylist::delete(&mut self.conn, id)?;
 
         if let Some(pl_xml_path) = self.plxml_path.clone() {
             let mut pl_xml = MasterPlaylistXml::load(pl_xml_path);
-            pl_xml.remove(id.to_string());
+            for id in &deleted_ids {
+                pl_xml.remove(id.clone());
+            }
             let _ = pl_xml.dump();
         } else {
             eprintln!("WARNING: Coulnd't update playlist XML, file not found!");
         }
 
-        Ok(result)
+        Ok(deleted_ids.len())
     }
 
     /// Inserts a [`DjmdSongPlaylist`] song into a playlist at a specified sequence position.
@@ -3411,80 +2938,12 @@ impl MasterDb {
     ) -> Result<DjmdSongPlaylist> {
         self.assert_write_mode()?;
 
-        if self.playlist_type(&playlist_id)? != PlaylistType::Playlist {
-            return Err(Error::Database(format!(
-                "Playlist with ID {} must be a Playlist!",
-                playlist_id
-            )));
+        let item = NewDjmdSongPlaylist {
+            playlist_id: playlist_id.clone(),
+            content_id: content_id.clone(),
+            track_no: seq,
         };
-        if !self.playlist_exists(&playlist_id)? {
-            return Err(Error::Database(format!(
-                "Playlist with ID {} does not exist!",
-                playlist_id
-            )));
-        };
-        if !DjmdContent::id_exists(&mut self.conn, &content_id)? {
-            return Err(Error::Database(format!(
-                "Content with ID {} does not exist!",
-                content_id
-            )));
-        };
-
-        // Generate ID/UUID/Date for new playlist song
-        let id: String = self.generate_playlist_song_id()?;
-        let uuid: String = Uuid::new_v4().to_string();
-        let utcnow: DateTime<Utc> = Utc::now();
-
-        // Count existing songs in playlist
-        let count = djmdSongPlaylist
-            .filter(schema::djmdSongPlaylist::playlist_id.eq(playlist_id.clone()))
-            .count()
-            .get_result::<i64>(&mut self.conn)? as i32;
-
-        // Get next USN: We increment by 1 *before* moving others
-        let usn: i32 = self.increment_local_usn(1)?;
-
-        // Handle seq
-        let seq = if let Some(seq) = seq {
-            // Song is not inserted at end
-            if seq <= 0 {
-                return Err(Error::Database("seq must be greater than 0!".into()));
-            } else if seq > count {
-                return Err(Error::Database("seq is too high!".into()));
-            };
-            // Shift songs with seq higher than the new seq number by one
-            // Shifting the other songs increments the USN by 1 for *all* moved songs
-            let move_usn = self.increment_local_usn(1)?;
-            diesel::update(
-                djmdSongPlaylist
-                    .filter(schema::djmdSongPlaylist::playlist_id.eq(playlist_id.clone()))
-                    .filter(schema::djmdSongPlaylist::track_no.ge(seq)),
-            )
-            .set((
-                schema::djmdSongPlaylist::track_no.eq(schema::djmdSongPlaylist::track_no + 1),
-                schema::djmdSongPlaylist::rb_local_usn.eq(move_usn.clone()),
-                schema::djmdSongPlaylist::updated_at.eq(format_datetime(&utcnow)),
-            ))
-            .execute(&mut self.conn)?;
-            seq
-        } else {
-            // Insert at end (count + 1)
-            count + 1
-        };
-
-        let item = DjmdSongPlaylist::new(
-            id,
-            uuid,
-            usn,
-            utcnow,
-            playlist_id.clone(),
-            content_id.clone(),
-            seq,
-        );
-        let result: DjmdSongPlaylist = diesel::insert_into(djmdSongPlaylist)
-            .values(item)
-            .get_result(&mut self.conn)?;
-
+        let result = item.insert(&mut self.conn)?;
         Ok(result)
     }
 
@@ -3513,72 +2972,8 @@ impl MasterDb {
     /// ```
     pub fn move_playlist_song(&mut self, id: &String, seq: i32) -> Result<DjmdSongPlaylist> {
         self.assert_write_mode()?;
-
-        // Get playlistID and seq number
-        let song: DjmdSongPlaylist = self.get_playlist_song_by_id(id)?.expect("Song not found");
-        if song.track_no.unwrap() == seq {
-            // Nothing to change
-            return Ok(song);
-        }
-        let count = djmdSongPlaylist
-            .filter(schema::djmdSongPlaylist::playlist_id.eq(song.playlist_id.clone()))
-            .count()
-            .get_result::<i64>(&mut self.conn)? as i32;
-
-        if seq <= 0 {
-            return Err(Error::Database("seq must be greater than 0!".into()));
-        } else if seq > count {
-            return Err(Error::Database("seq is too high!".into()));
-        }
-
-        let playlist_id = song.playlist_id.unwrap();
-        let old_seq = song.track_no.unwrap();
-
-        let usn = self.increment_local_usn(1)?;
-        let utcnow: DateTime<Utc> = Utc::now();
-        let datestr: String = format_datetime(&utcnow);
-        if seq > old_seq {
-            // Seq is increased (move down in playlist):
-            // Decrease seq of all songs with seq between old seq and new seq
-            diesel::update(
-                djmdSongPlaylist
-                    .filter(schema::djmdSongPlaylist::playlist_id.eq(playlist_id.clone()))
-                    .filter(schema::djmdSongPlaylist::track_no.gt(old_seq))
-                    .filter(schema::djmdSongPlaylist::track_no.le(seq)),
-            )
-            .set((
-                schema::djmdSongPlaylist::track_no.eq(schema::djmdSongPlaylist::track_no - 1),
-                schema::djmdSongPlaylist::rb_local_usn.eq(usn.clone()),
-                schema::djmdSongPlaylist::updated_at.eq(datestr.clone()),
-            ))
-            .execute(&mut self.conn)?;
-        } else {
-            // Seq is decreased (moved up in playlist):
-            // Increase seq of all songs with seq between old seq and new seq
-            diesel::update(
-                djmdSongPlaylist
-                    .filter(schema::djmdSongPlaylist::playlist_id.eq(playlist_id.clone()))
-                    .filter(schema::djmdSongPlaylist::track_no.le(old_seq))
-                    .filter(schema::djmdSongPlaylist::track_no.ge(seq)),
-            )
-            .set((
-                schema::djmdSongPlaylist::track_no.eq(schema::djmdSongPlaylist::track_no + 1),
-                schema::djmdSongPlaylist::rb_local_usn.eq(usn.clone()),
-                schema::djmdSongPlaylist::updated_at.eq(datestr.clone()),
-            ))
-            .execute(&mut self.conn)?;
-        };
-        // Update Seq of actual song
-        diesel::update(djmdSongPlaylist.filter(schema::djmdSongPlaylist::id.eq(id)))
-            .set((
-                schema::djmdSongPlaylist::track_no.eq(seq),
-                schema::djmdSongPlaylist::rb_local_usn.eq(usn.clone()),
-                schema::djmdSongPlaylist::updated_at.eq(datestr.clone()),
-            ))
-            .execute(&mut self.conn)?;
-
+        DjmdSongPlaylist::move_to(&mut self.conn, id, seq)?;
         let result: DjmdSongPlaylist = self.get_playlist_song_by_id(id)?.expect("Song not found");
-
         Ok(result)
     }
 
@@ -3605,33 +3000,7 @@ impl MasterDb {
     /// ```
     pub fn delete_playlist_song(&mut self, id: &str) -> Result<usize> {
         self.assert_write_mode()?;
-
-        let usn = self.increment_local_usn(1)?;
-        let utcnow: DateTime<Utc> = Utc::now();
-        let datestr: String = format_datetime(&utcnow);
-
-        // Get playlist and seq number
-        let song: DjmdSongPlaylist = self.get_playlist_song_by_id(id)?.expect("Song not found");
-        let playlist_id = song.playlist_id.unwrap();
-        let seq = song.track_no.unwrap();
-
-        // Decrease seq of all songs with seq higher then seq of deleted song
-        diesel::update(
-            djmdSongPlaylist
-                .filter(schema::djmdSongPlaylist::playlist_id.eq(playlist_id.clone()))
-                .filter(schema::djmdSongPlaylist::track_no.gt(seq)),
-        )
-        .set((
-            schema::djmdSongPlaylist::track_no.eq(schema::djmdSongPlaylist::track_no - 1),
-            schema::djmdSongPlaylist::rb_local_usn.eq(usn.clone()),
-            schema::djmdSongPlaylist::updated_at.eq(datestr),
-        ))
-        .execute(&mut self.conn)?;
-
-        let result = diesel::delete(djmdSongPlaylist.filter(schema::djmdSongPlaylist::id.eq(id)))
-            .execute(&mut self.conn)?;
-
-        Ok(result)
+        Ok(DjmdSongPlaylist::delete(&mut self.conn, id)?)
     }
 
     // -- Property ---------------------------------------------------------------------------------
@@ -3652,8 +3021,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_property(&mut self) -> Result<Vec<DjmdProperty>> {
-        let results = djmdProperty.load::<DjmdProperty>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdProperty::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`DjmdProperty`] entry by its unique identifier.
@@ -3676,11 +3044,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_property_by_id(&mut self, id: &str) -> Result<Option<DjmdProperty>> {
-        let result = djmdProperty
-            .filter(schema::djmdProperty::db_id.eq(id))
-            .first::<DjmdProperty>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdProperty::find(&mut self.conn, id)?)
     }
 
     // -- CloudProperty ----------------------------------------------------------------------------
@@ -3701,8 +3065,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_cloud_property(&mut self) -> Result<Vec<DjmdCloudProperty>> {
-        let results = djmdCloudProperty.load::<DjmdCloudProperty>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdCloudProperty::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`DjmdCloudProperty`] entry by its unique identifier.
@@ -3725,11 +3088,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_cloud_property_by_id(&mut self, id: &str) -> Result<Option<DjmdCloudProperty>> {
-        let result = djmdCloudProperty
-            .filter(schema::djmdCloudProperty::id.eq(id))
-            .first::<DjmdCloudProperty>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdCloudProperty::find(&mut self.conn, id)?)
     }
 
     // -- RecommendLike ----------------------------------------------------------------------------
@@ -3750,8 +3109,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_recommend_like(&mut self) -> Result<Vec<DjmdRecommendLike>> {
-        let results = djmdRecommendLike.load::<DjmdRecommendLike>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdRecommendLike::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`DjmdRecommendLike`] entry by its unique identifier.
@@ -3774,11 +3132,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_recommend_like_by_id(&mut self, id: &str) -> Result<Option<DjmdRecommendLike>> {
-        let result = djmdRecommendLike
-            .filter(schema::djmdRecommendLike::id.eq(id))
-            .first::<DjmdRecommendLike>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdRecommendLike::find(&mut self.conn, id)?)
     }
 
     // -- RelatedTracks ----------------------------------------------------------------------------
@@ -3799,8 +3153,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_related_tracks(&mut self) -> Result<Vec<DjmdRelatedTracks>> {
-        let results = djmdRelatedTracks.load::<DjmdRelatedTracks>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdRelatedTracks::all(&mut self.conn)?)
     }
 
     /// Retrieves all child [`DjmdRelatedTracks`] entries for a given parent ID, ordered by sequence.
@@ -3825,11 +3178,7 @@ impl MasterDb {
         &mut self,
         parent_id: &str,
     ) -> Result<Vec<DjmdRelatedTracks>> {
-        let results = djmdRelatedTracks
-            .filter(schema::djmdRelatedTracks::parent_id.eq(parent_id))
-            .order_by(schema::djmdRelatedTracks::seq)
-            .load::<DjmdRelatedTracks>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdRelatedTracks::by_parent_id(&mut self.conn, parent_id)?)
     }
 
     /// Retrieves a [`DjmdRelatedTracks`] entry by its unique identifier.
@@ -3852,11 +3201,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_related_tracks_by_id(&mut self, id: &str) -> Result<Option<DjmdRelatedTracks>> {
-        let result = djmdRelatedTracks
-            .filter(schema::djmdRelatedTracks::id.eq(id))
-            .first::<DjmdRelatedTracks>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdRelatedTracks::find(&mut self.conn, id)?)
     }
 
     /// Retrieves all [`DjmdSongRelatedTracks`] entries for a given related tracks ID, ordered by track number.
@@ -3878,11 +3223,10 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_related_tracks_songs(&mut self, id: &str) -> Result<Vec<DjmdSongRelatedTracks>> {
-        let results = schema::djmdSongRelatedTracks::table
-            .filter(schema::djmdSongRelatedTracks::related_tracks_id.eq(id))
-            .order_by(schema::djmdSongRelatedTracks::track_no)
-            .load::<DjmdSongRelatedTracks>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdSongRelatedTracks::by_related_tracks_id(
+            &mut self.conn,
+            id,
+        )?)
     }
 
     /// Retrieves all [`DjmdContent`] entries referenced by the songs for a given related tracks ID.
@@ -3904,13 +3248,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_related_tracks_contents(&mut self, id: &str) -> Result<Vec<DjmdContent>> {
-        let songs = self.get_related_tracks_songs(id)?;
-        let ids: Vec<&str> = songs
-            .iter()
-            .map(|s| s.content_id.as_ref().unwrap().as_str())
-            .collect();
-        let result = self.get_contents_by_ids(&ids)?;
-        Ok(result)
+        Ok(DjmdRelatedTracks::get_contents(&mut self.conn, id)?)
     }
 
     // -- Sampler ----------------------------------------------------------------------------------
@@ -3931,8 +3269,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_sampler(&mut self) -> Result<Vec<DjmdSampler>> {
-        let results = djmdSampler.load::<DjmdSampler>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdSampler::all(&mut self.conn)?)
     }
 
     /// Retrieves all child [`DjmdSampler`] entries for a given parent ID, ordered by sequence.
@@ -3954,11 +3291,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_sampler_children(&mut self, parent_id: &str) -> Result<Vec<DjmdSampler>> {
-        let results = djmdSampler
-            .filter(schema::djmdSampler::parent_id.eq(parent_id))
-            .order_by(schema::djmdSampler::seq)
-            .load::<DjmdSampler>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdSampler::by_parent_id(&mut self.conn, parent_id)?)
     }
 
     /// Retrieves a [`DjmdSampler`] entry by its unique identifier.
@@ -3981,11 +3314,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_sampler_by_id(&mut self, id: &str) -> Result<Option<DjmdSampler>> {
-        let result = djmdSampler
-            .filter(schema::djmdSampler::id.eq(id))
-            .first::<DjmdSampler>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdSampler::find(&mut self.conn, id)?)
     }
 
     /// Retrieves all [`DjmdSongSampler`] entries for a given sampler ID, ordered by track number.
@@ -4007,11 +3336,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_sampler_songs(&mut self, id: &str) -> Result<Vec<DjmdSongSampler>> {
-        let results = schema::djmdSongSampler::table
-            .filter(schema::djmdSongSampler::sampler_id.eq(id))
-            .order_by(schema::djmdSongSampler::track_no)
-            .load::<DjmdSongSampler>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdSongSampler::by_sampler_id(&mut self.conn, id)?)
     }
 
     /// Retrieves all [`DjmdContent`] entries referenced by the songs for a given sampler ID.
@@ -4033,13 +3358,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_sampler_contents(&mut self, id: &str) -> Result<Vec<DjmdContent>> {
-        let songs = self.get_sampler_songs(id)?;
-        let ids: Vec<&str> = songs
-            .iter()
-            .map(|s| s.content_id.as_ref().unwrap().as_str())
-            .collect();
-        let result = self.get_contents_by_ids(&ids)?;
-        Ok(result)
+        Ok(DjmdSampler::get_contents(&mut self.conn, id)?)
     }
 
     // -- SongTagList ------------------------------------------------------------------------------
@@ -4060,10 +3379,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_song_tag_list(&mut self) -> Result<Vec<DjmdSongTagList>> {
-        let results = djmdSongTagList
-            .order_by(schema::djmdSongTagList::track_no)
-            .load::<DjmdSongTagList>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdSongTagList::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`DjmdSongTagList`] entry by its unique identifier.
@@ -4086,11 +3402,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_song_tag_list_by_id(&mut self, id: &str) -> Result<Option<DjmdSongTagList>> {
-        let result = djmdSongTagList
-            .filter(schema::djmdSongTagList::id.eq(id))
-            .first::<DjmdSongTagList>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdSongTagList::find(&mut self.conn, id)?)
     }
 
     // -- Sort -------------------------------------------------------------------------------------
@@ -4111,10 +3423,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_sort(&mut self) -> Result<Vec<DjmdSort>> {
-        let results = djmdSort
-            .order_by(schema::djmdSort::seq)
-            .load::<DjmdSort>(&mut self.conn)?;
-        Ok(results)
+        Ok(DjmdSort::all(&mut self.conn)?)
     }
 
     /// Retrieves a [`DjmdSort`] entry by its unique identifier.
@@ -4137,11 +3446,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_sort_by_id(&mut self, id: &str) -> Result<Option<DjmdSort>> {
-        let result = djmdSort
-            .filter(schema::djmdSort::id.eq(id))
-            .first::<DjmdSort>(&mut self.conn)
-            .optional()?;
-        Ok(result)
+        Ok(DjmdSort::find(&mut self.conn, id)?)
     }
 
     // -- ImageFile --------------------------------------------------------------------------------

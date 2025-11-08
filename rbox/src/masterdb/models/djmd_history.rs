@@ -54,16 +54,16 @@ pub struct DjmdHistory {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional integer representing the sequence/order of the history entry.
-    pub seq: Option<i32>,
-    /// An optional string representing the name of the history entry.
-    pub name: Option<String>,
-    /// An optional integer representing additional attributes of the history entry.
-    pub attribute: Option<i32>,
-    /// An optional string representing the ID of the parent [`DjmdHistory`] entry.
-    pub parent_id: Option<String>,
-    /// An optional string representing the creation date of the history entry.
-    pub date_created: Option<String>,
+    /// The sequence/order number of the history (1-based index)
+    pub seq: i32,
+    /// The name of the history.
+    pub name: String,
+    /// The attribute of the tag, either history (`0`) or a folder (`1`)
+    pub attribute: i32,
+    /// The ID of the parent [`DjmdHistory`], `'root'` for top-level my-tag records.
+    pub parent_id: String,
+    /// The creation date of the history.
+    pub date_created: String,
 }
 
 impl DjmdHistory {
@@ -77,39 +77,20 @@ impl DjmdHistory {
         Self::query().find(id).first(conn).optional()
     }
 
-    /// Queries all child records from the `djmdHistory` table.
-    pub fn find_children(
-        conn: &mut SqliteConnection,
-        history_id: Option<String>,
-    ) -> QueryResult<Vec<DjmdHistory>> {
-        if let Some(history_id) = history_id {
-            Self::query()
-                .filter(djmdHistory::parent_id.eq(history_id))
-                .load(conn)
-        } else {
-            Self::query()
-                .filter(djmdHistory::parent_id.is_null())
-                .load(conn)
-        }
+    /// Queries the records from the `djmdHistory` table by their `parent_id`.
+    pub fn by_parent_id(conn: &mut SqliteConnection, parent_id: &str) -> QueryResult<Vec<Self>> {
+        Self::query()
+            .filter(djmdHistory::parent_id.eq(parent_id))
+            .load(conn)
     }
 
-    /// Queries the parent record from the `djmdHistory` table for the given history entry.
-    pub fn parent(&self, conn: &mut SqliteConnection) -> QueryResult<Option<DjmdHistory>> {
-        if let Some(parent_id) = &self.parent_id {
-            Self::find(conn, parent_id)
-        } else {
-            Ok(None)
-        }
-    }
-
-    /// Queries all child records from the `djmdHistory` table for the given history entry.
-    pub fn children(&self, conn: &mut SqliteConnection) -> QueryResult<Vec<DjmdHistory>> {
-        Self::find_children(conn, Some(self.id.clone()))
-    }
-
-    /// Queries all records from the `djmdSongHistory` table for the given history entry.
-    pub fn songs(&self, conn: &mut SqliteConnection) -> QueryResult<Vec<DjmdSongHistory>> {
-        DjmdSongHistory::find_by_history(conn, &self.id)
+    /// Queries the records from the `djmdContent` table associated with the given `djmdHistory`.
+    pub fn get_contents(conn: &mut SqliteConnection, id: &str) -> QueryResult<Vec<DjmdContent>> {
+        djmdContent::table
+            .inner_join(djmdSongHistory::table.on(djmdContent::id.eq(djmdSongHistory::content_id)))
+            .filter(djmdSongHistory::history_id.eq(&id))
+            .select(DjmdContent::as_select())
+            .load(conn)
     }
 }
 
@@ -153,12 +134,12 @@ pub struct DjmdSongHistory {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the ID of the associated history entry in [`DjmdHistory`].
-    pub history_id: Option<String>,
-    /// An optional string representing the ID of the associated content entry in [`DjmdContent`].
-    pub content_id: Option<String>,
-    /// An optional integer representing the track number in the history entry.
-    pub track_no: Option<i32>,
+    /// The ID of the associated history entry in [`DjmdHistory`].
+    pub history_id: String,
+    /// The ID of the associated content entry in [`DjmdContent`].
+    pub content_id: String,
+    /// The track number in the history entry.
+    pub track_no: i32,
 }
 
 impl DjmdSongHistory {
@@ -173,31 +154,17 @@ impl DjmdSongHistory {
     }
 
     /// Queries all records from the `djmdSongHistory` table by its `history_id`
-    pub fn find_by_history(
-        conn: &mut SqliteConnection,
-        history_id: &str,
-    ) -> QueryResult<Vec<Self>> {
+    pub fn by_history_id(conn: &mut SqliteConnection, history_id: &str) -> QueryResult<Vec<Self>> {
         Self::query()
             .filter(djmdSongHistory::history_id.eq(history_id))
             .load(conn)
     }
 
-    /// Queries all records from the `djmdContent` table by its `history_id`
-    pub fn find_contents_by_history(
-        conn: &mut SqliteConnection,
-        history_id: &str,
-    ) -> QueryResult<Vec<DjmdContent>> {
-        djmdSongHistory::table
-            .inner_join(
-                djmdContent::table.on(djmdContent::id.nullable().eq(djmdSongHistory::content_id)),
-            )
-            .filter(djmdSongHistory::history_id.eq(history_id))
-            .select(DjmdContent::as_select())
-            .load(conn)
-    }
-
-    /// Queries the parent record from the `djmdHistory` table for the given history song entry.
-    pub fn history(&self, conn: &mut SqliteConnection) -> QueryResult<DjmdHistory> {
-        Ok(DjmdHistory::find(conn, self.history_id.as_ref().unwrap())?.unwrap())
+    /// Queries a record from the `djmdSongHistory` table by its `content_id`.
+    pub fn find_by_content_id(conn: &mut SqliteConnection, cid: &str) -> QueryResult<Option<Self>> {
+        Self::query()
+            .filter(djmdSongHistory::content_id.eq(cid))
+            .first(conn)
+            .optional()
     }
 }

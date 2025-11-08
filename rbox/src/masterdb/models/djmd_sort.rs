@@ -10,28 +10,20 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::djmd_menu_items::DjmdMenuItems;
-use super::schema;
+use super::schema::djmdSort;
 use super::util::{Date, DateString};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `DjmdSort` table in the Rekordbox database.
+/// Represents the `djmdSort` table in the Rekordbox database.
 ///
-/// This struct maps to the `DjmdSort` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `djmdSort` table in the SQLite database used by Rekordbox.
 /// It stores information about sorting options, including metadata such as sequence,
 /// menu item associations, and disable status.
 #[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Insertable,
-    AsChangeset,
-    Associations,
+    Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
-#[diesel(table_name = schema::djmdSort)]
+#[diesel(table_name = djmdSort)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdMenuItems, foreign_key = menu_item_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -70,4 +62,16 @@ pub struct DjmdSort {
     pub seq: Option<i32>,
     /// An optional integer indicating whether the sort entry is disabled.
     pub disable: Option<i32>,
+}
+
+impl DjmdSort {
+    /// Queries all records from the `djmdSort` table.
+    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    /// Queries a record from the `djmdSort` table by its `id`.
+    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
 }
