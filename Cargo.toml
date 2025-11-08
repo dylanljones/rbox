@@ -26,7 +26,7 @@ napi            = { version = "3.5", default-features = false, features = ["napi
 napi-derive     = { version = "3.3"}
 quote           = { version = "1.0" }
 syn             = { version = "2.0", features = ["full", "extra-traits"] }
-proc-macro2     = { version = "1.0"  }
+# proc-macro2     = { version = "1.0"  }
 
 [profile.release]
 opt-level = 3

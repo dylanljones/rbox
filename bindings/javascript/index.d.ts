@@ -5,7 +5,7 @@
  *
  * This struct maps to the `agentRegistry` table in the SQLite database used by Rekordbox.
  * It contains various fields representing metadata and attributes of the Rekordbox collection.
- * Each entry has a unique name as `registry_id`. The local update sequence number (`USN`), for
+ * Each entry has a unique name as `registry_id`. The local update sequence number (USN), for
  * example, is used to track changes made to the entry locally and if stored in the entry
  * with `registry_id="localUpdateCount"`.
  * Some important fields include:
@@ -144,9 +144,9 @@ export interface Composer {
 }
 
 /**
- * Represents the `ContentActiveCensor` table in the Rekordbox database.
+ * Represents the `contentActiveCensor` table in the Rekordbox database.
  *
- * This struct maps to the `ContentActiveCensor` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `contentActiveCensor` table in the SQLite database used by Rekordbox.
  * It contains the active censor entries [`DjmdActiveCensor`] of a file as stringified JSON data.
  */
 export interface ContentActiveCensor {
@@ -179,9 +179,9 @@ export interface ContentActiveCensor {
 }
 
 /**
- * Represents the `ContentCue` table in the Rekordbox database.
+ * Represents the `contentCue` table in the Rekordbox database.
  *
- * This struct maps to the `ContentCue` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `contentCue` table in the SQLite database used by Rekordbox.
  * It contains the cue entry [`DjmdCue`] of a file as stringified JSON data.
  */
 export interface ContentCue {
@@ -214,9 +214,9 @@ export interface ContentCue {
 }
 
 /**
- * Represents the `ContentFile` table in the Rekordbox database.
+ * Represents the `contentFile` table in the Rekordbox database.
  *
- * This struct maps to the `ContentFile` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `contentFile` table in the SQLite database used by Rekordbox.
  * It contains metadata and attributes of the additional file of contents. These include
  * the analysis and artwork files linked to a track
  */
@@ -345,9 +345,9 @@ export interface Cue {
 }
 
 /**
- * Represents the `DjmdActiveCensor` table in the Rekordbox database.
+ * Represents the `djmdActiveCensor` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdActiveCensor` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdActiveCensor` table in the SQLite database used by Rekordbox.
  * It contains information for actively censoring explicit content of tracks in the Rekordbox
  * collection. Active Censor items behave like two cue points, between which an effect is applied
  * to the audio of a track.
@@ -388,9 +388,9 @@ export interface DjmdActiveCensor {
 }
 
 /**
- * Represents the `DjmdAlbum` table in the Rekordbox database.
+ * Represents the `djmdAlbum` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdAlbum` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdAlbum` table in the SQLite database used by Rekordbox.
  * It stores album-related data, allowing multiple tracks to be associated with the same album.
  * This table includes metadata such as album name, artist, and compilation status.
  */
@@ -428,9 +428,9 @@ export interface DjmdAlbum {
 }
 
 /**
- * Represents the `DjmdArtist` table in the Rekordbox database.
+ * Represents the `djmdArtist` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdArtist` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdArtist` table in the SQLite database used by Rekordbox.
  * It stores artist-related data, allowing multiple tracks to be associated with the same artist.
  */
 export interface DjmdArtist {
@@ -461,9 +461,9 @@ export interface DjmdArtist {
 }
 
 /**
- * Represents the `DjmdCategory` table in the Rekordbox database.
+ * Represents the `djmdCategory` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdCategory` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdCategory` table in the SQLite database used by Rekordbox.
  * It stores category-related data, which can be associated with menu items.
  */
 export interface DjmdCategory {
@@ -498,9 +498,9 @@ export interface DjmdCategory {
 }
 
 /**
- * Represents the `DjmdCloudProperty` table in the Rekordbox database.
+ * Represents the `djmdCloudProperty` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdCloudProperty` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdCloudProperty` table in the SQLite database used by Rekordbox.
  * It stores metadata and properties related to cloud-based entries, including status,
  * synchronization details, and reserved fields for future use.
  */
@@ -538,9 +538,9 @@ export interface DjmdCloudProperty {
 }
 
 /**
- * Represents the `DjmdColor` table in the Rekordbox database.
+ * Represents the `djmdColor` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdColor` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdColor` table in the SQLite database used by Rekordbox.
  * It stores color-related data, which can be associated with tracks and other entities.
  */
 export interface DjmdColor {
@@ -573,9 +573,9 @@ export interface DjmdColor {
 }
 
 /**
- * Represents the `DjmdContent` table in the Rekordbox database.
+ * Represents the `djmdContent` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdContent` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdContent` table in the SQLite database used by Rekordbox.
  * It contains metadata and attributes for each track in the collection, including file info,
  * artist, album, genre, and more.
  */
@@ -739,9 +739,9 @@ export interface DjmdContent {
 }
 
 /**
- * Represents the `DjmdCue` table in the Rekordbox database.
+ * Represents the `djmdCue` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdCue` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdCue` table in the SQLite database used by Rekordbox.
  * It stores information about cue points for tracks, including their timing, type, and
  * additional metadata.
  */
@@ -807,9 +807,9 @@ export interface DjmdCue {
 }
 
 /**
- * Represents the `DjmdDevice` table in the Rekordbox database.
+ * Represents the `djmdDevice` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdDevice` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdDevice` table in the SQLite database used by Rekordbox.
  * It stores information about devices associated with the Rekordbox collection, including
  * metadata such as device name and master database ID.
  */
@@ -841,9 +841,9 @@ export interface DjmdDevice {
 }
 
 /**
- * Represents the `DjmdGenre` table in the Rekordbox database.
+ * Represents the `djmdGenre` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdGenre` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdGenre` table in the SQLite database used by Rekordbox.
  * It stores genre-related data, allowing tracks to be categorized by genre.
  */
 export interface DjmdGenre {
@@ -872,9 +872,9 @@ export interface DjmdGenre {
 }
 
 /**
- * Represents the `DjmdHistory` table in the Rekordbox database.
+ * Represents the `djmdHistory` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdHistory` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdHistory` table in the SQLite database used by Rekordbox.
  * It stores information about history entries, including metadata such as sequence, name,
  * attributes, and parent relationships.
  */
@@ -899,22 +899,22 @@ export interface DjmdHistory {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional integer representing the sequence/order of the history entry. */
-  seq?: number
-  /** An optional string representing the name of the history entry. */
-  name?: string
-  /** An optional integer representing additional attributes of the history entry. */
-  attribute?: number
-  /** An optional string representing the ID of the parent [`DjmdHistory`] entry. */
-  parentId?: string
-  /** An optional string representing the creation date of the history entry. */
-  dateCreated?: string
+  /** The sequence/order number of the history (1-based index) */
+  seq: number
+  /** The name of the history. */
+  name: string
+  /** The attribute of the tag, either history (`0`) or a folder (`1`) */
+  attribute: number
+  /** The ID of the parent [`DjmdHistory`], `'root'` for top-level my-tag records. */
+  parentId: string
+  /** The creation date of the history. */
+  dateCreated: string
 }
 
 /**
- * Represents the `DjmdHotCueBanklist` table in the Rekordbox database.
+ * Represents the `djmdHotCueBanklist` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdHotCueBanklist` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdHotCueBanklist` table in the SQLite database used by Rekordbox.
  * It stores information about hot cue bank lists, including metadata such as sequence, name,
  * image path, and parent relationships.
  */
@@ -939,22 +939,22 @@ export interface DjmdHotCueBanklist {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional integer representing the sequence/order of the hot cue bank list. */
-  seq?: number
-  /** An optional string representing the name of the hot cue bank list. */
-  name?: string
-  /** An optional string representing the path to the image associated with the hot cue bank list. */
+  /** The sequence/order of the hot cue bank list (1-based index) */
+  seq: number
+  /** The name of the hot cue bank list. */
+  name: string
+  /** An optional path to the image associated with the hot cue bank list. */
   imagePath?: string
-  /** An optional integer representing additional attributes of the hot cue bank list. */
-  attribute?: number
-  /** An optional string representing the ID of the parent [`DjmdHotCueBanklist`] entry. */
-  parentId?: string
+  /** The attribute of the hot cue bank list, either list (`0`) or a folder (`1`) */
+  attribute: number
+  /** The ID of the parent [`DjmdHotCueBanklist`], `'root'` for top-level records. */
+  parentId: string
 }
 
 /**
- * Represents the `DjmdKey` table in the Rekordbox database.
+ * Represents the `djmdKey` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdKey` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdKey` table in the SQLite database used by Rekordbox.
  * It stores information about musical keys, including their names and sequence order.
  */
 export interface DjmdKey {
@@ -985,9 +985,9 @@ export interface DjmdKey {
 }
 
 /**
- * Represents the `DjmdLabel` table in the Rekordbox database.
+ * Represents the `djmdLabel` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdLabel` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdLabel` table in the SQLite database used by Rekordbox.
  * It stores information about labels, including their names and metadata.
  */
 export interface DjmdLabel {
@@ -1016,9 +1016,9 @@ export interface DjmdLabel {
 }
 
 /**
- * Represents the `DjmdMenuItems` table in the Rekordbox database.
+ * Represents the `djmdMenuItems` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdMenuItems` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdMenuItems` table in the SQLite database used by Rekordbox.
  * It stores information about menu items, including their class, name, and metadata.
  */
 export interface DjmdMenuItems {
@@ -1049,9 +1049,9 @@ export interface DjmdMenuItems {
 }
 
 /**
- * Represents the `DjmdMixerParam` table in the Rekordbox database.
+ * Represents the `djmdMixerParam` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdMixerParam` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdMixerParam` table in the SQLite database used by Rekordbox.
  * It stores information about mixer parameters, including gain and peak values for high and low frequencies.
  */
 export interface DjmdMixerParam {
@@ -1088,9 +1088,9 @@ export interface DjmdMixerParam {
 }
 
 /**
- * Represents the `DjmdMyTag` table in the Rekordbox database.
+ * Represents the `djmdMyTag` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdMyTag` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdMyTag` table in the SQLite database used by Rekordbox.
  * It stores information about custom tags (MyTags) that can be associated with tracks,
  * including metadata such as sequence, name, attributes, and parent relationships.
  */
@@ -1115,20 +1115,20 @@ export interface DjmdMyTag {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional integer representing the sequence/order of the tag. */
-  seq?: number
-  /** An optional string representing the name of the tag. */
-  name?: string
-  /** An optional integer representing additional attributes of the tag. */
-  attribute?: number
-  /** An optional string representing the ID of the parent [`DjmdMyTag`]. */
-  parentId?: string
+  /** The sequence/order number of the tag (1-based index) */
+  seq: number
+  /** The name of the tag */
+  name: string
+  /** The attribute of the tag, either my-tag (`0`) or a folder (`1`) */
+  attribute: number
+  /** The ID of the parent [`DjmdMyTag`], `'root'` for top-level my-tag records. */
+  parentId: string
 }
 
 /**
- * Represents the `DjmdPlaylist` table in the Rekordbox database.
+ * Represents the `djmdPlaylist` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdPlaylist` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdPlaylist` table in the SQLite database used by Rekordbox.
  * It stores information about playlists, including metadata such as sequence, name, image path,
  * attributes, and parent relationships.
  */
@@ -1153,24 +1153,24 @@ export interface DjmdPlaylist {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional integer representing the sequence/order of the playlist. */
-  seq?: number
-  /** An optional string representing the name of the playlist. */
-  name?: string
-  /** An optional string representing the path to the image associated with the playlist. */
+  /** The sequence/order number of the record (1-based index) */
+  seq: number
+  /** The name of the playlist. */
+  name: string
+  /** An optional path to the image associated with the playlist. */
   imagePath?: string
-  /** An optional integer representing additional attributes of the playlist. */
-  attribute?: number
-  /** An optional string representing the ID of the parent [`DjmdPlaylist`] entry. */
-  parentId?: string
-  /** An optional string containing the smart list configuration for the playlist. */
+  /** The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`). */
+  attribute: number
+  /** The ID of the parent [`DjmdPlaylist`], `'root'` for top-level records. */
+  parentId: string
+  /** An optional smart list configuration for the playlist (None if not a smart playlist) */
   smartList?: string
 }
 
 /**
- * Represents the `DjmdProperty` table in the Rekordbox database.
+ * Represents the `djmdProperty` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdProperty` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdProperty` table in the SQLite database used by Rekordbox.
  * It stores metadata and properties related to the database, including versioning,
  * drive information, and associated device details.
  */
@@ -1202,9 +1202,9 @@ export interface DjmdProperty {
 }
 
 /**
- * Represents the `DjmdRecommendLike` table in the Rekordbox database.
+ * Represents the `djmdRecommendLike` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdRecommendLike` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdRecommendLike` table in the SQLite database used by Rekordbox.
  * It stores information about recommended track relationships, including metadata such as
  * like rate, creation timestamps, and associated content IDs.
  */
@@ -1242,9 +1242,9 @@ export interface DjmdRecommendLike {
 }
 
 /**
- * Represents the `DjmdRelatedTracks` table in the Rekordbox database.
+ * Represents the `djmdRelatedTracks` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdRelatedTracks` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdRelatedTracks` table in the SQLite database used by Rekordbox.
  * It stores information about related tracks, including metadata such as sequence, name,
  * attributes, and parent relationships.
  */
@@ -1269,22 +1269,22 @@ export interface DjmdRelatedTracks {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional integer representing the sequence/order of the related track entry. */
-  seq?: number
-  /** An optional string representing the name of the related track entry. */
-  name?: string
-  /** An optional integer representing additional attributes of the related track entry. */
-  attribute?: number
-  /** An optional string representing the ID of the parent [`DjmdRelatedTracks`] entry. */
-  parentId?: string
+  /** The sequence/order number of the record (1-based index) */
+  seq: number
+  /** The name of the sampler. */
+  name: string
+  /** The attribute of the sampler, either list (`0`) or a folder (`1`) */
+  attribute: number
+  /** The ID of the parent [`DjmdRelatedTracks`], `'root'` for top-level records. */
+  parentId: string
   /** An optional string containing criteria for the related track entry. */
   criteria?: string
 }
 
 /**
- * Represents the `DjmdSampler` table in the Rekordbox database.
+ * Represents the `djmdSampler` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdSampler` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdSampler` table in the SQLite database used by Rekordbox.
  * It stores information about samplers, including metadata such as sequence, name,
  * attributes, and parent relationships.
  */
@@ -1309,20 +1309,20 @@ export interface DjmdSampler {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional integer representing the sequence/order of the sampler. */
-  seq?: number
-  /** An optional string representing the name of the sampler. */
-  name?: string
-  /** An optional integer representing additional attributes of the sampler. */
-  attribute?: number
-  /** An optional string representing the ID of the parent [`DjmdSampler`] entry. */
-  parentId?: string
+  /** The sequence/order number of the record (1-based index) */
+  seq: number
+  /** The name of the sampler. */
+  name: string
+  /** The attribute of the sampler, either list (`0`) or a folder (`1`) */
+  attribute: number
+  /** The ID of the parent [`DjmdSampler`], `'root'` for top-level records. */
+  parentId: string
 }
 
 /**
- * Represents the `DjmdSongHistory` table in the Rekordbox database.
+ * Represents the `djmdSongHistory` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdSongHistory` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdSongHistory` table in the SQLite database used by Rekordbox.
  * It stores information about the relationship between songs and history entries, including
  * metadata such as track number and associated history or content IDs.
  */
@@ -1347,14 +1347,21 @@ export interface DjmdSongHistory {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the ID of the associated history entry in [`DjmdHistory`]. */
-  historyId?: string
-  /** An optional string representing the ID of the associated content entry in [`DjmdContent`]. */
-  contentId?: string
-  /** An optional integer representing the track number in the history entry. */
-  trackNo?: number
+  /** The ID of the associated history entry in [`DjmdHistory`]. */
+  historyId: string
+  /** The ID of the associated content entry in [`DjmdContent`]. */
+  contentId: string
+  /** The track number in the history entry. */
+  trackNo: number
 }
 
+/**
+ * Represents the `djmdSongHotCueBanklist` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdSongHotCueBanklist` table in the SQLite database used by Rekordbox.
+ * It stores information about the relationship between hot cue bank lists and their associated songs,
+ * including the actual cue data
+ */
 export interface DjmdSongHotCueBanklist {
   /** A unique identifier for the entry. */
   id: string
@@ -1376,12 +1383,14 @@ export interface DjmdSongHotCueBanklist {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the ID of the associated content in [`DjmdContent`]. */
-  contentId?: string
-  /** An optional integer representing the track number in the hot cue bank list. */
-  trackNo?: number
-  /** An optional string representing the ID of the associated [`DjmdCue`] */
-  cueId?: string
+  /** The ID of the associated [`DjmdHotCueBanklist`]. */
+  hotCueBanklistId: string
+  /** The ID of the associated content in [`DjmdContent`]. */
+  contentId: string
+  /** The track number in the hot cue bank list (1-based index) */
+  trackNo: number
+  /** The ID of the associated [`DjmdCue`] */
+  cueId: string
   /** An optional integer representing the cue's start time in milliseconds. */
   inMsec?: number
   /** An optional integer representing the cue's start frame. */
@@ -1419,11 +1428,10 @@ export interface DjmdSongHotCueBanklist {
 }
 
 /**
- * Represents the `DjmdSongMyTag` table in the Rekordbox database.
+ * Represents the `djmdSongMyTag` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdSongMyTag` table in the SQLite database used by Rekordbox.
- * It stores information about the relationship between songs and custom tags (MyTags),
- * including metadata such as track number and associated tag or content IDs.
+ * This struct maps to the `djmdSongMyTag` table in the SQLite database used by Rekordbox.
+ * It links the `djmdMyTag` records to the associated `djmdContent` records.
  */
 export interface DjmdSongMyTag {
   /** A unique identifier for the entry. */
@@ -1446,18 +1454,18 @@ export interface DjmdSongMyTag {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the ID of the associated [`DjmdMyTag`]. */
-  myTagId?: string
-  /** An optional string representing the ID of the associated [`DjmdContent`]. */
-  contentId?: string
-  /** An optional integer representing the track number in the tag. */
-  trackNo?: number
+  /** The ID of the associated [`DjmdMyTag`]. */
+  myTagId: string
+  /** The ID of the associated [`DjmdContent`]. */
+  contentId: string
+  /** The track number in the tag. */
+  trackNo: number
 }
 
 /**
- * Represents the `DjmdSongPlaylist` table in the Rekordbox database.
+ * Represents the `djmdSongPlaylist` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdSongPlaylist` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdSongPlaylist` table in the SQLite database used by Rekordbox.
  * It stores information about the relationship between songs and playlists, including
  * metadata such as track number and associated playlist or content IDs.
  */
@@ -1482,18 +1490,18 @@ export interface DjmdSongPlaylist {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the ID of the associated playlist in [`DjmdPlaylist`]. */
-  playlistId?: string
-  /** An optional string representing the ID of the associated content in [`DjmdContent`]. */
-  contentId?: string
-  /** An optional integer representing the track number in the playlist. */
-  trackNo?: number
+  /** The ID of the associated playlist in [`DjmdPlaylist`]. */
+  playlistId: string
+  /** The ID of the associated content in [`DjmdContent`]. */
+  contentId: string
+  /** The track number in the playlist. */
+  trackNo: number
 }
 
 /**
- * Represents the `DjmdSongRelatedTracks` table in the Rekordbox database.
+ * Represents the `djmdSongRelatedTracks` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdSongRelatedTracks` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdSongRelatedTracks` table in the SQLite database used by Rekordbox.
  * It stores information about the relationship between songs and related tracks, including
  * metadata such as update sequence numbers, timestamps, and associated content or related tracks IDs.
  */
@@ -1518,18 +1526,18 @@ export interface DjmdSongRelatedTracks {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the ID of the associated related tracks entry in [`DjmdSongRelatedTracks`]. */
-  relatedTracksId?: string
-  /** An optional string representing the ID of the associated content entry in [`DjmdContent`]. */
-  contentId?: string
-  /** An optional integer representing the track number in the related tracks entry. */
-  trackNo?: number
+  /** The ID of the associated related tracks entry in [`DjmdRelatedTracks`]. */
+  relatedTracksId: string
+  /** The ID of the associated content entry in [`DjmdContent`]. */
+  contentId: string
+  /** The track number in the related tracks entry. */
+  trackNo: number
 }
 
 /**
- * Represents the `DjmdSongSampler` table in the Rekordbox database.
+ * Represents the `djmdSongSampler` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdSongSampler` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdSongSampler` table in the SQLite database used by Rekordbox.
  * It stores information about the relationship between songs and samplers, including
  * metadata such as update sequence numbers, timestamps, and associated sampler or content IDs.
  */
@@ -1554,18 +1562,18 @@ export interface DjmdSongSampler {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the ID of the associated sampler in [`DjmdSongSampler`]. */
-  samplerId?: string
-  /** An optional string representing the ID of the associated content in [`DjmdContent`]. */
-  contentId?: string
-  /** An optional integer representing the track number in the sampler. */
-  trackNo?: number
+  /** The ID of the associated sampler in [`DjmdSampler`]. */
+  samplerId: string
+  /** The ID of the associated content in [`DjmdContent`]. */
+  contentId: string
+  /** The sequence/order number of the record (1-based index) */
+  trackNo: number
 }
 
 /**
- * Represents the `DjmdSongTagList` table in the Rekordbox database.
+ * Represents the `djmdSongTagList` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdSongTagList` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdSongTagList` table in the SQLite database used by Rekordbox.
  * It stores information about the relationship between songs and tag lists, including
  * metadata such as update sequence numbers, timestamps, and associated content IDs.
  */
@@ -1597,9 +1605,9 @@ export interface DjmdSongTagList {
 }
 
 /**
- * Represents the `DjmdSort` table in the Rekordbox database.
+ * Represents the `djmdSort` table in the Rekordbox database.
  *
- * This struct maps to the `DjmdSort` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `djmdSort` table in the SQLite database used by Rekordbox.
  * It stores information about sorting options, including metadata such as sequence,
  * menu item associations, and disable status.
  */
@@ -1661,11 +1669,11 @@ export interface HotCueBankList {
 }
 
 /**
- * Represents the `HotCueBanklistCue` table in the Rekordbox database.
+ * Represents the `hotCueBanklistCue` table in the Rekordbox database.
  *
- * This struct maps to the `HotCueBanklistCue` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `hotCueBanklistCue` table in the SQLite database used by Rekordbox.
  * It stores information about the relationship between hot cue bank lists and their associated cues,
- * including metadata such as update sequence numbers, timestamps, and cue data.
+ * including metadata such as update sequence numbers, timestamps, and cue data as JSON string.
  */
 export interface HotCueBanklistCue {
   /** A unique identifier for the entry. */
@@ -1688,8 +1696,8 @@ export interface HotCueBanklistCue {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the ID of the associated [`DjmdSongHotCueBanklist`]. */
-  hotCueBanklistId?: string
+  /** The ID of the associated [`DjmdSongHotCueBanklist`]. */
+  hotCueBanklistId: string
   /** An optional string containing the serialized cue data. */
   cues?: string
   /** An optional integer representing the count of cues. */
@@ -1708,9 +1716,9 @@ export interface Image {
 }
 
 /**
- * Represents the `ImageFile` table in the Rekordbox database.
+ * Represents the `imageFile` table in the Rekordbox database.
  *
- * This struct maps to the `ImageFile` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `imageFile` table in the SQLite database used by Rekordbox.
  * It stores information about image files, including metadata such as file paths,
  * hashes, and synchronization details.
  */
@@ -1917,6 +1925,272 @@ export interface NewCue {
   outNumberOfSampleInBlock?: number
 }
 
+/**
+ * Represents a new record insertale to the `djmdAlbum` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::masterdb::models::NewDjmdAlbum;
+ *
+ * let new = NewDjmdAlbum::new("Name".into()).compilation(1);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdAlbum {
+  /** The name of the album. */
+  name: string
+  /** An optional string representing the id of the album artist [`DjmdArtist`]. */
+  albumArtistId?: string
+  /** An optional string representing the path to the album's image. */
+  imagePath?: string
+  /** An optional integer indicating whether the album is a compilation. */
+  compilation?: number
+  /** An optional string used for searching the album. */
+  searchStr?: string
+}
+
+/**
+ * Represents a new record insertale to the `djmdArtist` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::masterdb::models::NewDjmdArtist;
+ *
+ * let new = NewDjmdArtist::new("Name".into()).search_str("Search".into());
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdArtist {
+  /** The name of the artist. */
+  name: string
+  /** An optional string used for searching the artist. */
+  searchStr?: string
+}
+
+/**
+ * Represents a new record insertale to the `djmdContent` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::masterdb::models::NewDjmdContent;
+ *
+ * let new = NewDjmdContent::new("path/to/file".into()).title("Title").artist_id("1")
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdContent {
+  /** An optional string representing the folder path of the track. */
+  folderPath: string
+  /** An optional string representing the title of the track. */
+  title?: string
+  /** An optional string representing the ID of the associated artist in [`DjmdArtist`]. */
+  artistId?: string
+  /** An optional string representing the ID of the associated album in [`DjmdAlbum`]. */
+  albumId?: string
+  /** An optional string representing the ID of the associated genre in [`DjmdGenre`]. */
+  genreId?: string
+  /** An optional integer representing the BPM of the track. */
+  bpm?: number
+  /** An optional integer representing the length of the track in milliseconds. */
+  length?: number
+  /** An optional integer representing the track number in the album. */
+  trackNo?: number
+  /** An optional integer representing the bit rate of the track. */
+  bitRate?: number
+  /** An optional integer representing the bit depth of the track. */
+  bitDepth?: number
+  /** An optional string representing comments about the track. */
+  commnt?: string
+  /** An optional integer representing the rating of the track. */
+  rating?: number
+  /** An optional integer representing the release year of the track. */
+  releaseYear?: number
+  /** An optional string representing the ID of the remixer in [`DjmdArtist`]. */
+  remixerId?: string
+  /** An optional string representing the ID of the label in [`DjmdLabel`]. */
+  labelId?: string
+  /** An optional string representing the ID of the original artist in [`DjmdArtist`]. */
+  orgArtistId?: string
+  /** An optional string representing the ID of the key in [`DjmdKey`]. */
+  keyId?: string
+  /** An optional string representing the stock date of the track. */
+  stockDate?: string
+  /** An optional string used for searching the track. */
+  searchStr?: string
+  /** An optional integer representing the disc number of the track. */
+  discNo?: number
+  /** An optional string representing the ID of the composer in [`DjmdArtist`]. */
+  composerId?: string
+  /** An optional string representing the subtitle of the track. */
+  subtitle?: string
+  /** An optional integer representing the sample rate of the track. */
+  sampleRate?: number
+  /** An optional string representing the release date of the track. */
+  releaseDate?: string
+  /** An optional string representing the creation date of the track. */
+  dateCreated?: string
+  /** An optional string representing tags associated with the track. */
+  tag?: string
+  /** An optional string representing the lyricist of the track. */
+  lyricist?: string
+  /** An optional string representing the ISRC (International Standard Recording Code) of the track. */
+  isrc?: string
+}
+
+/**
+ * Represents a new record insertale to the `djmdGenre` table.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::masterdb::models::NewDjmdGenre;
+ *
+ * let new = NewDjmdGenre::new("Name".into());
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdGenre {
+  /** The name of the genre. */
+  name: string
+}
+
+/**
+ * Represents a new record insertale to the `djmdKey` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::masterdb::models::NewDjmdKey;
+ *
+ * let new = NewDjmdKey::new("C".into()).seq(1);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdKey {
+  /** The name of the musical key. */
+  scaleName: string
+  /** An optional integer representing the sequence/order of the key. */
+  seq?: number
+}
+
+/**
+ * Represents a new record insertale to the `djmdLabel` table.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::masterdb::models::NewDjmdLabel;
+ *
+ * let new = NewDjmdArtist::new("Name".into());
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdLabel {
+  /** The name of the label. */
+  name: string
+}
+
+/**
+ * Represents a new record insertale to the `djmdMyTag` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::masterdb::models::NewDjmdMyTag;
+ *
+ * let new = NewDjmdMyTag::new("Name".into(), 0).seq(1);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdMyTag {
+  /** The name of the tag */
+  name: string
+  /** The sequence/order number of the tag (1-based index) */
+  seq?: number
+  /** The attribute of the tag, either my-tag (`0`) or a section (`1`) */
+  attribute?: number
+  /** The ID of the parent [`DjmdMyTag`]. */
+  parentId?: string
+}
+
+/**
+ * Represents a new record insertale to the `djmdPlaylist` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::masterdb::models::NewDjmdPlaylist;
+ *
+ * let new = NewDjmdPlaylist::new("Name".into()).seq(2);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdPlaylist {
+  /** The name of the playlist. */
+  name: string
+  /** The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`). */
+  attribute: number
+  /** The sequence/order number of the record (1-based index) */
+  seq?: number
+  /** The ID of the parent [`DjmdPlaylist`], `'root'` for top-level records (default). */
+  parentId?: string
+  /** An optional path to the image associated with the playlist. */
+  imagePath?: string
+  /** An optional smart list configuration for the playlist (None if not a smart playlist) */
+  smartList?: string
+}
+
+/**
+ * Represents a new record insertale to the `djmdSongMyTag` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::masterdb::models::NewDjmdSongMyTag;
+ *
+ * let new = NewDjmdMyTag::new("Name".into(), 0).seq(1);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdSongMyTag {
+  /** The ID of the associated [`DjmdMyTag`]. */
+  myTagId: string
+  /** The ID of the associated [`DjmdContent`]. */
+  contentId: string
+  /** The track number in the tag. */
+  trackNo?: number
+}
+
+/**
+ * Represents a new record insertale to the `djmdSongPlaylist` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::masterdb::models::NewDjmdSongPlaylist;
+ *
+ * let new = NewSongDjmdPlaylist::new("Name".into());
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdSongPlaylist {
+  /** The ID of the associated playlist in [`DjmdPlaylist`]. */
+  playlistId: string
+  /** The ID of the associated content in [`DjmdContent`]. */
+  contentId: string
+  /** The track number in the playlist. */
+  trackNo?: number
+}
+
 export interface NewGenre {
   name: string
 }
@@ -2015,9 +2289,9 @@ export interface Remixer {
 }
 
 /**
- * Represents the `SettingFile` table in the Rekordbox database.
+ * Represents the `settingFile` table in the Rekordbox database.
  *
- * This struct maps to the `SettingFile` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `settingFile` table in the SQLite database used by Rekordbox.
  * It stores information about setting files, including metadata such as file paths,
  * hashes, and synchronization details.
  */
@@ -2069,9 +2343,9 @@ export interface Sort {
 }
 
 /**
- * Represents the `UuidIDMap` table in the Rekordbox database.
+ * Represents the `uuidIDMap` table in the Rekordbox database.
  *
- * This struct maps to the `UuidIDMap` table in the SQLite database used by Rekordbox.
+ * This struct maps to the `uuidIDMap` table in the SQLite database used by Rekordbox.
  * It stores information about UUID-to-ID mappings, including metadata such as table names,
  * target UUIDs, and current IDs.
  */
@@ -2547,11 +2821,11 @@ export interface DjmdPlaylistTreeItem {
   rbLocalUsn?: number
   createdAt: Date
   updatedAt: Date
-  seq?: number
-  name?: string
+  seq: number
+  name: string
   imagePath?: string
-  attribute?: number
-  parentId?: string
+  attribute: number
+  parentId: string
   smartList?: string
   children: Array<DjmdPlaylistTreeItem>
 }
