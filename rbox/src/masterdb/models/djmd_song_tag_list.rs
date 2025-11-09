@@ -56,10 +56,10 @@ pub struct DjmdSongTagList {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the ID of the associated content in [`DjmdContent`].
-    pub content_id: Option<String>,
-    /// An optional integer representing the track number in the tag list.
-    pub track_no: Option<i32>,
+    /// The ID of the associated content in [`DjmdContent`].
+    pub content_id: String,
+    /// The sequence/order number of the record (1-based index)
+    pub track_no: i32,
 }
 
 impl DjmdSongTagList {

@@ -67,7 +67,7 @@ fn test_create_album() -> anyhow::Result<()> {
     let new_album = db.create_album(name.clone(), artist, image_path, compilation)?;
     let new_usn = db.get_local_usn()?;
 
-    assert_eq!(new_album.name, Some(name));
+    assert_eq!(new_album.name, name);
     assert_eq!(new_usn, old_usn + 1);
     assert_eq!(new_album.rb_local_usn.unwrap(), new_usn);
 
@@ -89,7 +89,7 @@ fn test_update_album() -> anyhow::Result<()> {
     // Update the album
     let id = album.id.clone();
     let new_name = "Updated Album".to_string();
-    album.name = Some(new_name.clone());
+    album.name = new_name.clone();
     let updated = db.update_album(&mut album);
     let new_usn = db.get_local_usn()?;
     assert!(updated.is_ok());
@@ -99,7 +99,7 @@ fn test_update_album() -> anyhow::Result<()> {
     // Verify the update
     let updated_album = db.get_album_by_id(id.as_str())?;
     assert!(updated_album.is_some());
-    assert_eq!(updated_album.unwrap().name, Some(new_name));
+    assert_eq!(updated_album.unwrap().name, new_name);
 
     Ok(())
 }
@@ -190,7 +190,7 @@ fn test_create_artist() -> anyhow::Result<()> {
     let new_item = db.create_artist(name.clone())?;
     let new_usn = db.get_local_usn()?;
 
-    assert_eq!(new_item.name, Some(name));
+    assert_eq!(new_item.name, name);
     assert_eq!(new_usn, old_usn + 1);
     assert_eq!(new_item.rb_local_usn.unwrap(), new_usn);
 
@@ -212,7 +212,7 @@ fn test_update_artist() -> anyhow::Result<()> {
     // Update the artist
     let id = item.id.clone();
     let new_name = "Updated Artist".to_string();
-    item.name = Some(new_name.clone());
+    item.name = new_name.clone();
     let updated = db.update_artist(&mut item);
     let new_usn = db.get_local_usn()?;
     assert!(updated.is_ok());
@@ -222,7 +222,7 @@ fn test_update_artist() -> anyhow::Result<()> {
     // Verify the update
     let updated_item = db.get_artist_by_id(id.as_str())?;
     assert!(updated_item.is_some());
-    assert_eq!(updated_item.unwrap().name, Some(new_name));
+    assert_eq!(updated_item.unwrap().name, new_name);
 
     Ok(())
 }
@@ -348,7 +348,7 @@ fn test_create_genre() -> anyhow::Result<()> {
     let new_item = db.create_genre(name.clone())?;
     let new_usn = db.get_local_usn()?;
 
-    assert_eq!(new_item.name, Some(name));
+    assert_eq!(new_item.name, name);
     assert_eq!(new_usn, old_usn + 1);
     assert_eq!(new_item.rb_local_usn.unwrap(), new_usn);
 
@@ -370,7 +370,7 @@ fn test_update_genre() -> anyhow::Result<()> {
     // Update the artist
     let id = item.id.clone();
     let new_name = "Updated Genre".to_string();
-    item.name = Some(new_name.clone());
+    item.name = new_name.clone();
     let updated = db.update_genre(&mut item);
     let new_usn = db.get_local_usn()?;
     assert!(updated.is_ok());
@@ -380,7 +380,7 @@ fn test_update_genre() -> anyhow::Result<()> {
     // Verify the update
     let updated_item = db.get_genre_by_id(id.as_str())?;
     assert!(updated_item.is_some());
-    assert_eq!(updated_item.unwrap().name, Some(new_name));
+    assert_eq!(updated_item.unwrap().name, new_name);
 
     Ok(())
 }
@@ -467,7 +467,7 @@ fn test_create_key() -> anyhow::Result<()> {
     let new_item = db.create_key(name.clone())?;
     let new_usn = db.get_local_usn()?;
 
-    assert_eq!(new_item.scale_name, Some(name));
+    assert_eq!(new_item.name, name);
     assert_eq!(new_usn, old_usn + 1);
     assert_eq!(new_item.rb_local_usn.unwrap(), new_usn);
 
@@ -489,7 +489,7 @@ fn test_update_key() -> anyhow::Result<()> {
     // Update the artist
     let id = item.id.clone();
     let new_name = "Updated Key".to_string();
-    item.scale_name = Some(new_name.clone());
+    item.name = new_name.clone();
     let updated = db.update_key(&mut item);
     let new_usn = db.get_local_usn()?;
     assert!(updated.is_ok());
@@ -499,7 +499,7 @@ fn test_update_key() -> anyhow::Result<()> {
     // Verify the update
     let updated_item = db.get_key_by_id(id.as_str())?;
     assert!(updated_item.is_some());
-    assert_eq!(updated_item.unwrap().scale_name, Some(new_name));
+    assert_eq!(updated_item.unwrap().name, new_name);
 
     Ok(())
 }
@@ -586,7 +586,7 @@ fn test_create_label() -> anyhow::Result<()> {
     let new_item = db.create_label(name.clone())?;
     let new_usn = db.get_local_usn()?;
 
-    assert_eq!(new_item.name, Some(name));
+    assert_eq!(new_item.name, name);
     assert_eq!(new_usn, old_usn + 1);
     assert_eq!(new_item.rb_local_usn.unwrap(), new_usn);
 
@@ -608,7 +608,7 @@ fn test_update_label() -> anyhow::Result<()> {
     // Update the artist
     let id = item.id.clone();
     let new_name = "Updated Label".to_string();
-    item.name = Some(new_name.clone());
+    item.name = new_name.clone();
     let updated = db.update_label(&mut item);
     let new_usn = db.get_local_usn()?;
     assert!(updated.is_ok());
@@ -618,7 +618,7 @@ fn test_update_label() -> anyhow::Result<()> {
     // Verify the update
     let updated_item = db.get_label_by_id(id.as_str())?;
     assert!(updated_item.is_some());
-    assert_eq!(updated_item.unwrap().name, Some(new_name));
+    assert_eq!(updated_item.unwrap().name, new_name);
 
     Ok(())
 }

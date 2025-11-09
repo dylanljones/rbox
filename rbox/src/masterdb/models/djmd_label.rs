@@ -54,8 +54,8 @@ pub struct DjmdLabel {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the name of the label.
-    pub name: Option<String>,
+    /// The name of the label.
+    pub name: String,
 }
 
 impl DjmdLabel {
@@ -152,19 +152,6 @@ impl DjmdLabel {
         }
         Ok(id)
     }
-
-    /// Creates a DjmdLabel from a NewDjmdLabel with metadata.
-    fn from_new(value: NewDjmdLabel, id: String, uuid: String, usn: i32, now: Date) -> Self {
-        Self {
-            id,
-            uuid,
-            rb_local_usn: Some(usn),
-            created_at: now,
-            updated_at: now,
-            name: Some(value.name),
-            ..Default::default()
-        }
-    }
 }
 
 /// Represents a new record insertale to the `djmdLabel` table.
@@ -196,7 +183,15 @@ impl NewDjmdLabel {
         let uuid = Uuid::new_v4().to_string();
         let usn = AgentRegistry::increment_local_usn(conn)?;
         let now = Utc::now();
-        let item = DjmdLabel::from_new(self, id, uuid, usn, now);
+        let item = DjmdLabel {
+            id,
+            uuid,
+            rb_local_usn: Some(usn),
+            created_at: now,
+            updated_at: now,
+            name: self.name,
+            ..Default::default()
+        };
         diesel::insert_into(djmdLabel::table)
             .values(item)
             .get_result(conn)

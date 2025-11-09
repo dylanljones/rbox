@@ -53,10 +53,10 @@ pub struct DjmdColor {
 
     /// An optional string representing the color code (e.g., hex value).
     pub color_code: Option<String>,
-    /// An optional integer representing the sort key for ordering colors.
-    pub sort_key: Option<i32>,
-    /// An optional string for comments or additional information about the color.
-    pub commnt: Option<String>,
+    /// The sort key for ordering colors.
+    pub sort_key: i32,
+    /// A comment (usually the name) associated with the color.
+    pub commnt: String,
 }
 
 impl DjmdColor {

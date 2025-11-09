@@ -55,12 +55,12 @@ pub struct ContentActiveCensor {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the id of the associated [`DjmdContent`].
-    pub content_id: Option<String>,
-    /// An optional string representing the active censors.
-    pub active_censors: Option<String>,
-    /// An optional integer representing the count of active censors.
-    pub rb_activecensor_count: Option<i32>,
+    /// The id of the associated [`DjmdContent`].
+    pub content_id: String,
+    /// A string representing the active censors.
+    pub active_censors: String,
+    /// The count of active censors.
+    pub rb_activecensor_count: i32,
 }
 
 impl ContentActiveCensor {

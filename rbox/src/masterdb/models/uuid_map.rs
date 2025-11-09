@@ -52,12 +52,12 @@ pub struct UuidIDMap {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the table name associated with the mapping.
-    pub table_name: Option<String>,
-    /// An optional string representing the target UUID in the mapping.
-    pub target_uuid: Option<String>,
-    /// An optional string representing the current ID in the mapping.
-    pub current_id: Option<String>,
+    /// Table name associated with the mapping.
+    pub table_name: String,
+    /// The target UUID in the mapping.
+    pub target_uuid: String,
+    /// The current ID in the mapping.
+    pub current_id: String,
 }
 
 impl UuidIDMap {

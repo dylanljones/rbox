@@ -71,10 +71,10 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "ContentID"]
-        content_id -> Nullable<Text>,
+        content_id -> Text,
         #[sql_name = "ActiveCensors"]
-        active_censors -> Nullable<Text>,
-        rb_activecensor_count -> Nullable<Integer>,
+        active_censors -> Text,
+        rb_activecensor_count -> Integer,
     }
 }
 
@@ -93,10 +93,10 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "ContentID"]
-        content_id -> Nullable<Text>,
+        content_id -> Text,
         #[sql_name = "Cues"]
-        cues -> Nullable<Text>,
-        rb_cue_count -> Nullable<Integer>,
+        cues -> Text,
+        rb_cue_count -> Integer,
     }
 }
 
@@ -115,14 +115,14 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "ContentID"]
-        content_id -> Nullable<Text>,
+        content_id -> Text,
         #[sql_name = "Path"]
-        path -> Nullable<Text>,
+        path -> Text,
         #[sql_name = "Hash"]
-        hash -> Nullable<Text>,
+        hash -> Text,
         #[sql_name = "Size"]
-        size -> Nullable<Integer>,
-        rb_local_path -> Nullable<Text>,
+        size -> Integer,
+        rb_local_path -> Text,
         rb_insync_hash -> Nullable<Text>,
         rb_insync_local_usn -> Nullable<Integer>,
         rb_file_hash_dirty -> Nullable<Integer>,
@@ -150,7 +150,7 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "ContentID"]
-        content_id -> Nullable<Text>,
+        content_id -> Text,
         #[sql_name = "InMsec"]
         in_msec -> Nullable<Integer>,
         #[sql_name = "OutMsec"]
@@ -179,13 +179,13 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "Name"]
-        name -> Nullable<Text>,
+        name -> Text,
         #[sql_name = "AlbumArtistID"]
         album_artist_id -> Nullable<Text>,
         #[sql_name = "ImagePath"]
         image_path -> Nullable<Text>,
         #[sql_name = "Compilation"]
-        compilation -> Nullable<Integer>,
+        compilation -> Integer,
         #[sql_name = "SearchStr"]
         search_str -> Nullable<Text>,
     }
@@ -206,7 +206,7 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "Name"]
-        name -> Nullable<Text>,
+        name -> Text,
         #[sql_name = "SearchStr"]
         search_str -> Nullable<Text>,
     }
@@ -227,13 +227,13 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "MenuItemID"]
-        menu_item_id -> Nullable<Text>,
+        menu_item_id -> Text,
         #[sql_name = "Seq"]
-        seq -> Nullable<Integer>,
+        seq -> Integer,
         #[sql_name = "Disable"]
-        disable -> Nullable<Integer>,
+        disable -> Integer,
         #[sql_name = "InfoOrder"]
-        info_order -> Nullable<Integer>,
+        info_order -> Integer,
     }
 }
 
@@ -254,9 +254,9 @@ diesel::table! {
         #[sql_name = "ColorCode"]
         color_code -> Nullable<Text>,
         #[sql_name = "SortKey"]
-        sort_key -> Nullable<Integer>,
+        sort_key -> Integer,
         #[sql_name = "Commnt"]
-        commnt -> Nullable<Text>,
+        commnt -> Text,
     }
 }
 
@@ -427,27 +427,27 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "ContentID"]
-        content_id -> Nullable<Text>,
+        content_id -> Text,
         #[sql_name = "InMsec"]
-        in_msec -> Nullable<Integer>,
+        in_msec -> Integer,
         #[sql_name = "InFrame"]
-        in_frame -> Nullable<Integer>,
+        in_frame -> Integer,
         #[sql_name = "InMpegFrame"]
-        in_mpeg_frame -> Nullable<Integer>,
+        in_mpeg_frame -> Integer,
         #[sql_name = "InMpegAbs"]
-        in_mpeg_abs -> Nullable<Integer>,
+        in_mpeg_abs -> Integer,
         #[sql_name = "OutMsec"]
-        out_msec -> Nullable<Integer>,
+        out_msec -> Integer,
         #[sql_name = "OutFrame"]
-        out_frame -> Nullable<Integer>,
+        out_frame -> Integer,
         #[sql_name = "OutMpegFrame"]
-        out_mpeg_frame -> Nullable<Integer>,
+        out_mpeg_frame -> Integer,
         #[sql_name = "OutMpegAbs"]
-        out_mpeg_abs -> Nullable<Integer>,
+        out_mpeg_abs -> Integer,
         #[sql_name = "Kind"]
-        kind -> Nullable<Integer>,
+        kind -> Integer,
         #[sql_name = "Color"]
-        color -> Nullable<Integer>,
+        color -> Integer,
         #[sql_name = "ColorTableIndex"]
         color_table_index -> Nullable<Integer>,
         #[sql_name = "ActiveLoop"]
@@ -482,9 +482,9 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "MasterDBID"]
-        master_db_id -> Nullable<Text>,
+        master_db_id -> Text,
         #[sql_name = "Name"]
-        name -> Nullable<Text>,
+        name -> Text,
     }
 }
 
@@ -503,7 +503,7 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "Name"]
-        name -> Nullable<Text>,
+        name -> Text,
     }
 }
 
@@ -607,23 +607,23 @@ diesel::table! {
         #[sql_name = "CueID"]
         cue_id -> Text,
         #[sql_name = "InMsec"]
-        in_msec -> Nullable<Integer>,
+        in_msec -> Integer,
         #[sql_name = "InFrame"]
-        in_frame -> Nullable<Integer>,
+        in_frame -> Integer,
         #[sql_name = "InMpegFrame"]
-        in_mpeg_frame -> Nullable<Integer>,
+        in_mpeg_frame -> Integer,
         #[sql_name = "InMpegAbs"]
-        in_mpeg_abs -> Nullable<Integer>,
+        in_mpeg_abs -> Integer,
         #[sql_name = "OutMsec"]
-        out_msec -> Nullable<Integer>,
+        out_msec -> Integer,
         #[sql_name = "OutFrame"]
-        out_frame -> Nullable<Integer>,
+        out_frame -> Integer,
         #[sql_name = "OutMpegFrame"]
-        out_mpeg_frame -> Nullable<Integer>,
+        out_mpeg_frame -> Integer,
         #[sql_name = "OutMpegAbs"]
-        out_mpeg_abs -> Nullable<Integer>,
+        out_mpeg_abs -> Integer,
         #[sql_name = "Color"]
-        color -> Nullable<Integer>,
+        color -> Integer,
         #[sql_name = "ColorTableIndex"]
         color_table_index -> Nullable<Integer>,
         #[sql_name = "ActiveLoop"]
@@ -658,7 +658,7 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "ScaleName"]
-        scale_name -> Nullable<Text>,
+        name -> Text,
         #[sql_name = "Seq"]
         seq -> Nullable<Integer>,
     }
@@ -679,7 +679,7 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "Name"]
-        name -> Nullable<Text>,
+        name -> Text,
     }
 }
 
@@ -698,9 +698,9 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "Class"]
-        class -> Nullable<Integer>,
+        class -> Integer,
         #[sql_name = "Name"]
-        name -> Nullable<Text>,
+        name -> Text,
     }
 }
 
@@ -719,15 +719,15 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "ContentID"]
-        content_id -> Nullable<Text>,
+        content_id -> Text,
         #[sql_name = "GainHigh"]
-        gain_high -> Nullable<Integer>,
+        gain_high -> Integer,
         #[sql_name = "GainLow"]
-        gain_low -> Nullable<Integer>,
+        gain_low -> Integer,
         #[sql_name = "PeakHigh"]
-        peak_high -> Nullable<Integer>,
+        peak_high -> Integer,
         #[sql_name = "PeakLow"]
-        peak_low -> Nullable<Integer>,
+        peak_low -> Integer,
     }
 }
 
@@ -836,13 +836,13 @@ diesel::table! {
         #[sql_name = "DBID"]
         db_id -> Text,
         #[sql_name = "DBVersion"]
-        db_version -> Nullable<Text>,
+        db_version -> Text,
         #[sql_name = "BaseDBDrive"]
-        base_db_drive -> Nullable<Text>,
+        base_db_drive -> Text,
         #[sql_name = "CurrentDBDrive"]
-        current_db_drive -> Nullable<Text>,
+        current_db_drive -> Text,
         #[sql_name = "DeviceID"]
-        device_id -> Nullable<Text>,
+        device_id -> Text,
         #[sql_name = "Reserved1"]
         reserved1 -> Nullable<Text>,
         #[sql_name = "Reserved2"]
@@ -900,9 +900,9 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "ContentID1"]
-        content_id1 -> Nullable<Text>,
+        content_id1 -> Text,
         #[sql_name = "ContentID2"]
-        content_id2 -> Nullable<Text>,
+        content_id2 -> Text,
         #[sql_name = "LikeRate"]
         like_rate -> Nullable<Integer>,
         #[sql_name = "DataCreatedH"]
@@ -935,7 +935,7 @@ diesel::table! {
         #[sql_name = "ParentID"]
         parent_id -> Text,
         #[sql_name = "Criteria"]
-        criteria -> Nullable<Text>,
+        criteria -> Text,
     }
 }
 
@@ -1025,9 +1025,9 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "ContentID"]
-        content_id -> Nullable<Text>,
+        content_id -> Text,
         #[sql_name = "TrackNo"]
-        track_no -> Nullable<Integer>,
+        track_no -> Integer,
     }
 }
 
@@ -1046,11 +1046,11 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "MenuItemID"]
-        menu_item_id -> Nullable<Text>,
+        menu_item_id -> Text,
         #[sql_name = "Seq"]
-        seq -> Nullable<Integer>,
+        seq -> Integer,
         #[sql_name = "Disable"]
-        disable -> Nullable<Integer>,
+        disable -> Integer,
     }
 }
 
@@ -1130,11 +1130,11 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "Path"]
-        path -> Nullable<Text>,
+        path -> Text,
         #[sql_name = "Hash"]
-        hash -> Nullable<Text>,
+        hash -> Text,
         #[sql_name = "Size"]
-        size -> Nullable<Integer>,
+        size -> Integer,
         rb_local_path -> Nullable<Text>,
         rb_insync_hash -> Nullable<Text>,
         rb_insync_local_usn -> Nullable<Integer>,
@@ -1158,11 +1158,11 @@ diesel::table! {
         created_at -> Text,
         updated_at -> Text,
         #[sql_name = "TableName"]
-        table_name -> Nullable<Text>,
+        table_name -> Text,
         #[sql_name = "TargetUUID"]
-        target_uuid -> Nullable<Text>,
+        target_uuid -> Text,
         #[sql_name = "CurrentID"]
-        current_id -> Nullable<Text>,
+        current_id -> Text,
     }
 }
 

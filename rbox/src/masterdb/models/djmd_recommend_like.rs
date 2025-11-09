@@ -57,10 +57,10 @@ pub struct DjmdRecommendLike {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the ID of the first associated content in [`DjmdContent`].
-    pub content_id1: Option<String>,
-    /// An optional string representing the ID of the second associated content in [`DjmdContent`].
-    pub content_id2: Option<String>,
+    /// The ID of the first associated content in [`DjmdContent`].
+    pub content_id1: String,
+    /// The ID of the second associated content in [`DjmdContent`].
+    pub content_id2: String,
     /// An optional integer representing the like rate between the two associated contents.
     pub like_rate: Option<i32>,
     /// An optional integer representing the high part of the creation timestamp.

@@ -19,6 +19,14 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 ///
 /// This struct maps to the `djmdMixerParam` table in the SQLite database used by Rekordbox.
 /// It stores information about mixer parameters, including gain and peak values for high and low frequencies.
+///
+/// Each of the two gain values are represented by a 32-bit floating point number packed into a
+/// pair of 16-bit integers. The floating point value represents the linear gain factor, which can
+/// be converted into decibels (dB) by calculating 20.0 * math.log10(f) where f is the gain factor.
+///
+/// The auto-gain value is the one shown in the grid edit panel. The peak value does not appear to
+/// be displayed anywhere in the program, and is most likely used internally for
+/// limiting and/or waveform scaling.
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
@@ -55,16 +63,16 @@ pub struct DjmdMixerParam {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the ID of the associated [`DjmdContent`].
-    pub content_id: Option<String>,
-    /// An optional integer representing the high-frequency gain value.
-    pub gain_high: Option<i32>,
-    /// An optional integer representing the low-frequency gain value.
-    pub gain_low: Option<i32>,
-    /// An optional integer representing the high-frequency peak value.
-    pub peak_high: Option<i32>,
-    /// An optional integer representing the low-frequency peak value.
-    pub peak_low: Option<i32>,
+    /// The ID of the associated [`DjmdContent`].
+    pub content_id: String,
+    /// The upper 16 bits of a IEEE754 single-precision floating point number representing the gain.
+    pub gain_high: i32,
+    /// The lower 16 bits of a IEEE754 single-precision floating point number representing the gain.
+    pub gain_low: i32,
+    /// The upper 16 bits of a IEEE754 single-precision floating point number representing the peak.
+    pub peak_high: i32,
+    /// The lower 16 bits of a IEEE754 single-precision floating point number representing the peak.
+    pub peak_low: i32,
 }
 
 impl DjmdMixerParam {

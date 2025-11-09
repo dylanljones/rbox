@@ -54,8 +54,8 @@ pub struct DjmdKey {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the name of the musical key.
-    pub scale_name: Option<String>,
+    /// The name of the musical key.
+    pub name: String,
     /// An optional integer representing the sequence/order of the key.
     pub seq: Option<i32>,
 }
@@ -74,7 +74,7 @@ impl DjmdKey {
     /// Queries a record from the `djmdKey` table by its `scale_name`.
     pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
         Self::query()
-            .filter(djmdKey::scale_name.eq(name))
+            .filter(djmdKey::name.eq(name))
             .first(conn)
             .optional()
     }
@@ -91,7 +91,7 @@ impl DjmdKey {
 
     /// Checks if a record with the given `scale_name` exists in the `djmdKey` table.
     pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
-        let query = Self::query().filter(djmdKey::scale_name.eq(name));
+        let query = Self::query().filter(djmdKey::name.eq(name));
         diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
     }
 
@@ -102,7 +102,7 @@ impl DjmdKey {
             None => return Err(diesel::result::Error::NotFound),
         };
         let mut changes = 0;
-        if self.scale_name != existing.scale_name {
+        if self.name != existing.name {
             changes += 1;
         }
         if self.seq != existing.seq {
@@ -171,20 +171,6 @@ impl DjmdKey {
         }
         Ok(id)
     }
-
-    /// Creates a DjmdKey from a NewDjmdKey with metadata.
-    fn from_new(value: NewDjmdKey, id: String, uuid: String, usn: i32, now: Date) -> Self {
-        Self {
-            id,
-            uuid,
-            rb_local_usn: Some(usn),
-            created_at: now,
-            updated_at: now,
-            scale_name: Some(value.scale_name),
-            seq: value.seq,
-            ..Default::default()
-        }
-    }
 }
 
 /// Represents a new record insertale to the `djmdKey` table.
@@ -204,16 +190,16 @@ impl DjmdKey {
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct NewDjmdKey {
     /// The name of the musical key.
-    pub scale_name: String,
+    pub name: String,
     /// An optional integer representing the sequence/order of the key.
     pub seq: Option<i32>,
 }
 
 impl NewDjmdKey {
     /// Creates a new record with the required fields.
-    pub fn new(scale_name: String) -> Self {
+    pub fn new(name: String) -> Self {
         Self {
-            scale_name,
+            name,
             ..Default::default()
         }
     }
@@ -224,17 +210,22 @@ impl NewDjmdKey {
         let uuid = Uuid::new_v4().to_string();
         let usn = AgentRegistry::increment_local_usn(conn)?;
         let now = Utc::now();
-        let mut item = DjmdKey::from_new(self, id, uuid, usn, now);
 
-        let seq = item.seq.clone();
-        if item.seq.is_none() {
-            // Count existing items for inserting at end
-            item.seq = Some(DjmdKey::count(conn)?.saturating_add(1));
-        }
-        let result = diesel::insert_into(djmdKey::table)
+        let item = DjmdKey {
+            id,
+            uuid,
+            rb_local_usn: Some(usn),
+            created_at: now,
+            updated_at: now,
+            name: self.name,
+            seq: self.seq,
+            ..Default::default()
+        };
+
+        let result: DjmdKey = diesel::insert_into(djmdKey::table)
             .values(item)
             .get_result(conn)?;
-        if let Some(_seq) = seq {
+        if let Some(_seq) = result.seq {
             DjmdKey::reset_seq(conn)?;
         }
         Ok(result)
@@ -242,7 +233,7 @@ impl NewDjmdKey {
 
     /// Inserts the new key or returns an existing record if a key with the same name already exists.
     pub fn insert_if_not_exists(self, conn: &mut SqliteConnection) -> QueryResult<DjmdKey> {
-        match DjmdKey::find_by_name(conn, &self.scale_name)? {
+        match DjmdKey::find_by_name(conn, &self.name)? {
             Some(e) => Ok(e),
             None => self.insert(conn),
         }

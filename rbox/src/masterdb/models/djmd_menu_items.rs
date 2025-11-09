@@ -51,10 +51,10 @@ pub struct DjmdMenuItems {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional integer representing the class of the menu item.
-    pub class: Option<i32>,
-    /// An optional string representing the name of the menu item.
-    pub name: Option<String>,
+    /// The class of the menu item.
+    pub class: i32,
+    /// The name of the menu item.
+    pub name: String,
 }
 
 impl DjmdMenuItems {

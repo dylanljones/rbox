@@ -55,14 +55,14 @@ pub struct DjmdCategory {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the id of the associated [`DjmdMenuItems`].
-    pub menu_item_id: Option<String>,
-    /// An optional integer representing the sequence/order of the category.
-    pub seq: Option<i32>,
-    /// An optional integer indicating whether the category is disabled.
-    pub disable: Option<i32>,
-    /// An optional integer representing the info order for the category.
-    pub info_order: Option<i32>,
+    /// The id of the associated [`DjmdMenuItems`].
+    pub menu_item_id: String,
+    /// The sequence/order of the category.
+    pub seq: i32,
+    /// A flag indicating whether the category is disabled.
+    pub disable: i32,
+    /// The info order for the category.
+    pub info_order: i32,
 }
 
 impl DjmdCategory {

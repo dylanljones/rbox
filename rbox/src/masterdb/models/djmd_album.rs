@@ -59,14 +59,14 @@ pub struct DjmdAlbum {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the name of the album.
-    pub name: Option<String>,
+    /// The name of the album.
+    pub name: String,
     /// An optional string representing the id of the album artist [`DjmdArtist`].
     pub album_artist_id: Option<String>,
     /// An optional string representing the path to the album's image.
     pub image_path: Option<String>,
-    /// An optional integer indicating whether the album is a compilation.
-    pub compilation: Option<i32>,
+    /// A flag if the album is a compilation.
+    pub compilation: i32,
     /// An optional string used for searching the album.
     pub search_str: Option<String>,
 }
@@ -177,23 +177,6 @@ impl DjmdAlbum {
         }
         Ok(id)
     }
-
-    /// Creates a DjmdAlbum from a NewDjmdAlbum with metadata.
-    fn from_new(value: NewDjmdAlbum, id: String, uuid: String, usn: i32, now: Date) -> Self {
-        Self {
-            id,
-            uuid,
-            rb_local_usn: Some(usn),
-            created_at: now,
-            updated_at: now,
-            name: Some(value.name),
-            album_artist_id: value.album_artist_id,
-            image_path: value.image_path,
-            compilation: value.compilation,
-            search_str: value.search_str,
-            ..Default::default()
-        }
-    }
 }
 
 /// Represents a new record insertale to the `djmdAlbum` table.
@@ -239,7 +222,21 @@ impl NewDjmdAlbum {
         let uuid = Uuid::new_v4().to_string();
         let usn = AgentRegistry::increment_local_usn(conn)?;
         let now = Utc::now();
-        let item = DjmdAlbum::from_new(self, id, uuid, usn, now);
+
+        let item = DjmdAlbum {
+            id,
+            uuid,
+            rb_local_usn: Some(usn),
+            created_at: now,
+            updated_at: now,
+            name: self.name,
+            album_artist_id: self.album_artist_id,
+            image_path: self.image_path,
+            compilation: self.compilation.unwrap_or(0),
+            search_str: self.search_str,
+            ..Default::default()
+        };
+
         diesel::insert_into(djmdAlbum::table)
             .values(item)
             .get_result(conn)

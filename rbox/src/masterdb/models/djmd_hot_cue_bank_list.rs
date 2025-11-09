@@ -104,6 +104,14 @@ impl DjmdHotCueBanklist {
 /// This struct maps to the `djmdSongHotCueBanklist` table in the SQLite database used by Rekordbox.
 /// It stores information about the relationship between hot cue bank lists and their associated songs,
 /// including the actual cue data
+///
+/// # Notes
+/// Rekordbox internally represents time in “frames”, each being 1/150th of a second (6.666ms).
+/// The InFrame and OutFrame values use this unit of time. However, when a track is encoded with
+/// variable bit-rate (VBR) or average bit-rate (ABR), the InMpegFrame and OutMpegFrame values are
+/// filled out to assist with correct seeking. Despite the names, these values are not the frame
+/// indices within the MPEG file, but instead use an alternative timing scheme that is typically
+/// around 1/75th of a second (13.333ms) per frame, i.e. about half the granularity of normal frames.
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
@@ -148,24 +156,28 @@ pub struct DjmdSongHotCueBanklist {
     pub track_no: i32,
     /// The ID of the associated [`DjmdCue`]
     pub cue_id: String,
-    /// An optional integer representing the cue's start time in milliseconds.
-    pub in_msec: Option<i32>,
-    /// An optional integer representing the cue's start frame.
-    pub in_frame: Option<i32>,
-    /// An optional integer representing the cue's start MPEG frame.
-    pub in_mpeg_frame: Option<i32>,
-    /// An optional integer representing the cue's start MPEG absolute frame.
-    pub in_mpeg_abs: Option<i32>,
-    /// An optional integer representing the cue's end time in milliseconds.
-    pub out_msec: Option<i32>,
-    /// An optional integer representing the cue's end frame.
-    pub out_frame: Option<i32>,
-    /// An optional integer representing the cue's end MPEG frame.
-    pub out_mpeg_frame: Option<i32>,
-    /// An optional integer representing the cue's end MPEG absolute frame.
-    pub out_mpeg_abs: Option<i32>,
-    /// An optional integer representing the color of the cue.
-    pub color: Option<i32>,
+    /// The cue's start time in milliseconds.
+    pub in_msec: i32,
+    /// The cue's start frame.
+    ///
+    /// One frame is 1/150th of a second
+    pub in_frame: i32,
+    /// The cue's start MPEG frame or 0 if not a VBR/ABR MPEG file (see note).
+    pub in_mpeg_frame: i32,
+    /// The cue's start MPEG absolute frame or 0 if not a VBR/ABR MPEG file.
+    pub in_mpeg_abs: i32,
+    /// The cue's end time in milliseconds or -1 if not a loop.
+    pub out_msec: i32,
+    /// The cue's end frame or -1 if not a loop.
+    ///
+    /// One frame is 1/150th of a second
+    pub out_frame: i32,
+    /// The cue's end MPEG frame or 0 if not a loop or not a VBR/ABR MPEG file (see note)
+    pub out_mpeg_frame: i32,
+    /// The cue's end MPEG absolute frame or 0 if not a loop or not a VBR/ABR MPEG file
+    pub out_mpeg_abs: i32,
+    /// The color ID of the cue or -1 if no color.
+    pub color: i32,
     /// An optional integer representing the index of the color in the color table.
     pub color_table_index: Option<i32>,
     /// An optional integer indicating whether the cue is part of an active loop.

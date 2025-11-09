@@ -55,7 +55,7 @@ pub struct DjmdArtist {
     pub updated_at: Date,
 
     /// An optional string representing the name of the artist.
-    pub name: Option<String>,
+    pub name: String,
     /// An optional string used for searching the artist.
     pub search_str: Option<String>,
 }
@@ -197,20 +197,6 @@ impl DjmdArtist {
         }
         Ok(id)
     }
-
-    /// Creates a DjmdArtist from a NewDjmdArtist with metadata.
-    fn from_new(value: NewDjmdArtist, id: String, uuid: String, usn: i32, now: Date) -> Self {
-        Self {
-            id,
-            uuid,
-            rb_local_usn: Some(usn),
-            created_at: now,
-            updated_at: now,
-            name: Some(value.name),
-            search_str: value.search_str,
-            ..Default::default()
-        }
-    }
 }
 
 /// Represents a new record insertale to the `djmdArtist` table.
@@ -250,7 +236,18 @@ impl NewDjmdArtist {
         let uuid = Uuid::new_v4().to_string();
         let usn = AgentRegistry::increment_local_usn(conn)?;
         let now = Utc::now();
-        let item = DjmdArtist::from_new(self, id, uuid, usn, now);
+
+        let item = DjmdArtist {
+            id,
+            uuid,
+            rb_local_usn: Some(usn),
+            created_at: now,
+            updated_at: now,
+            name: self.name,
+            search_str: self.search_str,
+            ..Default::default()
+        };
+
         diesel::insert_into(djmdArtist::table)
             .values(item)
             .get_result(conn)

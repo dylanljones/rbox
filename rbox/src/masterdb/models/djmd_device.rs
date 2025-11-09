@@ -52,10 +52,10 @@ pub struct DjmdDevice {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the ID of the master database associated with the device.
-    pub master_db_id: Option<String>,
-    /// An optional string representing the name of the device.
-    pub name: Option<String>,
+    /// The ID of the master database associated with the device.
+    pub master_db_id: String,
+    /// The name of the device.
+    pub name: String,
 }
 
 impl DjmdDevice {
@@ -69,7 +69,7 @@ impl DjmdDevice {
         Self::query().find(id).first(conn).optional()
     }
 
-    pub fn master_db_id(conn: &mut SqliteConnection) -> QueryResult<Option<String>> {
+    pub fn master_db_id(conn: &mut SqliteConnection) -> QueryResult<String> {
         djmdDevice::table
             .select(djmdDevice::master_db_id)
             .first(conn)

@@ -552,9 +552,6 @@ impl NewDjmdContent {
         let file_type = FileType::try_from_extension(ext).expect("Failed to get file type");
         let file_name = path.file_name().unwrap().to_str().unwrap().to_string();
         let db_id = DjmdDevice::master_db_id(conn)?;
-        if db_id.is_none() {
-            return Err(Error::NotFound);
-        }
         // TODO: No clue what content link should be, for now we just choose the last value used
         let content_link = djmdContent::table
             .select(djmdContent::content_link)
@@ -572,7 +569,7 @@ impl NewDjmdContent {
             file_name_l: Some(file_name.clone()),
             file_name_s: Some("".to_string()),
             file_type: Some(file_type as i32),
-            master_db_id: db_id,
+            master_db_id: Some(db_id),
             master_song_id: Some(id),
             file_size: Some(file_size as i32),
             content_link,

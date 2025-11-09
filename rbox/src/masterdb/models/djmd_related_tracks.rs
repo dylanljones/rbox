@@ -67,8 +67,8 @@ pub struct DjmdRelatedTracks {
     pub attribute: i32,
     /// The ID of the parent [`DjmdRelatedTracks`], `'root'` for top-level records.
     pub parent_id: String,
-    /// An optional string containing criteria for the related track entry.
-    pub criteria: Option<String>,
+    /// A JSON string containing the criteria for the related tracks.
+    pub criteria: String,
 }
 
 impl DjmdRelatedTracks {

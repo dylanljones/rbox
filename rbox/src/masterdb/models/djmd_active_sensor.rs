@@ -57,8 +57,8 @@ pub struct DjmdActiveCensor {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the id of the associated [`DjmdContent`].
-    pub content_id: Option<String>,
+    /// The id of the associated [`DjmdContent`].
+    pub content_id: String,
     /// An optional integer representing the start time of the censor in milliseconds.
     pub in_msec: Option<i32>,
     /// An optional integer representing the end time of the censor in milliseconds.

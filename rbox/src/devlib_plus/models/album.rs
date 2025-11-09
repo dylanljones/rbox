@@ -154,10 +154,10 @@ impl NewAlbum {
 impl Into<NewAlbum> for crate::masterdb::models::DjmdAlbum {
     fn into(self) -> NewAlbum {
         NewAlbum {
-            name: self.name.unwrap_or("".into()),
+            name: self.name,
             artist_id: None,
             image_id: None,
-            is_complation: self.compilation.unwrap_or(0),
+            is_complation: self.compilation,
             name_for_search: self.search_str,
         }
     }

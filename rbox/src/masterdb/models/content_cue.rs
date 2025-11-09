@@ -55,12 +55,12 @@ pub struct ContentCue {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the id of the associated [`DjmdContent`].
-    pub content_id: Option<String>,
-    /// An optional string representing the cues.
-    pub cues: Option<String>,
-    /// An optional integer representing the count of cues.
-    pub rb_cue_count: Option<i32>,
+    /// The id of the associated [`DjmdContent`].
+    pub content_id: String,
+    /// A JSON string representing the cue data.
+    pub cues: String,
+    /// The count of cues.
+    pub rb_cue_count: i32,
 }
 
 impl ContentCue {

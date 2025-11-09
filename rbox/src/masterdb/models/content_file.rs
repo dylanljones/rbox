@@ -56,16 +56,16 @@ pub struct ContentFile {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the id of the associated [`DjmdContent`].
-    pub content_id: Option<String>,
-    /// An optional string representing the file path.
-    pub path: Option<String>,
-    /// An optional string representing the file hash.
-    pub hash: Option<String>,
-    /// An optional integer representing the file size.
-    pub size: Option<i32>,
-    /// An optional string representing the local file path.
-    pub rb_local_path: Option<String>,
+    /// The id of the associated [`DjmdContent`].
+    pub content_id: String,
+    /// The relative file path.
+    pub path: String,
+    /// The file hash.
+    pub hash: String,
+    /// The file size.
+    pub size: i32,
+    /// The absolute file path.
+    pub rb_local_path: String,
     /// An optional string representing the in-sync file hash.
     pub rb_insync_hash: Option<String>,
     /// An optional integer representing the in-sync local update sequence number.

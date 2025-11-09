@@ -33,14 +33,14 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 pub struct DjmdProperty {
     /// A unique identifier for the database entry.
     pub db_id: String,
-    /// An optional string representing the version of the database.
-    pub db_version: Option<String>,
-    /// An optional string representing the base drive of the database.
-    pub base_db_drive: Option<String>,
-    /// An optional string representing the current drive of the database.
-    pub current_db_drive: Option<String>,
-    /// An optional string representing the ID of the associated device in [`DjmdDevice`].
-    pub device_id: Option<String>,
+    /// The version of the database.
+    pub db_version: String,
+    /// The base drive of the database.
+    pub base_db_drive: String,
+    /// The current drive of the database.
+    pub current_db_drive: String,
+    /// The ID of the associated device in [`DjmdDevice`].
+    pub device_id: String,
     /// An optional string for reserved data.
     pub reserved1: Option<String>,
     /// An optional string for reserved data.

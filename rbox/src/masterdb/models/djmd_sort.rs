@@ -56,12 +56,12 @@ pub struct DjmdSort {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the ID of the associated menu item in [`DjmdMenuItems`].
-    pub menu_item_id: Option<String>,
-    /// An optional integer representing the sequence/order of the sort entry.
-    pub seq: Option<i32>,
-    /// An optional integer indicating whether the sort entry is disabled.
-    pub disable: Option<i32>,
+    /// The ID of the associated menu item in [`DjmdMenuItems`].
+    pub menu_item_id: String,
+    /// The sequence/order of the sort entry.
+    pub seq: i32,
+    /// A flag whether the sort entry is disabled.
+    pub disable: i32,
 }
 
 impl DjmdSort {

@@ -52,12 +52,12 @@ pub struct SettingFile {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the file path of the setting file.
-    pub path: Option<String>,
-    /// An optional string representing the hash of the setting file.
-    pub hash: Option<String>,
-    /// An optional integer representing the size of the setting file.
-    pub size: Option<i32>,
+    /// The relative file path of the setting file.
+    pub path: String,
+    /// The hash of the setting file.
+    pub hash: String,
+    /// The size of the setting file.
+    pub size: i32,
     /// An optional string representing the local path of the setting file in Rekordbox.
     pub rb_local_path: Option<String>,
     /// An optional string representing the in-sync hash of the setting file.
