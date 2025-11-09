@@ -22,8 +22,7 @@ use super::djmd_genre::DjmdGenre;
 use super::djmd_key::DjmdKey;
 use super::djmd_label::DjmdLabel;
 use super::schema::djmdContent;
-use super::util::{Date, DateString};
-use super::RandomIdGenerator;
+use super::{Date, DateString, RandomIdGenerator};
 use crate::masterdb::FileType;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};

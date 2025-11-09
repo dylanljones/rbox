@@ -14,8 +14,7 @@ use uuid::Uuid;
 use super::agent_registry::AgentRegistry;
 use super::djmd_artist::DjmdArtist;
 use super::schema::{djmdAlbum, djmdContent};
-use super::util::{Date, DateString};
-use super::RandomIdGenerator;
+use super::{Date, DateString, RandomIdGenerator};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 

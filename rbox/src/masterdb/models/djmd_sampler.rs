@@ -15,7 +15,7 @@ use std::collections::VecDeque;
 use super::agent_registry::AgentRegistry;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdSampler, djmdSongSampler};
-use super::util::{format_datetime, Date, DateString};
+use super::{format_datetime, Date, DateString};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 

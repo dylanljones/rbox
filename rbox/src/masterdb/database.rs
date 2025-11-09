@@ -36,34 +36,34 @@
 //!
 //! See individual method documentation for details on arguments, return values, and error handling.
 
-use diesel::prelude::*;
 use dunce;
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
-use super::conn::establish_connection;
+use super::conn::{create_connection_pool, DbPool};
 use super::enums::*;
 use super::models::*;
 use super::playlist_xml::MasterPlaylistXml;
-use super::util::sort_tree_list;
 use crate::anlz::{find_anlz_files, Anlz, AnlzFiles, AnlzPaths};
 use crate::error::{Error, Result};
 use crate::options::RekordboxOptions;
 use crate::pathlib::NormalizePath;
 use crate::util::is_rekordbox_running;
 
+#[derive(Clone, Debug)]
 pub struct MasterDb {
-    /// Represents the SQLite database connection used for interacting with the database.
-    pub conn: SqliteConnection,
+    /// A connection pool used for interacting with the database.
+    pool: DbPool,
+    // /// Represents the SQLite database connection used for interacting with the database.
+    // conn: SqliteConnection,
     /// Stores the path to the PIONEER share directory, which contains analysis and other files.
     /// This is optional and may not be set if the directory is not found.
-    pub share_dir: Option<PathBuf>,
+    share_dir: Option<PathBuf>,
     /// Stores the path to the `masterPlaylist6.xml` file located in the same directory as the database.
     /// This is optional and may not be set if the file is not found.
-    pub plxml_path: Option<PathBuf>,
+    plxml_path: Option<PathBuf>,
     /// Indicates whether unsafe writes to the database are allowed while Rekordbox is running.
     /// - `true`: Unsafe writes are enabled, allowing modifications to the database.
     /// - `false`: Unsafe writes are disabled, preventing modifications to the database.
@@ -96,9 +96,8 @@ impl MasterDb {
             None
         };
         let url = path_obj.to_str().unwrap();
-        let conn = establish_connection(url)?;
         Ok(Self {
-            conn,
+            pool: create_connection_pool(url, 8)?,
             share_dir: share_dir_str,
             plxml_path: pl_xml_path_str,
             unsafe_writes: false,
@@ -113,10 +112,9 @@ impl MasterDb {
         let share_dir = options.analysis_root.normalize();
         let plxml_path = options.get_db_dir().normalize();
         let url = options.db_path.to_str().unwrap();
-        let conn = establish_connection(url)?;
 
         Ok(Self {
-            conn,
+            pool: create_connection_pool(url, 8)?,
             share_dir: Some(share_dir),
             plxml_path: Some(plxml_path),
             unsafe_writes: false,
@@ -153,6 +151,16 @@ impl MasterDb {
         Ok(())
     }
 
+    /// Returns the path to the configured share directory.
+    pub fn share_directory(&self) -> Option<PathBuf> {
+        self.share_dir.clone()
+    }
+
+    /// Returns the path to the configured playlist XML file.
+    pub fn playlist_xml_path(&self) -> Option<PathBuf> {
+        self.plxml_path.clone()
+    }
+
     // -- AgentRegistry ----------------------------------------------------------------------------
 
     /// Retrieves all entries from the [`AgentRegistry`] table in the database.
@@ -173,7 +181,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_agent_registry(&mut self) -> Result<Vec<AgentRegistry>> {
-        Ok(AgentRegistry::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(AgentRegistry::all(&mut conn)?)
     }
 
     /// Retrieves an [`AgentRegistry`] entry by its unique identifier.
@@ -198,7 +207,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_agent_registry_by_id(&mut self, id: &str) -> Result<Option<AgentRegistry>> {
-        Ok(AgentRegistry::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(AgentRegistry::find(&mut conn, id)?)
     }
 
     /// Retrieves the local update sequence number (USN) from the [`AgentRegistry`] table.
@@ -218,7 +228,8 @@ impl MasterDb {
     /// println!("Local USN: {}", local_usn);
     /// ```
     pub fn get_local_usn(&mut self) -> Result<i32> {
-        Ok(AgentRegistry::local_usn(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(AgentRegistry::local_usn(&mut conn)?)
     }
 
     // -- CloudAgentRegistry -----------------------------------------------------------------------
@@ -241,7 +252,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_cloud_agent_registry(&mut self) -> Result<Vec<CloudAgentRegistry>> {
-        Ok(CloudAgentRegistry::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(CloudAgentRegistry::all(&mut conn)?)
     }
 
     /// Retrieves a [`CloudAgentRegistry`] entry by its unique identifier.
@@ -269,7 +281,8 @@ impl MasterDb {
         &mut self,
         id: &str,
     ) -> Result<Option<CloudAgentRegistry>> {
-        Ok(CloudAgentRegistry::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(CloudAgentRegistry::find(&mut conn, id)?)
     }
 
     // -- ContentActiveCensor ----------------------------------------------------------------------
@@ -292,7 +305,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_content_active_censor(&mut self) -> Result<Vec<ContentActiveCensor>> {
-        Ok(ContentActiveCensor::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(ContentActiveCensor::all(&mut conn)?)
     }
 
     /// Retrieves a [`ContentActiveCensor`] entry by its unique identifier.
@@ -320,7 +334,8 @@ impl MasterDb {
         &mut self,
         id: &str,
     ) -> Result<Option<ContentActiveCensor>> {
-        Ok(ContentActiveCensor::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(ContentActiveCensor::find(&mut conn, id)?)
     }
 
     // -- ContentCue -------------------------------------------------------------------------------
@@ -343,7 +358,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_content_cue(&mut self) -> Result<Vec<ContentCue>> {
-        Ok(ContentCue::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(ContentCue::all(&mut conn)?)
     }
 
     /// Retrieves a [`ContentCue`] entry by its unique identifier.
@@ -368,7 +384,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_content_cue_by_id(&mut self, id: &str) -> Result<Option<ContentCue>> {
-        Ok(ContentCue::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(ContentCue::find(&mut conn, id)?)
     }
 
     // -- ContentFile ------------------------------------------------------------------------------
@@ -391,7 +408,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_content_file(&mut self) -> Result<Vec<ContentFile>> {
-        Ok(ContentFile::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(ContentFile::all(&mut conn)?)
     }
 
     /// Retrieves a [`ContentFile`] entry by its unique identifier.
@@ -416,7 +434,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_content_file_by_id(&mut self, id: &str) -> Result<Option<ContentFile>> {
-        Ok(ContentFile::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(ContentFile::find(&mut conn, id)?)
     }
 
     // -- ActiveCensor -----------------------------------------------------------------------------
@@ -439,7 +458,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_active_censor(&mut self) -> Result<Vec<DjmdActiveCensor>> {
-        Ok(DjmdActiveCensor::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdActiveCensor::all(&mut conn)?)
     }
 
     /// Retrieves a [`DjmdActiveCensor`] entry by its unique identifier.
@@ -464,7 +484,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_active_censor_by_id(&mut self, id: &str) -> Result<Option<DjmdActiveCensor>> {
-        Ok(DjmdActiveCensor::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdActiveCensor::find(&mut conn, id)?)
     }
 
     // -- Album ------------------------------------------------------------------------------------
@@ -487,7 +508,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_album(&mut self) -> Result<Vec<DjmdAlbum>> {
-        Ok(DjmdAlbum::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdAlbum::all(&mut conn)?)
     }
 
     /// Retrieves a [`DjmdAlbum`] entry by its unique identifier.
@@ -512,7 +534,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_album_by_id(&mut self, id: &str) -> Result<Option<DjmdAlbum>> {
-        Ok(DjmdAlbum::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdAlbum::find(&mut conn, id)?)
     }
 
     /// Retrieves a [`DjmdAlbum`] entry by its name.
@@ -539,12 +562,14 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_album_by_name(&mut self, name: &str) -> Result<Option<DjmdAlbum>> {
-        Ok(DjmdAlbum::find_by_name(&mut self.conn, name)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdAlbum::find_by_name(&mut conn, name)?)
     }
 
     pub fn insert_album(&mut self, item: NewDjmdAlbum) -> Result<DjmdAlbum> {
         self.assert_write_mode()?;
-        Ok(item.insert(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(item.insert(&mut conn)?)
     }
 
     /// Inserts a new album into the [`DjmdAlbum`] table in the database.
@@ -581,6 +606,7 @@ impl MasterDb {
         compilation: Option<i32>,
     ) -> Result<DjmdAlbum> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
         let item = NewDjmdAlbum {
             name,
             album_artist_id: artist_id,
@@ -588,7 +614,7 @@ impl MasterDb {
             compilation,
             search_str: None,
         };
-        Ok(item.insert(&mut self.conn)?)
+        Ok(item.insert(&mut conn)?)
     }
 
     /// Inserts a new album into the [`DjmdAlbum`] table with the given name if it does not already exist.
@@ -612,8 +638,9 @@ impl MasterDb {
     /// ```
     fn create_album_if_not_exists(&mut self, name: &str) -> Result<DjmdAlbum> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
         let item = NewDjmdAlbum::new(name.to_string());
-        Ok(item.insert_if_not_exists(&mut self.conn)?)
+        Ok(item.insert_if_not_exists(&mut conn)?)
     }
 
     /// Updates an existing [`DjmdAlbum`] entry in the database.
@@ -646,7 +673,8 @@ impl MasterDb {
     /// ```
     pub fn update_album(&mut self, item: &mut DjmdAlbum) -> Result<DjmdAlbum> {
         self.assert_write_mode()?;
-        Ok(item.clone().update(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(item.clone().update(&mut conn)?)
     }
 
     /// Deletes an album entry from the [`DjmdAlbum`] table in the database.
@@ -674,7 +702,8 @@ impl MasterDb {
     /// ```
     pub fn delete_album(&mut self, id: &str) -> Result<usize> {
         self.assert_write_mode()?;
-        Ok(DjmdAlbum::delete(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdAlbum::delete(&mut conn, id)?)
     }
 
     // -- Artist -----------------------------------------------------------------------------------
@@ -697,7 +726,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_artist(&mut self) -> Result<Vec<DjmdArtist>> {
-        Ok(DjmdArtist::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdArtist::all(&mut conn)?)
     }
 
     /// Retrieves a [`DjmdArtist`] entry by its unique identifier.
@@ -722,7 +752,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_artist_by_id(&mut self, id: &str) -> Result<Option<DjmdArtist>> {
-        Ok(DjmdArtist::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdArtist::find(&mut conn, id)?)
     }
 
     /// Retrieves a [`DjmdArtist`] entry by its name.
@@ -749,12 +780,14 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_artist_by_name(&mut self, name: &str) -> Result<Option<DjmdArtist>> {
-        Ok(DjmdArtist::find_by_name(&mut self.conn, name)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdArtist::find_by_name(&mut conn, name)?)
     }
 
     pub fn insert_artist(&mut self, item: NewDjmdArtist) -> Result<DjmdArtist> {
         self.assert_write_mode()?;
-        Ok(item.insert(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(item.insert(&mut conn)?)
     }
 
     /// Inserts a new artist into the [`DjmdArtist`] table in the database.
@@ -777,8 +810,9 @@ impl MasterDb {
     /// ```
     pub fn create_artist(&mut self, name: String) -> Result<DjmdArtist> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
         let item = NewDjmdArtist::new(name);
-        Ok(item.insert(&mut self.conn)?)
+        Ok(item.insert(&mut conn)?)
     }
 
     /// Inserts a new [`DjmdArtist`] with the given name if it does not already exist.
@@ -802,8 +836,9 @@ impl MasterDb {
     /// ```
     fn create_artist_if_not_exists(&mut self, name: &str) -> Result<DjmdArtist> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
         let item = NewDjmdArtist::new(name.to_string());
-        Ok(item.insert_if_not_exists(&mut self.conn)?)
+        Ok(item.insert_if_not_exists(&mut conn)?)
     }
 
     /// Updates an existing [`DjmdArtist`] entry in the database.
@@ -836,7 +871,8 @@ impl MasterDb {
     /// ```
     pub fn update_artist(&mut self, item: &mut DjmdArtist) -> Result<DjmdArtist> {
         self.assert_write_mode()?;
-        Ok(item.clone().update(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(item.clone().update(&mut conn)?)
     }
 
     /// Deletes an artist entry from the [`DjmdArtist`] table in the database.
@@ -865,7 +901,8 @@ impl MasterDb {
     /// ```
     pub fn delete_artist(&mut self, id: &str) -> Result<usize> {
         self.assert_write_mode()?;
-        Ok(DjmdArtist::delete(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdArtist::delete(&mut conn, id)?)
     }
 
     // -- Category ---------------------------------------------------------------------------------
@@ -888,7 +925,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_category(&mut self) -> Result<Vec<DjmdCategory>> {
-        Ok(DjmdCategory::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdCategory::all(&mut conn)?)
     }
 
     /// Retrieves a [`DjmdCategory`] entry by its unique identifier.
@@ -913,7 +951,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_category_by_id(&mut self, id: &str) -> Result<Option<DjmdCategory>> {
-        Ok(DjmdCategory::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdCategory::find(&mut conn, id)?)
     }
 
     // -- Color ------------------------------------------------------------------------------------
@@ -936,7 +975,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_color(&mut self) -> Result<Vec<DjmdColor>> {
-        Ok(DjmdColor::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdColor::all(&mut conn)?)
     }
 
     /// Retrieves a [`DjmdColor`] entry by its unique identifier.
@@ -961,7 +1001,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_color_by_id(&mut self, id: &str) -> Result<Option<DjmdColor>> {
-        Ok(DjmdColor::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdColor::find(&mut conn, id)?)
     }
 
     // -- Content ----------------------------------------------------------------------------------
@@ -984,7 +1025,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_content(&mut self) -> Result<Vec<DjmdContent>> {
-        Ok(DjmdContent::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdContent::all(&mut conn)?)
     }
 
     /// Retrieves a [`DjmdContent`] entry by its unique identifier.
@@ -1009,7 +1051,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_content_by_id(&mut self, id: &str) -> Result<Option<DjmdContent>> {
-        Ok(DjmdContent::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdContent::find(&mut conn, id)?)
     }
 
     /// Retrieves multiple [`DjmdContent`] entries by their unique identifiers.
@@ -1032,7 +1075,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_contents_by_ids(&mut self, ids: &[&str]) -> Result<Vec<DjmdContent>> {
-        Ok(DjmdContent::by_ids(&mut self.conn, ids)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdContent::by_ids(&mut conn, ids)?)
     }
 
     /// Retrieves a [`DjmdContent`] entry by its folder path.
@@ -1057,7 +1101,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_content_by_path(&mut self, path: &str) -> Result<Option<DjmdContent>> {
-        Ok(DjmdContent::find_by_path(&mut self.conn, path)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdContent::find_by_path(&mut conn, path)?)
     }
 
     /// Returns the path to the corresponding ANLZxxxx.DAT file for a given content ID.
@@ -1078,24 +1123,24 @@ impl MasterDb {
     /// println!("Analysis data path: {:?}", path);
     /// ```
     fn get_content_analysis_data_path(&mut self, id: &str) -> Result<PathBuf> {
-        if self.share_dir.is_none() {
-            return Err(Error::Database("Share dir not set!".into()));
-        }
-        let result = DjmdContent::find_anlz_path(&mut self.conn, id)?;
-        if let Some(result) = result {
+        let share_dir = match &self.share_dir {
+            Some(s) => s,
+            None => return Err(Error::Database("Share dir not set!".into())),
+        };
+
+        let mut conn = self.pool.get()?;
+        if let Some(result) = DjmdContent::find_anlz_path(&mut conn, id)? {
             // Strip first "/" in result
-            let striped = result.strip_prefix("/");
-            if let Some(striped) = striped {
-                let anlz_file = self.share_dir.clone().unwrap().join(striped);
-                let anlz_files_canonicalized = dunce::canonicalize(&anlz_file);
-                if let Err(e) = anlz_files_canonicalized {
-                    return Err(Error::Database(format!(
-                        "Failed to canonicalize path: {}",
-                        e
-                    )));
-                }
-                return Ok(anlz_files_canonicalized?);
+            let striped = result.strip_prefix("/").unwrap();
+            let anlz_file = share_dir.join(striped);
+            let anlz_files_canonicalized = dunce::canonicalize(&anlz_file);
+            if let Err(e) = anlz_files_canonicalized {
+                return Err(Error::Database(format!(
+                    "Failed to canonicalize path: {}",
+                    e
+                )));
             }
+            return Ok(anlz_files_canonicalized?);
         }
         Err(Error::Database("Failed to get AnalysisDataPath".into()))
     }
@@ -1209,9 +1254,10 @@ impl MasterDb {
         path: P,
     ) -> Result<DjmdContent> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
         let path = Path::new(&path).as_os_str().to_str().unwrap().to_string();
         let item = NewDjmdContent::new(path);
-        Ok(item.insert(&mut self.conn)?)
+        Ok(item.insert(&mut conn)?)
     }
 
     /// Updates an existing [`DjmdContent`] entry in the database.
@@ -1236,7 +1282,8 @@ impl MasterDb {
     /// ```
     pub fn update_content(&mut self, item: &DjmdContent) -> Result<usize> {
         self.assert_write_mode()?;
-        let _ = item.clone().update(&mut self.conn)?;
+        let mut conn = self.pool.get()?;
+        let _ = item.clone().update(&mut conn)?;
         Ok(1)
     }
 
@@ -1246,12 +1293,9 @@ impl MasterDb {
     /// If the album does not exist yet, a new [DjmdAlbum] row will be created.
     pub fn update_content_album(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
         let album = self.create_album_if_not_exists(name)?;
-        Ok(DjmdContent::set_album_id(
-            &mut self.conn,
-            content_id,
-            &album.id,
-        )?)
+        Ok(DjmdContent::set_album_id(&mut conn, content_id, &album.id)?)
     }
 
     /// Update the content artist name.
@@ -1260,11 +1304,10 @@ impl MasterDb {
     /// If the artist does not exist yet, a new [DjmdArtist] row will be created.
     pub fn update_content_artist(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
         let artist = self.create_artist_if_not_exists(name)?;
         Ok(DjmdContent::set_artist_id(
-            &mut self.conn,
-            content_id,
-            &artist.id,
+            &mut conn, content_id, &artist.id,
         )?)
     }
 
@@ -1274,11 +1317,10 @@ impl MasterDb {
     /// If the artist does not exist yet, a new [DjmdArtist] row will be created.
     pub fn update_content_remixer(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
         let artist = self.create_artist_if_not_exists(name)?;
         Ok(DjmdContent::set_remixer_id(
-            &mut self.conn,
-            content_id,
-            &artist.id,
+            &mut conn, content_id, &artist.id,
         )?)
     }
 
@@ -1292,11 +1334,10 @@ impl MasterDb {
         name: &str,
     ) -> Result<usize> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
         let artist = self.create_artist_if_not_exists(name)?;
         Ok(DjmdContent::set_original_artist_id(
-            &mut self.conn,
-            content_id,
-            &artist.id,
+            &mut conn, content_id, &artist.id,
         )?)
     }
 
@@ -1306,11 +1347,10 @@ impl MasterDb {
     /// If the artist does not exist yet, a new [DjmdArtist] row will be created.
     pub fn update_content_composer(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
         let artist = self.create_artist_if_not_exists(name)?;
         Ok(DjmdContent::set_composer_id(
-            &mut self.conn,
-            content_id,
-            &artist.id,
+            &mut conn, content_id, &artist.id,
         )?)
     }
 
@@ -1320,12 +1360,9 @@ impl MasterDb {
     /// If the genre does not exist yet, a new [DjmdGenre] row will be created.
     pub fn update_content_genre(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
         let genre = self.create_genre_if_not_exists(name)?;
-        Ok(DjmdContent::set_genre_id(
-            &mut self.conn,
-            content_id,
-            &genre.id,
-        )?)
+        Ok(DjmdContent::set_genre_id(&mut conn, content_id, &genre.id)?)
     }
 
     /// Update the content label name.
@@ -1334,12 +1371,9 @@ impl MasterDb {
     /// If the label does not exist yet, a new [DjmdLabel] row will be created.
     pub fn update_content_label(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
         let label = self.create_label_if_not_exists(name)?;
-        Ok(DjmdContent::set_label_id(
-            &mut self.conn,
-            content_id,
-            &label.id,
-        )?)
+        Ok(DjmdContent::set_label_id(&mut conn, content_id, &label.id)?)
     }
 
     /// Update the content key name.
@@ -1348,12 +1382,9 @@ impl MasterDb {
     /// If the key does not exist yet, a new [DjmdKey] row will be created.
     pub fn update_content_key(&mut self, content_id: &str, name: &str) -> Result<usize> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
         let key = self.create_key_if_not_exists(name)?;
-        Ok(DjmdContent::set_key_id(
-            &mut self.conn,
-            content_id,
-            &key.id,
-        )?)
+        Ok(DjmdContent::set_key_id(&mut conn, content_id, &key.id)?)
     }
 
     /// Updates the file path of a content entry in the database.
@@ -1387,6 +1418,7 @@ impl MasterDb {
     /// ```
     pub fn update_content_path(&mut self, content_id: &str, path: &str) -> Result<usize> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
 
         // prepare path and check if it exists
         let path = Path::new(&path);
@@ -1398,7 +1430,7 @@ impl MasterDb {
         if !path.is_file() || !path.exists() {
             return Err(Error::FileNotFound(rb_path_str.to_string()));
         }
-        if DjmdContent::path_exists(&mut self.conn, &rb_path_str)? {
+        if DjmdContent::path_exists(&mut conn, &rb_path_str)? {
             return Err(Error::Database(format!(
                 "Content with path {} already exists",
                 rb_path_str
@@ -1422,17 +1454,13 @@ impl MasterDb {
             }
         }
 
-        Ok(DjmdContent::set_path(
-            &mut self.conn,
-            content_id,
-            &rb_path_str,
-        )?)
+        Ok(DjmdContent::set_path(&mut conn, content_id, &rb_path_str)?)
     }
 
     // pub fn delete_content(&mut self, id: &str) -> Result<usize> {
     //     self.assert_write_mode()?;
     //     let result = diesel::delete(djmdContent.filter(schema::djmdContent::id.eq(id)))
-    //         .execute(&mut self.conn)?;
+    //         .execute(&mut conn)?;
     //     Ok(result)
     // }
 
@@ -1451,7 +1479,8 @@ impl MasterDb {
     /// let cues = db.get_cue()?;
     /// ```
     pub fn get_cue(&mut self) -> Result<Vec<DjmdCue>> {
-        Ok(DjmdCue::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdCue::all(&mut conn)?)
     }
 
     /// Retrieves a [`DjmdCue`] entry by its unique identifier.
@@ -1470,7 +1499,8 @@ impl MasterDb {
     /// let cue = db.get_cue_by_id("cue_id")?;
     /// ```
     pub fn get_cue_by_id(&mut self, id: &str) -> Result<Option<DjmdCue>> {
-        Ok(DjmdCue::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdCue::find(&mut conn, id)?)
     }
 
     // -- Device -----------------------------------------------------------------------------------
@@ -1488,7 +1518,8 @@ impl MasterDb {
     /// let devices = db.get_device()?;
     /// ```
     pub fn get_device(&mut self) -> Result<Vec<DjmdDevice>> {
-        Ok(DjmdDevice::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdDevice::all(&mut conn)?)
     }
 
     /// Retrieves a [`DjmdDevice`] entry by its unique identifier.
@@ -1507,7 +1538,8 @@ impl MasterDb {
     /// let device = db.get_device_by_id("device_id")?;
     /// ```
     pub fn get_device_by_id(&mut self, id: &str) -> Result<Option<DjmdDevice>> {
-        Ok(DjmdDevice::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdDevice::find(&mut conn, id)?)
     }
 
     // -- Genre ------------------------------------------------------------------------------------
@@ -1529,7 +1561,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_genre(&mut self) -> Result<Vec<DjmdGenre>> {
-        Ok(DjmdGenre::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdGenre::all(&mut conn)?)
     }
 
     /// Retrieves a [`DjmdGenre`] entry by its unique identifier.
@@ -1553,7 +1586,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_genre_by_id(&mut self, id: &str) -> Result<Option<DjmdGenre>> {
-        Ok(DjmdGenre::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdGenre::find(&mut conn, id)?)
     }
 
     /// Retrieves a [`DjmdGenre`] entry by its name.
@@ -1579,12 +1613,14 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_genre_by_name(&mut self, name: &str) -> Result<Option<DjmdGenre>> {
-        Ok(DjmdGenre::find_by_name(&mut self.conn, name)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdGenre::find_by_name(&mut conn, name)?)
     }
 
     pub fn insert_genre(&mut self, item: NewDjmdGenre) -> Result<DjmdGenre> {
         self.assert_write_mode()?;
-        Ok(item.insert(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(item.insert(&mut conn)?)
     }
 
     /// Inserts a new genre into the [`DjmdGenre`] table in the database.
@@ -1606,8 +1642,9 @@ impl MasterDb {
     /// ```
     pub fn create_genre(&mut self, name: String) -> Result<DjmdGenre> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
         let item = NewDjmdGenre::new(name);
-        Ok(item.insert(&mut self.conn)?)
+        Ok(item.insert(&mut conn)?)
     }
 
     /// Inserts a new [`DjmdGenre`] with the given name if it does not already exist.
@@ -1627,8 +1664,9 @@ impl MasterDb {
     /// ```
     fn create_genre_if_not_exists(&mut self, name: &str) -> Result<DjmdGenre> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
         let item = NewDjmdGenre::new(name.to_string());
-        Ok(item.insert_if_not_exists(&mut self.conn)?)
+        Ok(item.insert_if_not_exists(&mut conn)?)
     }
 
     /// Updates an existing [`DjmdGenre`] entry in the database.
@@ -1660,7 +1698,8 @@ impl MasterDb {
     /// ```
     pub fn update_genre(&mut self, item: &mut DjmdGenre) -> Result<DjmdGenre> {
         self.assert_write_mode()?;
-        Ok(item.clone().update(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(item.clone().update(&mut conn)?)
     }
 
     /// Deletes a genre entry from the [`DjmdGenre`] table in the database.
@@ -1687,7 +1726,8 @@ impl MasterDb {
     /// ```
     pub fn delete_genre(&mut self, id: &str) -> Result<usize> {
         self.assert_write_mode()?;
-        Ok(DjmdGenre::delete(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdGenre::delete(&mut conn, id)?)
     }
 
     // -- History ----------------------------------------------------------------------------------
@@ -1709,7 +1749,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_history(&mut self) -> Result<Vec<DjmdHistory>> {
-        Ok(DjmdHistory::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdHistory::all(&mut conn)?)
     }
 
     /// Retrieves a [`DjmdHistory`] entry by its unique identifier.
@@ -1733,7 +1774,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_history_by_id(&mut self, id: &str) -> Result<Option<DjmdHistory>> {
-        Ok(DjmdHistory::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdHistory::find(&mut conn, id)?)
     }
 
     /// Retrieves all song history entries for a given history ID, ordered by track number.
@@ -1755,7 +1797,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_history_songs(&mut self, id: &str) -> Result<Vec<DjmdSongHistory>> {
-        Ok(DjmdSongHistory::by_history_id(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdSongHistory::by_history_id(&mut conn, id)?)
     }
 
     /// Retrieves all content entries referenced by the song history for a given history ID.
@@ -1777,7 +1820,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_history_contents(&mut self, id: &str) -> Result<Vec<DjmdContent>> {
-        Ok(DjmdHistory::get_contents(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdHistory::get_contents(&mut conn, id)?)
     }
 
     // -- HotCueBanklist ---------------------------------------------------------------------------
@@ -1799,7 +1843,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_hot_cue_banklist(&mut self) -> Result<Vec<DjmdHotCueBanklist>> {
-        Ok(DjmdHotCueBanklist::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdHotCueBanklist::all(&mut conn)?)
     }
 
     /// Retrieves a [`DjmdHotCueBanklist`] entry by its unique identifier.
@@ -1823,7 +1868,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_hot_cue_banklist_by_id(&mut self, id: &str) -> Result<Option<DjmdHotCueBanklist>> {
-        Ok(DjmdHotCueBanklist::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdHotCueBanklist::find(&mut conn, id)?)
     }
 
     /// Retrieves all child [`DjmdHotCueBanklist`] entries for a given parent ID, ordered by sequence.
@@ -1848,7 +1894,8 @@ impl MasterDb {
         &mut self,
         parent_id: &str,
     ) -> Result<Vec<DjmdHotCueBanklist>> {
-        Ok(DjmdHotCueBanklist::by_parent_id(&mut self.conn, parent_id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdHotCueBanklist::by_parent_id(&mut conn, parent_id)?)
     }
 
     /// Retrieves all [`DjmdSongHotCueBanklist`] entries for a given hot cue banklist ID, ordered by track number.
@@ -1870,9 +1917,9 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_hot_cue_banklist_songs(&mut self, id: &str) -> Result<Vec<DjmdSongHotCueBanklist>> {
+        let mut conn = self.pool.get()?;
         Ok(DjmdSongHotCueBanklist::by_hot_cue_banklist_id(
-            &mut self.conn,
-            id,
+            &mut conn, id,
         )?)
     }
 
@@ -1895,7 +1942,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_hot_cue_banklist_contents(&mut self, id: &str) -> Result<Vec<DjmdContent>> {
-        Ok(DjmdHotCueBanklist::get_contents(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdHotCueBanklist::get_contents(&mut conn, id)?)
     }
 
     /// Retrieves all [`HotCueBanklistCue`] entries for a given hot cue banklist ID.
@@ -1917,10 +1965,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_hot_cue_banklist_cues(&mut self, id: &str) -> Result<Vec<HotCueBanklistCue>> {
-        Ok(HotCueBanklistCue::by_hot_cue_banklist_id(
-            &mut self.conn,
-            id,
-        )?)
+        let mut conn = self.pool.get()?;
+        Ok(HotCueBanklistCue::by_hot_cue_banklist_id(&mut conn, id)?)
     }
 
     // -- Key --------------------------------------------------------------------------------------
@@ -1941,7 +1987,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_key(&mut self) -> Result<Vec<DjmdKey>> {
-        Ok(DjmdKey::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdKey::all(&mut conn)?)
     }
 
     /// Retrieves a [`DjmdKey`] entry by its unique identifier.
@@ -1964,7 +2011,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_key_by_id(&mut self, id: &str) -> Result<Option<DjmdKey>> {
-        Ok(DjmdKey::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdKey::find(&mut conn, id)?)
     }
 
     /// Retrieves a [`DjmdKey`] entry by its scale name.
@@ -1988,12 +2036,14 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_key_by_name(&mut self, name: &str) -> Result<Option<DjmdKey>> {
-        Ok(DjmdKey::find_by_name(&mut self.conn, name)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdKey::find_by_name(&mut conn, name)?)
     }
 
     pub fn insert_key(&mut self, item: NewDjmdKey) -> Result<DjmdKey> {
         self.assert_write_mode()?;
-        Ok(item.insert(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(item.insert(&mut conn)?)
     }
 
     /// Inserts a new key into the [`DjmdKey`] table in the database.
@@ -2015,8 +2065,9 @@ impl MasterDb {
     /// ```
     pub fn create_key(&mut self, name: String) -> Result<DjmdKey> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
         let item = NewDjmdKey::new(name);
-        Ok(item.insert(&mut self.conn)?)
+        Ok(item.insert(&mut conn)?)
     }
 
     /// Inserts a new [`DjmdKey`] with the given name if it does not already exist.
@@ -2031,8 +2082,9 @@ impl MasterDb {
     /// * Returns an error if the key cannot be inserted or retrieved.
     fn create_key_if_not_exists(&mut self, name: &str) -> Result<DjmdKey> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
         let item = NewDjmdKey::new(name.to_string());
-        Ok(item.insert_if_not_exists(&mut self.conn)?)
+        Ok(item.insert_if_not_exists(&mut conn)?)
     }
 
     /// Updates an existing [`DjmdKey`] entry in the database.
@@ -2064,7 +2116,8 @@ impl MasterDb {
     /// ```
     pub fn update_key(&mut self, item: &mut DjmdKey) -> Result<DjmdKey> {
         self.assert_write_mode()?;
-        Ok(item.clone().update(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(item.clone().update(&mut conn)?)
     }
 
     /// Deletes a key entry from the [`DjmdKey`] table in the database.
@@ -2091,7 +2144,8 @@ impl MasterDb {
     /// ```
     pub fn delete_key(&mut self, id: &str) -> Result<usize> {
         self.assert_write_mode()?;
-        Ok(DjmdKey::delete(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdKey::delete(&mut conn, id)?)
     }
 
     // -- Label ------------------------------------------------------------------------------------
@@ -2112,7 +2166,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_label(&mut self) -> Result<Vec<DjmdLabel>> {
-        Ok(DjmdLabel::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdLabel::all(&mut conn)?)
     }
 
     /// Retrieves a [`DjmdLabel`] entry by its unique identifier.
@@ -2135,7 +2190,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_label_by_id(&mut self, id: &str) -> Result<Option<DjmdLabel>> {
-        Ok(DjmdLabel::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdLabel::find(&mut conn, id)?)
     }
 
     /// Retrieves a [`DjmdLabel`] entry by its name.
@@ -2159,12 +2215,14 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_label_by_name(&mut self, name: &str) -> Result<Option<DjmdLabel>> {
-        Ok(DjmdLabel::find_by_name(&mut self.conn, name)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdLabel::find_by_name(&mut conn, name)?)
     }
 
     pub fn insert_label(&mut self, item: NewDjmdLabel) -> Result<DjmdLabel> {
         self.assert_write_mode()?;
-        Ok(item.insert(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(item.insert(&mut conn)?)
     }
 
     /// Inserts a new label into the [`DjmdLabel`] table in the database.
@@ -2186,8 +2244,9 @@ impl MasterDb {
     /// ```
     pub fn create_label(&mut self, name: String) -> Result<DjmdLabel> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
         let item = NewDjmdLabel::new(name);
-        Ok(item.insert(&mut self.conn)?)
+        Ok(item.insert(&mut conn)?)
     }
 
     /// Inserts a new [`DjmdLabel`] with the given name if it does not already exist.
@@ -2202,8 +2261,9 @@ impl MasterDb {
     /// * Returns an error if the label cannot be inserted or retrieved.
     fn create_label_if_not_exists(&mut self, name: &str) -> Result<DjmdLabel> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
         let item = NewDjmdLabel::new(name.to_string());
-        Ok(item.insert_if_not_exists(&mut self.conn)?)
+        Ok(item.insert_if_not_exists(&mut conn)?)
     }
 
     /// Updates an existing [`DjmdLabel`] entry in the database.
@@ -2234,7 +2294,8 @@ impl MasterDb {
     /// println
     pub fn update_label(&mut self, item: &mut DjmdLabel) -> Result<DjmdLabel> {
         self.assert_write_mode()?;
-        Ok(item.clone().update(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(item.clone().update(&mut conn)?)
     }
 
     /// Deletes a label entry from the [`DjmdLabel`] table in the database.
@@ -2261,7 +2322,8 @@ impl MasterDb {
     /// ```
     pub fn delete_label(&mut self, id: &str) -> Result<usize> {
         self.assert_write_mode()?;
-        Ok(DjmdLabel::delete(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdLabel::delete(&mut conn, id)?)
     }
 
     // -- MenuItems --------------------------------------------------------------------------------
@@ -2282,7 +2344,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_menu_item(&mut self) -> Result<Vec<DjmdMenuItems>> {
-        Ok(DjmdMenuItems::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdMenuItems::all(&mut conn)?)
     }
 
     /// Retrieves a [`DjmdMenuItems`] entry by its unique identifier.
@@ -2305,7 +2368,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_menu_item_by_id(&mut self, id: &str) -> Result<Option<DjmdMenuItems>> {
-        Ok(DjmdMenuItems::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdMenuItems::find(&mut conn, id)?)
     }
 
     // -- MixerParam -------------------------------------------------------------------------------
@@ -2326,7 +2390,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_mixer_param(&mut self) -> Result<Vec<DjmdMixerParam>> {
-        Ok(DjmdMixerParam::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdMixerParam::all(&mut conn)?)
     }
 
     /// Retrieves a [`DjmdMixerParam`] entry by its unique identifier.
@@ -2349,7 +2414,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_mixer_param_by_id(&mut self, id: &str) -> Result<Option<DjmdMixerParam>> {
-        Ok(DjmdMixerParam::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdMixerParam::find(&mut conn, id)?)
     }
 
     // -- MyTag ------------------------------------------------------------------------------------
@@ -2370,7 +2436,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_my_tag(&mut self) -> Result<Vec<DjmdMyTag>> {
-        Ok(DjmdMyTag::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdMyTag::all(&mut conn)?)
     }
 
     /// Retrieves all child [`DjmdMyTag`] entries for a given parent ID, ordered by sequence.
@@ -2392,7 +2459,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_my_tag_children(&mut self, parent_id: &str) -> Result<Vec<DjmdMyTag>> {
-        Ok(DjmdMyTag::by_parent_id(&mut self.conn, parent_id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdMyTag::by_parent_id(&mut conn, parent_id)?)
     }
 
     /// Retrieves a [`DjmdMyTag`] entry by its unique identifier.
@@ -2415,7 +2483,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_my_tag_by_id(&mut self, id: &str) -> Result<Option<DjmdMyTag>> {
-        Ok(DjmdMyTag::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdMyTag::find(&mut conn, id)?)
     }
 
     /// Retrieves all [`DjmdSongMyTag`] entries for a given tag ID, ordered by track number.
@@ -2437,7 +2506,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_my_tag_songs(&mut self, id: &str) -> Result<Vec<DjmdSongMyTag>> {
-        Ok(DjmdSongMyTag::by_tag_id(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdSongMyTag::by_tag_id(&mut conn, id)?)
     }
 
     /// Retrieves all [`DjmdContent`] entries referenced by the songs for a given tag ID.
@@ -2459,7 +2529,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_my_tag_contents(&mut self, id: &str) -> Result<Vec<DjmdContent>> {
-        Ok(DjmdMyTag::get_contents(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdMyTag::get_contents(&mut conn, id)?)
     }
 
     // -- Playlist ---------------------------------------------------------------------------------
@@ -2480,7 +2551,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_playlist(&mut self) -> Result<Vec<DjmdPlaylist>> {
-        Ok(DjmdPlaylist::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdPlaylist::all(&mut conn)?)
     }
 
     /// Returns a sorted tree of playlists as [`DjmdPlaylistTreeItem`] nodes.
@@ -2499,35 +2571,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_playlist_tree(&mut self) -> Result<Vec<Rc<RefCell<DjmdPlaylistTreeItem>>>> {
-        let playlists: Vec<DjmdPlaylistTreeItem> = self
-            .get_playlist()?
-            .iter()
-            .map(|p: &DjmdPlaylist| DjmdPlaylistTreeItem::from(p.clone()))
-            .collect();
-
-        let mut map = HashMap::<String, Rc<RefCell<DjmdPlaylistTreeItem>>>::new();
-        let mut roots = Vec::new();
-
-        // Populate the map with nodes
-        for pl in playlists.iter() {
-            let item = Rc::new(RefCell::new(pl.clone()));
-            map.insert(pl.id.clone(), item.clone());
-            if pl.parent_id == "root".to_string() {
-                roots.push(item.clone());
-            }
-        }
-
-        // Build the tree structure
-        for id in map.keys() {
-            let node = map.get(id).unwrap();
-            let parent_id = node.borrow().parent_id.clone();
-            if let Some(parent_node) = map.get(&parent_id) {
-                parent_node.borrow_mut().children.push(node.clone());
-            }
-        }
-        sort_tree_list(&mut roots);
-
-        Ok(roots)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdPlaylist::tree(&mut conn)?)
     }
 
     /// Retrieves all child [`DjmdPlaylist`] entries for a given parent ID, ordered by sequence.
@@ -2549,7 +2594,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_playlist_children(&mut self, parent_id: &str) -> Result<Vec<DjmdPlaylist>> {
-        Ok(DjmdPlaylist::by_parent_id(&mut self.conn, parent_id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdPlaylist::by_parent_id(&mut conn, parent_id)?)
     }
 
     /// Retrieves a [`DjmdPlaylist`] entry by its unique identifier.
@@ -2572,7 +2618,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_playlist_by_id(&mut self, id: &str) -> Result<Option<DjmdPlaylist>> {
-        Ok(DjmdPlaylist::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdPlaylist::find(&mut conn, id)?)
     }
 
     /// Retrieves a [`DjmdPlaylist`] entry by its hierarchical path.
@@ -2595,7 +2642,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_playlist_by_path(&mut self, path: Vec<&str>) -> Result<Option<DjmdPlaylist>> {
-        Ok(DjmdPlaylist::find_by_path(&mut self.conn, path)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdPlaylist::find_by_path(&mut conn, path)?)
     }
 
     /// Retrieves all [`DjmdSongPlaylist`] entries for a given playlist ID, ordered by track number.
@@ -2617,7 +2665,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_playlist_songs(&mut self, id: &str) -> Result<Vec<DjmdSongPlaylist>> {
-        Ok(DjmdSongPlaylist::by_playlist_id(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdSongPlaylist::by_playlist_id(&mut conn, id)?)
     }
 
     /// Retrieves all [`DjmdContent`] entries referenced by the songs for a given playlist ID.
@@ -2639,7 +2688,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_playlist_contents(&mut self, id: &str) -> Result<Vec<DjmdContent>> {
-        Ok(DjmdPlaylist::get_contents(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdPlaylist::get_contents(&mut conn, id)?)
     }
 
     /// Retrieves a [`DjmdSongPlaylist`] entry by its unique identifier.
@@ -2662,12 +2712,14 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_playlist_song_by_id(&mut self, id: &str) -> Result<Option<DjmdSongPlaylist>> {
-        Ok(DjmdSongPlaylist::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdSongPlaylist::find(&mut conn, id)?)
     }
 
     pub fn insert_playlist(&mut self, item: NewDjmdPlaylist) -> Result<DjmdPlaylist> {
+        let mut conn = self.pool.get()?;
         self.assert_write_mode()?;
-        let result = item.insert(&mut self.conn)?;
+        let result = item.insert(&mut conn)?;
         if let Some(pl_xml_path) = self.plxml_path.clone() {
             let mut pl_xml = MasterPlaylistXml::load(pl_xml_path);
             pl_xml.add(
@@ -2819,7 +2871,8 @@ impl MasterDb {
     /// ```
     pub fn rename_playlist(&mut self, id: &String, name: String) -> Result<DjmdPlaylist> {
         self.assert_write_mode()?;
-        let result = DjmdPlaylist::rename(&mut self.conn, id.as_str(), &name)?;
+        let mut conn = self.pool.get()?;
+        let result = DjmdPlaylist::rename(&mut conn, id.as_str(), &name)?;
         if let Some(pl_xml_path) = self.plxml_path.as_ref() {
             let mut pl_xml = MasterPlaylistXml::load(pl_xml_path);
             pl_xml.update(id.to_string(), result.updated_at.naive_utc());
@@ -2864,11 +2917,12 @@ impl MasterDb {
         parent_id: Option<String>,
     ) -> Result<DjmdPlaylist> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
 
         // Move playlist
         let playlist: DjmdPlaylist = self.get_playlist_by_id(id)?.expect("Playlist not found");
         let parent_id = parent_id.unwrap_or(playlist.parent_id.clone());
-        let result = DjmdPlaylist::move_to(&mut self.conn, id, &parent_id, seq)?;
+        let result = DjmdPlaylist::move_to(&mut conn, id, &parent_id, seq)?;
         if result == 0 {
             return Ok(playlist);
         }
@@ -2916,8 +2970,9 @@ impl MasterDb {
     /// ```
     pub fn delete_playlist(&mut self, id: &str) -> Result<usize> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
 
-        let deleted_ids = DjmdPlaylist::delete(&mut self.conn, id)?;
+        let deleted_ids = DjmdPlaylist::delete(&mut conn, id)?;
 
         if let Some(pl_xml_path) = self.plxml_path.clone() {
             let mut pl_xml = MasterPlaylistXml::load(pl_xml_path);
@@ -2934,7 +2989,8 @@ impl MasterDb {
 
     pub fn insert_playlist_song(&mut self, item: NewDjmdSongPlaylist) -> Result<DjmdSongPlaylist> {
         self.assert_write_mode()?;
-        let result = item.insert(&mut self.conn)?;
+        let mut conn = self.pool.get()?;
+        let result = item.insert(&mut conn)?;
         Ok(result)
     }
 
@@ -2969,13 +3025,14 @@ impl MasterDb {
         seq: Option<i32>,
     ) -> Result<DjmdSongPlaylist> {
         self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
 
         let item = NewDjmdSongPlaylist {
             playlist_id: playlist_id.clone(),
             content_id: content_id.clone(),
             track_no: seq,
         };
-        let result = item.insert(&mut self.conn)?;
+        let result = item.insert(&mut conn)?;
         Ok(result)
     }
 
@@ -3004,7 +3061,8 @@ impl MasterDb {
     /// ```
     pub fn move_playlist_song(&mut self, id: &String, seq: i32) -> Result<DjmdSongPlaylist> {
         self.assert_write_mode()?;
-        DjmdSongPlaylist::move_to(&mut self.conn, id, seq)?;
+        let mut conn = self.pool.get()?;
+        DjmdSongPlaylist::move_to(&mut conn, id, seq)?;
         let result: DjmdSongPlaylist = self.get_playlist_song_by_id(id)?.expect("Song not found");
         Ok(result)
     }
@@ -3032,7 +3090,8 @@ impl MasterDb {
     /// ```
     pub fn delete_playlist_song(&mut self, id: &str) -> Result<usize> {
         self.assert_write_mode()?;
-        Ok(DjmdSongPlaylist::delete(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdSongPlaylist::delete(&mut conn, id)?)
     }
 
     // -- Property ---------------------------------------------------------------------------------
@@ -3053,7 +3112,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_property(&mut self) -> Result<Vec<DjmdProperty>> {
-        Ok(DjmdProperty::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdProperty::all(&mut conn)?)
     }
 
     /// Retrieves a [`DjmdProperty`] entry by its unique identifier.
@@ -3076,7 +3136,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_property_by_id(&mut self, id: &str) -> Result<Option<DjmdProperty>> {
-        Ok(DjmdProperty::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdProperty::find(&mut conn, id)?)
     }
 
     // -- CloudProperty ----------------------------------------------------------------------------
@@ -3097,7 +3158,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_cloud_property(&mut self) -> Result<Vec<DjmdCloudProperty>> {
-        Ok(DjmdCloudProperty::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdCloudProperty::all(&mut conn)?)
     }
 
     /// Retrieves a [`DjmdCloudProperty`] entry by its unique identifier.
@@ -3120,7 +3182,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_cloud_property_by_id(&mut self, id: &str) -> Result<Option<DjmdCloudProperty>> {
-        Ok(DjmdCloudProperty::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdCloudProperty::find(&mut conn, id)?)
     }
 
     // -- RecommendLike ----------------------------------------------------------------------------
@@ -3141,7 +3204,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_recommend_like(&mut self) -> Result<Vec<DjmdRecommendLike>> {
-        Ok(DjmdRecommendLike::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdRecommendLike::all(&mut conn)?)
     }
 
     /// Retrieves a [`DjmdRecommendLike`] entry by its unique identifier.
@@ -3164,7 +3228,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_recommend_like_by_id(&mut self, id: &str) -> Result<Option<DjmdRecommendLike>> {
-        Ok(DjmdRecommendLike::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdRecommendLike::find(&mut conn, id)?)
     }
 
     // -- RelatedTracks ----------------------------------------------------------------------------
@@ -3185,7 +3250,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_related_tracks(&mut self) -> Result<Vec<DjmdRelatedTracks>> {
-        Ok(DjmdRelatedTracks::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdRelatedTracks::all(&mut conn)?)
     }
 
     /// Retrieves all child [`DjmdRelatedTracks`] entries for a given parent ID, ordered by sequence.
@@ -3210,7 +3276,8 @@ impl MasterDb {
         &mut self,
         parent_id: &str,
     ) -> Result<Vec<DjmdRelatedTracks>> {
-        Ok(DjmdRelatedTracks::by_parent_id(&mut self.conn, parent_id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdRelatedTracks::by_parent_id(&mut conn, parent_id)?)
     }
 
     /// Retrieves a [`DjmdRelatedTracks`] entry by its unique identifier.
@@ -3233,7 +3300,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_related_tracks_by_id(&mut self, id: &str) -> Result<Option<DjmdRelatedTracks>> {
-        Ok(DjmdRelatedTracks::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdRelatedTracks::find(&mut conn, id)?)
     }
 
     /// Retrieves all [`DjmdSongRelatedTracks`] entries for a given related tracks ID, ordered by track number.
@@ -3255,10 +3323,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_related_tracks_songs(&mut self, id: &str) -> Result<Vec<DjmdSongRelatedTracks>> {
-        Ok(DjmdSongRelatedTracks::by_related_tracks_id(
-            &mut self.conn,
-            id,
-        )?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdSongRelatedTracks::by_related_tracks_id(&mut conn, id)?)
     }
 
     /// Retrieves all [`DjmdContent`] entries referenced by the songs for a given related tracks ID.
@@ -3280,7 +3346,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_related_tracks_contents(&mut self, id: &str) -> Result<Vec<DjmdContent>> {
-        Ok(DjmdRelatedTracks::get_contents(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdRelatedTracks::get_contents(&mut conn, id)?)
     }
 
     // -- Sampler ----------------------------------------------------------------------------------
@@ -3301,7 +3368,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_sampler(&mut self) -> Result<Vec<DjmdSampler>> {
-        Ok(DjmdSampler::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdSampler::all(&mut conn)?)
     }
 
     /// Retrieves all child [`DjmdSampler`] entries for a given parent ID, ordered by sequence.
@@ -3323,7 +3391,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_sampler_children(&mut self, parent_id: &str) -> Result<Vec<DjmdSampler>> {
-        Ok(DjmdSampler::by_parent_id(&mut self.conn, parent_id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdSampler::by_parent_id(&mut conn, parent_id)?)
     }
 
     /// Retrieves a [`DjmdSampler`] entry by its unique identifier.
@@ -3346,7 +3415,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_sampler_by_id(&mut self, id: &str) -> Result<Option<DjmdSampler>> {
-        Ok(DjmdSampler::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdSampler::find(&mut conn, id)?)
     }
 
     /// Retrieves all [`DjmdSongSampler`] entries for a given sampler ID, ordered by track number.
@@ -3368,7 +3438,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_sampler_songs(&mut self, id: &str) -> Result<Vec<DjmdSongSampler>> {
-        Ok(DjmdSongSampler::by_sampler_id(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdSongSampler::by_sampler_id(&mut conn, id)?)
     }
 
     /// Retrieves all [`DjmdContent`] entries referenced by the songs for a given sampler ID.
@@ -3390,7 +3461,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_sampler_contents(&mut self, id: &str) -> Result<Vec<DjmdContent>> {
-        Ok(DjmdSampler::get_contents(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdSampler::get_contents(&mut conn, id)?)
     }
 
     // -- SongTagList ------------------------------------------------------------------------------
@@ -3411,7 +3483,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_song_tag_list(&mut self) -> Result<Vec<DjmdSongTagList>> {
-        Ok(DjmdSongTagList::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdSongTagList::all(&mut conn)?)
     }
 
     /// Retrieves a [`DjmdSongTagList`] entry by its unique identifier.
@@ -3434,7 +3507,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_song_tag_list_by_id(&mut self, id: &str) -> Result<Option<DjmdSongTagList>> {
-        Ok(DjmdSongTagList::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdSongTagList::find(&mut conn, id)?)
     }
 
     // -- Sort -------------------------------------------------------------------------------------
@@ -3455,7 +3529,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_sort(&mut self) -> Result<Vec<DjmdSort>> {
-        Ok(DjmdSort::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdSort::all(&mut conn)?)
     }
 
     /// Retrieves a [`DjmdSort`] entry by its unique identifier.
@@ -3478,7 +3553,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_sort_by_id(&mut self, id: &str) -> Result<Option<DjmdSort>> {
-        Ok(DjmdSort::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(DjmdSort::find(&mut conn, id)?)
     }
 
     // -- ImageFile --------------------------------------------------------------------------------
@@ -3499,7 +3575,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_image_file(&mut self) -> Result<Vec<ImageFile>> {
-        Ok(ImageFile::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(ImageFile::all(&mut conn)?)
     }
 
     /// Retrieves an [`ImageFile`] entry by its unique identifier.
@@ -3522,7 +3599,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_image_file_by_id(&mut self, id: &str) -> Result<Option<ImageFile>> {
-        Ok(ImageFile::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(ImageFile::find(&mut conn, id)?)
     }
 
     // -- SettingFile ------------------------------------------------------------------------------
@@ -3543,7 +3621,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_setting_file(&mut self) -> Result<Vec<SettingFile>> {
-        Ok(SettingFile::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(SettingFile::all(&mut conn)?)
     }
 
     /// Retrieves a [`SettingFile`] entry by its unique identifier.
@@ -3566,7 +3645,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_setting_file_by_id(&mut self, id: &str) -> Result<Option<SettingFile>> {
-        Ok(SettingFile::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(SettingFile::find(&mut conn, id)?)
     }
 
     // -- UuidIDMap --------------------------------------------------------------------------------
@@ -3587,7 +3667,8 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_uuid_id_map(&mut self) -> Result<Vec<UuidIDMap>> {
-        Ok(UuidIDMap::all(&mut self.conn)?)
+        let mut conn = self.pool.get()?;
+        Ok(UuidIDMap::all(&mut conn)?)
     }
 
     /// Retrieves a [`UuidIDMap`] entry by its unique identifier.
@@ -3610,6 +3691,7 @@ impl MasterDb {
     /// }
     /// ```
     pub fn get_uuid_id_map_by_id(&mut self, id: &str) -> Result<Option<UuidIDMap>> {
-        Ok(UuidIDMap::find(&mut self.conn, id)?)
+        let mut conn = self.pool.get()?;
+        Ok(UuidIDMap::find(&mut conn, id)?)
     }
 }

@@ -11,7 +11,7 @@ use pyo3::prelude::*;
 
 use super::djmd_menu_items::DjmdMenuItems;
 use super::schema::djmdCategory;
-use super::util::{Date, DateString};
+use super::{Date, DateString};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 

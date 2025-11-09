@@ -685,7 +685,7 @@ fn assert_playlist_song_seq(items: Vec<DjmdSongPlaylist>) {
 }
 
 fn check_playlist_xml(db: &mut MasterDb) -> anyhow::Result<bool> {
-    let xml = MasterPlaylistXml::load(db.plxml_path.clone().unwrap());
+    let xml = MasterPlaylistXml::load(db.playlist_xml_path().unwrap());
     // Check that playlist is in XML and update time is correct
     for playlist in db.get_playlist()? {
         let playlist_xml = xml.get_playlist(playlist.id.clone());
