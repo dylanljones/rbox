@@ -17,7 +17,7 @@ use super::image::Image;
 use super::key::Key;
 use super::label::Label;
 use super::schema;
-use super::util::{Date, DateString};
+use super::{Date, DateString};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 

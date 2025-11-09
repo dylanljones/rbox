@@ -5,7 +5,6 @@ mod conn;
 pub mod enums;
 pub mod models;
 pub mod schema;
-mod util;
 
 pub use conn::{create_connection_pool, establish_connection};
 pub use enums::*;
