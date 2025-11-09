@@ -14,7 +14,7 @@ use super::schema;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-type JoinTuple = (CategoryRaw, Option<MenuItem>);
+type JoinTuple = (Category, Option<MenuItem>);
 
 #[derive(
     Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, AsChangeset, Associations,
@@ -26,7 +26,7 @@ type JoinTuple = (CategoryRaw, Option<MenuItem>);
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
-pub struct CategoryRaw {
+pub struct Category {
     pub id: i32,
     pub menu_item_id: i32,
     pub sequence_no: i32,
@@ -34,7 +34,7 @@ pub struct CategoryRaw {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Category {
+pub struct CategoryJoin {
     pub id: i32,
     pub menu_item_id: i32,
     pub sequence_no: i32,
@@ -43,9 +43,9 @@ pub struct Category {
     pub menu_item: Option<MenuItem>,
 }
 
-impl Into<CategoryRaw> for Category {
-    fn into(self) -> CategoryRaw {
-        CategoryRaw {
+impl Into<Category> for CategoryJoin {
+    fn into(self) -> Category {
+        Category {
             id: self.id,
             menu_item_id: self.menu_item_id,
             sequence_no: self.sequence_no,
@@ -54,9 +54,9 @@ impl Into<CategoryRaw> for Category {
     }
 }
 
-impl From<CategoryRaw> for Category {
-    fn from(raw: CategoryRaw) -> Self {
-        Category {
+impl From<Category> for CategoryJoin {
+    fn from(raw: Category) -> Self {
+        CategoryJoin {
             id: raw.id,
             menu_item_id: raw.menu_item_id,
             sequence_no: raw.sequence_no,
@@ -66,7 +66,7 @@ impl From<CategoryRaw> for Category {
     }
 }
 
-impl Category {
+impl CategoryJoin {
     pub fn from_join(tuple: JoinTuple) -> Self {
         let mut result = Self::from(tuple.0);
         result.menu_item = tuple.1;

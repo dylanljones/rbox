@@ -15,7 +15,7 @@ use super::schema;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-type JoinTuple = (AlbumRaw, Option<Artist>, Option<Image>);
+type JoinTuple = (Album, Option<Artist>, Option<Image>);
 
 /// Represents the raw structure of an album in the database.
 ///
@@ -32,7 +32,7 @@ type JoinTuple = (AlbumRaw, Option<Artist>, Option<Image>);
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
-pub struct AlbumRaw {
+pub struct Album {
     /// The unique identifier of the album.
     pub id: i32,
     /// The name of the album.
@@ -52,7 +52,7 @@ pub struct AlbumRaw {
 /// This struct is used to encapsulate the full details of an album, including
 /// its relationships with the `Artist` and `Image` entities.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Album {
+pub struct AlbumJoin {
     /// The unique identifier of the album.
     pub id: i32,
     /// The name of the album.
@@ -72,9 +72,9 @@ pub struct Album {
     pub image: Option<Image>,
 }
 
-impl Into<AlbumRaw> for Album {
-    fn into(self) -> AlbumRaw {
-        AlbumRaw {
+impl Into<Album> for AlbumJoin {
+    fn into(self) -> Album {
+        Album {
             id: self.id,
             name: self.name,
             artist_id: self.artist_id,
@@ -85,9 +85,9 @@ impl Into<AlbumRaw> for Album {
     }
 }
 
-impl From<AlbumRaw> for Album {
-    fn from(raw: AlbumRaw) -> Self {
-        Album {
+impl From<Album> for AlbumJoin {
+    fn from(raw: Album) -> Self {
+        AlbumJoin {
             id: raw.id,
             name: raw.name,
             artist_id: raw.artist_id,
@@ -100,7 +100,7 @@ impl From<AlbumRaw> for Album {
     }
 }
 
-impl Album {
+impl AlbumJoin {
     pub fn from_join(tuple: JoinTuple) -> Self {
         let mut result = Self::from(tuple.0);
         result.artist = tuple.1;

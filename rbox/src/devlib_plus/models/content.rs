@@ -9,7 +9,7 @@ use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-use super::album::AlbumRaw;
+use super::album::Album;
 use super::artist::{Artist, Composer, Lyricist, OriginalArtist, Remixer};
 use super::color::Color;
 use super::genre::Genre;
@@ -22,13 +22,13 @@ use super::{Date, DateString};
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
 type JoinTuple = (
-    ContentRaw,
+    Content,
     Option<Artist>,
     Option<Remixer>,
     Option<OriginalArtist>,
     Option<Composer>,
     Option<Lyricist>,
-    Option<AlbumRaw>,
+    Option<Album>,
     Option<Genre>,
     Option<Label>,
     Option<Key>,
@@ -56,7 +56,7 @@ type JoinTuple = (
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
-pub struct ContentRaw {
+pub struct Content {
     pub id: i32,
     pub title: Option<String>,
     pub title_for_search: Option<String>,
@@ -108,7 +108,7 @@ pub struct ContentRaw {
     pub information_update_count: Option<i32>,
 }
 
-impl ContentRaw {
+impl Content {
     pub fn with_relations(
         self,
         art: Option<Artist>,
@@ -116,14 +116,14 @@ impl ContentRaw {
         orig_art: Option<OriginalArtist>,
         comp: Option<Composer>,
         lyr: Option<Lyricist>,
-        alb: Option<AlbumRaw>,
+        alb: Option<Album>,
         gen: Option<Genre>,
         lab: Option<Label>,
         key_: Option<Key>,
         col: Option<Color>,
         img: Option<Image>,
-    ) -> Content {
-        Content {
+    ) -> ContentJoin {
+        ContentJoin {
             id: self.id,
             title: self.title,
             title_for_search: self.title_for_search,
@@ -185,7 +185,7 @@ impl ContentRaw {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Content {
+pub struct ContentJoin {
     pub id: i32,
     pub title: Option<String>,
     pub title_for_search: Option<String>,
@@ -237,7 +237,7 @@ pub struct Content {
     pub original_artist: Option<OriginalArtist>,
     pub composer: Option<Composer>,
     pub lyricist: Option<Lyricist>,
-    pub album: Option<AlbumRaw>,
+    pub album: Option<Album>,
     pub genre: Option<Genre>,
     pub label: Option<Label>,
     pub key: Option<Key>,
@@ -245,9 +245,9 @@ pub struct Content {
     pub image: Option<Image>,
 }
 
-impl Into<ContentRaw> for Content {
-    fn into(self) -> ContentRaw {
-        ContentRaw {
+impl Into<Content> for ContentJoin {
+    fn into(self) -> Content {
+        Content {
             id: self.id,
             title: self.title,
             title_for_search: self.title_for_search,
@@ -297,8 +297,8 @@ impl Into<ContentRaw> for Content {
     }
 }
 
-impl From<ContentRaw> for Content {
-    fn from(raw: ContentRaw) -> Self {
+impl From<Content> for ContentJoin {
+    fn from(raw: Content) -> Self {
         Self {
             id: raw.id,
             title: raw.title,
@@ -360,9 +360,9 @@ impl From<ContentRaw> for Content {
     }
 }
 
-impl Content {
+impl ContentJoin {
     pub fn from_join(tuple: JoinTuple) -> Self {
-        let mut result = Content::from(tuple.0);
+        let mut result = ContentJoin::from(tuple.0);
         result.artist = tuple.1;
         result.remixer = tuple.2;
         result.original_artist = tuple.3;
