@@ -11,7 +11,7 @@ use pyo3::prelude::*;
 
 use super::menu_item::MenuItem;
 use super::schema::{category, menuItem};
-use crate::model_traits::Sequence;
+use crate::model_traits::SequenceVisible;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -53,6 +53,12 @@ impl Category {
         Self::query().find(id).first(conn).optional()
     }
 
+    /// Creates a filter for records by `is_visible`.
+    #[diesel::dsl::auto_type(no_type_alias)]
+    fn filter_is_visible(is_visible: i32) -> _ {
+        category::table.filter(category::is_visible.eq(is_visible))
+    }
+
     /// Updates an existing record in the `category` table.
     pub fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
         diesel::update(category::table.find(self.id))
@@ -62,16 +68,75 @@ impl Category {
 
     /// Deletes a record from the `category` table and removes any references to it.
     pub fn delete(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
-        let result = diesel::delete(category::table.find(id)).execute(conn)?;
-        // TODO: Update seq
-        Ok(result)
+        let (is_visible, seq) = diesel::delete(category::table.find(id))
+            .returning((category::is_visible, category::seq))
+            .get_result::<(i32, i32)>(conn)?;
+        if is_visible == 1 {
+            Self::decrement_seq_after_delete(conn, seq)?;
+        }
+        Ok(1)
+    }
+
+    /// Deletes multiple records from the `category` table and removes any references to it.
+    pub fn delete_all(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<usize> {
+        let is_visible: Vec<i32> = diesel::delete(category::table.filter(category::id.eq_any(ids)))
+            .returning(category::is_visible)
+            .get_results(conn)?;
+        if is_visible.iter().any(|&v| v == 1) {
+            Self::reset_seq(conn)?;
+        }
+        Ok(1)
     }
 }
 
-impl Sequence for Category {
+impl SequenceVisible for Category {
     #[inline]
-    fn seq(&self) -> i32 {
-        self.seq
+    fn count_visible(conn: &mut SqliteConnection) -> QueryResult<i32> {
+        let count: i64 = Self::filter_is_visible(1).count().get_result(conn)?;
+        Ok(count as i32)
+    }
+
+    #[inline]
+    fn get_seq_numbers(conn: &mut SqliteConnection) -> QueryResult<Vec<i32>> {
+        Self::filter_is_visible(1)
+            .order(category::seq)
+            .select(category::seq)
+            .get_results(conn)
+    }
+
+    #[inline]
+    fn reset_seq(conn: &mut SqliteConnection) -> QueryResult<usize> {
+        diesel::sql_query(
+            r#"WITH ordered AS (
+                SELECT category_id, ROW_NUMBER() OVER (ORDER BY sequenceNo) AS new_seq
+                FROM category WHERE isVisible = 1
+            ) UPDATE category
+            SET sequenceNo = (SELECT new_seq FROM ordered WHERE ordered.category_id = category.category_id)
+            WHERE isVisible = 1;"#,
+        )
+            .execute(conn)
+    }
+
+    #[inline]
+    fn increment_seq_before_insert(conn: &mut SqliteConnection, seq: i32) -> QueryResult<usize> {
+        diesel::update(
+            category::table
+                .filter(category::is_visible.eq(1))
+                .filter(category::seq.ge(seq)),
+        )
+        .set(category::seq.eq(category::seq + 1))
+        .execute(conn)
+    }
+
+    #[inline]
+    fn decrement_seq_after_delete(conn: &mut SqliteConnection, seq: i32) -> QueryResult<usize> {
+        diesel::update(
+            category::table
+                .filter(category::is_visible.eq(1))
+                .filter(category::seq.gt(seq)),
+        )
+        .set(category::seq.eq(category::seq - 1))
+        .execute(conn)
     }
 }
 
@@ -176,8 +241,12 @@ impl NewCategory {
     }
 
     /// Inserts the new category into the database.
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Category> {
-        // TODO: Update seq
+    pub fn insert(mut self, conn: &mut SqliteConnection) -> QueryResult<Category> {
+        self.seq = if self.is_visible == 1 {
+            Category::update_seq_before_insert(conn, self.seq)?
+        } else {
+            0 // Make sure seq is 0 for hidden items
+        };
         diesel::insert_into(category::table)
             .values(self)
             .get_result(conn)

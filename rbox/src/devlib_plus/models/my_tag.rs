@@ -10,7 +10,6 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::schema;
-use crate::model_traits::Sequence;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -38,13 +37,6 @@ pub struct MyTag {
     pub name: String,
     pub attribute: i32,
     pub my_tag_id_parent: Option<i32>,
-}
-
-impl Sequence for MyTag {
-    #[inline]
-    fn seq(&self) -> i32 {
-        self.seq
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Default, Insertable)]

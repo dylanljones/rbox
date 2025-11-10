@@ -10,7 +10,6 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::schema::{hotCueBankList, hotCueBankList_cue};
-use crate::model_traits::Sequence;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -28,13 +27,6 @@ pub struct HotCueBankList {
     pub image_id: Option<i32>,
     pub attribute: i32,
     pub hot_cue_bank_list_id_parent: Option<i32>,
-}
-
-impl Sequence for HotCueBankList {
-    #[inline]
-    fn seq(&self) -> i32 {
-        self.seq
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Default, Insertable)]
@@ -79,12 +71,5 @@ impl HotCueBankListCue {
         .execute(conn)?;
         // TODO: Update seq numbers
         Ok(results)
-    }
-}
-
-impl Sequence for HotCueBankListCue {
-    #[inline]
-    fn seq(&self) -> i32 {
-        self.seq
     }
 }

@@ -2,7 +2,6 @@
 // Date:   2025-09-02
 
 use diesel::prelude::*;
-use diesel::result::{DatabaseErrorKind, Error};
 #[cfg(feature = "napi")]
 use napi_derive::napi;
 #[cfg(feature = "pyo3")]
@@ -11,7 +10,7 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::schema::sort;
-use crate::model_traits::Sequence;
+use crate::model_traits::SequenceVisible;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -53,6 +52,12 @@ impl Sort {
         Self::query().find(id).first(conn).optional()
     }
 
+    /// Creates a filter for records by `is_visible`.
+    #[diesel::dsl::auto_type(no_type_alias)]
+    fn filter_is_visible(is_visible: i32) -> _ {
+        sort::table.filter(sort::is_visible.eq(is_visible))
+    }
+
     /// Queries all records from the `sort` table that are visible.
     pub fn all_visible(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().filter(sort::is_visible.eq(1)).load(conn)
@@ -63,20 +68,77 @@ impl Sort {
         Self::query().filter(sort::is_visible.eq(0)).load(conn)
     }
 
-    /// Counts the number of records in the `djmdPlaylist` table that are visible.
-    pub fn count_visible(conn: &mut SqliteConnection) -> QueryResult<i32> {
-        let count: i64 = sort::table
-            .filter(sort::is_visible.eq(1))
-            .count()
-            .get_result(conn)?;
-        Ok(count as i32)
+    /// Deletes a record from the `category` table and removes any references to it.
+    pub fn delete(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
+        let (is_visible, seq) = diesel::delete(sort::table.find(id))
+            .returning((sort::is_visible, sort::seq))
+            .get_result::<(i32, i32)>(conn)?;
+        if is_visible == 1 {
+            Self::decrement_seq_after_delete(conn, seq)?;
+        }
+        Ok(1)
+    }
+
+    /// Deletes multiple records from the `category` table and removes any references to it.
+    pub fn delete_all(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<usize> {
+        let is_visible: Vec<i32> = diesel::delete(sort::table.filter(sort::id.eq_any(ids)))
+            .returning(sort::is_visible)
+            .get_results(conn)?;
+        if is_visible.iter().any(|&v| v == 1) {
+            Self::reset_seq(conn)?;
+        }
+        Ok(1)
     }
 }
 
-impl Sequence for Sort {
+impl SequenceVisible for Sort {
     #[inline]
-    fn seq(&self) -> i32 {
-        self.seq
+    fn count_visible(conn: &mut SqliteConnection) -> QueryResult<i32> {
+        let count: i64 = Self::filter_is_visible(1).count().get_result(conn)?;
+        Ok(count as i32)
+    }
+
+    #[inline]
+    fn get_seq_numbers(conn: &mut SqliteConnection) -> QueryResult<Vec<i32>> {
+        Self::filter_is_visible(1)
+            .order(sort::seq)
+            .select(sort::seq)
+            .get_results(conn)
+    }
+
+    #[inline]
+    fn reset_seq(conn: &mut SqliteConnection) -> QueryResult<usize> {
+        diesel::sql_query(
+            r#"WITH ordered AS (
+                SELECT sort_id, ROW_NUMBER() OVER (ORDER BY sequenceNo) AS new_seq
+                FROM sort WHERE isVisible = 1
+            ) UPDATE sort
+            SET sequenceNo = (SELECT new_seq FROM ordered WHERE ordered.sort_id = sort.sort_id)
+            WHERE isVisible = 1;"#,
+        )
+        .execute(conn)
+    }
+
+    #[inline]
+    fn increment_seq_before_insert(conn: &mut SqliteConnection, seq: i32) -> QueryResult<usize> {
+        diesel::update(
+            sort::table
+                .filter(sort::is_visible.eq(1))
+                .filter(sort::seq.ge(seq)),
+        )
+        .set(sort::seq.eq(sort::seq + 1))
+        .execute(conn)
+    }
+
+    #[inline]
+    fn decrement_seq_after_delete(conn: &mut SqliteConnection, seq: i32) -> QueryResult<usize> {
+        diesel::update(
+            sort::table
+                .filter(sort::is_visible.eq(1))
+                .filter(sort::seq.gt(seq)),
+        )
+        .set(sort::seq.eq(sort::seq - 1))
+        .execute(conn)
     }
 }
 
@@ -119,33 +181,11 @@ impl NewSort {
 
     /// Inserts the new sort into the database.
     pub fn insert(mut self, conn: &mut SqliteConnection) -> QueryResult<Sort> {
-        if self.is_visible == 1 {
-            // Visible, handle seq
-            if self.seq == 0 {
-                // If seq is 0 (default), insert as the last item (seq = count + 1)
-                let count = Sort::count_visible(conn)?;
-                self.seq = count + 1;
-            } else {
-                // Check if valid seq and shift other items up
-                let count = Sort::count_visible(conn)?;
-                if self.seq < 1 || self.seq > count {
-                    return Err(Error::DatabaseError(
-                        DatabaseErrorKind::RestrictViolation,
-                        Box::new("Invalid sequence number".to_string()),
-                    ));
-                }
-                diesel::update(
-                    sort::table
-                        .filter(sort::is_visible.eq(1))
-                        .filter(sort::seq.ge(self.seq)),
-                )
-                .set(sort::seq.eq(sort::seq + 1))
-                .execute(conn)?;
-            }
+        self.seq = if self.is_visible == 1 {
+            Sort::update_seq_before_insert(conn, self.seq)?
         } else {
-            // Make sure seq is 0 for hidden items
-            self.seq = 0;
-        }
+            0 // Make sure seq is 0 for hidden items
+        };
         diesel::insert_into(sort::table)
             .values(self)
             .get_result(conn)

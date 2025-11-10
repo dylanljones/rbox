@@ -11,7 +11,6 @@ use pyo3::prelude::*;
 
 use super::content::Content;
 use super::schema::{content, history, history_content};
-use crate::model_traits::Sequence;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -85,13 +84,6 @@ impl History {
     }
 }
 
-impl Sequence for History {
-    #[inline]
-    fn seq(&self) -> i32 {
-        self.seq
-    }
-}
-
 /// Represents the `history_content` table in the Rekordbox Device Library Plus database.
 ///
 /// This struct maps to the `history_content` table in the Device Library Plus export database.
@@ -155,12 +147,5 @@ impl HistoryContent {
                 .execute(conn)?;
         // TODO: Update sequence numbers
         Ok(result)
-    }
-}
-
-impl Sequence for HistoryContent {
-    #[inline]
-    fn seq(&self) -> i32 {
-        self.seq
     }
 }
