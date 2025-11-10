@@ -3,7 +3,7 @@ resolver = "3"
 members = [
     "rbox",
     "bindings/*",
-    "py-derives", "model-derives",
+    "py-derives"
 ]
 
 [workspace.package]
@@ -15,6 +15,7 @@ readme = "README.md"
 keywords = ["rekordbox", "dj", "database", "setting", "anlz"]
 repository = "https://github.com/dylanljones/rbox"
 edition = "2021"
+rust-version = "1.88"
 
 [workspace.dependencies]
 anyhow          = { version = "1.0" }
