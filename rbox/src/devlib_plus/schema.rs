@@ -13,7 +13,7 @@ diesel::table! {
         artist_id -> Nullable<Integer>,
         image_id -> Nullable<Integer>,
         #[sql_name = "isComplation"]
-        is_complation -> Integer,
+        is_compilation -> Integer,
         #[sql_name = "nameForSearch"]
         name_for_search -> Nullable<Text>,
     }
@@ -36,7 +36,7 @@ diesel::table! {
         #[sql_name = "menuItem_id"]
         menu_item_id -> Integer,
         #[sql_name = "sequenceNo"]
-        sequence_no -> Integer,
+        seq -> Integer,
         #[sql_name = "isVisible"]
         is_visible -> Integer,
     }
@@ -191,10 +191,11 @@ diesel::table! {
         #[sql_name = "history_id"]
         id -> Integer,
         #[sql_name = "sequenceNo"]
-        sequence_no -> Integer,
+        seq -> Integer,
         name -> Text,
         attribute -> Integer,
-        history_id_parent -> Nullable<Integer>,
+        #[sql_name = "history_id_parent"]
+        parent_id -> Nullable<Integer>,
     }
 }
 
@@ -203,7 +204,7 @@ diesel::table! {
         history_id -> Integer,
         content_id -> Integer,
         #[sql_name = "sequenceNo"]
-        sequence_no -> Integer,
+        seq -> Integer,
     }
 }
 
@@ -212,7 +213,7 @@ diesel::table! {
         #[sql_name = "hotCueBankList_id"]
         id -> Integer,
         #[sql_name = "sequenceNo"]
-        sequence_no -> Integer,
+        seq -> Integer,
         name -> Nullable<Text>,
         image_id -> Nullable<Integer>,
         attribute -> Integer,
@@ -227,7 +228,7 @@ diesel::table! {
         hot_cue_bank_list_id -> Integer,
         cue_id -> Integer,
         #[sql_name = "sequenceNo"]
-        sequence_no -> Integer,
+        seq -> Integer,
     }
 }
 
@@ -269,7 +270,7 @@ diesel::table! {
         #[sql_name = "myTag_id"]
         id -> Integer,
         #[sql_name = "sequenceNo"]
-        sequence_no -> Integer,
+        seq -> Integer,
         name -> Text,
         attribute -> Integer,
         #[sql_name = "myTag_id_parent"]
@@ -290,8 +291,12 @@ diesel::table! {
         #[sql_name = "playlist_id"]
         id -> Integer,
         #[sql_name = "sequenceNo"]
-        sequence_no -> Integer,
+        seq -> Integer,
         name -> Text,
+        image_id -> Nullable<Integer>,
+        attribute -> Integer,
+        #[sql_name = "playlist_id_parent"]
+        parent_id -> Integer
     }
 }
 
@@ -300,7 +305,7 @@ diesel::table! {
         playlist_id -> Integer,
         content_id -> Integer,
         #[sql_name = "sequenceNo"]
-        sequence_no -> Integer,
+        seq -> Integer,
     }
 }
 
@@ -315,9 +320,9 @@ diesel::table! {
         #[sql_name = "createdDate"]
         created_date -> Text,
         #[sql_name = "backGroundColorType"]
-        back_ground_color_type -> Nullable<Integer>,
+        back_ground_color_type -> Integer,
         #[sql_name = "myTagMasterDBID"]
-        my_tag_master_dbid -> Nullable<Integer>,
+        my_tag_master_dbid -> Integer,
     }
 }
 
@@ -338,7 +343,7 @@ diesel::table! {
         #[sql_name = "menuItem_id"]
         menu_item_id -> Integer,
         #[sql_name = "sequenceNo"]
-        sequence_no -> Integer,
+        seq -> Integer,
         #[sql_name = "isVisible"]
         is_visible -> Integer,
         #[sql_name = "isSelectedAsSubColumn"]
@@ -357,5 +362,20 @@ diesel::joinable!(content -> key (key_id));
 diesel::joinable!(content -> color (color_id));
 diesel::joinable!(content -> image (image_id));
 diesel::allow_tables_to_appear_in_same_query!(
-    content, artist, album, genre, label, key, color, image, category, menuItem
+    content,
+    artist,
+    album,
+    genre,
+    label,
+    key,
+    color,
+    image,
+    category,
+    menuItem,
+    history_content,
+    history,
+    playlist,
+    playlist_content,
+    myTag,
+    myTag_content
 );

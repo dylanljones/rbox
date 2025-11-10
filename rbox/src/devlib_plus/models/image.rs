@@ -9,28 +9,122 @@ use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-use super::schema;
+use super::schema::{album, content, image};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, AsChangeset)]
-#[diesel(table_name = schema::image)]
+/// Represents the `image` table in the Rekordbox Device Library Plus database.
+///
+/// This struct maps to the `image` table in the Device Library Plus export database.
+/// It stores the relative file paths of all images on the device.
+///
+/// # Referenced by
+/// * [`Album`] via `image_id` foreign key.
+/// * [`Content`] via `image_id` foreign key.
+#[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset)]
+#[diesel(table_name = image)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Image {
+    /// The unique identifier of the image.
     pub id: i32,
+    /// The relative file path of the image.
     pub path: String,
 }
 
+impl Image {
+    /// Queries all records from the `image` table.
+    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    /// Queries a record from the `image` table by its `id`.
+    pub fn find(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
+
+    /// Queries a record from the `image` table by its `path`.
+    pub fn find_by_path(conn: &mut SqliteConnection, path: &str) -> QueryResult<Option<Self>> {
+        Self::query()
+            .filter(image::path.eq(path))
+            .first(conn)
+            .optional()
+    }
+
+    /// Checks if a record with the given `path` exists in the `image` table.
+    pub fn path_exists(conn: &mut SqliteConnection, path: &str) -> QueryResult<bool> {
+        let query = Self::query().filter(image::path.eq(path));
+        diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
+    }
+
+    /// Updates an existing record in the `image` table.
+    pub fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+        diesel::update(image::table.find(self.id.clone()))
+            .set(self)
+            .get_result(conn)
+    }
+
+    /// Deletes a record from the `image` table and removes any references to it.
+    pub fn delete(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
+        let result = diesel::delete(image::table.find(id)).execute(conn)?;
+        // Remove any references to the image in the album table
+        diesel::update(album::table.filter(album::image_id.eq(id)))
+            .set(album::image_id.eq(None::<i32>))
+            .execute(conn)?;
+        // Remove any references to the image in the content table
+        diesel::update(content::table.filter(content::image_id.eq(id)))
+            .set(content::image_id.eq(None::<i32>))
+            .execute(conn)?;
+        Ok(result)
+    }
+
+    /// Deletes multiple records from the `image` table and removes any references to them.
+    pub fn delete_all(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<usize> {
+        let result = diesel::delete(image::table.filter(image::id.eq_any(ids))).execute(conn)?;
+        // Remove any references to the image in the album table
+        diesel::update(album::table.filter(album::image_id.eq_any(ids)))
+            .set(album::image_id.eq(None::<i32>))
+            .execute(conn)?;
+        // Remove any references to the image in the content table
+        diesel::update(content::table.filter(content::image_id.eq_any(ids)))
+            .set(content::image_id.eq(None::<i32>))
+            .execute(conn)?;
+        Ok(result)
+    }
+}
+
+/// Represents a new record insertale to the `image` table.
 #[derive(Debug, Clone, PartialEq, Insertable)]
-#[diesel(table_name = schema::image)]
+#[diesel(table_name = image)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct NewImage {
+    /// The relative file path of the image.
     pub path: String,
+}
+
+impl NewImage {
+    /// Creates a new image record with the required fields.
+    pub fn new(path: String) -> Self {
+        Self { path }
+    }
+
+    /// Inserts the new image into the database.
+    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Image> {
+        diesel::insert_into(image::table)
+            .values(self)
+            .get_result(conn)
+    }
+
+    /// Inserts multiple new images into the database.
+    pub fn insert_all(conn: &mut SqliteConnection, items: &[NewImage]) -> QueryResult<Vec<Image>> {
+        diesel::insert_into(image::table)
+            .values(items)
+            .get_results(conn)
+    }
 }

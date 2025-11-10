@@ -1,6 +1,7 @@
 // Author: Dylan Jones
 // Date:   2025-09-02
 
+use chrono::Utc;
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -9,25 +10,117 @@ use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-use super::schema;
+use super::schema::property;
 use super::{Date, DateString};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, AsChangeset, Insertable)]
-#[diesel(table_name = schema::property)]
+/// Represents the `property` table in the Rekordbox Device Library Plus database.
+///
+/// This struct maps to the `property` table in the Device Library Plus export database.
+/// It stores information about the device(s) and the export library.
+#[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset, Insertable)]
+#[diesel(table_name = property)]
 #[diesel(primary_key(device_name))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Property {
+    /// The name of the device ('' by default)
     pub device_name: String,
+    /// The DB version (1000 by default)
     pub db_version: i32,
+    /// The number of ['Content'] in the device
     pub number_of_contents: i32,
+    /// The date of creation for the device
     #[diesel(serialize_as = DateString)]
     #[diesel(deserialize_as = DateString)]
     pub created_date: Date,
-    pub back_ground_color_type: Option<i32>,
-    pub my_tag_master_dbid: Option<i32>,
+    /// The background color type (0 by default)
+    pub back_ground_color_type: i32,
+    /// The master.db database version of the tag data
+    pub my_tag_master_dbid: i32,
+}
+
+impl Default for Property {
+    fn default() -> Self {
+        Self {
+            device_name: "".to_string(),
+            db_version: 1000,
+            number_of_contents: 0,
+            created_date: Utc::now(),
+            back_ground_color_type: 0,
+            my_tag_master_dbid: 0,
+        }
+    }
+}
+
+impl Property {
+    /// Creates a new property record with the required fields.
+    pub fn new(device_name: String, my_tag_master_dbid: i32) -> Self {
+        Self {
+            device_name,
+            my_tag_master_dbid,
+            ..Default::default()
+        }
+    }
+
+    /// Queries all records from the `property` table.
+    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    /// Queries a record from the `property` table by its `device_name`.
+    pub fn find(conn: &mut SqliteConnection, device_name: &str) -> QueryResult<Option<Self>> {
+        Self::query().find(device_name).first(conn).optional()
+    }
+
+    /// Queries the first record from the `property` table.
+    pub fn first(conn: &mut SqliteConnection) -> QueryResult<Option<Self>> {
+        Self::query().first(conn).optional()
+    }
+
+    /// Set the `number_of_contents` field of a record in the `property` table.
+    pub fn set_number_of_contents(
+        conn: &mut SqliteConnection,
+        device_name: &str,
+        number_of_contents: i32,
+    ) -> QueryResult<usize> {
+        diesel::update(property::table.find(device_name))
+            .set(property::number_of_contents.eq(number_of_contents))
+            .execute(conn)
+    }
+
+    /// Set the `number_of_contents` field of the first record in the `property` table.
+    pub fn set_number_of_contents_default(
+        conn: &mut SqliteConnection,
+        number_of_contents: i32,
+    ) -> QueryResult<usize> {
+        diesel::sql_query(
+            r#"UPDATE property SET number_of_contents =?
+            WHERE device_name = (SELECT device_name FROM property LIMIT 1)"#,
+        )
+        .bind::<diesel::sql_types::Integer, _>(number_of_contents)
+        .execute(conn)
+    }
+
+    /// Updates an existing record in the `album` table.
+    pub fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+        diesel::update(property::table.find(self.device_name.clone()))
+            .set(self)
+            .get_result(conn)
+    }
+
+    /// Inserts the new property into the database.
+    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Property> {
+        diesel::insert_into(property::table)
+            .values(self)
+            .get_result(conn)
+    }
+
+    /// Deletes a record from the `property` table.
+    pub fn delete(conn: &mut SqliteConnection, device_name: &str) -> QueryResult<usize> {
+        diesel::delete(property::table.find(device_name)).execute(conn)
+    }
 }

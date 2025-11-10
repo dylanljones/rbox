@@ -10,10 +10,22 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::schema;
+use crate::model_traits::Sequence;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, AsChangeset)]
+/// Represents the `playlist` table in the Rekordbox Device Library Plus database.
+///
+/// This struct maps to the `playlist` table in the Device Library Plus export database.
+/// It stores information about playlists, including metadata such as sequence, name, image path,
+/// attributes, and parent relationships.
+///
+/// # Referenced by
+///
+///
+/// # References
+///
+#[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset)]
 #[diesel(table_name = schema::myTag)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -22,10 +34,17 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct MyTag {
     pub id: i32,
-    pub sequence_no: i32,
+    pub seq: i32,
     pub name: String,
     pub attribute: i32,
     pub my_tag_id_parent: Option<i32>,
+}
+
+impl Sequence for MyTag {
+    #[inline]
+    fn seq(&self) -> i32 {
+        self.seq
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Default, Insertable)]
@@ -35,13 +54,13 @@ pub struct MyTag {
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct NewMyTag {
-    pub sequence_no: i32,
+    pub seq: i32,
     pub name: String,
     pub attribute: i32,
     pub my_tag_id_parent: Option<i32>,
 }
 
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable)]
+#[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, Insertable)]
 #[diesel(table_name = schema::myTag_content)]
 #[diesel(primary_key(my_tag_id, content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]

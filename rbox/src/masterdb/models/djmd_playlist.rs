@@ -97,15 +97,14 @@ impl DjmdPlaylist {
     }
 
     /// Queries a record from the `djmdPlaylist` table by its associated `content_id` via `djmdSongPlaylist`
-    pub fn find_by_content_id(conn: &mut SqliteConnection, cid: &str) -> QueryResult<Option<Self>> {
+    pub fn find_by_content_id(conn: &mut SqliteConnection, cid: &str) -> QueryResult<Vec<Self>> {
         djmdPlaylist::table
             .inner_join(
                 djmdSongPlaylist::table.on(djmdPlaylist::id.eq(djmdSongPlaylist::playlist_id)),
             )
             .filter(djmdSongPlaylist::content_id.eq(cid))
             .select(Self::as_select())
-            .first(conn)
-            .optional()
+            .load(conn)
     }
 
     /// Creates a filter for records by `parent_id` and `name`.
@@ -501,8 +500,8 @@ impl DjmdPlaylist {
     pub fn delete(conn: &mut SqliteConnection, id: &str) -> QueryResult<Vec<String>> {
         // TODO: Increment USN only by one!!!
 
-        let mut deleted_ids = Vec::new();
-        deleted_ids.push(id.to_string());
+        // Vec of all deleted playlist ids
+        let mut deleted_playlist_ids = vec![id.to_string()];
 
         // Delete the record
         let parent_id: String = diesel::delete(djmdPlaylist::table.find(id))
@@ -510,13 +509,9 @@ impl DjmdPlaylist {
             .get_result(conn)?;
 
         AgentRegistry::increment_local_usn(conn)?;
-        // let mut result = 1;
 
         // Reorder the seq numbers of tags left in the parent
         Self::reset_seq(conn, &parent_id)?;
-
-        // Remove any djmdSongSampler records that are associated with this djmdPlaylist
-        DjmdSongPlaylist::delete_by_playlist_id(conn, id)?;
 
         // Remove all child djmdPlaylist records recursively
         let mut parent_ids = VecDeque::from(vec![id.to_string()]);
@@ -526,18 +521,18 @@ impl DjmdPlaylist {
                 diesel::delete(djmdPlaylist::table.filter(djmdPlaylist::parent_id.eq(parent_id)))
                     .returning(djmdPlaylist::id)
                     .get_results(conn)?;
-            deleted_ids.extend(deleted.clone());
+            deleted_playlist_ids.extend(deleted.clone());
             AgentRegistry::increment_local_usn_by(conn, deleted.len())?;
-            // result += deleted.len();
-
-            // Delete any songs referencing the deleted tags
-            DjmdSongPlaylist::delete_by_playlist_ids(conn, &deleted)?;
             // Add children to the queue
             for deleted_id in deleted {
                 parent_ids.push_back(deleted_id);
             }
         }
-        Ok(deleted_ids)
+
+        // Remove any djmdSongPlaylist records that are associated with the deleted djmdPlaylists
+        DjmdSongPlaylist::delete_by_playlist_ids(conn, &deleted_playlist_ids)?;
+
+        Ok(deleted_playlist_ids)
     }
 
     /// Queries all records from the `djmdPlaylist` table and returns a tree structure.
@@ -1213,6 +1208,7 @@ impl Into<DjmdPlaylist> for DjmdPlaylistTreeItem {
         }
     }
 }
+
 /// Recursively sort a playlist tree item and its children
 fn sort_tree(item: &mut Rc<RefCell<DjmdPlaylistTreeItem>>) {
     // Sort the current node's children by a chosen criterion (e.g., ID or name)

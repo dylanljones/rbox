@@ -144,17 +144,17 @@ where
 
 /// Trait for converting between Rekordbox date strings and chrono DateTime
 pub trait MasterDbDateString {
-    fn from_date<Tz: TimeZone>(dt: DateTime<Tz>) -> Self;
-    fn into_date(self) -> Result<Date>;
+    fn from_datetime<Tz: TimeZone>(dt: DateTime<Tz>) -> Self;
+    fn into_datetime(self) -> Result<Date>;
 }
 
 /// Implement RekordboxDateString for String
 impl MasterDbDateString for String {
-    fn from_date<Tz: TimeZone>(dt: DateTime<Tz>) -> Self {
+    fn from_datetime<Tz: TimeZone>(dt: DateTime<Tz>) -> Self {
         format_datetime(&dt)
     }
 
-    fn into_date(self) -> Result<Date> {
+    fn into_datetime(self) -> Result<Date> {
         parse_datetime(&self)
     }
 }
