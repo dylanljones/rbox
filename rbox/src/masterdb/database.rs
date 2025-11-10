@@ -2922,7 +2922,7 @@ impl MasterDb {
         // Move playlist
         let playlist: DjmdPlaylist = self.get_playlist_by_id(id)?.expect("Playlist not found");
         let parent_id = parent_id.unwrap_or(playlist.parent_id.clone());
-        let result = DjmdPlaylist::move_to(&mut conn, id, &parent_id, seq)?;
+        let result = DjmdPlaylist::move_to(&mut conn, id, Some(&parent_id), seq)?;
         if result == 0 {
             return Ok(playlist);
         }
@@ -3062,7 +3062,7 @@ impl MasterDb {
     pub fn move_playlist_song(&mut self, id: &String, seq: i32) -> Result<DjmdSongPlaylist> {
         self.assert_write_mode()?;
         let mut conn = self.pool.get()?;
-        DjmdSongPlaylist::move_to(&mut conn, id, seq)?;
+        DjmdSongPlaylist::move_to(&mut conn, id, Some(seq))?;
         let result: DjmdSongPlaylist = self.get_playlist_song_by_id(id)?.expect("Song not found");
         Ok(result)
     }

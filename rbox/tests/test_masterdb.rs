@@ -2,6 +2,7 @@
 // Date:   2025-05-06
 
 use rbox::masterdb::{DjmdPlaylist, DjmdSongPlaylist, MasterDb, MasterPlaylistXml, PlaylistType};
+use rbox::model_traits::validate_seq_numbers;
 
 mod common;
 
@@ -668,11 +669,10 @@ fn test_delete_label() -> anyhow::Result<()> {
 
 fn assert_playlist_seq(items: Vec<DjmdPlaylist>) {
     let seq_nums = items.iter().map(|item| item.seq).collect::<Vec<i32>>();
-    let n = items.len() as i32;
-    for i in 0..n {
-        let item = &items[i as usize];
-        assert_eq!(item.seq, i + 1, "Seq number mismatch: {seq_nums:?}");
-    }
+    assert!(
+        validate_seq_numbers(&seq_nums, 1),
+        "Seq number mismatch: {seq_nums:?}"
+    );
 }
 
 fn assert_playlist_song_seq(items: Vec<DjmdSongPlaylist>) {

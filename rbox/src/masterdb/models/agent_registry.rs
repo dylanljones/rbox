@@ -94,16 +94,16 @@ impl AgentRegistry {
         }
     }
 
-    /// Increments the local update sequence number (USN) and returns the new value.
+    /// Updates the local update sequence number (USN) by a value and returns the new value.
     ///
     /// # Arguments
-    /// * `n` - An integer value representing the amount to increment the local USN.
+    /// * `n` - An integer value representing the change to apply to the local USN.
     ///
     /// Returns a [`diesel::result::Error::NotFound`] error if the `localUpdateCount` entry is not
     /// found or the `int_1` column is `NULL`.
-    pub fn increment_local_usn_by(conn: &mut SqliteConnection, n: usize) -> QueryResult<i32> {
+    pub fn update_local_usn(conn: &mut SqliteConnection, delta: i32) -> QueryResult<i32> {
         let result = diesel::update(agentRegistry::table.find("localUpdateCount"))
-            .set(agentRegistry::int_1.eq(agentRegistry::int_1 + n as i32))
+            .set(agentRegistry::int_1.eq(agentRegistry::int_1 + delta))
             .returning(agentRegistry::int_1)
             .get_result(conn)?;
         if let Some(value) = result {
@@ -113,11 +113,24 @@ impl AgentRegistry {
         }
     }
 
+    /// Increments the local update sequence number (USN) and returns the new value.
+    ///
+    /// # Arguments
+    /// * `n` - An integer value representing the amount to increment the local USN.
+    ///
+    /// Returns a [`diesel::result::Error::NotFound`] error if the `localUpdateCount` entry is not
+    /// found or the `int_1` column is `NULL`.
+    #[inline]
+    pub fn increment_local_usn_by(conn: &mut SqliteConnection, n: usize) -> QueryResult<i32> {
+        Self::update_local_usn(conn, n as i32)
+    }
+
     /// Increments the local update sequence number (USN) by one and returns the new value.
     ///
     /// See [`AgentRegistry::increment_local_usn_by`] for more details.
+    #[inline]
     pub fn increment_local_usn(conn: &mut SqliteConnection) -> QueryResult<i32> {
-        Self::increment_local_usn_by(conn, 1)
+        Self::update_local_usn(conn, 1)
     }
 }
 
