@@ -121,6 +121,9 @@ pub mod settings;
 #[cfg(feature = "xml")]
 pub mod xml;
 
+#[cfg(any(feature = "master-db", feature = "devlib-plus"))]
+mod model_traits;
+
 pub use error::{Error, Result};
 pub use options::RekordboxOptions;
 pub use pathlib::NormalizePath;
