@@ -22,6 +22,14 @@ pub fn testdata_demo_dir() -> PathBuf {
     root.join("RBv6").join("demo")
 }
 
+/// Get the options.json file path of the demo rekordbox library testdata.
+pub fn testdata_options_path() -> PathBuf {
+    let root = testdata_demo_dir();
+    root.join("rekordboxAgent")
+        .join("storage")
+        .join("options.json")
+}
+
 /// Get the root directory of the Anlz testdata.
 pub fn testdata_anlz_dir() -> PathBuf {
     let root = testdata_demo_dir();

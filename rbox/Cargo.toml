@@ -54,3 +54,8 @@ napi-derive      = { workspace = true, optional = true }
 [dev-dependencies]
 anyhow           = { workspace = true }
 tempfile         = { version = "3.6" }
+criterion        = { version = "0.7" }
+
+[[bench]]
+name = "main"
+harness = false
