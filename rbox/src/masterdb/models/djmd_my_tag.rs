@@ -216,265 +216,73 @@ impl DjmdMyTag {
             .get_result(conn)?)
     }
 
-    /// Reset the `seq` numbers of all records from the `djmdMyTag` table for a given `parent_id`.
-    ///
-    /// The `seq` numbers are reset to the *current* order of the records in the `djmdMyTag` table,
-    /// starting at 1:
-    ///
-    /// ```
-    /// Old: 1, 2, 3, 5, 7, 8, 9
-    /// New: 1, 2, 3, 4, 5, 6, 7
-    /// ```
-    ///
-    /// This is helpful when deleting records or for fixing the sequence after an invalid state.
-    /// When adding or moving records, the `seq` numbers should be set explicitly.
-    pub fn reset_seq(conn: &mut SqliteConnection, parent_id: &str) -> QueryResult<usize> {
-        diesel::sql_query(
-            r#"WITH ordered AS (
-                SELECT ID, ROW_NUMBER() OVER (ORDER BY Seq) AS new_seq
-                FROM djmdMyTag WHERE ParentID =?
-            ) UPDATE djmdMyTag
-            SET Seq = (SELECT new_seq FROM ordered WHERE ordered.ID = djmdMyTag.ID);"#,
-        )
-        .bind::<diesel::sql_types::Text, _>(parent_id)
-        .execute(conn)
-    }
-
-    /// Move a record in the `djmdMyTag` table inside the same parent.
-    pub fn move_in(conn: &mut SqliteConnection, id: &str, seq: i32) -> QueryResult<usize> {
-        if seq <= 0 {
-            return Err(Error::DatabaseError(
-                DatabaseErrorKind::RestrictViolation,
-                Box::new("Invalid sequence number".to_string()),
-            ));
-        }
-        let rec = match Self::find(conn, &id)? {
+    /// Move a record in the `djmdMyTag` table to a new parent.
+    pub fn move_to(
+        conn: &mut SqliteConnection,
+        id: &str,
+        parent_id: Option<&str>,
+        seq: Option<i32>,
+    ) -> QueryResult<usize> {
+        let res = match Self::find(conn, id)? {
             Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+        let old_seq = res.seq;
+        let old_parent_id = res.parent_id.clone();
+        let parent_id = parent_id.unwrap_or(&old_parent_id);
+
+        // *Note*: Moving other records increments USN by 1 for all changes
+        let res = Self::update_seq_before_move(conn, &old_parent_id, parent_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
             None => return Ok(0),
         };
-        let count = Self::count_children(conn, &rec.parent_id)?;
-        if seq > count {
-            return Err(Error::DatabaseError(
-                DatabaseErrorKind::RestrictViolation,
-                Box::new("Invalid sequence number".to_string()),
-            ));
-        }
-
-        let old_seq = rec.seq;
-        let datestr = format_datetime(&Utc::now());
+        // Update Seq and parent of actual record
+        let now = Utc::now();
         let usn = AgentRegistry::increment_local_usn(conn)?;
-
-        // Update sequence number of other children
-
-        if seq > old_seq {
-            diesel::update(
-                djmdMyTag::table
-                    .filter(djmdMyTag::parent_id.eq(rec.parent_id))
-                    .filter(djmdMyTag::seq.gt(old_seq))
-                    .filter(djmdMyTag::seq.le(seq)),
-            )
-            .set((
-                djmdMyTag::seq.eq(djmdMyTag::seq - 1),
-                djmdMyTag::updated_at.eq(&datestr),
-                djmdMyTag::rb_local_usn.eq(usn),
-            ))
-            .execute(conn)?;
-        } else if seq < old_seq {
-            diesel::update(
-                djmdMyTag::table
-                    .filter(djmdMyTag::parent_id.eq(rec.parent_id))
-                    .filter(djmdMyTag::seq.lt(old_seq))
-                    .filter(djmdMyTag::seq.ge(seq)),
-            )
-            .set((
-                djmdMyTag::seq.eq(djmdMyTag::seq + 1),
-                djmdMyTag::updated_at.eq(&datestr),
-                djmdMyTag::rb_local_usn.eq(usn),
-            ))
-            .execute(conn)?;
-        } else {
-            return Ok(0);
-        }
-
-        // Update sequence number of record
+        // Update Seq and parent of actual record
         diesel::update(djmdMyTag::table.find(id))
             .set((
                 djmdMyTag::seq.eq(seq),
-                djmdMyTag::updated_at.eq(&datestr),
+                djmdMyTag::parent_id.eq(parent_id),
+                djmdMyTag::updated_at.eq(&format_datetime(&now)),
                 djmdMyTag::rb_local_usn.eq(usn),
             ))
             .execute(conn)
     }
 
-    /// Move a record in the `djmdMyTag` table to a new parent.
-    pub fn move_to(
-        conn: &mut SqliteConnection,
-        id: &str,
-        parent_id: &str,
-        seq: Option<i32>,
-    ) -> QueryResult<usize> {
-        let rec = match Self::find(conn, id)? {
-            Some(r) => r,
-            None => return Ok(0),
-        };
-        let old_seq = rec.seq;
-        let old_parent_id = rec.parent_id.clone();
-        let count = Self::count_children(conn, &parent_id)?;
-        // Insert at end by default
-        let seq = seq.unwrap_or(count);
-
-        if seq <= 0 {
-            return Err(Error::DatabaseError(
-                DatabaseErrorKind::RestrictViolation,
-                Box::new("Invalid sequence number".to_string()),
-            ));
-        }
-        if seq > count {
-            return Err(Error::DatabaseError(
-                DatabaseErrorKind::RestrictViolation,
-                Box::new("Invalid sequence number".to_string()),
-            ));
-        }
-
-        let datestr = format_datetime(&Utc::now());
-        let usn = AgentRegistry::increment_local_usn(conn)?;
-
-        if parent_id == old_parent_id {
-            // parent didn't change, just move
-            return Self::move_in(conn, id, seq);
-        }
-
-        if parent_id != old_parent_id {
-            // parent changed, move to new parent
-            let my_tag_attr: i32 = djmdMyTag::table
-                .find(&parent_id)
-                .select(djmdMyTag::attribute)
-                .get_result(conn)?;
-            if my_tag_attr != 1 {
-                return Err(Error::DatabaseError(
-                    DatabaseErrorKind::RestrictViolation,
-                    Box::new("Cannot add a DjmdMyTag child to a DjmdMyTag my-tag".to_string()),
-                ));
-            }
-
-            // Update seq of records in the old parent:
-            // Decrease seq of records with seq higher than old seq
-            diesel::update(
-                djmdMyTag::table
-                    .filter(djmdMyTag::parent_id.eq(old_parent_id))
-                    .filter(djmdMyTag::seq.gt(old_seq)),
-            )
-            .set((
-                djmdMyTag::seq.eq(djmdMyTag::seq - 1),
-                djmdMyTag::updated_at.eq(&datestr),
-                djmdMyTag::rb_local_usn.eq(usn),
-            ))
-            .execute(conn)?;
-
-            if seq < count {
-                // Move to center in the new parent
-                // Increase seq of records with seq higher than old seq
-                diesel::update(
-                    djmdMyTag::table
-                        .filter(djmdMyTag::parent_id.eq(parent_id))
-                        .filter(djmdMyTag::seq.ge(old_seq)),
-                )
-                .set((
-                    djmdMyTag::seq.eq(djmdMyTag::seq + 1),
-                    djmdMyTag::updated_at.eq(&datestr),
-                    djmdMyTag::rb_local_usn.eq(usn),
-                ))
-                .execute(conn)?;
-            }
-
-            // Update Seq and parent of actual record
-            diesel::update(djmdMyTag::table.find(id))
-                .set((
-                    djmdMyTag::seq.eq(seq),
-                    djmdMyTag::parent_id.eq(parent_id),
-                    djmdMyTag::updated_at.eq(&datestr),
-                    djmdMyTag::rb_local_usn.eq(usn),
-                ))
-                .execute(conn)
-        } else {
-            if seq > old_seq {
-                // Seq is increased (move down in parent):
-                // Decrease seq of all other records with seq between old seq and new seq
-                diesel::update(
-                    djmdMyTag::table
-                        .filter(djmdMyTag::parent_id.eq(rec.parent_id))
-                        .filter(djmdMyTag::seq.gt(old_seq))
-                        .filter(djmdMyTag::seq.le(seq)),
-                )
-                .set((
-                    djmdMyTag::seq.eq(djmdMyTag::seq - 1),
-                    djmdMyTag::updated_at.eq(&datestr),
-                    djmdMyTag::rb_local_usn.eq(usn),
-                ))
-                .execute(conn)?;
-            } else if seq < old_seq {
-                // Seq is decreased (moved down in parent):
-                // Increase seq of all records with seq between old seq and new seq
-                diesel::update(
-                    djmdMyTag::table
-                        .filter(djmdMyTag::parent_id.eq(rec.parent_id))
-                        .filter(djmdMyTag::seq.lt(old_seq))
-                        .filter(djmdMyTag::seq.ge(seq)),
-                )
-                .set((
-                    djmdMyTag::seq.eq(djmdMyTag::seq + 1),
-                    djmdMyTag::updated_at.eq(&datestr),
-                    djmdMyTag::rb_local_usn.eq(usn),
-                ))
-                .execute(conn)?;
-            } else {
-                return Ok(0);
-            }
-            // Update sequence number of record
-            diesel::update(djmdMyTag::table.find(id))
-                .set((
-                    djmdMyTag::seq.eq(seq),
-                    djmdMyTag::updated_at.eq(&datestr),
-                    djmdMyTag::rb_local_usn.eq(usn),
-                ))
-                .execute(conn)
-        }
-    }
-
     /// Deletes a record from the `djmdMyTag` table and removes any references to it.
-    pub fn delete(conn: &mut SqliteConnection, id: &str) -> QueryResult<usize> {
+    pub fn delete(conn: &mut SqliteConnection, id: &str) -> QueryResult<Vec<String>> {
+        // Vec of all deleted ids
+        let mut deleted_ids = vec![id.to_string()];
+
         // Delete the record
         let parent_id: String = diesel::delete(djmdMyTag::table.find(id))
             .returning(djmdMyTag::parent_id)
             .get_result(conn)?;
-        AgentRegistry::increment_local_usn(conn)?;
-        let mut result = 1;
 
         // Reorder the seq numbers of tags left in the parent
         Self::reset_seq(conn, &parent_id)?;
-
-        // Remove any djmdSongMyTag records that are associated with this djmdMyTag
-        DjmdSongMyTag::delete_by_tag_id(conn, id)?;
 
         // Remove all child djmdMyTag records recursively
         let mut parent_ids = VecDeque::from(vec![id.to_string()]);
         while let Some(parent_id) = parent_ids.pop_front() {
             // Delete children
-            let deleted_ids: Vec<String> =
+            let deleted: Vec<String> =
                 diesel::delete(djmdMyTag::table.filter(djmdMyTag::parent_id.eq(parent_id)))
                     .returning(djmdMyTag::id)
                     .get_results(conn)?;
-            AgentRegistry::increment_local_usn_by(conn, deleted_ids.len())?;
-            result += deleted_ids.len();
-
-            // Delete any songs referencing the deleted tags
-            DjmdSongMyTag::delete_by_tag_ids(conn, &deleted_ids)?;
+            deleted_ids.extend(deleted.clone());
             // Add children to the queue
-            for deleted_id in deleted_ids {
+            for deleted_id in deleted {
                 parent_ids.push_back(deleted_id);
             }
         }
-        Ok(result)
+        DjmdSongMyTag::delete_by_tag_ids(conn, &deleted_ids)?;
+
+        AgentRegistry::increment_local_usn_by(conn, deleted_ids.len())?;
+
+        Ok(deleted_ids)
     }
 
     /// Generates a new unique identifier for a record in the `djmdMyTag` table.
