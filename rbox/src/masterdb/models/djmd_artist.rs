@@ -14,6 +14,7 @@ use uuid::Uuid;
 use super::agent_registry::AgentRegistry;
 use super::schema::{djmdAlbum, djmdArtist};
 use super::{Date, DateString, RandomIdGenerator};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -60,38 +61,24 @@ pub struct DjmdArtist {
     pub search_str: Option<String>,
 }
 
-impl DjmdArtist {
-    /// Queries all records from the `djmdArtist` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for DjmdArtist {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `djmdArtist` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
-    /// Queries a record from the `djmdArtist` table by its `name`.
-    pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
-        Self::query()
-            .filter(djmdArtist::name.eq(name))
-            .first(conn)
-            .optional()
-    }
-
-    /// Checks if a record with the given `id` exists in the `djmdArtist` table.
-    pub fn id_exists(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
+    fn id_exists(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
         diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
     }
+}
 
-    /// Checks if a record with the given `name` exists in the `djmdArtist` table.
-    pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
-        let query = Self::query().filter(djmdArtist::name.eq(name));
-        diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
-    }
-
-    /// Updates an existing record in the `djmdArtist` table.
-    pub fn update(mut self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+impl ModelUpdate for DjmdArtist {
+    fn update(mut self, conn: &mut SqliteConnection) -> QueryResult<Self> {
         let existing = match Self::find(conn, &self.id)? {
             Some(e) => e,
             None => return Err(diesel::result::Error::NotFound),
@@ -108,79 +95,99 @@ impl DjmdArtist {
         }
         self.updated_at = Utc::now();
         self.rb_local_usn = Some(AgentRegistry::increment_local_usn_by(conn, changes)?);
-        Ok(diesel::update(djmdArtist::table.find(self.id.clone()))
+        diesel::update(djmdArtist::table.find(self.id.clone()))
             .set(self)
-            .get_result(conn)?)
+            .get_result(conn)
     }
+}
 
-    /// Deletes a record from the `djmdArtist` table and removes any references to it.
-    pub fn delete(conn: &mut SqliteConnection, id: &str) -> QueryResult<usize> {
+impl ModelDelete for DjmdArtist {
+    fn delete(conn: &mut SqliteConnection, id: &str) -> QueryResult<usize> {
         let result = diesel::delete(djmdArtist::table.find(id)).execute(conn)?;
-
         AgentRegistry::increment_local_usn(conn)?;
         // Remove any references to the artist in the djmdContent table
         diesel::sql_query(
-            "UPDATE djmdContent
-             SET ArtistID     = CASE WHEN ArtistID     = ? THEN NULL ELSE ArtistID     END,
-                 RemixerID    = CASE WHEN RemixerID    = ? THEN NULL ELSE RemixerID    END,
-                 OrgArtistID = CASE WHEN OrgArtistID = ? THEN NULL ELSE OrgArtistID END,
-                 ComposerID   = CASE WHEN ComposerID   = ? THEN NULL ELSE ComposerID   END,
-                 Lyricist      = CASE WHEN Lyricist      = ? THEN NULL ELSE Lyricist      END
-             WHERE ArtistID = ? OR RemixerID = ? OR OrgArtistID = ? OR ComposerID = ? OR Lyricist = ?"
-            )
-            .bind::<diesel::sql_types::Text, _>(id)
-            .bind::<diesel::sql_types::Text, _>(id)
-            .bind::<diesel::sql_types::Text, _>(id)
-            .bind::<diesel::sql_types::Text, _>(id)
-            .bind::<diesel::sql_types::Text, _>(id)
-            .bind::<diesel::sql_types::Text, _>(id)
-            .bind::<diesel::sql_types::Text, _>(id)
-            .bind::<diesel::sql_types::Text, _>(id)
-            .bind::<diesel::sql_types::Text, _>(id)
-            .bind::<diesel::sql_types::Text, _>(id)
-            .execute(conn)?;
+            r#"UPDATE djmdContent
+             SET ArtistID    = CASE WHEN ArtistID    =? THEN NULL ELSE ArtistID END,
+                 RemixerID   = CASE WHEN RemixerID   =? THEN NULL ELSE RemixerID END,
+                 OrgArtistID = CASE WHEN OrgArtistID =? THEN NULL ELSE OrgArtistID END,
+                 ComposerID  = CASE WHEN ComposerID  =? THEN NULL ELSE ComposerID END,
+                 Lyricist    = CASE WHEN Lyricist    =? THEN NULL ELSE Lyricist END
+             WHERE ArtistID =? OR RemixerID =? OR OrgArtistID =? OR ComposerID =? OR Lyricist =?;"#,
+        )
+        .bind::<diesel::sql_types::Text, _>(id)
+        .bind::<diesel::sql_types::Text, _>(id)
+        .bind::<diesel::sql_types::Text, _>(id)
+        .bind::<diesel::sql_types::Text, _>(id)
+        .bind::<diesel::sql_types::Text, _>(id)
+        .bind::<diesel::sql_types::Text, _>(id)
+        .bind::<diesel::sql_types::Text, _>(id)
+        .bind::<diesel::sql_types::Text, _>(id)
+        .bind::<diesel::sql_types::Text, _>(id)
+        .bind::<diesel::sql_types::Text, _>(id)
+        .execute(conn)?;
         // Remove any references to the artist in the djmdAlbum table
         diesel::update(djmdAlbum::table.filter(djmdAlbum::album_artist_id.eq(id)))
             .set(djmdAlbum::album_artist_id.eq(None::<String>))
             .execute(conn)?;
-
         Ok(result)
     }
 
-    /// Deletes multiple records from the `djmdAlbum` table and removes any references to them.
-    pub fn delete_many(conn: &mut SqliteConnection, ids: &[String]) -> QueryResult<usize> {
+    /// Deletes multiple records from the database table.
+    ///
+    /// # Arguments
+    /// - `conn`: A mutable reference to the database connection.
+    /// - `ids`: A vector of references to the IDs of the records to delete.
+    ///
+    /// # Returns
+    /// A `QueryResult` containing the total number of rows affected.
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
         if ids.is_empty() {
             return Ok(0);
         }
         let result =
-            diesel::delete(djmdArtist::table.filter(djmdArtist::id.eq_any(ids))).execute(conn)?;
-
+            diesel::delete(djmdArtist::table.filter(djmdArtist::id.eq_any(&ids))).execute(conn)?;
         AgentRegistry::increment_local_usn_by(conn, result)?;
         // Remove any references to the artist in the djmdContent table
-        let ids_json = serde_json::to_string(ids)
+        let ids_json = serde_json::to_string(&ids)
             .map_err(|e| diesel::result::Error::DeserializationError(Box::new(e)))?;
         diesel::sql_query(
-            "WITH ids(val) AS (SELECT value FROM json_each(?))
+            r#"WITH ids(val) AS (SELECT value FROM json_each(?))
             UPDATE djmdContent
-            SET ArtistID     = CASE WHEN ArtistID     IN (SELECT val FROM ids) THEN NULL ELSE ArtistID     END,
-                RemixerID    = CASE WHEN RemixerID    IN (SELECT val FROM ids) THEN NULL ELSE RemixerID    END,
+            SET ArtistID    = CASE WHEN ArtistID    IN (SELECT val FROM ids) THEN NULL ELSE ArtistID END,
+                RemixerID   = CASE WHEN RemixerID   IN (SELECT val FROM ids) THEN NULL ELSE RemixerID END,
                 OrgArtistID = CASE WHEN OrgArtistID IN (SELECT val FROM ids) THEN NULL ELSE OrgArtistID END,
-                ComposerID   = CASE WHEN ComposerID   IN (SELECT val FROM ids) THEN NULL ELSE ComposerID   END,
-                Lyricist      = CASE WHEN Lyricist      IN (SELECT val FROM ids) THEN NULL ELSE Lyricist      END
-            WHERE artist_id IN (SELECT val FROM ids)
-               OR RemixerID IN (SELECT val FROM ids)
+                ComposerID  = CASE WHEN ComposerID  IN (SELECT val FROM ids) THEN NULL ELSE ComposerID END,
+                Lyricist    = CASE WHEN Lyricist    IN (SELECT val FROM ids) THEN NULL ELSE Lyricist END
+            WHERE artist_id   IN (SELECT val FROM ids)
+               OR RemixerID   IN (SELECT val FROM ids)
                OR OrgArtistID IN (SELECT val FROM ids)
-               OR ComposerID IN (SELECT val FROM ids)
-               OR Lyricist IN (SELECT val FROM ids)"
-            )
+               OR ComposerID  IN (SELECT val FROM ids)
+               OR Lyricist    IN (SELECT val FROM ids);"#
+        )
             .bind::<diesel::sql_types::Text, _>(ids_json)
             .execute(conn)?;
         // Remove any references to the artist in the djmdAlbum table
         diesel::update(djmdAlbum::table.filter(djmdAlbum::album_artist_id.eq_any(ids)))
             .set(djmdAlbum::album_artist_id.eq(None::<String>))
             .execute(conn)?;
-
         Ok(result)
+    }
+}
+
+impl DjmdArtist {
+    /// Queries a record from the `djmdArtist` table by its `name`.
+    pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
+        Self::query()
+            .filter(djmdArtist::name.eq(name))
+            .first(conn)
+            .optional()
+    }
+
+    /// Checks if a record with the given `name` exists in the `djmdArtist` table.
+    pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
+        let query = Self::query().filter(djmdArtist::name.eq(name));
+        diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
     }
 
     /// Generates a new unique identifier for a record in the `djmdArtist` table.
@@ -221,23 +228,15 @@ pub struct NewDjmdArtist {
     pub search_str: Option<String>,
 }
 
-impl NewDjmdArtist {
-    /// Creates a new artist record with the required fields.
-    pub fn new(name: String) -> Self {
-        Self {
-            name,
-            ..Default::default()
-        }
-    }
+impl ModelInsert for NewDjmdArtist {
+    type Model = DjmdArtist;
 
-    /// Inserts the new artist into the database.
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<DjmdArtist> {
-        let id = DjmdArtist::generate_id(conn)?;
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
+        let id = Self::Model::generate_id(conn)?;
         let uuid = Uuid::new_v4().to_string();
         let usn = AgentRegistry::increment_local_usn(conn)?;
         let now = Utc::now();
-
-        let item = DjmdArtist {
+        let item = Self::Model {
             id,
             uuid,
             rb_local_usn: Some(usn),
@@ -247,10 +246,19 @@ impl NewDjmdArtist {
             search_str: self.search_str,
             ..Default::default()
         };
-
         diesel::insert_into(djmdArtist::table)
             .values(item)
             .get_result(conn)
+    }
+}
+
+impl NewDjmdArtist {
+    /// Creates a new artist record with the required fields.
+    pub fn new<S: Into<String>>(name: S) -> Self {
+        Self {
+            name: name.into(),
+            ..Default::default()
+        }
     }
 
     /// Inserts the new artist or returns an existing record if an artist with the same name already exists.
@@ -262,8 +270,8 @@ impl NewDjmdArtist {
     }
 
     /// Builder for `search_str`.
-    pub fn search_str(mut self, search_str: String) -> Self {
-        self.search_str = Some(search_str);
+    pub fn search_str<S: Into<String>>(mut self, search_str: S) -> Self {
+        self.search_str = Some(search_str.into());
         self
     }
 }

@@ -11,6 +11,7 @@ use pyo3::prelude::*;
 
 use super::schema::djmdDevice;
 use super::{Date, DateString};
+use crate::model_traits::Model;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -58,17 +59,26 @@ pub struct DjmdDevice {
     pub name: String,
 }
 
-impl DjmdDevice {
-    /// Queries all records from the `djmdDevice` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for DjmdDevice {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `djmdDevice` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
+}
+
+impl DjmdDevice {
+    /// Returns the ID of the master database associated with the device.
+    ///
+    /// The master database is represented by the first row in the `djmdDevice` table.
     pub fn master_db_id(conn: &mut SqliteConnection) -> QueryResult<String> {
         djmdDevice::table
             .select(djmdDevice::master_db_id)

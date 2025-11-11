@@ -12,6 +12,7 @@ use pyo3::prelude::*;
 use super::djmd_menu_items::DjmdMenuItems;
 use super::schema::djmdCategory;
 use super::{Date, DateString};
+use crate::model_traits::Model;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -65,14 +66,18 @@ pub struct DjmdCategory {
     pub info_order: i32,
 }
 
-impl DjmdCategory {
-    /// Queries all records from the `djmdCategory` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for DjmdCategory {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `djmdCategory` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
     }
 }

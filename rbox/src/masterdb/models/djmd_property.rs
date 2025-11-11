@@ -12,6 +12,7 @@ use pyo3::prelude::*;
 use super::djmd_device::DjmdDevice;
 use super::schema::{djmdCloudProperty, djmdProperty};
 use super::{Date, DateString};
+use crate::model_traits::Model;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -61,15 +62,19 @@ pub struct DjmdProperty {
     pub updated_at: Date,
 }
 
-impl DjmdProperty {
-    /// Queries all records from the `djmdProperty` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for DjmdProperty {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `djmdProperty` table by its `db_id`.
-    pub fn find(conn: &mut SqliteConnection, db_id: &str) -> QueryResult<Option<Self>> {
-        Self::query().find(db_id).first(conn).optional()
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
     }
 }
 
@@ -123,14 +128,18 @@ pub struct DjmdCloudProperty {
     pub reserved5: Option<String>,
 }
 
-impl DjmdCloudProperty {
-    /// Queries all records from the `djmdCloudProperty` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for DjmdCloudProperty {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `djmdCloudProperty` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
     }
 }

@@ -17,7 +17,7 @@ use super::agent_registry::AgentRegistry;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdHistory, djmdSongHistory};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
-use crate::model_traits::SequenceTree;
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate, SequenceTree};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -72,17 +72,93 @@ pub struct DjmdHistory {
     pub date_created: String,
 }
 
-impl DjmdHistory {
-    /// Queries all records from the `djmdHistory` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for DjmdHistory {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `djmdHistory` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
+}
+
+impl ModelUpdate for DjmdHistory {
+    fn update(mut self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+        let existing = match Self::find(conn, &self.id)? {
+            Some(e) => e,
+            None => return Err(Error::NotFound),
+        };
+        let mut changes = 0;
+        if self.seq != existing.seq {
+            changes += 1;
+        }
+        if self.name != existing.name {
+            changes += 1;
+        }
+        if self.attribute != existing.attribute {
+            changes += 1;
+        }
+        if self.parent_id != existing.parent_id {
+            changes += 1;
+        }
+        if self.date_created != existing.date_created {
+            changes += 1;
+        }
+        if changes == 0 {
+            return Ok(existing);
+        }
+        self.updated_at = Utc::now();
+        self.rb_local_usn = Some(AgentRegistry::increment_local_usn_by(conn, changes)?);
+        diesel::update(djmdHistory::table.find(self.id.clone()))
+            .set(self)
+            .get_result(conn)
+    }
+}
+
+impl ModelDelete for DjmdHistory {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
+        // Vec of all deleted history ids
+        let mut deleted_ids = vec![id.to_string()];
+
+        // Delete the record
+        let parent_id: String = diesel::delete(djmdHistory::table.find(id))
+            .returning(djmdHistory::parent_id)
+            .get_result(conn)?;
+
+        // Reorder the seq numbers of tags left in the parent
+        Self::reset_seq(conn, &parent_id)?;
+
+        // Remove all child djmdHistory records recursively
+        let mut parent_ids = VecDeque::from(vec![id.to_string()]);
+        while let Some(parent_id) = parent_ids.pop_front() {
+            // Delete children
+            let deleted: Vec<String> =
+                diesel::delete(djmdHistory::table.filter(djmdHistory::parent_id.eq(parent_id)))
+                    .returning(djmdHistory::id)
+                    .get_results(conn)?;
+            deleted_ids.extend(deleted.clone());
+            // Add children to the queue
+            for deleted_id in deleted {
+                parent_ids.push_back(deleted_id);
+            }
+        }
+
+        // Remove any djmdSongHistory records that are associated with the deleted djmdHistories
+        DjmdSongHistory::delete_by_history_ids(conn, &deleted_ids)?;
+
+        AgentRegistry::increment_local_usn_by(conn, deleted_ids.len())?;
+
+        Ok(deleted_ids.len())
+    }
+}
+
+impl DjmdHistory {
     /// Queries the records from the `djmdHistory` table by their `parent_id`.
     pub fn by_parent_id(conn: &mut SqliteConnection, parent_id: &str) -> QueryResult<Vec<Self>> {
         Self::query()
@@ -138,43 +214,6 @@ impl DjmdHistory {
         }
     }
 
-    /// Checks if a record with the given `id` exists in the `djmdHistory` table.
-    pub fn id_exists(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
-        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
-    }
-
-    /// Updates an existing record in the `djmdHistory` table.
-    pub fn update(mut self, conn: &mut SqliteConnection) -> QueryResult<Self> {
-        let existing = match Self::find(conn, &self.id)? {
-            Some(e) => e,
-            None => return Err(Error::NotFound),
-        };
-        let mut changes = 0;
-        if self.seq != existing.seq {
-            changes += 1;
-        }
-        if self.name != existing.name {
-            changes += 1;
-        }
-        if self.attribute != existing.attribute {
-            changes += 1;
-        }
-        if self.parent_id != existing.parent_id {
-            changes += 1;
-        }
-        if self.date_created != existing.date_created {
-            changes += 1;
-        }
-        if changes == 0 {
-            return Ok(existing);
-        }
-        self.updated_at = Utc::now();
-        self.rb_local_usn = Some(AgentRegistry::increment_local_usn_by(conn, changes)?);
-        Ok(diesel::update(djmdHistory::table.find(self.id.clone()))
-            .set(self)
-            .get_result(conn)?)
-    }
-
     /// Set the name of a record in the `djmdHistory` table.
     pub fn rename(conn: &mut SqliteConnection, id: &str, name: &str) -> QueryResult<Self> {
         let datestr = format_datetime(&Utc::now());
@@ -221,42 +260,6 @@ impl DjmdHistory {
                 djmdHistory::rb_local_usn.eq(usn),
             ))
             .execute(conn)
-    }
-
-    /// Deletes a record from the `djmdHistory` table and removes any references to it.
-    pub fn delete(conn: &mut SqliteConnection, id: &str) -> QueryResult<Vec<String>> {
-        // Vec of all deleted history ids
-        let mut deleted_ids = vec![id.to_string()];
-
-        // Delete the record
-        let parent_id: String = diesel::delete(djmdHistory::table.find(id))
-            .returning(djmdHistory::parent_id)
-            .get_result(conn)?;
-
-        // Reorder the seq numbers of tags left in the parent
-        Self::reset_seq(conn, &parent_id)?;
-
-        // Remove all child djmdHistory records recursively
-        let mut parent_ids = VecDeque::from(vec![id.to_string()]);
-        while let Some(parent_id) = parent_ids.pop_front() {
-            // Delete children
-            let deleted: Vec<String> =
-                diesel::delete(djmdHistory::table.filter(djmdHistory::parent_id.eq(parent_id)))
-                    .returning(djmdHistory::id)
-                    .get_results(conn)?;
-            deleted_ids.extend(deleted.clone());
-            // Add children to the queue
-            for deleted_id in deleted {
-                parent_ids.push_back(deleted_id);
-            }
-        }
-
-        // Remove any djmdSongHistory records that are associated with the deleted djmdHistories
-        DjmdSongHistory::delete_by_history_ids(conn, &deleted_ids)?;
-
-        AgentRegistry::increment_local_usn_by(conn, deleted_ids.len())?;
-
-        Ok(deleted_ids)
     }
 
     /// Generates a new unique identifier for a record in the `djmdHistory` table.
@@ -415,7 +418,7 @@ impl SequenceTree for DjmdHistory {
 /// ```rust
 /// use rbox::masterdb::models::NewDjmdHistory;
 ///
-/// let new = NewDjmdHistory::history("Name".into()).seq(2);
+/// let new = NewDjmdHistory::history("Name").seq(2);
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -435,58 +438,28 @@ pub struct NewDjmdHistory {
     pub date_created: Option<String>,
 }
 
-impl NewDjmdHistory {
-    /// Creates a new `NewDjmdHistory` with the required `name` and `attribute` field.
-    pub fn new(name: String, attribute: i32) -> Self {
-        Self {
-            name,
-            attribute,
-            ..Default::default()
-        }
-    }
+impl ModelInsert for NewDjmdHistory {
+    type Model = DjmdHistory;
 
-    /// Creates a new `NewDjmdHistory` as a history.
-    pub fn history(name: String) -> Self {
-        Self {
-            name,
-            attribute: 0,
-            ..Default::default()
-        }
-    }
-
-    /// Creates a new `NewDjmdHistory` as a folder.
-    pub fn folder(name: String) -> Self {
-        Self {
-            name,
-            attribute: 1,
-            ..Default::default()
-        }
-    }
-
-    /// Inserts the new record into the database
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<DjmdHistory> {
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
         let parent_id = self.parent_id.unwrap_or("root".to_string());
-
         // Handle seq and USN of moved records (also checkks parent)
-        let (seq, n) = DjmdHistory::update_seq_before_insert(conn, &parent_id, self.seq)?;
+        let (seq, n) = Self::Model::update_seq_before_insert(conn, &parent_id, self.seq)?;
         if n > 0 {
             // Apply USN of moved records
             AgentRegistry::increment_local_usn(conn)?;
         }
-
         // Generate meta
-        let id = DjmdHistory::generate_id(conn)?;
+        let id = Self::Model::generate_id(conn)?;
         let uuid = Uuid::new_v4().to_string();
         let now = Utc::now();
-
         // Use today as date_created if not specified
         let date_created = self
             .date_created
             .unwrap_or_else(|| now.format("%Y-%m-%d").to_string());
-
         // Get next USN: We increment by 2 (1 for creating, 1 for renaming from 'New Playlist')
         let usn = AgentRegistry::increment_local_usn_by(conn, 2)?;
-        let item = DjmdHistory {
+        let item = Self::Model {
             id,
             uuid,
             rb_local_usn: Some(usn),
@@ -499,10 +472,38 @@ impl NewDjmdHistory {
             date_created,
             ..Default::default()
         };
-        let result = diesel::insert_into(djmdHistory::table)
+        diesel::insert_into(djmdHistory::table)
             .values(item)
-            .get_result(conn)?;
-        Ok(result)
+            .get_result(conn)
+    }
+}
+
+impl NewDjmdHistory {
+    /// Creates a new `NewDjmdHistory` with the required `name` and `attribute` field.
+    pub fn new<S: Into<String>>(name: S, attribute: i32) -> Self {
+        Self {
+            name: name.into(),
+            attribute,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a new `NewDjmdHistory` as a history.
+    pub fn history<S: Into<String>>(name: S) -> Self {
+        Self {
+            name: name.into(),
+            attribute: 0,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a new `NewDjmdHistory` as a folder.
+    pub fn folder<S: Into<String>>(name: S) -> Self {
+        Self {
+            name: name.into(),
+            attribute: 1,
+            ..Default::default()
+        }
     }
 
     /// Builder for `seq`.
@@ -512,14 +513,14 @@ impl NewDjmdHistory {
     }
 
     /// Builder for `parent_id`.
-    pub fn parent_id(mut self, parent_id: String) -> Self {
-        self.parent_id = Some(parent_id);
+    pub fn parent_id<S: Into<String>>(mut self, parent_id: S) -> Self {
+        self.parent_id = Some(parent_id.into());
         self
     }
 
     /// Builder for `date_created`.
-    pub fn date_created(mut self, date_created: String) -> Self {
-        self.parent_id = Some(date_created);
+    pub fn date_created<S: Into<String>>(mut self, date_created: S) -> Self {
+        self.parent_id = Some(date_created.into());
         self
     }
 }

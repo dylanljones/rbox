@@ -24,6 +24,7 @@ use super::djmd_label::DjmdLabel;
 use super::schema::djmdContent;
 use super::{Date, DateString, RandomIdGenerator};
 use crate::masterdb::FileType;
+use crate::model_traits::{Model, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 use crate::NormalizePath;
@@ -213,58 +214,34 @@ pub struct DjmdContent {
     pub src_length: Option<i32>,
 }
 
-impl DjmdContent {
-    pub fn new(
-        id: String,
-        uuid: String,
-        usn: i32,
-        now: Date,
-        path: String,
-        file_name: String,
-        file_type: i32,
-        size: i32,
-        db_id: String,
-        file_id: String,
-        content_link: Option<i32>,
-    ) -> Self {
-        let hot_cue_auto_load = "on".to_string();
-        let deliver_control = "on".to_string();
-        Self {
-            id: id.clone(),
-            uuid: uuid.clone(),
-            rb_local_usn: Some(usn),
-            created_at: now.clone(),
-            updated_at: now.clone(),
-            folder_path: Some(path.clone()),
-            file_name_l: Some(file_name.clone()),
-            file_name_s: Some("".to_string()),
-            file_type: Some(file_type),
-            master_db_id: Some(db_id),
-            master_song_id: Some(id),
-            file_size: Some(size),
-            content_link: content_link,
-            hot_cue_auto_load: Some(hot_cue_auto_load),
-            delivery_control: Some(deliver_control),
-            sampler_track_info: Some(0),
-            sampler_play_offset: Some(0),
-            sampler_gain: Some(0.0),
-            lyric_status: Some(0),
-            service_id: Some(0),
-            rb_file_id: Some(file_id),
-            ..Default::default()
-        }
-    }
+impl Model for DjmdContent {
+    type Id = str;
 
-    /// Queries all records from the `djmdContent` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `djmdContent` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
+}
+
+impl ModelUpdate for DjmdContent {
+    fn update(mut self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+        // Todo: count changes
+        self.updated_at = Utc::now();
+        self.rb_local_usn = Some(AgentRegistry::increment_local_usn_by(conn, 1)?);
+        diesel::update(djmdContent::table.find(self.id.clone()))
+            .set(self)
+            .get_result(conn)
+    }
+}
+
+impl DjmdContent {
     /// Queries all records from the `djmdContent` table matching the given `ids`.
     pub fn by_ids(conn: &mut SqliteConnection, ids: &[&str]) -> QueryResult<Vec<Self>> {
         Self::query().filter(djmdContent::id.eq_any(ids)).load(conn)
@@ -276,11 +253,6 @@ impl DjmdContent {
             .filter(djmdContent::folder_path.eq(name))
             .first(conn)
             .optional()
-    }
-
-    /// Checks if a record with the given `id` exists in the `djmdContent` table.
-    pub fn id_exists(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
-        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
     }
 
     /// Checks if a record with the given `folder_path` exists in the `djmdContent` table.
@@ -508,17 +480,10 @@ pub struct NewDjmdContent {
     pub isrc: Option<String>,
 }
 
-impl NewDjmdContent {
-    /// Creates a new record with the required fields.
-    pub fn new(path: String) -> Self {
-        Self {
-            folder_path: path,
-            ..Default::default()
-        }
-    }
+impl ModelInsert for NewDjmdContent {
+    type Model = DjmdContent;
 
-    /// Inserts the new record into the database.
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<DjmdContent> {
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
         let path = PathBuf::from(&self.folder_path);
         let rb_path = path.normalize_sep("/");
         let rb_path_str = rb_path
@@ -532,7 +497,7 @@ impl NewDjmdContent {
             );
             return Err(e);
         }
-        if DjmdContent::path_exists(conn, rb_path_str)? {
+        if Self::Model::path_exists(conn, rb_path_str)? {
             let e = Error::DatabaseError(
                 DatabaseErrorKind::UniqueViolation,
                 Box::new(format!("Path is not unique: {}", rb_path_str)),
@@ -540,8 +505,8 @@ impl NewDjmdContent {
             return Err(e);
         }
 
-        let id = DjmdContent::generate_id(conn)?;
-        let file_id = DjmdContent::generate_file_id(conn)?;
+        let id = Self::Model::generate_id(conn)?;
+        let file_id = Self::Model::generate_file_id(conn)?;
         let uuid = Uuid::new_v4().to_string();
         let usn = AgentRegistry::increment_local_usn(conn)?;
         let now = Utc::now();
@@ -559,7 +524,7 @@ impl NewDjmdContent {
             .limit(1)
             .first(conn)?;
 
-        let item = DjmdContent {
+        let item = Self::Model {
             id: id.clone(),
             uuid,
             rb_local_usn: Some(usn),
@@ -613,5 +578,188 @@ impl NewDjmdContent {
         diesel::insert_into(djmdContent::table)
             .values(item)
             .get_result(conn)
+    }
+}
+
+/// Represents a new record insertale to the `djmdContent` table.
+///
+/// Implements the builder pattern for optional values of the new record.
+///
+/// # Examples
+/// ```rust
+/// use rbox::masterdb::models::NewDjmdContent;
+///
+/// let new = NewDjmdContent::new("path/to/file.mp3").title("Title");
+/// println!("{:?}", new);
+/// ```
+impl NewDjmdContent {
+    /// Creates a new record with the required fields.
+    pub fn new<S: Into<String>>(path: S) -> Self {
+        Self {
+            folder_path: path.into(),
+            ..Default::default()
+        }
+    }
+
+    /// Builder for `title`.
+    pub fn title<S: Into<String>>(mut self, title: S) -> Self {
+        self.title = Some(title.into());
+        self
+    }
+
+    /// Builder for `artist_id`.
+    pub fn artist_id<S: Into<String>>(mut self, artist_id: S) -> Self {
+        self.artist_id = Some(artist_id.into());
+        self
+    }
+
+    /// Builder for `album_id`.
+    pub fn album_id<S: Into<String>>(mut self, album_id: S) -> Self {
+        self.album_id = Some(album_id.into());
+        self
+    }
+
+    /// Builder for `genre_id`.
+    pub fn genre_id<S: Into<String>>(mut self, genre_id: S) -> Self {
+        self.genre_id = Some(genre_id.into());
+        self
+    }
+
+    /// Builder for `bpm`.
+    pub fn bpm(mut self, bpm: i32) -> Self {
+        self.bpm = Some(bpm);
+        self
+    }
+
+    /// Builder for `length`.
+    pub fn length(mut self, length: i32) -> Self {
+        self.length = Some(length);
+        self
+    }
+
+    /// Builder for `track_no`.
+    pub fn track_no(mut self, track_no: i32) -> Self {
+        self.track_no = Some(track_no);
+        self
+    }
+
+    /// Builder for `bit_rate`.
+    pub fn bit_rate(mut self, bit_rate: i32) -> Self {
+        self.bit_rate = Some(bit_rate);
+        self
+    }
+
+    /// Builder for `bit_depth`.
+    pub fn bit_depth(mut self, bit_depth: i32) -> Self {
+        self.bit_depth = Some(bit_depth);
+        self
+    }
+
+    /// Builder for `commnt`.
+    pub fn commnt<S: Into<String>>(mut self, commnt: S) -> Self {
+        self.commnt = Some(commnt.into());
+        self
+    }
+
+    /// Builder for `rating`.
+    pub fn rating(mut self, rating: i32) -> Self {
+        self.rating = Some(rating);
+        self
+    }
+
+    /// Builder for `release_year`.
+    pub fn release_year(mut self, release_year: i32) -> Self {
+        self.release_year = Some(release_year);
+        self
+    }
+
+    /// Builder for `remixer_id`.
+    pub fn remixer_id<S: Into<String>>(mut self, remixer_id: S) -> Self {
+        self.remixer_id = Some(remixer_id.into());
+        self
+    }
+
+    /// Builder for `label_id`.
+    pub fn label_id<S: Into<String>>(mut self, label_id: S) -> Self {
+        self.label_id = Some(label_id.into());
+        self
+    }
+
+    /// Builder for `org_artist_id`.
+    pub fn org_artist_id<S: Into<String>>(mut self, org_artist_id: S) -> Self {
+        self.org_artist_id = Some(org_artist_id.into());
+        self
+    }
+
+    /// Builder for `key_id`.
+    pub fn key_id<S: Into<String>>(mut self, key_id: S) -> Self {
+        self.key_id = Some(key_id.into());
+        self
+    }
+
+    /// Builder for `stock_date`.
+    pub fn stock_date<S: Into<String>>(mut self, stock_date: S) -> Self {
+        self.stock_date = Some(stock_date.into());
+        self
+    }
+
+    /// Builder for `search_str`.
+    pub fn search_str<S: Into<String>>(mut self, search_str: S) -> Self {
+        self.search_str = Some(search_str.into());
+        self
+    }
+
+    /// Builder for `disc_no`.
+    pub fn disc_no(mut self, disc_no: i32) -> Self {
+        self.disc_no = Some(disc_no);
+        self
+    }
+
+    /// Builder for `composer_id`.
+    pub fn composer_id<S: Into<String>>(mut self, composer_id: S) -> Self {
+        self.composer_id = Some(composer_id.into());
+        self
+    }
+
+    /// Builder for `subtitle`.
+    pub fn subtitle<S: Into<String>>(mut self, subtitle: S) -> Self {
+        self.subtitle = Some(subtitle.into());
+        self
+    }
+
+    /// Builder for `sample_rate`.
+    pub fn sample_rate(mut self, sample_rate: i32) -> Self {
+        self.sample_rate = Some(sample_rate);
+        self
+    }
+
+    /// Builder for `release_date`.
+    pub fn release_date<S: Into<String>>(mut self, release_date: S) -> Self {
+        self.release_date = Some(release_date.into());
+        self
+    }
+
+    /// Builder for `date_created`.
+    pub fn date_created<S: Into<String>>(mut self, date_created: S) -> Self {
+        self.date_created = Some(date_created.into());
+        self
+    }
+
+    /// Builder for `tag`.
+    pub fn tag<S: Into<String>>(mut self, tag: S) -> Self {
+        self.tag = Some(tag.into());
+        self
+    }
+
+    /// Builder for `lyricist`.
+    pub fn lyricist<S: Into<String>>(mut self, lyricist: S) -> Self {
+        self.lyricist = Some(lyricist.into());
+        self
+    }
+
+    /// Builder for `isrc`.
+    pub fn isrc<S: Into<String>>(mut self, isrc: S) -> Self {
+        self.isrc = Some(isrc.into());
+        self
     }
 }

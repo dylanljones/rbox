@@ -15,6 +15,7 @@ use super::agent_registry::AgentRegistry;
 use super::djmd_artist::DjmdArtist;
 use super::schema::{djmdAlbum, djmdContent};
 use super::{Date, DateString, RandomIdGenerator};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -71,38 +72,24 @@ pub struct DjmdAlbum {
     pub search_str: Option<String>,
 }
 
-impl DjmdAlbum {
-    /// Queries all records from the `djmdAlbum` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for DjmdAlbum {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `djmdAlbum` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
-    /// Queries a record from the `djmdAlbum` table by its `name`.
-    pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
-        Self::query()
-            .filter(djmdAlbum::name.eq(name))
-            .first(conn)
-            .optional()
-    }
-
-    /// Checks if a record with the given `id` exists in the `djmdAlbum` table.
-    pub fn id_exists(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
         diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
     }
+}
 
-    /// Checks if a record with the given `name` exists in the `djmdAlbum` table.
-    pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
-        let query = Self::query().filter(djmdAlbum::name.eq(name));
-        diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
-    }
-
-    /// Updates an existing record in the `djmdAlbum` table.
-    pub fn update(mut self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+impl ModelUpdate for DjmdAlbum {
+    fn update(mut self, conn: &mut SqliteConnection) -> QueryResult<Self> {
         let existing = match Self::find(conn, &self.id)? {
             Some(e) => e,
             None => return Err(diesel::result::Error::NotFound),
@@ -132,11 +119,11 @@ impl DjmdAlbum {
             .set(self)
             .get_result(conn)?)
     }
+}
 
-    /// Deletes a record from the `djmdAlbum` table and removes any references to it.
-    pub fn delete(conn: &mut SqliteConnection, id: &str) -> QueryResult<usize> {
+impl ModelDelete for DjmdAlbum {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
         let result = diesel::delete(djmdAlbum::table.find(id)).execute(conn)?;
-
         AgentRegistry::increment_local_usn(conn)?;
         // Remove any references to the album in the djmdContent table
         diesel::update(djmdContent::table.filter(djmdContent::album_id.eq(id)))
@@ -146,21 +133,42 @@ impl DjmdAlbum {
         Ok(result)
     }
 
-    /// Deletes multiple records from the `djmdAlbum` table and removes any references to them.
-    pub fn delete_many(conn: &mut SqliteConnection, ids: &[String]) -> QueryResult<usize> {
+    /// Deletes multiple records from the database table.
+    ///
+    /// # Arguments
+    /// - `conn`: A mutable reference to the database connection.
+    /// - `ids`: A vector of references to the IDs of the records to delete.
+    ///
+    /// # Returns
+    /// A `QueryResult` containing the total number of rows affected.
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
         if ids.is_empty() {
             return Ok(0);
         }
         let result =
-            diesel::delete(djmdAlbum::table.filter(djmdAlbum::id.eq_any(ids))).execute(conn)?;
-
+            diesel::delete(djmdAlbum::table.filter(djmdAlbum::id.eq_any(&ids))).execute(conn)?;
         AgentRegistry::increment_local_usn_by(conn, ids.len())?;
         // Remove any references to the albums in the djmdContent table
         diesel::update(djmdContent::table.filter(djmdContent::album_id.eq_any(ids)))
             .set(djmdContent::album_id.eq(None::<String>))
             .execute(conn)?;
-
         Ok(result)
+    }
+}
+
+impl DjmdAlbum {
+    /// Queries a record from the `djmdAlbum` table by its `name`.
+    pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
+        Self::query()
+            .filter(djmdAlbum::name.eq(name))
+            .first(conn)
+            .optional()
+    }
+
+    /// Checks if a record with the given `name` exists in the `djmdAlbum` table.
+    pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
+        let query = Self::query().filter(djmdAlbum::name.eq(name));
+        diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
     }
 
     /// Generates a new unique identifier for a record in the `djmdAlbum` table.
@@ -187,7 +195,7 @@ impl DjmdAlbum {
 /// ```rust
 /// use rbox::masterdb::models::NewDjmdAlbum;
 ///
-/// let new = NewDjmdAlbum::new("Name".into()).compilation(1);
+/// let new = NewDjmdAlbum::new("Name").compilation(1);
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -207,23 +215,15 @@ pub struct NewDjmdAlbum {
     pub search_str: Option<String>,
 }
 
-impl NewDjmdAlbum {
-    /// Creates a new album record with the required fields.
-    pub fn new(name: String) -> Self {
-        Self {
-            name,
-            ..Default::default()
-        }
-    }
+impl ModelInsert for NewDjmdAlbum {
+    type Model = DjmdAlbum;
 
-    /// Inserts the new album into the database.
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<DjmdAlbum> {
-        let id = DjmdAlbum::generate_id(conn)?;
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
+        let id = Self::Model::generate_id(conn)?;
         let uuid = Uuid::new_v4().to_string();
         let usn = AgentRegistry::increment_local_usn(conn)?;
         let now = Utc::now();
-
-        let item = DjmdAlbum {
+        let item = Self::Model {
             id,
             uuid,
             rb_local_usn: Some(usn),
@@ -236,10 +236,19 @@ impl NewDjmdAlbum {
             search_str: self.search_str,
             ..Default::default()
         };
-
         diesel::insert_into(djmdAlbum::table)
             .values(item)
             .get_result(conn)
+    }
+}
+
+impl NewDjmdAlbum {
+    /// Creates a new album record with the required fields.
+    pub fn new<S: Into<String>>(name: S) -> Self {
+        Self {
+            name: name.into(),
+            ..Default::default()
+        }
     }
 
     /// Inserts the new album or returns an existing record if an album with the same name already exists.
@@ -251,14 +260,14 @@ impl NewDjmdAlbum {
     }
 
     /// Builder for `album_artist_id`.
-    pub fn album_artist_id(mut self, id: String) -> Self {
-        self.album_artist_id = Some(id);
+    pub fn album_artist_id<S: Into<String>>(mut self, id: String) -> Self {
+        self.album_artist_id = Some(id.into());
         self
     }
 
     /// Builder for `image_path`.
-    pub fn image_path(mut self, path: String) -> Self {
-        self.image_path = Some(path);
+    pub fn image_path<S: Into<String>>(mut self, path: String) -> Self {
+        self.image_path = Some(path.into());
         self
     }
 
@@ -269,8 +278,8 @@ impl NewDjmdAlbum {
     }
 
     /// Builder for `search_str`.
-    pub fn search_str(mut self, search_str: String) -> Self {
-        self.search_str = Some(search_str);
+    pub fn search_str<S: Into<String>>(mut self, search_str: String) -> Self {
+        self.search_str = Some(search_str.into());
         self
     }
 }

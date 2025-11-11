@@ -14,6 +14,7 @@ use uuid::Uuid;
 use super::agent_registry::AgentRegistry;
 use super::schema::{djmdContent, djmdGenre};
 use super::{Date, DateString, RandomIdGenerator};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -58,38 +59,24 @@ pub struct DjmdGenre {
     pub name: String,
 }
 
-impl DjmdGenre {
-    /// Queries all records from the `djmdGenre` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for DjmdGenre {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `djmdGenre` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
-    /// Queries a record from the `djmdGenre` table by its `name`.
-    pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
-        Self::query()
-            .filter(djmdGenre::name.eq(name))
-            .first(conn)
-            .optional()
-    }
-
-    /// Checks if a record with the given `id` exists in the `djmdGenre` table.
-    pub fn id_exists(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
         diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
     }
+}
 
-    /// Checks if a record with the given `name` exists in the `djmdGenre` table.
-    pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
-        let query = Self::query().filter(djmdGenre::name.eq(name));
-        diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
-    }
-
-    /// Updates an existing record in the `djmdGenre` table.
-    pub fn update(mut self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+impl ModelUpdate for DjmdGenre {
+    fn update(mut self, conn: &mut SqliteConnection) -> QueryResult<Self> {
         let existing = match Self::find(conn, &self.id)? {
             Some(e) => e,
             None => return Err(diesel::result::Error::NotFound),
@@ -103,36 +90,56 @@ impl DjmdGenre {
         }
         self.updated_at = Utc::now();
         self.rb_local_usn = Some(AgentRegistry::increment_local_usn_by(conn, changes)?);
-        Ok(diesel::update(djmdGenre::table.find(self.id.clone()))
+        diesel::update(djmdGenre::table.find(self.id.clone()))
             .set(self)
-            .get_result(conn)?)
+            .get_result(conn)
     }
+}
 
-    /// Deletes a record from the `djmdGenre` table and removes any references to it.
-    pub fn delete(conn: &mut SqliteConnection, id: &str) -> QueryResult<usize> {
+impl ModelDelete for DjmdGenre {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
         let result = diesel::delete(djmdGenre::table.find(id)).execute(conn)?;
-
         AgentRegistry::increment_local_usn(conn)?;
         // Remove any references to the album in the djmdContent table
         diesel::update(djmdContent::table.filter(djmdContent::genre_id.eq(id)))
             .set(djmdContent::genre_id.eq(None::<String>))
             .execute(conn)?;
-
         Ok(result)
     }
 
-    /// Deletes multiple records from the `djmdGenre` table and removes any references to them.
-    pub fn delete_many(conn: &mut SqliteConnection, ids: &[String]) -> QueryResult<usize> {
+    /// Deletes multiple records from the database table.
+    ///
+    /// # Arguments
+    /// - `conn`: A mutable reference to the database connection.
+    /// - `ids`: A vector of references to the IDs of the records to delete.
+    ///
+    /// # Returns
+    /// A `QueryResult` containing the total number of rows affected.
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
         let result =
-            diesel::delete(djmdGenre::table.filter(djmdGenre::id.eq_any(ids))).execute(conn)?;
-
+            diesel::delete(djmdGenre::table.filter(djmdGenre::id.eq_any(&ids))).execute(conn)?;
         AgentRegistry::increment_local_usn_by(conn, result)?;
         // Remove any references to the genres in the djmdContent table
         diesel::update(djmdContent::table.filter(djmdContent::genre_id.eq_any(ids)))
             .set(djmdContent::genre_id.eq(None::<String>))
             .execute(conn)?;
-
         Ok(result)
+    }
+}
+
+impl DjmdGenre {
+    /// Queries a record from the `djmdGenre` table by its `name`.
+    pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
+        Self::query()
+            .filter(djmdGenre::name.eq(name))
+            .first(conn)
+            .optional()
+    }
+
+    /// Checks if a record with the given `name` exists in the `djmdGenre` table.
+    pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
+        let query = Self::query().filter(djmdGenre::name.eq(name));
+        diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
     }
 
     /// Generates a new unique identifier for a record in the `djmdGenre` table.
@@ -157,7 +164,7 @@ impl DjmdGenre {
 /// ```rust
 /// use rbox::masterdb::models::NewDjmdGenre;
 ///
-/// let new = NewDjmdGenre::new("Name".into());
+/// let new = NewDjmdGenre::new("Name");
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -169,19 +176,15 @@ pub struct NewDjmdGenre {
     pub name: String,
 }
 
-impl NewDjmdGenre {
-    /// Creates a new genre record with the required fields.
-    pub fn new(name: String) -> Self {
-        Self { name }
-    }
+impl ModelInsert for NewDjmdGenre {
+    type Model = DjmdGenre;
 
-    /// Inserts the new artist into the database.
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<DjmdGenre> {
-        let id = DjmdGenre::generate_id(conn)?;
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<DjmdGenre> {
+        let id = Self::Model::generate_id(conn)?;
         let uuid = Uuid::new_v4().to_string();
         let usn = AgentRegistry::increment_local_usn(conn)?;
         let now = Utc::now();
-        let item = DjmdGenre {
+        let item = Self::Model {
             id,
             uuid,
             rb_local_usn: Some(usn),
@@ -193,6 +196,13 @@ impl NewDjmdGenre {
         diesel::insert_into(djmdGenre::table)
             .values(item)
             .get_result(conn)
+    }
+}
+
+impl NewDjmdGenre {
+    /// Creates a new genre record with the required fields.
+    pub fn new<S: Into<String>>(name: S) -> Self {
+        Self { name: name.into() }
     }
 
     /// Inserts the new genre or returns an existing record if a genre with the same name already exists.

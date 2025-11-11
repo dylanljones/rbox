@@ -14,6 +14,7 @@ use uuid::Uuid;
 use super::agent_registry::AgentRegistry;
 use super::schema::{djmdContent, djmdKey};
 use super::{Date, DateString, RandomIdGenerator};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -60,43 +61,24 @@ pub struct DjmdKey {
     pub seq: Option<i32>,
 }
 
-impl DjmdKey {
-    /// Queries all records from the `djmdKey` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for DjmdKey {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `djmdKey` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
-    /// Queries a record from the `djmdKey` table by its `scale_name`.
-    pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
-        Self::query()
-            .filter(djmdKey::name.eq(name))
-            .first(conn)
-            .optional()
-    }
-
-    /// Counts the number of records in the `djmdKey` table.
-    pub fn count(conn: &mut SqliteConnection) -> QueryResult<i32> {
-        Ok(djmdKey::table.count().get_result::<i64>(conn)? as i32)
-    }
-
-    /// Checks if a record with the given `id` exists in the `djmdKey` table.
-    pub fn id_exists(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
         diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
     }
+}
 
-    /// Checks if a record with the given `scale_name` exists in the `djmdKey` table.
-    pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
-        let query = Self::query().filter(djmdKey::name.eq(name));
-        diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
-    }
-
-    /// Updates an existing record in the `djmdKey` table.
-    pub fn update(mut self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+impl ModelUpdate for DjmdKey {
+    fn update(mut self, conn: &mut SqliteConnection) -> QueryResult<Self> {
         let existing = match Self::find(conn, &self.id)? {
             Some(e) => e,
             None => return Err(diesel::result::Error::NotFound),
@@ -113,22 +95,14 @@ impl DjmdKey {
         }
         self.updated_at = Utc::now();
         self.rb_local_usn = Some(AgentRegistry::increment_local_usn_by(conn, changes)?);
-        Ok(diesel::update(djmdKey::table.find(self.id.clone()))
+        diesel::update(djmdKey::table.find(self.id.clone()))
             .set(self)
-            .get_result(conn)?)
+            .get_result(conn)
     }
+}
 
-    /// Reset the `seq` numbers of all records from the `djmdKey` table in the current order.
-    pub fn reset_seq(conn: &mut SqliteConnection) -> QueryResult<usize> {
-        diesel::sql_query(
-            "WITH ordered AS (SELECT id, ROW_NUMBER() OVER (ORDER BY seq) AS new_seq FROM djmdKey)
-            UPDATE djmdKey SET seq = (SELECT new_seq FROM ordered WHERE ordered.id = djmdKey.id);",
-        )
-        .execute(conn)
-    }
-
-    /// Deletes a record from the `djmdKey` table and removes any references to it.
-    pub fn delete(conn: &mut SqliteConnection, id: &str) -> QueryResult<usize> {
+impl ModelDelete for DjmdKey {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
         let result = diesel::delete(djmdKey::table.find(id)).execute(conn)?;
         AgentRegistry::increment_local_usn(conn)?;
         // Reorder the seq numbers
@@ -140,21 +114,58 @@ impl DjmdKey {
         Ok(result)
     }
 
-    /// Deletes multiple records from the `djmdKey` table and removes any references to them.
-    pub fn delete_many(conn: &mut SqliteConnection, ids: &[String]) -> QueryResult<usize> {
+    /// Deletes multiple records from the database table.
+    ///
+    /// # Arguments
+    /// - `conn`: A mutable reference to the database connection.
+    /// - `ids`: A vector of references to the IDs of the records to delete.
+    ///
+    /// # Returns
+    /// A `QueryResult` containing the total number of rows affected.
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
         if ids.is_empty() {
             return Ok(0);
         }
         let result =
-            diesel::delete(djmdKey::table.filter(djmdKey::id.eq_any(ids))).execute(conn)?;
+            diesel::delete(djmdKey::table.filter(djmdKey::id.eq_any(&ids))).execute(conn)?;
         AgentRegistry::increment_local_usn_by(conn, ids.len())?;
         // Reorder the seq numbers
         Self::reset_seq(conn)?;
         // Remove any references to the key in the djmdContent table
-        diesel::update(djmdContent::table.filter(djmdContent::key_id.eq_any(ids)))
+        diesel::update(djmdContent::table.filter(djmdContent::key_id.eq_any(&ids)))
             .set(djmdContent::key_id.eq(None::<String>))
             .execute(conn)?;
         Ok(result)
+    }
+}
+
+impl DjmdKey {
+    /// Queries a record from the `djmdKey` table by its `scale_name`.
+    pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
+        Self::query()
+            .filter(djmdKey::name.eq(name))
+            .first(conn)
+            .optional()
+    }
+
+    /// Counts the number of records in the `djmdKey` table.
+    pub fn count(conn: &mut SqliteConnection) -> QueryResult<i32> {
+        Ok(djmdKey::table.count().get_result::<i64>(conn)? as i32)
+    }
+
+    /// Checks if a record with the given `scale_name` exists in the `djmdKey` table.
+    pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
+        let query = Self::query().filter(djmdKey::name.eq(name));
+        diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
+    }
+
+    /// Reset the `seq` numbers of all records from the `djmdKey` table in the current order.
+    pub fn reset_seq(conn: &mut SqliteConnection) -> QueryResult<usize> {
+        diesel::sql_query(
+            "WITH ordered AS (SELECT id, ROW_NUMBER() OVER (ORDER BY seq) AS new_seq FROM djmdKey)
+            UPDATE djmdKey SET seq = (SELECT new_seq FROM ordered WHERE ordered.id = djmdKey.id);",
+        )
+        .execute(conn)
     }
 
     /// Generates a new unique identifier for a record in the `djmdKey` table.
@@ -181,7 +192,7 @@ impl DjmdKey {
 /// ```rust
 /// use rbox::masterdb::models::NewDjmdKey;
 ///
-/// let new = NewDjmdKey::new("C".into()).seq(1);
+/// let new = NewDjmdKey::new("C").seq(1);
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -195,23 +206,15 @@ pub struct NewDjmdKey {
     pub seq: Option<i32>,
 }
 
-impl NewDjmdKey {
-    /// Creates a new record with the required fields.
-    pub fn new(name: String) -> Self {
-        Self {
-            name,
-            ..Default::default()
-        }
-    }
+impl ModelInsert for NewDjmdKey {
+    type Model = DjmdKey;
 
-    /// Inserts the new album into the database.
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<DjmdKey> {
-        let id = DjmdKey::generate_id(conn)?;
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<DjmdKey> {
+        let id = Self::Model::generate_id(conn)?;
         let uuid = Uuid::new_v4().to_string();
         let usn = AgentRegistry::increment_local_usn(conn)?;
         let now = Utc::now();
-
-        let item = DjmdKey {
+        let item = Self::Model {
             id,
             uuid,
             rb_local_usn: Some(usn),
@@ -221,14 +224,23 @@ impl NewDjmdKey {
             seq: self.seq,
             ..Default::default()
         };
-
-        let result: DjmdKey = diesel::insert_into(djmdKey::table)
+        let result: Self::Model = diesel::insert_into(djmdKey::table)
             .values(item)
             .get_result(conn)?;
         if let Some(_seq) = result.seq {
             DjmdKey::reset_seq(conn)?;
         }
         Ok(result)
+    }
+}
+
+impl NewDjmdKey {
+    /// Creates a new record with the required fields.
+    pub fn new<S: Into<String>>(name: S) -> Self {
+        Self {
+            name: name.into(),
+            ..Default::default()
+        }
     }
 
     /// Inserts the new key or returns an existing record if a key with the same name already exists.

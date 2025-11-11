@@ -17,7 +17,7 @@ use super::agent_registry::AgentRegistry;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdRelatedTracks, djmdSongRelatedTracks};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
-use crate::model_traits::SequenceTree;
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate, SequenceTree};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -74,17 +74,93 @@ pub struct DjmdRelatedTracks {
     pub criteria: String,
 }
 
-impl DjmdRelatedTracks {
-    /// Queries all records from the `djmdRelatedTracks` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for DjmdRelatedTracks {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `djmdRelatedTracks` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
+}
+
+impl ModelUpdate for DjmdRelatedTracks {
+    fn update(mut self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+        let existing = match Self::find(conn, &self.id)? {
+            Some(e) => e,
+            None => return Err(Error::NotFound),
+        };
+        let mut changes = 0;
+        if self.seq != existing.seq {
+            changes += 1;
+        }
+        if self.name != existing.name {
+            changes += 1;
+        }
+        if self.attribute != existing.attribute {
+            changes += 1;
+        }
+        if self.parent_id != existing.parent_id {
+            changes += 1;
+        }
+        if self.criteria != existing.criteria {
+            changes += 1;
+        }
+        if changes == 0 {
+            return Ok(existing);
+        }
+        self.updated_at = Utc::now();
+        self.rb_local_usn = Some(AgentRegistry::increment_local_usn_by(conn, changes)?);
+        diesel::update(djmdRelatedTracks::table.find(self.id.clone()))
+            .set(self)
+            .get_result(conn)
+    }
+}
+
+impl ModelDelete for DjmdRelatedTracks {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
+        // Vec of all deleted ids
+        let mut deleted_ids = vec![id.to_string()];
+
+        // Delete the record
+        let parent_id: String = diesel::delete(djmdRelatedTracks::table.find(id))
+            .returning(djmdRelatedTracks::parent_id)
+            .get_result(conn)?;
+
+        // Reorder the seq numbers of tags left in the parent
+        Self::reset_seq(conn, &parent_id)?;
+
+        // Remove all child djmdRelatedTracks records recursively
+        let mut parent_ids = VecDeque::from(vec![id.to_string()]);
+        while let Some(parent_id) = parent_ids.pop_front() {
+            // Delete children
+            let deleted: Vec<String> = diesel::delete(
+                djmdRelatedTracks::table.filter(djmdRelatedTracks::parent_id.eq(parent_id)),
+            )
+            .returning(djmdRelatedTracks::id)
+            .get_results(conn)?;
+            deleted_ids.extend(deleted.clone());
+            // Add children to the queue
+            for deleted_id in deleted {
+                parent_ids.push_back(deleted_id);
+            }
+        }
+
+        DjmdSongRelatedTracks::delete_by_related_tracks_ids(conn, &deleted_ids)?;
+
+        AgentRegistry::increment_local_usn_by(conn, deleted_ids.len())?;
+
+        Ok(deleted_ids.len())
+    }
+}
+
+impl DjmdRelatedTracks {
     /// Queries a record from the `djmdRelatedTracks` table by its `name`.
     pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
         Self::query()
@@ -154,49 +230,10 @@ impl DjmdRelatedTracks {
         }
     }
 
-    /// Checks if a record with the given `id` exists in the `djmdRelatedTracks` table.
-    pub fn id_exists(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
-        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
-    }
-
     /// Checks if a record with the given `name` exists in the `djmdRelatedTracks` table.
     pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
         let query = Self::query().filter(djmdRelatedTracks::name.eq(name));
         diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
-    }
-
-    /// Updates an existing record in the `djmdRelatedTracks` table.
-    pub fn update(mut self, conn: &mut SqliteConnection) -> QueryResult<Self> {
-        let existing = match Self::find(conn, &self.id)? {
-            Some(e) => e,
-            None => return Err(Error::NotFound),
-        };
-        let mut changes = 0;
-        if self.seq != existing.seq {
-            changes += 1;
-        }
-        if self.name != existing.name {
-            changes += 1;
-        }
-        if self.attribute != existing.attribute {
-            changes += 1;
-        }
-        if self.parent_id != existing.parent_id {
-            changes += 1;
-        }
-        if self.criteria != existing.criteria {
-            changes += 1;
-        }
-        if changes == 0 {
-            return Ok(existing);
-        }
-        self.updated_at = Utc::now();
-        self.rb_local_usn = Some(AgentRegistry::increment_local_usn_by(conn, changes)?);
-        Ok(
-            diesel::update(djmdRelatedTracks::table.find(self.id.clone()))
-                .set(self)
-                .get_result(conn)?,
-        )
     }
 
     /// Set the name of a record in the `djmdRelatedTracks` table.
@@ -244,42 +281,6 @@ impl DjmdRelatedTracks {
                 djmdRelatedTracks::rb_local_usn.eq(usn),
             ))
             .execute(conn)
-    }
-
-    /// Deletes a record from the `djmdRelatedTracks` table and removes any references to it.
-    pub fn delete(conn: &mut SqliteConnection, id: &str) -> QueryResult<Vec<String>> {
-        // Vec of all deleted ids
-        let mut deleted_ids = vec![id.to_string()];
-
-        // Delete the record
-        let parent_id: String = diesel::delete(djmdRelatedTracks::table.find(id))
-            .returning(djmdRelatedTracks::parent_id)
-            .get_result(conn)?;
-
-        // Reorder the seq numbers of tags left in the parent
-        Self::reset_seq(conn, &parent_id)?;
-
-        // Remove all child djmdRelatedTracks records recursively
-        let mut parent_ids = VecDeque::from(vec![id.to_string()]);
-        while let Some(parent_id) = parent_ids.pop_front() {
-            // Delete children
-            let deleted: Vec<String> = diesel::delete(
-                djmdRelatedTracks::table.filter(djmdRelatedTracks::parent_id.eq(parent_id)),
-            )
-            .returning(djmdRelatedTracks::id)
-            .get_results(conn)?;
-            deleted_ids.extend(deleted.clone());
-            // Add children to the queue
-            for deleted_id in deleted {
-                parent_ids.push_back(deleted_id);
-            }
-        }
-
-        DjmdSongRelatedTracks::delete_by_related_tracks_ids(conn, &deleted_ids)?;
-
-        AgentRegistry::increment_local_usn_by(conn, deleted_ids.len())?;
-
-        Ok(deleted_ids)
     }
 
     /// Generates a new unique identifier for a record in the `djmdRelatedTracks` table.
@@ -438,7 +439,7 @@ impl SequenceTree for DjmdRelatedTracks {
 /// ```rust
 /// use rbox::masterdb::models::NewDjmdRelatedTracks;
 ///
-/// let new = NewDjmdRelatedTracks::new("Name".into(), 0).seq(1);
+/// let new = NewDjmdRelatedTracks::new("Name", 0).seq(1);
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -458,36 +459,10 @@ pub struct NewDjmdRelatedTracks {
     pub criteria: Option<String>,
 }
 
-impl NewDjmdRelatedTracks {
-    /// Creates a new `NewDjmdRelatedTracks` with the required `name` and `attribute` field.
-    pub fn new(name: String, attribute: i32) -> Self {
-        Self {
-            name,
-            attribute,
-            ..Default::default()
-        }
-    }
+impl ModelInsert for NewDjmdRelatedTracks {
+    type Model = DjmdRelatedTracks;
 
-    /// Creates a new `NewDjmdRelatedTracks` as a related tracks list.
-    pub fn related_tracks(name: String) -> Self {
-        Self {
-            name,
-            attribute: 0,
-            ..Default::default()
-        }
-    }
-
-    /// Creates a new `NewDjmdRelatedTracks` as a folder.
-    pub fn folder(name: String) -> Self {
-        Self {
-            name,
-            attribute: 1,
-            ..Default::default()
-        }
-    }
-
-    /// Inserts the new record into the database
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<DjmdRelatedTracks> {
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
         let parent_id = self.parent_id.unwrap_or("root".to_string());
 
         // Handle seq and USN of moved records (also checkks parent)
@@ -498,13 +473,13 @@ impl NewDjmdRelatedTracks {
         }
 
         // Generate meta
-        let id = DjmdRelatedTracks::generate_id(conn)?;
+        let id = Self::Model::generate_id(conn)?;
         let uuid = Uuid::new_v4().to_string();
         let now = Utc::now();
 
         // Get next USN: We increment by 2 (1 for creating, 1 for renaming from 'New Playlist')
         let usn = AgentRegistry::increment_local_usn_by(conn, 2)?;
-        let item = DjmdRelatedTracks {
+        let item = Self::Model {
             id,
             uuid,
             rb_local_usn: Some(usn),
@@ -517,10 +492,38 @@ impl NewDjmdRelatedTracks {
             criteria: self.criteria.unwrap_or_default(),
             ..Default::default()
         };
-        let result = diesel::insert_into(djmdRelatedTracks::table)
+        diesel::insert_into(djmdRelatedTracks::table)
             .values(item)
-            .get_result(conn)?;
-        Ok(result)
+            .get_result(conn)
+    }
+}
+
+impl NewDjmdRelatedTracks {
+    /// Creates a new `NewDjmdRelatedTracks` with the required `name` and `attribute` field.
+    pub fn new<S: Into<String>>(name: S, attribute: i32) -> Self {
+        Self {
+            name: name.into(),
+            attribute,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a new `NewDjmdRelatedTracks` as a related tracks list.
+    pub fn related_tracks<S: Into<String>>(name: S) -> Self {
+        Self {
+            name: name.into(),
+            attribute: 0,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a new `NewDjmdRelatedTracks` as a folder.
+    pub fn folder<S: Into<String>>(name: S) -> Self {
+        Self {
+            name: name.into(),
+            attribute: 1,
+            ..Default::default()
+        }
     }
 
     /// Builder for `seq`.
@@ -530,14 +533,14 @@ impl NewDjmdRelatedTracks {
     }
 
     /// Builder for `parent_id`.
-    pub fn parent_id(mut self, parent_id: String) -> Self {
-        self.parent_id = Some(parent_id);
+    pub fn parent_id<S: Into<String>>(mut self, parent_id: S) -> Self {
+        self.parent_id = Some(parent_id.into());
         self
     }
 
     /// Builder for `criteria`.
-    pub fn criteria(mut self, criteria: String) -> Self {
-        self.criteria = Some(criteria);
+    pub fn criteria<S: Into<String>>(mut self, criteria: S) -> Self {
+        self.criteria = Some(criteria.into());
         self
     }
 }
@@ -592,17 +595,37 @@ pub struct DjmdSongRelatedTracks {
     pub track_no: i32,
 }
 
-impl DjmdSongRelatedTracks {
-    /// Queries all records from the `djmdSongRelatedTracks` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for DjmdSongRelatedTracks {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `djmdSongRelatedTracks` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
+}
+
+impl ModelDelete for DjmdSongRelatedTracks {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
+        let query = djmdSongRelatedTracks::table.find(id);
+        let my_tag_id: String = query
+            .select(djmdSongRelatedTracks::related_tracks_id)
+            .first(conn)?;
+        let result = diesel::delete(query).execute(conn)?;
+        AgentRegistry::increment_local_usn(conn)?;
+        // Reorder the track_no numbers
+        Self::reset_seq(conn, &my_tag_id)?;
+        Ok(result)
+    }
+}
+
+impl DjmdSongRelatedTracks {
     /// Queries all records from the `djmdSongRelatedTracks` table by its `sampler_id`.
     pub fn by_related_tracks_id(
         conn: &mut SqliteConnection,
@@ -639,11 +662,6 @@ impl DjmdSongRelatedTracks {
         Self::count_children(conn, related_tracks_id)
     }
 
-    /// Checks if a record with the given `id` exists in the `djmdSongRelatedTracks` table.
-    pub fn id_exists(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
-        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
-    }
-
     /// Move a record in the `djmdSongRelatedTracks` table.
     pub fn move_to(conn: &mut SqliteConnection, id: &str, seq: Option<i32>) -> QueryResult<usize> {
         let res = match Self::find(conn, id)? {
@@ -669,21 +687,6 @@ impl DjmdSongRelatedTracks {
                 djmdSongRelatedTracks::rb_local_usn.eq(usn),
             ))
             .execute(conn)
-    }
-
-    /// Deletes a record from the `djmdSongRelatedTracks` table
-    pub fn delete(conn: &mut SqliteConnection, id: &str) -> QueryResult<usize> {
-        let query = djmdSongRelatedTracks::table.find(id);
-        let my_tag_id: String = query
-            .select(djmdSongRelatedTracks::related_tracks_id)
-            .first(conn)?;
-
-        let result = diesel::delete(query).execute(conn)?;
-        AgentRegistry::increment_local_usn(conn)?;
-        // Reorder the track_no numbers
-        Self::reset_seq(conn, &my_tag_id)?;
-
-        Ok(result)
     }
 
     /// Deletes a record from the `djmdSongRelatedTracks` table based on its `related_tracks_id`.
@@ -856,7 +859,7 @@ impl SequenceTree for DjmdSongRelatedTracks {
 /// ```rust
 /// use rbox::masterdb::models::NewDjmdSongRelatedTracks;
 ///
-/// let new = NewDjmdSongRelatedTracks::new("relatedId".into(), "contentId".into()).track_no(1);
+/// let new = NewDjmdSongRelatedTracks::new("relatedId", "contentId").track_no(1);
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -872,12 +875,50 @@ pub struct NewDjmdSongRelatedTracks {
     pub track_no: Option<i32>,
 }
 
+impl ModelInsert for NewDjmdSongRelatedTracks {
+    type Model = DjmdSongRelatedTracks;
+
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
+        // Check content
+        if !DjmdContent::id_exists(conn, &self.content_id)? {
+            return Err(Error::NotFound);
+        }
+        let parent_id = &self.related_tracks_id;
+        // Handle seq and USN of moved records (also checkks parent)
+        let (seq, n) = Self::Model::update_seq_before_insert(conn, &parent_id, self.track_no)?;
+        if n > 0 {
+            // Apply USN of moved records
+            AgentRegistry::increment_local_usn(conn)?;
+        }
+        // Generate meta
+        let id = Self::Model::generate_id(conn)?;
+        let uuid = Uuid::new_v4().to_string();
+        let now = Utc::now();
+        // Get next USN: We increment by 2 (1 for creating, 1 for renaming from 'New Playlist')
+        let usn = AgentRegistry::increment_local_usn_by(conn, 2)?;
+        let item = Self::Model {
+            id,
+            uuid,
+            rb_local_usn: Some(usn),
+            created_at: now,
+            updated_at: now,
+            related_tracks_id: self.related_tracks_id,
+            content_id: self.content_id,
+            track_no: seq,
+            ..Default::default()
+        };
+        diesel::insert_into(djmdSongRelatedTracks::table)
+            .values(item)
+            .get_result(conn)
+    }
+}
+
 impl NewDjmdSongRelatedTracks {
     /// Creates a new `NewDjmdSongRelatedTracks` with the required `related_tracks_id` and `content_id` field.
-    pub fn new(related_tracks_id: String, content_id: String) -> Self {
+    pub fn new<S1: Into<String>, S2: Into<String>>(related_tracks_id: S1, content_id: S2) -> Self {
         Self {
-            related_tracks_id,
-            content_id,
+            related_tracks_id: related_tracks_id.into(),
+            content_id: content_id.into(),
             ..Default::default()
         }
     }

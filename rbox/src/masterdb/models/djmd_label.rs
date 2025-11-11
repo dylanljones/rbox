@@ -14,6 +14,7 @@ use uuid::Uuid;
 use super::agent_registry::AgentRegistry;
 use super::schema::{djmdContent, djmdLabel};
 use super::{Date, DateString, RandomIdGenerator};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -58,38 +59,24 @@ pub struct DjmdLabel {
     pub name: String,
 }
 
-impl DjmdLabel {
-    /// Queries all records from the `djmdLabel` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for DjmdLabel {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `djmdLabel` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
-    /// Queries a record from the `djmdLabel` table by its `name`.
-    pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
-        Self::query()
-            .filter(djmdLabel::name.eq(name))
-            .first(conn)
-            .optional()
-    }
-
-    /// Checks if a record with the given `id` exists in the `djmdLabel` table.
-    pub fn id_exists(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
         diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
     }
+}
 
-    /// Checks if a record with the given `name` exists in the `djmdLabel` table.
-    pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
-        let query = Self::query().filter(djmdLabel::name.eq(name));
-        diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
-    }
-
-    /// Updates an existing record in the `djmdLabel` table.
-    pub fn update(mut self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+impl ModelUpdate for DjmdLabel {
+    fn update(mut self, conn: &mut SqliteConnection) -> QueryResult<Self> {
         let existing = match Self::find(conn, &self.id)? {
             Some(e) => e,
             None => return Err(diesel::result::Error::NotFound),
@@ -103,39 +90,59 @@ impl DjmdLabel {
         }
         self.updated_at = Utc::now();
         self.rb_local_usn = Some(AgentRegistry::increment_local_usn_by(conn, changes)?);
-        Ok(diesel::update(djmdLabel::table.find(self.id.clone()))
+        diesel::update(djmdLabel::table.find(self.id.clone()))
             .set(self)
-            .get_result(conn)?)
+            .get_result(conn)
     }
+}
 
-    /// Deletes a record from the `djmdLabel` table and removes any references to it.
-    pub fn delete(conn: &mut SqliteConnection, id: &str) -> QueryResult<usize> {
+impl ModelDelete for DjmdLabel {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
         let result = diesel::delete(djmdLabel::table.find(id)).execute(conn)?;
-
         AgentRegistry::increment_local_usn(conn)?;
         // Remove any references to the label in the djmdContent table
         diesel::update(djmdContent::table.filter(djmdContent::label_id.eq(id)))
             .set(djmdContent::label_id.eq(None::<String>))
             .execute(conn)?;
-
         Ok(result)
     }
 
-    /// Deletes multiple records from the `djmdLabel` table and removes any references to them.
-    pub fn delete_many(conn: &mut SqliteConnection, ids: &[String]) -> QueryResult<usize> {
+    /// Deletes multiple records from the database table.
+    ///
+    /// # Arguments
+    /// - `conn`: A mutable reference to the database connection.
+    /// - `ids`: A vector of references to the IDs of the records to delete.
+    ///
+    /// # Returns
+    /// A `QueryResult` containing the total number of rows affected.
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
         if ids.is_empty() {
             return Ok(0);
         }
         let result =
-            diesel::delete(djmdLabel::table.filter(djmdLabel::id.eq_any(ids))).execute(conn)?;
-
+            diesel::delete(djmdLabel::table.filter(djmdLabel::id.eq_any(&ids))).execute(conn)?;
         AgentRegistry::increment_local_usn_by(conn, ids.len())?;
         // Remove any references to the labels in the djmdContent table
-        diesel::update(djmdContent::table.filter(djmdContent::label_id.eq_any(ids)))
+        diesel::update(djmdContent::table.filter(djmdContent::label_id.eq_any(&ids)))
             .set(djmdContent::label_id.eq(None::<String>))
             .execute(conn)?;
-
         Ok(result)
+    }
+}
+
+impl DjmdLabel {
+    /// Queries a record from the `djmdLabel` table by its `name`.
+    pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
+        Self::query()
+            .filter(djmdLabel::name.eq(name))
+            .first(conn)
+            .optional()
+    }
+
+    /// Checks if a record with the given `name` exists in the `djmdLabel` table.
+    pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
+        let query = Self::query().filter(djmdLabel::name.eq(name));
+        diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
     }
 
     /// Generates a new unique identifier for a record in the `djmdLabel` table.
@@ -160,7 +167,7 @@ impl DjmdLabel {
 /// ```rust
 /// use rbox::masterdb::models::NewDjmdLabel;
 ///
-/// let new = NewDjmdArtist::new("Name".into());
+/// let new = NewDjmdArtist::new("Name");
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -172,18 +179,15 @@ pub struct NewDjmdLabel {
     pub name: String,
 }
 
-impl NewDjmdLabel {
-    pub fn new(name: String) -> Self {
-        Self { name }
-    }
+impl ModelInsert for NewDjmdLabel {
+    type Model = DjmdLabel;
 
-    /// Inserts the new label into the database.
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<DjmdLabel> {
-        let id = DjmdLabel::generate_id(conn)?;
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
+        let id = Self::Model::generate_id(conn)?;
         let uuid = Uuid::new_v4().to_string();
         let usn = AgentRegistry::increment_local_usn(conn)?;
         let now = Utc::now();
-        let item = DjmdLabel {
+        let item = Self::Model {
             id,
             uuid,
             rb_local_usn: Some(usn),
@@ -195,6 +199,12 @@ impl NewDjmdLabel {
         diesel::insert_into(djmdLabel::table)
             .values(item)
             .get_result(conn)
+    }
+}
+
+impl NewDjmdLabel {
+    pub fn new<S: Into<String>>(name: S) -> Self {
+        Self { name: name.into() }
     }
 
     /// Inserts the new label or returns an existing record if an label with the same name already exists.

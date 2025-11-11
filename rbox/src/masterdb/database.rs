@@ -48,6 +48,7 @@ use super::models::*;
 use super::playlist_xml::MasterPlaylistXml;
 use crate::anlz::{find_anlz_files, Anlz, AnlzFiles, AnlzPaths};
 use crate::error::{Error, Result};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 use crate::options::RekordboxOptions;
 use crate::pathlib::NormalizePath;
 use crate::util::is_rekordbox_running;

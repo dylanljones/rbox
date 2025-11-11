@@ -11,6 +11,7 @@ use pyo3::prelude::*;
 
 use super::schema::{agentRegistry, cloudAgentRegistry};
 use super::{Date, DateString};
+use crate::model_traits::Model;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -67,17 +68,23 @@ pub struct AgentRegistry {
     pub text_2: Option<String>,
 }
 
-impl AgentRegistry {
-    /// Queries all records from the `agentRegistry` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for AgentRegistry {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `agentRegistry` table by its `registry_id`.
-    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
+}
+
+impl AgentRegistry {
     /// Queries the local update sequence number (USN) from the `agentRegistry` table.
     ///
     /// Returns a [`diesel::result::Error::NotFound`] error if the `localUpdateCount` entry is not
@@ -190,14 +197,18 @@ pub struct CloudAgentRegistry {
     pub text_2: Option<String>,
 }
 
-impl CloudAgentRegistry {
-    /// Queries all records from the `cloudAgentRegistry` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for CloudAgentRegistry {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `cloudAgentRegistry` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
     }
 }

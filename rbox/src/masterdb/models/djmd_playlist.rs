@@ -19,7 +19,7 @@ use super::agent_registry::AgentRegistry;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdPlaylist, djmdSongPlaylist};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
-use crate::model_traits::SequenceTree;
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate, SequenceTree};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -78,17 +78,97 @@ pub struct DjmdPlaylist {
     pub smart_list: Option<String>,
 }
 
-impl DjmdPlaylist {
-    /// Queries all records from the `djmdPlaylist` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for DjmdPlaylist {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `djmdPlaylist` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
+}
+
+impl ModelUpdate for DjmdPlaylist {
+    fn update(mut self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+        let existing = match Self::find(conn, &self.id)? {
+            Some(e) => e,
+            None => return Err(Error::NotFound),
+        };
+        let mut changes = 0;
+        if self.seq != existing.seq {
+            changes += 1;
+        }
+        if self.name != existing.name {
+            changes += 1;
+        }
+        if self.attribute != existing.attribute {
+            changes += 1;
+        }
+        if self.parent_id != existing.parent_id {
+            changes += 1;
+        }
+        if self.image_path != existing.image_path {
+            changes += 1;
+        }
+        if self.smart_list != existing.smart_list {
+            changes += 1;
+        }
+        if changes == 0 {
+            return Ok(existing);
+        }
+        self.updated_at = Utc::now();
+        self.rb_local_usn = Some(AgentRegistry::increment_local_usn_by(conn, changes)?);
+        diesel::update(djmdPlaylist::table.find(self.id.clone()))
+            .set(self)
+            .get_result(conn)
+    }
+}
+
+impl ModelDelete for DjmdPlaylist {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
+        // Vec of all deleted playlist ids
+        let mut deleted_ids = vec![id.to_string()];
+
+        // Delete the record
+        let parent_id: String = diesel::delete(djmdPlaylist::table.find(id))
+            .returning(djmdPlaylist::parent_id)
+            .get_result(conn)?;
+
+        // Reorder the seq numbers of tags left in the parent
+        Self::reset_seq(conn, &parent_id)?;
+
+        // Remove all child records recursively
+        let mut parent_ids = VecDeque::from(vec![id.to_string()]);
+        while let Some(parent_id) = parent_ids.pop_front() {
+            // Delete children
+            let deleted: Vec<String> =
+                diesel::delete(djmdPlaylist::table.filter(djmdPlaylist::parent_id.eq(parent_id)))
+                    .returning(djmdPlaylist::id)
+                    .get_results(conn)?;
+            deleted_ids.extend(deleted.clone());
+            // Add children to the queue
+            for deleted_id in deleted {
+                parent_ids.push_back(deleted_id);
+            }
+        }
+
+        // Remove any djmdSongPlaylist records that are associated with the deleted djmdPlaylists
+        DjmdSongPlaylist::delete_by_playlist_ids(conn, &deleted_ids)?;
+
+        let n = deleted_ids.len();
+        AgentRegistry::increment_local_usn_by(conn, n)?;
+
+        Ok(n)
+    }
+}
+
+impl DjmdPlaylist {
     /// Queries a record from the `djmdPlaylist` table by its `name`.
     pub fn by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
         Self::query()
@@ -189,57 +269,17 @@ impl DjmdPlaylist {
         }
     }
 
-    /// Checks if a record with the given `id` exists in the `djmdPlaylist` table.
-    pub fn id_exists(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
-        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
-    }
-
-    /// Updates an existing record in the `djmdPlaylist` table.
-    pub fn update(mut self, conn: &mut SqliteConnection) -> QueryResult<Self> {
-        let existing = match Self::find(conn, &self.id)? {
-            Some(e) => e,
-            None => return Err(Error::NotFound),
-        };
-        let mut changes = 0;
-        if self.seq != existing.seq {
-            changes += 1;
-        }
-        if self.name != existing.name {
-            changes += 1;
-        }
-        if self.attribute != existing.attribute {
-            changes += 1;
-        }
-        if self.parent_id != existing.parent_id {
-            changes += 1;
-        }
-        if self.image_path != existing.image_path {
-            changes += 1;
-        }
-        if self.smart_list != existing.smart_list {
-            changes += 1;
-        }
-        if changes == 0 {
-            return Ok(existing);
-        }
-        self.updated_at = Utc::now();
-        self.rb_local_usn = Some(AgentRegistry::increment_local_usn_by(conn, changes)?);
-        Ok(diesel::update(djmdPlaylist::table.find(self.id.clone()))
-            .set(self)
-            .get_result(conn)?)
-    }
-
     /// Set the name of a record in the `djmdPlaylist` table.
     pub fn rename(conn: &mut SqliteConnection, id: &str, name: &str) -> QueryResult<Self> {
         let datestr = format_datetime(&Utc::now());
         let usn = AgentRegistry::increment_local_usn(conn)?;
-        Ok(diesel::update(djmdPlaylist::table.find(id))
+        diesel::update(djmdPlaylist::table.find(id))
             .set((
                 djmdPlaylist::name.eq(name),
                 djmdPlaylist::updated_at.eq(&datestr),
                 djmdPlaylist::rb_local_usn.eq(usn),
             ))
-            .get_result(conn)?)
+            .get_result(conn)
     }
 
     /// Move a record in the `djmdPlaylist` table to a new parent.
@@ -280,7 +320,7 @@ impl DjmdPlaylist {
     /// Deletes a record from the `djmdPlaylist` table and removes any references to it.
     pub fn delete(conn: &mut SqliteConnection, id: &str) -> QueryResult<Vec<String>> {
         // Vec of all deleted playlist ids
-        let mut deleted_playlist_ids = vec![id.to_string()];
+        let mut deleted_ids = vec![id.to_string()];
 
         // Delete the record
         let parent_id: String = diesel::delete(djmdPlaylist::table.find(id))
@@ -290,7 +330,7 @@ impl DjmdPlaylist {
         // Reorder the seq numbers of tags left in the parent
         Self::reset_seq(conn, &parent_id)?;
 
-        // Remove all child djmdPlaylist records recursively
+        // Remove all child records recursively
         let mut parent_ids = VecDeque::from(vec![id.to_string()]);
         while let Some(parent_id) = parent_ids.pop_front() {
             // Delete children
@@ -298,8 +338,7 @@ impl DjmdPlaylist {
                 diesel::delete(djmdPlaylist::table.filter(djmdPlaylist::parent_id.eq(parent_id)))
                     .returning(djmdPlaylist::id)
                     .get_results(conn)?;
-            deleted_playlist_ids.extend(deleted.clone());
-            // AgentRegistry::increment_local_usn_by(conn, deleted.len())?;
+            deleted_ids.extend(deleted.clone());
             // Add children to the queue
             for deleted_id in deleted {
                 parent_ids.push_back(deleted_id);
@@ -307,11 +346,11 @@ impl DjmdPlaylist {
         }
 
         // Remove any djmdSongPlaylist records that are associated with the deleted djmdPlaylists
-        DjmdSongPlaylist::delete_by_playlist_ids(conn, &deleted_playlist_ids)?;
+        DjmdSongPlaylist::delete_by_playlist_ids(conn, &deleted_ids)?;
 
-        AgentRegistry::increment_local_usn_by(conn, deleted_playlist_ids.len())?;
+        AgentRegistry::increment_local_usn_by(conn, deleted_ids.len())?;
 
-        Ok(deleted_playlist_ids)
+        Ok(deleted_ids)
     }
 
     /// Queries all records from the `djmdPlaylist` table and returns a tree structure.
@@ -505,7 +544,7 @@ impl SequenceTree for DjmdPlaylist {
 /// ```rust
 /// use rbox::masterdb::models::NewDjmdPlaylist;
 ///
-/// let new = NewDjmdPlaylist::playlist("Name".into()).seq(2);
+/// let new = NewDjmdPlaylist::playlist("Name").seq(2);
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -527,53 +566,24 @@ pub struct NewDjmdPlaylist {
     pub smart_list: Option<String>,
 }
 
-impl NewDjmdPlaylist {
-    /// Creates a new `NewDjmdPlaylist` with the required `name` and `attribute` field.
-    pub fn new(name: String, attribute: i32) -> Self {
-        Self {
-            name,
-            attribute,
-            ..Default::default()
-        }
-    }
+impl ModelInsert for NewDjmdPlaylist {
+    type Model = DjmdPlaylist;
 
-    /// Creates a new `NewDjmdPlaylist` as a playlist.
-    pub fn playlist(name: String) -> Self {
-        Self {
-            name,
-            attribute: 0,
-            ..Default::default()
-        }
-    }
-
-    /// Creates a new `NewDjmdPlaylist` as a folder.
-    pub fn folder(name: String) -> Self {
-        Self {
-            name,
-            attribute: 1,
-            ..Default::default()
-        }
-    }
-
-    /// Inserts the new record into the database
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<DjmdPlaylist> {
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
         let parent_id = self.parent_id.unwrap_or("root".to_string());
-
         // Handle seq and USN of moved records (also checkks parent)
-        let (seq, n) = DjmdPlaylist::update_seq_before_insert(conn, &parent_id, self.seq)?;
+        let (seq, n) = Self::Model::update_seq_before_insert(conn, &parent_id, self.seq)?;
         if n > 0 {
             // Apply USN of moved records
             AgentRegistry::increment_local_usn(conn)?;
         }
-
         // Generate meta
-        let id = DjmdPlaylist::generate_id(conn)?;
+        let id = Self::Model::generate_id(conn)?;
         let uuid = Uuid::new_v4().to_string();
         let now = Utc::now();
-
         // Get next USN: We increment by 2 (1 for creating, 1 for renaming from 'New Playlist')
         let usn = AgentRegistry::increment_local_usn_by(conn, 2)?;
-        let item = DjmdPlaylist {
+        let item = Self::Model {
             id,
             uuid,
             rb_local_usn: Some(usn),
@@ -587,10 +597,38 @@ impl NewDjmdPlaylist {
             smart_list: self.smart_list,
             ..Default::default()
         };
-        let result = diesel::insert_into(djmdPlaylist::table)
+        diesel::insert_into(djmdPlaylist::table)
             .values(item)
-            .get_result(conn)?;
-        Ok(result)
+            .get_result(conn)
+    }
+}
+
+impl NewDjmdPlaylist {
+    /// Creates a new `NewDjmdPlaylist` with the required `name` and `attribute` field.
+    pub fn new<S: Into<String>>(name: S, attribute: i32) -> Self {
+        Self {
+            name: name.into(),
+            attribute,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a new `NewDjmdPlaylist` as a playlist.
+    pub fn playlist<S: Into<String>>(name: S) -> Self {
+        Self {
+            name: name.into(),
+            attribute: 0,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a new `NewDjmdPlaylist` as a folder.
+    pub fn folder<S: Into<String>>(name: S) -> Self {
+        Self {
+            name: name.into(),
+            attribute: 1,
+            ..Default::default()
+        }
     }
 
     /// Builder for `seq`.
@@ -600,20 +638,20 @@ impl NewDjmdPlaylist {
     }
 
     /// Builder for `parent_id`.
-    pub fn parent_id(mut self, parent_id: String) -> Self {
-        self.parent_id = Some(parent_id);
+    pub fn parent_id<S: Into<String>>(mut self, parent_id: S) -> Self {
+        self.parent_id = Some(parent_id.into());
         self
     }
 
     /// Builder for `image_path`.
-    pub fn image_path(mut self, image_path: String) -> Self {
-        self.image_path = Some(image_path);
+    pub fn image_path<S: Into<String>>(mut self, image_path: S) -> Self {
+        self.image_path = Some(image_path.into());
         self
     }
 
     /// Builder for `smart_list`.
-    pub fn smart_list(mut self, smart_list: String) -> Self {
-        self.smart_list = Some(smart_list);
+    pub fn smart_list<S: Into<String>>(mut self, smart_list: S) -> Self {
+        self.smart_list = Some(smart_list.into());
         self
     }
 }
@@ -668,17 +706,35 @@ pub struct DjmdSongPlaylist {
     pub track_no: i32,
 }
 
-impl DjmdSongPlaylist {
-    /// Queries all records from the `djmdSongPlaylist` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for DjmdSongPlaylist {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `djmdSongPlaylist` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
+}
+
+impl ModelDelete for DjmdSongPlaylist {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
+        let query = djmdSongPlaylist::table.find(id);
+        let playlist_id: String = query.select(djmdSongPlaylist::playlist_id).first(conn)?;
+        let result = diesel::delete(query).execute(conn)?;
+        AgentRegistry::increment_local_usn(conn)?;
+        // Reorder the track_no numbers
+        Self::reset_seq(conn, &playlist_id)?;
+        Ok(result)
+    }
+}
+
+impl DjmdSongPlaylist {
     /// Queries all records from the `djmdSongPlaylist` table by their `playlist_id`.
     pub fn by_playlist_id(
         conn: &mut SqliteConnection,
@@ -715,11 +771,6 @@ impl DjmdSongPlaylist {
         Self::count_children(conn, playlist_id)
     }
 
-    /// Checks if a record with the given `id` exists in the `djmdSongPlaylist` table.
-    pub fn id_exists(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
-        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
-    }
-
     /// Move a record in the `djmdSongPlaylist` table.
     pub fn move_to(conn: &mut SqliteConnection, id: &str, seq: Option<i32>) -> QueryResult<usize> {
         let res = match Self::find(conn, id)? {
@@ -745,19 +796,6 @@ impl DjmdSongPlaylist {
                 djmdSongPlaylist::rb_local_usn.eq(usn),
             ))
             .execute(conn)
-    }
-
-    /// Deletes a record from the `djmdSongPlaylist` table
-    pub fn delete(conn: &mut SqliteConnection, id: &str) -> QueryResult<usize> {
-        let query = djmdSongPlaylist::table.find(id);
-        let playlist_id: String = query.select(djmdSongPlaylist::playlist_id).first(conn)?;
-
-        let result = diesel::delete(query).execute(conn)?;
-        AgentRegistry::increment_local_usn(conn)?;
-        // Reorder the track_no numbers
-        Self::reset_seq(conn, &playlist_id)?;
-
-        Ok(result)
     }
 
     /// Deletes all records from the `djmdSongPlaylist` table acssociated with a `playlist_id`.
@@ -930,7 +968,7 @@ impl SequenceTree for DjmdSongPlaylist {
 /// ```rust
 /// use rbox::masterdb::models::NewDjmdSongPlaylist;
 ///
-/// let new = NewSongDjmdPlaylist::new("playlistId".into(), "contentId".into()).track_no(1);
+/// let new = NewSongDjmdPlaylist::new("playlistId", "contentId").track_no(1);
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -946,18 +984,10 @@ pub struct NewDjmdSongPlaylist {
     pub track_no: Option<i32>,
 }
 
-impl NewDjmdSongPlaylist {
-    /// Creates a new `NewDjmdSongPlaylist` with the required `playlist_id` and `content_id` field.
-    pub fn new(playlist_id: String, content_id: String) -> Self {
-        Self {
-            playlist_id,
-            content_id,
-            ..Default::default()
-        }
-    }
+impl ModelInsert for NewDjmdSongPlaylist {
+    type Model = DjmdSongPlaylist;
 
-    /// Inserts the new record into the database
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<DjmdSongPlaylist> {
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
         // Check content
         if !DjmdContent::id_exists(conn, &self.content_id)? {
             return Err(Error::NotFound);
@@ -965,20 +995,20 @@ impl NewDjmdSongPlaylist {
 
         let parent_id = &self.playlist_id;
         // Handle seq and USN of moved records (also checkks parent)
-        let (seq, n) = DjmdSongPlaylist::update_seq_before_insert(conn, &parent_id, self.track_no)?;
+        let (seq, n) = Self::Model::update_seq_before_insert(conn, &parent_id, self.track_no)?;
         if n > 0 {
             // Apply USN of moved records
             AgentRegistry::increment_local_usn(conn)?;
         }
 
         // Generate meta
-        let id = DjmdSongPlaylist::generate_id(conn)?;
+        let id = Self::Model::generate_id(conn)?;
         let uuid = Uuid::new_v4().to_string();
         let now = Utc::now();
 
         // Get next USN: We increment by 2 (1 for creating, 1 for renaming from 'New Playlist')
         let usn = AgentRegistry::increment_local_usn_by(conn, 2)?;
-        let item = DjmdSongPlaylist {
+        let item = Self::Model {
             id,
             uuid,
             rb_local_usn: Some(usn),
@@ -989,10 +1019,20 @@ impl NewDjmdSongPlaylist {
             track_no: seq,
             ..Default::default()
         };
-        let result = diesel::insert_into(djmdSongPlaylist::table)
+        diesel::insert_into(djmdSongPlaylist::table)
             .values(item)
-            .get_result(conn)?;
-        Ok(result)
+            .get_result(conn)
+    }
+}
+
+impl NewDjmdSongPlaylist {
+    /// Creates a new `NewDjmdSongPlaylist` with the required `playlist_id` and `content_id` field.
+    pub fn new<S1: Into<String>, S2: Into<String>>(playlist_id: S1, content_id: S2) -> Self {
+        Self {
+            playlist_id: playlist_id.into(),
+            content_id: content_id.into(),
+            ..Default::default()
+        }
     }
 
     /// Builder for `track_no`.
