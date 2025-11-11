@@ -3,7 +3,7 @@
 
 use chrono::Utc;
 use diesel::prelude::*;
-use diesel::result::{DatabaseErrorKind, Error};
+use diesel::result::Error;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
 #[cfg(feature = "pyo3")]
@@ -113,26 +113,9 @@ impl DjmdMyTag {
         djmdContent::table
             .inner_join(djmdSongMyTag::table.on(djmdContent::id.eq(djmdSongMyTag::content_id)))
             .filter(djmdSongMyTag::my_tag_id.eq(&id))
+            .order(djmdSongMyTag::track_no)
             .select(DjmdContent::as_select())
             .load(conn)
-    }
-
-    /// Counts the number of child records in the `djmdMyTag` table for a given `parent_id`.
-    pub fn count_children(conn: &mut SqliteConnection, parent_id: &str) -> QueryResult<i32> {
-        let count: i64 = djmdMyTag::table
-            .filter(djmdMyTag::parent_id.eq(parent_id))
-            .count()
-            .get_result(conn)?;
-        Ok(count as i32)
-    }
-
-    /// Counts the number of child records in the `djmdMyTag` table for a record inside the same parent.
-    pub fn count_parent_children(conn: &mut SqliteConnection, id: &str) -> QueryResult<i32> {
-        let parent_id: String = djmdMyTag::table
-            .find(id)
-            .select(djmdMyTag::parent_id)
-            .get_result(conn)?;
-        Self::count_children(conn, &parent_id)
     }
 
     /// Returns the playlist type (`attribute`) of a record in the `djmdMyTag` table or `None` if not found.
@@ -240,7 +223,6 @@ impl DjmdMyTag {
         // Update Seq and parent of actual record
         let now = Utc::now();
         let usn = AgentRegistry::increment_local_usn(conn)?;
-        // Update Seq and parent of actual record
         diesel::update(djmdMyTag::table.find(id))
             .set((
                 djmdMyTag::seq.eq(seq),
@@ -476,7 +458,7 @@ impl NewDjmdMyTag {
         let usn = AgentRegistry::increment_local_usn(conn)?;
 
         let parent_id = self.parent_id.unwrap_or("root".to_string());
-        let count = DjmdMyTag::count_parent_children(conn, &parent_id)?;
+        let count = DjmdMyTag::count_children(conn, &parent_id)?;
 
         let item = DjmdMyTag {
             id,

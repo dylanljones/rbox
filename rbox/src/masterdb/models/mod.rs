@@ -73,7 +73,9 @@ pub use djmd_playlist::{
 };
 pub use djmd_property::{DjmdCloudProperty, DjmdProperty};
 pub use djmd_recommend_like::DjmdRecommendLike;
-pub use djmd_related_tracks::{DjmdRelatedTracks, DjmdSongRelatedTracks};
+pub use djmd_related_tracks::{
+    DjmdRelatedTracks, DjmdSongRelatedTracks, NewDjmdRelatedTracks, NewDjmdSongRelatedTracks,
+};
 pub use djmd_sampler::{DjmdSampler, DjmdSongSampler};
 pub use djmd_song_tag_list::DjmdSongTagList;
 pub use djmd_sort::DjmdSort;
