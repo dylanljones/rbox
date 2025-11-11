@@ -1188,6 +1188,8 @@ diesel::joinable!(djmdSongPlaylist -> djmdContent (content_id));
 diesel::joinable!(djmdSongRelatedTracks -> djmdContent (content_id));
 diesel::joinable!(djmdSongSampler -> djmdContent (content_id));
 diesel::joinable!(djmdSongTagList -> djmdContent (content_id));
+diesel::joinable!(djmdSongMyTag -> djmdMyTag (my_tag_id));
+diesel::joinable!(djmdSongMyTag -> djmdContent (content_id));
 diesel::joinable!(djmdSort -> djmdMenuItems (menu_item_id));
 
 diesel::allow_tables_to_appear_in_same_query!(

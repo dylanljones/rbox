@@ -2,6 +2,7 @@
 // Date:   2025-05-06
 
 use rbox::masterdb::{DjmdPlaylist, DjmdSongPlaylist, MasterDb, MasterPlaylistXml, PlaylistType};
+use rbox::model_traits::validate_seq_numbers;
 
 mod common;
 
@@ -668,11 +669,10 @@ fn test_delete_label() -> anyhow::Result<()> {
 
 fn assert_playlist_seq(items: Vec<DjmdPlaylist>) {
     let seq_nums = items.iter().map(|item| item.seq).collect::<Vec<i32>>();
-    let n = items.len() as i32;
-    for i in 0..n {
-        let item = &items[i as usize];
-        assert_eq!(item.seq, i + 1, "Seq number mismatch: {seq_nums:?}");
-    }
+    assert!(
+        validate_seq_numbers(&seq_nums, 1),
+        "Seq number mismatch: {seq_nums:?}"
+    );
 }
 
 fn assert_playlist_song_seq(items: Vec<DjmdSongPlaylist>) {
@@ -1008,9 +1008,9 @@ fn test_delete_playlist_folder() -> anyhow::Result<()> {
     let deleted = db.delete_playlist(&folder.id)?;
     assert_eq!(deleted, 4); // Dont count the songs
 
-    // Check USN
+    // Check USN (+1 for deleting with Seq update, +1 for children)
     let new_usn = db.get_local_usn()?;
-    assert_eq!(new_usn, old_usn + 7); // Or 4??
+    assert_eq!(new_usn, old_usn + 4); // Or 4??
 
     // Check that child playlists were deleted
     let res1 = db.get_playlist_by_id(&pl1.id)?;

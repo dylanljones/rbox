@@ -113,9 +113,10 @@ impl SequenceVisible for Sort {
                 SELECT sort_id, ROW_NUMBER() OVER (ORDER BY sequenceNo) AS new_seq
                 FROM sort WHERE isVisible = 1
             ) UPDATE sort
-            SET sequenceNo = (SELECT new_seq FROM ordered WHERE ordered.sort_id = sort.sort_id)
+            SET sequenceNo = (SELECT new_seq FROM ordered WHERE ordered.sort_id = sort.sort_id) + ?
             WHERE isVisible = 1;"#,
         )
+        .bind::<diesel::sql_types::Integer, _>(Self::START_SEQ)
         .execute(conn)
     }
 

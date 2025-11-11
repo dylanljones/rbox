@@ -3,18 +3,21 @@
 
 use chrono::Utc;
 use diesel::prelude::*;
-use diesel::result::{DatabaseErrorKind, Error};
+use diesel::result::Error;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
 #[cfg(feature = "pyo3")]
 use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
+use std::collections::VecDeque;
+use uuid::Uuid;
 
 use super::agent_registry::AgentRegistry;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdRelatedTracks, djmdSongRelatedTracks};
-use super::{format_datetime, Date, DateString};
+use super::{format_datetime, Date, DateString, RandomIdGenerator};
+use crate::model_traits::SequenceTree;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -61,9 +64,9 @@ pub struct DjmdRelatedTracks {
 
     /// The sequence/order number of the record (1-based index)
     pub seq: i32,
-    /// The name of the sampler.
+    /// The name of the related track record.
     pub name: String,
-    /// The attribute of the sampler, either list (`0`) or a folder (`1`)
+    /// The attribute of the related track, either list (`0`) or a folder (`1`)
     pub attribute: i32,
     /// The ID of the parent [`DjmdRelatedTracks`], `'root'` for top-level records.
     pub parent_id: String,
@@ -90,8 +93,16 @@ impl DjmdRelatedTracks {
             .optional()
     }
 
+    /// Queries the records from the `djmdRelatedTracks` table by their `parent_id`.
+    pub fn by_parent_id(conn: &mut SqliteConnection, parent_id: &str) -> QueryResult<Vec<Self>> {
+        Self::query()
+            .filter(djmdRelatedTracks::parent_id.eq(parent_id))
+            .order(djmdRelatedTracks::seq)
+            .load(conn)
+    }
+
     /// Queries a record from the `djmdRelatedTracks` table by its associated `content_id` via `djmdSongRelatedTracks`
-    pub fn find_by_content_id(conn: &mut SqliteConnection, cid: &str) -> QueryResult<Option<Self>> {
+    pub fn by_content_id(conn: &mut SqliteConnection, cid: &str) -> QueryResult<Vec<Self>> {
         djmdRelatedTracks::table
             .inner_join(
                 djmdSongRelatedTracks::table
@@ -99,14 +110,6 @@ impl DjmdRelatedTracks {
             )
             .filter(djmdSongRelatedTracks::content_id.eq(cid))
             .select(Self::as_select())
-            .first(conn)
-            .optional()
-    }
-
-    /// Queries the records from the `djmdRelatedTracks` table by their `parent_id`.
-    pub fn by_parent_id(conn: &mut SqliteConnection, parent_id: &str) -> QueryResult<Vec<Self>> {
-        Self::query()
-            .filter(djmdRelatedTracks::parent_id.eq(parent_id))
             .load(conn)
     }
 
@@ -118,25 +121,37 @@ impl DjmdRelatedTracks {
                     .on(djmdContent::id.eq(djmdSongRelatedTracks::content_id)),
             )
             .filter(djmdSongRelatedTracks::related_tracks_id.eq(&id))
+            .order(djmdSongRelatedTracks::track_no)
             .select(DjmdContent::as_select())
             .load(conn)
     }
 
-    /// Counts the number of child records in the `djmdRelatedTracks` table for a given `parent_id`.
-    pub fn count_children(conn: &mut SqliteConnection, parent_id: &str) -> QueryResult<i32> {
-        let count: i64 = Self::filter_by_parent_id(parent_id)
-            .count()
-            .get_result(conn)?;
-        Ok(count as i32)
+    /// Returns the type (`attribute`) of a record in the `djmdRelatedTracks` table or `None` if not found.
+    pub fn get_attribute(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<i32>> {
+        if id == "root" {
+            return Ok(Some(1));
+        }
+        djmdRelatedTracks::table
+            .find(id)
+            .select(djmdRelatedTracks::attribute)
+            .get_result(conn)
+            .optional()
     }
 
-    /// Counts the number of child records in the `djmdRelatedTracks` table for a record inside the same parent.
-    pub fn count_parent_children(conn: &mut SqliteConnection, id: &str) -> QueryResult<i32> {
-        let parent_id: String = djmdRelatedTracks::table
-            .find(id)
-            .select(djmdRelatedTracks::parent_id)
-            .get_result(conn)?;
-        Self::count_children(conn, &parent_id)
+    /// Returns `true` if the record in the `djmdRelatedTracks` table exists and is a list, `false` otherwise.
+    pub fn is_related_tracks(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
+        match Self::get_attribute(conn, id)? {
+            Some(attr) => Ok(attr == 0), // 0: playlist
+            None => Ok(false),
+        }
+    }
+
+    /// Returns `true` if the record in the `djmdRelatedTracks` table exists and is a section, `false` otherwise.
+    pub fn is_folder(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
+        match Self::get_attribute(conn, id)? {
+            Some(attr) => Ok(attr == 1), // 1: folder
+            None => Ok(false),
+        }
     }
 
     /// Checks if a record with the given `id` exists in the `djmdRelatedTracks` table.
@@ -184,216 +199,346 @@ impl DjmdRelatedTracks {
         )
     }
 
-    /// Reset the `seq` numbers of all records from the `djmdRelatedTracks` table for a given `parent_id`.
-    ///
-    /// The `seq` numbers are reset to the *current* order of the records in the `djmdRelatedTracks` table,
-    /// starting at 1:
-    ///
-    /// ```
-    /// Old: 1, 2, 3, 5, 7, 8, 9
-    /// New: 1, 2, 3, 4, 5, 6, 7
-    /// ```
-    ///
-    /// This is helpful when deleting records or for fixing the sequence after an invalid state.
-    /// When adding or moving records, the `seq` numbers should be set explicitly.
-    pub fn reset_seq(conn: &mut SqliteConnection, parent_id: &str) -> QueryResult<usize> {
-        diesel::sql_query(
-            r#"WITH ordered AS (
-                SELECT ID, ROW_NUMBER() OVER (ORDER BY Seq) AS new_seq
-                FROM djmdRelatedTracks WHERE ParentID =?
-            ) UPDATE djmdRelatedTracks
-            SET Seq = (SELECT new_seq FROM ordered WHERE ordered.ID = djmdRelatedTracks.ID);"#,
-        )
-        .bind::<diesel::sql_types::Text, _>(parent_id)
-        .execute(conn)
-    }
-
-    /// Creates a filter for records by `parent_id`.
-    #[diesel::dsl::auto_type(no_type_alias)]
-    fn filter_by_parent_id(parent_id: &str) -> _ {
-        djmdRelatedTracks::table.filter(djmdRelatedTracks::parent_id.eq(parent_id))
-    }
-
-    /// Move a record in the `djmdRelatedTracks` table inside the same parent.
-    pub fn move_in(conn: &mut SqliteConnection, id: &str, seq: i32) -> QueryResult<usize> {
-        if seq <= 0 {
-            return Err(Error::DatabaseError(
-                DatabaseErrorKind::RestrictViolation,
-                Box::new("Invalid sequence number".to_string()),
-            ));
-        }
-        let rec = match Self::find(conn, &id)? {
-            Some(r) => r,
-            None => return Ok(0),
-        };
-        let count = Self::count_children(conn, &rec.parent_id)?;
-        if seq > count {
-            return Err(Error::DatabaseError(
-                DatabaseErrorKind::RestrictViolation,
-                Box::new("Invalid sequence number".to_string()),
-            ));
-        }
-
-        let old_seq = rec.seq;
+    /// Set the name of a record in the `djmdRelatedTracks` table.
+    pub fn rename(conn: &mut SqliteConnection, id: &str, name: &str) -> QueryResult<Self> {
         let datestr = format_datetime(&Utc::now());
         let usn = AgentRegistry::increment_local_usn(conn)?;
-
-        // Update sequence number of other children
-        if seq > old_seq {
-            diesel::update(
-                Self::filter_by_parent_id(&rec.parent_id)
-                    .filter(djmdRelatedTracks::seq.gt(old_seq))
-                    .filter(djmdRelatedTracks::seq.le(seq)),
-            )
+        Ok(diesel::update(djmdRelatedTracks::table.find(id))
             .set((
-                djmdRelatedTracks::seq.eq(djmdRelatedTracks::seq - 1),
+                djmdRelatedTracks::name.eq(name),
                 djmdRelatedTracks::updated_at.eq(&datestr),
                 djmdRelatedTracks::rb_local_usn.eq(usn),
             ))
-            .execute(conn)?;
-        } else if seq < old_seq {
-            diesel::update(
-                Self::filter_by_parent_id(&rec.parent_id)
-                    .filter(djmdRelatedTracks::seq.lt(old_seq))
-                    .filter(djmdRelatedTracks::seq.ge(seq)),
-            )
-            .set((
-                djmdRelatedTracks::seq.eq(djmdRelatedTracks::seq + 1),
-                djmdRelatedTracks::updated_at.eq(&datestr),
-                djmdRelatedTracks::rb_local_usn.eq(usn),
-            ))
-            .execute(conn)?;
-        } else {
-            return Ok(0);
-        }
-
-        // Update sequence number of record
-        diesel::update(djmdRelatedTracks::table.find(id))
-            .set((
-                djmdRelatedTracks::seq.eq(seq),
-                djmdRelatedTracks::updated_at.eq(&datestr),
-                djmdRelatedTracks::rb_local_usn.eq(usn),
-            ))
-            .execute(conn)
+            .get_result(conn)?)
     }
 
     /// Move a record in the `djmdRelatedTracks` table to a new parent.
     pub fn move_to(
         conn: &mut SqliteConnection,
         id: &str,
-        parent_id: &str,
+        parent_id: Option<&str>,
         seq: Option<i32>,
     ) -> QueryResult<usize> {
-        let rec = match Self::find(conn, id)? {
+        let res = match Self::find(conn, id)? {
             Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+        let old_seq = res.seq;
+        let old_parent_id = res.parent_id.clone();
+        let parent_id = parent_id.unwrap_or(&old_parent_id);
+
+        // *Note*: Moving other records increments USN by 1 for all changes
+        let res = Self::update_seq_before_move(conn, &old_parent_id, parent_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
             None => return Ok(0),
         };
-        let old_seq = rec.seq;
-        let old_parent_id = rec.parent_id.clone();
-        let count = Self::count_children(conn, &parent_id)?;
-        let seq = seq.unwrap_or(count); // Insert at the end by default
-        if seq <= 0 || seq > count {
-            return Err(Error::DatabaseError(
-                DatabaseErrorKind::RestrictViolation,
-                Box::new("Invalid sequence number".to_string()),
-            ));
-        }
-
-        let datestr = format_datetime(&Utc::now());
+        // Update Seq and parent of actual record
+        let now = Utc::now();
         let usn = AgentRegistry::increment_local_usn(conn)?;
-
-        if parent_id != old_parent_id {
-            // parent changed, move to new parent
-
-            let my_tag_attr: i32 = djmdRelatedTracks::table
-                .find(&parent_id)
-                .select(djmdRelatedTracks::attribute)
-                .get_result(conn)?;
-            if my_tag_attr != 1 {
-                return Err(Error::DatabaseError(
-                    DatabaseErrorKind::RestrictViolation,
-                    Box::new("Cannot add a DjmdSampler child to a DjmdMyTag list".to_string()),
-                ));
-            }
-
-            // Update seq of records in the old parent:
-            // Decrease seq of records with seq higher than old seq
-            diesel::update(
-                Self::filter_by_parent_id(&old_parent_id)
-                    .filter(djmdRelatedTracks::seq.gt(old_seq)),
-            )
+        diesel::update(djmdRelatedTracks::table.find(id))
             .set((
-                djmdRelatedTracks::seq.eq(djmdRelatedTracks::seq - 1),
-                djmdRelatedTracks::updated_at.eq(&datestr),
+                djmdRelatedTracks::seq.eq(seq),
+                djmdRelatedTracks::parent_id.eq(parent_id),
+                djmdRelatedTracks::updated_at.eq(&format_datetime(&now)),
                 djmdRelatedTracks::rb_local_usn.eq(usn),
             ))
-            .execute(conn)?;
+            .execute(conn)
+    }
 
-            if seq < count {
-                // Move to center in the new parent
-                // Increase seq of records with seq higher than old seq
-                diesel::update(
-                    Self::filter_by_parent_id(&parent_id)
-                        .filter(djmdRelatedTracks::seq.ge(old_seq)),
-                )
-                .set((
-                    djmdRelatedTracks::seq.eq(djmdRelatedTracks::seq + 1),
-                    djmdRelatedTracks::updated_at.eq(&datestr),
-                    djmdRelatedTracks::rb_local_usn.eq(usn),
-                ))
-                .execute(conn)?;
-            }
+    /// Deletes a record from the `djmdRelatedTracks` table and removes any references to it.
+    pub fn delete(conn: &mut SqliteConnection, id: &str) -> QueryResult<Vec<String>> {
+        // Vec of all deleted ids
+        let mut deleted_ids = vec![id.to_string()];
 
-            // Update Seq and parent of actual record
-            diesel::update(djmdRelatedTracks::table.find(id))
-                .set((
-                    djmdRelatedTracks::seq.eq(seq),
-                    djmdRelatedTracks::parent_id.eq(parent_id),
-                    djmdRelatedTracks::updated_at.eq(&datestr),
-                    djmdRelatedTracks::rb_local_usn.eq(usn),
-                ))
-                .execute(conn)
-        } else {
-            if seq > old_seq {
-                // Seq is increased (move down in parent):
-                // Decrease seq of all other records with seq between old seq and new seq
-                diesel::update(
-                    Self::filter_by_parent_id(&rec.parent_id)
-                        .filter(djmdRelatedTracks::seq.gt(old_seq))
-                        .filter(djmdRelatedTracks::seq.le(seq)),
-                )
-                .set((
-                    djmdRelatedTracks::seq.eq(djmdRelatedTracks::seq - 1),
-                    djmdRelatedTracks::updated_at.eq(&datestr),
-                    djmdRelatedTracks::rb_local_usn.eq(usn),
-                ))
-                .execute(conn)?;
-            } else if seq < old_seq {
-                // Seq is decreased (moved down in parent):
-                // Increase seq of all records with seq between old seq and new seq
-                diesel::update(
-                    Self::filter_by_parent_id(&rec.parent_id)
-                        .filter(djmdRelatedTracks::seq.lt(old_seq))
-                        .filter(djmdRelatedTracks::seq.ge(seq)),
-                )
-                .set((
-                    djmdRelatedTracks::seq.eq(djmdRelatedTracks::seq + 1),
-                    djmdRelatedTracks::updated_at.eq(&datestr),
-                    djmdRelatedTracks::rb_local_usn.eq(usn),
-                ))
-                .execute(conn)?;
-            } else {
-                return Ok(0);
+        // Delete the record
+        let parent_id: String = diesel::delete(djmdRelatedTracks::table.find(id))
+            .returning(djmdRelatedTracks::parent_id)
+            .get_result(conn)?;
+
+        // Reorder the seq numbers of tags left in the parent
+        Self::reset_seq(conn, &parent_id)?;
+
+        // Remove all child djmdRelatedTracks records recursively
+        let mut parent_ids = VecDeque::from(vec![id.to_string()]);
+        while let Some(parent_id) = parent_ids.pop_front() {
+            // Delete children
+            let deleted: Vec<String> = diesel::delete(
+                djmdRelatedTracks::table.filter(djmdRelatedTracks::parent_id.eq(parent_id)),
+            )
+            .returning(djmdRelatedTracks::id)
+            .get_results(conn)?;
+            deleted_ids.extend(deleted.clone());
+            // Add children to the queue
+            for deleted_id in deleted {
+                parent_ids.push_back(deleted_id);
             }
-            // Update sequence number of record
-            diesel::update(djmdRelatedTracks::table.find(id))
-                .set((
-                    djmdRelatedTracks::seq.eq(seq),
-                    djmdRelatedTracks::updated_at.eq(&datestr),
-                    djmdRelatedTracks::rb_local_usn.eq(usn),
-                ))
-                .execute(conn)
         }
+
+        DjmdSongRelatedTracks::delete_by_related_tracks_ids(conn, &deleted_ids)?;
+
+        AgentRegistry::increment_local_usn_by(conn, deleted_ids.len())?;
+
+        Ok(deleted_ids)
+    }
+
+    /// Generates a new unique identifier for a record in the `djmdRelatedTracks` table.
+    fn generate_id(conn: &mut SqliteConnection) -> QueryResult<String> {
+        let generator = RandomIdGenerator::new(true);
+        let mut id: String = String::new();
+        for id_result in generator {
+            if let Ok(tmp_id) = id_result {
+                if !Self::id_exists(conn, &tmp_id)? {
+                    id = tmp_id;
+                    break;
+                }
+            }
+        }
+        Ok(id)
+    }
+}
+
+impl SequenceTree for DjmdRelatedTracks {
+    type Id = str;
+    const START_SEQ: i32 = 1;
+
+    #[inline]
+    fn is_valid_parent(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<bool> {
+        Self::is_folder(conn, parent_id)
+    }
+
+    #[inline]
+    fn count_children(conn: &mut SqliteConnection, parent_id: &str) -> QueryResult<i32> {
+        let count: i64 = djmdRelatedTracks::table
+            .filter(djmdRelatedTracks::parent_id.eq(parent_id))
+            .count()
+            .get_result(conn)?;
+        Ok(count as i32)
+    }
+
+    #[inline]
+    fn get_seq_numbers(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<Vec<i32>> {
+        djmdRelatedTracks::table
+            .filter(djmdRelatedTracks::parent_id.eq(parent_id))
+            .order(djmdRelatedTracks::seq)
+            .select(djmdRelatedTracks::seq)
+            .load(conn)
+    }
+
+    #[inline]
+    fn reset_seq(conn: &mut SqliteConnection, parent_id: &str) -> QueryResult<usize> {
+        diesel::sql_query(
+            r#"WITH ordered AS (
+                    SELECT ID, ROW_NUMBER() OVER (ORDER BY Seq) + (? - 1)  AS new_seq
+                    FROM djmdRelatedTracks WHERE ParentID =?
+                ) UPDATE djmdRelatedTracks
+                SET Seq = (SELECT new_seq FROM ordered WHERE ordered.ID = djmdRelatedTracks.ID)
+                WHERE ParentID =?;"#,
+        )
+        .bind::<diesel::sql_types::Integer, _>(Self::START_SEQ)
+        .bind::<diesel::sql_types::Text, _>(parent_id)
+        .bind::<diesel::sql_types::Text, _>(parent_id)
+        .execute(conn)
+    }
+
+    #[inline]
+    fn increment_seq_gte(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        seq: i32,
+    ) -> QueryResult<usize> {
+        let now = Utc::now();
+        let usn = AgentRegistry::local_usn(conn)? + 1;
+        diesel::update(
+            djmdRelatedTracks::table
+                .filter(djmdRelatedTracks::parent_id.eq(parent_id))
+                .filter(djmdRelatedTracks::seq.ge(seq)),
+        )
+        .set((
+            djmdRelatedTracks::seq.eq(djmdRelatedTracks::seq + 1),
+            djmdRelatedTracks::updated_at.eq(&format_datetime(&now)),
+            djmdRelatedTracks::rb_local_usn.eq(usn),
+        ))
+        .execute(conn)
+    }
+
+    #[inline]
+    fn decrement_seq_gt(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        seq: i32,
+    ) -> QueryResult<usize> {
+        let now = Utc::now();
+        let usn = AgentRegistry::local_usn(conn)? + 1;
+        diesel::update(
+            djmdRelatedTracks::table
+                .filter(djmdRelatedTracks::parent_id.eq(parent_id))
+                .filter(djmdRelatedTracks::seq.gt(seq)),
+        )
+        .set((
+            djmdRelatedTracks::seq.eq(djmdRelatedTracks::seq - 1),
+            djmdRelatedTracks::updated_at.eq(&format_datetime(&now)),
+            djmdRelatedTracks::rb_local_usn.eq(usn),
+        ))
+        .execute(conn)
+    }
+
+    #[inline]
+    fn increment_seq_gte_lt(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        start: i32,
+        end: i32,
+    ) -> QueryResult<usize> {
+        let now = Utc::now();
+        let usn = AgentRegistry::local_usn(conn)? + 1;
+        diesel::update(
+            djmdRelatedTracks::table
+                .filter(djmdRelatedTracks::parent_id.eq(parent_id))
+                .filter(djmdRelatedTracks::seq.ge(start))
+                .filter(djmdRelatedTracks::seq.lt(end)),
+        )
+        .set((
+            djmdRelatedTracks::seq.eq(djmdRelatedTracks::seq + 1),
+            djmdRelatedTracks::updated_at.eq(&format_datetime(&now)),
+            djmdRelatedTracks::rb_local_usn.eq(usn),
+        ))
+        .execute(conn)
+    }
+
+    #[inline]
+    fn decrement_seq_gt_lte(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        start: i32,
+        end: i32,
+    ) -> QueryResult<usize> {
+        let now = Utc::now();
+        let usn = AgentRegistry::local_usn(conn)? + 1;
+        diesel::update(
+            djmdRelatedTracks::table
+                .filter(djmdRelatedTracks::parent_id.eq(parent_id))
+                .filter(djmdRelatedTracks::seq.gt(start))
+                .filter(djmdRelatedTracks::seq.le(end)),
+        )
+        .set((
+            djmdRelatedTracks::seq.eq(djmdRelatedTracks::seq - 1),
+            djmdRelatedTracks::updated_at.eq(&format_datetime(&now)),
+            djmdRelatedTracks::rb_local_usn.eq(usn),
+        ))
+        .execute(conn)
+    }
+}
+
+/// Represents a new record insertale to the `djmdRelatedTracks` table.
+///
+/// Implements the builder pattern for optional values of the new record.
+///
+/// # Examples
+/// ```rust
+/// use rbox::masterdb::models::NewDjmdRelatedTracks;
+///
+/// let new = NewDjmdRelatedTracks::new("Name".into(), 0).seq(1);
+/// println!("{:?}", new);
+/// ```
+#[derive(Debug, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
+pub struct NewDjmdRelatedTracks {
+    /// The name of the related track.
+    pub name: String,
+    /// The attribute of the related track, either list (`0`) or a folder (`1`)
+    pub attribute: i32,
+    /// The sequence/order number of the record (1-based index)
+    pub seq: Option<i32>,
+    /// The ID of the parent [`DjmdRelatedTracks`], `'root'` for top-level records.
+    pub parent_id: Option<String>,
+    /// A JSON string containing the criteria for the related tracks.
+    pub criteria: Option<String>,
+}
+
+impl NewDjmdRelatedTracks {
+    /// Creates a new `NewDjmdRelatedTracks` with the required `name` and `attribute` field.
+    pub fn new(name: String, attribute: i32) -> Self {
+        Self {
+            name,
+            attribute,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a new `NewDjmdRelatedTracks` as a related tracks list.
+    pub fn related_tracks(name: String) -> Self {
+        Self {
+            name,
+            attribute: 0,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a new `NewDjmdRelatedTracks` as a folder.
+    pub fn folder(name: String) -> Self {
+        Self {
+            name,
+            attribute: 1,
+            ..Default::default()
+        }
+    }
+
+    /// Inserts the new record into the database
+    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<DjmdRelatedTracks> {
+        let parent_id = self.parent_id.unwrap_or("root".to_string());
+
+        // Handle seq and USN of moved records (also checkks parent)
+        let (seq, n) = DjmdRelatedTracks::update_seq_before_insert(conn, &parent_id, self.seq)?;
+        if n > 0 {
+            // Apply USN of moved records
+            AgentRegistry::increment_local_usn(conn)?;
+        }
+
+        // Generate meta
+        let id = DjmdRelatedTracks::generate_id(conn)?;
+        let uuid = Uuid::new_v4().to_string();
+        let now = Utc::now();
+
+        // Get next USN: We increment by 2 (1 for creating, 1 for renaming from 'New Playlist')
+        let usn = AgentRegistry::increment_local_usn_by(conn, 2)?;
+        let item = DjmdRelatedTracks {
+            id,
+            uuid,
+            rb_local_usn: Some(usn),
+            created_at: now,
+            updated_at: now,
+            name: self.name,
+            seq,
+            attribute: self.attribute,
+            parent_id,
+            criteria: self.criteria.unwrap_or_default(),
+            ..Default::default()
+        };
+        let result = diesel::insert_into(djmdRelatedTracks::table)
+            .values(item)
+            .get_result(conn)?;
+        Ok(result)
+    }
+
+    /// Builder for `seq`.
+    pub fn seq(mut self, seq: i32) -> Self {
+        self.seq = Some(seq);
+        self
+    }
+
+    /// Builder for `parent_id`.
+    pub fn parent_id(mut self, parent_id: String) -> Self {
+        self.parent_id = Some(parent_id);
+        self
+    }
+
+    /// Builder for `criteria`.
+    pub fn criteria(mut self, criteria: String) -> Self {
+        self.criteria = Some(criteria);
+        self
     }
 }
 
@@ -465,6 +610,7 @@ impl DjmdSongRelatedTracks {
     ) -> QueryResult<Vec<Self>> {
         Self::query()
             .filter(djmdSongRelatedTracks::related_tracks_id.eq(related_tracks_id))
+            .order(djmdSongRelatedTracks::track_no)
             .get_results(conn)
     }
 
@@ -490,33 +636,38 @@ impl DjmdSongRelatedTracks {
 
     /// Counts the number of records in the `djmdSongRelatedTracks` table for a given `related_tracks_id`.
     pub fn count(conn: &mut SqliteConnection, related_tracks_id: &str) -> QueryResult<i32> {
-        let count: i64 = Self::filter_by_related_id(related_tracks_id)
-            .count()
-            .get_result(conn)?;
-        Ok(count as i32)
+        Self::count_children(conn, related_tracks_id)
     }
 
-    /// Reset the `track_no` numbers of all records from the `djmdSongRelatedTracks` table for a given `sampler_id`.
-    ///
-    /// The `track_no` numbers are reset to the *current* order of the records in the
-    /// `djmdSongRelatedTracks` table, starting at 1:
-    ///
-    /// ```
-    /// Old: 1, 2, 3, 5, 7, 8, 9
-    /// New: 1, 2, 3, 4, 5, 6, 7
-    /// ```
-    ///
-    /// This is helpful when deleting records or for fixing the sequence after an invalid state.
-    /// When adding or moving records, the `track_no` numbers should be set explicitly.
-    pub fn reset_seq(conn: &mut SqliteConnection, related_tracks_id: &str) -> QueryResult<usize> {
-        diesel::sql_query(
-            r#"WITH ordered AS (
-                SELECT ID, ROW_NUMBER() OVER (ORDER BY TrackNo) AS new_seq
-                FROM djmdSongRelatedTracks WHERE RelatedTracksID =?
-            ) UPDATE djmdSongRelatedTracks
-            SET TrackNo = (SELECT new_seq FROM ordered WHERE ordered.ID = djmdSongRelatedTracks.ID);"#
-        )
-            .bind::<diesel::sql_types::Text, _>(related_tracks_id)
+    /// Checks if a record with the given `id` exists in the `djmdSongRelatedTracks` table.
+    pub fn id_exists(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
+
+    /// Move a record in the `djmdSongRelatedTracks` table.
+    pub fn move_to(conn: &mut SqliteConnection, id: &str, seq: Option<i32>) -> QueryResult<usize> {
+        let res = match Self::find(conn, id)? {
+            Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+
+        let old_seq = res.track_no;
+        // *Note*: Moving other records increments USN by 1 for all changes
+        let res = Self::update_seq_before_move_in(conn, &res.related_tracks_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
+            None => return Ok(0),
+        };
+
+        // Update seq of actual record
+        let now = Utc::now();
+        let usn = AgentRegistry::increment_local_usn(conn)?;
+        diesel::update(djmdSongRelatedTracks::table.find(id))
+            .set((
+                djmdSongRelatedTracks::track_no.eq(seq),
+                djmdSongRelatedTracks::updated_at.eq(&format_datetime(&now)),
+                djmdSongRelatedTracks::rb_local_usn.eq(usn),
+            ))
             .execute(conn)
     }
 
@@ -540,9 +691,7 @@ impl DjmdSongRelatedTracks {
         conn: &mut SqliteConnection,
         related_tracks_id: &str,
     ) -> QueryResult<usize> {
-        let result = diesel::delete(Self::filter_by_related_id(related_tracks_id)).execute(conn)?;
-        AgentRegistry::increment_local_usn_by(conn, result)?;
-        Ok(result)
+        diesel::delete(Self::filter_by_related_id(related_tracks_id)).execute(conn)
     }
 
     /// Deletes multiple records from the `djmdSongRelatedTracks` table based on their `related_tracks_id`.
@@ -550,9 +699,232 @@ impl DjmdSongRelatedTracks {
         conn: &mut SqliteConnection,
         related_tracks_ids: &[String],
     ) -> QueryResult<usize> {
-        let result =
-            diesel::delete(Self::filter_by_related_ids(related_tracks_ids)).execute(conn)?;
-        AgentRegistry::increment_local_usn_by(conn, result)?;
+        diesel::delete(Self::filter_by_related_ids(related_tracks_ids)).execute(conn)
+    }
+
+    /// Generates a new unique identifier for a record in the `djmdSongMyTag` table.
+    fn generate_id(conn: &mut SqliteConnection) -> QueryResult<String> {
+        let generator = RandomIdGenerator::new(true);
+        let mut id: String = String::new();
+        for id_result in generator {
+            if let Ok(tmp_id) = id_result {
+                if !Self::id_exists(conn, &tmp_id)? {
+                    id = tmp_id;
+                    break;
+                }
+            }
+        }
+        Ok(id)
+    }
+}
+
+impl SequenceTree for DjmdSongRelatedTracks {
+    type Id = str;
+    const START_SEQ: i32 = 1;
+
+    #[inline]
+    fn is_valid_parent(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<bool> {
+        DjmdRelatedTracks::is_related_tracks(conn, parent_id)
+    }
+
+    #[inline]
+    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<i32> {
+        let count: i64 = Self::filter_by_related_id(parent_id)
+            .count()
+            .get_result(conn)?;
+        Ok(count as i32)
+    }
+
+    #[inline]
+    fn get_seq_numbers(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<Vec<i32>> {
+        Self::filter_by_related_id(parent_id)
+            .order(djmdSongRelatedTracks::track_no)
+            .select(djmdSongRelatedTracks::track_no)
+            .get_results(conn)
+    }
+
+    #[inline]
+    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<usize> {
+        diesel::sql_query(
+                r#"WITH ordered AS (
+                    SELECT ID, ROW_NUMBER() OVER (ORDER BY TrackNo) + (? - 1) AS new_seq
+                    FROM djmdSongRelatedTracks WHERE RelatedTracksID =?
+                ) UPDATE djmdSongRelatedTracks
+                SET TrackNo = (SELECT new_seq FROM ordered WHERE ordered.ID = djmdSongRelatedTracks.ID)
+                WHERE RelatedTracksID =?;"#,
+            )
+            .bind::<diesel::sql_types::Integer, _>(Self::START_SEQ)
+            .bind::<diesel::sql_types::Text, _>(parent_id)
+            .bind::<diesel::sql_types::Text, _>(parent_id)
+            .execute(conn)
+    }
+
+    #[inline]
+    fn increment_seq_gte(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        seq: i32,
+    ) -> QueryResult<usize> {
+        let now = Utc::now();
+        let usn = AgentRegistry::local_usn(conn)? + 1;
+        diesel::update(
+            djmdSongRelatedTracks::table
+                .filter(djmdSongRelatedTracks::related_tracks_id.eq(parent_id))
+                .filter(djmdSongRelatedTracks::track_no.ge(seq)),
+        )
+        .set((
+            djmdSongRelatedTracks::track_no.eq(djmdSongRelatedTracks::track_no + 1),
+            djmdSongRelatedTracks::updated_at.eq(&format_datetime(&now)),
+            djmdSongRelatedTracks::rb_local_usn.eq(usn),
+        ))
+        .execute(conn)
+    }
+
+    #[inline]
+    fn decrement_seq_gt(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        seq: i32,
+    ) -> QueryResult<usize> {
+        let now = Utc::now();
+        let usn = AgentRegistry::local_usn(conn)? + 1;
+        diesel::update(
+            djmdSongRelatedTracks::table
+                .filter(djmdSongRelatedTracks::related_tracks_id.eq(parent_id))
+                .filter(djmdSongRelatedTracks::track_no.gt(seq)),
+        )
+        .set((
+            djmdSongRelatedTracks::track_no.eq(djmdSongRelatedTracks::track_no - 1),
+            djmdSongRelatedTracks::updated_at.eq(&format_datetime(&now)),
+            djmdSongRelatedTracks::rb_local_usn.eq(usn),
+        ))
+        .execute(conn)
+    }
+
+    #[inline]
+    fn increment_seq_gte_lt(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        start: i32,
+        end: i32,
+    ) -> QueryResult<usize> {
+        let now = Utc::now();
+        let usn = AgentRegistry::local_usn(conn)? + 1;
+        diesel::update(
+            djmdSongRelatedTracks::table
+                .filter(djmdSongRelatedTracks::related_tracks_id.eq(parent_id))
+                .filter(djmdSongRelatedTracks::track_no.ge(start))
+                .filter(djmdSongRelatedTracks::track_no.lt(end)),
+        )
+        .set((
+            djmdSongRelatedTracks::track_no.eq(djmdSongRelatedTracks::track_no + 1),
+            djmdSongRelatedTracks::updated_at.eq(&format_datetime(&now)),
+            djmdSongRelatedTracks::rb_local_usn.eq(usn),
+        ))
+        .execute(conn)
+    }
+
+    #[inline]
+    fn decrement_seq_gt_lte(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        start: i32,
+        end: i32,
+    ) -> QueryResult<usize> {
+        let now = Utc::now();
+        let usn = AgentRegistry::local_usn(conn)? + 1;
+        diesel::update(
+            djmdSongRelatedTracks::table
+                .filter(djmdSongRelatedTracks::related_tracks_id.eq(parent_id))
+                .filter(djmdSongRelatedTracks::track_no.gt(start))
+                .filter(djmdSongRelatedTracks::track_no.le(end)),
+        )
+        .set((
+            djmdSongRelatedTracks::track_no.eq(djmdSongRelatedTracks::track_no - 1),
+            djmdSongRelatedTracks::updated_at.eq(&format_datetime(&now)),
+            djmdSongRelatedTracks::rb_local_usn.eq(usn),
+        ))
+        .execute(conn)
+    }
+}
+
+/// Represents a new record insertale to the `djmdSongRelatedTracks` table.
+///
+/// Implements the builder pattern for optional values of the new record.
+///
+/// # Examples
+/// ```rust
+/// use rbox::masterdb::models::NewDjmdSongRelatedTracks;
+///
+/// let new = NewDjmdSongRelatedTracks::new("relatedId".into(), "contentId".into()).track_no(1);
+/// println!("{:?}", new);
+/// ```
+#[derive(Debug, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
+pub struct NewDjmdSongRelatedTracks {
+    /// The ID of the associated playlist in [`DjmdPlaylist`].
+    pub related_tracks_id: String,
+    /// The ID of the associated content in [`DjmdContent`].
+    pub content_id: String,
+    /// The track number in the playlist.
+    pub track_no: Option<i32>,
+}
+
+impl NewDjmdSongRelatedTracks {
+    /// Creates a new `NewDjmdSongRelatedTracks` with the required `related_tracks_id` and `content_id` field.
+    pub fn new(related_tracks_id: String, content_id: String) -> Self {
+        Self {
+            related_tracks_id,
+            content_id,
+            ..Default::default()
+        }
+    }
+
+    /// Inserts the new record into the database
+    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<DjmdSongRelatedTracks> {
+        // Check content
+        if !DjmdContent::id_exists(conn, &self.content_id)? {
+            return Err(Error::NotFound);
+        }
+
+        let parent_id = &self.related_tracks_id;
+        // Handle seq and USN of moved records (also checkks parent)
+        let (seq, n) =
+            DjmdSongRelatedTracks::update_seq_before_insert(conn, &parent_id, self.track_no)?;
+        if n > 0 {
+            // Apply USN of moved records
+            AgentRegistry::increment_local_usn(conn)?;
+        }
+
+        // Generate meta
+        let id = DjmdSongRelatedTracks::generate_id(conn)?;
+        let uuid = Uuid::new_v4().to_string();
+        let now = Utc::now();
+
+        // Get next USN: We increment by 2 (1 for creating, 1 for renaming from 'New Playlist')
+        let usn = AgentRegistry::increment_local_usn_by(conn, 2)?;
+        let item = DjmdSongRelatedTracks {
+            id,
+            uuid,
+            rb_local_usn: Some(usn),
+            created_at: now,
+            updated_at: now,
+            related_tracks_id: self.related_tracks_id,
+            content_id: self.content_id,
+            track_no: seq,
+            ..Default::default()
+        };
+        let result = diesel::insert_into(djmdSongRelatedTracks::table)
+            .values(item)
+            .get_result(conn)?;
         Ok(result)
+    }
+
+    /// Builder for `track_no`.
+    pub fn track_no(mut self, track_no: i32) -> Self {
+        self.track_no = Some(track_no);
+        self
     }
 }

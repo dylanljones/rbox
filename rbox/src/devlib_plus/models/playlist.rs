@@ -2,7 +2,7 @@
 // Date:   2025-09-02
 
 use diesel::prelude::*;
-use diesel::result::{DatabaseErrorKind, Error};
+use diesel::result::Error;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
 #[cfg(feature = "pyo3")]
@@ -91,22 +91,6 @@ impl Playlist {
             .load(conn)
     }
 
-    /// Creates a filter for records by `parent_id`.
-    #[diesel::dsl::auto_type(no_type_alias)]
-    fn filter_by_parent_id(parent_id: i32) -> _ {
-        playlist::table
-            .filter(playlist::parent_id.eq(parent_id))
-            .order(playlist::seq)
-    }
-
-    /// Creates a filter for records by `parent_id` and `name`.
-    #[diesel::dsl::auto_type(no_type_alias)]
-    fn filter_children_by_name(parent_id: i32, name: &str) -> _ {
-        playlist::table
-            .filter(playlist::parent_id.eq(parent_id))
-            .filter(playlist::name.eq(name))
-    }
-
     /// Tries to query a record from the `playlist` table by its node path in the tree.
     ///
     /// Returns `None` if no unique node can be found for the given `path`.
@@ -116,7 +100,9 @@ impl Playlist {
         for name in path {
             let mut new_parent_ids: HashSet<i32> = HashSet::new();
             for parent_id in parent_ids.iter() {
-                let result: Option<i32> = Self::filter_children_by_name(*parent_id, name)
+                let result: Option<i32> = playlist::table
+                    .filter(playlist::parent_id.eq(parent_id))
+                    .filter(playlist::name.eq(name))
                     .select(playlist::id)
                     .first(conn)
                     .optional()?;
@@ -137,7 +123,7 @@ impl Playlist {
         }
     }
 
-    /// Returns the playlist type (`attribute`) of a record in the `playlist` table.
+    /// Returns the playlist type (`attribute`) of a record in the `playlist` table or `None` if not found.
     pub fn get_attribute(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<i32>> {
         if id == 0 {
             return Ok(Some(1));
@@ -147,6 +133,22 @@ impl Playlist {
             .select(playlist::attribute)
             .get_result(conn)
             .optional()
+    }
+
+    /// Returns `true` if the record in the `playlist` table exists and is a playlist, `false` otherwise.
+    pub fn is_playlist(conn: &mut SqliteConnection, id: i32) -> QueryResult<bool> {
+        match Self::get_attribute(conn, id)? {
+            Some(attr) => Ok(attr == 0), // 0: playlist
+            None => Ok(false),
+        }
+    }
+
+    /// Returns `true` if the record in the `playlist` table exists and is a folder, `false` otherwise.
+    pub fn is_folder(conn: &mut SqliteConnection, id: i32) -> QueryResult<bool> {
+        match Self::get_attribute(conn, id)? {
+            Some(attr) => Ok(attr == 1), // 1: folder
+            None => Ok(false),
+        }
     }
 
     // /// Counts the number of child records in the `playlist` table for a given `parent_id`.
@@ -223,6 +225,11 @@ impl SequenceTree for Playlist {
     const START_SEQ: i32 = 0;
 
     #[inline]
+    fn is_valid_parent(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<bool> {
+        Self::is_playlist(conn, *parent_id)
+    }
+
+    #[inline]
     fn count_children(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<i32> {
         let count: i64 = playlist::table
             .filter(playlist::parent_id.eq(parent_id))
@@ -244,30 +251,79 @@ impl SequenceTree for Playlist {
     fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<usize> {
         diesel::sql_query(
             r#"WITH ordered AS (
-                SELECT playlist_id, ROW_NUMBER() OVER (ORDER BY sequenceNo) AS new_seq
+                SELECT playlist_id, ROW_NUMBER() OVER (ORDER BY sequenceNo) + (? - 1) AS new_seq
                 FROM playlist WHERE playlist_id_parent =?
             ) UPDATE playlist
             SET sequenceNo = (SELECT new_seq FROM ordered WHERE ordered.playlist_id = playlist.playlist_id)
             WHERE playlist_id_parent = ?;"#,
         )
+            .bind::<diesel::sql_types::Integer, _>(Self::START_SEQ)
             .bind::<diesel::sql_types::Integer, _>(parent_id)
             .bind::<diesel::sql_types::Integer, _>(parent_id)
             .execute(conn)
     }
 
     #[inline]
-    fn increment_seq_before_insert(
+    fn increment_seq_gte(
         conn: &mut SqliteConnection,
         parent_id: &Self::Id,
         seq: i32,
     ) -> QueryResult<usize> {
-        // Shift playlists with seq higher than the new seq number by one
         diesel::update(
             playlist::table
                 .filter(playlist::seq.ge(seq))
                 .filter(playlist::parent_id.eq(parent_id)),
         )
         .set(playlist::seq.eq(playlist::seq + 1))
+        .execute(conn)
+    }
+
+    #[inline]
+    fn decrement_seq_gt(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        seq: i32,
+    ) -> QueryResult<usize> {
+        diesel::update(
+            playlist::table
+                .filter(playlist::seq.gt(seq))
+                .filter(playlist::parent_id.eq(parent_id)),
+        )
+        .set(playlist::seq.eq(playlist::seq - 1))
+        .execute(conn)
+    }
+
+    #[inline]
+    fn increment_seq_gte_lt(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        start: i32,
+        end: i32,
+    ) -> QueryResult<usize> {
+        diesel::update(
+            playlist::table
+                .filter(playlist::seq.ge(start))
+                .filter(playlist::seq.lt(end))
+                .filter(playlist::parent_id.eq(parent_id)),
+        )
+        .set(playlist::seq.eq(playlist::seq + 1))
+        .execute(conn)
+    }
+
+    #[inline]
+    fn decrement_seq_gt_lte(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        start: i32,
+        end: i32,
+    ) -> QueryResult<usize> {
+        diesel::update(
+            playlist::table
+                .filter(playlist::seq.gt(start))
+                .filter(playlist::seq.le(end))
+                .filter(playlist::parent_id.eq(parent_id)),
+        )
+        .set(playlist::seq.eq(playlist::seq - 1))
         .execute(conn)
     }
 }
@@ -331,19 +387,9 @@ impl NewPlaylist {
 
     /// Inserts the new record into the database
     pub fn insert(mut self, conn: &mut SqliteConnection) -> QueryResult<Playlist> {
-        if let Some(attr) = Playlist::get_attribute(conn, self.parent_id)? {
-            if attr != 1 {
-                return Err(Error::DatabaseError(
-                    DatabaseErrorKind::RestrictViolation,
-                    Box::new("Cannot add a child to a Playlist list".to_string()),
-                ));
-            }
-        } else {
-            return Err(Error::NotFound);
-        }
-
         let seq = if self.seq == 0 { None } else { Some(self.seq) };
-        self.seq = Playlist::update_seq_before_insert(conn, &self.parent_id, seq)?;
+        let (seq, _n) = Playlist::update_seq_before_insert(conn, &self.parent_id, seq)?;
+        self.seq = seq;
 
         diesel::insert_into(playlist::table)
             .values(&self)
@@ -467,23 +513,13 @@ impl PlaylistContent {
 
     /// Inserts the new record into the database
     pub fn insert(mut self, conn: &mut SqliteConnection) -> QueryResult<PlaylistContent> {
-        if let Some(attr) = Playlist::get_attribute(conn, self.playlist_id)? {
-            if attr != 0 {
-                return Err(Error::DatabaseError(
-                    DatabaseErrorKind::RestrictViolation,
-                    Box::new("Cannot add a content to a Playlist folder or smart list".to_string()),
-                ));
-            }
-        } else {
-            return Err(Error::NotFound);
-        }
-
         if !Content::id_exists(conn, self.content_id)? {
             return Err(Error::NotFound);
         }
 
         let seq = if self.seq == 0 { None } else { Some(self.seq) };
-        self.seq = PlaylistContent::update_seq_before_insert(conn, &self.playlist_id, seq)?;
+        let (seq, _n) = PlaylistContent::update_seq_before_insert(conn, &self.playlist_id, seq)?;
+        self.seq = seq;
 
         diesel::insert_into(playlist_content::table)
             .values(self)
@@ -557,6 +593,11 @@ impl SequenceTree for PlaylistContent {
     const START_SEQ: i32 = 0;
 
     #[inline]
+    fn is_valid_parent(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<bool> {
+        Playlist::is_playlist(conn, *parent_id)
+    }
+
+    #[inline]
     fn count_children(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<i32> {
         let count: i64 = Self::filter_by_playlist_id(*parent_id)
             .count()
@@ -575,12 +616,13 @@ impl SequenceTree for PlaylistContent {
     fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<usize> {
         diesel::sql_query(
             r#"WITH ordered AS (
-                SELECT playlist_id, ROW_NUMBER() OVER (ORDER BY sequenceNo) AS new_seq
+                SELECT playlist_id, ROW_NUMBER() OVER (ORDER BY sequenceNo) + (? - 1) AS new_seq
                 FROM playlist_content WHERE playlist_id =?
             ) UPDATE playlist_content
             SET sequenceNo = (SELECT new_seq FROM ordered WHERE ordered.playlist_id = playlist_content.playlist_id)
             WHERE playlist_id =?;"#,
         )
+            .bind::<diesel::sql_types::Integer, _>(Self::START_SEQ)
             .bind::<diesel::sql_types::Integer, _>(parent_id)
             .bind::<diesel::sql_types::Integer, _>(parent_id)
             .bind::<diesel::sql_types::Integer, _>(parent_id)
@@ -588,7 +630,7 @@ impl SequenceTree for PlaylistContent {
     }
 
     #[inline]
-    fn increment_seq_before_insert(
+    fn increment_seq_gte(
         conn: &mut SqliteConnection,
         parent_id: &Self::Id,
         seq: i32,
@@ -599,6 +641,55 @@ impl SequenceTree for PlaylistContent {
                 .filter(playlist_content::playlist_id.eq(parent_id)),
         )
         .set(playlist_content::seq.eq(playlist_content::seq + 1))
+        .execute(conn)
+    }
+
+    #[inline]
+    fn decrement_seq_gt(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        seq: i32,
+    ) -> QueryResult<usize> {
+        diesel::update(
+            playlist_content::table
+                .filter(playlist_content::seq.gt(seq))
+                .filter(playlist_content::playlist_id.eq(parent_id)),
+        )
+        .set(playlist_content::seq.eq(playlist_content::seq - 1))
+        .execute(conn)
+    }
+
+    #[inline]
+    fn increment_seq_gte_lt(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        start: i32,
+        end: i32,
+    ) -> QueryResult<usize> {
+        diesel::update(
+            playlist_content::table
+                .filter(playlist_content::seq.ge(start))
+                .filter(playlist_content::seq.lt(end))
+                .filter(playlist_content::playlist_id.eq(parent_id)),
+        )
+        .set(playlist_content::seq.eq(playlist_content::seq + 1))
+        .execute(conn)
+    }
+
+    #[inline]
+    fn decrement_seq_gt_lte(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        start: i32,
+        end: i32,
+    ) -> QueryResult<usize> {
+        diesel::update(
+            playlist_content::table
+                .filter(playlist_content::seq.gt(start))
+                .filter(playlist_content::seq.le(end))
+                .filter(playlist_content::playlist_id.eq(parent_id)),
+        )
+        .set(playlist_content::seq.eq(playlist_content::seq - 1))
         .execute(conn)
     }
 }
