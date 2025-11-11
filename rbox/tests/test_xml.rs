@@ -16,12 +16,12 @@ fn test_read_xml() -> anyhow::Result<()> {
 #[test]
 fn test_write_xml() -> anyhow::Result<()> {
     let path = common::setup_rekordbox_xml_path();
-    let out = common::testdata_demo_dir().join("database-out.xml");
+    let out = NamedTempFile::new_in(common::get_temp_root_dir())?;
     let xml = RekordboxXml::load(path.path());
     // Write to input file
     xml.dump()?;
     // Write to new file
-    xml.dump_copy(out)?;
+    xml.dump_copy(out.path())?;
     Ok(())
 }
 
@@ -80,7 +80,7 @@ fn test_get_track_location_decode() -> anyhow::Result<()> {
 #[test]
 fn test_get_track_location_encode() -> anyhow::Result<()> {
     let path = common::setup_rekordbox_xml_path();
-    let out = common::testdata_demo_dir().join("database-out.xml");
+    let out = NamedTempFile::new_in(common::get_temp_root_dir())?;
     let track_id = "253529738";
     let mut xml = RekordboxXml::load(path.path());
 
@@ -90,7 +90,7 @@ fn test_get_track_location_encode() -> anyhow::Result<()> {
 
     // Dump xml file and reload
     xml.dump_copy(&out)?;
-    let mut xml2 = RekordboxXml::load(&out);
+    let mut xml2 = RekordboxXml::load(out.path());
     let track = xml2.get_track_by_id(&track_id).unwrap();
     assert_eq!(track.location, new_location);
 

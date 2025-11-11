@@ -94,7 +94,7 @@ fn create_rbv6_temp_db_dir() -> TempDir {
     let src = rb_dir.join("master.db");
     fs::copy(&src, dir.join("master.db")).expect("Failed to copy database file");
     // Copy the playlist xml file
-    let src = rb_dir.join("masterPlaylists6-tmplt.xml");
+    let src = rb_dir.join("masterPlaylists6.xml");
     fs::copy(&src, dir.join("masterPlaylists6.xml")).expect("Failed to copy xml file");
 
     tmp_dir
