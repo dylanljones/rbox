@@ -279,8 +279,6 @@ impl DjmdPlaylist {
 
     /// Deletes a record from the `djmdPlaylist` table and removes any references to it.
     pub fn delete(conn: &mut SqliteConnection, id: &str) -> QueryResult<Vec<String>> {
-        // TODO: Increment USN only by one!!!
-
         // Vec of all deleted playlist ids
         let mut deleted_playlist_ids = vec![id.to_string()];
 
@@ -288,8 +286,6 @@ impl DjmdPlaylist {
         let parent_id: String = diesel::delete(djmdPlaylist::table.find(id))
             .returning(djmdPlaylist::parent_id)
             .get_result(conn)?;
-
-        AgentRegistry::increment_local_usn(conn)?;
 
         // Reorder the seq numbers of tags left in the parent
         Self::reset_seq(conn, &parent_id)?;
@@ -303,7 +299,7 @@ impl DjmdPlaylist {
                     .returning(djmdPlaylist::id)
                     .get_results(conn)?;
             deleted_playlist_ids.extend(deleted.clone());
-            AgentRegistry::increment_local_usn_by(conn, deleted.len())?;
+            // AgentRegistry::increment_local_usn_by(conn, deleted.len())?;
             // Add children to the queue
             for deleted_id in deleted {
                 parent_ids.push_back(deleted_id);
@@ -312,6 +308,8 @@ impl DjmdPlaylist {
 
         // Remove any djmdSongPlaylist records that are associated with the deleted djmdPlaylists
         DjmdSongPlaylist::delete_by_playlist_ids(conn, &deleted_playlist_ids)?;
+
+        AgentRegistry::increment_local_usn_by(conn, deleted_playlist_ids.len())?;
 
         Ok(deleted_playlist_ids)
     }
@@ -771,7 +769,7 @@ impl DjmdSongPlaylist {
         playlist_id: &str,
     ) -> QueryResult<usize> {
         let result = diesel::delete(Self::filter_by_playlist_id(playlist_id)).execute(conn)?;
-        AgentRegistry::increment_local_usn_by(conn, result)?;
+        // AgentRegistry::increment_local_usn_by(conn, result)?;
         Ok(result)
     }
 
@@ -781,7 +779,7 @@ impl DjmdSongPlaylist {
         playlist_ids: &[String],
     ) -> QueryResult<usize> {
         let result = diesel::delete(Self::filter_by_playlist_ids(playlist_ids)).execute(conn)?;
-        AgentRegistry::increment_local_usn_by(conn, result)?;
+        // AgentRegistry::increment_local_usn_by(conn, result)?;
         Ok(result)
     }
 

@@ -1008,9 +1008,9 @@ fn test_delete_playlist_folder() -> anyhow::Result<()> {
     let deleted = db.delete_playlist(&folder.id)?;
     assert_eq!(deleted, 4); // Dont count the songs
 
-    // Check USN
+    // Check USN (+1 for deleting with Seq update, +1 for children)
     let new_usn = db.get_local_usn()?;
-    assert_eq!(new_usn, old_usn + 7); // Or 4??
+    assert_eq!(new_usn, old_usn + 4); // Or 4??
 
     // Check that child playlists were deleted
     let res1 = db.get_playlist_by_id(&pl1.id)?;
