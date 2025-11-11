@@ -90,22 +90,11 @@ impl DjmdPlaylist {
     }
 
     /// Queries a record from the `djmdPlaylist` table by its `name`.
-    pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
+    pub fn by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
         Self::query()
             .filter(djmdPlaylist::name.eq(name))
             .first(conn)
             .optional()
-    }
-
-    /// Queries a record from the `djmdPlaylist` table by its associated `content_id` via `djmdSongPlaylist`
-    pub fn find_by_content_id(conn: &mut SqliteConnection, cid: &str) -> QueryResult<Vec<Self>> {
-        djmdPlaylist::table
-            .inner_join(
-                djmdSongPlaylist::table.on(djmdPlaylist::id.eq(djmdSongPlaylist::playlist_id)),
-            )
-            .filter(djmdSongPlaylist::content_id.eq(cid))
-            .select(Self::as_select())
-            .load(conn)
     }
 
     /// Tries to query a record from the `djmdPlaylist` table by its node path in the tree.
@@ -146,6 +135,17 @@ impl DjmdPlaylist {
         Self::query()
             .filter(djmdPlaylist::parent_id.eq(parent_id))
             .order(djmdPlaylist::seq)
+            .load(conn)
+    }
+
+    /// Queries all records from the `djmdPlaylist` table by their associated `content_id` via `djmdSongPlaylist`
+    pub fn by_content_id(conn: &mut SqliteConnection, cid: &str) -> QueryResult<Vec<Self>> {
+        djmdPlaylist::table
+            .inner_join(
+                djmdSongPlaylist::table.on(djmdPlaylist::id.eq(djmdSongPlaylist::playlist_id)),
+            )
+            .filter(djmdSongPlaylist::content_id.eq(cid))
+            .select(Self::as_select())
             .load(conn)
     }
 
@@ -505,7 +505,7 @@ impl SequenceTree for DjmdPlaylist {
 /// ```rust
 /// use rbox::masterdb::models::NewDjmdPlaylist;
 ///
-/// let new = NewDjmdPlaylist::new("Name".into()).seq(2);
+/// let new = NewDjmdPlaylist::playlist("Name".into()).seq(2);
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -712,10 +712,7 @@ impl DjmdSongPlaylist {
 
     /// Counts the number of records in the `djmdSongPlaylist` table for a given `playlist_id`.
     pub fn count(conn: &mut SqliteConnection, playlist_id: &str) -> QueryResult<i32> {
-        let count: i64 = Self::filter_by_playlist_id(playlist_id)
-            .count()
-            .get_result(conn)?;
-        Ok(count as i32)
+        Self::count_children(conn, playlist_id)
     }
 
     /// Checks if a record with the given `id` exists in the `djmdSongPlaylist` table.
@@ -753,12 +750,12 @@ impl DjmdSongPlaylist {
     /// Deletes a record from the `djmdSongPlaylist` table
     pub fn delete(conn: &mut SqliteConnection, id: &str) -> QueryResult<usize> {
         let query = djmdSongPlaylist::table.find(id);
-        let my_tag_id: String = query.select(djmdSongPlaylist::playlist_id).first(conn)?;
+        let playlist_id: String = query.select(djmdSongPlaylist::playlist_id).first(conn)?;
 
         let result = diesel::delete(query).execute(conn)?;
         AgentRegistry::increment_local_usn(conn)?;
         // Reorder the track_no numbers
-        Self::reset_seq(conn, &my_tag_id)?;
+        Self::reset_seq(conn, &playlist_id)?;
 
         Ok(result)
     }
@@ -768,9 +765,7 @@ impl DjmdSongPlaylist {
         conn: &mut SqliteConnection,
         playlist_id: &str,
     ) -> QueryResult<usize> {
-        let result = diesel::delete(Self::filter_by_playlist_id(playlist_id)).execute(conn)?;
-        // AgentRegistry::increment_local_usn_by(conn, result)?;
-        Ok(result)
+        diesel::delete(Self::filter_by_playlist_id(playlist_id)).execute(conn)
     }
 
     /// Deletes all records from the `djmdSongPlaylist` table acssociated with one of `playlist_ids`.
@@ -778,9 +773,7 @@ impl DjmdSongPlaylist {
         conn: &mut SqliteConnection,
         playlist_ids: &[String],
     ) -> QueryResult<usize> {
-        let result = diesel::delete(Self::filter_by_playlist_ids(playlist_ids)).execute(conn)?;
-        // AgentRegistry::increment_local_usn_by(conn, result)?;
-        Ok(result)
+        diesel::delete(Self::filter_by_playlist_ids(playlist_ids)).execute(conn)
     }
 
     /// Generates a new unique identifier for a record in the `djmdSongPlaylist` table.
@@ -819,6 +812,7 @@ impl SequenceTree for DjmdSongPlaylist {
     #[inline]
     fn get_seq_numbers(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<Vec<i32>> {
         Self::filter_by_playlist_id(parent_id)
+            .order(djmdSongPlaylist::track_no)
             .select(djmdSongPlaylist::track_no)
             .get_results(conn)
     }
@@ -936,7 +930,7 @@ impl SequenceTree for DjmdSongPlaylist {
 /// ```rust
 /// use rbox::masterdb::models::NewDjmdSongPlaylist;
 ///
-/// let new = NewSongDjmdPlaylist::new("Name".into());
+/// let new = NewSongDjmdPlaylist::new("playlistId".into(), "contentId".into()).track_no(1);
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -960,12 +954,6 @@ impl NewDjmdSongPlaylist {
             content_id,
             ..Default::default()
         }
-    }
-
-    /// Builder for `track_no`.
-    pub fn track_no(mut self, track_no: i32) -> Self {
-        self.track_no = Some(track_no);
-        self
     }
 
     /// Inserts the new record into the database
@@ -1005,6 +993,12 @@ impl NewDjmdSongPlaylist {
             .values(item)
             .get_result(conn)?;
         Ok(result)
+    }
+
+    /// Builder for `track_no`.
+    pub fn track_no(mut self, track_no: i32) -> Self {
+        self.track_no = Some(track_no);
+        self
     }
 }
 

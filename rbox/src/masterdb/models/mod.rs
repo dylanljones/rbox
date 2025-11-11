@@ -36,7 +36,17 @@ mod image_file;
 mod setting_file;
 mod uuid_map;
 
+use chrono::{DateTime, TimeZone, Utc};
+use diesel::backend::Backend;
+use diesel::deserialize::{FromSql, Result as DResult};
+use diesel::serialize::{IsNull, Output, Result as SResult, ToSql};
+use diesel::sql_types::Text;
+use diesel::{AsExpression, FromSqlRow};
+use rand::rngs::ThreadRng;
+use rand::RngCore;
+
 use super::schema;
+use crate::error::{Error, Result};
 
 pub use agent_registry::{AgentRegistry, CloudAgentRegistry};
 pub use content_active_censor::ContentActiveCensor;
@@ -51,7 +61,7 @@ pub use djmd_content::{DjmdContent, NewDjmdContent};
 pub use djmd_cue::DjmdCue;
 pub use djmd_device::DjmdDevice;
 pub use djmd_genre::{DjmdGenre, NewDjmdGenre};
-pub use djmd_history::{DjmdHistory, DjmdSongHistory};
+pub use djmd_history::{DjmdHistory, DjmdSongHistory, NewDjmdHistory, NewDjmdSongHistory};
 pub use djmd_hot_cue_bank_list::{DjmdHotCueBanklist, DjmdSongHotCueBanklist, HotCueBanklistCue};
 pub use djmd_key::{DjmdKey, NewDjmdKey};
 pub use djmd_label::{DjmdLabel, NewDjmdLabel};
@@ -70,16 +80,6 @@ pub use djmd_sort::DjmdSort;
 pub use image_file::ImageFile;
 pub use setting_file::SettingFile;
 pub use uuid_map::UuidIDMap;
-
-use crate::error::{Error, Result};
-use chrono::{DateTime, TimeZone, Utc};
-use diesel::backend::Backend;
-use diesel::deserialize::{FromSql, Result as DResult};
-use diesel::serialize::{IsNull, Output, Result as SResult, ToSql};
-use diesel::sql_types::Text;
-use diesel::{AsExpression, FromSqlRow};
-use rand::rngs::ThreadRng;
-use rand::RngCore;
 
 pub type Date = DateTime<Utc>;
 

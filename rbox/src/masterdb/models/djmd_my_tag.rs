@@ -17,6 +17,7 @@ use super::agent_registry::AgentRegistry;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdMyTag, djmdSongMyTag};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
+use crate::model_traits::SequenceTree;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -90,20 +91,20 @@ impl DjmdMyTag {
             .optional()
     }
 
-    /// Queries a record from the `djmdMyTag` table by its associated `content_id` via `djmdSongMyTag`
-    pub fn find_by_content_id(conn: &mut SqliteConnection, cid: &str) -> QueryResult<Option<Self>> {
-        djmdMyTag::table
-            .inner_join(djmdSongMyTag::table.on(djmdMyTag::id.eq(djmdSongMyTag::my_tag_id)))
-            .filter(djmdSongMyTag::content_id.eq(cid))
-            .select(DjmdMyTag::as_select())
-            .first(conn)
-            .optional()
-    }
-
     /// Queries the records from the `djmdMyTag` table by their `parent_id`.
     pub fn by_parent_id(conn: &mut SqliteConnection, parent_id: &str) -> QueryResult<Vec<Self>> {
         Self::query()
             .filter(djmdMyTag::parent_id.eq(parent_id))
+            .order(djmdMyTag::seq)
+            .load(conn)
+    }
+
+    /// Queries all records from the `djmdMyTag` table their associated `content_id` via `djmdSongMyTag`
+    pub fn by_content_id(conn: &mut SqliteConnection, cid: &str) -> QueryResult<Vec<Self>> {
+        djmdMyTag::table
+            .inner_join(djmdSongMyTag::table.on(djmdMyTag::id.eq(djmdSongMyTag::my_tag_id)))
+            .filter(djmdSongMyTag::content_id.eq(cid))
+            .select(Self::as_select())
             .load(conn)
     }
 
@@ -132,6 +133,34 @@ impl DjmdMyTag {
             .select(djmdMyTag::parent_id)
             .get_result(conn)?;
         Self::count_children(conn, &parent_id)
+    }
+
+    /// Returns the playlist type (`attribute`) of a record in the `djmdMyTag` table or `None` if not found.
+    pub fn get_attribute(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<i32>> {
+        if id == "root" {
+            return Ok(Some(1));
+        }
+        djmdMyTag::table
+            .find(id)
+            .select(djmdMyTag::attribute)
+            .get_result(conn)
+            .optional()
+    }
+
+    /// Returns `true` if the record in the `djmdMyTag` table exists and is a my-tag, `false` otherwise.
+    pub fn is_my_tag(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
+        match Self::get_attribute(conn, id)? {
+            Some(attr) => Ok(attr == 0), // 0: playlist
+            None => Ok(false),
+        }
+    }
+
+    /// Returns `true` if the record in the `djmdMyTag` table exists and is a section, `false` otherwise.
+    pub fn is_section(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
+        match Self::get_attribute(conn, id)? {
+            Some(attr) => Ok(attr == 1), // 1: folder
+            None => Ok(false),
+        }
     }
 
     /// Checks if a record with the given `id` exists in the `djmdMyTag` table.
@@ -171,6 +200,19 @@ impl DjmdMyTag {
         self.rb_local_usn = Some(AgentRegistry::increment_local_usn_by(conn, changes)?);
         Ok(diesel::update(djmdMyTag::table.find(self.id.clone()))
             .set(self)
+            .get_result(conn)?)
+    }
+
+    /// Set the name of a record in the `djmdMyTag` table.
+    pub fn rename(conn: &mut SqliteConnection, id: &str, name: &str) -> QueryResult<Self> {
+        let datestr = format_datetime(&Utc::now());
+        let usn = AgentRegistry::increment_local_usn(conn)?;
+        Ok(diesel::update(djmdMyTag::table.find(id))
+            .set((
+                djmdMyTag::name.eq(name),
+                djmdMyTag::updated_at.eq(&datestr),
+                djmdMyTag::rb_local_usn.eq(usn),
+            ))
             .get_result(conn)?)
     }
 
@@ -451,6 +493,138 @@ impl DjmdMyTag {
     }
 }
 
+impl SequenceTree for DjmdMyTag {
+    type Id = str;
+    const START_SEQ: i32 = 1;
+
+    #[inline]
+    fn is_valid_parent(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<bool> {
+        Self::is_section(conn, parent_id)
+    }
+
+    #[inline]
+    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<i32> {
+        let count: i64 = djmdMyTag::table
+            .filter(djmdMyTag::parent_id.eq(parent_id))
+            .count()
+            .get_result(conn)?;
+        Ok(count as i32)
+    }
+
+    #[inline]
+    fn get_seq_numbers(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<Vec<i32>> {
+        djmdMyTag::table
+            .filter(djmdMyTag::parent_id.eq(parent_id))
+            .order(djmdMyTag::seq)
+            .select(djmdMyTag::seq)
+            .load(conn)
+    }
+
+    #[inline]
+    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<usize> {
+        diesel::sql_query(
+            r#"WITH ordered AS (
+                    SELECT ID, ROW_NUMBER() OVER (ORDER BY Seq) + (? - 1) AS new_seq
+                    FROM djmdMyTag WHERE ParentID =?
+                ) UPDATE djmdMyTag
+                SET Seq = (SELECT new_seq FROM ordered WHERE ordered.ID = djmdMyTag.ID)
+                WHERE ParentID =?;"#,
+        )
+        .bind::<diesel::sql_types::Integer, _>(Self::START_SEQ)
+        .bind::<diesel::sql_types::Text, _>(parent_id)
+        .bind::<diesel::sql_types::Text, _>(parent_id)
+        .execute(conn)
+    }
+
+    #[inline]
+    fn increment_seq_gte(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        seq: i32,
+    ) -> QueryResult<usize> {
+        let now = Utc::now();
+        let usn = AgentRegistry::local_usn(conn)? + 1;
+        diesel::update(
+            djmdMyTag::table
+                .filter(djmdMyTag::parent_id.eq(parent_id))
+                .filter(djmdMyTag::seq.ge(seq)),
+        )
+        .set((
+            djmdMyTag::seq.eq(djmdMyTag::seq + 1),
+            djmdMyTag::updated_at.eq(&format_datetime(&now)),
+            djmdMyTag::rb_local_usn.eq(usn),
+        ))
+        .execute(conn)
+    }
+
+    #[inline]
+    fn decrement_seq_gt(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        seq: i32,
+    ) -> QueryResult<usize> {
+        let now = Utc::now();
+        let usn = AgentRegistry::local_usn(conn)? + 1;
+        diesel::update(
+            djmdMyTag::table
+                .filter(djmdMyTag::parent_id.eq(parent_id))
+                .filter(djmdMyTag::seq.gt(seq)),
+        )
+        .set((
+            djmdMyTag::seq.eq(djmdMyTag::seq - 1),
+            djmdMyTag::updated_at.eq(&format_datetime(&now)),
+            djmdMyTag::rb_local_usn.eq(usn),
+        ))
+        .execute(conn)
+    }
+
+    #[inline]
+    fn increment_seq_gte_lt(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        start: i32,
+        end: i32,
+    ) -> QueryResult<usize> {
+        let now = Utc::now();
+        let usn = AgentRegistry::local_usn(conn)? + 1;
+        diesel::update(
+            djmdMyTag::table
+                .filter(djmdMyTag::parent_id.eq(parent_id))
+                .filter(djmdMyTag::seq.ge(start))
+                .filter(djmdMyTag::seq.lt(end)),
+        )
+        .set((
+            djmdMyTag::seq.eq(djmdMyTag::seq + 1),
+            djmdMyTag::updated_at.eq(&format_datetime(&now)),
+            djmdMyTag::rb_local_usn.eq(usn),
+        ))
+        .execute(conn)
+    }
+
+    #[inline]
+    fn decrement_seq_gt_lte(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        start: i32,
+        end: i32,
+    ) -> QueryResult<usize> {
+        let now = Utc::now();
+        let usn = AgentRegistry::local_usn(conn)? + 1;
+        diesel::update(
+            djmdMyTag::table
+                .filter(djmdMyTag::parent_id.eq(parent_id))
+                .filter(djmdMyTag::seq.gt(start))
+                .filter(djmdMyTag::seq.le(end)),
+        )
+        .set((
+            djmdMyTag::seq.eq(djmdMyTag::seq - 1),
+            djmdMyTag::updated_at.eq(&format_datetime(&now)),
+            djmdMyTag::rb_local_usn.eq(usn),
+        ))
+        .execute(conn)
+    }
+}
+
 /// Represents a new record insertale to the `djmdMyTag` table.
 ///
 /// Implements the builder pattern for optional values of the new record.
@@ -611,6 +785,7 @@ impl DjmdSongMyTag {
     pub fn by_tag_id(conn: &mut SqliteConnection, tag_id: &str) -> QueryResult<Vec<Self>> {
         Self::query()
             .filter(djmdSongMyTag::my_tag_id.eq(tag_id))
+            .order(djmdSongMyTag::track_no)
             .get_results(conn)
     }
 
@@ -622,37 +797,53 @@ impl DjmdSongMyTag {
             .optional()
     }
 
-    /// Counts the number of records in the `djmdSongMyTag` table for a given `my_tag_id`.
-    pub fn count(conn: &mut SqliteConnection, my_tag_id: &str) -> QueryResult<i32> {
-        let count: i64 = djmdSongMyTag::table
-            .filter(djmdSongMyTag::my_tag_id.eq(my_tag_id))
-            .count()
-            .get_result(conn)?;
-        Ok(count as i32)
+    /// Creates a filter for records by `my_tag_id`.
+    #[diesel::dsl::auto_type(no_type_alias)]
+    fn filter_by_tag_id(id: &str) -> _ {
+        djmdSongMyTag::table.filter(djmdSongMyTag::my_tag_id.eq(id))
     }
 
-    /// Reset the `track_no` numbers of all records from the `djmdSongMyTag` table for a given `my_tag_id`.
-    ///
-    /// The `track_no` numbers are reset to the *current* order of the records in the
-    /// `djmdSongMyTag` table, starting at 1:
-    ///
-    /// ```
-    /// Old: 1, 2, 3, 5, 7, 8, 9
-    /// New: 1, 2, 3, 4, 5, 6, 7
-    /// ```
-    ///
-    /// This is helpful when deleting records or for fixing the sequence after an invalid state.
-    /// When adding or moving records, the `track_no` numbers should be set explicitly.
-    pub fn reset_seq(conn: &mut SqliteConnection, my_tag_id: &str) -> QueryResult<usize> {
-        diesel::sql_query(
-            r#"WITH ordered AS (
-                SELECT ID, ROW_NUMBER() OVER (ORDER BY TrackNo) AS new_seq
-                FROM djmdSongMyTag WHERE MyTagID =?
-            ) UPDATE djmdSongMyTag
-            SET TrackNo = (SELECT new_seq FROM ordered WHERE ordered.ID = djmdSongMyTag.ID);"#,
-        )
-        .bind::<diesel::sql_types::Text, _>(my_tag_id)
-        .execute(conn)
+    /// Creates a filter for records by `my_tag_ids`.
+    #[diesel::dsl::auto_type(no_type_alias)]
+    fn filter_by_tag_ids(ids: &[String]) -> _ {
+        djmdSongMyTag::table.filter(djmdSongMyTag::my_tag_id.eq_any(ids))
+    }
+
+    /// Counts the number of records in the `djmdSongMyTag` table for a given `my_tag_id`.
+    pub fn count(conn: &mut SqliteConnection, my_tag_id: &str) -> QueryResult<i32> {
+        Self::count_children(conn, my_tag_id)
+    }
+
+    /// Checks if a record with the given `id` exists in the `djmdSongMyTag` table.
+    pub fn id_exists(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
+
+    /// Move a record in the `djmdSongMyTag` table.
+    pub fn move_to(conn: &mut SqliteConnection, id: &str, seq: Option<i32>) -> QueryResult<usize> {
+        let res = match Self::find(conn, id)? {
+            Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+
+        let old_seq = res.track_no;
+        // *Note*: Moving other records increments USN by 1 for all changes
+        let res = Self::update_seq_before_move_in(conn, &res.my_tag_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
+            None => return Ok(0),
+        };
+
+        // Update seq of actual record
+        let now = Utc::now();
+        let usn = AgentRegistry::increment_local_usn(conn)?;
+        diesel::update(djmdSongMyTag::table.find(id))
+            .set((
+                djmdSongMyTag::track_no.eq(seq),
+                djmdSongMyTag::updated_at.eq(&format_datetime(&now)),
+                djmdSongMyTag::rb_local_usn.eq(usn),
+            ))
+            .execute(conn)
     }
 
     /// Deletes a record from the `djmdSongMyTag` table
@@ -670,11 +861,7 @@ impl DjmdSongMyTag {
 
     /// Deletes a record from the `djmdSongMyTag` table based on its `my_tag_id`.
     pub fn delete_by_tag_id(conn: &mut SqliteConnection, my_tag_id: &str) -> QueryResult<usize> {
-        let result =
-            diesel::delete(djmdSongMyTag::table.filter(djmdSongMyTag::my_tag_id.eq(my_tag_id)))
-                .execute(conn)?;
-        AgentRegistry::increment_local_usn_by(conn, result)?;
-        Ok(result)
+        diesel::delete(Self::filter_by_tag_id(my_tag_id)).execute(conn)
     }
 
     /// Deletes multiple records from the `djmdSongMyTag` table based on their `my_tag_id`.
@@ -682,12 +869,150 @@ impl DjmdSongMyTag {
         conn: &mut SqliteConnection,
         my_tag_ids: &[String],
     ) -> QueryResult<usize> {
-        let result = diesel::delete(
-            djmdSongMyTag::table.filter(djmdSongMyTag::my_tag_id.eq_any(my_tag_ids)),
+        diesel::delete(Self::filter_by_tag_ids(my_tag_ids)).execute(conn)
+    }
+
+    /// Generates a new unique identifier for a record in the `djmdSongMyTag` table.
+    fn generate_id(conn: &mut SqliteConnection) -> QueryResult<String> {
+        let generator = RandomIdGenerator::new(true);
+        let mut id: String = String::new();
+        for id_result in generator {
+            if let Ok(tmp_id) = id_result {
+                if !Self::id_exists(conn, &tmp_id)? {
+                    id = tmp_id;
+                    break;
+                }
+            }
+        }
+        Ok(id)
+    }
+}
+
+impl SequenceTree for DjmdSongMyTag {
+    type Id = str;
+    const START_SEQ: i32 = 1;
+
+    #[inline]
+    fn is_valid_parent(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<bool> {
+        DjmdMyTag::is_my_tag(conn, parent_id)
+    }
+
+    #[inline]
+    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<i32> {
+        let count: i64 = Self::filter_by_tag_id(parent_id).count().get_result(conn)?;
+        Ok(count as i32)
+    }
+
+    #[inline]
+    fn get_seq_numbers(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<Vec<i32>> {
+        Self::filter_by_tag_id(parent_id)
+            .order(djmdSongMyTag::track_no)
+            .select(djmdSongMyTag::track_no)
+            .get_results(conn)
+    }
+
+    #[inline]
+    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<usize> {
+        diesel::sql_query(
+            r#"WITH ordered AS (
+                    SELECT ID, ROW_NUMBER() OVER (ORDER BY Seq) + (? - 1) AS new_seq
+                    FROM djmdSongMyTag WHERE MyTagID =?
+                ) UPDATE djmdSongMyTag
+                SET Seq = (SELECT new_seq FROM ordered WHERE ordered.ID = djmdSongMyTag.ID)
+                WHERE MyTagID =?;"#,
         )
-        .execute(conn)?;
-        AgentRegistry::increment_local_usn_by(conn, result)?;
-        Ok(result)
+        .bind::<diesel::sql_types::Integer, _>(Self::START_SEQ)
+        .bind::<diesel::sql_types::Text, _>(parent_id)
+        .bind::<diesel::sql_types::Text, _>(parent_id)
+        .execute(conn)
+    }
+
+    #[inline]
+    fn increment_seq_gte(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        seq: i32,
+    ) -> QueryResult<usize> {
+        let now = Utc::now();
+        let usn = AgentRegistry::local_usn(conn)? + 1;
+        diesel::update(
+            djmdSongMyTag::table
+                .filter(djmdSongMyTag::my_tag_id.eq(parent_id))
+                .filter(djmdSongMyTag::track_no.ge(seq)),
+        )
+        .set((
+            djmdSongMyTag::track_no.eq(djmdSongMyTag::track_no + 1),
+            djmdSongMyTag::updated_at.eq(&format_datetime(&now)),
+            djmdSongMyTag::rb_local_usn.eq(usn),
+        ))
+        .execute(conn)
+    }
+
+    #[inline]
+    fn decrement_seq_gt(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        seq: i32,
+    ) -> QueryResult<usize> {
+        let now = Utc::now();
+        let usn = AgentRegistry::local_usn(conn)? + 1;
+        diesel::update(
+            djmdSongMyTag::table
+                .filter(djmdSongMyTag::my_tag_id.eq(parent_id))
+                .filter(djmdSongMyTag::track_no.gt(seq)),
+        )
+        .set((
+            djmdSongMyTag::track_no.eq(djmdSongMyTag::track_no - 1),
+            djmdSongMyTag::updated_at.eq(&format_datetime(&now)),
+            djmdSongMyTag::rb_local_usn.eq(usn),
+        ))
+        .execute(conn)
+    }
+
+    #[inline]
+    fn increment_seq_gte_lt(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        start: i32,
+        end: i32,
+    ) -> QueryResult<usize> {
+        let now = Utc::now();
+        let usn = AgentRegistry::local_usn(conn)? + 1;
+        diesel::update(
+            djmdSongMyTag::table
+                .filter(djmdSongMyTag::my_tag_id.eq(parent_id))
+                .filter(djmdSongMyTag::track_no.ge(start))
+                .filter(djmdSongMyTag::track_no.lt(end)),
+        )
+        .set((
+            djmdSongMyTag::track_no.eq(djmdSongMyTag::track_no + 1),
+            djmdSongMyTag::updated_at.eq(&format_datetime(&now)),
+            djmdSongMyTag::rb_local_usn.eq(usn),
+        ))
+        .execute(conn)
+    }
+
+    #[inline]
+    fn decrement_seq_gt_lte(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::Id,
+        start: i32,
+        end: i32,
+    ) -> QueryResult<usize> {
+        let now = Utc::now();
+        let usn = AgentRegistry::local_usn(conn)? + 1;
+        diesel::update(
+            djmdSongMyTag::table
+                .filter(djmdSongMyTag::my_tag_id.eq(parent_id))
+                .filter(djmdSongMyTag::track_no.gt(start))
+                .filter(djmdSongMyTag::track_no.le(end)),
+        )
+        .set((
+            djmdSongMyTag::track_no.eq(djmdSongMyTag::track_no - 1),
+            djmdSongMyTag::updated_at.eq(&format_datetime(&now)),
+            djmdSongMyTag::rb_local_usn.eq(usn),
+        ))
+        .execute(conn)
     }
 }
 
@@ -699,7 +1024,7 @@ impl DjmdSongMyTag {
 /// ```rust
 /// use rbox::masterdb::models::NewDjmdSongMyTag;
 ///
-/// let new = NewDjmdMyTag::new("Name".into(), 0).seq(1);
+/// let new = NewDjmdMyTag::new("my_tag_id".into(), "content_id".into()).track_no(1);
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -726,23 +1051,26 @@ impl NewDjmdSongMyTag {
 
     /// Inserts the new record into the database
     pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<DjmdSongMyTag> {
-        let id = DjmdMyTag::generate_id(conn)?;
-        let uuid = Uuid::new_v4().to_string();
-        let now = Utc::now();
-        let usn = AgentRegistry::increment_local_usn(conn)?;
-        let my_tag_attr: i32 = djmdMyTag::table
-            .find(&self.my_tag_id)
-            .select(djmdMyTag::attribute)
-            .get_result(conn)?;
-        if my_tag_attr != 0 {
-            return Err(Error::DatabaseError(
-                DatabaseErrorKind::RestrictViolation,
-                Box::new("Cannot add a DjmdSongMyTag to a DjmdMyTag folder".to_string()),
-            ));
+        // Check content
+        if !DjmdContent::id_exists(conn, &self.content_id)? {
+            return Err(Error::NotFound);
         }
 
-        let count = DjmdSongMyTag::count(conn, &self.my_tag_id)?;
+        let parent_id = &self.my_tag_id;
+        // Handle seq and USN of moved records (also checkks parent)
+        let (seq, n) = DjmdSongMyTag::update_seq_before_insert(conn, &parent_id, self.track_no)?;
+        if n > 0 {
+            // Apply USN of moved records
+            AgentRegistry::increment_local_usn(conn)?;
+        }
 
+        // Generate meta
+        let id = DjmdSongMyTag::generate_id(conn)?;
+        let uuid = Uuid::new_v4().to_string();
+        let now = Utc::now();
+
+        // Get next USN: We increment by 2 (1 for creating, 1 for renaming from 'New Tag')
+        let usn = AgentRegistry::increment_local_usn_by(conn, 2)?;
         let item = DjmdSongMyTag {
             id,
             uuid,
@@ -751,21 +1079,9 @@ impl NewDjmdSongMyTag {
             updated_at: now,
             my_tag_id: self.my_tag_id,
             content_id: self.content_id,
-            track_no: self.track_no.unwrap_or(count),
+            track_no: seq,
             ..Default::default()
         };
-
-        if let Some(track_no) = self.track_no {
-            // Update sequence numbers above new item
-            diesel::update(
-                djmdSongMyTag::table
-                    .filter(djmdSongMyTag::my_tag_id.eq(&item.my_tag_id))
-                    .filter(djmdSongMyTag::track_no.ge(track_no)),
-            )
-            .set(djmdSongMyTag::track_no.eq(djmdSongMyTag::track_no + 1))
-            .execute(conn)?;
-        }
-
         let result = diesel::insert_into(djmdSongMyTag::table)
             .values(item)
             .get_result(conn)?;
