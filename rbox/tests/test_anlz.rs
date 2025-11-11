@@ -8,7 +8,7 @@ mod common;
 
 #[test]
 fn test_read_anlz() -> anyhow::Result<()> {
-    let paths = common::setup_anlz_paths()?;
+    let (paths, _tmp) = common::setup_anlz_paths();
     let _ = Anlz::load(paths.dat);
     let _ = Anlz::load(paths.ext);
     let _ = Anlz::load(paths.ex2);
@@ -34,7 +34,7 @@ fn test_write(file: &PathBuf) -> anyhow::Result<()> {
 
 #[test]
 fn test_write_anlz() -> anyhow::Result<()> {
-    let paths = common::setup_anlz_paths()?;
+    let (paths, _tmp) = common::setup_anlz_paths();
     test_write(&paths.dat)?;
     test_write(&paths.ext)?;
     test_write(&paths.ex2)?;
@@ -43,7 +43,7 @@ fn test_write_anlz() -> anyhow::Result<()> {
 
 #[test]
 fn test_contains() -> anyhow::Result<()> {
-    let files = common::setup_anlz_files()?;
+    let files = common::setup_anlz_files();
     assert!(files.dat.contains(AnlzTag::Path));
     assert!(files.ext.contains(AnlzTag::Path));
     assert!(files.ex2.contains(AnlzTag::Path));
@@ -56,7 +56,7 @@ fn test_contains() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_tags() -> anyhow::Result<()> {
-    let files = common::setup_anlz_files()?;
+    let files = common::setup_anlz_files();
     let _ = files.dat.get_tags()?;
     let _ = files.ext.get_tags()?;
     let _ = files.ex2.get_tags()?;
@@ -65,7 +65,7 @@ fn test_get_tags() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_beat_grid() -> anyhow::Result<()> {
-    let mut files = common::setup_anlz_files()?;
+    let mut files = common::setup_anlz_files();
     let item1 = files.dat.get_beat_grid();
     let item2 = files.ext.get_beat_grid();
     let item3 = files.ex2.get_beat_grid();
@@ -77,7 +77,7 @@ fn test_get_beat_grid() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_extended_beat_grid() -> anyhow::Result<()> {
-    let mut files = common::setup_anlz_files()?;
+    let mut files = common::setup_anlz_files();
     let item1 = files.dat.get_extended_beat_grid();
     let item2 = files.ext.get_extended_beat_grid();
     let item3 = files.ex2.get_extended_beat_grid();
@@ -89,7 +89,7 @@ fn test_get_extended_beat_grid() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_hot_cues() -> anyhow::Result<()> {
-    let mut files = common::setup_anlz_files()?;
+    let mut files = common::setup_anlz_files();
     let item1 = files.dat.get_hot_cues();
     let item2 = files.ext.get_hot_cues();
     let item3 = files.ex2.get_hot_cues();
@@ -101,7 +101,7 @@ fn test_get_hot_cues() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_memory_cues() -> anyhow::Result<()> {
-    let mut files = common::setup_anlz_files()?;
+    let mut files = common::setup_anlz_files();
     let item1 = files.dat.get_memory_cues();
     let item2 = files.ext.get_memory_cues();
     let item3 = files.ex2.get_memory_cues();
@@ -113,7 +113,7 @@ fn test_get_memory_cues() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_extended_hot_cues() -> anyhow::Result<()> {
-    let mut files = common::setup_anlz_files()?;
+    let mut files = common::setup_anlz_files();
     let item1 = files.dat.get_extended_hot_cues();
     let item2 = files.ext.get_extended_hot_cues();
     let item3 = files.ex2.get_extended_hot_cues();
@@ -125,7 +125,7 @@ fn test_get_extended_hot_cues() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_extended_memory_cues() -> anyhow::Result<()> {
-    let mut files = common::setup_anlz_files()?;
+    let mut files = common::setup_anlz_files();
     let item1 = files.dat.get_extended_memory_cues();
     let item2 = files.ext.get_extended_memory_cues();
     let item3 = files.ex2.get_extended_memory_cues();
@@ -137,7 +137,7 @@ fn test_get_extended_memory_cues() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_path() -> anyhow::Result<()> {
-    let mut files = common::setup_anlz_files()?;
+    let mut files = common::setup_anlz_files();
     let item1 = files.dat.get_path();
     let item2 = files.ext.get_path();
     let item3 = files.ex2.get_path();
@@ -167,7 +167,7 @@ fn update_anlz_path(file: &PathBuf, new_path: &str) -> anyhow::Result<()> {
 
 #[test]
 fn test_set_path() -> anyhow::Result<()> {
-    let paths = common::setup_anlz_paths()?;
+    let (paths, _tmp) = common::setup_anlz_paths();
 
     let new_path = "";
     update_anlz_path(&paths.dat, new_path)?;
@@ -183,7 +183,7 @@ fn test_set_path() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_vbr() -> anyhow::Result<()> {
-    let mut files = common::setup_anlz_files()?;
+    let mut files = common::setup_anlz_files();
     let item1 = files.dat.get_vbr_data();
     let item2 = files.ext.get_vbr_data();
     let item3 = files.ex2.get_vbr_data();
@@ -195,7 +195,7 @@ fn test_get_vbr() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_tiny_waveform_preview() -> anyhow::Result<()> {
-    let mut files = common::setup_anlz_files()?;
+    let mut files = common::setup_anlz_files();
     let item1 = files.dat.get_tiny_waveform_preview();
     let item2 = files.ext.get_tiny_waveform_preview();
     let item3 = files.ex2.get_tiny_waveform_preview();
@@ -207,7 +207,7 @@ fn test_get_tiny_waveform_preview() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_waveform_preview() -> anyhow::Result<()> {
-    let mut files = common::setup_anlz_files()?;
+    let mut files = common::setup_anlz_files();
     let item1 = files.dat.get_waveform_preview();
     let item2 = files.ext.get_waveform_preview();
     let item3 = files.ex2.get_waveform_preview();
@@ -219,7 +219,7 @@ fn test_get_waveform_preview() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_waveform_detail() -> anyhow::Result<()> {
-    let mut files = common::setup_anlz_files()?;
+    let mut files = common::setup_anlz_files();
     let item1 = files.dat.get_waveform_detail();
     let item2 = files.ext.get_waveform_detail();
     let item3 = files.ex2.get_waveform_detail();
@@ -231,7 +231,7 @@ fn test_get_waveform_detail() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_waveform_color_preview() -> anyhow::Result<()> {
-    let mut files = common::setup_anlz_files()?;
+    let mut files = common::setup_anlz_files();
     let item1 = files.dat.get_waveform_color_preview();
     let item2 = files.ext.get_waveform_color_preview();
     let item3 = files.ex2.get_waveform_color_preview();
@@ -243,7 +243,7 @@ fn test_get_waveform_color_preview() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_waveform_color_detail() -> anyhow::Result<()> {
-    let mut files = common::setup_anlz_files()?;
+    let mut files = common::setup_anlz_files();
     let item1 = files.dat.get_waveform_color_detail();
     let item2 = files.ext.get_waveform_color_detail();
     let item3 = files.ex2.get_waveform_color_detail();
@@ -255,7 +255,7 @@ fn test_get_waveform_color_detail() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_waveform_3band_preview() -> anyhow::Result<()> {
-    let mut files = common::setup_anlz_files()?;
+    let mut files = common::setup_anlz_files();
     let item1 = files.dat.get_waveform_3band_preview();
     let item2 = files.ext.get_waveform_3band_preview();
     let item3 = files.ex2.get_waveform_3band_preview();
@@ -267,7 +267,7 @@ fn test_get_waveform_3band_preview() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_waveform_3band_detail() -> anyhow::Result<()> {
-    let mut files = common::setup_anlz_files()?;
+    let mut files = common::setup_anlz_files();
     let item1 = files.dat.get_waveform_3band_detail();
     let item2 = files.ext.get_waveform_3band_detail();
     let item3 = files.ex2.get_waveform_3band_detail();
@@ -279,7 +279,7 @@ fn test_get_waveform_3band_detail() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_song_structure() -> anyhow::Result<()> {
-    let mut files = common::setup_anlz_files()?;
+    let mut files = common::setup_anlz_files();
     let item1 = files.dat.get_song_structure();
     let item2 = files.ext.get_song_structure();
     let item3 = files.ex2.get_song_structure();

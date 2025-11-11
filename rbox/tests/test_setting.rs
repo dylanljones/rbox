@@ -14,13 +14,17 @@ fn load(dir: &PathBuf, file_name: &str, key: &str, value: &str) -> anyhow::Resul
     Ok(Setting::load(path(dir, file_name, key, value))?)
 }
 
-fn assert_file(expected: &PathBuf, actual: &PathBuf) {
+fn assert_file(sett: &mut Setting, expected: &PathBuf, name: &str) -> anyhow::Result<()> {
+    let tmp_dir = common::create_temp_dir();
+    let out_file = tmp_dir.path().join(name);
+    sett.dump_copy(&out_file)?;
     let expected_contents = std::fs::read(expected).expect("Failed to read expected file");
-    let actual_contents = std::fs::read(actual).expect("Failed to read actual file");
+    let actual_contents = std::fs::read(out_file).expect("Failed to read actual file");
     assert_eq!(
         expected_contents, actual_contents,
         "File contents do not match"
     );
+    Ok(())
 }
 
 fn assert_get_auto_cue(dir: &PathBuf, name: &str, value: AutoCue) -> anyhow::Result<()> {
@@ -31,12 +35,9 @@ fn assert_get_auto_cue(dir: &PathBuf, name: &str, value: AutoCue) -> anyhow::Res
 
 fn assert_set_auto_cue(dir: &PathBuf, name: &str, value: AutoCue) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "auto_cue", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
-    let mut sett = Setting::load(in_file.clone())?;
+    let mut sett = Setting::load(&in_file)?;
     sett.set_auto_cue(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_auto_cue_level(dir: &PathBuf, name: &str, value: AutoCueLevel) -> anyhow::Result<()> {
@@ -47,12 +48,9 @@ fn assert_get_auto_cue_level(dir: &PathBuf, name: &str, value: AutoCueLevel) -> 
 
 fn assert_set_auto_cue_level(dir: &PathBuf, name: &str, value: AutoCueLevel) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "auto_cue_level", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_auto_cue_level(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_disc_slot_illumination(
@@ -71,12 +69,9 @@ fn assert_set_disc_slot_illumination(
     value: DiscSlotIllumination,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "disc_slot_illumination", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_disc_slot_illumination(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_eject_lock(dir: &PathBuf, name: &str, value: EjectLock) -> anyhow::Result<()> {
@@ -87,12 +82,9 @@ fn assert_get_eject_lock(dir: &PathBuf, name: &str, value: EjectLock) -> anyhow:
 
 fn assert_set_eject_lock(dir: &PathBuf, name: &str, value: EjectLock) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "eject_lock", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_eject_lock(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_hotcue_autoload(
@@ -111,12 +103,9 @@ fn assert_set_hotcue_autoload(
     value: HotCueAutoLoad,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "hotcue_autoload", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_hotcue_autoload(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_hotcue_color(dir: &PathBuf, name: &str, value: HotCueColor) -> anyhow::Result<()> {
@@ -127,12 +116,9 @@ fn assert_get_hotcue_color(dir: &PathBuf, name: &str, value: HotCueColor) -> any
 
 fn assert_set_hotcue_color(dir: &PathBuf, name: &str, value: HotCueColor) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "hotcue_color", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_hotcue_color(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_jog_mode(dir: &PathBuf, name: &str, value: JogMode) -> anyhow::Result<()> {
@@ -143,12 +129,9 @@ fn assert_get_jog_mode(dir: &PathBuf, name: &str, value: JogMode) -> anyhow::Res
 
 fn assert_set_jog_mode(dir: &PathBuf, name: &str, value: JogMode) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "jog_mode", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_jog_mode(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_jog_ring_brightness(
@@ -167,12 +150,9 @@ fn assert_set_jog_ring_brightness(
     value: JogRingBrightness,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "jog_ring_brightness", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_jog_ring_brightness(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_jog_ring_indicator(
@@ -191,12 +171,9 @@ fn assert_set_jog_ring_indicator(
     value: JogRingIndicator,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "jog_ring_indicator", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_jog_ring_indicator(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_language(dir: &PathBuf, name: &str, value: Language) -> anyhow::Result<()> {
@@ -207,12 +184,9 @@ fn assert_get_language(dir: &PathBuf, name: &str, value: Language) -> anyhow::Re
 
 fn assert_set_language(dir: &PathBuf, name: &str, value: Language) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "language", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_language(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_lcd_brightness(
@@ -231,12 +205,9 @@ fn assert_set_lcd_brightness(
     value: LCDBrightness,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "lcd_brightness", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_lcd_brightness(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_master_tempo(dir: &PathBuf, name: &str, value: MasterTempo) -> anyhow::Result<()> {
@@ -247,12 +218,9 @@ fn assert_get_master_tempo(dir: &PathBuf, name: &str, value: MasterTempo) -> any
 
 fn assert_set_master_tempo(dir: &PathBuf, name: &str, value: MasterTempo) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "master_tempo", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_master_tempo(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_needle_lock(dir: &PathBuf, name: &str, value: NeedleLock) -> anyhow::Result<()> {
@@ -263,12 +231,9 @@ fn assert_get_needle_lock(dir: &PathBuf, name: &str, value: NeedleLock) -> anyho
 
 fn assert_set_needle_lock(dir: &PathBuf, name: &str, value: NeedleLock) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "needle_lock", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_needle_lock(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_on_air_display(dir: &PathBuf, name: &str, value: OnAirDisplay) -> anyhow::Result<()> {
@@ -279,12 +244,9 @@ fn assert_get_on_air_display(dir: &PathBuf, name: &str, value: OnAirDisplay) -> 
 
 fn assert_set_on_air_display(dir: &PathBuf, name: &str, value: OnAirDisplay) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "on_air_display", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_on_air_display(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_phase_meter(dir: &PathBuf, name: &str, value: PhaseMeter) -> anyhow::Result<()> {
@@ -295,12 +257,9 @@ fn assert_get_phase_meter(dir: &PathBuf, name: &str, value: PhaseMeter) -> anyho
 
 fn assert_set_phase_meter(dir: &PathBuf, name: &str, value: PhaseMeter) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "phase_meter", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_phase_meter(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_play_mode(dir: &PathBuf, name: &str, value: PlayMode) -> anyhow::Result<()> {
@@ -311,12 +270,9 @@ fn assert_get_play_mode(dir: &PathBuf, name: &str, value: PlayMode) -> anyhow::R
 
 fn assert_set_play_mode(dir: &PathBuf, name: &str, value: PlayMode) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "play_mode", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_play_mode(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_quantize(dir: &PathBuf, name: &str, value: Quantize) -> anyhow::Result<()> {
@@ -327,12 +283,9 @@ fn assert_get_quantize(dir: &PathBuf, name: &str, value: Quantize) -> anyhow::Re
 
 fn assert_set_quantize(dir: &PathBuf, name: &str, value: Quantize) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "quantize", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_quantize(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_quantize_beat_value(
@@ -351,12 +304,9 @@ fn assert_set_quantize_beat_value(
     value: QuantizeBeatValue,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "quantize_beat_value", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_quantize_beat_value(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_slip_flashing(dir: &PathBuf, name: &str, value: SlipFlashing) -> anyhow::Result<()> {
@@ -367,12 +317,9 @@ fn assert_get_slip_flashing(dir: &PathBuf, name: &str, value: SlipFlashing) -> a
 
 fn assert_set_slip_flashing(dir: &PathBuf, name: &str, value: SlipFlashing) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "slip_flashing", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_slip_flashing(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_sync(dir: &PathBuf, name: &str, value: Sync) -> anyhow::Result<()> {
@@ -383,12 +330,9 @@ fn assert_get_sync(dir: &PathBuf, name: &str, value: Sync) -> anyhow::Result<()>
 
 fn assert_set_sync(dir: &PathBuf, name: &str, value: Sync) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "sync", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_sync(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_tempo_range(dir: &PathBuf, name: &str, value: TempoRange) -> anyhow::Result<()> {
@@ -399,12 +343,9 @@ fn assert_get_tempo_range(dir: &PathBuf, name: &str, value: TempoRange) -> anyho
 
 fn assert_set_tempo_range(dir: &PathBuf, name: &str, value: TempoRange) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "tempo_range", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_tempo_range(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_time_mode(dir: &PathBuf, name: &str, value: TimeMode) -> anyhow::Result<()> {
@@ -415,12 +356,9 @@ fn assert_get_time_mode(dir: &PathBuf, name: &str, value: TimeMode) -> anyhow::R
 
 fn assert_set_time_mode(dir: &PathBuf, name: &str, value: TimeMode) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING.DAT", "time_mode", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_time_mode(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
 }
 
 fn assert_get_beat_jump_beat_value(
@@ -439,12 +377,9 @@ fn assert_set_beat_jump_beat_value(
     value: BeatJumpBeatValue,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING2.DAT", "beat_jump_beat_value", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING2.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_beat_jump_beat_value(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING2.DAT")
 }
 
 fn assert_get_jog_display_mode(
@@ -463,12 +398,9 @@ fn assert_set_jog_display_mode(
     value: JogDisplayMode,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING2.DAT", "jog_display_mode", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING2.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_jog_display_mode(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING2.DAT")
 }
 
 fn assert_get_jog_lcd_brightness(
@@ -487,12 +419,9 @@ fn assert_set_jog_lcd_brightness(
     value: JogLCDBrightness,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING2.DAT", "jog_lcd_brightness", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING2.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_jog_lcd_brightness(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING2.DAT")
 }
 
 fn assert_get_pad_button_brightness(
@@ -511,12 +440,9 @@ fn assert_set_pad_button_brightness(
     value: PadButtonBrightness,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING2.DAT", "pad_button_brightness", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING2.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_pad_button_brightness(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING2.DAT")
 }
 
 fn assert_get_vinyl_speed_adjust(
@@ -535,12 +461,9 @@ fn assert_set_vinyl_speed_adjust(
     value: VinylSpeedAdjust,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING2.DAT", "vinyl_speed_adjust", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING2.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_vinyl_speed_adjust(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING2.DAT")
 }
 
 fn assert_get_waveform(dir: &PathBuf, name: &str, value: Waveform) -> anyhow::Result<()> {
@@ -551,12 +474,9 @@ fn assert_get_waveform(dir: &PathBuf, name: &str, value: Waveform) -> anyhow::Re
 
 fn assert_set_waveform(dir: &PathBuf, name: &str, value: Waveform) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING2.DAT", "waveform", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING2.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_waveform(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING2.DAT")
 }
 
 fn assert_get_waveform_divisions(
@@ -575,12 +495,9 @@ fn assert_set_waveform_divisions(
     value: WaveformDivisions,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "MYSETTING2.DAT", "waveform_divisions", name);
-    let out_file = dir.parent().unwrap().join("out").join("MYSETTING2.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_waveform_divisions(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "MYSETTING2.DAT")
 }
 
 fn assert_get_beat_fx_quantize(
@@ -599,12 +516,9 @@ fn assert_set_beat_fx_quantize(
     value: BeatFXQuantize,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "DJMMYSETTING.DAT", "beat_fx_quantize", name);
-    let out_file = dir.parent().unwrap().join("out").join("DJMMYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_beat_fx_quantize(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
 }
 
 fn assert_get_channel_fader_curve(
@@ -623,12 +537,9 @@ fn assert_set_channel_fader_curve(
     value: ChannelFaderCurve,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "DJMMYSETTING.DAT", "channel_fader_curve", name);
-    let out_file = dir.parent().unwrap().join("out").join("DJMMYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_channel_fader_curve(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
 }
 
 fn assert_get_channel_fader_curve_long_fader(
@@ -647,12 +558,9 @@ fn assert_set_channel_fader_curve_long_fader(
     value: ChannelFaderCurveLongFader,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "DJMMYSETTING.DAT", "channel_fader_curve_long", name);
-    let out_file = dir.parent().unwrap().join("out").join("DJMMYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_channel_fader_curve_long_fader(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
 }
 
 fn assert_get_cross_fader_curve(
@@ -671,12 +579,9 @@ fn assert_set_cross_fader_curve(
     value: CrossfaderCurve,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "DJMMYSETTING.DAT", "cross_fader_curve", name);
-    let out_file = dir.parent().unwrap().join("out").join("DJMMYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_crossfader_curve(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
 }
 
 fn assert_get_mixer_display_brightness(
@@ -695,12 +600,9 @@ fn assert_set_mixer_display_brightness(
     value: MixerDisplayBrightness,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "DJMMYSETTING.DAT", "display_brightness", name);
-    let out_file = dir.parent().unwrap().join("out").join("DJMMYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_mixer_display_brightness(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
 }
 
 fn assert_get_headphones_mono_split(
@@ -719,12 +621,9 @@ fn assert_set_headphones_mono_split(
     value: HeadphonesMonoSplit,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "DJMMYSETTING.DAT", "headphones_mono_split", name);
-    let out_file = dir.parent().unwrap().join("out").join("DJMMYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_headphones_mono_split(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
 }
 
 fn assert_get_headphones_pre_eq(
@@ -743,12 +642,9 @@ fn assert_set_headphones_pre_eq(
     value: HeadphonesPreEQ,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "DJMMYSETTING.DAT", "headphones_pre_eq", name);
-    let out_file = dir.parent().unwrap().join("out").join("DJMMYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_headphones_pre_eq(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
 }
 
 fn assert_get_mixer_indicator_brightness(
@@ -767,12 +663,9 @@ fn assert_set_mixer_indicator_brightness(
     value: MixerIndicatorBrightness,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "DJMMYSETTING.DAT", "indicator_brightness", name);
-    let out_file = dir.parent().unwrap().join("out").join("DJMMYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_mixer_indicator_brightness(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
 }
 
 fn assert_get_mic_low_cut(dir: &PathBuf, name: &str, value: MicLowCut) -> anyhow::Result<()> {
@@ -783,12 +676,9 @@ fn assert_get_mic_low_cut(dir: &PathBuf, name: &str, value: MicLowCut) -> anyhow
 
 fn assert_set_mic_low_cut(dir: &PathBuf, name: &str, value: MicLowCut) -> anyhow::Result<()> {
     let in_file = path(dir, "DJMMYSETTING.DAT", "mic_low_cut", name);
-    let out_file = dir.parent().unwrap().join("out").join("DJMMYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_mic_low_cut(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
 }
 
 fn assert_get_midi_button_type(
@@ -807,12 +697,9 @@ fn assert_set_midi_button_type(
     value: MidiButtonType,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "DJMMYSETTING.DAT", "midi_button_type", name);
-    let out_file = dir.parent().unwrap().join("out").join("DJMMYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_midi_button_type(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
 }
 
 fn assert_get_midi_channel(dir: &PathBuf, name: &str, value: MidiChannel) -> anyhow::Result<()> {
@@ -823,12 +710,9 @@ fn assert_get_midi_channel(dir: &PathBuf, name: &str, value: MidiChannel) -> any
 
 fn assert_set_midi_channel(dir: &PathBuf, name: &str, value: MidiChannel) -> anyhow::Result<()> {
     let in_file = path(dir, "DJMMYSETTING.DAT", "midi_channel", name);
-    let out_file = dir.parent().unwrap().join("out").join("DJMMYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_midi_channel(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
 }
 
 fn assert_get_talk_over_level(
@@ -847,12 +731,9 @@ fn assert_set_talk_over_level(
     value: TalkOverLevel,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "DJMMYSETTING.DAT", "talk_over_level", name);
-    let out_file = dir.parent().unwrap().join("out").join("DJMMYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_talk_over_level(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
 }
 
 fn assert_get_talk_over_mode(dir: &PathBuf, name: &str, value: TalkOverMode) -> anyhow::Result<()> {
@@ -863,12 +744,9 @@ fn assert_get_talk_over_mode(dir: &PathBuf, name: &str, value: TalkOverMode) -> 
 
 fn assert_set_talk_over_mode(dir: &PathBuf, name: &str, value: TalkOverMode) -> anyhow::Result<()> {
     let in_file = path(dir, "DJMMYSETTING.DAT", "talk_over_mode", name);
-    let out_file = dir.parent().unwrap().join("out").join("DJMMYSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_talk_over_mode(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
 }
 
 fn assert_get_overview_waveform_type(
@@ -887,12 +765,9 @@ fn assert_set_overview_waveform_type(
     value: OverviewWaveformType,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "DEVSETTING.DAT", "overview_waveform_type", name);
-    let out_file = dir.parent().unwrap().join("out").join("DEVSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_overview_waveform_type(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "DEVSETTING.DAT")
 }
 
 fn assert_get_waveform_color(
@@ -911,12 +786,9 @@ fn assert_set_waveform_color(
     value: WaveformColor,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "DEVSETTING.DAT", "waveform_color", name);
-    let out_file = dir.parent().unwrap().join("out").join("DEVSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_waveform_color(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "DEVSETTING.DAT")
 }
 
 fn assert_get_key_display_format(
@@ -935,12 +807,9 @@ fn assert_set_key_display_format(
     value: KeyDisplayFormat,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "DEVSETTING.DAT", "key_display_format", name);
-    let out_file = dir.parent().unwrap().join("out").join("DEVSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_key_display_format(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "DEVSETTING.DAT")
 }
 
 fn assert_get_waveform_pos(
@@ -959,19 +828,16 @@ fn assert_set_waveform_pos(
     value: WaveformCurrentPosition,
 ) -> anyhow::Result<()> {
     let in_file = path(dir, "DEVSETTING.DAT", "waveform_current_pos", name);
-    let out_file = dir.parent().unwrap().join("out").join("DEVSETTING.DAT");
     let mut sett = Setting::load(in_file.clone())?;
     sett.set_waveform_current_position(value)?;
-    sett.dump_copy(&out_file)?;
-    assert_file(&out_file, &in_file);
-    Ok(())
+    assert_file(&mut sett, &in_file, "DEVSETTING.DAT")
 }
 
 // ---- MySetting ----------------------------------------------------------------------------------
 
 #[test]
 fn test_get_mysetting() -> anyhow::Result<()> {
-    let root = common::testdata_settings_dir()?;
+    let root = common::setup_mysettings_path();
     let dir = root.join("mysetting");
 
     assert_get_auto_cue(&dir, "on", AutoCue::On)?;
@@ -1057,11 +923,8 @@ fn test_get_mysetting() -> anyhow::Result<()> {
 
 #[test]
 fn test_set_mysetting() -> anyhow::Result<()> {
-    let root = common::testdata_settings_dir()?;
-    let name = "MYSETTING.DAT";
+    let root = common::setup_mysettings_path();
     let dir = root.join("mysetting");
-    let out_file = root.join("out").join(name);
-    std::fs::create_dir_all(out_file.parent().unwrap())?;
 
     assert_set_auto_cue(&dir, "on", AutoCue::On)?;
     assert_set_auto_cue(&dir, "off", AutoCue::Off)?;
@@ -1146,7 +1009,7 @@ fn test_set_mysetting() -> anyhow::Result<()> {
 
 #[test]
 fn test_mysetting_defaults() -> anyhow::Result<()> {
-    let root = common::testdata_settings_dir()?;
+    let root = common::setup_mysettings_path();
     let sett = Setting::load(root.join("MYSETTING.DAT"))?;
     let default = Setting::new_mysetting("MYSETTING.DAT")?;
 
@@ -1192,7 +1055,7 @@ fn test_mysetting_defaults() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_mysetting2() -> anyhow::Result<()> {
-    let root = common::testdata_settings_dir()?;
+    let root = common::setup_mysettings_path();
     let dir = root.join("mysetting2");
 
     assert_get_beat_jump_beat_value(&dir, "half", BeatJumpBeatValue::HalfBeat)?;
@@ -1229,11 +1092,8 @@ fn test_get_mysetting2() -> anyhow::Result<()> {
 
 #[test]
 fn test_set_mysetting2() -> anyhow::Result<()> {
-    let root = common::testdata_settings_dir()?;
-    let name = "MYSETTING2.DAT";
+    let root = common::setup_mysettings_path();
     let dir = root.join("mysetting2");
-    let out_file = root.join("out").join(name);
-    std::fs::create_dir_all(out_file.parent().unwrap())?;
 
     assert_set_beat_jump_beat_value(&dir, "half", BeatJumpBeatValue::HalfBeat)?;
     assert_set_beat_jump_beat_value(&dir, "one", BeatJumpBeatValue::OneBeat)?;
@@ -1269,7 +1129,7 @@ fn test_set_mysetting2() -> anyhow::Result<()> {
 
 #[test]
 fn test_mysetting2_defaults() -> anyhow::Result<()> {
-    let root = common::testdata_settings_dir()?;
+    let root = common::setup_mysettings_path();
     let sett = Setting::load(root.join("MYSETTING2.DAT"))?;
     let default = Setting::new_mysetting2("MYSETTING2.DAT")?;
 
@@ -1306,7 +1166,7 @@ fn test_mysetting2_defaults() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_djmdmysetting() -> anyhow::Result<()> {
-    let root = common::testdata_settings_dir()?;
+    let root = common::setup_mysettings_path();
     let dir = root.join("djmmysetting");
 
     assert_get_beat_fx_quantize(&dir, "off", BeatFXQuantize::Off)?;
@@ -1369,11 +1229,8 @@ fn test_get_djmdmysetting() -> anyhow::Result<()> {
 
 #[test]
 fn test_set_djmdmysetting() -> anyhow::Result<()> {
-    let root = common::testdata_settings_dir()?;
-    let name = "DJMMYSETTING.DAT";
+    let root = common::setup_mysettings_path();
     let dir = root.join("djmmysetting");
-    let out_file = root.join("out").join(name);
-    std::fs::create_dir_all(out_file.parent().unwrap())?;
 
     assert_set_beat_fx_quantize(&dir, "off", BeatFXQuantize::Off)?;
     assert_set_beat_fx_quantize(&dir, "on", BeatFXQuantize::On)?;
@@ -1435,7 +1292,7 @@ fn test_set_djmdmysetting() -> anyhow::Result<()> {
 
 #[test]
 fn test_djmdmysetting_defaults() -> anyhow::Result<()> {
-    let root = common::testdata_settings_dir()?;
+    let root = common::setup_mysettings_path();
     let sett = Setting::load(root.join("DJMMYSETTING.DAT"))?;
     let default = Setting::new_djmmysetting("DJMMYSETTING.DAT")?;
 
@@ -1487,7 +1344,7 @@ fn test_djmdmysetting_defaults() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_devsetting() -> anyhow::Result<()> {
-    let root = common::testdata_settings_dir()?;
+    let root = common::setup_mysettings_path();
     let dir = root.join("devsetting");
 
     assert_get_overview_waveform_type(&dir, "half", OverviewWaveformType::HalfWaveform)?;
@@ -1505,11 +1362,8 @@ fn test_get_devsetting() -> anyhow::Result<()> {
 
 #[test]
 fn test_set_devsetting() -> anyhow::Result<()> {
-    let root = common::testdata_settings_dir()?;
-    let name = "DEVSETTING.DAT";
+    let root = common::setup_mysettings_path();
     let dir = root.join("devsetting");
-    let out_file = root.join("out").join(name);
-    std::fs::create_dir_all(out_file.parent().unwrap())?;
 
     assert_set_overview_waveform_type(&dir, "half", OverviewWaveformType::HalfWaveform)?;
     assert_set_overview_waveform_type(&dir, "full", OverviewWaveformType::FullWaveform)?;
@@ -1526,7 +1380,7 @@ fn test_set_devsetting() -> anyhow::Result<()> {
 
 #[test]
 fn test_devsetting_defaults() -> anyhow::Result<()> {
-    let root = common::testdata_settings_dir()?;
+    let root = common::setup_mysettings_path();
     let sett = Setting::load(root.join("DEVSETTING.DAT"))?;
     let default = Setting::new_devsetting("DEVSETTING.DAT")?;
 

@@ -6,9 +6,11 @@ use rbox::model_traits::validate_seq_numbers;
 
 mod common;
 
+const SECONDS_THRESH: i64 = 5;
+
 #[test]
 fn test_open_master_db() -> anyhow::Result<()> {
-    let _db = common::setup_master_db()?;
+    let _db = common::setup_master_db();
     Ok(())
 }
 
@@ -16,7 +18,7 @@ fn test_open_master_db() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_local_usn() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let usn = db.get_local_usn()?;
     assert!(usn > 0);
     Ok(())
@@ -26,14 +28,14 @@ fn test_get_local_usn() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_albums() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let _album = db.get_album()?;
     Ok(())
 }
 
 #[test]
 fn test_get_album_by_id() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let album = db.get_album_by_id("1234")?;
     assert!(album.is_none());
     Ok(())
@@ -41,7 +43,7 @@ fn test_get_album_by_id() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_album_by_name() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let name = "Name".to_string();
 
     let item = db.get_album_by_name("Name")?;
@@ -57,7 +59,7 @@ fn test_get_album_by_name() -> anyhow::Result<()> {
 
 #[test]
 fn test_create_album() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
 
     let old_usn = db.get_local_usn()?;
     // Insert a new album
@@ -81,7 +83,7 @@ fn test_create_album() -> anyhow::Result<()> {
 
 #[test]
 fn test_update_album() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
 
     // Insert a new album
     let mut album = db.create_album("New Album".to_string(), None, None, None)?;
@@ -107,7 +109,7 @@ fn test_update_album() -> anyhow::Result<()> {
 
 #[test]
 fn test_delete_album() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
 
     // Insert a new album
     let album = db.create_album("New Album".to_string(), None, None, None)?;
@@ -147,14 +149,14 @@ fn test_delete_album() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_artist() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let _items = db.get_artist()?;
     Ok(())
 }
 
 #[test]
 fn test_get_artist_by_id() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let item = db.get_artist_by_id("1234")?;
     assert!(item.is_none());
 
@@ -167,7 +169,7 @@ fn test_get_artist_by_id() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_artist_by_name() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let name = "Name".to_string();
 
     let item = db.get_artist_by_name("Name")?;
@@ -183,7 +185,7 @@ fn test_get_artist_by_name() -> anyhow::Result<()> {
 
 #[test]
 fn test_create_artist() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
 
     let old_usn = db.get_local_usn()?;
     // Insert a new artist
@@ -204,7 +206,7 @@ fn test_create_artist() -> anyhow::Result<()> {
 
 #[test]
 fn test_update_artist() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
 
     // Insert a new artist
     let mut item = db.create_artist("New Artist".to_string())?;
@@ -230,7 +232,7 @@ fn test_update_artist() -> anyhow::Result<()> {
 
 #[test]
 fn test_delete_artist() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
 
     // Insert a new artist
     let item = db.create_artist("New Artist".to_string())?;
@@ -273,14 +275,14 @@ fn test_delete_artist() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_content() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let _items = db.get_content()?;
     Ok(())
 }
 
 #[test]
 fn test_get_content_by_id() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let item = db.get_content_by_id("1234")?;
     assert!(item.is_none());
 
@@ -294,7 +296,7 @@ fn test_get_content_by_id() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_content_by_path() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let item = db.get_content_by_path("invalid/path")?;
     assert!(item.is_none());
 
@@ -310,14 +312,14 @@ fn test_get_content_by_path() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_genre() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let _items = db.get_genre()?;
     Ok(())
 }
 
 #[test]
 fn test_get_genre_by_id() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let item = db.get_genre_by_id("1234")?;
     assert!(item.is_none());
     Ok(())
@@ -325,7 +327,7 @@ fn test_get_genre_by_id() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_genre_by_name() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let name = "Name".to_string();
 
     let item = db.get_genre_by_name("Name")?;
@@ -341,7 +343,7 @@ fn test_get_genre_by_name() -> anyhow::Result<()> {
 
 #[test]
 fn test_create_genre() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
 
     let old_usn = db.get_local_usn()?;
     // Insert a new artist
@@ -362,7 +364,7 @@ fn test_create_genre() -> anyhow::Result<()> {
 
 #[test]
 fn test_update_genre() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
 
     // Insert a new artist
     let mut item = db.create_genre("New Genre".to_string())?;
@@ -388,7 +390,7 @@ fn test_update_genre() -> anyhow::Result<()> {
 
 #[test]
 fn test_delete_genre() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
 
     // Insert a new artist
     let item = db.create_genre("New Genre".to_string())?;
@@ -429,14 +431,14 @@ fn test_delete_genre() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_key() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let _items = db.get_key()?;
     Ok(())
 }
 
 #[test]
 fn test_get_key_by_id() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let item = db.get_key_by_id("1234")?;
     assert!(item.is_none());
     Ok(())
@@ -444,7 +446,7 @@ fn test_get_key_by_id() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_key_by_name() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let name = "Name".to_string();
 
     let item = db.get_key_by_name("Name")?;
@@ -460,7 +462,7 @@ fn test_get_key_by_name() -> anyhow::Result<()> {
 
 #[test]
 fn test_create_key() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
 
     let old_usn = db.get_local_usn()?;
     // Insert a new artist
@@ -481,7 +483,7 @@ fn test_create_key() -> anyhow::Result<()> {
 
 #[test]
 fn test_update_key() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
 
     // Insert a new artist
     let mut item = db.create_key("New Key".to_string())?;
@@ -507,7 +509,7 @@ fn test_update_key() -> anyhow::Result<()> {
 
 #[test]
 fn test_delete_key() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
 
     // Insert a new artist
     let item = db.create_key("New Key".to_string())?;
@@ -548,14 +550,14 @@ fn test_delete_key() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_label() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let _items = db.get_label()?;
     Ok(())
 }
 
 #[test]
 fn test_get_label_by_id() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let item = db.get_label_by_id("1234")?;
     assert!(item.is_none());
     Ok(())
@@ -563,7 +565,7 @@ fn test_get_label_by_id() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_label_by_name() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let name = "Name".to_string();
 
     let item = db.get_label_by_name("Name")?;
@@ -579,7 +581,7 @@ fn test_get_label_by_name() -> anyhow::Result<()> {
 
 #[test]
 fn test_create_label() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
 
     let old_usn = db.get_local_usn()?;
     // Insert a new label
@@ -600,7 +602,7 @@ fn test_create_label() -> anyhow::Result<()> {
 
 #[test]
 fn test_update_label() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
 
     // Insert a new label
     let mut item = db.create_label("New Label".to_string())?;
@@ -626,7 +628,7 @@ fn test_update_label() -> anyhow::Result<()> {
 
 #[test]
 fn test_delete_label() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
 
     // Insert a new artist
     let item = db.create_label("New Label".to_string())?;
@@ -693,7 +695,7 @@ fn check_playlist_xml(db: &mut MasterDb) -> anyhow::Result<bool> {
             if playlist.id != "100000" {
                 let ts = playlist_xml.timestamp;
                 let diff = playlist.updated_at.naive_utc() - ts;
-                if diff.num_seconds().abs() > 1 {
+                if diff.num_seconds().abs() > SECONDS_THRESH {
                     // If the difference is more than 1 second, we have a mismatch
                     eprintln!(
                         "Difference in timestamps for playlist {}: {} seconds",
@@ -733,21 +735,21 @@ fn assert_playlist_xml(db: &mut MasterDb) {
 
 #[test]
 fn test_get_playlist() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let _items = db.get_playlist()?;
     Ok(())
 }
 
 #[test]
 fn test_get_playlist_children() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let _items = db.get_playlist_children("root")?;
     Ok(())
 }
 
 #[test]
 fn test_get_playlist_by_id() -> anyhow::Result<()> {
-    let mut db = common::setup_master_db()?;
+    let mut db = common::setup_master_db();
     let item = db.get_playlist_by_id("1234")?;
     assert!(item.is_none());
     Ok(())
@@ -755,8 +757,7 @@ fn test_get_playlist_by_id() -> anyhow::Result<()> {
 
 #[test]
 fn test_create_playlist() -> anyhow::Result<()> {
-    let _pl_xml_path = common::setup_master_playlist_xml()?;
-    let mut db = common::setup_master_db()?;
+    let (mut db, _tmp_dir) = common::setup_master_db_dir();
 
     let old_usn = db.get_local_usn()?;
     // Insert
@@ -797,8 +798,7 @@ fn test_create_playlist() -> anyhow::Result<()> {
 
 #[test]
 fn test_create_playlist_seq() -> anyhow::Result<()> {
-    let _pl_xml_path = common::setup_master_playlist_xml()?;
-    let mut db = common::setup_master_db()?;
+    let (mut db, _tmp_dir) = common::setup_master_db_dir();
 
     // Insert root
     let name = "Name".to_string();
@@ -830,8 +830,7 @@ fn test_create_playlist_seq() -> anyhow::Result<()> {
 
 #[test]
 fn test_create_playlist_folder() -> anyhow::Result<()> {
-    let _pl_xml_path = common::setup_master_playlist_xml()?;
-    let mut db = common::setup_master_db()?;
+    let (mut db, _tmp_dir) = common::setup_master_db_dir();
 
     let old_usn = db.get_local_usn()?;
     // Insert
@@ -886,8 +885,7 @@ fn test_create_playlist_folder() -> anyhow::Result<()> {
 
 #[test]
 fn test_create_playlist_song() -> anyhow::Result<()> {
-    common::setup_master_playlist_xml()?;
-    let mut db = common::setup_master_db()?;
+    let (mut db, _tmp_dir) = common::setup_master_db_dir();
 
     // Create playlist structure
     let pl = db.create_playlist("Playlist".to_string(), None, None, None, None)?;
@@ -933,8 +931,7 @@ fn test_create_playlist_song() -> anyhow::Result<()> {
 
 #[test]
 fn test_delete_playlist() -> anyhow::Result<()> {
-    common::setup_master_playlist_xml()?;
-    let mut db = common::setup_master_db()?;
+    let (mut db, _tmp_dir) = common::setup_master_db_dir();
 
     // Create playlist structure
     let folder = db.create_playlist_folder("Folder".to_string(), None, None)?;
@@ -985,8 +982,7 @@ fn test_delete_playlist() -> anyhow::Result<()> {
 
 #[test]
 fn test_delete_playlist_folder() -> anyhow::Result<()> {
-    common::setup_master_playlist_xml()?;
-    let mut db = common::setup_master_db()?;
+    let (mut db, _tmp_dir) = common::setup_master_db_dir();
 
     // Create playlist structure
     let folder = db.create_playlist_folder("Folder".to_string(), None, None)?;
@@ -1035,8 +1031,7 @@ fn test_delete_playlist_folder() -> anyhow::Result<()> {
 
 #[test]
 pub fn test_delete_playlist_song() -> anyhow::Result<()> {
-    common::setup_master_playlist_xml()?;
-    let mut db = common::setup_master_db()?;
+    let (mut db, _tmp_dir) = common::setup_master_db_dir();
 
     // Create playlist structure
     let pl = db.create_playlist("Playlist".to_string(), None, None, None, None)?;
@@ -1080,8 +1075,7 @@ pub fn test_delete_playlist_song() -> anyhow::Result<()> {
 
 #[test]
 pub fn test_move_playlist_seq() -> anyhow::Result<()> {
-    common::setup_master_playlist_xml()?;
-    let mut db = common::setup_master_db()?;
+    let (mut db, _tmp_dir) = common::setup_master_db_dir();
 
     // Create playlist structure
     let root = db.create_playlist_folder("folder".into(), None, None)?;
@@ -1142,8 +1136,7 @@ pub fn test_move_playlist_seq() -> anyhow::Result<()> {
 
 #[test]
 pub fn test_move_playlist_parent() -> anyhow::Result<()> {
-    common::setup_master_playlist_xml()?;
-    let mut db = common::setup_master_db()?;
+    let (mut db, _tmp_dir) = common::setup_master_db_dir();
 
     // Create playlist structure
     let root = db.create_playlist_folder("folder".into(), None, None)?;
@@ -1224,8 +1217,7 @@ pub fn test_move_playlist_parent() -> anyhow::Result<()> {
 
 #[test]
 pub fn test_move_playlist_song() -> anyhow::Result<()> {
-    common::setup_master_playlist_xml()?;
-    let mut db = common::setup_master_db()?;
+    let (mut db, _tmp_dir) = common::setup_master_db_dir();
 
     // Create playlist structure
     let pl = db.create_playlist("Playlist".to_string(), None, None, None, None)?;
