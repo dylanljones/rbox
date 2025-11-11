@@ -5,6 +5,87 @@ use diesel::prelude::*;
 use diesel::result::{DatabaseErrorKind, Error};
 use std::fmt::Debug;
 
+/// A trait representing a generic model with basic database operations.
+///
+/// This trait defines the structure for models that can be queried from a database.
+/// It includes methods for retrieving all records, finding a specific record by its ID,
+/// and checking if a record with a given ID exists.
+pub trait Model: Sized + Clone {
+    /// The type of the ID of the model.
+    type Id: ?Sized + PartialEq + Debug;
+
+    /// Queries all records.
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>>;
+
+    /// Queries a record by its primary key.
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>>;
+
+    /// Checks if a record with the given primary key exists.
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool>;
+}
+
+/// A trait for models that support insertion operations.
+///
+/// This trait provides methods for inserting individual records and multiple records
+/// into the database.
+pub trait ModelInsert: Sized {
+    type Model: Model;
+
+    /// Inserts the new record into the database.
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model>;
+
+    /// Inserts multiple records into the database.
+    ///
+    /// By default, a naive loop is used. Overwrite for better performance.
+    fn insert_all(conn: &mut SqliteConnection, items: Vec<Self>) -> QueryResult<Vec<Self::Model>> {
+        let mut results = Vec::new();
+        for item in items {
+            results.push(item.insert(conn)?);
+        }
+        Ok(results)
+    }
+}
+
+/// A trait for models that support update operations.
+///
+/// This trait extends the `Model` trait and provides methods for updating
+/// individual records and multiple records.
+pub trait ModelUpdate: Model {
+    /// Updates an existing record.
+    fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self>;
+
+    /// Updates multiple records.
+    ///
+    /// By default, a naive loop is used. Overwrite for better performance.
+    fn update_all(conn: &mut SqliteConnection, items: Vec<Self>) -> QueryResult<Vec<Self>> {
+        let mut results = Vec::new();
+        for item in items {
+            results.push(item.update(conn)?);
+        }
+        Ok(results)
+    }
+}
+
+/// A trait for models that support deletion operations.
+///
+/// This trait extends the `Model` trait and provides methods for deleting
+/// individual records and multiple records.
+pub trait ModelDelete: Model {
+    /// Deletes a record.
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize>;
+
+    /// Deletes multiple records.
+    ///
+    /// By default, a naive loop is used. Overwrite for better performance.
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
+        let mut result: usize = 0;
+        for id in ids {
+            result += Self::delete(conn, id)?;
+        }
+        Ok(result)
+    }
+}
+
 /// Checks if the given vector of numbers is a valid sequence order
 ///
 /// A valid order is when the numbers start from `start` and are incremental:
