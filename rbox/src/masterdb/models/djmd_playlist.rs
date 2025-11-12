@@ -374,7 +374,7 @@ impl DjmdPlaylist {
     ///
     /// # Returns
     /// A `QueryResult` containing the primary keys of the affected rows
-    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<Vec<Self::Id>> {
+    pub fn delete_all(conn: &mut SqliteConnection, ids: Vec<&str>) -> QueryResult<Vec<String>> {
         let mut results = Vec::new();
         for id in ids {
             let deleted_ids = Self::delete(conn, id)?;
