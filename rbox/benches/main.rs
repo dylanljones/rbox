@@ -7,4 +7,5 @@ mod benchmarks;
 
 criterion_main! {
     benchmarks::options::benches,
+    benchmarks::anlz::benches,
 }
