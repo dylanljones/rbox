@@ -28,6 +28,10 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 /// This struct maps to the `djmdPlaylist` table in the SQLite database used by Rekordbox.
 /// It stores information about playlists, including metadata such as sequence, name, image path,
 /// attributes, and parent relationships.
+///
+/// **Note**: This model does not implement `ModelDelete`, but provides slightly different
+/// `delete` and `delete_all` methods that return the deleted playlist Ids instead of the number
+/// of affected rows. This is required for the playlist XML handling.
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
@@ -317,7 +321,14 @@ impl DjmdPlaylist {
             .execute(conn)
     }
 
-    /// Deletes a record from the `djmdPlaylist` table and removes any references to it.
+    /// Deletes a record from the database table.
+    ///
+    /// # Arguments
+    /// - `conn`: A mutable reference to the database connection.
+    /// - `id`: A reference to the ID of the record to delete.
+    ///
+    /// # Returns
+    /// A `QueryResult` containing the primary keys of the affected rows
     pub fn delete(conn: &mut SqliteConnection, id: &str) -> QueryResult<Vec<String>> {
         // Vec of all deleted playlist ids
         let mut deleted_ids = vec![id.to_string()];
@@ -351,6 +362,25 @@ impl DjmdPlaylist {
         AgentRegistry::increment_local_usn_by(conn, deleted_ids.len())?;
 
         Ok(deleted_ids)
+    }
+
+    /// Deletes multiple records from the database table.
+    ///
+    /// This method uses a naive loop to delete each record individually.
+    ///
+    /// # Arguments
+    /// - `conn`: A mutable reference to the database connection.
+    /// - `ids`: A vector of references to the IDs of the records to delete.
+    ///
+    /// # Returns
+    /// A `QueryResult` containing the primary keys of the affected rows
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<Vec<Self::Id>> {
+        let mut results = Vec::new();
+        for id in ids {
+            let deleted_ids = Self::delete(conn, id)?;
+            results.extend(deleted_ids);
+        }
+        Ok(results)
     }
 
     /// Queries all records from the `djmdPlaylist` table and returns a tree structure.
