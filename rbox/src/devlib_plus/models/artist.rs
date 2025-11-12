@@ -10,6 +10,7 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::schema::artist;
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -37,42 +38,35 @@ pub struct Artist {
     pub name_for_search: Option<String>,
 }
 
-impl Artist {
-    /// Queries all records from the `artist` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for Artist {
+    type Id = i32;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `artist` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
-    /// Queries a record from the `artist` table by its `name`.
-    pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
-        Self::query()
-            .filter(artist::name.eq(name))
-            .first(conn)
-            .optional()
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
     }
+}
 
-    /// Checks if a record with the given `name` exists in the `artist` table.
-    pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
-        let query = Self::query().filter(artist::name.eq(name));
-        diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
-    }
-
-    /// Updates an existing record in the `artist` table.
-    pub fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+impl ModelUpdate for Artist {
+    fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
         diesel::update(artist::table.find(self.id.clone()))
             .set(self)
             .get_result(conn)
     }
+}
 
-    /// Cascade deletion of a single record
-    fn cascade_delete(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
+impl ModelDelete for Artist {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
+        let mut result = diesel::delete(artist::table.find(id)).execute(conn)?;
         // Remove any references to the artist in the content table
-        diesel::sql_query(
+        result += diesel::sql_query(
             "UPDATE content
              SET artist_id_artist   = CASE WHEN artist_id_artist   =? THEN NULL ELSE artist_id_artist END,
                  artist_id_remixer  = CASE WHEN artist_id_remixer  =? THEN NULL ELSE artist_id_remixer END,
@@ -95,15 +89,17 @@ impl Artist {
             .bind::<diesel::sql_types::Integer, _>(id)
             .bind::<diesel::sql_types::Integer, _>(id)
             .bind::<diesel::sql_types::Integer, _>(id)
-            .execute(conn)
+            .execute(conn)?;
+        Ok(result)
     }
 
-    /// Cascade deletion of multiple records
-    fn cascade_deletes(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<usize> {
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
+        let mut result =
+            diesel::delete(artist::table.filter(artist::id.eq_any(&ids))).execute(conn)?;
         // Remove any references to the artists in the content table
-        let ids_json = serde_json::to_string(ids)
+        let ids_json = serde_json::to_string(&ids)
             .map_err(|e| diesel::result::Error::DeserializationError(Box::new(e)))?;
-        diesel::sql_query(
+        result += diesel::sql_query(
             "WITH ids(val) AS (SELECT value FROM json_each(?))
             UPDATE content
             SET artist_id_artist   = CASE WHEN artist_id_artist   IN (SELECT val FROM ids) THEN NULL ELSE artist_id_artist END,
@@ -118,22 +114,24 @@ impl Artist {
                OR artist_id_lyricist IN (SELECT val FROM ids)"
         )
             .bind::<diesel::sql_types::Text, _>(ids_json)
-            .execute(conn)
-    }
-
-    /// Deletes a record from the `artist` table and removes any references to it.
-    pub fn delete(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
-        let mut result = diesel::delete(artist::table.find(id)).execute(conn)?;
-        result += Self::cascade_delete(conn, id)?;
+            .execute(conn)?;
         Ok(result)
     }
+}
 
-    /// Deletes multiple records from the `artist` table and removes any references to them.
-    pub fn delete_many(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<usize> {
-        let mut result =
-            diesel::delete(artist::table.filter(artist::id.eq_any(ids))).execute(conn)?;
-        result += Self::cascade_deletes(conn, ids)?;
-        Ok(result)
+impl Artist {
+    /// Queries a record from the `artist` table by its `name`.
+    pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
+        Self::query()
+            .filter(artist::name.eq(name))
+            .first(conn)
+            .optional()
+    }
+
+    /// Checks if a record with the given `name` exists in the `artist` table.
+    pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
+        let query = Self::query().filter(artist::name.eq(name));
+        diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
     }
 }
 
@@ -145,7 +143,7 @@ impl Artist {
 /// ```rust
 /// use rbox::devlib_plus::models::NewArtist;
 ///
-/// let new = NewArtist::new("Name".into()).name_for_search("Name".into());
+/// let new = NewArtist::new("Name").name_for_search("Name");
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default, Insertable)]
@@ -161,35 +159,34 @@ pub struct NewArtist {
     pub name_for_search: Option<String>,
 }
 
-impl NewArtist {
-    /// Creates a new artist record with the required fields.
-    pub fn new(name: String) -> Self {
-        Self {
-            name,
-            ..Default::default()
-        }
-    }
+impl ModelInsert for NewArtist {
+    type Model = Artist;
 
-    /// Inserts the new artist into the database.
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Artist> {
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
         diesel::insert_into(artist::table)
             .values(self)
             .get_result(conn)
     }
 
-    /// Inserts multiple new artists into the database.
-    pub fn insert_all(
-        conn: &mut SqliteConnection,
-        items: &[NewArtist],
-    ) -> QueryResult<Vec<Artist>> {
+    fn insert_all(conn: &mut SqliteConnection, items: Vec<Self>) -> QueryResult<Vec<Self::Model>> {
         diesel::insert_into(artist::table)
             .values(items)
             .get_results(conn)
     }
+}
+
+impl NewArtist {
+    /// Creates a new artist record with the required fields.
+    pub fn new<S: Into<String>>(name: S) -> Self {
+        Self {
+            name: name.into(),
+            ..Default::default()
+        }
+    }
 
     /// Builder for `name_for_search`.
-    pub fn name_for_search(mut self, search_str: String) -> Self {
-        self.name_for_search = Some(search_str);
+    pub fn name_for_search<S: Into<String>>(mut self, search_str: S) -> Self {
+        self.name_for_search = Some(search_str.into());
         self
     }
 }

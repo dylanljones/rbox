@@ -12,6 +12,7 @@ use pyo3::prelude::*;
 use super::artist::Artist;
 use super::image::Image;
 use super::schema::{album, artist, content, image};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -53,17 +54,52 @@ pub struct Album {
     pub name_for_search: Option<String>,
 }
 
-impl Album {
-    /// Queries all records from the `album` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for Album {
+    type Id = i32;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `album` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
+}
+
+impl ModelUpdate for Album {
+    fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+        diesel::update(album::table.find(self.id))
+            .set(self)
+            .get_result(conn)
+    }
+}
+
+impl ModelDelete for Album {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
+        let mut result = diesel::delete(album::table.find(id)).execute(conn)?;
+        // Remove any references to the album in the content table
+        result += diesel::update(content::table.filter(content::album_id.eq(id)))
+            .set(content::album_id.eq(None::<i32>))
+            .execute(conn)?;
+        Ok(result)
+    }
+
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
+        let mut result =
+            diesel::delete(album::table.filter(album::id.eq_any(&ids))).execute(conn)?;
+        // Remove any references to the albums in the content table
+        result += diesel::update(content::table.filter(content::album_id.eq_any(&ids)))
+            .set(content::album_id.eq(None::<i32>))
+            .execute(conn)?;
+        Ok(result)
+    }
+}
+
+impl Album {
     /// Queries a record from the `album` table by its `name`.
     pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
         Self::query()
@@ -76,44 +112,6 @@ impl Album {
     pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
         let query = Self::query().filter(album::name.eq(name));
         diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
-    }
-
-    /// Updates an existing record in the `album` table.
-    pub fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
-        diesel::update(album::table.find(self.id))
-            .set(self)
-            .get_result(conn)
-    }
-
-    /// Cascade deletion of a single record
-    fn cascade_delete(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
-        // Remove any references to the album in the content table
-        diesel::update(content::table.filter(content::album_id.eq(id)))
-            .set(content::album_id.eq(None::<i32>))
-            .execute(conn)
-    }
-
-    /// Cascade deletion of multiple records
-    fn cascade_deletes(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<usize> {
-        // Remove any references to the albums in the content table
-        diesel::update(content::table.filter(content::album_id.eq_any(ids)))
-            .set(content::album_id.eq(None::<i32>))
-            .execute(conn)
-    }
-
-    /// Deletes a record from the `album` table and removes any references to it.
-    pub fn delete(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
-        let mut result = diesel::delete(album::table.find(id)).execute(conn)?;
-        result += Self::cascade_delete(conn, id)?;
-        Ok(result)
-    }
-
-    /// Deletes multiple records from the `album` table and removes any references to them.
-    pub fn delete_many(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<usize> {
-        let mut result =
-            diesel::delete(album::table.filter(album::id.eq_any(ids))).execute(conn)?;
-        result += Self::cascade_deletes(conn, ids)?;
-        Ok(result)
     }
 }
 
@@ -139,16 +137,10 @@ pub struct AlbumJoin {
     pub image: Option<Image>,
 }
 
-impl AlbumJoin {
-    fn from_join(tuple: JoinTuple) -> Self {
-        let mut result = Self::from(tuple.0);
-        result.artist = tuple.1;
-        result.image = tuple.2;
-        result
-    }
+impl Model for AlbumJoin {
+    type Id = i32;
 
-    /// Queries all records from the `album` table with joined associations.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         let results: Vec<JoinTuple> = album::table
             .left_outer_join(artist::table)
             .left_outer_join(image::table)
@@ -156,8 +148,7 @@ impl AlbumJoin {
         Ok(results.into_iter().map(Self::from_join).collect())
     }
 
-    /// Queries a record from the `album` table with joined associations by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         let result: Option<JoinTuple> = album::table
             .find(id)
             .left_outer_join(artist::table)
@@ -165,6 +156,19 @@ impl AlbumJoin {
             .first(conn)
             .optional()?;
         Ok(result.map(Self::from_join))
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Album::query().find(id))).get_result(conn)
+    }
+}
+
+impl AlbumJoin {
+    fn from_join(tuple: JoinTuple) -> Self {
+        let mut result = Self::from(tuple.0);
+        result.artist = tuple.1;
+        result.image = tuple.2;
+        result
     }
 
     /// Queries a record from the `album` table with joined associations by its `name`.
@@ -215,7 +219,7 @@ impl From<Album> for AlbumJoin {
 /// ```rust
 /// use rbox::devlib_plus::models::NewAlbum;
 ///
-/// let new = NewAlbum::new("Name".into()).compilation(1);
+/// let new = NewAlbum::new("Name").compilation(1);
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default, Insertable)]
@@ -237,27 +241,29 @@ pub struct NewAlbum {
     pub name_for_search: Option<String>,
 }
 
-impl NewAlbum {
-    /// Creates a new album record with the required fields.
-    pub fn new(name: String) -> Self {
-        Self {
-            name,
-            ..Default::default()
-        }
-    }
+impl ModelInsert for NewAlbum {
+    type Model = Album;
 
-    /// Inserts the new album into the database.
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Album> {
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
         diesel::insert_into(album::table)
             .values(self)
             .get_result(conn)
     }
 
-    /// Inserts multiple new albums into the database.
-    pub fn insert_all(conn: &mut SqliteConnection, items: &[NewAlbum]) -> QueryResult<Vec<Album>> {
+    fn insert_all(conn: &mut SqliteConnection, items: Vec<Self>) -> QueryResult<Vec<Self::Model>> {
         diesel::insert_into(album::table)
             .values(items)
             .get_results(conn)
+    }
+}
+
+impl NewAlbum {
+    /// Creates a new album record with the required fields.
+    pub fn new<S: Into<String>>(name: S) -> Self {
+        Self {
+            name: name.into(),
+            ..Default::default()
+        }
     }
 
     /// Builder for `artist_id`.
@@ -279,8 +285,8 @@ impl NewAlbum {
     }
 
     /// Builder for `name_for_search`.
-    pub fn name_for_search(mut self, search_str: String) -> Self {
-        self.name_for_search = Some(search_str);
+    pub fn name_for_search<S: Into<String>>(mut self, search_str: S) -> Self {
+        self.name_for_search = Some(search_str.into());
         self
     }
 }
