@@ -10,7 +10,7 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::schema::sort;
-use crate::model_traits::SequenceVisible;
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate, SequenceVisible};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -41,17 +41,53 @@ pub struct Sort {
     pub is_selected_as_sub_column: i32,
 }
 
-impl Sort {
-    /// Queries all records from the `sort` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for Sort {
+    type Id = i32;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `sort` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
+}
+
+impl ModelUpdate for Sort {
+    fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+        diesel::update(sort::table.find(self.id))
+            .set(self)
+            .get_result(conn)
+    }
+}
+
+impl ModelDelete for Sort {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
+        let (is_visible, seq) = diesel::delete(sort::table.find(id))
+            .returning((sort::is_visible, sort::seq))
+            .get_result::<(i32, i32)>(conn)?;
+        if is_visible == 1 {
+            Self::decrement_seq_after_delete(conn, seq)?;
+        }
+        Ok(1)
+    }
+
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
+        let is_visible: Vec<i32> = diesel::delete(sort::table.filter(sort::id.eq_any(ids)))
+            .returning(sort::is_visible)
+            .get_results(conn)?;
+        if is_visible.iter().any(|&v| v == 1) {
+            Self::reset_seq(conn)?;
+        }
+        Ok(1)
+    }
+}
+
+impl Sort {
     /// Creates a filter for records by `is_visible`.
     #[diesel::dsl::auto_type(no_type_alias)]
     fn filter_is_visible(is_visible: i32) -> _ {
@@ -66,28 +102,6 @@ impl Sort {
     /// Queries all records from the `sort` table that are not visible.
     pub fn all_hidden(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().filter(sort::is_visible.eq(0)).load(conn)
-    }
-
-    /// Deletes a record from the `category` table and removes any references to it.
-    pub fn delete(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
-        let (is_visible, seq) = diesel::delete(sort::table.find(id))
-            .returning((sort::is_visible, sort::seq))
-            .get_result::<(i32, i32)>(conn)?;
-        if is_visible == 1 {
-            Self::decrement_seq_after_delete(conn, seq)?;
-        }
-        Ok(1)
-    }
-
-    /// Deletes multiple records from the `category` table and removes any references to it.
-    pub fn delete_all(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<usize> {
-        let is_visible: Vec<i32> = diesel::delete(sort::table.filter(sort::id.eq_any(ids)))
-            .returning(sort::is_visible)
-            .get_results(conn)?;
-        if is_visible.iter().any(|&v| v == 1) {
-            Self::reset_seq(conn)?;
-        }
-        Ok(1)
     }
 }
 
@@ -171,17 +185,10 @@ pub struct NewSort {
     pub is_selected_as_sub_column: i32,
 }
 
-impl NewSort {
-    /// Creates a new `sort` record with the required fields.
-    pub fn new(menu_item_id: i32) -> Self {
-        Self {
-            menu_item_id,
-            ..Default::default()
-        }
-    }
+impl ModelInsert for NewSort {
+    type Model = Sort;
 
-    /// Inserts the new sort into the database.
-    pub fn insert(mut self, conn: &mut SqliteConnection) -> QueryResult<Sort> {
+    fn insert(mut self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
         self.seq = if self.is_visible == 1 {
             Sort::update_seq_before_insert(conn, self.seq)?
         } else {
@@ -190,6 +197,16 @@ impl NewSort {
         diesel::insert_into(sort::table)
             .values(self)
             .get_result(conn)
+    }
+}
+
+impl NewSort {
+    /// Creates a new `sort` record with the required fields.
+    pub fn new(menu_item_id: i32) -> Self {
+        Self {
+            menu_item_id,
+            ..Default::default()
+        }
     }
 
     /// Builder for `seq`.

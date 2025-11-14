@@ -10,6 +10,7 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::schema::{color, content};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -32,17 +33,42 @@ pub struct Color {
     pub name: String,
 }
 
-impl Color {
-    /// Queries all records from the `color` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for Color {
+    type Id = i32;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `color` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
+}
+
+impl ModelUpdate for Color {
+    fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+        diesel::update(color::table.find(self.id))
+            .set(self)
+            .get_result(conn)
+    }
+}
+
+impl ModelDelete for Color {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
+        let result = diesel::delete(color::table.find(id)).execute(conn)?;
+        // Remove any references to the color in the content table (0 by default)
+        diesel::update(content::table.filter(content::color_id.eq(id)))
+            .set(content::color_id.eq(0))
+            .execute(conn)?;
+        Ok(result)
+    }
+}
+
+impl Color {
     /// Queries a record from the `color` table by its `name`.
     pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
         Self::query()
@@ -55,28 +81,6 @@ impl Color {
     pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
         let query = Self::query().filter(color::name.eq(name));
         diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
-    }
-
-    /// Updates an existing record in the `color` table.
-    pub fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
-        diesel::update(color::table.find(self.id))
-            .set(self)
-            .get_result(conn)
-    }
-
-    /// Cascade deletion of a single record
-    fn cascade_delete(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
-        // Remove any references to the color in the content table (0 by default)
-        diesel::update(content::table.filter(content::color_id.eq(id)))
-            .set(content::color_id.eq(0))
-            .execute(conn)
-    }
-
-    /// Deletes a record from the `color` table and removes any references to it.
-    pub fn delete(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
-        let mut result = diesel::delete(color::table.find(id)).execute(conn)?;
-        result += Self::cascade_delete(conn, id)?;
-        Ok(result)
     }
 }
 
@@ -92,23 +96,25 @@ pub struct NewColor {
     pub name: String,
 }
 
-impl NewColor {
-    /// Creates a new color record with the required fields.
-    pub fn new(name: String) -> Self {
-        Self { name }
-    }
+impl ModelInsert for NewColor {
+    type Model = Color;
 
-    /// Inserts the new color into the database.
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Color> {
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
         diesel::insert_into(color::table)
             .values(self)
             .get_result(conn)
     }
 
-    /// Inserts multiple new color into the database.
-    pub fn insert_all(conn: &mut SqliteConnection, items: &[NewColor]) -> QueryResult<Vec<Color>> {
+    fn insert_all(conn: &mut SqliteConnection, items: Vec<Self>) -> QueryResult<Vec<Self::Model>> {
         diesel::insert_into(color::table)
             .values(items)
             .get_results(conn)
+    }
+}
+
+impl NewColor {
+    /// Creates a new color record with the required fields.
+    pub fn new<S: Into<String>>(name: S) -> Self {
+        Self { name: name.into() }
     }
 }

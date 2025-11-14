@@ -10,6 +10,7 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::schema::menuItem;
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -37,26 +38,32 @@ pub struct MenuItem {
     pub name: String,
 }
 
-impl MenuItem {
-    /// Queries all records from the `menuItem` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for MenuItem {
+    type Id = i32;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `menuItem` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
-    /// Updates an existing record in the `menuItem` table.
-    pub fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
+}
+
+impl ModelUpdate for MenuItem {
+    fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
         diesel::update(menuItem::table.find(self.id))
             .set(self)
             .get_result(conn)
     }
+}
 
-    /// Deletes a record from the `menuItem` table and removes any references to it.
-    pub fn delete(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
+impl ModelDelete for MenuItem {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
         let result = diesel::delete(menuItem::table.find(id)).execute(conn)?;
         // TODO: handle references to the menu item
         Ok(result)
@@ -78,26 +85,28 @@ pub struct NewMenuItem {
     pub name: String,
 }
 
-impl NewMenuItem {
-    /// Creates a new menu item with the required fields.
-    pub fn new(name: String, kind: i32) -> Self {
-        Self { name, kind }
-    }
+impl ModelInsert for NewMenuItem {
+    type Model = MenuItem;
 
-    /// Inserts the new menu item into the database.
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<MenuItem> {
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
         diesel::insert_into(menuItem::table)
             .values(self)
             .get_result(conn)
     }
 
-    /// Inserts multiple new menu items into the database.
-    pub fn insert_all(
-        conn: &mut SqliteConnection,
-        items: &[NewMenuItem],
-    ) -> QueryResult<Vec<MenuItem>> {
+    fn insert_all(conn: &mut SqliteConnection, items: Vec<Self>) -> QueryResult<Vec<Self::Model>> {
         diesel::insert_into(menuItem::table)
             .values(items)
             .get_results(conn)
+    }
+}
+
+impl NewMenuItem {
+    /// Creates a new menu item with the required fields.
+    pub fn new<S: Into<String>>(name: S, kind: i32) -> Self {
+        Self {
+            name: name.into(),
+            kind,
+        }
     }
 }

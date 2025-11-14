@@ -12,6 +12,7 @@ use pyo3::prelude::*;
 
 use super::schema::property;
 use super::{Date, DateString};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -39,7 +40,7 @@ pub struct Property {
     pub created_date: Date,
     /// The background color type (0 by default)
     pub back_ground_color_type: i32,
-    /// The master.db database version of the tag data
+    /// The master.db database id of the tag data
     pub my_tag_master_dbid: i32,
 }
 
@@ -56,24 +57,54 @@ impl Default for Property {
     }
 }
 
-impl Property {
-    /// Creates a new property record with the required fields.
-    pub fn new(device_name: String, my_tag_master_dbid: i32) -> Self {
-        Self {
-            device_name,
-            my_tag_master_dbid,
-            ..Default::default()
-        }
-    }
+impl Model for Property {
+    type Id = str;
 
-    /// Queries all records from the `property` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `property` table by its `device_name`.
-    pub fn find(conn: &mut SqliteConnection, device_name: &str) -> QueryResult<Option<Self>> {
-        Self::query().find(device_name).first(conn).optional()
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
+}
+
+impl ModelUpdate for Property {
+    fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+        diesel::update(property::table.find(self.device_name.clone()))
+            .set(self)
+            .get_result(conn)
+    }
+}
+
+impl ModelDelete for Property {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
+        diesel::delete(property::table.find(id)).execute(conn)
+    }
+}
+
+impl ModelInsert for Property {
+    type Model = Self;
+
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
+        diesel::insert_into(property::table)
+            .values(self)
+            .get_result(conn)
+    }
+}
+
+impl Property {
+    /// Creates a new property record with the required fields.
+    pub fn new<S: Into<String>>(device_name: S, my_tag_master_dbid: i32) -> Self {
+        Self {
+            device_name: device_name.into(),
+            my_tag_master_dbid,
+            ..Default::default()
+        }
     }
 
     /// Queries the first record from the `property` table.
@@ -103,24 +134,5 @@ impl Property {
         )
         .bind::<diesel::sql_types::Integer, _>(number_of_contents)
         .execute(conn)
-    }
-
-    /// Updates an existing record in the `album` table.
-    pub fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
-        diesel::update(property::table.find(self.device_name.clone()))
-            .set(self)
-            .get_result(conn)
-    }
-
-    /// Inserts the new property into the database.
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Property> {
-        diesel::insert_into(property::table)
-            .values(self)
-            .get_result(conn)
-    }
-
-    /// Deletes a record from the `property` table.
-    pub fn delete(conn: &mut SqliteConnection, device_name: &str) -> QueryResult<usize> {
-        diesel::delete(property::table.find(device_name)).execute(conn)
     }
 }

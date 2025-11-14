@@ -15,7 +15,7 @@ use std::rc::Rc;
 
 use super::content::Content;
 use super::schema::{content, playlist, playlist_content};
-use crate::model_traits::SequenceTree;
+use crate::model_traits::{Model, ModelDelete, ModelInsert, SequenceTree};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -56,21 +56,62 @@ pub struct Playlist {
     pub parent_id: i32,
 }
 
-impl Playlist {
-    /// Queries all records from the `playlist` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for Playlist {
+    type Id = i32;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
+}
+
+impl ModelDelete for Playlist {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
+        // Vec of all deleted playlist ids
+        let mut deleted_ids = vec![*id];
+
+        // Delete the record
+        let parent_id: i32 = diesel::delete(playlist::table.find(id))
+            .returning(playlist::parent_id)
+            .get_result(conn)?;
+
+        // Reorder the seq numbers of tags left in the parent
+        Self::reset_seq(conn, &parent_id)?;
+
+        // Remove all child playlist records recursively
+        let mut parent_ids = VecDeque::from(vec![*id]);
+        while let Some(parent_id) = parent_ids.pop_front() {
+            // Delete children
+            let deleted: Vec<i32> =
+                diesel::delete(playlist::table.filter(playlist::parent_id.eq(parent_id)))
+                    .returning(playlist::id)
+                    .get_results(conn)?;
+            deleted_ids.extend(deleted.clone());
+            // Add children to the queue
+            for deleted_id in deleted {
+                parent_ids.push_back(deleted_id);
+            }
+        }
+
+        // Remove any playlist_content records that are associated with the deleted playlists
+        PlaylistContent::delete_by_playlist_ids(conn, &deleted_ids)?;
+
+        Ok(deleted_ids.len())
+    }
+}
+
+impl Playlist {
     /// Queries all records from the `playlist` table and returns a tree structure.
     pub fn tree(conn: &mut SqliteConnection) -> QueryResult<Vec<PlaylistTreeNodeRef>> {
         let playlists: Vec<Self> = Self::query().load(conn)?;
         Ok(build_tree(&playlists))
-    }
-
-    /// Queries a record from the `playlist` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<Self>> {
-        Self::query().find(id).first(conn).optional()
     }
 
     /// Queries the records from the `playlist` table by their `parent_id`.
@@ -117,7 +158,7 @@ impl Playlist {
         }
         if parent_ids.len() == 1 {
             let id = parent_ids.iter().next().unwrap();
-            Self::find(conn, *id)
+            Self::find(conn, id)
         } else {
             Ok(None)
         }
@@ -160,22 +201,6 @@ impl Playlist {
     //     Ok(count as i32)
     // }
 
-    /// Counts the number of child records in the `playlist` table for a record inside the same parent.
-    pub fn count_parent_children(conn: &mut SqliteConnection, id: i32) -> QueryResult<i32> {
-        let parent_id: i32 = playlist::table
-            .find(id)
-            .select(playlist::parent_id)
-            .get_result(conn)?;
-        Self::count_children(conn, &parent_id)
-    }
-
-    /// Updates an existing record in the `playlist` table.
-    pub fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
-        diesel::update(playlist::table.find(self.id))
-            .set(&self)
-            .get_result(conn)
-    }
-
     /// Set the name of a record in the `playlist` table.
     pub fn rename(conn: &mut SqliteConnection, id: i32, name: &str) -> QueryResult<usize> {
         diesel::update(playlist::table.find(id))
@@ -183,40 +208,28 @@ impl Playlist {
             .execute(conn)
     }
 
-    /// Deletes a record from the `playlist` table and removes any references to it.
-    ///
-    /// Returns the deleted playlist ids.
-    pub fn delete(conn: &mut SqliteConnection, id: i32) -> QueryResult<Vec<i32>> {
-        // Vec of all deleted playlist ids
-        let mut deleted_playlist_ids = vec![id];
+    pub fn move_to(
+        conn: &mut SqliteConnection,
+        id: i32,
+        parent_id: Option<i32>,
+        seq: Option<i32>,
+    ) -> QueryResult<usize> {
+        let res = match Self::find(conn, &id)? {
+            Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+        let old_seq = res.seq;
+        let old_parent_id = res.parent_id.clone();
+        let parent_id = parent_id.unwrap_or(old_parent_id);
 
-        // Delete the record
-        let parent_id: i32 = diesel::delete(playlist::table.find(id))
-            .returning(playlist::parent_id)
-            .get_result(conn)?;
-
-        // Reorder the seq numbers of tags left in the parent
-        Self::reset_seq(conn, &parent_id)?;
-
-        // Remove all child playlist records recursively
-        let mut parent_ids = VecDeque::from(vec![id]);
-        while let Some(parent_id) = parent_ids.pop_front() {
-            // Delete children
-            let deleted: Vec<i32> =
-                diesel::delete(playlist::table.filter(playlist::parent_id.eq(parent_id)))
-                    .returning(playlist::id)
-                    .get_results(conn)?;
-            deleted_playlist_ids.extend(deleted.clone());
-            // Add children to the queue
-            for deleted_id in deleted {
-                parent_ids.push_back(deleted_id);
-            }
-        }
-
-        // Remove any playlist_content records that are associated with the deleted playlists
-        PlaylistContent::delete_by_playlist_ids(conn, &deleted_playlist_ids)?;
-
-        Ok(deleted_playlist_ids)
+        let res = Self::update_seq_before_move(conn, &old_parent_id, &parent_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
+            None => return Ok(0),
+        };
+        diesel::update(playlist::table.find(id))
+            .set((playlist::seq.eq(seq), playlist::parent_id.eq(parent_id)))
+            .execute(conn)
     }
 }
 
@@ -226,7 +239,7 @@ impl SequenceTree for Playlist {
 
     #[inline]
     fn is_valid_parent(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<bool> {
-        Self::is_playlist(conn, *parent_id)
+        Self::is_folder(conn, *parent_id)
     }
 
     #[inline]
@@ -336,7 +349,7 @@ impl SequenceTree for Playlist {
 /// ```rust
 /// use rbox::devlib_plus::models::NewPlaylist;
 ///
-/// let new = NewPlaylist::playlist("Name".into()).seq(2);
+/// let new = NewPlaylist::playlist("Name").seq(2);
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default, Insertable)]
@@ -358,42 +371,44 @@ pub struct NewPlaylist {
     pub parent_id: i32,
 }
 
+impl ModelInsert for NewPlaylist {
+    type Model = Playlist;
+
+    fn insert(mut self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
+        let seq = if self.seq == 0 { None } else { Some(self.seq) };
+        let (seq, _n) = Playlist::update_seq_before_insert(conn, &self.parent_id, seq)?;
+        self.seq = seq;
+        diesel::insert_into(playlist::table)
+            .values(&self)
+            .get_result(conn)
+    }
+}
+
 impl NewPlaylist {
     /// Creates a new playlist record with the required fields.
-    pub fn new(name: String) -> Self {
+    pub fn new<S: Into<String>>(name: S) -> Self {
         Self {
-            name,
+            name: name.into(),
             ..Default::default()
         }
     }
 
     /// Creates a new playlist record as a playlist (`attribute=0)`.
-    pub fn playlist(name: String) -> Self {
+    pub fn playlist<S: Into<String>>(name: S) -> Self {
         Self {
-            name,
+            name: name.into(),
             attribute: 0,
             ..Default::default()
         }
     }
 
     /// Creates a new playlist record as a folder (`attribute=1)`.
-    pub fn folder(name: String) -> Self {
+    pub fn folder<S: Into<String>>(name: S) -> Self {
         Self {
-            name,
+            name: name.into(),
             attribute: 1,
             ..Default::default()
         }
-    }
-
-    /// Inserts the new record into the database
-    pub fn insert(mut self, conn: &mut SqliteConnection) -> QueryResult<Playlist> {
-        let seq = if self.seq == 0 { None } else { Some(self.seq) };
-        let (seq, _n) = Playlist::update_seq_before_insert(conn, &self.parent_id, seq)?;
-        self.seq = seq;
-
-        diesel::insert_into(playlist::table)
-            .values(&self)
-            .get_result(conn)
     }
 
     /// Builder for `seq`.
@@ -444,6 +459,49 @@ pub struct PlaylistContent {
     pub seq: i32,
 }
 
+impl Model for PlaylistContent {
+    type Id = (i32, i32);
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
+        Self::query().find(*id).first(conn).optional()
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(*id))).get_result(conn)
+    }
+}
+
+impl ModelDelete for PlaylistContent {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
+        let playlist_id = id.0;
+        let result = diesel::delete(playlist_content::table.find(*id)).execute(conn)?;
+        Self::reset_seq(conn, &playlist_id)?;
+        Ok(result)
+    }
+}
+
+impl ModelInsert for PlaylistContent {
+    type Model = Self;
+
+    fn insert(mut self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
+        if !Content::id_exists(conn, &self.content_id)? {
+            return Err(Error::NotFound);
+        }
+
+        let seq = if self.seq == 0 { None } else { Some(self.seq) };
+        let (seq, _n) = PlaylistContent::update_seq_before_insert(conn, &self.playlist_id, seq)?;
+        self.seq = seq;
+
+        diesel::insert_into(playlist_content::table)
+            .values(self)
+            .get_result(conn)
+    }
+}
+
 impl PlaylistContent {
     /// Creates a new `playlist_content` record with the required fields.
     pub fn new(playlist_id: i32, content_id: i32) -> Self {
@@ -458,11 +516,6 @@ impl PlaylistContent {
     pub fn seq(mut self, seq: i32) -> Self {
         self.seq = seq;
         self
-    }
-
-    /// Queries all records from the `playlist_content` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
-        Self::query().load(conn)
     }
 
     /// Queries all records from the `playlist_content` table by its `playlist_id`
@@ -511,31 +564,27 @@ impl PlaylistContent {
         Ok(count as i32)
     }
 
-    /// Inserts the new record into the database
-    pub fn insert(mut self, conn: &mut SqliteConnection) -> QueryResult<PlaylistContent> {
-        if !Content::id_exists(conn, self.content_id)? {
-            return Err(Error::NotFound);
-        }
-
-        let seq = if self.seq == 0 { None } else { Some(self.seq) };
-        let (seq, _n) = PlaylistContent::update_seq_before_insert(conn, &self.playlist_id, seq)?;
-        self.seq = seq;
-
-        diesel::insert_into(playlist_content::table)
-            .values(self)
-            .get_result(conn)
-    }
-
-    /// Deletes a record from the `playlist_content` table.
-    pub fn delete(
+    /// Move a record in the `playlist_content` table.
+    pub fn move_to(
         conn: &mut SqliteConnection,
-        playlist_id: i32,
-        content_id: i32,
+        id: &(i32, i32),
+        seq: Option<i32>,
     ) -> QueryResult<usize> {
-        let result = diesel::delete(playlist_content::table.find((playlist_id, content_id)))
-            .execute(conn)?;
-        Self::reset_seq(conn, &playlist_id)?;
-        Ok(result)
+        let res = match Self::find(conn, id)? {
+            Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+
+        let old_seq = res.seq;
+        let res = Self::update_seq_before_move_in(conn, &res.playlist_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
+            None => return Ok(0),
+        };
+
+        diesel::update(playlist_content::table.find(*id))
+            .set(playlist_content::seq.eq(seq))
+            .execute(conn)
     }
 
     /// Deletes all record from the `playlist_content` table referencing a `playlist` record.

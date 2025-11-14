@@ -11,6 +11,7 @@ use pyo3::prelude::*;
 
 use super::hot_cue_bank_list::HotCueBankListCue;
 use super::schema::cue;
+use crate::model_traits::{Model, ModelDelete, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -93,48 +94,53 @@ pub struct Cue {
     pub out_number_of_sample_in_block: Option<i32>,
 }
 
-impl Cue {
-    /// Queries all records from the `cue` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for Cue {
+    type Id = i32;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `cue` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
-    /// Cascade deletion of a single record
-    fn cascade_delete(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
-        HotCueBankListCue::delete_by_cue_id(conn, id)
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
     }
+}
 
-    /// Cascade deletion of multiple records
-    fn cascade_deletes(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<usize> {
-        HotCueBankListCue::delete_by_cue_ids(conn, ids)
+impl ModelUpdate for Cue {
+    fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+        diesel::update(cue::table.find(self.id))
+            .set(self)
+            .get_result(conn)
     }
+}
 
-    /// Deletes a record from the `cue` table and removes any references to it.
-    pub fn delete(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
+impl ModelDelete for Cue {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
         let mut result = diesel::delete(cue::table.find(id)).execute(conn)?;
-        result += Self::cascade_delete(conn, id)?;
+        result += HotCueBankListCue::delete_by_cue_id(conn, *id)?;
         Ok(result)
     }
 
-    /// Deletes multiple records from the `cue` table and removes any references to them.
-    pub fn delete_all(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<usize> {
-        let mut result = diesel::delete(cue::table.filter(cue::id.eq_any(ids))).execute(conn)?;
-        result += Self::cascade_deletes(conn, ids)?;
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
+        let mut result = diesel::delete(cue::table.filter(cue::id.eq_any(&ids))).execute(conn)?;
+        let ids: Vec<i32> = ids.iter().map(|&id| *id).collect();
+        result += HotCueBankListCue::delete_by_cue_ids(conn, &ids)?;
         Ok(result)
     }
+}
 
+impl Cue {
     /// Deletes all record from the `cue` table referencing a `content` record.
     pub fn delete_by_content_id(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
         let deleted_ids: Vec<i32> = diesel::delete(cue::table.filter(cue::content_id.eq(id)))
             .returning(cue::id)
             .get_results(conn)?;
         let mut result = deleted_ids.len();
-        result += Self::cascade_deletes(conn, &deleted_ids)?;
+        result += HotCueBankListCue::delete_by_cue_ids(conn, &deleted_ids)?;
         Ok(result)
     }
 
@@ -144,7 +150,7 @@ impl Cue {
             .returning(cue::id)
             .get_results(conn)?;
         let mut result = deleted_ids.len();
-        result += Self::cascade_deletes(conn, &deleted_ids)?;
+        result += HotCueBankListCue::delete_by_cue_ids(conn, &deleted_ids)?;
         Ok(result)
     }
 }

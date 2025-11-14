@@ -10,6 +10,7 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::schema::{album, content, image};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -35,40 +36,32 @@ pub struct Image {
     pub path: String,
 }
 
-impl Image {
-    /// Queries all records from the `image` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for Image {
+    type Id = i32;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `image` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
-    /// Queries a record from the `image` table by its `path`.
-    pub fn find_by_path(conn: &mut SqliteConnection, path: &str) -> QueryResult<Option<Self>> {
-        Self::query()
-            .filter(image::path.eq(path))
-            .first(conn)
-            .optional()
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
     }
+}
 
-    /// Checks if a record with the given `path` exists in the `image` table.
-    pub fn path_exists(conn: &mut SqliteConnection, path: &str) -> QueryResult<bool> {
-        let query = Self::query().filter(image::path.eq(path));
-        diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
-    }
-
-    /// Updates an existing record in the `image` table.
-    pub fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+impl ModelUpdate for Image {
+    fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
         diesel::update(image::table.find(self.id.clone()))
             .set(self)
             .get_result(conn)
     }
+}
 
-    /// Deletes a record from the `image` table and removes any references to it.
-    pub fn delete(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
+impl ModelDelete for Image {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
         let result = diesel::delete(image::table.find(id)).execute(conn)?;
         // Remove any references to the image in the album table
         diesel::update(album::table.filter(album::image_id.eq(id)))
@@ -81,18 +74,33 @@ impl Image {
         Ok(result)
     }
 
-    /// Deletes multiple records from the `image` table and removes any references to them.
-    pub fn delete_all(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<usize> {
-        let result = diesel::delete(image::table.filter(image::id.eq_any(ids))).execute(conn)?;
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
+        let result = diesel::delete(image::table.filter(image::id.eq_any(&ids))).execute(conn)?;
         // Remove any references to the image in the album table
-        diesel::update(album::table.filter(album::image_id.eq_any(ids)))
+        diesel::update(album::table.filter(album::image_id.eq_any(&ids)))
             .set(album::image_id.eq(None::<i32>))
             .execute(conn)?;
         // Remove any references to the image in the content table
-        diesel::update(content::table.filter(content::image_id.eq_any(ids)))
+        diesel::update(content::table.filter(content::image_id.eq_any(&ids)))
             .set(content::image_id.eq(None::<i32>))
             .execute(conn)?;
         Ok(result)
+    }
+}
+
+impl Image {
+    /// Queries a record from the `image` table by its `path`.
+    pub fn find_by_path(conn: &mut SqliteConnection, path: &str) -> QueryResult<Option<Self>> {
+        Self::query()
+            .filter(image::path.eq(path))
+            .first(conn)
+            .optional()
+    }
+
+    /// Checks if a record with the given `path` exists in the `image` table.
+    pub fn path_exists(conn: &mut SqliteConnection, path: &str) -> QueryResult<bool> {
+        let query = Self::query().filter(image::path.eq(path));
+        diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
     }
 }
 
@@ -108,23 +116,25 @@ pub struct NewImage {
     pub path: String,
 }
 
-impl NewImage {
-    /// Creates a new image record with the required fields.
-    pub fn new(path: String) -> Self {
-        Self { path }
-    }
+impl ModelInsert for NewImage {
+    type Model = Image;
 
-    /// Inserts the new image into the database.
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Image> {
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
         diesel::insert_into(image::table)
             .values(self)
             .get_result(conn)
     }
 
-    /// Inserts multiple new images into the database.
-    pub fn insert_all(conn: &mut SqliteConnection, items: &[NewImage]) -> QueryResult<Vec<Image>> {
+    fn insert_all(conn: &mut SqliteConnection, items: Vec<Self>) -> QueryResult<Vec<Self::Model>> {
         diesel::insert_into(image::table)
             .values(items)
             .get_results(conn)
+    }
+}
+
+impl NewImage {
+    /// Creates a new image record with the required fields.
+    pub fn new<S: Into<String>>(path: S) -> Self {
+        Self { path: path.into() }
     }
 }

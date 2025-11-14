@@ -1,18 +1,6 @@
 // Author: Dylan Jones
 // Date:   2025-09-02
 
-use super::album::Album;
-use super::artist::{Artist, Composer, Lyricist, OriginalArtist, Remixer};
-use super::color::Color;
-use super::genre::Genre;
-use super::image::Image;
-use super::key::Key;
-use super::label::Label;
-use super::schema::{album, artist, color, content, genre, image, key, label};
-use super::{Date, DateString};
-use crate::devlib_plus::{Cue, HistoryContent, PlaylistContent, RecommendedLike};
-#[cfg(feature = "pyo3")]
-use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 use chrono::Utc;
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
@@ -21,6 +9,24 @@ use napi_derive::napi;
 use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
+
+use super::album::Album;
+use super::artist::{Artist, Composer, Lyricist, OriginalArtist, Remixer};
+use super::color::Color;
+use super::cue::Cue;
+use super::genre::Genre;
+use super::history::HistoryContent;
+use super::image::Image;
+use super::key::Key;
+use super::label::Label;
+use super::my_tag::MyTagContent;
+use super::playlist::PlaylistContent;
+use super::recommend_like::RecommendedLike;
+use super::schema::{album, artist, color, content, genre, image, key, label};
+use super::{Date, DateString};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
+#[cfg(feature = "pyo3")]
+use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
 type JoinTuple = (
     Content,
@@ -173,17 +179,47 @@ pub struct Content {
     pub information_update_count: Option<i32>,
 }
 
-impl Content {
-    /// Queries all records from the `content` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for Content {
+    type Id = i32;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `content` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
+}
+
+impl ModelUpdate for Content {
+    fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+        diesel::update(content::table.find(self.id))
+            .set(self)
+            .get_result(conn)
+    }
+}
+
+impl ModelDelete for Content {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
+        let mut result = diesel::delete(content::table.find(id)).execute(conn)?;
+        result += Self::cascade_delete(conn, *id)?;
+        Ok(result)
+    }
+
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
+        let mut result =
+            diesel::delete(content::table.filter(content::id.eq_any(&ids))).execute(conn)?;
+        let ids: Vec<i32> = ids.iter().map(|id| *(*id)).collect();
+        result += Self::cascade_deletes(conn, &ids)?;
+        Ok(result)
+    }
+}
+
+impl Content {
     /// Queries all records from the `content` table matching the given `ids`.
     pub fn by_ids(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<Vec<Self>> {
         Self::query().filter(content::id.eq_any(ids)).load(conn)
@@ -197,22 +233,10 @@ impl Content {
             .optional()
     }
 
-    /// Checks if a record with the given `id` exists in the `content` table.
-    pub fn id_exists(conn: &mut SqliteConnection, id: i32) -> QueryResult<bool> {
-        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
-    }
-
     /// Checks if a record with the given `path` exists in the `content` table.
     pub fn path_exists(conn: &mut SqliteConnection, path: &str) -> QueryResult<bool> {
         let query = Self::query().filter(content::path.eq(path));
         diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
-    }
-
-    /// Updates an existing record in the `content` table.
-    pub fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
-        diesel::update(content::table.find(self.id.clone()))
-            .set(self)
-            .get_result(conn)
     }
 
     /// Sets the `artist_id` field of a record in the `content` table matching the given `id`.
@@ -321,8 +345,8 @@ impl Content {
         result += HistoryContent::delete_by_content_id(conn, id)?;
         // Remove all playlist_content records referencing the content
         result += PlaylistContent::delete_by_content_id(conn, id)?;
-        // TODO: Remove all myTag_content records referencing the content
-
+        // Remove all myTag_content records referencing the content
+        result += MyTagContent::delete_by_content_id(conn, id)?;
         // Remove all recommendedLike records referencing the content
         result += RecommendedLike::delete_by_content_id(conn, id)?;
         Ok(result)
@@ -337,25 +361,10 @@ impl Content {
         result += HistoryContent::delete_by_content_ids(conn, ids)?;
         // Remove all playlist_content records referencing the contents
         result += PlaylistContent::delete_by_content_ids(conn, ids)?;
-        // TODO: Remove all myTag_content records referencing the contents
-
+        // Remove all myTag_content records referencing the contents
+        result += MyTagContent::delete_by_content_ids(conn, ids)?;
         // Remove all recommendedLike records referencing the contents
         result += RecommendedLike::delete_by_content_ids(conn, ids)?;
-        Ok(result)
-    }
-
-    /// Deletes a record from the `content` table and removes any references to it.
-    pub fn delete(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
-        let mut result = diesel::delete(content::table.find(id)).execute(conn)?;
-        result += Self::cascade_delete(conn, id)?;
-        Ok(result)
-    }
-
-    /// Deletes multiple records from the `content` table and removes any references to them.
-    pub fn delete_all(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<usize> {
-        let mut result =
-            diesel::delete(content::table.filter(content::id.eq_any(ids))).execute(conn)?;
-        result += Self::cascade_deletes(conn, ids)?;
         Ok(result)
     }
 }
@@ -467,25 +476,10 @@ pub struct ContentJoin {
     pub image: Option<Image>,
 }
 
-impl ContentJoin {
-    fn from_join(tuple: JoinTuple) -> Self {
-        let mut result = ContentJoin::from(tuple.0);
-        result.artist = tuple.1;
-        result.remixer = tuple.2;
-        result.original_artist = tuple.3;
-        result.composer = tuple.4;
-        result.lyricist = tuple.5;
-        result.album = tuple.6;
-        result.genre = tuple.7;
-        result.label = tuple.8;
-        result.key = tuple.9;
-        result.color = tuple.10;
-        result.image = tuple.11;
-        result
-    }
+impl Model for ContentJoin {
+    type Id = i32;
 
-    /// Queries all records from the `content` table with joined associations.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         let (main_artist, remixer, original_artist, composer, lyricist) = diesel::alias!(
             artist as main_artist,
             artist as remixer,
@@ -530,8 +524,7 @@ impl ContentJoin {
         Ok(results.into_iter().map(Self::from_join).collect())
     }
 
-    /// Queries a record from the `content` table by its `id` with joined associations.
-    pub fn find(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         let (main_artist, remixer, original_artist, composer, lyricist) = diesel::alias!(
             artist as main_artist,
             artist as remixer,
@@ -576,6 +569,28 @@ impl ContentJoin {
             .first(conn)
             .optional()?;
         Ok(result.map(Self::from_join))
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        Content::id_exists(conn, id)
+    }
+}
+
+impl ContentJoin {
+    fn from_join(tuple: JoinTuple) -> Self {
+        let mut result = ContentJoin::from(tuple.0);
+        result.artist = tuple.1;
+        result.remixer = tuple.2;
+        result.original_artist = tuple.3;
+        result.composer = tuple.4;
+        result.lyricist = tuple.5;
+        result.album = tuple.6;
+        result.genre = tuple.7;
+        result.label = tuple.8;
+        result.key = tuple.9;
+        result.color = tuple.10;
+        result.image = tuple.11;
+        result
     }
 
     /// Queries a record from the `content` table by its `path` with joined associations.
@@ -750,7 +765,7 @@ impl From<Content> for ContentJoin {
 /// ```rust
 /// use rbox::devlib_plus::models::NewContent;
 ///
-/// let new = NewContent::new("Content/Artist/Title.mp3".into());
+/// let new = NewContent::new("Content/Artist/Title.mp3");
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default, Insertable)]
@@ -760,8 +775,16 @@ impl From<Content> for ContentJoin {
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct NewContent {
-    /// The unique identifier of the content.
-    pub id: i32,
+    /// The date the record was created
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub date_created: Date,
+    /// The date the record was added
+    #[diesel(serialize_as = DateString)]
+    #[diesel(deserialize_as = DateString)]
+    pub date_added: Date,
+    /// The relative file path of the track
+    pub path: String,
     /// The title of the track.
     pub title: Option<String>,
     /// An optional title used for searching.
@@ -806,16 +829,6 @@ pub struct NewContent {
     pub release_year: Option<i32>,
     /// The release date of the track
     pub release_date: Option<String>,
-    /// The date the record was created
-    #[diesel(serialize_as = DateString)]
-    #[diesel(deserialize_as = DateString)]
-    pub date_created: Date,
-    /// The date the record was added
-    #[diesel(serialize_as = DateString)]
-    #[diesel(deserialize_as = DateString)]
-    pub date_added: Date,
-    /// The relative file path of the track
-    pub path: String,
     /// The file name of the track.
     pub file_name: Option<String>,
     /// The file size of the track
@@ -856,32 +869,31 @@ pub struct NewContent {
     pub information_update_count: Option<i32>,
 }
 
-impl NewContent {
-    /// Creates a new content record with the required fields.
-    pub fn new(path: String) -> Self {
-        let now = Utc::now();
-        Self {
-            date_created: now.clone(),
-            date_added: now.clone(),
-            path,
-            ..Default::default()
-        }
-    }
+impl ModelInsert for NewContent {
+    type Model = Content;
 
-    /// Inserts the new content into the database.
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Content> {
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
         diesel::insert_into(content::table)
             .values(self)
             .get_result(conn)
     }
 
-    /// Inserts multiple new contents into the database.
-    pub fn insert_all(
-        conn: &mut SqliteConnection,
-        items: Vec<NewContent>,
-    ) -> QueryResult<Vec<Content>> {
+    fn insert_all(conn: &mut SqliteConnection, items: Vec<Self>) -> QueryResult<Vec<Self::Model>> {
         diesel::insert_into(content::table)
             .values(items)
             .get_results(conn)
+    }
+}
+
+impl NewContent {
+    /// Creates a new content record with the required fields.
+    pub fn new<S: Into<String>>(path: S) -> Self {
+        let now = Utc::now();
+        Self {
+            date_created: now.clone(),
+            date_added: now.clone(),
+            path: path.into(),
+            ..Default::default()
+        }
     }
 }

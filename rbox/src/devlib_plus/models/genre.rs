@@ -10,6 +10,7 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::schema::{content, genre};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -31,17 +32,51 @@ pub struct Genre {
     pub name: String,
 }
 
-impl Genre {
-    /// Queries all records from the `genre` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for Genre {
+    type Id = i32;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `genre` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
+}
+
+impl ModelUpdate for Genre {
+    fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+        diesel::update(genre::table.find(self.id.clone()))
+            .set(self)
+            .get_result(conn)
+    }
+}
+
+impl ModelDelete for Genre {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
+        let result = diesel::delete(genre::table.find(id)).execute(conn)?;
+        // Remove any references to the genre in the content table
+        diesel::update(content::table.filter(content::genre_id.eq(id)))
+            .set(content::genre_id.eq(None::<i32>))
+            .execute(conn)?;
+        Ok(result)
+    }
+
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
+        let result = diesel::delete(genre::table.filter(genre::id.eq_any(&ids))).execute(conn)?;
+        // Remove any references to the genre in the content table
+        diesel::update(content::table.filter(content::genre_id.eq_any(&ids)))
+            .set(content::genre_id.eq(None::<i32>))
+            .execute(conn)?;
+        Ok(result)
+    }
+}
+
+impl Genre {
     /// Queries a record from the `genre` table by its `name`.
     pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
         Self::query()
@@ -54,33 +89,6 @@ impl Genre {
     pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
         let query = Self::query().filter(genre::name.eq(name));
         diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
-    }
-
-    /// Updates an existing record in the `genre` table.
-    pub fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
-        diesel::update(genre::table.find(self.id.clone()))
-            .set(self)
-            .get_result(conn)
-    }
-
-    /// Deletes a record from the `genre` table and removes any references to it.
-    pub fn delete(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
-        let result = diesel::delete(genre::table.find(id)).execute(conn)?;
-        // Remove any references to the genre in the content table
-        diesel::update(content::table.filter(content::genre_id.eq(id)))
-            .set(content::genre_id.eq(None::<i32>))
-            .execute(conn)?;
-        Ok(result)
-    }
-
-    /// Deletes multiple records from the `genre` table and removes any references to them.
-    pub fn delete_all(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<usize> {
-        let result = diesel::delete(genre::table.filter(genre::id.eq_any(ids))).execute(conn)?;
-        // Remove any references to the genre in the content table
-        diesel::update(content::table.filter(content::genre_id.eq_any(ids)))
-            .set(content::genre_id.eq(None::<i32>))
-            .execute(conn)?;
-        Ok(result)
     }
 }
 
@@ -96,23 +104,25 @@ pub struct NewGenre {
     pub name: String,
 }
 
-impl NewGenre {
-    /// Creates a new genre record with the required fields.
-    pub fn new(name: String) -> Self {
-        Self { name }
-    }
+impl ModelInsert for NewGenre {
+    type Model = Genre;
 
-    /// Inserts the new genre into the database.
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Genre> {
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
         diesel::insert_into(genre::table)
             .values(self)
             .get_result(conn)
     }
 
-    /// Inserts multiple new genres into the database.
-    pub fn insert_all(conn: &mut SqliteConnection, items: &[NewGenre]) -> QueryResult<Vec<Genre>> {
+    fn insert_all(conn: &mut SqliteConnection, items: Vec<Self>) -> QueryResult<Vec<Self::Model>> {
         diesel::insert_into(genre::table)
             .values(items)
             .get_results(conn)
+    }
+}
+
+impl NewGenre {
+    /// Creates a new genre record with the required fields.
+    pub fn new<S: Into<String>>(name: S) -> Self {
+        Self { name: name.into() }
     }
 }

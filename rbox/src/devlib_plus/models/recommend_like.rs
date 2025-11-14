@@ -12,6 +12,7 @@ use pyo3::prelude::*;
 
 use super::schema::recommendedLike;
 use super::{Date, DateString};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -26,7 +27,7 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 /// # References
 /// * [`Content`] via `content_id_1` foreign key.
 /// * [`Content`] via `content_id_2` foreign key.
-#[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, Insertable)]
+#[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset, Insertable)]
 #[diesel(table_name = recommendedLike)]
 #[diesel(primary_key(content_id_1, content_id_2))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -46,6 +47,46 @@ pub struct RecommendedLike {
     pub created_date: Date,
 }
 
+impl Model for RecommendedLike {
+    type Id = (i32, i32);
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
+        Self::query().find(*id).first(conn).optional()
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(*id))).get_result(conn)
+    }
+}
+
+impl ModelUpdate for RecommendedLike {
+    fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+        diesel::update(recommendedLike::table.find((self.content_id_1, self.content_id_2)))
+            .set(self)
+            .get_result(conn)
+    }
+}
+
+impl ModelDelete for RecommendedLike {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
+        diesel::delete(recommendedLike::table.find(*id)).execute(conn)
+    }
+}
+
+impl ModelInsert for RecommendedLike {
+    type Model = Self;
+
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
+        diesel::insert_into(recommendedLike::table)
+            .values(self)
+            .get_result(conn)
+    }
+}
+
 impl RecommendedLike {
     /// Creates a new `recommendedLike` record with the required fields.
     pub fn new(content_id_1: i32, content_id_2: i32, rating: i32) -> Self {
@@ -56,11 +97,6 @@ impl RecommendedLike {
             rating,
             created_date,
         }
-    }
-
-    /// Queries all records from the `recommendedLike` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
-        Self::query().load(conn)
     }
 
     /// Queries all records from the `recommendedLike` table that are linked to the given `content`.
@@ -99,15 +135,6 @@ impl RecommendedLike {
         Ok(ids)
     }
 
-    /// Deletes a record from the `recommendedLike` table.
-    pub fn delete(
-        conn: &mut SqliteConnection,
-        content_id_1: i32,
-        content_id_2: i32,
-    ) -> QueryResult<usize> {
-        diesel::delete(recommendedLike::table.find((content_id_1, content_id_2))).execute(conn)
-    }
-
     /// Deletes all record from the `recommendedLike` table referencing a `content` record.
     pub fn delete_by_content_id(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
         diesel::delete(
@@ -130,12 +157,5 @@ impl RecommendedLike {
             ),
         )
         .execute(conn)
-    }
-
-    /// Inserts the new item into the database.
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<RecommendedLike> {
-        diesel::insert_into(recommendedLike::table)
-            .values(self)
-            .get_result(conn)
     }
 }

@@ -11,7 +11,7 @@ use pyo3::prelude::*;
 
 use super::menu_item::MenuItem;
 use super::schema::{category, menuItem};
-use crate::model_traits::SequenceVisible;
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate, SequenceVisible};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -42,32 +42,32 @@ pub struct Category {
     pub is_visible: i32,
 }
 
-impl Category {
-    /// Queries all records from the `category` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for Category {
+    type Id = i32;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `category` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
-    /// Creates a filter for records by `is_visible`.
-    #[diesel::dsl::auto_type(no_type_alias)]
-    fn filter_is_visible(is_visible: i32) -> _ {
-        category::table.filter(category::is_visible.eq(is_visible))
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
     }
+}
 
-    /// Updates an existing record in the `category` table.
-    pub fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+impl ModelUpdate for Category {
+    fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
         diesel::update(category::table.find(self.id))
             .set(self)
             .get_result(conn)
     }
+}
 
-    /// Deletes a record from the `category` table and removes any references to it.
-    pub fn delete(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
+impl ModelDelete for Category {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
         let (is_visible, seq) = diesel::delete(category::table.find(id))
             .returning((category::is_visible, category::seq))
             .get_result::<(i32, i32)>(conn)?;
@@ -77,15 +77,22 @@ impl Category {
         Ok(1)
     }
 
-    /// Deletes multiple records from the `category` table and removes any references to it.
-    pub fn delete_all(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<usize> {
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
         let is_visible: Vec<i32> = diesel::delete(category::table.filter(category::id.eq_any(ids)))
             .returning(category::is_visible)
             .get_results(conn)?;
         if is_visible.iter().any(|&v| v == 1) {
             Self::reset_seq(conn)?;
         }
-        Ok(1)
+        Ok(is_visible.len())
+    }
+}
+
+impl Category {
+    /// Creates a filter for records by `is_visible`.
+    #[diesel::dsl::auto_type(no_type_alias)]
+    fn filter_is_visible(is_visible: i32) -> _ {
+        category::table.filter(category::is_visible.eq(is_visible))
     }
 }
 
@@ -156,29 +163,35 @@ pub struct CategoryJoin {
     pub menu_item: Option<MenuItem>,
 }
 
-impl CategoryJoin {
-    fn from_join(tuple: JoinTuple) -> Self {
-        let mut result = Self::from(tuple.0);
-        result.menu_item = tuple.1;
-        result
-    }
+impl Model for CategoryJoin {
+    type Id = i32;
 
-    /// Queries all records from the `category` table with joined associations.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         let results: Vec<JoinTuple> = category::table
             .left_outer_join(menuItem::table)
             .load(conn)?;
         Ok(results.into_iter().map(Self::from_join).collect())
     }
 
-    /// Queries a record from the `category` table with joined associations by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         let result: Option<JoinTuple> = category::table
             .find(id)
             .left_outer_join(menuItem::table)
             .first(conn)
             .optional()?;
         Ok(result.map(Self::from_join))
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        Category::id_exists(conn, id)
+    }
+}
+
+impl CategoryJoin {
+    fn from_join(tuple: JoinTuple) -> Self {
+        let mut result = Self::from(tuple.0);
+        result.menu_item = tuple.1;
+        result
     }
 }
 
@@ -231,17 +244,10 @@ pub struct NewCategory {
     pub is_visible: i32,
 }
 
-impl NewCategory {
-    /// Creates a new category record with the required fields.
-    pub fn new(menu_item_id: i32) -> Self {
-        Self {
-            menu_item_id,
-            ..Default::default()
-        }
-    }
+impl ModelInsert for NewCategory {
+    type Model = Category;
 
-    /// Inserts the new category into the database.
-    pub fn insert(mut self, conn: &mut SqliteConnection) -> QueryResult<Category> {
+    fn insert(mut self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
         self.seq = if self.is_visible == 1 {
             Category::update_seq_before_insert(conn, self.seq)?
         } else {
@@ -250,6 +256,16 @@ impl NewCategory {
         diesel::insert_into(category::table)
             .values(self)
             .get_result(conn)
+    }
+}
+
+impl NewCategory {
+    /// Creates a new category record with the required fields.
+    pub fn new(menu_item_id: i32) -> Self {
+        Self {
+            menu_item_id,
+            ..Default::default()
+        }
     }
 
     /// Builder for `seq`.

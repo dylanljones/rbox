@@ -195,7 +195,7 @@ diesel::table! {
         name -> Text,
         attribute -> Integer,
         #[sql_name = "history_id_parent"]
-        parent_id -> Nullable<Integer>,
+        parent_id -> Integer,
     }
 }
 
@@ -218,7 +218,7 @@ diesel::table! {
         image_id -> Nullable<Integer>,
         attribute -> Integer,
         #[sql_name = "hotCueBankList_id_parent"]
-        hot_cue_bank_list_id_parent -> Nullable<Integer>,
+        parent_id -> Nullable<Integer>,
     }
 }
 
@@ -274,7 +274,7 @@ diesel::table! {
         name -> Text,
         attribute -> Integer,
         #[sql_name = "myTag_id_parent"]
-        my_tag_id_parent -> Nullable<Integer>,
+        parent_id -> Integer,
     }
 }
 

@@ -10,6 +10,7 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::schema::{content, key};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -34,17 +35,51 @@ pub struct Key {
     pub name: String,
 }
 
-impl Key {
-    /// Queries all records from the `key` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for Key {
+    type Id = i32;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `key` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
+}
+
+impl ModelUpdate for Key {
+    fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+        diesel::update(key::table.find(self.id))
+            .set(self)
+            .get_result(conn)
+    }
+}
+
+impl ModelDelete for Key {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
+        let result = diesel::delete(key::table.find(id)).execute(conn)?;
+        // Remove any references to the key in the content table
+        diesel::update(content::table.filter(content::key_id.eq(id)))
+            .set(content::key_id.eq(None::<i32>))
+            .execute(conn)?;
+        Ok(result)
+    }
+
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
+        let result = diesel::delete(key::table.filter(key::id.eq_any(&ids))).execute(conn)?;
+        // Remove any references to the key in the content table
+        diesel::update(content::table.filter(content::key_id.eq_any(&ids)))
+            .set(content::key_id.eq(None::<i32>))
+            .execute(conn)?;
+        Ok(result)
+    }
+}
+
+impl Key {
     /// Queries a record from the `key` table by its `name`.
     pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
         Self::query()
@@ -57,33 +92,6 @@ impl Key {
     pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
         let query = Self::query().filter(key::name.eq(name));
         diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
-    }
-
-    /// Updates an existing record in the `key` table.
-    pub fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
-        diesel::update(key::table.find(self.id.clone()))
-            .set(self)
-            .get_result(conn)
-    }
-
-    /// Deletes a record from the `key` table and removes any references to it.
-    pub fn delete(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
-        let result = diesel::delete(key::table.find(id)).execute(conn)?;
-        // Remove any references to the key in the content table
-        diesel::update(content::table.filter(content::key_id.eq(id)))
-            .set(content::key_id.eq(None::<i32>))
-            .execute(conn)?;
-        Ok(result)
-    }
-
-    /// Deletes multiple records from the `key` table and removes any references to them.
-    pub fn delete_all(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<usize> {
-        let result = diesel::delete(key::table.filter(key::id.eq_any(ids))).execute(conn)?;
-        // Remove any references to the key in the content table
-        diesel::update(content::table.filter(content::key_id.eq_any(ids)))
-            .set(content::key_id.eq(None::<i32>))
-            .execute(conn)?;
-        Ok(result)
     }
 }
 
@@ -99,23 +107,25 @@ pub struct NewKey {
     pub name: String,
 }
 
-impl NewKey {
-    /// Creates a new key record with the required fields.
-    pub fn new(name: String) -> Self {
-        Self { name }
-    }
+impl ModelInsert for NewKey {
+    type Model = Key;
 
-    /// Inserts the new key into the database.
-    pub fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Key> {
+    fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
         diesel::insert_into(key::table)
             .values(self)
             .get_result(conn)
     }
 
-    /// Inserts multiple new keys into the database.
-    pub fn insert_all(conn: &mut SqliteConnection, items: &[NewKey]) -> QueryResult<Vec<Key>> {
+    fn insert_all(conn: &mut SqliteConnection, items: Vec<Self>) -> QueryResult<Vec<Self::Model>> {
         diesel::insert_into(key::table)
             .values(items)
             .get_results(conn)
+    }
+}
+
+impl NewKey {
+    /// Creates a new key record with the required fields.
+    pub fn new<S: Into<String>>(name: S) -> Self {
+        Self { name: name.into() }
     }
 }
