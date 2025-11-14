@@ -129,3 +129,10 @@ impl NewLabel {
         Self { name: name.into() }
     }
 }
+
+#[cfg(feature = "master-db")]
+impl Into<NewLabel> for crate::masterdb::models::DjmdLabel {
+    fn into(self) -> NewLabel {
+        NewLabel { name: self.name }
+    }
+}

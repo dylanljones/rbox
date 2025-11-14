@@ -191,6 +191,16 @@ impl NewArtist {
     }
 }
 
+#[cfg(feature = "master-db")]
+impl Into<NewArtist> for crate::masterdb::models::DjmdArtist {
+    fn into(self) -> NewArtist {
+        NewArtist {
+            name: self.name,
+            name_for_search: self.search_str,
+        }
+    }
+}
+
 // Clones of Artist for associating with Content
 
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable)]

@@ -126,3 +126,10 @@ impl NewGenre {
         Self { name: name.into() }
     }
 }
+
+#[cfg(feature = "master-db")]
+impl Into<NewGenre> for crate::masterdb::models::DjmdGenre {
+    fn into(self) -> NewGenre {
+        NewGenre { name: self.name }
+    }
+}

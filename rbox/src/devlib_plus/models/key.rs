@@ -129,3 +129,10 @@ impl NewKey {
         Self { name: name.into() }
     }
 }
+
+#[cfg(feature = "master-db")]
+impl Into<NewKey> for crate::masterdb::models::DjmdKey {
+    fn into(self) -> NewKey {
+        NewKey { name: self.name }
+    }
+}
