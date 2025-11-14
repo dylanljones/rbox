@@ -200,29 +200,35 @@ pub fn validate_seq_numbers(seqs: &[i32], start: i32) -> bool {
 /// Implement this trait for models that require tree-like structures with sequence-based ordering.
 /// The methods provided can be used to manage and maintain the integrity of sequence numbers
 /// during operations like insertion, deletion, and reordering.
-pub trait SequenceTree {
+pub trait TreeSeq {
     /// The type of the ID of the model.
-    type Id: ?Sized + PartialEq + Debug;
+    type ParentId: ?Sized + PartialEq + Debug;
     /// The start sequence number (usually 1).
     const START_SEQ: i32 = 1;
 
     /// Checks if the given id is a valid parent node.
-    fn is_valid_parent(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<bool>;
+    fn is_valid_parent(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::ParentId,
+    ) -> QueryResult<bool>;
 
     /// Returns the number of child models inside the parent.
-    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<i32>;
+    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<i32>;
 
     /// Returns the sequence numbers of all child models inside the parent.
     ///
     /// This is mostly used for validating the sequence numbers.
-    fn get_seq_numbers(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<Vec<i32>>;
+    fn get_seq_numbers(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::ParentId,
+    ) -> QueryResult<Vec<i32>>;
 
     /// Validate the sequence numbers of all child models inside the parent.
     ///
     /// Checks if the sequence numbers start from `START_SEQ` and are incremental
     fn validate_seq_numbers(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
     ) -> QueryResult<bool> {
         let seq_numbers = Self::get_seq_numbers(conn, parent_id)?;
         Ok(validate_seq_numbers(&seq_numbers, Self::START_SEQ))
@@ -243,7 +249,7 @@ pub trait SequenceTree {
     ///
     /// This is helpful when deleting records or for fixing the sequence after an invalid state.
     /// When adding or moving records, the sequence numbers should be set explicitly.
-    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<usize>;
+    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<usize>;
 
     /// Increment the sequence numbers of models inside a parent greater equal the given position.
     ///
@@ -263,7 +269,7 @@ pub trait SequenceTree {
     /// ```
     fn increment_seq_gte(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: i32,
     ) -> QueryResult<usize>;
 
@@ -284,7 +290,7 @@ pub trait SequenceTree {
     /// ```
     fn decrement_seq_gt(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: i32,
     ) -> QueryResult<usize>;
 
@@ -305,7 +311,7 @@ pub trait SequenceTree {
     /// ```
     fn increment_seq_gte_lt(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         start: i32,
         end: i32,
     ) -> QueryResult<usize>;
@@ -327,7 +333,7 @@ pub trait SequenceTree {
     /// ```
     fn decrement_seq_gt_lte(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         start: i32,
         end: i32,
     ) -> QueryResult<usize>;
@@ -341,7 +347,7 @@ pub trait SequenceTree {
     /// Returns the updated new sequence number and the number of rows updated by `increment_seq_gte`.
     fn update_seq_before_insert(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: Option<i32>,
     ) -> QueryResult<(i32, usize)> {
         let mut n: usize = 0;
@@ -380,8 +386,8 @@ pub trait SequenceTree {
     /// the sequence number shifts.
     fn update_seq_before_move_to(
         conn: &mut SqliteConnection,
-        old_parent_id: &Self::Id,
-        parent_id: &Self::Id,
+        old_parent_id: &Self::ParentId,
+        parent_id: &Self::ParentId,
         old_seq: i32,
         seq: Option<i32>,
     ) -> QueryResult<Option<(i32, usize)>> {
@@ -433,7 +439,7 @@ pub trait SequenceTree {
     /// the sequence number shifts.
     fn update_seq_before_move_in(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         old_seq: i32,
         seq: Option<i32>,
     ) -> QueryResult<Option<(i32, usize)>> {
@@ -483,8 +489,8 @@ pub trait SequenceTree {
     /// * [Self::update_seq_before_move_in]: Handles move operations inside the same parent.
     fn update_seq_before_move(
         conn: &mut SqliteConnection,
-        old_parent_id: &Self::Id,
-        parent_id: &Self::Id,
+        old_parent_id: &Self::ParentId,
+        parent_id: &Self::ParentId,
         old_seq: i32,
         seq: Option<i32>,
     ) -> QueryResult<Option<(i32, usize)>> {

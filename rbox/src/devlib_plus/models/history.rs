@@ -13,7 +13,7 @@ use std::collections::VecDeque;
 
 use super::content::Content;
 use super::schema::{content, history, history_content};
-use crate::model_traits::{Model, ModelDelete, ModelInsert, SequenceTree};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, TreeSeq};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -177,17 +177,20 @@ impl History {
     }
 }
 
-impl SequenceTree for History {
-    type Id = i32;
+impl TreeSeq for History {
+    type ParentId = i32;
     const START_SEQ: i32 = 1;
 
     #[inline]
-    fn is_valid_parent(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<bool> {
+    fn is_valid_parent(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::ParentId,
+    ) -> QueryResult<bool> {
         Self::is_folder(conn, *parent_id)
     }
 
     #[inline]
-    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<i32> {
+    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<i32> {
         let count: i64 = history::table
             .filter(history::parent_id.eq(parent_id))
             .count()
@@ -196,7 +199,10 @@ impl SequenceTree for History {
     }
 
     #[inline]
-    fn get_seq_numbers(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<Vec<i32>> {
+    fn get_seq_numbers(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::ParentId,
+    ) -> QueryResult<Vec<i32>> {
         history::table
             .filter(history::parent_id.eq(parent_id))
             .order(history::seq)
@@ -205,7 +211,7 @@ impl SequenceTree for History {
     }
 
     #[inline]
-    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<usize> {
+    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<usize> {
         diesel::sql_query(
             r#"WITH ordered AS (
                 SELECT history_id, ROW_NUMBER() OVER (ORDER BY sequenceNo) + (? - 1) AS new_seq
@@ -223,7 +229,7 @@ impl SequenceTree for History {
     #[inline]
     fn increment_seq_gte(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: i32,
     ) -> QueryResult<usize> {
         diesel::update(
@@ -238,7 +244,7 @@ impl SequenceTree for History {
     #[inline]
     fn decrement_seq_gt(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: i32,
     ) -> QueryResult<usize> {
         diesel::update(
@@ -253,7 +259,7 @@ impl SequenceTree for History {
     #[inline]
     fn increment_seq_gte_lt(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         start: i32,
         end: i32,
     ) -> QueryResult<usize> {
@@ -270,7 +276,7 @@ impl SequenceTree for History {
     #[inline]
     fn decrement_seq_gt_lte(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         start: i32,
         end: i32,
     ) -> QueryResult<usize> {
@@ -560,17 +566,20 @@ impl HistoryContent {
     }
 }
 
-impl SequenceTree for HistoryContent {
-    type Id = i32;
+impl TreeSeq for HistoryContent {
+    type ParentId = i32;
     const START_SEQ: i32 = 0;
 
     #[inline]
-    fn is_valid_parent(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<bool> {
+    fn is_valid_parent(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::ParentId,
+    ) -> QueryResult<bool> {
         History::is_history(conn, *parent_id)
     }
 
     #[inline]
-    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<i32> {
+    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<i32> {
         let count: i64 = Self::filter_by_history_id(*parent_id)
             .count()
             .get_result(conn)?;
@@ -578,14 +587,17 @@ impl SequenceTree for HistoryContent {
     }
 
     #[inline]
-    fn get_seq_numbers(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<Vec<i32>> {
+    fn get_seq_numbers(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::ParentId,
+    ) -> QueryResult<Vec<i32>> {
         Self::filter_by_history_id(*parent_id)
             .select(history_content::seq)
             .get_results(conn)
     }
 
     #[inline]
-    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<usize> {
+    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<usize> {
         diesel::sql_query(
             r#"WITH ordered AS (
                 SELECT history_id, ROW_NUMBER() OVER (ORDER BY sequenceNo) + (? - 1) AS new_seq
@@ -604,7 +616,7 @@ impl SequenceTree for HistoryContent {
     #[inline]
     fn increment_seq_gte(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: i32,
     ) -> QueryResult<usize> {
         diesel::update(
@@ -619,7 +631,7 @@ impl SequenceTree for HistoryContent {
     #[inline]
     fn decrement_seq_gt(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: i32,
     ) -> QueryResult<usize> {
         diesel::update(
@@ -634,7 +646,7 @@ impl SequenceTree for HistoryContent {
     #[inline]
     fn increment_seq_gte_lt(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         start: i32,
         end: i32,
     ) -> QueryResult<usize> {
@@ -651,7 +663,7 @@ impl SequenceTree for HistoryContent {
     #[inline]
     fn decrement_seq_gt_lte(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         start: i32,
         end: i32,
     ) -> QueryResult<usize> {

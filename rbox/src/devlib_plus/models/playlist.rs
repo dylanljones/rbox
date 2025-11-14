@@ -15,7 +15,7 @@ use std::rc::Rc;
 
 use super::content::Content;
 use super::schema::{content, playlist, playlist_content};
-use crate::model_traits::{Model, ModelDelete, ModelInsert, SequenceTree};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, TreeSeq};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -233,17 +233,20 @@ impl Playlist {
     }
 }
 
-impl SequenceTree for Playlist {
-    type Id = i32;
+impl TreeSeq for Playlist {
+    type ParentId = i32;
     const START_SEQ: i32 = 0;
 
     #[inline]
-    fn is_valid_parent(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<bool> {
+    fn is_valid_parent(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::ParentId,
+    ) -> QueryResult<bool> {
         Self::is_folder(conn, *parent_id)
     }
 
     #[inline]
-    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<i32> {
+    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<i32> {
         let count: i64 = playlist::table
             .filter(playlist::parent_id.eq(parent_id))
             .count()
@@ -252,7 +255,10 @@ impl SequenceTree for Playlist {
     }
 
     #[inline]
-    fn get_seq_numbers(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<Vec<i32>> {
+    fn get_seq_numbers(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::ParentId,
+    ) -> QueryResult<Vec<i32>> {
         playlist::table
             .filter(playlist::parent_id.eq(parent_id))
             .order(playlist::seq)
@@ -261,7 +267,7 @@ impl SequenceTree for Playlist {
     }
 
     #[inline]
-    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<usize> {
+    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<usize> {
         diesel::sql_query(
             r#"WITH ordered AS (
                 SELECT playlist_id, ROW_NUMBER() OVER (ORDER BY sequenceNo) + (? - 1) AS new_seq
@@ -279,7 +285,7 @@ impl SequenceTree for Playlist {
     #[inline]
     fn increment_seq_gte(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: i32,
     ) -> QueryResult<usize> {
         diesel::update(
@@ -294,7 +300,7 @@ impl SequenceTree for Playlist {
     #[inline]
     fn decrement_seq_gt(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: i32,
     ) -> QueryResult<usize> {
         diesel::update(
@@ -309,7 +315,7 @@ impl SequenceTree for Playlist {
     #[inline]
     fn increment_seq_gte_lt(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         start: i32,
         end: i32,
     ) -> QueryResult<usize> {
@@ -326,7 +332,7 @@ impl SequenceTree for Playlist {
     #[inline]
     fn decrement_seq_gt_lte(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         start: i32,
         end: i32,
     ) -> QueryResult<usize> {
@@ -637,17 +643,20 @@ impl PlaylistContent {
     }
 }
 
-impl SequenceTree for PlaylistContent {
-    type Id = i32;
+impl TreeSeq for PlaylistContent {
+    type ParentId = i32;
     const START_SEQ: i32 = 0;
 
     #[inline]
-    fn is_valid_parent(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<bool> {
+    fn is_valid_parent(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::ParentId,
+    ) -> QueryResult<bool> {
         Playlist::is_playlist(conn, *parent_id)
     }
 
     #[inline]
-    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<i32> {
+    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<i32> {
         let count: i64 = Self::filter_by_playlist_id(*parent_id)
             .count()
             .get_result(conn)?;
@@ -655,14 +664,17 @@ impl SequenceTree for PlaylistContent {
     }
 
     #[inline]
-    fn get_seq_numbers(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<Vec<i32>> {
+    fn get_seq_numbers(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::ParentId,
+    ) -> QueryResult<Vec<i32>> {
         Self::filter_by_playlist_id(*parent_id)
             .select(playlist_content::seq)
             .get_results(conn)
     }
 
     #[inline]
-    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<usize> {
+    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<usize> {
         diesel::sql_query(
             r#"WITH ordered AS (
                 SELECT playlist_id, ROW_NUMBER() OVER (ORDER BY sequenceNo) + (? - 1) AS new_seq
@@ -681,7 +693,7 @@ impl SequenceTree for PlaylistContent {
     #[inline]
     fn increment_seq_gte(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: i32,
     ) -> QueryResult<usize> {
         diesel::update(
@@ -696,7 +708,7 @@ impl SequenceTree for PlaylistContent {
     #[inline]
     fn decrement_seq_gt(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: i32,
     ) -> QueryResult<usize> {
         diesel::update(
@@ -711,7 +723,7 @@ impl SequenceTree for PlaylistContent {
     #[inline]
     fn increment_seq_gte_lt(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         start: i32,
         end: i32,
     ) -> QueryResult<usize> {
@@ -728,7 +740,7 @@ impl SequenceTree for PlaylistContent {
     #[inline]
     fn decrement_seq_gt_lte(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         start: i32,
         end: i32,
     ) -> QueryResult<usize> {

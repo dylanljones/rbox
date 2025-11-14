@@ -17,7 +17,7 @@ use super::agent_registry::AgentRegistry;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdMyTag, djmdSongMyTag};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
-use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate, SequenceTree};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate, TreeSeq};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -286,17 +286,20 @@ impl DjmdMyTag {
     }
 }
 
-impl SequenceTree for DjmdMyTag {
-    type Id = str;
+impl TreeSeq for DjmdMyTag {
+    type ParentId = str;
     const START_SEQ: i32 = 1;
 
     #[inline]
-    fn is_valid_parent(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<bool> {
+    fn is_valid_parent(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::ParentId,
+    ) -> QueryResult<bool> {
         Self::is_section(conn, parent_id)
     }
 
     #[inline]
-    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<i32> {
+    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<i32> {
         let count: i64 = djmdMyTag::table
             .filter(djmdMyTag::parent_id.eq(parent_id))
             .count()
@@ -305,7 +308,10 @@ impl SequenceTree for DjmdMyTag {
     }
 
     #[inline]
-    fn get_seq_numbers(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<Vec<i32>> {
+    fn get_seq_numbers(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::ParentId,
+    ) -> QueryResult<Vec<i32>> {
         djmdMyTag::table
             .filter(djmdMyTag::parent_id.eq(parent_id))
             .order(djmdMyTag::seq)
@@ -314,7 +320,7 @@ impl SequenceTree for DjmdMyTag {
     }
 
     #[inline]
-    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<usize> {
+    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<usize> {
         diesel::sql_query(
             r#"WITH ordered AS (
                     SELECT ID, ROW_NUMBER() OVER (ORDER BY Seq) + (? - 1) AS new_seq
@@ -332,7 +338,7 @@ impl SequenceTree for DjmdMyTag {
     #[inline]
     fn increment_seq_gte(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: i32,
     ) -> QueryResult<usize> {
         let now = Utc::now();
@@ -353,7 +359,7 @@ impl SequenceTree for DjmdMyTag {
     #[inline]
     fn decrement_seq_gt(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: i32,
     ) -> QueryResult<usize> {
         let now = Utc::now();
@@ -374,7 +380,7 @@ impl SequenceTree for DjmdMyTag {
     #[inline]
     fn increment_seq_gte_lt(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         start: i32,
         end: i32,
     ) -> QueryResult<usize> {
@@ -397,7 +403,7 @@ impl SequenceTree for DjmdMyTag {
     #[inline]
     fn decrement_seq_gt_lte(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         start: i32,
         end: i32,
     ) -> QueryResult<usize> {
@@ -679,23 +685,29 @@ impl DjmdSongMyTag {
     }
 }
 
-impl SequenceTree for DjmdSongMyTag {
-    type Id = str;
+impl TreeSeq for DjmdSongMyTag {
+    type ParentId = str;
     const START_SEQ: i32 = 1;
 
     #[inline]
-    fn is_valid_parent(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<bool> {
+    fn is_valid_parent(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::ParentId,
+    ) -> QueryResult<bool> {
         DjmdMyTag::is_my_tag(conn, parent_id)
     }
 
     #[inline]
-    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<i32> {
+    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<i32> {
         let count: i64 = Self::filter_by_tag_id(parent_id).count().get_result(conn)?;
         Ok(count as i32)
     }
 
     #[inline]
-    fn get_seq_numbers(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<Vec<i32>> {
+    fn get_seq_numbers(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::ParentId,
+    ) -> QueryResult<Vec<i32>> {
         Self::filter_by_tag_id(parent_id)
             .order(djmdSongMyTag::track_no)
             .select(djmdSongMyTag::track_no)
@@ -703,7 +715,7 @@ impl SequenceTree for DjmdSongMyTag {
     }
 
     #[inline]
-    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<usize> {
+    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<usize> {
         diesel::sql_query(
             r#"WITH ordered AS (
                     SELECT ID, ROW_NUMBER() OVER (ORDER BY Seq) + (? - 1) AS new_seq
@@ -721,7 +733,7 @@ impl SequenceTree for DjmdSongMyTag {
     #[inline]
     fn increment_seq_gte(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: i32,
     ) -> QueryResult<usize> {
         let now = Utc::now();
@@ -742,7 +754,7 @@ impl SequenceTree for DjmdSongMyTag {
     #[inline]
     fn decrement_seq_gt(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: i32,
     ) -> QueryResult<usize> {
         let now = Utc::now();
@@ -763,7 +775,7 @@ impl SequenceTree for DjmdSongMyTag {
     #[inline]
     fn increment_seq_gte_lt(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         start: i32,
         end: i32,
     ) -> QueryResult<usize> {
@@ -786,7 +798,7 @@ impl SequenceTree for DjmdSongMyTag {
     #[inline]
     fn decrement_seq_gt_lte(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         start: i32,
         end: i32,
     ) -> QueryResult<usize> {

@@ -13,7 +13,7 @@ use std::collections::{HashSet, VecDeque};
 
 use super::content::Content;
 use super::schema::{content, myTag, myTag_content};
-use crate::model_traits::{Model, ModelDelete, ModelInsert, SequenceTree};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, TreeSeq};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -211,17 +211,20 @@ impl MyTag {
     }
 }
 
-impl SequenceTree for MyTag {
-    type Id = i32;
+impl TreeSeq for MyTag {
+    type ParentId = i32;
     const START_SEQ: i32 = 0;
 
     #[inline]
-    fn is_valid_parent(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<bool> {
+    fn is_valid_parent(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::ParentId,
+    ) -> QueryResult<bool> {
         Self::is_folder(conn, *parent_id)
     }
 
     #[inline]
-    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<i32> {
+    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<i32> {
         let count: i64 = myTag::table
             .filter(myTag::parent_id.eq(parent_id))
             .count()
@@ -230,7 +233,10 @@ impl SequenceTree for MyTag {
     }
 
     #[inline]
-    fn get_seq_numbers(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<Vec<i32>> {
+    fn get_seq_numbers(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::ParentId,
+    ) -> QueryResult<Vec<i32>> {
         myTag::table
             .filter(myTag::parent_id.eq(parent_id))
             .order(myTag::seq)
@@ -239,7 +245,7 @@ impl SequenceTree for MyTag {
     }
 
     #[inline]
-    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<usize> {
+    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<usize> {
         diesel::sql_query(
             r#"WITH ordered AS (
                 SELECT myTag_id, ROW_NUMBER() OVER (ORDER BY sequenceNo) + (? - 1) AS new_seq
@@ -257,7 +263,7 @@ impl SequenceTree for MyTag {
     #[inline]
     fn increment_seq_gte(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: i32,
     ) -> QueryResult<usize> {
         diesel::update(
@@ -272,7 +278,7 @@ impl SequenceTree for MyTag {
     #[inline]
     fn decrement_seq_gt(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: i32,
     ) -> QueryResult<usize> {
         diesel::update(
@@ -287,7 +293,7 @@ impl SequenceTree for MyTag {
     #[inline]
     fn increment_seq_gte_lt(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         start: i32,
         end: i32,
     ) -> QueryResult<usize> {
@@ -304,7 +310,7 @@ impl SequenceTree for MyTag {
     #[inline]
     fn decrement_seq_gt_lte(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         start: i32,
         end: i32,
     ) -> QueryResult<usize> {

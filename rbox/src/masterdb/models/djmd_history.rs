@@ -17,7 +17,7 @@ use super::agent_registry::AgentRegistry;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdHistory, djmdSongHistory};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
-use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate, SequenceTree};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate, TreeSeq};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -278,17 +278,20 @@ impl DjmdHistory {
     }
 }
 
-impl SequenceTree for DjmdHistory {
-    type Id = str;
+impl TreeSeq for DjmdHistory {
+    type ParentId = str;
     const START_SEQ: i32 = 1;
 
     #[inline]
-    fn is_valid_parent(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<bool> {
+    fn is_valid_parent(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::ParentId,
+    ) -> QueryResult<bool> {
         Self::is_folder(conn, parent_id)
     }
 
     #[inline]
-    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<i32> {
+    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<i32> {
         let count: i64 = djmdHistory::table
             .filter(djmdHistory::parent_id.eq(parent_id))
             .count()
@@ -297,7 +300,10 @@ impl SequenceTree for DjmdHistory {
     }
 
     #[inline]
-    fn get_seq_numbers(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<Vec<i32>> {
+    fn get_seq_numbers(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::ParentId,
+    ) -> QueryResult<Vec<i32>> {
         djmdHistory::table
             .filter(djmdHistory::parent_id.eq(parent_id))
             .order(djmdHistory::seq)
@@ -306,7 +312,7 @@ impl SequenceTree for DjmdHistory {
     }
 
     #[inline]
-    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<usize> {
+    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<usize> {
         diesel::sql_query(
             r#"WITH ordered AS (
                 SELECT ID, ROW_NUMBER() OVER (ORDER BY Seq) + (? - 1) AS new_seq
@@ -324,7 +330,7 @@ impl SequenceTree for DjmdHistory {
     #[inline]
     fn increment_seq_gte(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: i32,
     ) -> QueryResult<usize> {
         let now = Utc::now();
@@ -345,7 +351,7 @@ impl SequenceTree for DjmdHistory {
     #[inline]
     fn decrement_seq_gt(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: i32,
     ) -> QueryResult<usize> {
         let now = Utc::now();
@@ -366,7 +372,7 @@ impl SequenceTree for DjmdHistory {
     #[inline]
     fn increment_seq_gte_lt(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         start: i32,
         end: i32,
     ) -> QueryResult<usize> {
@@ -389,7 +395,7 @@ impl SequenceTree for DjmdHistory {
     #[inline]
     fn decrement_seq_gt_lte(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         start: i32,
         end: i32,
     ) -> QueryResult<usize> {
@@ -692,17 +698,20 @@ impl DjmdSongHistory {
     }
 }
 
-impl SequenceTree for DjmdSongHistory {
-    type Id = str;
+impl TreeSeq for DjmdSongHistory {
+    type ParentId = str;
     const START_SEQ: i32 = 1;
 
     #[inline]
-    fn is_valid_parent(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<bool> {
+    fn is_valid_parent(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::ParentId,
+    ) -> QueryResult<bool> {
         DjmdHistory::is_history(conn, parent_id)
     }
 
     #[inline]
-    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<i32> {
+    fn count_children(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<i32> {
         let count: i64 = Self::filter_by_history_id(parent_id)
             .count()
             .get_result(conn)?;
@@ -710,14 +719,17 @@ impl SequenceTree for DjmdSongHistory {
     }
 
     #[inline]
-    fn get_seq_numbers(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<Vec<i32>> {
+    fn get_seq_numbers(
+        conn: &mut SqliteConnection,
+        parent_id: &Self::ParentId,
+    ) -> QueryResult<Vec<i32>> {
         Self::filter_by_history_id(parent_id)
             .select(djmdSongHistory::track_no)
             .get_results(conn)
     }
 
     #[inline]
-    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::Id) -> QueryResult<usize> {
+    fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<usize> {
         diesel::sql_query(
             r#"WITH ordered AS (
                 SELECT ID, ROW_NUMBER() OVER (ORDER BY TrackNo) + (? - 1) AS new_seq
@@ -735,7 +747,7 @@ impl SequenceTree for DjmdSongHistory {
     #[inline]
     fn increment_seq_gte(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: i32,
     ) -> QueryResult<usize> {
         let now = Utc::now();
@@ -756,7 +768,7 @@ impl SequenceTree for DjmdSongHistory {
     #[inline]
     fn decrement_seq_gt(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         seq: i32,
     ) -> QueryResult<usize> {
         let now = Utc::now();
@@ -777,7 +789,7 @@ impl SequenceTree for DjmdSongHistory {
     #[inline]
     fn increment_seq_gte_lt(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         start: i32,
         end: i32,
     ) -> QueryResult<usize> {
@@ -800,7 +812,7 @@ impl SequenceTree for DjmdSongHistory {
     #[inline]
     fn decrement_seq_gt_lte(
         conn: &mut SqliteConnection,
-        parent_id: &Self::Id,
+        parent_id: &Self::ParentId,
         start: i32,
         end: i32,
     ) -> QueryResult<usize> {
