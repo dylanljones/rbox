@@ -621,8 +621,6 @@ pub trait TreeNode: From<Self::Model> {
     fn sequence(&self) -> i32;
     /// Returns the parent identifier of the node.
     fn parent_id(&self) -> Self::Id;
-    /// Returns a reference to the parent node.
-    fn parent(&self) -> Option<NodeRef<Self>>;
     /// Returns a reference to the vector containing the child references.
     fn children(&self) -> &Vec<NodeRef<Self>>;
     /// Returns a mutable reference to the vector containing the child references.
