@@ -69,7 +69,7 @@ pub use djmd_menu_items::DjmdMenuItems;
 pub use djmd_mixer_param::DjmdMixerParam;
 pub use djmd_my_tag::{DjmdMyTag, DjmdSongMyTag, NewDjmdMyTag, NewDjmdSongMyTag};
 pub use djmd_playlist::{
-    DjmdPlaylist, DjmdPlaylistTreeItem, DjmdSongPlaylist, NewDjmdPlaylist, NewDjmdSongPlaylist,
+    DjmdPlaylist, DjmdPlaylistTreeNode, DjmdSongPlaylist, NewDjmdPlaylist, NewDjmdSongPlaylist,
 };
 pub use djmd_property::{DjmdCloudProperty, DjmdProperty};
 pub use djmd_recommend_like::DjmdRecommendLike;

@@ -10,16 +10,17 @@ use napi_derive::napi;
 use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
-use std::cell::RefCell;
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::rc::Rc;
+
+use std::collections::{HashSet, VecDeque};
 use uuid::Uuid;
 
 use super::agent_registry::AgentRegistry;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdPlaylist, djmdSongPlaylist};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
-use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate, TreeSeq};
+use crate::model_traits::{
+    build_tree_list, Model, ModelDelete, ModelInsert, ModelUpdate, NodeRef, TreeNode, TreeSeq,
+};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -384,37 +385,9 @@ impl DjmdPlaylist {
     }
 
     /// Queries all records from the `djmdPlaylist` table and returns a tree structure.
-    pub fn tree(
-        conn: &mut SqliteConnection,
-    ) -> QueryResult<Vec<Rc<RefCell<DjmdPlaylistTreeItem>>>> {
+    pub fn tree(conn: &mut SqliteConnection) -> QueryResult<Vec<NodeRef<DjmdPlaylistTreeNode>>> {
         let playlists = DjmdPlaylist::all(conn)?;
-        let nodes: Vec<DjmdPlaylistTreeItem> = playlists
-            .iter()
-            .map(|p| DjmdPlaylistTreeItem::from(p.clone()))
-            .collect();
-
-        let mut map = HashMap::<String, Rc<RefCell<DjmdPlaylistTreeItem>>>::new();
-        let mut roots = Vec::new();
-
-        // Populate the map with nodes
-        for pl in nodes.iter() {
-            let item = Rc::new(RefCell::new(pl.clone()));
-            map.insert(pl.id.clone(), item.clone());
-            if pl.parent_id == "root".to_string() {
-                roots.push(item.clone());
-            }
-        }
-
-        // Build the tree structure
-        for id in map.keys() {
-            let node = map.get(id).unwrap();
-            let parent_id = node.borrow().parent_id.clone();
-            if let Some(parent_node) = map.get(&parent_id) {
-                parent_node.borrow_mut().children.push(node.clone());
-            }
-        }
-        sort_tree_list(&mut roots);
-
+        let roots = build_tree_list(playlists, "root".to_string());
         Ok(roots)
     }
 
@@ -1088,7 +1061,7 @@ impl NewDjmdSongPlaylist {
 ///
 /// See [`DjmdPlaylist`] for the flat representation.
 #[derive(Debug, Clone, PartialEq)]
-pub struct DjmdPlaylistTreeItem {
+pub struct DjmdPlaylistTreeNode {
     pub id: String,
     pub uuid: String,
     pub rb_data_status: i32,
@@ -1106,10 +1079,35 @@ pub struct DjmdPlaylistTreeItem {
     pub parent_id: String,
     pub image_path: Option<String>,
     pub smart_list: Option<String>,
-    pub children: Vec<Rc<RefCell<Self>>>,
+    pub children: Vec<NodeRef<Self>>,
 }
 
-impl From<DjmdPlaylist> for DjmdPlaylistTreeItem {
+impl TreeNode for DjmdPlaylistTreeNode {
+    type Model = DjmdPlaylist;
+    type Id = String;
+
+    fn id(&self) -> Self::Id {
+        self.id.clone()
+    }
+
+    fn sequence(&self) -> i32 {
+        self.seq
+    }
+
+    fn parent_id(&self) -> Self::Id {
+        self.parent_id.clone()
+    }
+
+    fn children(&self) -> &Vec<NodeRef<Self>> {
+        &self.children
+    }
+
+    fn children_mut(&mut self) -> &mut Vec<NodeRef<Self>> {
+        &mut self.children
+    }
+}
+
+impl From<DjmdPlaylist> for DjmdPlaylistTreeNode {
     fn from(playlist: DjmdPlaylist) -> Self {
         Self {
             id: playlist.id,
@@ -1130,56 +1128,5 @@ impl From<DjmdPlaylist> for DjmdPlaylistTreeItem {
             smart_list: playlist.smart_list,
             children: Vec::new(),
         }
-    }
-}
-
-impl Into<DjmdPlaylist> for DjmdPlaylistTreeItem {
-    fn into(self) -> DjmdPlaylist {
-        DjmdPlaylist {
-            id: self.id,
-            uuid: self.uuid,
-            rb_data_status: self.rb_data_status,
-            rb_local_data_status: self.rb_local_data_status,
-            rb_local_deleted: self.rb_local_deleted,
-            rb_local_synced: self.rb_local_synced,
-            usn: self.usn,
-            rb_local_usn: self.rb_local_usn,
-            created_at: self.created_at,
-            updated_at: self.updated_at,
-            seq: self.seq,
-            name: self.name,
-            attribute: self.attribute,
-            parent_id: self.parent_id,
-            image_path: self.image_path,
-            smart_list: self.smart_list,
-        }
-    }
-}
-
-/// Recursively sort a playlist tree item and its children
-fn sort_tree(item: &mut Rc<RefCell<DjmdPlaylistTreeItem>>) {
-    // Sort the current node's children by a chosen criterion (e.g., ID or name)
-    item.borrow_mut().children.sort_by(|a, b| {
-        let a_seq = a.borrow().seq;
-        let b_seq = b.borrow().seq;
-        a_seq.cmp(&b_seq)
-    });
-    // Recursively sort each child
-    for child in &mut item.borrow_mut().children {
-        sort_tree(child);
-    }
-}
-
-/// Sort a list of playlist tree items and their children
-fn sort_tree_list(tree: &mut Vec<Rc<RefCell<DjmdPlaylistTreeItem>>>) {
-    // Sort the root nodes
-    tree.sort_by(|a, b| {
-        let a_seq = a.borrow().seq;
-        let b_seq = b.borrow().seq;
-        a_seq.cmp(&b_seq)
-    });
-    // Sort each tree item recursively
-    for item in tree {
-        sort_tree(item);
     }
 }

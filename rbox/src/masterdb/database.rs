@@ -2571,7 +2571,7 @@ impl MasterDb {
     ///     println!("{:?}", root);
     /// }
     /// ```
-    pub fn get_playlist_tree(&mut self) -> Result<Vec<Rc<RefCell<DjmdPlaylistTreeItem>>>> {
+    pub fn get_playlist_tree(&mut self) -> Result<Vec<Rc<RefCell<DjmdPlaylistTreeNode>>>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdPlaylist::tree(&mut conn)?)
     }

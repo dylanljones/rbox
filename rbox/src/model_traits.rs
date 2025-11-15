@@ -3,7 +3,11 @@
 
 use diesel::prelude::*;
 use diesel::result::{DatabaseErrorKind, Error};
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::fmt::Debug;
+use std::hash::Hash;
+use std::rc::Rc;
 
 /// A trait representing a generic model with basic database operations.
 ///
@@ -600,4 +604,94 @@ pub trait SequenceVisible {
     ///
     /// This operation is used when deleting a record at a specific position.
     fn decrement_seq_after_delete(conn: &mut SqliteConnection, seq: i32) -> QueryResult<usize>;
+}
+
+pub type NodeRef<T> = Rc<RefCell<T>>;
+
+/// A trait for models that can be used as tree nodes.
+pub trait TreeNode: From<Self::Model> {
+    /// The reference model.
+    type Model: Model;
+    /// The unique identifier of the node.
+    type Id: ?Sized + Eq + PartialEq + Debug + Clone + Hash;
+
+    /// Returns the unique identifier of the node.
+    fn id(&self) -> Self::Id;
+    /// Returns the sequence number (ordering) of the node.
+    fn sequence(&self) -> i32;
+    /// Returns the parent identifier of the node.
+    fn parent_id(&self) -> Self::Id;
+    /// Returns a reference to the parent node.
+    fn parent(&self) -> Option<NodeRef<Self>>;
+    /// Returns a reference to the vector containing the child references.
+    fn children(&self) -> &Vec<NodeRef<Self>>;
+    /// Returns a mutable reference to the vector containing the child references.
+    fn children_mut(&mut self) -> &mut Vec<NodeRef<Self>>;
+
+    /// Sorts the children of the node by their sequence number.
+    fn sort_children(&mut self) {
+        self.children_mut().sort_by(|a, b| {
+            let a_seq = a.borrow().sequence();
+            let b_seq = b.borrow().sequence();
+            a_seq.cmp(&b_seq)
+        });
+    }
+}
+
+/// Sort the children of a tree node recursively.
+fn sort_tree_ref<N: TreeNode>(item: &mut NodeRef<N>) {
+    let mut item_borrow = item.borrow_mut();
+    item_borrow.sort_children();
+    for child in item_borrow.children_mut().iter_mut() {
+        sort_tree_ref(child);
+    }
+}
+
+/// Sorts a list of tree nodes recursively by their sequence number.
+fn sort_tree_list<N: TreeNode>(items: &mut Vec<NodeRef<N>>) {
+    items.sort_by(|a, b| {
+        let a_seq = a.borrow().sequence();
+        let b_seq = b.borrow().sequence();
+        a_seq.cmp(&b_seq)
+    });
+    for item in items.iter_mut() {
+        sort_tree_ref(item);
+    }
+}
+
+/// Constructs a tree of nodes from a list of models.
+pub(crate) fn build_tree_list<M, N>(models: Vec<M>, root_id: N::Id) -> Vec<NodeRef<N>>
+where
+    N: TreeNode<Model = M>,
+    M: Model,
+{
+    let nodes: Vec<N> = models.into_iter().map(N::from).collect();
+
+    let mut map: HashMap<N::Id, NodeRef<N>> = HashMap::new();
+    let mut roots = Vec::new();
+
+    // Populate the map with nodes
+    for node in nodes.into_iter() {
+        let id = node.id();
+        let parent_id = node.parent_id();
+
+        let item: NodeRef<N> = Rc::new(RefCell::new(node));
+        if parent_id == root_id {
+            roots.push(item.clone());
+        }
+        map.insert(id.clone(), item);
+    }
+
+    // Build the tree structure
+    for node in map.values() {
+        let parent_id = node.borrow().parent_id();
+        if let Some(parent_node) = map.get(&parent_id) {
+            parent_node.borrow_mut().children_mut().push(node.clone());
+        }
+    }
+
+    // Sort the entire tree
+    sort_tree_list(&mut roots);
+
+    roots
 }
