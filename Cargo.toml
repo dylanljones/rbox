@@ -3,7 +3,8 @@ resolver = "3"
 members = [
     "rbox",
     "bindings/*",
-    "py-derives"
+    "py-derives",
+    "codegen"
 ]
 
 [workspace.package]
