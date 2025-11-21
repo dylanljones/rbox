@@ -36,6 +36,7 @@
 //! See individual method documentation for details on arguments, return values, and error handling.
 
 use dunce;
+use std::collections::HashSet;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
@@ -45,7 +46,9 @@ use super::models::*;
 use super::playlist_xml::MasterPlaylistXml;
 use crate::anlz::{find_anlz_files, Anlz, AnlzFiles, AnlzPaths};
 use crate::error::{Error, Result};
-use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate, NodeRef};
+use crate::model_traits::{
+    Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, NodeRef,
+};
 use crate::options::RekordboxOptions;
 use crate::pathlib::NormalizePath;
 use crate::util::is_rekordbox_running;
@@ -2944,6 +2947,76 @@ impl MasterDb {
         Ok(playlist)
     }
 
+    /// Moves multiple playlists to a new parent folder or changes its sequence within the same parent.
+    ///
+    /// # Arguments
+    /// * `ids` - The playlist IDs to move.
+    /// * `start_seq` - Optional new starting sequence number in the target parent.
+    /// * `parent_id` - Optional new parent playlist ID. If not provided, keeps the current parent.
+    ///
+    /// # Returns
+    /// * `Result<Vec<DjmdPlaylist>>` - The updated [`DjmdPlaylist`] objects.
+    ///
+    /// # Errors
+    /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
+    /// * Returns an error if the parent playlist is not a folder or does not exist.
+    /// * Returns an error if the sequence number is invalid.
+    ///
+    /// # Behavior
+    /// * Updates sequence numbers of affected playlists in both old and new parents.
+    /// * Moves the playlist and updates its parent and sequence.
+    /// * Increments the local update sequence number (USN).
+    /// * Updates the playlist XML file if configured.
+    ///
+    /// # Example
+    /// ```no_run
+    /// let moved = db.move_playlists(vec!["pid1", "pid2"], "new_parent_id", Some(2))).unwrap();
+    /// println!("{:?}", moved);
+    /// ```
+    pub fn move_playlists(
+        &mut self,
+        ids: Vec<&str>,
+        parent_id: &str,
+        start_seq: Option<i32>,
+    ) -> Result<Vec<DjmdPlaylist>> {
+        self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
+
+        let playlists = DjmdPlaylist::find_all(&mut conn, &ids)?;
+        let old_parent_ids: Vec<&str> = playlists.iter().map(|p| p.parent_id.as_str()).collect();
+
+        // Move playlists
+        let result = DjmdPlaylist::move_all_to(&mut conn, &ids, parent_id, start_seq)?;
+        if result == 0 {
+            return Ok(DjmdPlaylist::find_all(&mut conn, &ids)?);
+        }
+
+        // Update playlist XML
+        let playlists = DjmdPlaylist::find_all(&mut conn, &ids)?;
+        if let Some(pl_xml_path) = self.plxml_path.clone() {
+            let mut pl_xml = MasterPlaylistXml::load(pl_xml_path);
+            for pl in &playlists {
+                pl_xml.update_parent(
+                    pl.id.clone(),
+                    pl.parent_id.clone(),
+                    pl.updated_at.naive_utc(),
+                );
+            }
+            // Update update-time of all child items
+            let mut parent_ids: HashSet<&str> = HashSet::from_iter(old_parent_ids);
+            parent_ids.insert(parent_id);
+            for parent_id in parent_ids {
+                for pl in self.get_playlist_children(&parent_id)? {
+                    pl_xml.update(pl.id, pl.updated_at.naive_utc());
+                }
+            }
+            let _ = pl_xml.dump();
+        } else {
+            eprintln!("WARNING: Coulnd't update playlist XML, file not found!");
+        }
+        Ok(playlists)
+    }
+
     /// Deletes a playlist entry from the [`DjmdPlaylist`] table in the database.
     ///
     /// # Arguments
@@ -3063,6 +3136,41 @@ impl MasterDb {
         DjmdSongPlaylist::move_to(&mut conn, id, Some(seq))?;
         let result: DjmdSongPlaylist = self.get_playlist_song_by_id(id)?.expect("Song not found");
         Ok(result)
+    }
+
+    /// Moves multiple songs within a playlist to a new sequence position.
+    ///
+    /// # Arguments
+    /// * `ids` - The ID of the songs playlist entry to move.
+    /// * `start_seq` - The starting sequence number for the songs.
+    ///
+    /// # Returns
+    /// * `Result<Vec<DjmdSongPlaylist>>` - The updated [`DjmdSongPlaylist`] objects.
+    ///
+    /// # Errors
+    /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
+    /// * Returns an error if the sequence number is invalid or the song does not exist.
+    ///
+    /// # Behavior
+    /// * Updates sequence numbers of affected songs.
+    /// * Moves the song and updates its sequence.
+    /// * Increments the local update sequence number (USN).
+    ///
+    /// # Example
+    /// ```no_run
+    /// let moved = db.move_playlist_songs(vec!["sid1", "sid2"], 2).unwrap();
+    /// println!("{:?}", moved);
+    /// ```
+    pub fn move_playlist_songs(
+        &mut self,
+        ids: Vec<&str>,
+        start_seq: i32,
+    ) -> Result<Vec<DjmdSongPlaylist>> {
+        self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
+        DjmdSongPlaylist::move_all_to(&mut conn, &ids, Some(start_seq))?;
+        let results = DjmdSongPlaylist::find_all(&mut conn, &ids)?;
+        Ok(results)
     }
 
     /// Deletes a song entry from a playlist.

@@ -19,7 +19,8 @@ use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdPlaylist, djmdSongPlaylist};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
 use crate::model_traits::{
-    build_tree_list, Model, ModelDelete, ModelInsert, ModelUpdate, NodeRef, TreeNode, TreeSeq,
+    build_tree_list, Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, NodeRef,
+    TreeNode, TreeSeq,
 };
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
@@ -173,7 +174,50 @@ impl ModelDelete for DjmdPlaylist {
     }
 }
 
+impl ModelTree for DjmdPlaylist {
+    fn move_to(
+        conn: &mut SqliteConnection,
+        id: &Self::Id,
+        parent_id: Option<&Self::Id>,
+        seq: Option<i32>,
+    ) -> QueryResult<usize> {
+        let res = match Self::find(conn, id)? {
+            Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+        let old_seq = res.seq;
+        let old_parent_id = res.parent_id.clone();
+        let parent_id = parent_id.unwrap_or(&old_parent_id);
+
+        // *Note*: Moving other records increments USN by 1 for all changes
+        let res = Self::update_seq_before_move(conn, &old_parent_id, parent_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
+            None => return Ok(0),
+        };
+
+        // Update Seq and parent of actual record
+        let now = Utc::now();
+        let usn = AgentRegistry::increment_local_usn(conn)?;
+        diesel::update(djmdPlaylist::table.find(id))
+            .set((
+                djmdPlaylist::seq.eq(seq),
+                djmdPlaylist::parent_id.eq(parent_id),
+                djmdPlaylist::updated_at.eq(&format_datetime(&now)),
+                djmdPlaylist::rb_local_usn.eq(usn),
+            ))
+            .execute(conn)
+    }
+}
+
 impl DjmdPlaylist {
+    /// Queries records from the `djmdPlaylist` table by `ids`.
+    pub fn find_all(conn: &mut SqliteConnection, ids: &[&str]) -> QueryResult<Vec<Self>> {
+        Self::query()
+            .filter(djmdPlaylist::id.eq_any(ids))
+            .load(conn)
+    }
+
     /// Queries a record from the `djmdPlaylist` table by its `name`.
     pub fn by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
         Self::query()
@@ -287,41 +331,6 @@ impl DjmdPlaylist {
             .get_result(conn)
     }
 
-    /// Move a record in the `djmdPlaylist` table to a new parent.
-    pub fn move_to(
-        conn: &mut SqliteConnection,
-        id: &str,
-        parent_id: Option<&str>,
-        seq: Option<i32>,
-    ) -> QueryResult<usize> {
-        let res = match Self::find(conn, id)? {
-            Some(r) => r,
-            None => return Err(Error::NotFound),
-        };
-        let old_seq = res.seq;
-        let old_parent_id = res.parent_id.clone();
-        let parent_id = parent_id.unwrap_or(&old_parent_id);
-
-        // *Note*: Moving other records increments USN by 1 for all changes
-        let res = Self::update_seq_before_move(conn, &old_parent_id, parent_id, old_seq, seq)?;
-        let (seq, _n) = match res {
-            Some((s, n)) => (s, n),
-            None => return Ok(0),
-        };
-
-        // Update Seq and parent of actual record
-        let now = Utc::now();
-        let usn = AgentRegistry::increment_local_usn(conn)?;
-        diesel::update(djmdPlaylist::table.find(id))
-            .set((
-                djmdPlaylist::seq.eq(seq),
-                djmdPlaylist::parent_id.eq(parent_id),
-                djmdPlaylist::updated_at.eq(&format_datetime(&now)),
-                djmdPlaylist::rb_local_usn.eq(usn),
-            ))
-            .execute(conn)
-    }
-
     /// Deletes a record from the database table.
     ///
     /// # Arguments
@@ -386,7 +395,7 @@ impl DjmdPlaylist {
 
     /// Queries all records from the `djmdPlaylist` table and returns a tree structure.
     pub fn tree(conn: &mut SqliteConnection) -> QueryResult<Vec<NodeRef<DjmdPlaylistTreeNode>>> {
-        let playlists = DjmdPlaylist::all(conn)?;
+        let playlists = Self::all(conn)?;
         let roots = build_tree_list(playlists, "root".to_string());
         Ok(roots)
     }
@@ -743,7 +752,42 @@ impl ModelDelete for DjmdSongPlaylist {
     }
 }
 
+impl ModelList for DjmdSongPlaylist {
+    fn move_to(conn: &mut SqliteConnection, id: &Self::Id, seq: Option<i32>) -> QueryResult<usize> {
+        let res = match Self::find(conn, id)? {
+            Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+
+        let old_seq = res.track_no;
+        // *Note*: Moving other records increments USN by 1 for all changes
+        let res = Self::update_seq_before_move_in(conn, &res.playlist_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
+            None => return Ok(0),
+        };
+
+        // Update seq of actual record
+        let now = Utc::now();
+        let usn = AgentRegistry::increment_local_usn(conn)?;
+        diesel::update(djmdSongPlaylist::table.find(id))
+            .set((
+                djmdSongPlaylist::track_no.eq(seq),
+                djmdSongPlaylist::updated_at.eq(&format_datetime(&now)),
+                djmdSongPlaylist::rb_local_usn.eq(usn),
+            ))
+            .execute(conn)
+    }
+}
+
 impl DjmdSongPlaylist {
+    /// Queries records from the `djmdPlaylist` table by `ids`.
+    pub fn find_all(conn: &mut SqliteConnection, ids: &[&str]) -> QueryResult<Vec<Self>> {
+        Self::query()
+            .filter(djmdSongPlaylist::id.eq_any(ids))
+            .load(conn)
+    }
+
     /// Queries all records from the `djmdSongPlaylist` table by their `playlist_id`.
     pub fn by_playlist_id(
         conn: &mut SqliteConnection,
@@ -778,33 +822,6 @@ impl DjmdSongPlaylist {
     /// Counts the number of records in the `djmdSongPlaylist` table for a given `playlist_id`.
     pub fn count(conn: &mut SqliteConnection, playlist_id: &str) -> QueryResult<i32> {
         Self::count_children(conn, playlist_id)
-    }
-
-    /// Move a record in the `djmdSongPlaylist` table.
-    pub fn move_to(conn: &mut SqliteConnection, id: &str, seq: Option<i32>) -> QueryResult<usize> {
-        let res = match Self::find(conn, id)? {
-            Some(r) => r,
-            None => return Err(Error::NotFound),
-        };
-
-        let old_seq = res.track_no;
-        // *Note*: Moving other records increments USN by 1 for all changes
-        let res = Self::update_seq_before_move_in(conn, &res.playlist_id, old_seq, seq)?;
-        let (seq, _n) = match res {
-            Some((s, n)) => (s, n),
-            None => return Ok(0),
-        };
-
-        // Update seq of actual record
-        let now = Utc::now();
-        let usn = AgentRegistry::increment_local_usn(conn)?;
-        diesel::update(djmdSongPlaylist::table.find(id))
-            .set((
-                djmdSongPlaylist::track_no.eq(seq),
-                djmdSongPlaylist::updated_at.eq(&format_datetime(&now)),
-                djmdSongPlaylist::rb_local_usn.eq(usn),
-            ))
-            .execute(conn)
     }
 
     /// Deletes all records from the `djmdSongPlaylist` table acssociated with a `playlist_id`.

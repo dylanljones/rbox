@@ -176,6 +176,108 @@ pub trait ModelInsert: Sized {
     }
 }
 
+/// A trait for models that support tree operations.
+///
+/// This trait extends the `Model` trait and provides methods for moving records between parents.
+pub trait ModelTree: Model + TreeSeq {
+    /// Moves a record to a new sequence number and/or parent.
+    ///
+    /// # Arguments
+    /// - `conn`: A mutable reference to the database connection.
+    /// - `id`: A reference to the ID of the record to move.
+    /// - `parent_id`: A reference to the ID of the new parent. If `None`, the record is moved to
+    ///    the given sequence number inside the same parent.
+    /// - `seq`: The new sequence number. If `None`, the record is moved to the end of the parent.
+    ///
+    /// # Returns
+    /// A `QueryResult` containing the number of rows affected.
+    fn move_to(
+        conn: &mut SqliteConnection,
+        id: &Self::Id,
+        parent_id: Option<&Self::Id>,
+        seq: Option<i32>,
+    ) -> QueryResult<usize>;
+
+    /// Moves multiple records to a new sequence number and/or parent.
+    ///
+    /// By default, this method uses a naive loop to move each record individually.
+    /// It can be overridden for better performance.
+    ///
+    /// # Arguments
+    /// - `conn`: A mutable reference to the database connection.
+    /// - `id`: A reference to the ID of the record to move.
+    /// - `parent_id`: A reference to the ID of the new parent. If `None`, the records are moved to
+    ///    the given start sequence number inside the same parent.
+    /// - `start_seq`: The new starting sequence number to insert the records.
+    ///    If `None`, the records are moved to the end of the parent.
+    ///
+    /// # Returns
+    /// A `QueryResult` containing the number of rows affected.
+    fn move_all_to(
+        conn: &mut SqliteConnection,
+        ids: &[&Self::Id],
+        parent_id: &Self::Id,
+        start_seq: Option<i32>,
+    ) -> QueryResult<usize> {
+        let mut result: usize = 0;
+        let mut seq: Option<i32> = start_seq;
+        for id in ids {
+            result += Self::move_to(conn, id, Some(parent_id), seq)?;
+            if seq.is_some() {
+                // Increment seq for the next move if it is not none
+                seq = Some(seq.unwrap() + 1);
+            }
+        }
+        Ok(result)
+    }
+}
+
+/// A trait for models that support list operations.
+///
+/// This trait extends the `Model` trait and provides methods for moving records inside lists
+pub trait ModelList: Model + TreeSeq {
+    /// Moves a record to a new sequence number.
+    ///
+    /// # Arguments
+    /// - `conn`: A mutable reference to the database connection.
+    /// - `id`: A reference to the ID of the record to move.
+    /// - `seq`: The new sequence number. If `None`, the record is moved to the end of the parent.
+    ///
+    /// # Returns
+    /// A `QueryResult` containing the number of rows affected.
+    fn move_to(conn: &mut SqliteConnection, id: &Self::Id, seq: Option<i32>) -> QueryResult<usize>;
+
+    /// Moves multiple records to a new sequence number.
+    ///
+    /// By default, this method uses a naive loop to move each record individually.
+    /// It can be overridden for better performance.
+    ///
+    /// # Arguments
+    /// - `conn`: A mutable reference to the database connection.
+    /// - `id`: A reference to the ID of the record to move.
+    /// - `start_seq`: The new starting sequence number to insert the records.
+    ///    If `None`, the records are moved to the end of the parent.
+    ///
+    /// # Returns
+    /// A `QueryResult` containing the number of rows affected.
+    fn move_all_to(
+        conn: &mut SqliteConnection,
+        ids: &[&Self::Id],
+        start_seq: Option<i32>,
+    ) -> QueryResult<usize> {
+        let mut result: usize = 0;
+        let mut seq: Option<i32> = start_seq;
+        for id in ids {
+            result += Self::move_to(conn, id, seq)?;
+            if seq.is_some() {
+                // Increment seq for the next move if it is not none
+                seq = Some(seq.unwrap() + 1);
+            }
+        }
+        Ok(result)
+    }
+}
+
 /// Checks if the given vector of numbers is a valid sequence order
 ///
 /// A valid order is when the numbers start from `start` and are incremental:
