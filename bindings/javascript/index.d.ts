@@ -2171,7 +2171,7 @@ export interface MyTagContent {
  *
  * # Examples
  * ```rust
- * use rbox::devlib_plus::models.py::NewAlbum;
+ * use rbox::devlib_plus::models::NewAlbum;
  *
  * let new = NewAlbum::new("Name").compilation(1);
  * println!("{:?}", new);
@@ -2197,7 +2197,7 @@ export interface NewAlbum {
  *
  * # Examples
  * ```rust
- * use rbox::devlib_plus::models.py::NewArtist;
+ * use rbox::devlib_plus::models::NewArtist;
  *
  * let new = NewArtist::new("Name").name_for_search("Name");
  * println!("{:?}", new);
@@ -2217,7 +2217,7 @@ export interface NewArtist {
  *
  * # Examples
  * ```rust
- * use rbox::devlib_plus::models.py::NewCategory;
+ * use rbox::devlib_plus::models::NewCategory;
  *
  * let new = NewCategory::new("Name".into()).is_visible(1);
  * println!("{:?}", new);
@@ -2245,7 +2245,7 @@ export interface NewColor {
  *
  * # Examples
  * ```rust
- * use rbox::devlib_plus::models.py::NewContent;
+ * use rbox::devlib_plus::models::NewContent;
  *
  * let new = NewContent::new("Content/Artist/Title.mp3");
  * println!("{:?}", new);
@@ -2349,7 +2349,7 @@ export interface NewContent {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models.py::NewDjmdAlbum;
+ * use rbox::masterdb::models::NewDjmdAlbum;
  *
  * let new = NewDjmdAlbum::new("Name").compilation(1);
  * println!("{:?}", new);
@@ -2375,7 +2375,7 @@ export interface NewDjmdAlbum {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models.py::NewDjmdArtist;
+ * use rbox::masterdb::models::NewDjmdArtist;
  *
  * let new = NewDjmdArtist::new("Name".into()).search_str("Search".into());
  * println!("{:?}", new);
@@ -2395,7 +2395,7 @@ export interface NewDjmdArtist {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models.py::NewDjmdContent;
+ * use rbox::masterdb::models::NewDjmdContent;
  *
  * let new = NewDjmdContent::new("path/to/file".into()).title("Title").artist_id("1")
  * println!("{:?}", new);
@@ -2465,7 +2465,7 @@ export interface NewDjmdContent {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models.py::NewDjmdGenre;
+ * use rbox::masterdb::models::NewDjmdGenre;
  *
  * let new = NewDjmdGenre::new("Name");
  * println!("{:?}", new);
@@ -2483,7 +2483,7 @@ export interface NewDjmdGenre {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models.py::NewDjmdHistory;
+ * use rbox::masterdb::models::NewDjmdHistory;
  *
  * let new = NewDjmdHistory::history("Name").seq(2);
  * println!("{:?}", new);
@@ -2509,7 +2509,7 @@ export interface NewDjmdHistory {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models.py::NewDjmdKey;
+ * use rbox::masterdb::models::NewDjmdKey;
  *
  * let new = NewDjmdKey::new("C").seq(1);
  * println!("{:?}", new);
@@ -2527,7 +2527,7 @@ export interface NewDjmdKey {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models.py::NewDjmdLabel;
+ * use rbox::masterdb::models::NewDjmdLabel;
  *
  * let new = NewDjmdArtist::new("Name");
  * println!("{:?}", new);
@@ -2545,7 +2545,7 @@ export interface NewDjmdLabel {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models.py::NewDjmdMyTag;
+ * use rbox::masterdb::models::NewDjmdMyTag;
  *
  * let new = NewDjmdMyTag::new("Name", 0).seq(1);
  * println!("{:?}", new);
@@ -2569,7 +2569,7 @@ export interface NewDjmdMyTag {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models.py::NewDjmdPlaylist;
+ * use rbox::masterdb::models::NewDjmdPlaylist;
  *
  * let new = NewDjmdPlaylist::playlist("Name").seq(2);
  * println!("{:?}", new);
@@ -2597,7 +2597,7 @@ export interface NewDjmdPlaylist {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models.py::NewDjmdRelatedTracks;
+ * use rbox::masterdb::models::NewDjmdRelatedTracks;
  *
  * let new = NewDjmdRelatedTracks::new("Name", 0).seq(1);
  * println!("{:?}", new);
@@ -2623,7 +2623,7 @@ export interface NewDjmdRelatedTracks {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models.py::NewDjmdSampler;
+ * use rbox::masterdb::models::NewDjmdSampler;
  *
  * let new = NewDjmdPlaylist::sampler("Name").seq(2);
  * println!("{:?}", new);
@@ -2647,7 +2647,7 @@ export interface NewDjmdSampler {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models.py::NewDjmdSongHistory;
+ * use rbox::masterdb::models::NewDjmdSongHistory;
  *
  * let new = NewSongDjmdPlaylist::new("historyId".into(), "contentId".into()).track_no(1);
  * println!("{:?}", new);
@@ -2669,7 +2669,7 @@ export interface NewDjmdSongHistory {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models.py::NewDjmdSongMyTag;
+ * use rbox::masterdb::models::NewDjmdSongMyTag;
  *
  * let new = NewDjmdMyTag::new("my_tag_id", "content_id").track_no(1);
  * println!("{:?}", new);
@@ -2691,7 +2691,7 @@ export interface NewDjmdSongMyTag {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models.py::NewDjmdSongPlaylist;
+ * use rbox::masterdb::models::NewDjmdSongPlaylist;
  *
  * let new = NewSongDjmdPlaylist::new("playlistId", "contentId").track_no(1);
  * println!("{:?}", new);
@@ -2713,7 +2713,7 @@ export interface NewDjmdSongPlaylist {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models.py::NewDjmdSongRelatedTracks;
+ * use rbox::masterdb::models::NewDjmdSongRelatedTracks;
  *
  * let new = NewDjmdSongRelatedTracks::new("relatedId", "contentId").track_no(1);
  * println!("{:?}", new);
@@ -2735,7 +2735,7 @@ export interface NewDjmdSongRelatedTracks {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models.py::NewDjmdSongSampler;
+ * use rbox::masterdb::models::NewDjmdSongSampler;
  *
  * let new = NewDjmdSongSampler::new("samplerId", "contentId").track_no(1);
  * println!("{:?}", new);
@@ -2763,7 +2763,7 @@ export interface NewGenre {
  *
  * # Examples
  * ```rust
- * use rbox::devlib_plus::models.py::NewHistory;
+ * use rbox::devlib_plus::models::NewHistory;
  *
  * let new = NewHistory::history("Name").seq(2);
  * println!("{:?}", new);
@@ -2813,7 +2813,7 @@ export interface NewMenuItem {
  *
  * # Examples
  * ```rust
- * use rbox::devlib_plus::models.py::NewMyTag;
+ * use rbox::devlib_plus::models::NewMyTag;
  *
  * let new = NewMyTag::tag("Name").seq(2);
  * println!("{:?}", new);
@@ -2837,7 +2837,7 @@ export interface NewMyTag {
  *
  * # Examples
  * ```rust
- * use rbox::devlib_plus::models.py::NewPlaylist;
+ * use rbox::devlib_plus::models::NewPlaylist;
  *
  * let new = NewPlaylist::playlist("Name").seq(2);
  * println!("{:?}", new);
@@ -2863,7 +2863,7 @@ export interface NewPlaylist {
  *
  * # Examples
  * ```rust
- * use rbox::devlib_plus::models.py::NewSort;
+ * use rbox::devlib_plus::models::NewSort;
  *
  * let new = NewSort::new(1234).visible(1);
  * println!("{:?}", new);
