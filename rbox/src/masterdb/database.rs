@@ -3,13 +3,12 @@
 
 //! # Rekordbox Master Database Handler
 //!
-//! This module provides an interface for interacting with the Rekordbox `master.db` SQLite database.
+//! This module provides a high-level interface for interacting with the Rekordbox `master.db` SQLite database.
 //! It enables querying, updating, and managing various tables such as playlists, songs, tags, and settings.
 //!
-//! ## Structure
-//! - The main struct [`MasterDb`] encapsulates the database connection and provides methods for accessing and modifying database entries.
-//! - Each table in the database has corresponding query methods for retrieving all entries, fetching by ID, and performing insert/update/delete operations.
-//! - Utility functions are included for playlist management, sequence handling, and safe/unsafe write control.
+//! The main struct [`MasterDb`] encapsulates the database connection and provides methods for
+//! accessing and modifying database entries. The queries are handled by the individual model structs.
+//! For a lower level interface, these models can be used directly to perform database operations.
 //!
 //! ## Basic Usage
 //! ```no_run
@@ -37,10 +36,8 @@
 //! See individual method documentation for details on arguments, return values, and error handling.
 
 use dunce;
-use std::cell::RefCell;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
 
 use super::conn::{create_connection_pool, DbPool};
 use super::enums::*;
@@ -48,7 +45,7 @@ use super::models::*;
 use super::playlist_xml::MasterPlaylistXml;
 use crate::anlz::{find_anlz_files, Anlz, AnlzFiles, AnlzPaths};
 use crate::error::{Error, Result};
-use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate, NodeRef};
 use crate::options::RekordboxOptions;
 use crate::pathlib::NormalizePath;
 use crate::util::is_rekordbox_running;
@@ -2571,7 +2568,7 @@ impl MasterDb {
     ///     println!("{:?}", root);
     /// }
     /// ```
-    pub fn get_playlist_tree(&mut self) -> Result<Vec<Rc<RefCell<DjmdPlaylistTreeNode>>>> {
+    pub fn get_playlist_tree(&mut self) -> Result<Vec<NodeRef<DjmdPlaylistTreeNode>>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdPlaylist::tree(&mut conn)?)
     }

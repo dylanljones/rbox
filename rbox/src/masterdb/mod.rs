@@ -2,7 +2,7 @@
 // Date:   2025-05-01
 
 mod conn;
-pub mod database;
+mod database;
 pub mod enums;
 pub mod models;
 pub mod playlist_xml;
