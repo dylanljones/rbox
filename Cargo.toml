@@ -3,7 +3,7 @@ resolver = "3"
 members = [
     "rbox",
     "bindings/*",
-    "py-derives",
+    "py-derives"
 ]
 
 [workspace.package]
@@ -12,8 +12,9 @@ authors = ["Dylan Jones <dylanljones@proton.me>"]
 description = "Library for interacting with the local and export data of Pioneers Rekordbox DJ software"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
-keywords = ["rekordbox", "dj", "database", "setting", "anlz"]
 repository = "https://github.com/dylanljones/rbox"
+keywords = ["rekordbox", "dj", "database", "setting", "anlz"]
+categories = ["multimedia::audio", "database", "parser-implementations", "value-formatting"]
 edition = "2021"
 rust-version = "1.88"
 
