@@ -3,12 +3,14 @@
 
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager, CustomizeConnection, Pool};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
 use crate::Result;
 
 pub type DbConn = SqliteConnection;
 pub type DbPool = Pool<ConnectionManager<DbConn>>;
 const MAGIC: &str = "s9heeos5l958941bs7dr{cll1fm7rzunc4usccy916kn85wf{75j6p9gosrszrmt";
+const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 /// Execute Sqlite pragmas on a connection.
 fn setup_connection(conn: &mut DbConn) -> QueryResult<()> {
@@ -42,6 +44,14 @@ pub fn establish_connection(database_url: &str) -> Result<DbConn> {
     let mut conn = SqliteConnection::establish(database_url)?;
     setup_connection(&mut conn)?;
     Ok(conn)
+}
+
+/// Runs any pending database migrations on the provided connection.
+///
+/// This is mainly used to create new Device Library Plus databases.
+pub fn run_migrations(conn: &mut SqliteConnection) {
+    conn.run_pending_migrations(MIGRATIONS)
+        .expect("Failed to run database migrations");
 }
 
 #[derive(Clone, Debug)]

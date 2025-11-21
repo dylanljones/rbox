@@ -3,6 +3,8 @@
 
 #[cfg(feature = "anlz")]
 pub use super::anlz::{Anlz, AnlzTag};
+#[cfg(feature = "devlib-plus")]
+pub use super::devlib_plus::DevlibPlus;
 #[cfg(feature = "master-db")]
 pub use super::masterdb::MasterDb;
 pub use super::options::RekordboxOptions;

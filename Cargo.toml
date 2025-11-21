@@ -4,6 +4,7 @@ members = [
     "rbox",
     "bindings/*",
     "py-derives",
+    "stubgen"
 ]
 
 [workspace.package]

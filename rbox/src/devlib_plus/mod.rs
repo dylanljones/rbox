@@ -2,11 +2,13 @@
 // Date:   2025-11-06
 
 mod conn;
+mod database;
 pub mod enums;
 pub mod models;
 pub mod schema;
 
-pub use conn::{create_connection_pool, establish_connection};
+pub use conn::{create_connection_pool, establish_connection, run_migrations, DbConn, DbPool};
+pub use database::DevlibPlus;
 pub use enums::*;
 pub use models::*;
 

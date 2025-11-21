@@ -13,8 +13,9 @@
 //!
 //! <br>
 //!
-//! This crate provides a comprehensive set of tools to interact with Rekordbox data, including:
+//! This crate provides a comprehensive set of tools to interact with Rekordbox data, including
 //! - [`MasterDb`] for managing the local Rekordbox database.
+//! - [`DevlibPlus`] for managing Device Library Plus SQLite databases.
 //! - [`Anlz`] for reading and writing ANLZ files.
 //! - [`RekordboxXml`] for parsing and manipulating Rekordbox XML files.
 //! - [`Setting`] for managing Rekordbox settings.
@@ -93,8 +94,6 @@
 //! ```
 //!
 
-extern crate core;
-
 // Compile-time feature validation
 #[cfg(all(
     any(feature = "bundled", feature = "bundled-vendored-openssl"),
@@ -116,13 +115,12 @@ pub mod anlz;
 pub mod devlib_plus;
 #[cfg(feature = "master-db")]
 pub mod masterdb;
+#[cfg(any(feature = "master-db", feature = "devlib-plus"))]
+pub mod model_traits;
 #[cfg(feature = "settings")]
 pub mod settings;
 #[cfg(feature = "xml")]
 pub mod xml;
-
-#[cfg(any(feature = "master-db", feature = "devlib-plus"))]
-pub mod model_traits;
 
 pub use error::{Error, Result};
 pub use options::RekordboxOptions;
@@ -131,6 +129,8 @@ pub use util::*;
 
 #[cfg(feature = "anlz")]
 pub use anlz::Anlz;
+#[cfg(feature = "devlib-plus")]
+pub use devlib_plus::DevlibPlus;
 #[cfg(feature = "master-db")]
 pub use masterdb::MasterDb;
 #[cfg(feature = "settings")]
