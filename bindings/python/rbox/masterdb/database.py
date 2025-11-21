@@ -31,9 +31,9 @@ class MasterDb:
 
     # -- AgentRegistry ----------------------------------------------------------------------------
 
-    def get_agent_registry(self) -> List[models.AgentRegistry]:
+    def get_agent_registries(self) -> List[models.AgentRegistry]:
         """Get all agent registry entries."""
-        return self._db.get_agent_registry()
+        return self._db.get_agent_registries()
 
     def get_agent_registry_by_id(self, registry_id: str) -> Optional[models.AgentRegistry]:
         """Get agent registry by ID."""
@@ -45,9 +45,9 @@ class MasterDb:
 
     # -- CloudAgentRegistry -----------------------------------------------------------------------
 
-    def get_cloud_agent_registry(self) -> List[models.CloudAgentRegistry]:
+    def get_cloud_agent_registries(self) -> List[models.CloudAgentRegistry]:
         """Get all cloud agent registry entries."""
-        return self._db.get_cloud_agent_registry()
+        return self._db.get_cloud_agent_registries()
 
     def get_cloud_agent_registry_by_id(
         self, registry_id: str
@@ -57,9 +57,9 @@ class MasterDb:
 
     # -- ContentActiveCensor ----------------------------------------------------------------------
 
-    def get_content_active_censor(self) -> List[models.ContentActiveCensor]:
+    def get_content_active_censors(self) -> List[models.ContentActiveCensor]:
         """Get all content active censor entries."""
-        return self._db.get_content_active_censor()
+        return self._db.get_content_active_censors()
 
     def get_content_active_censor_by_id(
         self, censor_id: str
@@ -69,9 +69,9 @@ class MasterDb:
 
     # -- ContentCue -------------------------------------------------------------------------------
 
-    def get_content_cue(self) -> List[models.ContentCue]:
+    def get_content_cues(self) -> List[models.ContentCue]:
         """Get all content cue entries."""
-        return self._db.get_content_cue()
+        return self._db.get_content_cues()
 
     def get_content_cue_by_id(self, cue_id: str) -> Optional[models.ContentCue]:
         """Get content cue by ID."""
@@ -79,9 +79,9 @@ class MasterDb:
 
     # -- ContentFile ------------------------------------------------------------------------------
 
-    def get_content_file(self) -> List[models.ContentFile]:
+    def get_content_files(self) -> List[models.ContentFile]:
         """Get all content file entries."""
-        return self._db.get_content_file()
+        return self._db.get_content_files()
 
     def get_content_file_by_id(self, file_id: str) -> Optional[models.ContentFile]:
         """Get content file by ID."""
@@ -89,9 +89,9 @@ class MasterDb:
 
     # -- ActiveCensor -----------------------------------------------------------------------------
 
-    def get_active_censor(self) -> List[models.DjmdActiveCensor]:
+    def get_active_censors(self) -> List[models.DjmdActiveCensor]:
         """Get all active censor entries."""
-        return self._db.get_active_censor()
+        return self._db.get_active_censors()
 
     def get_active_censor_by_id(self, censor_id: str) -> Optional[models.DjmdActiveCensor]:
         """Get active censor by ID."""
@@ -99,9 +99,9 @@ class MasterDb:
 
     # -- Album ------------------------------------------------------------------------------------
 
-    def get_album(self) -> List[models.DjmdAlbum]:
+    def get_albums(self) -> List[models.DjmdAlbum]:
         """Get all album entries."""
-        return self._db.get_album()
+        return self._db.get_albums()
 
     def get_album_by_id(self, album_id: str) -> Optional[models.DjmdAlbum]:
         """Get album by ID."""
@@ -111,11 +111,11 @@ class MasterDb:
         """Get album by name."""
         return self._db.get_album_by_name(album_name)
 
-    def insert_album(
+    def create_album(
         self, name: str, artist_id: str = None, image_path: str = None, compilation: int = None
     ) -> models.DjmdAlbum:
         """Insert a new album."""
-        return self._db.insert_album(name, artist_id, image_path, compilation)
+        return self._db.create_album(name, artist_id, image_path, compilation)
 
     def update_album(self, album: models.DjmdAlbum) -> models.DjmdAlbum:
         """Update album."""
@@ -127,9 +127,9 @@ class MasterDb:
 
     # -- Artist -----------------------------------------------------------------------------------
 
-    def get_artist(self) -> List[models.DjmdArtist]:
+    def get_artists(self) -> List[models.DjmdArtist]:
         """Get all artist entries."""
-        return self._db.get_artist()
+        return self._db.get_artists()
 
     def get_artist_by_id(self, artist_id: str) -> Optional[models.DjmdArtist]:
         """Get artist by ID."""
@@ -139,9 +139,9 @@ class MasterDb:
         """Get artist by name."""
         return self._db.get_artist_by_name(artist_name)
 
-    def insert_artist(self, name: str) -> models.DjmdArtist:
+    def create_artist(self, name: str) -> models.DjmdArtist:
         """Insert a new artist."""
-        return self._db.insert_artist(name)
+        return self._db.create_artist(name)
 
     def update_artist(self, artist: models.DjmdArtist) -> models.DjmdArtist:
         """Update artist."""
@@ -153,9 +153,9 @@ class MasterDb:
 
     # -- Category ---------------------------------------------------------------------------------
 
-    def get_category(self) -> List[models.DjmdCategory]:
+    def get_categories(self) -> List[models.DjmdCategory]:
         """Get all category entries."""
-        return self._db.get_category()
+        return self._db.get_categories()
 
     def get_category_by_id(self, category_id: str) -> Optional[models.DjmdCategory]:
         """Get category by ID."""
@@ -163,9 +163,9 @@ class MasterDb:
 
     # -- Color ------------------------------------------------------------------------------------
 
-    def get_color(self) -> List[models.DjmdColor]:
+    def get_colors(self) -> List[models.DjmdColor]:
         """Get all color entries."""
-        return self._db.get_color()
+        return self._db.get_colors()
 
     def get_color_by_id(self, color_id: str) -> Optional[models.DjmdColor]:
         """Get color by ID."""
@@ -173,9 +173,9 @@ class MasterDb:
 
     # -- Content ----------------------------------------------------------------------------------
 
-    def get_content(self) -> List[models.DjmdContent]:
+    def get_contents(self) -> List[models.DjmdContent]:
         """Get all content from the database."""
-        return self._db.get_content()
+        return self._db.get_contents()
 
     def get_content_by_id(self, content_id: str) -> Optional[models.DjmdContent]:
         """Get content by ID."""
@@ -185,9 +185,10 @@ class MasterDb:
         """Get content by path."""
         return self._db.get_content_by_path(path)
 
-    def get_content_anlz_dir(self, content_id: str) -> Path:
+    def get_content_anlz_dir(self, content_id: str) -> Optional[Path]:
         """Get the ANLZ directory for a content ID."""
-        return Path(self._db.get_content_anlz_dir(content_id))
+        dir_path = self._db.get_content_anlz_dir(content_id)
+        return Path(dir_path) if dir_path else None
 
     def get_content_anlz_paths(self, content_id: str) -> Dict[str, Path]:
         """Get the ANLZ paths for a content ID."""
@@ -199,9 +200,9 @@ class MasterDb:
         paths = self._db.get_content_anlz_paths(content_id)
         return {ext: Anlz(p) for ext, p in paths.items()}
 
-    def insert_content(self, path: Union[Path, str]) -> models.DjmdContent:
+    def create_content(self, path: Union[Path, str]) -> models.DjmdContent:
         """Insert a new content into the database."""
-        return self._db.insert_content(str(path))
+        return self._db.create_content(str(path))
 
     def update_content(self, content: models.DjmdContent) -> None:
         """Update content in the database."""
@@ -237,9 +238,9 @@ class MasterDb:
 
     # -- Cue --------------------------------------------------------------------------------------
 
-    def get_cue(self) -> List[models.DjmdCue]:
+    def get_cues(self) -> List[models.DjmdCue]:
         """Get all cue entries."""
-        return self._db.get_cue()
+        return self._db.get_cues()
 
     def get_cue_by_id(self, cue_id: str) -> Optional[models.DjmdCue]:
         """Get cue by ID."""
@@ -247,9 +248,9 @@ class MasterDb:
 
     # -- Device -----------------------------------------------------------------------------------
 
-    def get_device(self) -> List[models.DjmdDevice]:
+    def get_devices(self) -> List[models.DjmdDevice]:
         """Get all device entries."""
-        return self._db.get_device()
+        return self._db.get_devices()
 
     def get_device_by_id(self, device_id: str) -> Optional[models.DjmdDevice]:
         """Get device by ID."""
@@ -257,9 +258,9 @@ class MasterDb:
 
     # -- Genre ------------------------------------------------------------------------------------
 
-    def get_genre(self) -> List[models.DjmdGenre]:
+    def get_genres(self) -> List[models.DjmdGenre]:
         """Get all genre entries."""
-        return self._db.get_genre()
+        return self._db.get_genres()
 
     def get_genre_by_id(self, genre_id: str) -> Optional[models.DjmdGenre]:
         """Get genre by ID."""
@@ -269,9 +270,9 @@ class MasterDb:
         """Get genre by ID."""
         return self._db.get_genre_by_name(genre_name)
 
-    def insert_genre(self, name: str) -> models.DjmdGenre:
+    def create_genre(self, name: str) -> models.DjmdGenre:
         """Insert a new genre."""
-        return self._db.insert_genre(name)
+        return self._db.create_genre(name)
 
     def update_genre(self, genre: models.DjmdGenre) -> models.DjmdGenre:
         """Update genre."""
@@ -283,9 +284,9 @@ class MasterDb:
 
     # -- History ----------------------------------------------------------------------------------
 
-    def get_history(self) -> List[models.DjmdHistory]:
+    def get_histories(self) -> List[models.DjmdHistory]:
         """Get all history entries."""
-        return self._db.get_history()
+        return self._db.get_histories()
 
     def get_history_by_id(self, history_id: str) -> Optional[models.DjmdHistory]:
         """Get history by ID."""
@@ -301,9 +302,9 @@ class MasterDb:
 
     # -- HotCueBanklist ---------------------------------------------------------------------------
 
-    def get_hot_cue_banklist(self) -> List[models.DjmdHotCueBanklist]:
+    def get_hot_cue_banklists(self) -> List[models.DjmdHotCueBanklist]:
         """Get all hot cue banklist entries."""
-        return self._db.get_hot_cue_banklist()
+        return self._db.get_hot_cue_banklists()
 
     def get_hot_cue_banklist_by_id(self, banklist_id: str) -> Optional[models.DjmdHotCueBanklist]:
         """Get hot cue banklist by ID."""
@@ -327,9 +328,9 @@ class MasterDb:
 
     # -- Key --------------------------------------------------------------------------------------
 
-    def get_key(self) -> List[models.DjmdKey]:
+    def get_keys(self) -> List[models.DjmdKey]:
         """Get all key entries."""
-        return self._db.get_key()
+        return self._db.get_keys()
 
     def get_key_by_id(self, key_id: str) -> Optional[models.DjmdKey]:
         """Get key by ID."""
@@ -339,9 +340,9 @@ class MasterDb:
         """Get key by name."""
         return self._db.get_key_by_name(key_name)
 
-    def insert_key(self, name: str) -> models.DjmdKey:
+    def create_key(self, name: str) -> models.DjmdKey:
         """Insert a new key."""
-        return self._db.insert_key(name)
+        return self._db.create_key(name)
 
     def update_key(self, key: models.DjmdKey) -> models.DjmdKey:
         """Update key."""
@@ -353,9 +354,9 @@ class MasterDb:
 
     # -- Label ------------------------------------------------------------------------------------
 
-    def get_label(self) -> List[models.DjmdLabel]:
+    def get_labels(self) -> List[models.DjmdLabel]:
         """Get all label entries."""
-        return self._db.get_label()
+        return self._db.get_labels()
 
     def get_label_by_id(self, label_id: str) -> Optional[models.DjmdLabel]:
         """Get label by ID."""
@@ -365,9 +366,9 @@ class MasterDb:
         """Get label by ID."""
         return self._db.get_label_by_name(label_name)
 
-    def insert_label(self, name: str) -> models.DjmdLabel:
+    def create_label(self, name: str) -> models.DjmdLabel:
         """Insert a new label."""
-        return self._db.insert_label(name)
+        return self._db.create_label(name)
 
     def update_label(self, label: models.DjmdLabel) -> models.DjmdLabel:
         """Update label."""
@@ -379,9 +380,9 @@ class MasterDb:
 
     # -- MenuItems --------------------------------------------------------------------------------
 
-    def get_menu_item(self) -> List[models.DjmdMenuItems]:
+    def get_menu_items(self) -> List[models.DjmdMenuItems]:
         """Get all menu items."""
-        return self._db.get_menu_item()
+        return self._db.get_menu_items()
 
     def get_menu_item_by_id(self, item_id: str) -> Optional[models.DjmdMenuItems]:
         """Get menu item by ID."""
@@ -389,9 +390,9 @@ class MasterDb:
 
     # -- MixerParam -------------------------------------------------------------------------------
 
-    def get_mixer_param(self) -> List[models.DjmdMixerParam]:
+    def get_mixer_params(self) -> List[models.DjmdMixerParam]:
         """Get all mixer parameters."""
-        return self._db.get_mixer_param()
+        return self._db.get_mixer_params()
 
     def get_mixer_param_by_id(self, param_id: str) -> Optional[models.DjmdMixerParam]:
         """Get mixer parameter by ID."""
@@ -399,9 +400,9 @@ class MasterDb:
 
     # -- MyTag ------------------------------------------------------------------------------------
 
-    def get_my_tag(self) -> List[models.DjmdMyTag]:
+    def get_my_tags(self) -> List[models.DjmdMyTag]:
         """Get all my tags."""
-        return self._db.get_my_tag()
+        return self._db.get_my_tags()
 
     def get_my_tag_children(self, tag_id: str) -> List[models.DjmdMyTag]:
         """Get child tags by ID."""
@@ -421,11 +422,11 @@ class MasterDb:
 
     # -- Playlists --------------------------------------------------------------------------------
 
-    def get_playlist(self) -> List[models.DjmdPlaylist]:
+    def get_playlists(self) -> List[models.DjmdPlaylist]:
         """Get all playlists from the database."""
-        return self._db.get_playlist()
+        return self._db.get_playlists()
 
-    def get_playlist_tree(self) -> List[models.DjmdPlaylistTreeItem]:
+    def get_playlist_tree(self) -> List[models.DjmdPlaylistTreeNode]:
         """Get all playlists from the database."""
         return self._db.get_playlist_tree()
 
@@ -449,11 +450,11 @@ class MasterDb:
         """Get contents in a playlist by ID."""
         return self._db.get_playlist_contents(playlist_id)
 
-    def get_playlist_song_by_id(self, song_id: str) -> models.DjmdSongPlaylist:
+    def get_playlist_song_by_id(self, song_id: str) -> Optional[models.DjmdSongPlaylist]:
         """Get playlist song by ID."""
         return self._db.get_playlist_song_by_id(song_id)
 
-    def insert_playlist(
+    def create_playlist_node(
         self,
         name: str,
         attribute: int,
@@ -463,7 +464,9 @@ class MasterDb:
         smart_list: str = None,
     ) -> models.DjmdPlaylist:
         """Insert a new playlist."""
-        return self._db.insert_playlist(name, attribute, parent_id, seq, image_path, smart_list)
+        return self._db.create_playlist_node(
+            name, attribute, parent_id, seq, image_path, smart_list
+        )
 
     def rename_playlist(self, playlist_id: str, name: str) -> models.DjmdPlaylist:
         """Rename a playlist."""
@@ -479,11 +482,11 @@ class MasterDb:
         """Delete playlist from the database."""
         self._db.delete_playlist(playlist_id)
 
-    def insert_playlist_song(
+    def create_playlist_song(
         self, playlist_id: str, content_id: str, seq: int = None
     ) -> models.DjmdSongPlaylist:
         """Insert a new song into a playlist."""
-        return self._db.insert_playlist_song(playlist_id, content_id, seq)
+        return self._db.create_playlist_song(playlist_id, content_id, seq)
 
     def move_playlist_song(self, song_id: str, seq: int) -> models.DjmdSongPlaylist:
         """Move a song in a playlist."""
@@ -495,9 +498,9 @@ class MasterDb:
 
     # -- Property ---------------------------------------------------------------------------------
 
-    def get_property(self) -> List[models.DjmdProperty]:
+    def get_properties(self) -> List[models.DjmdProperty]:
         """Get all properties."""
-        return self._db.get_property()
+        return self._db.get_properties()
 
     def get_property_by_id(self, property_id: str) -> Optional[models.DjmdProperty]:
         """Get property by ID."""
@@ -505,9 +508,9 @@ class MasterDb:
 
     # -- CloudProperty ----------------------------------------------------------------------------
 
-    def get_cloud_property(self) -> List[models.DjmdCloudProperty]:
+    def get_cloud_properties(self) -> List[models.DjmdCloudProperty]:
         """Get all cloud properties."""
-        return self._db.get_cloud_property()
+        return self._db.get_cloud_properties()
 
     def get_cloud_property_by_id(self, property_id: str) -> Optional[models.DjmdCloudProperty]:
         """Get cloud property by ID."""
@@ -515,9 +518,9 @@ class MasterDb:
 
     # -- RecommendLike ----------------------------------------------------------------------------
 
-    def get_recommend_like(self) -> List[models.DjmdRecommendLike]:
+    def get_recommend_likes(self) -> List[models.DjmdRecommendLike]:
         """Get all recommend likes."""
-        return self._db.get_recommend_like()
+        return self._db.get_recommend_likes()
 
     def get_recommend_like_by_id(self, recommend_id: str) -> Optional[models.DjmdRecommendLike]:
         """Get recommend like by ID."""
@@ -547,9 +550,9 @@ class MasterDb:
 
     # -- Sampler ----------------------------------------------------------------------------------
 
-    def get_sampler(self) -> List[models.DjmdSampler]:
+    def get_samplers(self) -> List[models.DjmdSampler]:
         """Get all samplers."""
-        return self._db.get_sampler()
+        return self._db.get_samplers()
 
     def get_sampler_children(self, sampler_id: str) -> List[models.DjmdSampler]:
         """Get child samplers by ID."""
@@ -569,19 +572,19 @@ class MasterDb:
 
     # -- SongTagList ------------------------------------------------------------------------------
 
-    def get_song_tag_list(self) -> List[models.DjmdSongTagList]:
+    def get_song_tag_lists(self) -> List[models.DjmdSongTagList]:
         """Get all song tag lists."""
-        return self._db.get_song_tag_list()
+        return self._db.get_song_tag_lists()
 
-    def get_song_tag_list_by_id(self, tag_list_id: str) -> models.DjmdSongTagList:
+    def get_song_tag_list_by_id(self, tag_list_id: str) -> Optional[models.DjmdSongTagList]:
         """Get song tag list by ID."""
         return self._db.get_song_tag_list_by_id(tag_list_id)
 
     # -- Sort -------------------------------------------------------------------------------------
 
-    def get_sort(self) -> List[models.DjmdSort]:
+    def get_sorts(self) -> List[models.DjmdSort]:
         """Get all sort entries."""
-        return self._db.get_sort()
+        return self._db.get_sorts()
 
     def get_sort_by_id(self, sort_id: str) -> Optional[models.DjmdSort]:
         """Get sort by ID."""
@@ -589,9 +592,9 @@ class MasterDb:
 
     # -- ImageFile --------------------------------------------------------------------------------
 
-    def get_image_file(self) -> List[models.ImageFile]:
+    def get_image_files(self) -> List[models.ImageFile]:
         """Get all image files."""
-        return self._db.get_image_file()
+        return self._db.get_image_files()
 
     def get_image_file_by_id(self, image_id: str) -> Optional[models.ImageFile]:
         """Get image file by ID."""
@@ -599,9 +602,9 @@ class MasterDb:
 
     # -- SettingFile ------------------------------------------------------------------------------
 
-    def get_setting_file(self) -> List[models.SettingFile]:
+    def get_setting_files(self) -> List[models.SettingFile]:
         """Get all setting files."""
-        return self._db.get_setting_file()
+        return self._db.get_setting_files()
 
     def get_setting_file_by_id(self, setting_id: str) -> Optional[models.SettingFile]:
         """Get setting file by ID."""
@@ -609,9 +612,9 @@ class MasterDb:
 
     # -- UuidIDMap --------------------------------------------------------------------------------
 
-    def get_uuid_id_map(self) -> List[models.UuidIDMap]:
+    def get_uuid_id_maps(self) -> List[models.UuidIDMap]:
         """Get all UUID ID maps."""
-        return self._db.get_uuid_id_map()
+        return self._db.get_uuid_id_maps()
 
     def get_uuid_id_map_by_id(self, map_id: str) -> Optional[models.UuidIDMap]:
         """Get UUID ID map by ID."""

@@ -36,7 +36,7 @@ def test_get_local_usn(db):
 
 
 def test_get_albums(db):
-    _ = db.get_album()
+    _ = db.get_albums()
 
 
 def test_get_album(db):
@@ -45,7 +45,7 @@ def test_get_album(db):
 
 
 def test_insert_album(db):
-    item = db.insert_album("Name")
+    item = db.create_album("Name")
     assert isinstance(item, models.DjmdAlbum)
 
     id_ = item.id
@@ -57,14 +57,14 @@ def test_get_album_by_name(db):
     item = db.get_album_by_name("Name")
     assert item is None
 
-    db.insert_album("Name")
+    db.create_album("Name")
 
     item = db.get_album_by_name("Name")
     assert item is not None
 
 
 def test_update_album(db):
-    item = db.insert_album("Name")
+    item = db.create_album("Name")
     assert isinstance(item, models.DjmdAlbum)
 
     id_ = item.id

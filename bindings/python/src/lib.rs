@@ -38,10 +38,10 @@ fn is_rekordbox_running() -> PyResult<bool> {
 
 #[pymodule]
 fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
-    let _ = m.add_function(wrap_pyfunction!(rekordbox_agent_app_dir, m)?);
-    let _ = m.add_function(wrap_pyfunction!(options_json_path, m)?);
-    let _ = m.add_function(wrap_pyfunction!(rekordbox_app_dir, m)?);
-    let _ = m.add_function(wrap_pyfunction!(is_rekordbox_running, m)?);
+    m.add_function(wrap_pyfunction!(rekordbox_agent_app_dir, m)?)?;
+    m.add_function(wrap_pyfunction!(options_json_path, m)?)?;
+    m.add_function(wrap_pyfunction!(rekordbox_app_dir, m)?)?;
+    m.add_function(wrap_pyfunction!(is_rekordbox_running, m)?)?;
 
     // Master-db
     m.add_class::<masterdb::PyMasterDb>()?;
@@ -52,34 +52,50 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<rbox::masterdb::models::ContentFile>()?;
     m.add_class::<rbox::masterdb::models::DjmdActiveCensor>()?;
     m.add_class::<rbox::masterdb::models::DjmdAlbum>()?;
+    m.add_class::<rbox::masterdb::models::NewDjmdAlbum>()?;
     m.add_class::<rbox::masterdb::models::DjmdArtist>()?;
+    m.add_class::<rbox::masterdb::models::NewDjmdArtist>()?;
     m.add_class::<rbox::masterdb::models::DjmdCategory>()?;
     m.add_class::<rbox::masterdb::models::DjmdColor>()?;
     m.add_class::<rbox::masterdb::models::DjmdContent>()?;
+    m.add_class::<rbox::masterdb::models::NewDjmdContent>()?;
     m.add_class::<rbox::masterdb::models::DjmdCue>()?;
     m.add_class::<rbox::masterdb::models::DjmdDevice>()?;
     m.add_class::<rbox::masterdb::models::DjmdGenre>()?;
+    m.add_class::<rbox::masterdb::models::NewDjmdGenre>()?;
     m.add_class::<rbox::masterdb::models::DjmdHistory>()?;
     m.add_class::<rbox::masterdb::models::DjmdSongHistory>()?;
+    m.add_class::<rbox::masterdb::models::NewDjmdHistory>()?;
+    m.add_class::<rbox::masterdb::models::NewDjmdSongHistory>()?;
     m.add_class::<rbox::masterdb::models::DjmdHotCueBanklist>()?;
     m.add_class::<rbox::masterdb::models::DjmdSongHotCueBanklist>()?;
     m.add_class::<rbox::masterdb::models::HotCueBanklistCue>()?;
     m.add_class::<rbox::masterdb::models::DjmdKey>()?;
+    m.add_class::<rbox::masterdb::models::NewDjmdKey>()?;
     m.add_class::<rbox::masterdb::models::DjmdLabel>()?;
+    m.add_class::<rbox::masterdb::models::NewDjmdLabel>()?;
     m.add_class::<rbox::masterdb::models::DjmdMenuItems>()?;
     m.add_class::<rbox::masterdb::models::DjmdMixerParam>()?;
     m.add_class::<rbox::masterdb::models::DjmdMyTag>()?;
     m.add_class::<rbox::masterdb::models::DjmdSongMyTag>()?;
+    m.add_class::<rbox::masterdb::models::NewDjmdMyTag>()?;
+    m.add_class::<rbox::masterdb::models::NewDjmdSongMyTag>()?;
     m.add_class::<rbox::masterdb::models::DjmdPlaylist>()?;
-    m.add_class::<masterdb::PyDjmdPlaylistTreeNode>()?;
     m.add_class::<rbox::masterdb::models::DjmdSongPlaylist>()?;
-    m.add_class::<rbox::masterdb::models::DjmdProperty>()?;
+    m.add_class::<rbox::masterdb::models::NewDjmdPlaylist>()?;
+    m.add_class::<rbox::masterdb::models::NewDjmdSongPlaylist>()?;
+    m.add_class::<masterdb::PyDjmdPlaylistTreeNode>()?;
     m.add_class::<rbox::masterdb::models::DjmdCloudProperty>()?;
+    m.add_class::<rbox::masterdb::models::DjmdProperty>()?;
     m.add_class::<rbox::masterdb::models::DjmdRecommendLike>()?;
     m.add_class::<rbox::masterdb::models::DjmdRelatedTracks>()?;
     m.add_class::<rbox::masterdb::models::DjmdSongRelatedTracks>()?;
+    m.add_class::<rbox::masterdb::models::NewDjmdRelatedTracks>()?;
+    m.add_class::<rbox::masterdb::models::NewDjmdSongRelatedTracks>()?;
     m.add_class::<rbox::masterdb::models::DjmdSampler>()?;
     m.add_class::<rbox::masterdb::models::DjmdSongSampler>()?;
+    m.add_class::<rbox::masterdb::models::NewDjmdSampler>()?;
+    m.add_class::<rbox::masterdb::models::NewDjmdSongSampler>()?;
     m.add_class::<rbox::masterdb::models::DjmdSongTagList>()?;
     m.add_class::<rbox::masterdb::models::DjmdSort>()?;
     m.add_class::<rbox::masterdb::models::ImageFile>()?;
@@ -90,7 +106,11 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<rbox::devlib_plus::models::Album>()?;
     m.add_class::<rbox::devlib_plus::models::NewAlbum>()?;
     m.add_class::<rbox::devlib_plus::models::Artist>()?;
+    m.add_class::<rbox::devlib_plus::models::Composer>()?;
+    m.add_class::<rbox::devlib_plus::models::Lyricist>()?;
     m.add_class::<rbox::devlib_plus::models::NewArtist>()?;
+    m.add_class::<rbox::devlib_plus::models::OriginalArtist>()?;
+    m.add_class::<rbox::devlib_plus::models::Remixer>()?;
     m.add_class::<rbox::devlib_plus::models::Category>()?;
     m.add_class::<rbox::devlib_plus::models::NewCategory>()?;
     m.add_class::<rbox::devlib_plus::models::Color>()?;
@@ -114,16 +134,17 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<rbox::devlib_plus::models::MenuItem>()?;
     m.add_class::<rbox::devlib_plus::models::NewMenuItem>()?;
     m.add_class::<rbox::devlib_plus::models::MyTag>()?;
-    m.add_class::<rbox::devlib_plus::models::NewMyTag>()?;
     m.add_class::<rbox::devlib_plus::models::MyTagContent>()?;
-    m.add_class::<rbox::devlib_plus::models::Playlist>()?;
+    m.add_class::<rbox::devlib_plus::models::NewMyTag>()?;
     m.add_class::<rbox::devlib_plus::models::NewPlaylist>()?;
+    m.add_class::<rbox::devlib_plus::models::Playlist>()?;
     m.add_class::<rbox::devlib_plus::models::PlaylistContent>()?;
     m.add_class::<rbox::devlib_plus::models::Property>()?;
     m.add_class::<rbox::devlib_plus::models::RecommendedLike>()?;
-    m.add_class::<rbox::devlib_plus::models::Sort>()?;
     m.add_class::<rbox::devlib_plus::models::NewSort>()?;
+    m.add_class::<rbox::devlib_plus::models::Sort>()?;
 
+    // Anlz
     m.add_class::<anlz::PyAnlz>()?;
     m.add_class::<anlz::PyBeat>()?;
     m.add_class::<anlz::PyExtBeat>()?;
@@ -148,6 +169,7 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<anlz::PyPhrase>()?;
     m.add_class::<anlz::PySongStructureData>()?;
 
+    // Rekordbox XML
     m.add_class::<xml::PyTempo>()?;
     m.add_class::<xml::PyPositionMark>()?;
     m.add_class::<xml::PyTrack>()?;
@@ -155,12 +177,15 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<xml::PyPlaylistNode>()?;
     m.add_class::<xml::PyRekordboxXml>()?;
 
+    // My-Settings
     m.add_class::<settings::PySetting>()?;
 
+    // Errors
     m.add("Error", m.py().get_type::<errors::Error>())?;
     m.add("DatabaseError", m.py().get_type::<errors::DatabaseError>())?;
     m.add("AnlzError", m.py().get_type::<errors::AnlzError>())?;
     m.add("XmlError", m.py().get_type::<errors::XmlError>())?;
     m.add("SettingError", m.py().get_type::<errors::SettingError>())?;
+
     Ok(())
 }
