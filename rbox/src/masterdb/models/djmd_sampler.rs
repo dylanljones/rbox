@@ -17,7 +17,9 @@ use super::agent_registry::AgentRegistry;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdSampler, djmdSongSampler};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
-use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate, TreeSeq};
+use crate::model_traits::{
+    Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, TreeSeq,
+};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -152,6 +154,42 @@ impl ModelDelete for DjmdSampler {
     }
 }
 
+impl ModelTree for DjmdSampler {
+    fn move_to(
+        conn: &mut SqliteConnection,
+        id: &Self::Id,
+        parent_id: Option<&Self::Id>,
+        seq: Option<i32>,
+    ) -> QueryResult<usize> {
+        let res = match Self::find(conn, id)? {
+            Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+        let old_seq = res.seq;
+        let old_parent_id = res.parent_id.clone();
+        let parent_id = parent_id.unwrap_or(&old_parent_id);
+
+        // *Note*: Moving other records increments USN by 1 for all changes
+        let res = Self::update_seq_before_move(conn, &old_parent_id, parent_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
+            None => return Ok(0),
+        };
+
+        // Update Seq and parent of actual record
+        let now = Utc::now();
+        let usn = AgentRegistry::increment_local_usn(conn)?;
+        diesel::update(djmdSampler::table.find(id))
+            .set((
+                djmdSampler::seq.eq(seq),
+                djmdSampler::parent_id.eq(parent_id),
+                djmdSampler::updated_at.eq(&format_datetime(&now)),
+                djmdSampler::rb_local_usn.eq(usn),
+            ))
+            .execute(conn)
+    }
+}
+
 impl DjmdSampler {
     /// Queries a record from the `djmdSampler` table by its `name`.
     pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
@@ -226,41 +264,6 @@ impl DjmdSampler {
                 djmdSampler::rb_local_usn.eq(usn),
             ))
             .get_result(conn)
-    }
-
-    /// Move a record in the `djmdSampler` table to a new parent.
-    pub fn move_to(
-        conn: &mut SqliteConnection,
-        id: &str,
-        parent_id: Option<&str>,
-        seq: Option<i32>,
-    ) -> QueryResult<usize> {
-        let res = match Self::find(conn, id)? {
-            Some(r) => r,
-            None => return Err(Error::NotFound),
-        };
-        let old_seq = res.seq;
-        let old_parent_id = res.parent_id.clone();
-        let parent_id = parent_id.unwrap_or(&old_parent_id);
-
-        // *Note*: Moving other records increments USN by 1 for all changes
-        let res = Self::update_seq_before_move(conn, &old_parent_id, parent_id, old_seq, seq)?;
-        let (seq, _n) = match res {
-            Some((s, n)) => (s, n),
-            None => return Ok(0),
-        };
-
-        // Update Seq and parent of actual record
-        let now = Utc::now();
-        let usn = AgentRegistry::increment_local_usn(conn)?;
-        diesel::update(djmdSampler::table.find(id))
-            .set((
-                djmdSampler::seq.eq(seq),
-                djmdSampler::parent_id.eq(parent_id),
-                djmdSampler::updated_at.eq(&format_datetime(&now)),
-                djmdSampler::rb_local_usn.eq(usn),
-            ))
-            .execute(conn)
     }
 
     /// Generates a new unique identifier for a record in the `djmdSampler` table.
@@ -598,6 +601,32 @@ impl ModelDelete for DjmdSongSampler {
     }
 }
 
+impl ModelList for DjmdSongSampler {
+    fn move_to(conn: &mut SqliteConnection, id: &Self::Id, seq: Option<i32>) -> QueryResult<usize> {
+        let res = match Self::find(conn, id)? {
+            Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+        let old_seq = res.track_no;
+        // *Note*: Moving other records increments USN by 1 for all changes
+        let res = Self::update_seq_before_move_in(conn, &res.sampler_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
+            None => return Ok(0),
+        };
+        // Update seq of actual record
+        let now = Utc::now();
+        let usn = AgentRegistry::increment_local_usn(conn)?;
+        diesel::update(djmdSongSampler::table.find(id))
+            .set((
+                djmdSongSampler::track_no.eq(seq),
+                djmdSongSampler::updated_at.eq(&format_datetime(&now)),
+                djmdSongSampler::rb_local_usn.eq(usn),
+            ))
+            .execute(conn)
+    }
+}
+
 impl DjmdSongSampler {
     /// Queries all records from the `djmdSongSampler` table by its `sampler_id`.
     pub fn by_sampler_id(conn: &mut SqliteConnection, sampler_id: &str) -> QueryResult<Vec<Self>> {
@@ -629,31 +658,6 @@ impl DjmdSongSampler {
     /// Counts the number of records in the `djmdSongSampler` table for a given `sampler_id`.
     pub fn count(conn: &mut SqliteConnection, sampler_id: &str) -> QueryResult<i32> {
         Self::count_children(conn, sampler_id)
-    }
-
-    /// Move a record in the `djmdSongSampler` table.
-    pub fn move_to(conn: &mut SqliteConnection, id: &str, seq: Option<i32>) -> QueryResult<usize> {
-        let res = match Self::find(conn, id)? {
-            Some(r) => r,
-            None => return Err(Error::NotFound),
-        };
-        let old_seq = res.track_no;
-        // *Note*: Moving other records increments USN by 1 for all changes
-        let res = Self::update_seq_before_move_in(conn, &res.sampler_id, old_seq, seq)?;
-        let (seq, _n) = match res {
-            Some((s, n)) => (s, n),
-            None => return Ok(0),
-        };
-        // Update seq of actual record
-        let now = Utc::now();
-        let usn = AgentRegistry::increment_local_usn(conn)?;
-        diesel::update(djmdSongSampler::table.find(id))
-            .set((
-                djmdSongSampler::track_no.eq(seq),
-                djmdSongSampler::updated_at.eq(&format_datetime(&now)),
-                djmdSongSampler::rb_local_usn.eq(usn),
-            ))
-            .execute(conn)
     }
 
     /// Deletes a record from the `djmdSongSampler` table based on its `sampler_id`.

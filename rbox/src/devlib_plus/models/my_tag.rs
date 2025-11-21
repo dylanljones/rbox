@@ -13,7 +13,7 @@ use std::collections::{HashSet, VecDeque};
 
 use super::content::Content;
 use super::schema::{content, myTag, myTag_content};
-use crate::model_traits::{Model, ModelDelete, ModelInsert, TreeSeq};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelTree, TreeSeq};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -101,6 +101,32 @@ impl ModelDelete for MyTag {
     }
 }
 
+impl ModelTree for MyTag {
+    fn move_to(
+        conn: &mut SqliteConnection,
+        id: &Self::Id,
+        parent_id: Option<&Self::Id>,
+        seq: Option<i32>,
+    ) -> QueryResult<usize> {
+        let res = match Self::find(conn, &id)? {
+            Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+        let old_seq = res.seq;
+        let old_parent_id = res.parent_id.clone();
+        let parent_id = parent_id.unwrap_or(&old_parent_id);
+
+        let res = Self::update_seq_before_move(conn, &old_parent_id, &parent_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
+            None => return Ok(0),
+        };
+        diesel::update(myTag::table.find(id))
+            .set((myTag::seq.eq(seq), myTag::parent_id.eq(parent_id)))
+            .execute(conn)
+    }
+}
+
 impl MyTag {
     /// Queries the records from the `myTag` table by their `parent_id`.
     pub fn by_parent_id(conn: &mut SqliteConnection, parent_id: i32) -> QueryResult<Vec<Self>> {
@@ -183,30 +209,6 @@ impl MyTag {
     pub fn rename(conn: &mut SqliteConnection, id: i32, name: &str) -> QueryResult<usize> {
         diesel::update(myTag::table.find(id))
             .set(myTag::name.eq(name))
-            .execute(conn)
-    }
-
-    pub fn move_to(
-        conn: &mut SqliteConnection,
-        id: i32,
-        parent_id: Option<i32>,
-        seq: Option<i32>,
-    ) -> QueryResult<usize> {
-        let res = match Self::find(conn, &id)? {
-            Some(r) => r,
-            None => return Err(Error::NotFound),
-        };
-        let old_seq = res.seq;
-        let old_parent_id = res.parent_id.clone();
-        let parent_id = parent_id.unwrap_or(old_parent_id);
-
-        let res = Self::update_seq_before_move(conn, &old_parent_id, &parent_id, old_seq, seq)?;
-        let (seq, _n) = match res {
-            Some((s, n)) => (s, n),
-            None => return Ok(0),
-        };
-        diesel::update(myTag::table.find(id))
-            .set((myTag::seq.eq(seq), myTag::parent_id.eq(parent_id)))
             .execute(conn)
     }
 }

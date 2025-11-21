@@ -17,7 +17,9 @@ use super::agent_registry::AgentRegistry;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdMyTag, djmdSongMyTag};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
-use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate, TreeSeq};
+use crate::model_traits::{
+    Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, TreeSeq,
+};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -153,6 +155,41 @@ impl ModelDelete for DjmdMyTag {
     }
 }
 
+impl ModelTree for DjmdMyTag {
+    fn move_to(
+        conn: &mut SqliteConnection,
+        id: &Self::Id,
+        parent_id: Option<&Self::Id>,
+        seq: Option<i32>,
+    ) -> QueryResult<usize> {
+        let res = match Self::find(conn, id)? {
+            Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+        let old_seq = res.seq;
+        let old_parent_id = res.parent_id.clone();
+        let parent_id = parent_id.unwrap_or(&old_parent_id);
+
+        // *Note*: Moving other records increments USN by 1 for all changes
+        let res = Self::update_seq_before_move(conn, &old_parent_id, parent_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
+            None => return Ok(0),
+        };
+        // Update Seq and parent of actual record
+        let now = Utc::now();
+        let usn = AgentRegistry::increment_local_usn(conn)?;
+        diesel::update(djmdMyTag::table.find(id))
+            .set((
+                djmdMyTag::seq.eq(seq),
+                djmdMyTag::parent_id.eq(parent_id),
+                djmdMyTag::updated_at.eq(&format_datetime(&now)),
+                djmdMyTag::rb_local_usn.eq(usn),
+            ))
+            .execute(conn)
+    }
+}
+
 impl DjmdMyTag {
     /// Queries a record from the `djmdMyTag` table by its `name`.
     pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
@@ -234,40 +271,6 @@ impl DjmdMyTag {
                 djmdMyTag::rb_local_usn.eq(usn),
             ))
             .get_result(conn)?)
-    }
-
-    /// Move a record in the `djmdMyTag` table to a new parent.
-    pub fn move_to(
-        conn: &mut SqliteConnection,
-        id: &str,
-        parent_id: Option<&str>,
-        seq: Option<i32>,
-    ) -> QueryResult<usize> {
-        let res = match Self::find(conn, id)? {
-            Some(r) => r,
-            None => return Err(Error::NotFound),
-        };
-        let old_seq = res.seq;
-        let old_parent_id = res.parent_id.clone();
-        let parent_id = parent_id.unwrap_or(&old_parent_id);
-
-        // *Note*: Moving other records increments USN by 1 for all changes
-        let res = Self::update_seq_before_move(conn, &old_parent_id, parent_id, old_seq, seq)?;
-        let (seq, _n) = match res {
-            Some((s, n)) => (s, n),
-            None => return Ok(0),
-        };
-        // Update Seq and parent of actual record
-        let now = Utc::now();
-        let usn = AgentRegistry::increment_local_usn(conn)?;
-        diesel::update(djmdMyTag::table.find(id))
-            .set((
-                djmdMyTag::seq.eq(seq),
-                djmdMyTag::parent_id.eq(parent_id),
-                djmdMyTag::updated_at.eq(&format_datetime(&now)),
-                djmdMyTag::rb_local_usn.eq(usn),
-            ))
-            .execute(conn)
     }
 
     /// Generates a new unique identifier for a record in the `djmdMyTag` table.
@@ -595,6 +598,34 @@ impl ModelDelete for DjmdSongMyTag {
     }
 }
 
+impl ModelList for DjmdSongMyTag {
+    fn move_to(conn: &mut SqliteConnection, id: &Self::Id, seq: Option<i32>) -> QueryResult<usize> {
+        let res = match Self::find(conn, id)? {
+            Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+
+        let old_seq = res.track_no;
+        // *Note*: Moving other records increments USN by 1 for all changes
+        let res = Self::update_seq_before_move_in(conn, &res.my_tag_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
+            None => return Ok(0),
+        };
+
+        // Update seq of actual record
+        let now = Utc::now();
+        let usn = AgentRegistry::increment_local_usn(conn)?;
+        diesel::update(djmdSongMyTag::table.find(id))
+            .set((
+                djmdSongMyTag::track_no.eq(seq),
+                djmdSongMyTag::updated_at.eq(&format_datetime(&now)),
+                djmdSongMyTag::rb_local_usn.eq(usn),
+            ))
+            .execute(conn)
+    }
+}
+
 impl DjmdSongMyTag {
     /// Queries all records from the `djmdSongMyTag` table by its `my_tag_id`.
     pub fn by_tag_id(conn: &mut SqliteConnection, tag_id: &str) -> QueryResult<Vec<Self>> {
@@ -627,33 +658,6 @@ impl DjmdSongMyTag {
     /// Counts the number of records in the `djmdSongMyTag` table for a given `my_tag_id`.
     pub fn count(conn: &mut SqliteConnection, my_tag_id: &str) -> QueryResult<i32> {
         Self::count_children(conn, my_tag_id)
-    }
-
-    /// Move a record in the `djmdSongMyTag` table.
-    pub fn move_to(conn: &mut SqliteConnection, id: &str, seq: Option<i32>) -> QueryResult<usize> {
-        let res = match Self::find(conn, id)? {
-            Some(r) => r,
-            None => return Err(Error::NotFound),
-        };
-
-        let old_seq = res.track_no;
-        // *Note*: Moving other records increments USN by 1 for all changes
-        let res = Self::update_seq_before_move_in(conn, &res.my_tag_id, old_seq, seq)?;
-        let (seq, _n) = match res {
-            Some((s, n)) => (s, n),
-            None => return Ok(0),
-        };
-
-        // Update seq of actual record
-        let now = Utc::now();
-        let usn = AgentRegistry::increment_local_usn(conn)?;
-        diesel::update(djmdSongMyTag::table.find(id))
-            .set((
-                djmdSongMyTag::track_no.eq(seq),
-                djmdSongMyTag::updated_at.eq(&format_datetime(&now)),
-                djmdSongMyTag::rb_local_usn.eq(usn),
-            ))
-            .execute(conn)
     }
 
     /// Deletes a record from the `djmdSongMyTag` table based on its `my_tag_id`.

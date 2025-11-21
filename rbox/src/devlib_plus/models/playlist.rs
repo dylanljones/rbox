@@ -15,7 +15,7 @@ use std::rc::Rc;
 
 use super::content::Content;
 use super::schema::{content, playlist, playlist_content};
-use crate::model_traits::{Model, ModelDelete, ModelInsert, TreeSeq};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelList, ModelTree, TreeSeq};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -107,6 +107,32 @@ impl ModelDelete for Playlist {
     }
 }
 
+impl ModelTree for Playlist {
+    fn move_to(
+        conn: &mut SqliteConnection,
+        id: &Self::Id,
+        parent_id: Option<&Self::Id>,
+        seq: Option<i32>,
+    ) -> QueryResult<usize> {
+        let res = match Self::find(conn, &id)? {
+            Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+        let old_seq = res.seq;
+        let old_parent_id = res.parent_id.clone();
+        let parent_id = parent_id.unwrap_or(&old_parent_id);
+
+        let res = Self::update_seq_before_move(conn, &old_parent_id, parent_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
+            None => return Ok(0),
+        };
+        diesel::update(playlist::table.find(id))
+            .set((playlist::seq.eq(seq), playlist::parent_id.eq(parent_id)))
+            .execute(conn)
+    }
+}
+
 impl Playlist {
     /// Queries all records from the `playlist` table and returns a tree structure.
     pub fn tree(conn: &mut SqliteConnection) -> QueryResult<Vec<PlaylistTreeNodeRef>> {
@@ -192,43 +218,10 @@ impl Playlist {
         }
     }
 
-    // /// Counts the number of child records in the `playlist` table for a given `parent_id`.
-    // pub fn count_children(conn: &mut SqliteConnection, parent_id: i32) -> QueryResult<i32> {
-    //     let count: i64 = playlist::table
-    //         .filter(playlist::parent_id.eq(parent_id))
-    //         .count()
-    //         .get_result(conn)?;
-    //     Ok(count as i32)
-    // }
-
     /// Set the name of a record in the `playlist` table.
     pub fn rename(conn: &mut SqliteConnection, id: i32, name: &str) -> QueryResult<usize> {
         diesel::update(playlist::table.find(id))
             .set(playlist::name.eq(name))
-            .execute(conn)
-    }
-
-    pub fn move_to(
-        conn: &mut SqliteConnection,
-        id: i32,
-        parent_id: Option<i32>,
-        seq: Option<i32>,
-    ) -> QueryResult<usize> {
-        let res = match Self::find(conn, &id)? {
-            Some(r) => r,
-            None => return Err(Error::NotFound),
-        };
-        let old_seq = res.seq;
-        let old_parent_id = res.parent_id.clone();
-        let parent_id = parent_id.unwrap_or(old_parent_id);
-
-        let res = Self::update_seq_before_move(conn, &old_parent_id, &parent_id, old_seq, seq)?;
-        let (seq, _n) = match res {
-            Some((s, n)) => (s, n),
-            None => return Ok(0),
-        };
-        diesel::update(playlist::table.find(id))
-            .set((playlist::seq.eq(seq), playlist::parent_id.eq(parent_id)))
             .execute(conn)
     }
 }
@@ -508,6 +501,26 @@ impl ModelInsert for PlaylistContent {
     }
 }
 
+impl ModelList for PlaylistContent {
+    fn move_to(conn: &mut SqliteConnection, id: &Self::Id, seq: Option<i32>) -> QueryResult<usize> {
+        let res = match Self::find(conn, id)? {
+            Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+
+        let old_seq = res.seq;
+        let res = Self::update_seq_before_move_in(conn, &res.playlist_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
+            None => return Ok(0),
+        };
+
+        diesel::update(playlist_content::table.find(*id))
+            .set(playlist_content::seq.eq(seq))
+            .execute(conn)
+    }
+}
+
 impl PlaylistContent {
     /// Creates a new `playlist_content` record with the required fields.
     pub fn new(playlist_id: i32, content_id: i32) -> Self {
@@ -568,29 +581,6 @@ impl PlaylistContent {
             .count()
             .get_result(conn)?;
         Ok(count as i32)
-    }
-
-    /// Move a record in the `playlist_content` table.
-    pub fn move_to(
-        conn: &mut SqliteConnection,
-        id: &(i32, i32),
-        seq: Option<i32>,
-    ) -> QueryResult<usize> {
-        let res = match Self::find(conn, id)? {
-            Some(r) => r,
-            None => return Err(Error::NotFound),
-        };
-
-        let old_seq = res.seq;
-        let res = Self::update_seq_before_move_in(conn, &res.playlist_id, old_seq, seq)?;
-        let (seq, _n) = match res {
-            Some((s, n)) => (s, n),
-            None => return Ok(0),
-        };
-
-        diesel::update(playlist_content::table.find(*id))
-            .set(playlist_content::seq.eq(seq))
-            .execute(conn)
     }
 
     /// Deletes all record from the `playlist_content` table referencing a `playlist` record.

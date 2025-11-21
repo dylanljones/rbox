@@ -17,7 +17,9 @@ use super::agent_registry::AgentRegistry;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdRelatedTracks, djmdSongRelatedTracks};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
-use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate, TreeSeq};
+use crate::model_traits::{
+    Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, TreeSeq,
+};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -160,6 +162,41 @@ impl ModelDelete for DjmdRelatedTracks {
     }
 }
 
+impl ModelTree for DjmdRelatedTracks {
+    fn move_to(
+        conn: &mut SqliteConnection,
+        id: &Self::Id,
+        parent_id: Option<&Self::Id>,
+        seq: Option<i32>,
+    ) -> QueryResult<usize> {
+        let res = match Self::find(conn, id)? {
+            Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+        let old_seq = res.seq;
+        let old_parent_id = res.parent_id.clone();
+        let parent_id = parent_id.unwrap_or(&old_parent_id);
+
+        // *Note*: Moving other records increments USN by 1 for all changes
+        let res = Self::update_seq_before_move(conn, &old_parent_id, parent_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
+            None => return Ok(0),
+        };
+        // Update Seq and parent of actual record
+        let now = Utc::now();
+        let usn = AgentRegistry::increment_local_usn(conn)?;
+        diesel::update(djmdRelatedTracks::table.find(id))
+            .set((
+                djmdRelatedTracks::seq.eq(seq),
+                djmdRelatedTracks::parent_id.eq(parent_id),
+                djmdRelatedTracks::updated_at.eq(&format_datetime(&now)),
+                djmdRelatedTracks::rb_local_usn.eq(usn),
+            ))
+            .execute(conn)
+    }
+}
+
 impl DjmdRelatedTracks {
     /// Queries a record from the `djmdRelatedTracks` table by its `name`.
     pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
@@ -247,40 +284,6 @@ impl DjmdRelatedTracks {
                 djmdRelatedTracks::rb_local_usn.eq(usn),
             ))
             .get_result(conn)?)
-    }
-
-    /// Move a record in the `djmdRelatedTracks` table to a new parent.
-    pub fn move_to(
-        conn: &mut SqliteConnection,
-        id: &str,
-        parent_id: Option<&str>,
-        seq: Option<i32>,
-    ) -> QueryResult<usize> {
-        let res = match Self::find(conn, id)? {
-            Some(r) => r,
-            None => return Err(Error::NotFound),
-        };
-        let old_seq = res.seq;
-        let old_parent_id = res.parent_id.clone();
-        let parent_id = parent_id.unwrap_or(&old_parent_id);
-
-        // *Note*: Moving other records increments USN by 1 for all changes
-        let res = Self::update_seq_before_move(conn, &old_parent_id, parent_id, old_seq, seq)?;
-        let (seq, _n) = match res {
-            Some((s, n)) => (s, n),
-            None => return Ok(0),
-        };
-        // Update Seq and parent of actual record
-        let now = Utc::now();
-        let usn = AgentRegistry::increment_local_usn(conn)?;
-        diesel::update(djmdRelatedTracks::table.find(id))
-            .set((
-                djmdRelatedTracks::seq.eq(seq),
-                djmdRelatedTracks::parent_id.eq(parent_id),
-                djmdRelatedTracks::updated_at.eq(&format_datetime(&now)),
-                djmdRelatedTracks::rb_local_usn.eq(usn),
-            ))
-            .execute(conn)
     }
 
     /// Generates a new unique identifier for a record in the `djmdRelatedTracks` table.
@@ -631,6 +634,34 @@ impl ModelDelete for DjmdSongRelatedTracks {
     }
 }
 
+impl ModelList for DjmdSongRelatedTracks {
+    fn move_to(conn: &mut SqliteConnection, id: &Self::Id, seq: Option<i32>) -> QueryResult<usize> {
+        let res = match Self::find(conn, id)? {
+            Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+
+        let old_seq = res.track_no;
+        // *Note*: Moving other records increments USN by 1 for all changes
+        let res = Self::update_seq_before_move_in(conn, &res.related_tracks_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
+            None => return Ok(0),
+        };
+
+        // Update seq of actual record
+        let now = Utc::now();
+        let usn = AgentRegistry::increment_local_usn(conn)?;
+        diesel::update(djmdSongRelatedTracks::table.find(id))
+            .set((
+                djmdSongRelatedTracks::track_no.eq(seq),
+                djmdSongRelatedTracks::updated_at.eq(&format_datetime(&now)),
+                djmdSongRelatedTracks::rb_local_usn.eq(usn),
+            ))
+            .execute(conn)
+    }
+}
+
 impl DjmdSongRelatedTracks {
     /// Queries all records from the `djmdSongRelatedTracks` table by its `sampler_id`.
     pub fn by_related_tracks_id(
@@ -666,33 +697,6 @@ impl DjmdSongRelatedTracks {
     /// Counts the number of records in the `djmdSongRelatedTracks` table for a given `related_tracks_id`.
     pub fn count(conn: &mut SqliteConnection, related_tracks_id: &str) -> QueryResult<i32> {
         Self::count_children(conn, related_tracks_id)
-    }
-
-    /// Move a record in the `djmdSongRelatedTracks` table.
-    pub fn move_to(conn: &mut SqliteConnection, id: &str, seq: Option<i32>) -> QueryResult<usize> {
-        let res = match Self::find(conn, id)? {
-            Some(r) => r,
-            None => return Err(Error::NotFound),
-        };
-
-        let old_seq = res.track_no;
-        // *Note*: Moving other records increments USN by 1 for all changes
-        let res = Self::update_seq_before_move_in(conn, &res.related_tracks_id, old_seq, seq)?;
-        let (seq, _n) = match res {
-            Some((s, n)) => (s, n),
-            None => return Ok(0),
-        };
-
-        // Update seq of actual record
-        let now = Utc::now();
-        let usn = AgentRegistry::increment_local_usn(conn)?;
-        diesel::update(djmdSongRelatedTracks::table.find(id))
-            .set((
-                djmdSongRelatedTracks::track_no.eq(seq),
-                djmdSongRelatedTracks::updated_at.eq(&format_datetime(&now)),
-                djmdSongRelatedTracks::rb_local_usn.eq(usn),
-            ))
-            .execute(conn)
     }
 
     /// Deletes a record from the `djmdSongRelatedTracks` table based on its `related_tracks_id`.

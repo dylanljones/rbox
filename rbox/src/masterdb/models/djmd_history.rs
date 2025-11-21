@@ -17,7 +17,9 @@ use super::agent_registry::AgentRegistry;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdHistory, djmdSongHistory};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
-use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate, TreeSeq};
+use crate::model_traits::{
+    Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, TreeSeq,
+};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -158,6 +160,42 @@ impl ModelDelete for DjmdHistory {
     }
 }
 
+impl ModelTree for DjmdHistory {
+    fn move_to(
+        conn: &mut SqliteConnection,
+        id: &Self::Id,
+        parent_id: Option<&Self::Id>,
+        seq: Option<i32>,
+    ) -> QueryResult<usize> {
+        let res = match Self::find(conn, id)? {
+            Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+        let old_seq = res.seq;
+        let old_parent_id = res.parent_id.clone();
+        let parent_id = parent_id.unwrap_or(&old_parent_id);
+
+        // *Note*: Moving other records increments USN by 1 for all changes
+        let res = Self::update_seq_before_move(conn, &old_parent_id, parent_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
+            None => return Ok(0),
+        };
+
+        // Update Seq and parent of actual record
+        let now = Utc::now();
+        let usn = AgentRegistry::increment_local_usn(conn)?;
+        diesel::update(djmdHistory::table.find(id))
+            .set((
+                djmdHistory::seq.eq(seq),
+                djmdHistory::parent_id.eq(parent_id),
+                djmdHistory::updated_at.eq(&format_datetime(&now)),
+                djmdHistory::rb_local_usn.eq(usn),
+            ))
+            .execute(conn)
+    }
+}
+
 impl DjmdHistory {
     /// Queries the records from the `djmdHistory` table by their `parent_id`.
     pub fn by_parent_id(conn: &mut SqliteConnection, parent_id: &str) -> QueryResult<Vec<Self>> {
@@ -225,41 +263,6 @@ impl DjmdHistory {
                 djmdHistory::rb_local_usn.eq(usn),
             ))
             .get_result(conn)?)
-    }
-
-    /// Move a record in the `djmdHistory` table to a new parent.
-    pub fn move_to(
-        conn: &mut SqliteConnection,
-        id: &str,
-        parent_id: Option<&str>,
-        seq: Option<i32>,
-    ) -> QueryResult<usize> {
-        let res = match Self::find(conn, id)? {
-            Some(r) => r,
-            None => return Err(Error::NotFound),
-        };
-        let old_seq = res.seq;
-        let old_parent_id = res.parent_id.clone();
-        let parent_id = parent_id.unwrap_or(&old_parent_id);
-
-        // *Note*: Moving other records increments USN by 1 for all changes
-        let res = Self::update_seq_before_move(conn, &old_parent_id, parent_id, old_seq, seq)?;
-        let (seq, _n) = match res {
-            Some((s, n)) => (s, n),
-            None => return Ok(0),
-        };
-
-        // Update Seq and parent of actual record
-        let now = Utc::now();
-        let usn = AgentRegistry::increment_local_usn(conn)?;
-        diesel::update(djmdHistory::table.find(id))
-            .set((
-                djmdHistory::seq.eq(seq),
-                djmdHistory::parent_id.eq(parent_id),
-                djmdHistory::updated_at.eq(&format_datetime(&now)),
-                djmdHistory::rb_local_usn.eq(usn),
-            ))
-            .execute(conn)
     }
 
     /// Generates a new unique identifier for a record in the `djmdHistory` table.
@@ -579,17 +582,65 @@ pub struct DjmdSongHistory {
     pub track_no: i32,
 }
 
-impl DjmdSongHistory {
-    /// Queries all records from the `djmdSongHistory` table.
-    pub fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+impl Model for DjmdSongHistory {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
     }
 
-    /// Queries a record from the `djmdSongHistory` table by its `id`.
-    pub fn find(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<Self>> {
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
         Self::query().find(id).first(conn).optional()
     }
 
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
+}
+
+impl ModelDelete for DjmdSongHistory {
+    fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
+        let query = djmdSongHistory::table.find(id);
+        let history_id: String = query.select(djmdSongHistory::history_id).first(conn)?;
+
+        let result = diesel::delete(query).execute(conn)?;
+        AgentRegistry::increment_local_usn(conn)?;
+        // Reorder the track_no numbers
+        Self::reset_seq(conn, &history_id)?;
+
+        Ok(result)
+    }
+}
+
+impl ModelList for DjmdSongHistory {
+    fn move_to(conn: &mut SqliteConnection, id: &Self::Id, seq: Option<i32>) -> QueryResult<usize> {
+        let res = match Self::find(conn, id)? {
+            Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+
+        let old_seq = res.track_no;
+        // *Note*: Moving other records increments USN by 1 for all changes
+        let res = Self::update_seq_before_move_in(conn, &res.history_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
+            None => return Ok(0),
+        };
+
+        // Update seq of actual record
+        let now = Utc::now();
+        let usn = AgentRegistry::increment_local_usn(conn)?;
+        diesel::update(djmdSongHistory::table.find(id))
+            .set((
+                djmdSongHistory::track_no.eq(seq),
+                djmdSongHistory::updated_at.eq(&format_datetime(&now)),
+                djmdSongHistory::rb_local_usn.eq(usn),
+            ))
+            .execute(conn)
+    }
+}
+
+impl DjmdSongHistory {
     /// Queries all records from the `djmdSongHistory` table by its `history_id`
     pub fn by_history_id(conn: &mut SqliteConnection, history_id: &str) -> QueryResult<Vec<Self>> {
         Self::query()
@@ -620,46 +671,6 @@ impl DjmdSongHistory {
     /// Checks if a record with the given `id` exists in the `djmdSongHistory` table.
     pub fn id_exists(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
         diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
-    }
-
-    /// Move a record in the `djmdSongHistory` table.
-    pub fn move_to(conn: &mut SqliteConnection, id: &str, seq: Option<i32>) -> QueryResult<usize> {
-        let res = match Self::find(conn, id)? {
-            Some(r) => r,
-            None => return Err(Error::NotFound),
-        };
-
-        let old_seq = res.track_no;
-        // *Note*: Moving other records increments USN by 1 for all changes
-        let res = Self::update_seq_before_move_in(conn, &res.history_id, old_seq, seq)?;
-        let (seq, _n) = match res {
-            Some((s, n)) => (s, n),
-            None => return Ok(0),
-        };
-
-        // Update seq of actual record
-        let now = Utc::now();
-        let usn = AgentRegistry::increment_local_usn(conn)?;
-        diesel::update(djmdSongHistory::table.find(id))
-            .set((
-                djmdSongHistory::track_no.eq(seq),
-                djmdSongHistory::updated_at.eq(&format_datetime(&now)),
-                djmdSongHistory::rb_local_usn.eq(usn),
-            ))
-            .execute(conn)
-    }
-
-    /// Deletes a record from the `djmdSongHistory` table
-    pub fn delete(conn: &mut SqliteConnection, id: &str) -> QueryResult<usize> {
-        let query = djmdSongHistory::table.find(id);
-        let history_id: String = query.select(djmdSongHistory::history_id).first(conn)?;
-
-        let result = diesel::delete(query).execute(conn)?;
-        AgentRegistry::increment_local_usn(conn)?;
-        // Reorder the track_no numbers
-        Self::reset_seq(conn, &history_id)?;
-
-        Ok(result)
     }
 
     /// Deletes all records from the `djmdSongHistory` table acssociated with a `history_id`.

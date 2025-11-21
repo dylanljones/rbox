@@ -13,7 +13,7 @@ use std::collections::VecDeque;
 
 use super::content::Content;
 use super::schema::{content, history, history_content};
-use crate::model_traits::{Model, ModelDelete, ModelInsert, TreeSeq};
+use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelList, ModelTree, TreeSeq};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -100,6 +100,32 @@ impl ModelDelete for History {
     }
 }
 
+impl ModelTree for History {
+    fn move_to(
+        conn: &mut SqliteConnection,
+        id: &Self::Id,
+        parent_id: Option<&Self::Id>,
+        seq: Option<i32>,
+    ) -> QueryResult<usize> {
+        let res = match Self::find(conn, &id)? {
+            Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+        let old_seq = res.seq;
+        let old_parent_id = res.parent_id.clone();
+        let parent_id = parent_id.unwrap_or(&old_parent_id);
+
+        let res = Self::update_seq_before_move(conn, &old_parent_id, parent_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
+            None => return Ok(0),
+        };
+        diesel::update(history::table.find(id))
+            .set((history::seq.eq(seq), history::parent_id.eq(parent_id)))
+            .execute(conn)
+    }
+}
+
 impl History {
     /// Queries the records from the `history` table by their `parent_id`.
     pub fn by_parent_id(conn: &mut SqliteConnection, parent_id: i32) -> QueryResult<Vec<Self>> {
@@ -150,29 +176,6 @@ impl History {
     pub fn rename(conn: &mut SqliteConnection, id: i32, name: &str) -> QueryResult<usize> {
         diesel::update(history::table.find(id))
             .set(history::name.eq(name))
-            .execute(conn)
-    }
-    pub fn move_to(
-        conn: &mut SqliteConnection,
-        id: i32,
-        parent_id: Option<i32>,
-        seq: Option<i32>,
-    ) -> QueryResult<usize> {
-        let res = match Self::find(conn, &id)? {
-            Some(r) => r,
-            None => return Err(Error::NotFound),
-        };
-        let old_seq = res.seq;
-        let old_parent_id = res.parent_id.clone();
-        let parent_id = parent_id.unwrap_or(old_parent_id);
-
-        let res = Self::update_seq_before_move(conn, &old_parent_id, &parent_id, old_seq, seq)?;
-        let (seq, _n) = match res {
-            Some((s, n)) => (s, n),
-            None => return Ok(0),
-        };
-        diesel::update(history::table.find(id))
-            .set((history::seq.eq(seq), history::parent_id.eq(parent_id)))
             .execute(conn)
     }
 }
@@ -440,6 +443,26 @@ impl ModelInsert for HistoryContent {
     }
 }
 
+impl ModelList for HistoryContent {
+    fn move_to(conn: &mut SqliteConnection, id: &Self::Id, seq: Option<i32>) -> QueryResult<usize> {
+        let res = match Self::find(conn, id)? {
+            Some(r) => r,
+            None => return Err(Error::NotFound),
+        };
+
+        let old_seq = res.seq;
+        let res = Self::update_seq_before_move_in(conn, &res.history_id, old_seq, seq)?;
+        let (seq, _n) = match res {
+            Some((s, n)) => (s, n),
+            None => return Ok(0),
+        };
+
+        diesel::update(history_content::table.find(*id))
+            .set(history_content::seq.eq(seq))
+            .execute(conn)
+    }
+}
+
 impl HistoryContent {
     /// Creates a new `history_content` record with the required fields.
     pub fn new(history_id: i32, content_id: i32) -> Self {
@@ -497,29 +520,6 @@ impl HistoryContent {
     /// Counts the number of records in the `history_content` table for a given `history_id`.
     pub fn count(conn: &mut SqliteConnection, history_id: i32) -> QueryResult<i32> {
         Self::count_children(conn, &history_id)
-    }
-
-    /// Move a record in the `history_content` table.
-    pub fn move_to(
-        conn: &mut SqliteConnection,
-        id: &(i32, i32),
-        seq: Option<i32>,
-    ) -> QueryResult<usize> {
-        let res = match Self::find(conn, id)? {
-            Some(r) => r,
-            None => return Err(Error::NotFound),
-        };
-
-        let old_seq = res.seq;
-        let res = Self::update_seq_before_move_in(conn, &res.history_id, old_seq, seq)?;
-        let (seq, _n) = match res {
-            Some((s, n)) => (s, n),
-            None => return Ok(0),
-        };
-
-        diesel::update(history_content::table.find(*id))
-            .set(history_content::seq.eq(seq))
-            .execute(conn)
     }
 
     /// Deletes all record from the `history_content` table referencing a `history` record.
