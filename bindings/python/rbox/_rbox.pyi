@@ -35,33 +35,16 @@ class SettingError(Exception):
 
 # ---- Utility -------------------------------------------------------------------------------------
 
-def get_rekordbox_app_dir_path() -> str:
-    r"""Retrieves the path to the Rekordbox application directory.
-
-    The Rekordbox application directory is typically:
-    - On Windows: `C:\Users\dylan\AppData\Roaming\Pioneer\rekordbox`
-    - On macOS: `~/Library/Application Support/Pioneer/rekordbox`
-    """
-    ...
-
-def get_rekordbox_share_path() -> str:
-    """Retrieves the path to the Rekordbox "share" directory.
-
-    The "share" directory is typically located within the Rekordbox application directory.
-    """
-    ...
-
-def get_master_db_path() -> str:
-    """Retrieves the path to the Rekordbox master database file."""
-    ...
-
+def rekordbox_agent_app_dir() -> str: ...
+def options_json_path() -> str: ...
+def rekordbox_app_dir() -> str: ...
 def is_rekordbox_running() -> bool:
     """Checks if the Rekordbox application is currently running."""
     ...
 
-# ---- MasterDb ------------------------------------------------------------------------------------
-
 class _RustMutableMapping:
+    """Mutable mapping methods for Rust models.py."""
+
     def __len__(self) -> int:
         """Return the number of items."""
         ...
@@ -106,533 +89,3586 @@ class _RustMutableMapping:
         """Convert the object to a dictionary."""
         ...
 
-class _StatsFull:
+# ---- Database models.py -----------------------------------------------------------------------------
+
+class NewAlbum(_RustMutableMapping):
+    """Represents a new record insertale to the `album` table."""
+
+    name: str
+    """The name of the album."""
+
+    artist_id: Optional[int]
+    """An optional foreign key referencing the album artist [`Artist`]."""
+
+    image_id: Optional[int]
+    """An optional foreign key referencing the album artwork [`Image`]."""
+
+    is_compilation: int
+    """A flag if the album is a compilation."""
+
+    name_for_search: Optional[str]
+    """An optional string used for searching the album."""
+
+class Album(_RustMutableMapping):
+    """Represents the `album` table in the Rekordbox Device Library Plus database."""
+
+    id: int
+    """The unique identifier of the album."""
+
+    name: str
+    """The name of the album."""
+
+    artist_id: Optional[int]
+    """An optional foreign key referencing the album [`Artist`]."""
+
+    image_id: Optional[int]
+    """An optional foreign key referencing the album artwork [`Image`]."""
+
+    is_compilation: int
+    """A flag if the album is a compilation."""
+
+    name_for_search: Optional[str]
+    """An optional string used for searching the album."""
+
+class Lyricist(_RustMutableMapping):
+    id: int
+    name: str
+    name_for_search: Optional[str]
+
+class Composer(_RustMutableMapping):
+    id: int
+    name: str
+    name_for_search: Optional[str]
+
+class Artist(_RustMutableMapping):
+    """Represents the `artist` table in the Rekordbox Device Library Plus database."""
+
+    id: int
+    """The unique identifier of the artist."""
+
+    name: str
+    """The name of the artist."""
+
+    name_for_search: Optional[str]
+    """An optional field for storing a search-optimized version of the artist name."""
+
+class NewArtist(_RustMutableMapping):
+    """Represents a new record insertale to the `artist` table."""
+
+    name: str
+    """The name of the artist."""
+
+    name_for_search: Optional[str]
+    """An optional field for storing a search-optimized version of the artist name."""
+
+class Remixer(_RustMutableMapping):
+    id: int
+    name: str
+    name_for_search: Optional[str]
+
+class OriginalArtist(_RustMutableMapping):
+    id: int
+    name: str
+    name_for_search: Optional[str]
+
+class NewCategory(_RustMutableMapping):
+    """Represents a new record insertale to the `category` table."""
+
+    menu_item_id: int
+    """A foreign key referencing the [`MenuItem`]."""
+
+    seq: int
+    """The sequence/order of the category."""
+
+    is_visible: int
+    """A flag if the category is visible."""
+
+class Category(_RustMutableMapping):
+    """Represents the `category` table in the Rekordbox Device Library Plus database."""
+
+    id: int
+    """The unique identifier of the category."""
+
+    menu_item_id: int
+    """A foreign key referencing the [`MenuItem`]."""
+
+    seq: int
+    """The sequence/order of the category."""
+
+    is_visible: int
+    """A flag if the category is visible."""
+
+class NewColor(_RustMutableMapping):
+    """Represents a new record insertale to the `color` table."""
+
+    name: str
+    """The name of the color"""
+
+class Color(_RustMutableMapping):
+    """Represents the `color` table in the Rekordbox Device Library Plus database."""
+
+    id: int
+    """The unique identifier of the color."""
+
+    name: str
+    """The name of the color"""
+
+class NewContent(_RustMutableMapping):
+    """Represents a new record insertale to the `content` table."""
+
+    date_created: datetime
+    """The date the record was created"""
+
+    date_added: datetime
+    """The date the record was added"""
+
+    path: str
+    """The relative file path of the track"""
+
+    title: Optional[str]
+    """The title of the track."""
+
+    title_for_search: Optional[str]
+    """An optional title used for searching."""
+
+    subtitle: Optional[str]
+    """The subtitle of the track"""
+
+    bpmx100: Optional[int]
+    """The beats per minute multiplied by 100."""
+
+    length: Optional[int]
+    """The length of the track in seconds."""
+
+    track_no: Optional[int]
+    """The track number of the track"""
+
+    disc_no: Optional[int]
+    """The disc number of the track"""
+
+    artist_id: Optional[int]
+    """Optional foreign key referencing the artist [`Artist`]."""
+
+    remixer_id: Optional[int]
+    """Optional foreign key referencing the remixer [`Artist`]."""
+
+    original_artist_id: Optional[int]
+    """Optional foreign key referencing the original artist [`Artist`]."""
+
+    composer_id: Optional[int]
+    """Optional foreign key referencing the composer [`Artist`]."""
+
+    lyricist_id: Optional[int]
+    """Optional foreign key referencing the lyricist [`Artist`]."""
+
+    album_id: Optional[int]
+    """Optional foreign key referencing the [`Album`]."""
+
+    genre_id: Optional[int]
+    """Optional foreign key referencing the [`Genre`]."""
+
+    label_id: Optional[int]
+    """Optional foreign key referencing the [`Label`]."""
+
+    key_id: Optional[int]
+    """Optional foreign key referencing the [`Key`]."""
+
+    color_id: Optional[int]
+    """Optional foreign key referencing the [`Color`]."""
+
+    image_id: Optional[int]
+    """Optional foreign key referencing the artwork [`Image`]."""
+
+    dj_comment: Optional[str]
+    """The ccomment of the track."""
+
+    rating: Optional[int]
+    """The rating of the track."""
+
+    release_year: Optional[int]
+    """The release year of the track."""
+
+    release_date: Optional[str]
+    """The release date of the track"""
+
+    file_name: Optional[str]
+    """The file name of the track."""
+
+    file_size: Optional[int]
+    """The file size of the track"""
+
+    file_type: Optional[int]
+    """The file typo of the track"""
+
+    bitrate: Optional[int]
+    """The bitrate of the trackk"""
+
+    bit_depth: Optional[int]
+    """The bit depth of the track"""
+
+    sampling_rate: Optional[int]
+    """The sample rate of the track."""
+
+    isrc: Optional[str]
+    """The ISRC of the track"""
+
+    is_hot_cue_auto_load_on: Optional[int]
+    """A flag if hot-cue auto load is enabled"""
+
+    is_kuvo_deliver_status_on: Optional[int]
+    """A flag if kuvo delivery is enabled"""
+
+    kuvo_delivery_comment: Optional[str]
+    """A kuvo delivery comment"""
+
+    master_db_id: Optional[int]
+    """The masterdb ID"""
+
+    master_content_id: Optional[int]
+    """The ID of the contnent in the masterdb"""
+
+    analysis_data_file_path: Optional[str]
+    """The relative path to the analysis data"""
+
+    analysed_bits: Optional[int]
+    """The number of bits analysed (?)"""
+
+    content_link: Optional[int]
+    """The ID of the content in the content link database (seems to always be 788224)"""
+
+    has_modified: Optional[int]
+    """A flag if the content has been modified"""
+
+    cue_update_count: Optional[int]
+    """The number of updates to the associated cues"""
+
+    analysis_data_update_count: Optional[int]
+    """The number of updates to the analysis data"""
+
+    information_update_count: Optional[int]
+    """The number of updates to the content record"""
+
+class Content(_RustMutableMapping):
+    """Represents the `content` table in the Rekordbox Device Library Plus database."""
+
+    id: int
+    """The unique identifier of the content."""
+
+    title: Optional[str]
+    """The title of the track."""
+
+    title_for_search: Optional[str]
+    """An optional title used for searching."""
+
+    subtitle: Optional[str]
+    """The subtitle of the track"""
+
+    bpmx100: Optional[int]
+    """The beats per minute multiplied by 100."""
+
+    length: Optional[int]
+    """The length of the track in seconds."""
+
+    track_no: Optional[int]
+    """The track number of the track"""
+
+    disc_no: Optional[int]
+    """The disc number of the track"""
+
+    artist_id: Optional[int]
+    """Optional foreign key referencing the artist [`Artist`]."""
+
+    remixer_id: Optional[int]
+    """Optional foreign key referencing the remixer [`Artist`]."""
+
+    original_artist_id: Optional[int]
+    """Optional foreign key referencing the original artist [`Artist`]."""
+
+    composer_id: Optional[int]
+    """Optional foreign key referencing the composer [`Artist`]."""
+
+    lyricist_id: Optional[int]
+    """Optional foreign key referencing the lyricist [`Artist`]."""
+
+    album_id: Optional[int]
+    """Optional foreign key referencing the [`Album`]."""
+
+    genre_id: Optional[int]
+    """Optional foreign key referencing the [`Genre`]."""
+
+    label_id: Optional[int]
+    """Optional foreign key referencing the [`Label`]."""
+
+    key_id: Optional[int]
+    """Optional foreign key referencing the [`Key`]."""
+
+    color_id: Optional[int]
+    """Optional foreign key referencing the [`Color`]."""
+
+    image_id: Optional[int]
+    """Optional foreign key referencing the artwork [`Image`]."""
+
+    dj_comment: Optional[str]
+    """The ccomment of the track."""
+
+    rating: Optional[int]
+    """The rating of the track."""
+
+    release_year: Optional[int]
+    """The release year of the track."""
+
+    release_date: Optional[str]
+    """The release date of the track"""
+
+    date_created: datetime
+    """The date the record was created"""
+
+    date_added: datetime
+    """The date the record was added"""
+
+    path: str
+    """The relative file path of the track (usually `'/Contents/<Artist>/<Title>'`)"""
+
+    file_name: Optional[str]
+    """The file name of the track."""
+
+    file_size: Optional[int]
+    """The file size of the track"""
+
+    file_type: Optional[int]
+    """The file typo of the track"""
+
+    bitrate: Optional[int]
+    """The bitrate of the trackk"""
+
+    bit_depth: Optional[int]
+    """The bit depth of the track"""
+
+    sampling_rate: Optional[int]
+    """The sample rate of the track."""
+
+    isrc: Optional[str]
+    """The ISRC of the track"""
+
+    is_hot_cue_auto_load_on: Optional[int]
+    """A flag if hot-cue auto load is enabled"""
+
+    is_kuvo_deliver_status_on: Optional[int]
+    """A flag if kuvo delivery is enabled"""
+
+    kuvo_delivery_comment: Optional[str]
+    """A kuvo delivery comment"""
+
+    master_db_id: Optional[int]
+    """The masterdb ID"""
+
+    master_content_id: Optional[int]
+    """The ID of the contnent in the masterdb"""
+
+    analysis_data_file_path: Optional[str]
+    """The relative path to the analysis data"""
+
+    analysed_bits: Optional[int]
+    """The number of bits analysed (?)"""
+
+    content_link: Optional[int]
+    """The ID of the content in the content link database (seems to always be 788224)"""
+
+    has_modified: Optional[int]
+    """A flag if the content has been modified"""
+
+    cue_update_count: Optional[int]
+    """The number of updates to the associated cues"""
+
+    analysis_data_update_count: Optional[int]
+    """The number of updates to the analysis data"""
+
+    information_update_count: Optional[int]
+    """The number of updates to the content record"""
+
+class Cue(_RustMutableMapping):
+    """Represents the `cue` table in the Rekordbox Device Library Plus database."""
+
+    id: int
+    """The unique identifier of the cue."""
+
+    content_id: int
+    """A foreign key referencing the [`Content`]."""
+
+    kind: Optional[int]
+    """The type of the cue."""
+
+    color_table_index: Optional[int]
+    """An optional integer representing the index of the color in the color table."""
+
+    cue_comment: Optional[str]
+    """A comment for the cue"""
+
+    is_active_loop: Optional[int]
+    """A flag whether the cue is part of an active loop."""
+
+    beat_loop_numerator: Optional[int]
+    """Unknown"""
+
+    beat_loop_denominator: Optional[int]
+    """Unknonw"""
+
+    in_usec: Optional[int]
+    """The cue's start time in microseconds."""
+
+    out_usec: Optional[int]
+    """The cue's end time in microseconds."""
+
+    in150_frame_per_sec: Optional[int]
+    """The cue's start frame."""
+
+    out150_frame_per_sec: Optional[int]
+    """The cue's end frame or -1 if not a loop."""
+
+    in_mpeg_frame_number: Optional[int]
+    """The cue's start MPEG frame or 0 if not a VBR/ABR MPEG file (see note)."""
+
+    out_mpeg_frame_number: Optional[int]
+    """The cue's end MPEG frame or 0 if not a loop or not a VBR/ABR MPEG file (see note)"""
+
+    in_mpeg_abs: Optional[int]
+    """The cue's start MPEG absolute frame or 0 if not a VBR/ABR MPEG file."""
+
+    out_mpeg_abs: Optional[int]
+    """The cue's end MPEG absolute frame or 0 if not a loop or not a VBR/ABR MPEG file"""
+
+    in_decoding_start_frame_position: Optional[int]
+    """The cue's start frame position in the decoding block."""
+
+    out_decoding_start_frame_position: Optional[int]
+    """The cue's end frame position in the decoding block."""
+
+    in_file_offset_in_block: Optional[int]
+    """The cue's start file offset in the decoding block."""
+
+    out_file_offset_in_block: Optional[int]
+    """The cue's end file offset in the decoding block."""
+
+    in_number_of_sample_in_block: Optional[int]
+    """The cue's start sample position in the decoding block."""
+
+    out_number_of_sample_in_block: Optional[int]
+    """The cue's end sample position in the decoding block."""
+
+class NewGenre(_RustMutableMapping):
+    """Represents a new record insertale to the `genre` table."""
+
+    name: str
+    """The name of the genre."""
+
+class Genre(_RustMutableMapping):
+    """Represents the `genre` table in the Rekordbox Device Library Plus database."""
+
+    id: int
+    """The unique identifier of the genre."""
+
+    name: str
+    """The name of the genre."""
+
+class HistoryContent(_RustMutableMapping):
+    """Represents the `history_content` table in the Rekordbox Device Library Plus database."""
+
+    history_id: int
+    """The ID of the associated [`History`]."""
+
+    content_id: int
+    """The ID of the associated [`Content`]."""
+
+    seq: int
+    """The sequence/order number of the history content (1-based index)"""
+
+class History(_RustMutableMapping):
+    """Represents the `history` table in the Rekordbox Device Library Plus database."""
+
+    id: int
+    """A unique identifier for the entry."""
+
+    seq: int
+    """The sequence/order number of the history (1-based index)"""
+
+    name: str
+    """The name of the history."""
+
+    attribute: int
+    """The attribute of the tag, either history (`0`) or a folder (`1`)"""
+
+    parent_id: int
+    """The ID of the parent [`History`] or `0` for top-level record."""
+
+class NewHistory(_RustMutableMapping):
+    """Represents a new record insertale to the `history` table."""
+
+    seq: int
+    """The sequence/order number of the history (1-based index)"""
+
+    name: str
+    """The name of the history."""
+
+    attribute: int
+    """The attribute of the tag, either history (`0`) or a folder (`1`)"""
+
+    parent_id: int
+    """The ID of the parent [`History`] or `0` for top-level record."""
+
+class HotCueBankListCue(_RustMutableMapping):
+    """Represents the `hotCueBankList_cue` table in the Rekordbox Device Library Plus database."""
+
+    hot_cue_bank_list_id: int
+    """The unique identifier of the hot cue bank list."""
+
+    cue_id: int
+    """The unique identifier of the cue."""
+
+    seq: int
+    """The sequence/order number of the hot cue bank list cue (1-based index)."""
+
+class HotCueBankList(_RustMutableMapping):
+    """Represents the `hotCueBankList` table in the Rekordbox Device Library Plus database."""
+
+    id: int
+    """The unique identifier of the hot cue bank list."""
+
+    seq: int
+    """The sequence/order number of the hot cue bank list (1-based index)."""
+
+    name: Optional[str]
+    """The name of the hot cue bank list."""
+
+    image_id: Optional[int]
+    """An optional foreign key referencing an [`Image`]."""
+
+    attribute: int
+    """The hot cue bank list type, either list (`0`) or a folder (`1`)."""
+
+    parent_id: Optional[int]
+    """The ID of the parent [`HotCueBankList`], `0` for top-level records."""
+
+class NewImage(_RustMutableMapping):
+    """Represents a new record insertale to the `image` table."""
+
+    path: str
+    """The relative file path of the image."""
+
+class Image(_RustMutableMapping):
+    """Represents the `image` table in the Rekordbox Device Library Plus database."""
+
+    id: int
+    """The unique identifier of the image."""
+
+    path: str
+    """The relative file path of the image."""
+
+class NewKey(_RustMutableMapping):
+    """Represents a new record insertale to the `key` table."""
+
+    name: str
+    """The name of the key."""
+
+class Key(_RustMutableMapping):
+    """Represents the `key` table in the Rekordbox Device Library Plus database."""
+
+    id: int
+    """The unique identifier of the key."""
+
+    name: str
+    """The name of the key."""
+
+class Label(_RustMutableMapping):
+    """Represents the `label` table in the Rekordbox Device Library Plus database."""
+
+    id: int
+    """The unique identifier of the label."""
+
+    name: str
+    """The name of the label."""
+
+class NewLabel(_RustMutableMapping):
+    """Represents a new record insertale to the `label` table."""
+
+    name: str
+    """The name of the label."""
+
+class NewMenuItem(_RustMutableMapping):
+    """Represents a new record insertale to the `menuItem` table."""
+
+    kind: int
+    """The kind of menu item (similar to `class` in the main DB)."""
+
+    name: str
+    """The name of the menu item."""
+
+class MenuItem(_RustMutableMapping):
+    """Represents the `menuItem` table in the Rekordbox Device Library Plus database."""
+
+    id: int
+    """The unique identifier of the record."""
+
+    kind: int
+    """The kind of menu item (similar to `class` in the main DB)."""
+
+    name: str
+    """The name of the menu item."""
+
+class MyTag(_RustMutableMapping):
+    """Represents the `myTag` table in the Rekordbox Device Library Plus database."""
+
+    id: int
+    """The unique identifier of the tag."""
+
+    seq: int
+    """The sequence/order number of the tag (1-based index)."""
+
+    name: str
+    """The name of the tag."""
+
+    attribute: int
+    """The tag type, either list (`0`) or a folder (`1`)."""
+
+    parent_id: int
+    """The ID of the parent [`MyTag`], `0` for top-level records."""
+
+class NewMyTag(_RustMutableMapping):
+    """Represents a new record insertale to the `myTag` table."""
+
+    seq: int
+    """The sequence/order number of the tag (1-based index)."""
+
+    name: str
+    """The name of the tag."""
+
+    attribute: int
+    """The tag type, either list (`0`) or a folder (`1`)."""
+
+    parent_id: int
+    """The ID of the parent [`MyTag`], `0` for top-level records."""
+
+class MyTagContent(_RustMutableMapping):
+    """Represents the `myTag_content` table in the Rekordbox Device Library Plus database."""
+
+    my_tag_id: int
+    """The ID of the associated [`MyTag`]."""
+
+    content_id: int
+    """The ID of the associated [`Content`]."""
+
+class NewPlaylist(_RustMutableMapping):
+    """Represents a new record insertale to the `playlist` table."""
+
+    seq: int
+    """The sequence/order number of the playlist (1-based index)."""
+
+    name: str
+    """The name of the playlist."""
+
+    image_id: Optional[int]
+    """Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image)."""
+
+    attribute: int
+    """The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`)."""
+
+    parent_id: int
+    """The ID of the parent [`Playlist`], `0` for top-level records."""
+
+class Playlist(_RustMutableMapping):
+    """Represents the `playlist` table in the Rekordbox Device Library Plus database."""
+
+    id: int
+    """The unique identifier of the playlist."""
+
+    seq: int
+    """The sequence/order number of the playlist (1-based index)."""
+
+    name: str
+    """The name of the playlist."""
+
+    image_id: Optional[int]
+    """Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image)."""
+
+    attribute: int
+    """The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`)."""
+
+    parent_id: int
+    """The ID of the parent [`Playlist`], `0` for top-level records."""
+
+class PlaylistContent(_RustMutableMapping):
+    """Represents the `playlist_content` table in the Rekordbox Device Library Plus database."""
+
+    playlist_id: int
+    """The ID of the associated [`Playlist`]."""
+
+    content_id: int
+    """The ID of the associated [`Content`]."""
+
+    seq: int
+    """The sequence/order number of the history content (1-based index)"""
+
+class Property(_RustMutableMapping):
+    """Represents the `property` table in the Rekordbox Device Library Plus database."""
+
+    device_name: str
+    """The name of the device ('' by default)"""
+
+    db_version: int
+    """The DB version (1000 by default)"""
+
+    number_of_contents: int
+    """The number of ['Content'] in the device"""
+
+    created_date: datetime
+    """The date of creation for the device"""
+
+    back_ground_color_type: int
+    """The background color type (0 by default)"""
+
+    my_tag_master_dbid: int
+    """The master.db database id of the tag data"""
+
+class RecommendedLike(_RustMutableMapping):
+    """Represents the `recommendedLike` table in the Rekordbox Device Library Plus database."""
+
+    content_id_1: int
+    """The ID of the first associated [`Content`]."""
+
+    content_id_2: int
+    """The ID of the second associated [`Content`]."""
+
+    rating: int
+    """The rating of the relationship, between 1-5."""
+
+    created_date: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `Datetime<Utc>`."""
+
+class NewSort(_RustMutableMapping):
+    """Represents a new record insertale to the `sort` table."""
+
+    menu_item_id: int
+    """An optional foreign key referencing the [`MenuItem`]."""
+
+    seq: int
+    """The sequence/order number of the item (1-based index)"""
+
+    is_visible: int
+    """A flag if the item is visible in the menu"""
+
+    is_selected_as_sub_column: int
+    """A flag if the item is selected as a sub-column"""
+
+class Sort(_RustMutableMapping):
+    """Represents the `sort` table in the Rekordbox Device Library Plus database."""
+
+    id: int
+    """The unique identifier of the record."""
+
+    menu_item_id: int
+    """An optional foreign key referencing the [`MenuItem`]."""
+
+    seq: int
+    """The sequence/order number of the *visible* items (1-based index)"""
+
+    is_visible: int
+    """A flag if the item is visible in the menu"""
+
+    is_selected_as_sub_column: int
+    """A flag if the item is selected as a sub-column"""
+
+class CloudAgentRegistry(_RustMutableMapping):
+    """Represents the `cloudAgentRegistry` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    int_1: Optional[int]
+    """An optional integer field for numerical data."""
+
+    int_2: Optional[int]
+    """An optional integer field for numerical data."""
+
+    str_1: Optional[str]
+    """An optional string field for textual data."""
+
+    str_2: Optional[str]
+    """An optional string field for textual data."""
+
+    date_1: Optional[str]
+    """An optional string field for date-related data."""
+
+    date_2: Optional[str]
+    """An optional string field for date-related data."""
+
+    text_1: Optional[str]
+    """An optional string field for extended text data."""
+
+    text_2: Optional[str]
+    """An optional string field for extended text data."""
+
+class AgentRegistry(_RustMutableMapping):
+    """Represents the `agentRegistry` table in the Rekordbox database."""
+
+    registry_id: str
+    """A unique identifier for the registry entry."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    id_1: Optional[str]
+    """An optional string field for additional identifier data."""
+
+    id_2: Optional[str]
+    """An optional string field for additional identifier data."""
+
+    int_1: Optional[int]
+    """An optional integer field for numerical data."""
+
+    int_2: Optional[int]
+    """An optional integer field for numerical data."""
+
+    str_1: Optional[str]
+    """An optional string field for textual data."""
+
+    str_2: Optional[str]
+    """An optional string field for textual data."""
+
+    date_1: Optional[str]
+    """An optional string field for date-related data."""
+
+    date_2: Optional[str]
+    """An optional string field for date-related data."""
+
+    text_1: Optional[str]
+    """An optional string field for extended text data."""
+
+    text_2: Optional[str]
+    """An optional string field for extended text data."""
+
+class ContentActiveCensor(_RustMutableMapping):
+    """Represents the `contentActiveCensor` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    content_id: str
+    """The id of the associated [`DjmdContent`]."""
+
+    active_censors: str
+    """A string representing the active censors."""
+
+    rb_activecensor_count: int
+    """The count of active censors."""
+
+class ContentCue(_RustMutableMapping):
+    """Represents the `contentCue` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    content_id: str
+    """The id of the associated [`DjmdContent`]."""
+
+    cues: str
+    """A JSON string representing the cue data."""
+
+    rb_cue_count: int
+    """The count of cues."""
+
+class ContentFile(_RustMutableMapping):
+    """Represents the `contentFile` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    content_id: str
+    """The id of the associated [`DjmdContent`]."""
+
+    path: str
+    """The relative file path."""
+
+    hash: str
+    """The file hash."""
+
+    size: int
+    """The file size."""
+
+    rb_local_path: str
+    """The absolute file path."""
+
+    rb_insync_hash: Optional[str]
+    """An optional string representing the in-sync file hash."""
+
+    rb_insync_local_usn: Optional[int]
+    """An optional integer representing the in-sync local update sequence number."""
+
+    rb_file_hash_dirty: Optional[int]
+    """An optional integer indicating whether the file hash is dirty."""
+
+    rb_local_file_status: Optional[int]
+    """An optional integer representing the local file status."""
+
+    rb_in_progress: Optional[int]
+    """An optional integer indicating whether the file is in progress."""
+
+    rb_process_type: Optional[int]
+    """An optional integer representing the process type."""
+
+    rb_temp_path: Optional[str]
+    """An optional string representing the temporary file path."""
+
+    rb_priority: Optional[int]
+    """An optional integer representing the file priority."""
+
+    rb_file_size_dirty: Optional[int]
+    """An optional integer indicating whether the file size is dirty."""
+
+class DjmdActiveCensor(_RustMutableMapping):
+    """Represents the `djmdActiveCensor` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    content_id: str
+    """The id of the associated [`DjmdContent`]."""
+
+    in_msec: Optional[int]
+    """An optional integer representing the start time of the censor in milliseconds."""
+
+    out_msec: Optional[int]
+    """An optional integer representing the end time of the censor in milliseconds."""
+
+    info: Optional[int]
+    """An optional integer representing additional information about the censor."""
+
+    parameter_list: Optional[str]
+    """An optional string representing the list of parameters for the censor."""
+
+    content_uuid: Optional[str]
+    """An optional string representing the uuid of the associated [`DjmdContent`]."""
+
+class NewDjmdAlbum(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdAlbum` table."""
+
+    name: str
+    """The name of the album."""
+
+    album_artist_id: Optional[str]
+    """An optional string representing the id of the album artist [`DjmdArtist`]."""
+
+    image_path: Optional[str]
+    """An optional string representing the path to the album's image."""
+
+    compilation: Optional[int]
+    """An optional integer indicating whether the album is a compilation."""
+
+    search_str: Optional[str]
+    """An optional string used for searching the album."""
+
+class DjmdAlbum(_RustMutableMapping):
+    """Represents the `djmdAlbum` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    name: str
+    """The name of the album."""
+
+    album_artist_id: Optional[str]
+    """An optional string representing the id of the album artist [`DjmdArtist`]."""
+
+    image_path: Optional[str]
+    """An optional string representing the path to the album's image."""
+
+    compilation: int
+    """A flag if the album is a compilation."""
+
+    search_str: Optional[str]
+    """An optional string used for searching the album."""
+
+class DjmdArtist(_RustMutableMapping):
+    """Represents the `djmdArtist` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    name: str
+    """An optional string representing the name of the artist."""
+
+    search_str: Optional[str]
+    """An optional string used for searching the artist."""
+
+class NewDjmdArtist(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdArtist` table."""
+
+    name: str
+    """The name of the artist."""
+
+    search_str: Optional[str]
+    """An optional string used for searching the artist."""
+
+class DjmdCategory(_RustMutableMapping):
+    """Represents the `djmdCategory` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    menu_item_id: str
+    """The id of the associated [`DjmdMenuItems`]."""
+
+    seq: int
+    """The sequence/order of the category."""
+
+    disable: int
+    """A flag indicating whether the category is disabled."""
+
+    info_order: int
+    """The info order for the category."""
+
+class DjmdColor(_RustMutableMapping):
+    """Represents the `djmdColor` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the color entry."""
+
+    uuid: str
+    """A unique universal identifier for the color entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    color_code: Optional[str]
+    """An optional string representing the color code (e.g., hex value)."""
+
+    sort_key: int
+    """The sort key for ordering colors."""
+
+    commnt: str
+    """A comment (usually the name) associated with the color."""
+
+class NewDjmdContent(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdContent` table."""
+
+    folder_path: str
+    """An optional string representing the folder path of the track."""
+
+    title: Optional[str]
+    """An optional string representing the title of the track."""
+
+    artist_id: Optional[str]
+    """An optional string representing the ID of the associated artist in [`DjmdArtist`]."""
+
+    album_id: Optional[str]
+    """An optional string representing the ID of the associated album in [`DjmdAlbum`]."""
+
+    genre_id: Optional[str]
+    """An optional string representing the ID of the associated genre in [`DjmdGenre`]."""
+
+    bpm: Optional[int]
+    """An optional integer representing the BPM of the track."""
+
+    length: Optional[int]
+    """An optional integer representing the length of the track in milliseconds."""
+
+    track_no: Optional[int]
+    """An optional integer representing the track number in the album."""
+
+    bit_rate: Optional[int]
+    """An optional integer representing the bit rate of the track."""
+
+    bit_depth: Optional[int]
+    """An optional integer representing the bit depth of the track."""
+
+    commnt: Optional[str]
+    """An optional string representing comments about the track."""
+
+    rating: Optional[int]
+    """An optional integer representing the rating of the track."""
+
+    release_year: Optional[int]
+    """An optional integer representing the release year of the track."""
+
+    remixer_id: Optional[str]
+    """An optional string representing the ID of the remixer in [`DjmdArtist`]."""
+
+    label_id: Optional[str]
+    """An optional string representing the ID of the label in [`DjmdLabel`]."""
+
+    org_artist_id: Optional[str]
+    """An optional string representing the ID of the original artist in [`DjmdArtist`]."""
+
+    key_id: Optional[str]
+    """An optional string representing the ID of the key in [`DjmdKey`]."""
+
+    stock_date: Optional[str]
+    """An optional string representing the stock date of the track."""
+
+    search_str: Optional[str]
+    """An optional string used for searching the track."""
+
+    disc_no: Optional[int]
+    """An optional integer representing the disc number of the track."""
+
+    composer_id: Optional[str]
+    """An optional string representing the ID of the composer in [`DjmdArtist`]."""
+
+    subtitle: Optional[str]
+    """An optional string representing the subtitle of the track."""
+
+    sample_rate: Optional[int]
+    """An optional integer representing the sample rate of the track."""
+
+    release_date: Optional[str]
+    """An optional string representing the release date of the track."""
+
+    date_created: Optional[str]
+    """An optional string representing the creation date of the track."""
+
+    tag: Optional[str]
+    """An optional string representing tags associated with the track."""
+
+    lyricist: Optional[str]
+    """An optional string representing the lyricist of the track."""
+
+    isrc: Optional[str]
+    """An optional string representing the ISRC (International Standard Recording Code) of the track."""
+
+class DjmdContent(_RustMutableMapping):
+    """Represents the `djmdContent` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    folder_path: Optional[str]
+    """An optional string representing the folder path of the track."""
+
+    file_name_l: Optional[str]
+    """An optional string representing the long file name of the track."""
+
+    file_name_s: Optional[str]
+    """An optional string representing the short file name of the track."""
+
+    title: Optional[str]
+    """An optional string representing the title of the track."""
+
+    artist_id: Optional[str]
+    """An optional string representing the ID of the associated artist in [`DjmdArtist`]."""
+
+    album_id: Optional[str]
+    """An optional string representing the ID of the associated album in [`DjmdAlbum`]."""
+
+    genre_id: Optional[str]
+    """An optional string representing the ID of the associated genre in [`DjmdGenre`]."""
+
+    bpm: Optional[int]
+    """An optional integer representing the BPM of the track."""
+
+    length: Optional[int]
+    """An optional integer representing the length of the track in milliseconds."""
+
+    track_no: Optional[int]
+    """An optional integer representing the track number in the album."""
+
+    bit_rate: Optional[int]
+    """An optional integer representing the bit rate of the track."""
+
+    bit_depth: Optional[int]
+    """An optional integer representing the bit depth of the track."""
+
+    commnt: Optional[str]
+    """An optional string representing comments about the track."""
+
+    file_type: Optional[int]
+    """An optional integer representing the file type of the track."""
+
+    rating: Optional[int]
+    """An optional integer representing the rating of the track."""
+
+    release_year: Optional[int]
+    """An optional integer representing the release year of the track."""
+
+    remixer_id: Optional[str]
+    """An optional string representing the ID of the remixer in [`DjmdArtist`]."""
+
+    label_id: Optional[str]
+    """An optional string representing the ID of the label in [`DjmdLabel`]."""
+
+    org_artist_id: Optional[str]
+    """An optional string representing the ID of the original artist in [`DjmdArtist`]."""
+
+    key_id: Optional[str]
+    """An optional string representing the ID of the key in [`DjmdKey`]."""
+
+    stock_date: Optional[str]
+    """An optional string representing the stock date of the track."""
+
+    color_id: Optional[str]
+    """An optional string representing the ID of the color in [`DjmdColor`]."""
+
+    dj_play_count: Optional[int]
+    """An optional integer representing the DJ play count of the track."""
+
+    image_path: Optional[str]
+    """An optional string representing the path to the track's image."""
+
+    master_db_id: Optional[str]
+    """An optional string representing the ID of the master database."""
+
+    master_song_id: Optional[str]
+    """An optional string representing the ID of the master song."""
+
+    analysis_data_path: Optional[str]
+    """An optional string representing the path to the analysis data."""
+
+    search_str: Optional[str]
+    """An optional string used for searching the track."""
+
+    file_size: Optional[int]
+    """An optional integer representing the file size of the track."""
+
+    disc_no: Optional[int]
+    """An optional integer representing the disc number of the track."""
+
+    composer_id: Optional[str]
+    """An optional string representing the ID of the composer in [`DjmdArtist`]."""
+
+    subtitle: Optional[str]
+    """An optional string representing the subtitle of the track."""
+
+    sample_rate: Optional[int]
+    """An optional integer representing the sample rate of the track."""
+
+    disable_quantize: Optional[int]
+    """An optional integer indicating whether quantization is disabled for the track."""
+
+    analysed: Optional[int]
+    """An optional integer indicating whether the track has been analyzed."""
+
+    release_date: Optional[str]
+    """An optional string representing the release date of the track."""
+
+    date_created: Optional[str]
+    """An optional string representing the creation date of the track."""
+
+    content_link: Optional[int]
+    """An optional integer representing the content link of the track."""
+
+    tag: Optional[str]
+    """An optional string representing tags associated with the track."""
+
+    modified_by_rbm: Optional[str]
+    """An optional string indicating whether the track was modified by Rekordbox."""
+
+    hot_cue_auto_load: Optional[str]
+    """An optional string representing the auto-load hot cue setting."""
+
+    delivery_control: Optional[str]
+    """An optional string representing the delivery control setting."""
+
+    delivery_comment: Optional[str]
+    """An optional string representing comments about the delivery."""
+
+    cue_updated: Optional[str]
+    """An optional string indicating whether the cue points were updated."""
+
+    analysis_updated: Optional[str]
+    """An optional string indicating whether the analysis data was updated."""
+
+    track_info_updated: Optional[str]
+    """An optional string indicating whether the track info was updated."""
+
+    lyricist: Optional[str]
+    """An optional string representing the lyricist of the track."""
+
+    isrc: Optional[str]
+    """An optional string representing the ISRC (International Standard Recording Code) of the track."""
+
+    sampler_track_info: Optional[int]
+    """An optional integer representing sampler track information."""
+
+    sampler_play_offset: Optional[int]
+    """An optional integer representing the sampler play offset."""
+
+    sampler_gain: Optional[float]
+    """An optional float representing the sampler gain."""
+
+    video_associate: Optional[str]
+    """An optional string representing the associated video."""
+
+    lyric_status: Optional[int]
+    """An optional integer representing the lyric status of the track."""
+
+    service_id: Optional[int]
+    """An optional integer representing the service ID."""
+
+    org_folder_path: Optional[str]
+    """An optional string representing the original folder path of the track."""
+
+    reserved1: Optional[str]
+    """An optional string for reserved data."""
+
+    reserved2: Optional[str]
+    """An optional string for reserved data."""
+
+    reserved3: Optional[str]
+    """An optional string for reserved data."""
+
+    reserved4: Optional[str]
+    """An optional string for reserved data."""
+
+    ext_info: Optional[str]
+    """An optional string for extended information."""
+
+    rb_file_id: Optional[str]
+    """An optional string representing the Rekordbox file ID."""
+
+    device_id: Optional[str]
+    """An optional string representing the ID of the associated device in [`DjmdDevice`]."""
+
+    rb_local_folder_path: Optional[str]
+    """An optional string representing the local folder path in Rekordbox."""
+
+    src_id: Optional[str]
+    """An optional string representing the source ID."""
+
+    src_title: Optional[str]
+    """An optional string representing the source title."""
+
+    src_artist_name: Optional[str]
+    """An optional string representing the source artist name."""
+
+    src_album_name: Optional[str]
+    """An optional string representing the source album name."""
+
+    src_length: Optional[int]
+    """An optional integer representing the source length in milliseconds."""
+
+class DjmdCue(_RustMutableMapping):
+    """Represents the `djmdCue` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    content_id: str
+    """The ID of the associated track in [`DjmdContent`]."""
+
+    in_msec: int
+    """The cue's start time in milliseconds."""
+
+    in_frame: int
+    """The cue's start frame."""
+
+    in_mpeg_frame: int
+    """The cue's start MPEG frame or 0 if not a VBR/ABR MPEG file (see note)."""
+
+    in_mpeg_abs: int
+    """The cue's start MPEG absolute frame or 0 if not a VBR/ABR MPEG file."""
+
+    out_msec: int
+    """The cue's end time in milliseconds or -1 if not a loop."""
+
+    out_frame: int
+    """The cue's end frame or -1 if not a loop."""
+
+    out_mpeg_frame: int
+    """The cue's end MPEG frame or 0 if not a loop or not a VBR/ABR MPEG file (see note)"""
+
+    out_mpeg_abs: int
+    """The cue's end MPEG absolute frame or 0 if not a loop or not a VBR/ABR MPEG file"""
+
+    kind: int
+    """The type of the cue."""
+
+    color: int
+    """The color ID of the cue or -1 if no color."""
+
+    color_table_index: Optional[int]
+    """An optional integer representing the index of the color in the color table."""
+
+    active_loop: Optional[int]
+    """An optional integer indicating whether the cue is part of an active loop."""
+
+    comment: Optional[str]
+    """An optional string containing comments about the cue."""
+
+    beat_loop_size: Optional[int]
+    """An optional integer representing the size of the beat loop."""
+
+    cue_microsec: Optional[int]
+    """An optional integer representing the cue's position in microseconds."""
+
+    in_point_seek_info: Optional[str]
+    """An optional string containing seek information for the cue's start point."""
+
+    out_point_seek_info: Optional[str]
+    """An optional string containing seek information for the cue's end point."""
+
+    content_uuid: Optional[str]
+    """An optional string representing the UUID of the associated track in [`DjmdContent`]."""
+
+class DjmdDevice(_RustMutableMapping):
+    """Represents the `djmdDevice` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    master_db_id: str
+    """The ID of the master database associated with the device."""
+
+    name: str
+    """The name of the device."""
+
+class DjmdGenre(_RustMutableMapping):
+    """Represents the `djmdGenre` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    name: str
+    """An optional string representing the name of the genre."""
+
+class NewDjmdGenre(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdGenre` table."""
+
+    name: str
+    """The name of the genre."""
+
+class DjmdSongHistory(_RustMutableMapping):
+    """Represents the `djmdSongHistory` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    history_id: str
+    """The ID of the associated history entry in [`DjmdHistory`]."""
+
+    content_id: str
+    """The ID of the associated content entry in [`DjmdContent`]."""
+
+    track_no: int
+    """The track number in the history entry."""
+
+class NewDjmdHistory(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdHistory` table."""
+
+    name: str
+    """The name of the history."""
+
+    attribute: int
+    """The attribute of the tag, either history (`0`) or a folder (`1`)"""
+
+    seq: Optional[int]
+    """The sequence/order number of the history (1-based index)"""
+
+    parent_id: Optional[str]
+    """The ID of the parent [`DjmdHistory`], `'root'` for top-level my-tag records."""
+
+    date_created: Optional[str]
+    """The creation date of the history."""
+
+class NewDjmdSongHistory(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdSongHistory` table."""
+
+    history_id: str
+    """The ID of the associated history entry in [`DjmdHistory`]."""
+
+    content_id: str
+    """The ID of the associated content entry in [`DjmdContent`]."""
+
+    track_no: Optional[int]
+    """The track number in the history entry."""
+
+class DjmdHistory(_RustMutableMapping):
+    """Represents the `djmdHistory` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    seq: int
+    """The sequence/order number of the history (1-based index)"""
+
+    name: str
+    """The name of the history."""
+
+    attribute: int
+    """The attribute of the tag, either history (`0`) or a folder (`1`)"""
+
+    parent_id: str
+    """The ID of the parent [`DjmdHistory`], `'root'` for top-level my-tag records."""
+
+    date_created: str
+    """The creation date of the history."""
+
+class DjmdSongHotCueBanklist(_RustMutableMapping):
+    """Represents the `djmdSongHotCueBanklist` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    hot_cue_banklist_id: str
+    """The ID of the associated [`DjmdHotCueBanklist`]."""
+
+    content_id: str
+    """The ID of the associated content in [`DjmdContent`]."""
+
+    track_no: int
+    """The track number in the hot cue bank list (1-based index)"""
+
+    cue_id: str
+    """The ID of the associated [`DjmdCue`]"""
+
+    in_msec: int
+    """The cue's start time in milliseconds."""
+
+    in_frame: int
+    """The cue's start frame."""
+
+    in_mpeg_frame: int
+    """The cue's start MPEG frame or 0 if not a VBR/ABR MPEG file (see note)."""
+
+    in_mpeg_abs: int
+    """The cue's start MPEG absolute frame or 0 if not a VBR/ABR MPEG file."""
+
+    out_msec: int
+    """The cue's end time in milliseconds or -1 if not a loop."""
+
+    out_frame: int
+    """The cue's end frame or -1 if not a loop."""
+
+    out_mpeg_frame: int
+    """The cue's end MPEG frame or 0 if not a loop or not a VBR/ABR MPEG file (see note)"""
+
+    out_mpeg_abs: int
+    """The cue's end MPEG absolute frame or 0 if not a loop or not a VBR/ABR MPEG file"""
+
+    color: int
+    """The color ID of the cue or -1 if no color."""
+
+    color_table_index: Optional[int]
+    """An optional integer representing the index of the color in the color table."""
+
+    active_loop: Optional[int]
+    """An optional integer indicating whether the cue is part of an active loop."""
+
+    comment: Optional[str]
+    """An optional string containing comments about the cue."""
+
+    beat_loop_size: Optional[int]
+    """An optional integer representing the size of the beat loop."""
+
+    cue_microsec: Optional[int]
+    """An optional integer representing the cue's position in microseconds."""
+
+    in_point_seek_info: Optional[str]
+    """An optional string containing seek information for the cue's start point."""
+
+    out_point_seek_info: Optional[str]
+    """An optional string containing seek information for the cue's end point."""
+
+    hot_cue_banklist_uuid: Optional[str]
+    """An optional string representing the UUID of the associate [`DjmdHotCueBanklist`]"""
+
+class HotCueBanklistCue(_RustMutableMapping):
+    """Represents the `hotCueBanklistCue` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    hot_cue_banklist_id: str
+    """The ID of the associated [`DjmdSongHotCueBanklist`]."""
+
+    cues: Optional[str]
+    """An optional string containing the serialized cue data."""
+
+    rb_cue_count: Optional[int]
+    """An optional integer representing the count of cues."""
+
+class DjmdHotCueBanklist(_RustMutableMapping):
+    """Represents the `djmdHotCueBanklist` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    seq: int
+    """The sequence/order of the hot cue bank list (1-based index)"""
+
+    name: str
+    """The name of the hot cue bank list."""
+
+    image_path: Optional[str]
+    """An optional path to the image associated with the hot cue bank list."""
+
+    attribute: int
+    """The attribute of the hot cue bank list, either list (`0`) or a folder (`1`)"""
+
+    parent_id: str
+    """The ID of the parent [`DjmdHotCueBanklist`], `'root'` for top-level records."""
+
+class DjmdKey(_RustMutableMapping):
+    """Represents the `djmdKey` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    name: str
+    """The name of the musical key."""
+
+    seq: Optional[int]
+    """An optional integer representing the sequence/order of the key."""
+
+class NewDjmdKey(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdKey` table."""
+
+    name: str
+    """The name of the musical key."""
+
+    seq: Optional[int]
+    """An optional integer representing the sequence/order of the key."""
+
+class NewDjmdLabel(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdLabel` table."""
+
+    name: str
+    """The name of the label."""
+
+class DjmdLabel(_RustMutableMapping):
+    """Represents the `djmdLabel` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    name: str
+    """The name of the label."""
+
+class DjmdMenuItems(_RustMutableMapping):
+    """Represents the `djmdMenuItems` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    class_: int
+    """The class of the menu item."""
+
+    name: str
+    """The name of the menu item."""
+
+class DjmdMixerParam(_RustMutableMapping):
+    """Represents the `djmdMixerParam` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    content_id: str
+    """The ID of the associated [`DjmdContent`]."""
+
+    gain_high: int
+    """The upper 16 bits of a IEEE754 single-precision floating point number representing the gain."""
+
+    gain_low: int
+    """The lower 16 bits of a IEEE754 single-precision floating point number representing the gain."""
+
+    peak_high: int
+    """The upper 16 bits of a IEEE754 single-precision floating point number representing the peak."""
+
+    peak_low: int
+    """The lower 16 bits of a IEEE754 single-precision floating point number representing the peak."""
+
+class NewDjmdSongMyTag(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdSongMyTag` table."""
+
+    my_tag_id: str
+    """The ID of the associated [`DjmdMyTag`]."""
+
+    content_id: str
+    """The ID of the associated [`DjmdContent`]."""
+
+    track_no: Optional[int]
+    """The track number in the tag."""
+
+class DjmdMyTag(_RustMutableMapping):
+    """Represents the `djmdMyTag` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    seq: int
+    """The sequence/order number of the tag (1-based index)"""
+
+    name: str
+    """The name of the tag"""
+
+    attribute: int
+    """The attribute of the tag, either my-tag (`0`) or a folder (`1`)"""
+
+    parent_id: str
+    """The ID of the parent [`DjmdMyTag`], `'root'` for top-level my-tag records."""
+
+class NewDjmdMyTag(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdMyTag` table."""
+
+    name: str
+    """The name of the tag"""
+
+    seq: Optional[int]
+    """The sequence/order number of the tag (1-based index)"""
+
+    attribute: Optional[int]
+    """The attribute of the tag, either my-tag (`0`) or a section (`1`)"""
+
+    parent_id: Optional[str]
+    """The ID of the parent [`DjmdMyTag`]."""
+
+class DjmdSongMyTag(_RustMutableMapping):
+    """Represents the `djmdSongMyTag` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    my_tag_id: str
+    """The ID of the associated [`DjmdMyTag`]."""
+
+    content_id: str
+    """The ID of the associated [`DjmdContent`]."""
+
+    track_no: int
+    """The track number in the tag."""
+
+class DjmdSongPlaylist(_RustMutableMapping):
+    """Represents the `djmdSongPlaylist` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    playlist_id: str
+    """The ID of the associated playlist in [`DjmdPlaylist`]."""
+
+    content_id: str
+    """The ID of the associated content in [`DjmdContent`]."""
+
+    track_no: int
+    """The track number in the playlist."""
+
+class NewDjmdSongPlaylist(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdSongPlaylist` table."""
+
+    playlist_id: str
+    """The ID of the associated playlist in [`DjmdPlaylist`]."""
+
+    content_id: str
+    """The ID of the associated content in [`DjmdContent`]."""
+
+    track_no: Optional[int]
+    """The track number in the playlist."""
+
+class NewDjmdPlaylist(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdPlaylist` table."""
+
+    name: str
+    """The name of the playlist."""
+
+    attribute: int
+    """The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`)."""
+
+    seq: Optional[int]
+    """The sequence/order number of the record (1-based index)"""
+
+    parent_id: Optional[str]
+    """The ID of the parent [`DjmdPlaylist`], `'root'` for top-level records (default)."""
+
+    image_path: Optional[str]
+    """An optional path to the image associated with the playlist."""
+
+    smart_list: Optional[str]
+    """An optional smart list configuration for the playlist (None if not a smart playlist)"""
+
+class DjmdPlaylist(_RustMutableMapping):
+    """Represents the `djmdPlaylist` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    seq: int
+    """The sequence/order number of the record (1-based index)"""
+
+    name: str
+    """The name of the playlist."""
+
+    image_path: Optional[str]
+    """An optional path to the image associated with the playlist."""
+
+    attribute: int
+    """The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`)."""
+
+    parent_id: str
+    """The ID of the parent [`DjmdPlaylist`], `'root'` for top-level records."""
+
+    smart_list: Optional[str]
+    """An optional smart list configuration for the playlist (None if not a smart playlist)"""
+
+class DjmdProperty(_RustMutableMapping):
+    """Represents the `djmdProperty` table in the Rekordbox database."""
+
+    db_id: str
+    """A unique identifier for the database entry."""
+
+    db_version: str
+    """The version of the database."""
+
+    base_db_drive: str
+    """The base drive of the database."""
+
+    current_db_drive: str
+    """The current drive of the database."""
+
+    device_id: str
+    """The ID of the associated device in [`DjmdDevice`]."""
+
+    reserved1: Optional[str]
+    """An optional string for reserved data."""
+
+    reserved2: Optional[str]
+    """An optional string for reserved data."""
+
+    reserved3: Optional[str]
+    """An optional string for reserved data."""
+
+    reserved4: Optional[str]
+    """An optional string for reserved data."""
+
+    reserved5: Optional[str]
+    """An optional string for reserved data."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+class DjmdCloudProperty(_RustMutableMapping):
+    """Represents the `djmdCloudProperty` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    reserved1: Optional[str]
+    """An optional string for reserved data."""
+
+    reserved2: Optional[str]
+    """An optional string for reserved data."""
+
+    reserved3: Optional[str]
+    """An optional string for reserved data."""
+
+    reserved4: Optional[str]
+    """An optional string for reserved data."""
+
+    reserved5: Optional[str]
+    """An optional string for reserved data."""
+
+class DjmdRecommendLike(_RustMutableMapping):
+    """Represents the `djmdRecommendLike` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    content_id1: str
+    """The ID of the first associated content in [`DjmdContent`]."""
+
+    content_id2: str
+    """The ID of the second associated content in [`DjmdContent`]."""
+
+    like_rate: Optional[int]
+    """An optional integer representing the like rate between the two associated contents."""
+
+    data_created_h: Optional[int]
+    """An optional integer representing the high part of the creation timestamp."""
+
+    data_created_l: Optional[int]
+    """An optional integer representing the low part of the creation timestamp."""
+
+class DjmdSongRelatedTracks(_RustMutableMapping):
+    """Represents the `djmdSongRelatedTracks` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    related_tracks_id: str
+    """The ID of the associated related tracks entry in [`DjmdRelatedTracks`]."""
+
+    content_id: str
+    """The ID of the associated content entry in [`DjmdContent`]."""
+
+    track_no: int
+    """The track number in the related tracks entry."""
+
+class NewDjmdSongRelatedTracks(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdSongRelatedTracks` table."""
+
+    related_tracks_id: str
+    """The ID of the associated playlist in [`DjmdPlaylist`]."""
+
+    content_id: str
+    """The ID of the associated content in [`DjmdContent`]."""
+
+    track_no: Optional[int]
+    """The track number in the playlist."""
+
+class NewDjmdRelatedTracks(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdRelatedTracks` table."""
+
+    name: str
+    """The name of the related track."""
+
+    attribute: int
+    """The attribute of the related track, either list (`0`) or a folder (`1`)"""
+
+    seq: Optional[int]
+    """The sequence/order number of the record (1-based index)"""
+
+    parent_id: Optional[str]
+    """The ID of the parent [`DjmdRelatedTracks`], `'root'` for top-level records."""
+
+    criteria: Optional[str]
+    """A JSON string containing the criteria for the related tracks."""
+
+class DjmdRelatedTracks(_RustMutableMapping):
+    """Represents the `djmdRelatedTracks` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    seq: int
+    """The sequence/order number of the record (1-based index)"""
+
+    name: str
+    """The name of the related track record."""
+
+    attribute: int
+    """The attribute of the related track, either list (`0`) or a folder (`1`)"""
+
+    parent_id: str
+    """The ID of the parent [`DjmdRelatedTracks`], `'root'` for top-level records."""
+
+    criteria: str
+    """A JSON string containing the criteria for the related tracks."""
+
+class NewDjmdSongSampler(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdSongSampler` table."""
+
+    sampler_id: str
+    """The ID of the associated sampler in [`DjmdSampler`]."""
+
+    content_id: str
+    """The ID of the associated content in [`DjmdContent`]."""
+
+    track_no: Optional[int]
+    """The sequence/order number of the record (1-based index)"""
+
+class DjmdSampler(_RustMutableMapping):
+    """Represents the `djmdSampler` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    seq: int
+    """The sequence/order number of the record (1-based index)"""
+
+    name: str
+    """The name of the sampler."""
+
+    attribute: int
+    """The attribute of the sampler, either list (`0`) or a folder (`1`)"""
+
+    parent_id: str
+    """The ID of the parent [`DjmdSampler`], `'root'` for top-level records."""
+
+class DjmdSongSampler(_RustMutableMapping):
+    """Represents the `djmdSongSampler` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    sampler_id: str
+    """The ID of the associated sampler in [`DjmdSampler`]."""
+
+    content_id: str
+    """The ID of the associated content in [`DjmdContent`]."""
+
+    track_no: int
+    """The sequence/order number of the record (1-based index)"""
+
+class NewDjmdSampler(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdSampler` table."""
+
+    name: str
+    """The name of the sampler."""
+
+    attribute: int
+    """The attribute of the sampler, either list (`0`) or a folder (`1`)"""
+
+    seq: Optional[int]
+    """The sequence/order number of the record (1-based index)"""
+
+    parent_id: Optional[str]
+    """The ID of the parent [`DjmdSampler`], `'root'` for top-level records."""
+
+class DjmdSongTagList(_RustMutableMapping):
+    """Represents the `djmdSongTagList` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    content_id: str
+    """The ID of the associated content in [`DjmdContent`]."""
+
+    track_no: int
+    """The sequence/order number of the record (1-based index)"""
+
+class DjmdSort(_RustMutableMapping):
+    """Represents the `djmdSort` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    menu_item_id: str
+    """The ID of the associated menu item in [`DjmdMenuItems`]."""
+
+    seq: int
+    """The sequence/order of the sort entry."""
+
+    disable: int
+    """A flag whether the sort entry is disabled."""
+
+class ImageFile(_RustMutableMapping):
+    """Represents the `imageFile` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    table_name: Optional[str]
+    """An optional string representing the table name associated with the image file."""
+
+    target_uuid: Optional[str]
+    """An optional string representing the target UUID associated with the image file."""
+
+    target_id: Optional[str]
+    """An optional string representing the target ID associated with the image file."""
+
+    path: Optional[str]
+    """An optional string representing the file path of the image."""
+
+    hash: Optional[str]
+    """An optional string representing the hash of the image file."""
+
+    size: Optional[int]
+    """An optional integer representing the size of the image file."""
+
+    rb_local_path: Optional[str]
+    """An optional string representing the local path of the image file in Rekordbox."""
+
+    rb_insync_hash: Optional[str]
+    """An optional string representing the in-sync hash of the image file."""
+
+    rb_insync_local_usn: Optional[int]
+    """An optional integer representing the in-sync local update sequence number."""
+
+    rb_file_hash_dirty: Optional[int]
+    """An optional integer indicating whether the file hash is dirty."""
+
+    rb_local_file_status: Optional[int]
+    """An optional integer representing the local file status in Rekordbox."""
+
+    rb_in_progress: Optional[int]
+    """An optional integer indicating whether the file is in progress."""
+
+    rb_process_type: Optional[int]
+    """An optional integer representing the process type of the file."""
+
+    rb_temp_path: Optional[str]
+    """An optional string representing the temporary path of the file."""
+
+    rb_priority: Optional[int]
+    """An optional integer representing the priority of the file."""
+
+    rb_file_size_dirty: Optional[int]
+    """An optional integer indicating whether the file size is dirty."""
+
+class SettingFile(_RustMutableMapping):
+    """Represents the `settingFile` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    path: str
+    """The relative file path of the setting file."""
+
+    hash: str
+    """The hash of the setting file."""
+
+    size: int
+    """The size of the setting file."""
+
+    rb_local_path: Optional[str]
+    """An optional string representing the local path of the setting file in Rekordbox."""
+
+    rb_insync_hash: Optional[str]
+    """An optional string representing the in-sync hash of the setting file."""
+
+    rb_insync_local_usn: Optional[int]
+    """An optional integer representing the in-sync local update sequence number."""
+
+    rb_file_hash_dirty: Optional[int]
+    """An optional integer indicating whether the file hash is dirty."""
+
+    rb_file_size_dirty: Optional[int]
+    """An optional integer indicating whether the file size is dirty."""
+
+class UuidIDMap(_RustMutableMapping):
+    """Represents the `uuidIDMap` table in the Rekordbox database."""
+
+    id: str
+    """A unique identifier for the entry."""
+
+    uuid: str
+    """A unique universal identifier for the entry."""
+
+    rb_data_status: int
+    """An integer representing the data status in Rekordbox."""
+
+    rb_local_data_status: int
+    """An integer representing the local data status in Rekordbox."""
+
+    rb_local_deleted: int
+    """An integer indicating whether the entry is locally deleted."""
+
+    rb_local_synced: int
+    """An integer indicating whether the entry is locally synced."""
+
+    usn: Optional[int]
+    """An optional integer representing the update sequence number."""
+
+    rb_local_usn: Optional[int]
+    """An optional integer representing the local update sequence number."""
+
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
+
+    table_name: str
+    """Table name associated with the mapping."""
+
+    target_uuid: str
+    """The target UUID in the mapping."""
+
+    current_id: str
+    """The current ID in the mapping."""
+
+class DjmdPlaylistTreeNode:
     id: str
     uuid: str
     rb_data_status: int
     rb_local_data_status: int
     rb_local_deleted: int
     rb_local_synced: int
-    created_at: datetime
-    updated_at: datetime
     usn: Optional[int]
     rb_local_usn: Optional[int]
-
-class AgentRegistry(_RustMutableMapping):
-    registry_id: str
     created_at: datetime
     updated_at: datetime
-    id_1: Optional[str]
-    id_2: Optional[str]
-    int_1: Optional[int]
-    int_2: Optional[int]
-    str_1: Optional[str]
-    str_2: Optional[str]
-    date_1: Optional[str]
-    date_2: Optional[str]
-    text_1: Optional[str]
-    text_2: Optional[str]
-
-class CloudAgentRegistry(_StatsFull, _RustMutableMapping):
-    int_1: Optional[int]
-    int_2: Optional[int]
-    str_1: Optional[str]
-    str_2: Optional[str]
-    date_1: Optional[str]
-    date_2: Optional[str]
-    text_1: Optional[str]
-    text_2: Optional[str]
-
-class ContentActiveCensor(_StatsFull, _RustMutableMapping):
-    content_id: Optional[str]
-    active_censors: Optional[str]
-    rb_activecensor_count: Optional[int]
-
-class ContentCue(_StatsFull, _RustMutableMapping):
-    content_id: Optional[str]
-    cues: Optional[str]
-    rb_cue_count: Optional[int]
-
-class ContentFile(_StatsFull, _RustMutableMapping):
-    content_id: Optional[str]
-    path: Optional[str]
-    hash: Optional[str]
-    size: Optional[int]
-    rb_local_path: Optional[str]
-    rb_insync_hash: Optional[str]
-    rb_insync_local_usn: Optional[int]
-    rb_file_hash_dirty: Optional[int]
-    rb_local_file_status: Optional[int]
-    rb_in_progress: Optional[int]
-    rb_process_type: Optional[int]
-    rb_temp_path: Optional[str]
-    rb_priority: Optional[int]
-    rb_file_size_dirty: Optional[int]
-
-class DjmdActiveCensor(_StatsFull, _RustMutableMapping):
-    content_id: Optional[str]
-    in_msec: Optional[int]
-    out_msec: Optional[int]
-    info: Optional[int]
-    parameter_list: Optional[str]
-    content_uuid: Optional[str]
-
-class DjmdAlbum(_StatsFull, _RustMutableMapping):
-    name: Optional[str]
-    album_artist_id: Optional[str]
+    seq: int
+    name: str
     image_path: Optional[str]
-    compilation: Optional[int]
-    search_str: Optional[str]
-
-class DjmdArtist(_StatsFull, _RustMutableMapping):
-    name: Optional[str]
-    search_str: Optional[str]
-
-class DjmdCategory(_StatsFull, _RustMutableMapping):
-    menu_item_id: Optional[str]
-    seq: Optional[int]
-    disable: Optional[int]
-    info_order: Optional[int]
-
-class DjmdColor(_StatsFull, _RustMutableMapping):
-    color_code: Optional[str]
-    sort_key: Optional[int]
-    commnt: Optional[str]
-
-class DjmdContent(_StatsFull, _RustMutableMapping):
-    folder_path: Optional[str]
-    file_name_l: Optional[str]
-    file_name_s: Optional[str]
-    title: Optional[str]
-    artist_id: Optional[str]
-    album_id: Optional[str]
-    genre_id: Optional[str]
-    bpm: Optional[int]
-    length: Optional[int]
-    track_no: Optional[int]
-    bit_rate: Optional[int]
-    bit_depth: Optional[int]
-    commnt: Optional[str]
-    file_type: Optional[int]
-    rating: Optional[int]
-    release_year: Optional[int]
-    remixer_id: Optional[str]
-    label_id: Optional[str]
-    org_artist_id: Optional[str]
-    key_id: Optional[str]
-    stock_date: Optional[str]
-    color_id: Optional[str]
-    dj_play_count: Optional[int]
-    image_path: Optional[str]
-    master_db_id: Optional[str]
-    master_song_id: Optional[str]
-    analysis_data_path: Optional[str]
-    search_str: Optional[str]
-    file_size: Optional[int]
-    disc_no: Optional[int]
-    composer_id: Optional[str]
-    subtitle: Optional[str]
-    sample_rate: Optional[int]
-    disable_quantize: Optional[int]
-    analysed: Optional[int]
-    release_date: Optional[str]
-    date_created: Optional[str]
-    content_link: Optional[int]
-    tag: Optional[str]
-    modified_by_rbm: Optional[str]
-    hot_cue_auto_load: Optional[str]
-    delivery_control: Optional[str]
-    delivery_comment: Optional[str]
-    cue_updated: Optional[str]
-    analysis_updated: Optional[str]
-    track_info_updated: Optional[str]
-    lyricist: Optional[str]
-    isrc: Optional[str]
-    sampler_track_info: Optional[int]
-    sampler_play_offset: Optional[int]
-    sampler_gain: Optional[float]
-    video_associate: Optional[str]
-    lyric_status: Optional[int]
-    service_id: Optional[int]
-    org_folder_path: Optional[str]
-    reserved1: Optional[str]
-    reserved2: Optional[str]
-    reserved3: Optional[str]
-    reserved4: Optional[str]
-    ext_info: Optional[str]
-    rb_file_id: Optional[str]
-    device_id: Optional[str]
-    rb_local_folder_path: Optional[str]
-    src_id: Optional[str]
-    src_title: Optional[str]
-    src_artist_name: Optional[str]
-    src_album_name: Optional[str]
-    src_length: Optional[int]
-
-class DjmdCue(_StatsFull, _RustMutableMapping):
-    content_id: Optional[str]
-    in_msec: Optional[int]
-    in_frame: Optional[int]
-    in_mpeg_frame: Optional[int]
-    in_mpeg_abs: Optional[int]
-    out_msec: Optional[int]
-    out_frame: Optional[int]
-    out_mpeg_frame: Optional[int]
-    out_mpeg_abs: Optional[int]
-    kind: Optional[int]
-    color: Optional[int]
-    color_table_index: Optional[int]
-    active_loop: Optional[int]
-    comment: Optional[str]
-    beat_loop_size: Optional[int]
-    cue_microsec: Optional[int]
-    in_point_seek_info: Optional[str]
-    out_point_seek_info: Optional[str]
-    content_uuid: Optional[str]
-
-class DjmdDevice(_StatsFull, _RustMutableMapping):
-    master_db_id: Optional[str]
-    name: Optional[str]
-
-class DjmdGenre(_StatsFull, _RustMutableMapping):
-    name: Optional[str]
-
-class DjmdHistory(_StatsFull, _RustMutableMapping):
-    seq: Optional[int]
-    name: Optional[str]
-    attribute: Optional[int]
-    parent_id: Optional[str]
-    date_created: Optional[str]
-
-class DjmdSongHistory(_StatsFull, _RustMutableMapping):
-    history_id: Optional[str]
-    content_id: Optional[str]
-    track_no: Optional[int]
-
-class DjmdHotCueBanklist(_StatsFull, _RustMutableMapping):
-    seq: Optional[int]
-    name: Optional[str]
-    image_path: Optional[str]
-    attribute: Optional[int]
-    parent_id: Optional[str]
-
-class DjmdSongHotCueBanklist(_StatsFull, _RustMutableMapping):
-    content_id: Optional[str]
-    track_no: Optional[int]
-    cue_id: Optional[str]
-    in_msec: Optional[int]
-    in_frame: Optional[int]
-    in_mpeg_frame: Optional[int]
-    in_mpeg_abs: Optional[int]
-    out_msec: Optional[int]
-    out_frame: Optional[int]
-    out_mpeg_frame: Optional[int]
-    out_mpeg_abs: Optional[int]
-    color: Optional[int]
-    color_table_index: Optional[int]
-    active_loop: Optional[int]
-    comment: Optional[str]
-    beat_loop_size: Optional[int]
-    cue_microsec: Optional[int]
-    in_point_seek_info: Optional[str]
-    out_point_seek_info: Optional[str]
-    hot_cue_banklist_uuid: Optional[str]
-
-class HotCueBanklistCue(_StatsFull, _RustMutableMapping):
-    hot_cue_banklist_id: Optional[str]
-    cues: Optional[str]
-    rb_cue_count: Optional[int]
-
-class DjmdKey(_StatsFull, _RustMutableMapping):
-    scale_name: Optional[str]
-    seq: Optional[int]
-
-class DjmdLabel(_StatsFull, _RustMutableMapping):
-    name: Optional[str]
-
-class DjmdMenuItems(_StatsFull, _RustMutableMapping):
-    class_: Optional[int]
-    name: Optional[str]
-
-class DjmdMixerParam(_StatsFull, _RustMutableMapping):
-    content_id: Optional[str]
-    gain_high: Optional[int]
-    gain_low: Optional[int]
-    peak_high: Optional[int]
-    peak_low: Optional[int]
-
-class DjmdMyTag(_StatsFull, _RustMutableMapping):
-    seq: Optional[int]
-    name: Optional[str]
-    attribute: Optional[int]
-    parent_id: Optional[str]
-
-class DjmdSongMyTag(_StatsFull, _RustMutableMapping):
-    my_tag_id: Optional[str]
-    content_id: Optional[str]
-    track_no: Optional[int]
-
-class DjmdPlaylist(_StatsFull, _RustMutableMapping):
-    seq: Optional[int]
-    name: Optional[str]
-    image_path: Optional[str]
-    attribute: Optional[int]
-    parent_id: Optional[str]
+    attribute: int
+    parent_id: str
     smart_list: Optional[str]
+    children: list[DjmdPlaylistTreeNode]
 
-class DjmdPlaylistTreeItem(_StatsFull, _RustMutableMapping):
-    seq: Optional[int]
-    name: Optional[str]
-    image_path: Optional[str]
-    attribute: Optional[int]
-    parent_id: Optional[str]
-    smart_list: Optional[str]
-    children: List["DjmdPlaylistTreeItem"]
-
-class DjmdSongPlaylist(_StatsFull, _RustMutableMapping):
-    playlist_id: Optional[str]
-    content_id: Optional[str]
-    track_no: Optional[int]
-
-class DjmdProperty(_RustMutableMapping):
-    db_id: str
-    db_version: Optional[str]
-    base_db_drive: Optional[str]
-    current_db_drive: Optional[str]
-    device_id: Optional[str]
-    reserved1: Optional[str]
-    reserved2: Optional[str]
-    reserved3: Optional[str]
-    reserved4: Optional[str]
-    reserved5: Optional[str]
-    created_at: datetime
-    updated_at: datetime
-
-class DjmdCloudProperty(_StatsFull, _RustMutableMapping):
-    reserved1: Optional[str]
-    reserved2: Optional[str]
-    reserved3: Optional[str]
-    reserved4: Optional[str]
-    reserved5: Optional[str]
-
-class DjmdRecommendLike(_StatsFull, _RustMutableMapping):
-    content_id1: Optional[str]
-    content_id2: Optional[str]
-    like_rate: Optional[int]
-    data_created_h: Optional[int]
-    data_created_l: Optional[int]
-
-class DjmdRelatedTracks(_StatsFull, _RustMutableMapping):
-    seq: Optional[int]
-    name: Optional[str]
-    attribute: Optional[int]
-    parent_id: Optional[str]
-    criteria: Optional[str]
-
-class DjmdSongRelatedTracks(_StatsFull, _RustMutableMapping):
-    related_tracks_id: Optional[str]
-    content_id: Optional[str]
-    track_no: Optional[int]
-
-class DjmdSampler(_StatsFull, _RustMutableMapping):
-    seq: Optional[int]
-    name: Optional[str]
-    attribute: Optional[int]
-    parent_id: Optional[str]
-
-class DjmdSongSampler(_StatsFull, _RustMutableMapping):
-    sampler_id: Optional[str]
-    content_id: Optional[str]
-    track_no: Optional[int]
-
-class DjmdSongTagList(_StatsFull, _RustMutableMapping):
-    content_id: Optional[str]
-    track_no: Optional[int]
-
-class DjmdSort(_StatsFull, _RustMutableMapping):
-    menu_item_id: Optional[str]
-    seq: Optional[int]
-    disable: Optional[int]
-
-class ImageFile(_StatsFull, _RustMutableMapping):
-    table_name: Optional[str]
-    target_uuid: Optional[str]
-    target_id: Optional[str]
-    path: Optional[str]
-    hash: Optional[str]
-    size: Optional[int]
-    rb_local_path: Optional[str]
-    rb_insync_hash: Optional[str]
-    rb_insync_local_usn: Optional[int]
-    rb_file_hash_dirty: Optional[int]
-    rb_local_file_status: Optional[int]
-    rb_in_progress: Optional[int]
-    rb_process_type: Optional[int]
-    rb_temp_path: Optional[str]
-    rb_priority: Optional[int]
-    rb_file_size_dirty: Optional[int]
-
-class SettingFile(_StatsFull, _RustMutableMapping):
-    path: Optional[str]
-    hash: Optional[str]
-    size: Optional[int]
-    rb_local_path: Optional[str]
-    rb_insync_hash: Optional[str]
-    rb_insync_local_usn: Optional[int]
-    rb_file_hash_dirty: Optional[int]
-    rb_file_size_dirty: Optional[int]
-
-class UuidIDMap(_StatsFull, _RustMutableMapping):
-    table_name: Optional[str]
-    target_uuid: Optional[str]
-    current_id: Optional[str]
+# ---- MasterDb ------------------------------------------------------------------------------------
 
 class PyMasterDb:
-    def __init__(self, path: str) -> None: ...
+    def __init__(self, path: str) -> None:
+        """Open a Rekordbox database specified by path."""
+        ...
     @classmethod
-    def open(cls) -> "PyMasterDb": ...
-    def set_unsafe_writes(self, bool: bool) -> None: ...
-    def get_agent_registry(self) -> List[AgentRegistry]: ...
-    def get_agent_registry_by_id(self, registry_id: str) -> Optional[AgentRegistry]: ...
-    def get_local_usn(self) -> int: ...
-    def get_cloud_agent_registry(self) -> List[CloudAgentRegistry]: ...
-    def get_cloud_agent_registry_by_id(self, registry_id: str) -> Optional[CloudAgentRegistry]: ...
-    def get_content_active_censor(self) -> List[ContentActiveCensor]: ...
-    def get_content_active_censor_by_id(self, censor_id: str) -> Optional[ContentActiveCensor]: ...
-    def get_content_cue(self) -> List[ContentCue]: ...
-    def get_content_cue_by_id(self, cue_id: str) -> Optional[ContentCue]: ...
-    def get_content_file(self) -> List[ContentFile]: ...
-    def get_content_file_by_id(self, file_id: str) -> Optional[ContentFile]: ...
-    def get_active_censor(self) -> List[DjmdActiveCensor]: ...
-    def get_active_censor_by_id(self, censor_id: str) -> Optional[DjmdActiveCensor]: ...
-    def get_album(self) -> List[DjmdAlbum]: ...
-    def get_album_by_id(self, album_id: str) -> Optional[DjmdAlbum]: ...
-    def get_album_by_name(self, album_name: str) -> Optional[DjmdAlbum]: ...
-    def insert_album(
-        self, name: str, artist_id: str = None, image_path: str = None, compilation: int = None
-    ) -> DjmdAlbum: ...
-    def update_album(self, album: DjmdAlbum) -> DjmdAlbum: ...
-    def delete_album(self, album_id: str) -> None: ...
-    def get_artist(self) -> List[DjmdArtist]: ...
-    def get_artist_by_id(self, artist_id: str) -> Optional[DjmdArtist]: ...
-    def get_artist_by_name(self, artist_name: str) -> Optional[DjmdArtist]: ...
-    def insert_artist(self, name: str) -> DjmdArtist: ...
-    def update_artist(self, artist: DjmdArtist) -> DjmdArtist: ...
-    def delete_artist(self, artist_id: str) -> None: ...
-    def get_category(self) -> List[DjmdCategory]: ...
-    def get_category_by_id(self, category_id: str) -> Optional[DjmdCategory]: ...
-    def get_color(self) -> List[DjmdColor]: ...
-    def get_color_by_id(self, color_id: str) -> Optional[DjmdColor]: ...
-    def get_content(self) -> List[DjmdContent]: ...
-    def get_content_by_id(self, content_id: str) -> Optional[DjmdContent]: ...
-    def get_content_by_path(self, path: str) -> Optional[DjmdContent]: ...
-    def get_content_anlz_dir(self, content_id: str) -> str: ...
-    def get_content_anlz_paths(self, content_id: str) -> Dict[str, str]: ...
-    def insert_content(self, path: str) -> DjmdContent: ...
-    def update_content(self, content: DjmdContent) -> None: ...
-    def update_content_album(self, content_id: str, name: str) -> None: ...
-    def update_content_artist(self, content_id: str, name: str) -> None: ...
-    def update_content_remixer(self, content_id: str, name: str) -> None: ...
-    def update_content_original_artist(self, content_id: str, name: str) -> None: ...
-    def update_content_composer(self, content_id: str, name: str) -> None: ...
-    def update_content_genre(self, content_id: str, name: str) -> None: ...
-    def update_content_label(self, content_id: str, name: str) -> None: ...
-    def update_content_key(self, content_id: str, name: str) -> None: ...
-    # def delete_content(self, content_id: str) -> None: ...
-    def get_cue(self) -> List[DjmdCue]: ...
-    def get_cue_by_id(self, cue_id: str) -> Optional[DjmdCue]: ...
-    def get_device(self) -> List[DjmdDevice]: ...
-    def get_device_by_id(self, device_id: str) -> Optional[DjmdDevice]: ...
-    def get_genre(self) -> List[DjmdGenre]: ...
-    def get_genre_by_id(self, genre_id: str) -> Optional[DjmdGenre]: ...
-    def get_genre_by_name(self, genre_name: str) -> Optional[DjmdGenre]: ...
-    def insert_genre(self, name: str) -> DjmdGenre: ...
-    def update_genre(self, genre: DjmdGenre) -> DjmdGenre: ...
-    def delete_genre(self, genre_id: str) -> None: ...
-    def get_history(self) -> List[DjmdHistory]: ...
-    def get_history_by_id(self, history_id: str) -> Optional[DjmdHistory]: ...
-    def get_history_songs(self, history_id: str) -> List[DjmdSongHistory]: ...
-    def get_history_contents(self, history_id: str) -> List[DjmdContent]: ...
-    def get_hot_cue_banklist(self) -> List[DjmdHotCueBanklist]: ...
-    def get_hot_cue_banklist_by_id(self, banklist_id: str) -> Optional[DjmdHotCueBanklist]: ...
-    def get_hot_cue_banklist_children(self, banklist_id: str) -> List[DjmdHotCueBanklist]: ...
-    def get_hot_cue_banklist_songs(self, banklist_id: str) -> List[DjmdSongHotCueBanklist]: ...
-    def get_hot_cue_banklist_contents(self, banklist_id: str) -> List[DjmdContent]: ...
-    def get_hot_cue_banklist_cues(self, banklist_id: str) -> List[HotCueBanklistCue]: ...
-    def get_key(self) -> List[DjmdKey]: ...
-    def get_key_by_id(self, key_id: str) -> Optional[DjmdKey]: ...
-    def get_key_by_name(self, key_name: str) -> Optional[DjmdKey]: ...
-    def insert_key(self, name: str) -> DjmdKey: ...
-    def update_key(self, key: DjmdKey) -> DjmdKey: ...
-    def delete_key(self, key_id: str) -> None: ...
-    def get_label(self) -> List[DjmdLabel]: ...
-    def get_label_by_id(self, label_id: str) -> Optional[DjmdLabel]: ...
-    def get_label_by_name(self, label_name: str) -> Optional[DjmdLabel]: ...
-    def insert_label(self, name: str) -> DjmdLabel: ...
-    def update_label(self, label: DjmdLabel) -> DjmdLabel: ...
-    def delete_label(self, label_id: str) -> None: ...
-    def get_menu_item(self) -> List[DjmdMenuItems]: ...
-    def get_menu_item_by_id(self, item_id: str) -> Optional[DjmdMenuItems]: ...
-    def get_mixer_param(self) -> List[DjmdMixerParam]: ...
-    def get_mixer_param_by_id(self, param_id: str) -> Optional[DjmdMixerParam]: ...
-    def get_my_tag(self) -> List[DjmdMyTag]: ...
-    def get_my_tag_children(self, tag_id: str) -> List[DjmdMyTag]: ...
-    def get_my_tag_by_id(self, tag_id: str) -> Optional[DjmdMyTag]: ...
-    def get_my_tag_songs(self, tag_id: str) -> List[DjmdSongMyTag]: ...
-    def get_my_tag_contents(self, tag_id: str) -> List[DjmdContent]: ...
-    def get_playlist(self) -> List[DjmdPlaylist]: ...
-    def get_playlist_tree(self) -> List[DjmdPlaylistTreeItem]: ...
-    def get_playlist_children(self, playlist_id: str) -> List[DjmdPlaylist]: ...
-    def get_playlist_by_id(self, playlist_id: str) -> Optional[DjmdPlaylist]: ...
-    def get_playlist_by_path(self, path: List[str]) -> Optional[DjmdPlaylist]: ...
-    def get_playlist_songs(self, playlist_id: str) -> List[DjmdSongPlaylist]: ...
-    def get_playlist_contents(self, playlist_id: str) -> List[DjmdContent]: ...
-    def get_playlist_song_by_id(self, song_id: str) -> Optional[DjmdSongPlaylist]: ...
-    def insert_playlist(
+    def open(cls) -> "PyMasterDb":
+        """Open the default Rekordbox `master.db` database."""
+        ...
+    def set_unsafe_writes(self, unsafe_writes: bool) -> None:
+        """Sets the unsafe writes flag for the database."""
+        ...
+    def share_directory(self) -> Optional[str]:
+        """Returns the path to the configured share directory."""
+        ...
+    def playlist_xml_path(self) -> Optional[str]:
+        """Returns the path to the configured playlist XML file."""
+        ...
+    def get_agent_registries(self) -> list[AgentRegistry]:
+        """Retrieves all entries from the [`AgentRegistry`] table in the database."""
+        ...
+    def get_agent_registry_by_id(self, id: str) -> Optional[AgentRegistry]:
+        """Retrieves an `agentRegistry` entry by its unique identifier."""
+        ...
+    def get_local_usn(self) -> int:
+        """Retrieves the local update sequence number (USN) from the `agentRegistry` table."""
+        ...
+    def get_cloud_agent_registries(self) -> list[CloudAgentRegistry]:
+        """Retrieves all entries from the `cloudAgentRegistry` table in the database."""
+        ...
+    def get_cloud_agent_registry_by_id(self, id: str) -> Optional[CloudAgentRegistry]:
+        """Retrieves a `cloudAgentRegistry` entry by its unique identifier."""
+        ...
+    def get_content_active_censors(self) -> list[ContentActiveCensor]:
+        """Retrieves all entries from the `contentActiveCensor` table in the database."""
+        ...
+    def get_content_active_censor_by_id(self, id: str) -> Optional[ContentActiveCensor]:
+        """Retrieves a `contentActiveCensor` entry by its unique identifier."""
+        ...
+    def get_content_cues(self) -> list[ContentCue]:
+        """Retrieves all entries from the `contentCue` table in the database."""
+        ...
+    def get_content_cue_by_id(self, id: str) -> Optional[ContentCue]:
+        """Retrieves a `contentCue` entry by its unique identifier."""
+        ...
+    def get_content_files(self) -> list[ContentFile]:
+        """Retrieves all entries from the `contentFile` table in the database."""
+        ...
+    def get_content_file_by_id(self, id: str) -> Optional[ContentFile]:
+        """Retrieves a `contentFile` entry by its unique identifier."""
+        ...
+    def get_active_censors(self) -> list[DjmdActiveCensor]:
+        """Retrieves all entries from the `djmdActiveCensor` table in the database."""
+        ...
+    def get_active_censor_by_id(self, id: str) -> Optional[DjmdActiveCensor]:
+        """Retrieves a `djmdActiveCensor` entry by its unique identifier."""
+        ...
+    def get_albums(self) -> list[DjmdAlbum]:
+        """Retrieves all entries from the `djmdAlbum` table in the database."""
+        ...
+    def get_album_by_id(self, id: str) -> Optional[DjmdAlbum]:
+        """Retrieves a `djmdAlbum` entry by its unique identifier."""
+        ...
+    def get_album_by_name(self, name: str) -> Optional[DjmdAlbum]:
+        """Retrieves a `djmdAlbum` entry by its name."""
+        ...
+    def create_album(
+        self,
+        name: str,
+        artist_id: Optional[str],
+        image_path: Optional[str],
+        compilation: Optional[int],
+    ) -> DjmdAlbum:
+        """Creates a new album and inserts it into the `djmdAlbum` table in the database."""
+        ...
+    def update_album(self, item: DjmdAlbum) -> DjmdAlbum:
+        """Updates an existing `djmdAlbum` entry in the database."""
+        ...
+    def delete_album(self, id: str) -> None:
+        """Deletes an album entry from the `djmdAlbum` table in the database."""
+        ...
+    def get_artists(self) -> list[DjmdArtist]:
+        """Retrieves all entries from the `djmdArtist` table in the database."""
+        ...
+    def get_artist_by_id(self, id: str) -> Optional[DjmdArtist]:
+        """Retrieves a `djmdArtist` entry by its unique identifier."""
+        ...
+    def get_artist_by_name(self, name: str) -> Optional[DjmdArtist]:
+        """Retrieves a `djmdArtist` entry by its name."""
+        ...
+    def create_artist(self, name: str) -> DjmdArtist:
+        """Creates a new artist and inserts it into the `djmdArtist` table in the database."""
+        ...
+    def update_artist(self, item: DjmdArtist) -> DjmdArtist:
+        """Updates an existing `djmdArtist` entry in the database."""
+        ...
+    def delete_artist(self, id: str) -> None:
+        """Deletes an artist entry from the `djmdArtist` table in the database."""
+        ...
+    def get_categories(self) -> list[DjmdCategory]:
+        """Retrieves all entries from the `djmdCategory` table in the database."""
+        ...
+    def get_category_by_id(self, id: str) -> Optional[DjmdCategory]:
+        """Retrieves a `djmdCategory` entry by its unique identifier."""
+        ...
+    def get_colors(self) -> list[DjmdColor]:
+        """Retrieves all entries from the `djmdColor` table in the database."""
+        ...
+    def get_color_by_id(self, id: str) -> Optional[DjmdColor]:
+        """Retrieves a `djmdColor` entry by its unique identifier."""
+        ...
+    def get_contents(self) -> list[DjmdContent]:
+        """Retrieves all entries from the `djmdContent` table in the database."""
+        ...
+    def get_content_by_id(self, id: str) -> Optional[DjmdContent]:
+        """Retrieves a `djmdContent` entry by its unique identifier."""
+        ...
+    def get_content_by_path(self, path: str) -> Optional[DjmdContent]:
+        """Retrieves a `djmdContent` entry by its folder path."""
+        ...
+    def get_content_anlz_dir(self, id: str) -> Optional[str]:
+        """Returns the path to the directory containing the ANLZxxxx.xxx files for a given content ID."""
+        ...
+    def get_content_anlz_paths(self, id: str) -> dict:
+        """Returns a struct containing the paths to ANLZxxxx.DAT, ANLZxxxx.EXT, and ANLZxxxx.EX2 files."""
+        ...
+    def create_content(self, path: str) -> DjmdContent:
+        """Creates a new content entry and inserts it into the `djmdContent` table."""
+        ...
+    def update_content(self, item: DjmdContent) -> None:
+        """Updates an existing `djmdContent` entry in the database."""
+        ...
+    def update_content_album(self, id: str, name: str) -> None:
+        """Update the content album field."""
+        ...
+    def update_content_artist(self, id: str, name: str) -> None:
+        """Update the content artist name."""
+        ...
+    def update_content_remixer(self, id: str, name: str) -> None:
+        """Update the content remixer name."""
+        ...
+    def update_content_original_artist(self, id: str, name: str) -> None:
+        """Update the content original artist name."""
+        ...
+    def update_content_composer(self, id: str, name: str) -> None:
+        """Update the content composer name."""
+        ...
+    def update_content_genre(self, id: str, name: str) -> None:
+        """Update the content genre name."""
+        ...
+    def update_content_label(self, id: str, name: str) -> None:
+        """Update the content label name."""
+        ...
+    def update_content_key(self, id: str, name: str) -> None:
+        """Update the content key name."""
+        ...
+    def update_content_path(self, content_id: str, path: str) -> int:
+        """Updates the file path of a content entry in the database."""
+        ...
+    def get_cues(self) -> list[DjmdCue]:
+        """Retrieves all entries from the `djmdCue` table."""
+        ...
+    def get_cue_by_id(self, id: str) -> Optional[DjmdCue]:
+        """Retrieves a `djmdCue` entry by its unique identifier."""
+        ...
+    def get_devices(self) -> list[DjmdDevice]:
+        """Retrieves all entries from the `djmdDevice` table."""
+        ...
+    def get_device_by_id(self, id: str) -> Optional[DjmdDevice]:
+        """Retrieves a `djmdDevice` entry by its unique identifier."""
+        ...
+    def get_genres(self) -> list[DjmdGenre]:
+        """Retrieves all entries from the `djmdGenre` table in the database."""
+        ...
+    def get_genre_by_id(self, id: str) -> Optional[DjmdGenre]:
+        """Retrieves a `djmdGenre` entry by its unique identifier."""
+        ...
+    def get_genre_by_name(self, name: str) -> Optional[DjmdGenre]:
+        """Retrieves a `djmdGenre` entry by its name."""
+        ...
+    def create_genre(self, name: str) -> DjmdGenre:
+        """Creates a new genre and inserts it into the `djmdGenre` table in the database."""
+        ...
+    def update_genre(self, item: DjmdGenre) -> DjmdGenre:
+        """Updates an existing `djmdGenre` entry in the database."""
+        ...
+    def delete_genre(self, id: str) -> None:
+        """Deletes a genre entry from the `djmdGenre` table in the database."""
+        ...
+    def get_histories(self) -> list[DjmdHistory]:
+        """Retrieves all entries from the `djmdHistory` table in the database."""
+        ...
+    def get_history_by_id(self, id: str) -> Optional[DjmdHistory]:
+        """Retrieves a `djmdHistory` entry by its unique identifier."""
+        ...
+    def get_history_songs(self, id: str) -> list[DjmdSongHistory]:
+        """Retrieves all song history entries for a given history ID, ordered by track number."""
+        ...
+    def get_history_contents(self, id: str) -> list[DjmdContent]:
+        """Retrieves all content entries referenced by the song history for a given history ID."""
+        ...
+    def get_hot_cue_banklists(self) -> list[DjmdHotCueBanklist]:
+        """Retrieves all entries from the `djmdHotCueBanklist` table in the database."""
+        ...
+    def get_hot_cue_banklist_by_id(self, id: str) -> Optional[DjmdHotCueBanklist]:
+        """Retrieves a `djmdHotCueBanklist` entry by its unique identifier."""
+        ...
+    def get_hot_cue_banklist_children(self, parent_id: str) -> list[DjmdHotCueBanklist]:
+        """Retrieves all child `djmdHotCueBanklist` entries for a given parent ID, ordered by sequence."""
+        ...
+    def get_hot_cue_banklist_songs(self, id: str) -> list[DjmdSongHotCueBanklist]:
+        """Retrieves all `djmdSongHotCueBanklist` entries for a given hot cue banklist ID, ordered by track number."""
+        ...
+    def get_hot_cue_banklist_contents(self, id: str) -> list[DjmdContent]:
+        """Retrieves all `djmdContent` entries referenced by the song hot cue banklist for a given hot cue banklist ID."""
+        ...
+    def get_hot_cue_banklist_cues(self, id: str) -> list[HotCueBanklistCue]:
+        """Retrieves all `hotCueBanklistCue` entries for a given hot cue banklist ID."""
+        ...
+    def get_keys(self) -> list[DjmdKey]:
+        """Retrieves all entries from the `djmdKey` table in the database."""
+        ...
+    def get_key_by_id(self, id: str) -> Optional[DjmdKey]:
+        """Retrieves a `djmdKey` entry by its unique identifier."""
+        ...
+    def get_key_by_name(self, name: str) -> Optional[DjmdKey]:
+        """Retrieves a `djmdKey` entry by its scale name."""
+        ...
+    def create_key(self, name: str) -> DjmdKey:
+        """Creates a new key and inserts it into the `djmdKey` table in the database."""
+        ...
+    def update_key(self, item: DjmdKey) -> DjmdKey:
+        """Updates an existing `djmdKey` entry in the database."""
+        ...
+    def delete_key(self, id: str) -> None:
+        """Deletes a key entry from the `djmdKey` table in the database."""
+        ...
+    def get_labels(self) -> list[DjmdLabel]:
+        """Retrieves all entries from the `djmdLabel` table in the database."""
+        ...
+    def get_label_by_id(self, id: str) -> Optional[DjmdLabel]:
+        """Retrieves a `djmdLabel` entry by its unique identifier."""
+        ...
+    def get_label_by_name(self, name: str) -> Optional[DjmdLabel]:
+        """Retrieves a `djmdLabel` entry by its name."""
+        ...
+    def create_label(self, name: str) -> DjmdLabel:
+        """Creates a new label and inserts it into the `djmdLabel` table in the database."""
+        ...
+    def update_label(self, item: DjmdLabel) -> DjmdLabel:
+        """Updates an existing `djmdLabel` entry in the database."""
+        ...
+    def delete_label(self, id: str) -> None:
+        """Deletes a label entry from the `djmdLabel` table in the database."""
+        ...
+    def get_menu_items(self) -> list[DjmdMenuItems]:
+        """Retrieves all entries from the `djmdMenuItems` table in the database."""
+        ...
+    def get_menu_item_by_id(self, id: str) -> Optional[DjmdMenuItems]:
+        """Retrieves a `djmdMenuItems` entry by its unique identifier."""
+        ...
+    def get_mixer_params(self) -> list[DjmdMixerParam]:
+        """Retrieves all entries from the `djmdMixerParam` table in the database."""
+        ...
+    def get_mixer_param_by_id(self, id: str) -> Optional[DjmdMixerParam]:
+        """Retrieves a `djmdMixerParam` entry by its unique identifier."""
+        ...
+    def get_my_tags(self) -> list[DjmdMyTag]:
+        """Retrieves all entries from the `djmdMyTag` table in the database."""
+        ...
+    def get_my_tag_children(self, parent_id: str) -> list[DjmdMyTag]:
+        """Retrieves all child `djmdMyTag` entries for a given parent ID, ordered by sequence."""
+        ...
+    def get_my_tag_by_id(self, id: str) -> Optional[DjmdMyTag]:
+        """Retrieves a `djmdMyTag` entry by its unique identifier."""
+        ...
+    def get_my_tag_songs(self, id: str) -> list[DjmdSongMyTag]:
+        """Retrieves all `djmdSongMyTag` entries for a given tag ID, ordered by track number."""
+        ...
+    def get_my_tag_contents(self, id: str) -> list[DjmdContent]:
+        """Retrieves all `djmdContent` entries referenced by the songs for a given tag ID."""
+        ...
+    def get_playlists(self) -> list[DjmdPlaylist]:
+        """Retrieves all entries from the `djmdPlaylist` table in the database."""
+        ...
+    def get_playlist_tree(self) -> list[DjmdPlaylistTreeNode]:
+        """Returns a sorted tree of playlists as tree nodes."""
+        ...
+    def get_playlist_children(self, parent_id: str) -> list[DjmdPlaylist]:
+        """Retrieves all child `djmdPlaylist` entries for a given parent ID, ordered by sequence."""
+        ...
+    def get_playlist_by_id(self, id: str) -> Optional[DjmdPlaylist]:
+        """Retrieves a `djmdPlaylist` entry by its unique identifier."""
+        ...
+    def get_playlist_by_path(self, path: list[str]) -> Optional[DjmdPlaylist]:
+        """Retrieves a `djmdPlaylist` entry by its hierarchical path."""
+        ...
+    def get_playlist_songs(self, id: str) -> list[DjmdSongPlaylist]:
+        """Retrieves all `djmdSongPlaylist` entries for a given playlist ID, ordered by track number."""
+        ...
+    def get_playlist_contents(self, id: str) -> list[DjmdContent]:
+        """Retrieves all `djmdContent` entries referenced by the songs for a given playlist ID."""
+        ...
+    def get_playlist_song_by_id(self, id: str) -> Optional[DjmdSongPlaylist]:
+        """Retrieves a `djmdSongPlaylist` entry by its unique identifier."""
+        ...
+    def create_playlist_node(
         self,
         name: str,
         attribute: int,
-        parent_id: str = None,
-        seq: int = None,
-        image_path: str = None,
-        smart_list: str = None,
-    ) -> DjmdPlaylist: ...
-    def rename_playlist(self, playlist_id: str, name: str) -> DjmdPlaylist: ...
-    def move_playlist(
-        self, playlist_id: str, seq: int = None, parent_id: str = None
-    ) -> DjmdPlaylist: ...
-    def delete_playlist(self, playlist_id: str) -> None: ...
-    def insert_playlist_song(
-        self, playlist_id: str, content_id: str, seq: int = None
-    ) -> DjmdSongPlaylist: ...
-    def move_playlist_song(self, song_id: str, seq: int) -> DjmdSongPlaylist: ...
-    def delete_playlist_song(self, song_id: str) -> None: ...
-    def get_property(self) -> List[DjmdProperty]: ...
-    def get_property_by_id(self, property_id: str) -> Optional[DjmdProperty]: ...
-    def get_cloud_property(self) -> List[DjmdCloudProperty]: ...
-    def get_cloud_property_by_id(self, property_id: str) -> Optional[DjmdCloudProperty]: ...
-    def get_recommend_like(self) -> List[DjmdRecommendLike]: ...
-    def get_recommend_like_by_id(self, recommend_id: str) -> Optional[DjmdRecommendLike]: ...
-    def get_related_tracks(self) -> List[DjmdRelatedTracks]: ...
-    def get_related_tracks_children(self, track_id: str) -> List[DjmdRelatedTracks]: ...
-    def get_related_tracks_by_id(self, track_id: str) -> Optional[DjmdRelatedTracks]: ...
-    def get_related_tracks_songs(self, track_id: str) -> List[DjmdSongRelatedTracks]: ...
-    def get_related_tracks_contents(self, track_id: str) -> List[DjmdContent]: ...
-    def get_sampler(self) -> List[DjmdSampler]: ...
-    def get_sampler_children(self, sampler_id: str) -> List[DjmdSampler]: ...
-    def get_sampler_by_id(self, sampler_id: str) -> Optional[DjmdSampler]: ...
-    def get_sampler_songs(self, sampler_id: str) -> List[DjmdSongSampler]: ...
-    def get_sampler_contents(self, sampler_id: str) -> List[DjmdContent]: ...
-    def get_song_tag_list(self) -> List[DjmdSongTagList]: ...
-    def get_song_tag_list_by_id(self, tag_list_id: str) -> Optional[DjmdSongTagList]: ...
-    def get_sort(self) -> List[DjmdSort]: ...
-    def get_sort_by_id(self, sort_id: str) -> Optional[DjmdSort]: ...
-    def get_image_file(self) -> List[ImageFile]: ...
-    def get_image_file_by_id(self, image_id: str) -> Optional[ImageFile]: ...
-    def get_setting_file(self) -> List[SettingFile]: ...
-    def get_setting_file_by_id(self, setting_id: str) -> Optional[SettingFile]: ...
-    def get_uuid_id_map(self) -> List[UuidIDMap]: ...
-    def get_uuid_id_map_by_id(self, uuid_id: str) -> Optional[UuidIDMap]: ...
+        parent_id: Optional[str],
+        seq: Optional[int],
+        image_path: Optional[str],
+        smart_list: Optional[str],
+    ) -> DjmdPlaylist:
+        """Creates a new playlist and inserts it into the `djmdPlaylist` table in the database."""
+        ...
+    def rename_playlist(self, id: str, name: str) -> DjmdPlaylist:
+        """Renames an existing playlist."""
+        ...
+    def move_playlist(self, id: str, seq: Optional[int], parent_id: Optional[str]) -> DjmdPlaylist:
+        """Moves a playlist to a new parent folder or changes its sequence within the same parent."""
+        ...
+    def delete_playlist(self, id: str) -> None:
+        """Deletes a playlist entry from the `djmdPlaylist` table in the database."""
+        ...
+    def create_playlist_song(
+        self, playlist_id: str, content_id: str, seq: Optional[int]
+    ) -> DjmdSongPlaylist:
+        """Creates a new playlist song and inserts it into the `djmdSongPlaylist` table."""
+        ...
+    def move_playlist_song(self, id: str, seq: int) -> DjmdSongPlaylist:
+        """Moves a song within a playlist to a new sequence position."""
+        ...
+    def delete_playlist_song(self, id: str) -> None:
+        """Deletes a song entry from a playlist."""
+        ...
+    def get_properties(self) -> list[DjmdProperty]:
+        """Retrieves all entries from the `djmdProperty` table in the database."""
+        ...
+    def get_property_by_id(self, id: str) -> Optional[DjmdProperty]:
+        """Retrieves a `djmdProperty` entry by its unique identifier."""
+        ...
+    def get_cloud_properties(self) -> list[DjmdCloudProperty]:
+        """Retrieves all entries from the `djmdCloudProperty` table in the database."""
+        ...
+    def get_cloud_property_by_id(self, id: str) -> Optional[DjmdCloudProperty]:
+        """Retrieves a `djmdCloudProperty` entry by its unique identifier."""
+        ...
+    def get_recommend_likes(self) -> list[DjmdRecommendLike]:
+        """Retrieves all entries from the `djmdRecommendLike` table in the database."""
+        ...
+    def get_recommend_like_by_id(self, id: str) -> Optional[DjmdRecommendLike]:
+        """Retrieves a `djmdRecommendLike` entry by its unique identifier."""
+        ...
+    def get_related_tracks(self) -> list[DjmdRelatedTracks]:
+        """Retrieves all entries from the `djmdRelatedTracks` table in the database."""
+        ...
+    def get_related_tracks_children(self, parent_id: str) -> list[DjmdRelatedTracks]:
+        """Retrieves all child `djmdRelatedTracks` entries for a given parent ID, ordered by sequence."""
+        ...
+    def get_related_tracks_by_id(self, id: str) -> Optional[DjmdRelatedTracks]:
+        """Retrieves a `djmdRelatedTracks` entry by its unique identifier."""
+        ...
+    def get_related_tracks_songs(self, id: str) -> list[DjmdSongRelatedTracks]:
+        """Retrieves all `djmdSongRelatedTracks` entries for a given related tracks ID, ordered by track number."""
+        ...
+    def get_related_tracks_contents(self, id: str) -> list[DjmdContent]:
+        """Retrieves all `djmdContent` entries referenced by the songs for a given related tracks ID."""
+        ...
+    def get_samplers(self) -> list[DjmdSampler]:
+        """Retrieves all entries from the `djmdSampler` table in the database."""
+        ...
+    def get_sampler_children(self, parent_id: str) -> list[DjmdSampler]:
+        """Retrieves all child `djmdSampler` entries for a given parent ID, ordered by sequence."""
+        ...
+    def get_sampler_by_id(self, id: str) -> Optional[DjmdSampler]:
+        """Retrieves a `djmdSampler` entry by its unique identifier."""
+        ...
+    def get_sampler_songs(self, id: str) -> list[DjmdSongSampler]:
+        """Retrieves all `djmdSongSampler` entries for a given sampler ID, ordered by track number."""
+        ...
+    def get_sampler_contents(self, id: str) -> list[DjmdContent]:
+        """Retrieves all `djmdContent` entries referenced by the songs for a given sampler ID."""
+        ...
+    def get_song_tag_lists(self) -> list[DjmdSongTagList]:
+        """Retrieves all entries from the `djmdSongTagList` table in the database."""
+        ...
+    def get_song_tag_list_by_id(self, id: str) -> Optional[DjmdSongTagList]:
+        """Retrieves a `djmdSongTagList` entry by its unique identifier."""
+        ...
+    def get_sorts(self) -> list[DjmdSort]:
+        """Retrieves all entries from the `djmdSort` table in the database, ordered by sequence."""
+        ...
+    def get_sort_by_id(self, id: str) -> Optional[DjmdSort]:
+        """Retrieves a `djmdSort` entry by its unique identifier."""
+        ...
+    def get_image_files(self) -> list[ImageFile]:
+        """Retrieves all entries from the `imageFile` table in the database."""
+        ...
+    def get_image_file_by_id(self, id: str) -> Optional[ImageFile]:
+        """Retrieves an `imageFile` entry by its unique identifier."""
+        ...
+    def get_setting_files(self) -> list[SettingFile]:
+        """Retrieves all entries from the `settingFile` table in the database."""
+        ...
+    def get_setting_file_by_id(self, id: str) -> Optional[SettingFile]:
+        """Retrieves a `settingFile` entry by its unique identifier."""
+        ...
+    def get_uuid_id_maps(self) -> list[UuidIDMap]:
+        """Retrieves all entries from the `uuidIDMap` table in the database."""
+        ...
+    def get_uuid_id_map_by_id(self, id: str) -> Optional[UuidIDMap]:
+        """Retrieves a `uuidIDMap` entry by its unique identifier."""
+        ...
 
 # ---- ANLZ ----------------------------------------------------------------------------------------
 
@@ -651,7 +3687,7 @@ class ExtendedBeatGrid:
     bpm: List[Beat]
     beats: List[ExtBeat]
 
-class Cue:
+class AnlzCue:
     hot_cue: int
     status: int
     order_first: int
@@ -676,7 +3712,7 @@ class ExtendedCue:
 
 class CueList:
     list_type: int
-    cues: List[Cue]
+    cues: List[AnlzCue]
 
 class ExtendedCueList:
     list_type: int

@@ -9,25 +9,24 @@ mod traits;
 mod xml;
 
 use pyo3::prelude::*;
-use rbox::masterdb::models;
 
 #[pyfunction]
-fn get_rekordbox_app_dir_path() -> PyResult<String> {
+fn rekordbox_agent_app_dir() -> PyResult<String> {
+    let path = rbox::util::rekordbox_agent_app_dir()
+        .map_err(|e| PyErr::new::<errors::Error, _>(format!("{}", e)))?;
+    Ok(path.to_str().unwrap().to_string())
+}
+
+#[pyfunction]
+fn options_json_path() -> PyResult<String> {
+    let path = rbox::util::options_json_path()
+        .map_err(|e| PyErr::new::<errors::Error, _>(format!("{}", e)))?;
+    Ok(path.to_str().unwrap().to_string())
+}
+
+#[pyfunction]
+fn rekordbox_app_dir() -> PyResult<String> {
     let path = rbox::util::rekordbox_app_dir()
-        .map_err(|e| PyErr::new::<errors::Error, _>(format!("{}", e)))?;
-    Ok(path.to_str().unwrap().to_string())
-}
-
-#[pyfunction]
-fn get_rekordbox_share_path() -> PyResult<String> {
-    let path = rbox::util::get_rekordbox_share_path()
-        .map_err(|e| PyErr::new::<errors::Error, _>(format!("{}", e)))?;
-    Ok(path.to_str().unwrap().to_string())
-}
-
-#[pyfunction]
-fn get_master_db_path() -> PyResult<String> {
-    let path = rbox::util::get_master_db_path()
         .map_err(|e| PyErr::new::<errors::Error, _>(format!("{}", e)))?;
     Ok(path.to_str().unwrap().to_string())
 }
@@ -39,52 +38,91 @@ fn is_rekordbox_running() -> PyResult<bool> {
 
 #[pymodule]
 fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
-    let _ = m.add_function(wrap_pyfunction!(get_rekordbox_app_dir_path, m)?);
-    let _ = m.add_function(wrap_pyfunction!(get_rekordbox_share_path, m)?);
-    let _ = m.add_function(wrap_pyfunction!(get_master_db_path, m)?);
+    let _ = m.add_function(wrap_pyfunction!(rekordbox_agent_app_dir, m)?);
+    let _ = m.add_function(wrap_pyfunction!(options_json_path, m)?);
+    let _ = m.add_function(wrap_pyfunction!(rekordbox_app_dir, m)?);
     let _ = m.add_function(wrap_pyfunction!(is_rekordbox_running, m)?);
 
+    // Master-db
     m.add_class::<masterdb::PyMasterDb>()?;
-    m.add_class::<models::AgentRegistry>()?;
-    m.add_class::<models::CloudAgentRegistry>()?;
-    m.add_class::<models::ContentActiveCensor>()?;
-    m.add_class::<models::ContentCue>()?;
-    m.add_class::<models::ContentFile>()?;
-    m.add_class::<models::DjmdActiveCensor>()?;
-    m.add_class::<models::DjmdAlbum>()?;
-    m.add_class::<models::DjmdArtist>()?;
-    m.add_class::<models::DjmdCategory>()?;
-    m.add_class::<models::DjmdColor>()?;
-    m.add_class::<models::DjmdContent>()?;
-    m.add_class::<models::DjmdCue>()?;
-    m.add_class::<models::DjmdDevice>()?;
-    m.add_class::<models::DjmdGenre>()?;
-    m.add_class::<models::DjmdHistory>()?;
-    m.add_class::<models::DjmdSongHistory>()?;
-    m.add_class::<models::DjmdHotCueBanklist>()?;
-    m.add_class::<models::DjmdSongHotCueBanklist>()?;
-    m.add_class::<models::HotCueBanklistCue>()?;
-    m.add_class::<models::DjmdKey>()?;
-    m.add_class::<models::DjmdLabel>()?;
-    m.add_class::<models::DjmdMenuItems>()?;
-    m.add_class::<models::DjmdMixerParam>()?;
-    m.add_class::<models::DjmdMyTag>()?;
-    m.add_class::<models::DjmdSongMyTag>()?;
-    m.add_class::<models::DjmdPlaylist>()?;
+    m.add_class::<rbox::masterdb::models::AgentRegistry>()?;
+    m.add_class::<rbox::masterdb::models::CloudAgentRegistry>()?;
+    m.add_class::<rbox::masterdb::models::ContentActiveCensor>()?;
+    m.add_class::<rbox::masterdb::models::ContentCue>()?;
+    m.add_class::<rbox::masterdb::models::ContentFile>()?;
+    m.add_class::<rbox::masterdb::models::DjmdActiveCensor>()?;
+    m.add_class::<rbox::masterdb::models::DjmdAlbum>()?;
+    m.add_class::<rbox::masterdb::models::DjmdArtist>()?;
+    m.add_class::<rbox::masterdb::models::DjmdCategory>()?;
+    m.add_class::<rbox::masterdb::models::DjmdColor>()?;
+    m.add_class::<rbox::masterdb::models::DjmdContent>()?;
+    m.add_class::<rbox::masterdb::models::DjmdCue>()?;
+    m.add_class::<rbox::masterdb::models::DjmdDevice>()?;
+    m.add_class::<rbox::masterdb::models::DjmdGenre>()?;
+    m.add_class::<rbox::masterdb::models::DjmdHistory>()?;
+    m.add_class::<rbox::masterdb::models::DjmdSongHistory>()?;
+    m.add_class::<rbox::masterdb::models::DjmdHotCueBanklist>()?;
+    m.add_class::<rbox::masterdb::models::DjmdSongHotCueBanklist>()?;
+    m.add_class::<rbox::masterdb::models::HotCueBanklistCue>()?;
+    m.add_class::<rbox::masterdb::models::DjmdKey>()?;
+    m.add_class::<rbox::masterdb::models::DjmdLabel>()?;
+    m.add_class::<rbox::masterdb::models::DjmdMenuItems>()?;
+    m.add_class::<rbox::masterdb::models::DjmdMixerParam>()?;
+    m.add_class::<rbox::masterdb::models::DjmdMyTag>()?;
+    m.add_class::<rbox::masterdb::models::DjmdSongMyTag>()?;
+    m.add_class::<rbox::masterdb::models::DjmdPlaylist>()?;
     m.add_class::<masterdb::PyDjmdPlaylistTreeNode>()?;
-    m.add_class::<models::DjmdSongPlaylist>()?;
-    m.add_class::<models::DjmdProperty>()?;
-    m.add_class::<models::DjmdCloudProperty>()?;
-    m.add_class::<models::DjmdRecommendLike>()?;
-    m.add_class::<models::DjmdRelatedTracks>()?;
-    m.add_class::<models::DjmdSongRelatedTracks>()?;
-    m.add_class::<models::DjmdSampler>()?;
-    m.add_class::<models::DjmdSongSampler>()?;
-    m.add_class::<models::DjmdSongTagList>()?;
-    m.add_class::<models::DjmdSort>()?;
-    m.add_class::<models::ImageFile>()?;
-    m.add_class::<models::SettingFile>()?;
-    m.add_class::<models::UuidIDMap>()?;
+    m.add_class::<rbox::masterdb::models::DjmdSongPlaylist>()?;
+    m.add_class::<rbox::masterdb::models::DjmdProperty>()?;
+    m.add_class::<rbox::masterdb::models::DjmdCloudProperty>()?;
+    m.add_class::<rbox::masterdb::models::DjmdRecommendLike>()?;
+    m.add_class::<rbox::masterdb::models::DjmdRelatedTracks>()?;
+    m.add_class::<rbox::masterdb::models::DjmdSongRelatedTracks>()?;
+    m.add_class::<rbox::masterdb::models::DjmdSampler>()?;
+    m.add_class::<rbox::masterdb::models::DjmdSongSampler>()?;
+    m.add_class::<rbox::masterdb::models::DjmdSongTagList>()?;
+    m.add_class::<rbox::masterdb::models::DjmdSort>()?;
+    m.add_class::<rbox::masterdb::models::ImageFile>()?;
+    m.add_class::<rbox::masterdb::models::SettingFile>()?;
+    m.add_class::<rbox::masterdb::models::UuidIDMap>()?;
+
+    // Device Library Plus
+    m.add_class::<rbox::devlib_plus::models::Album>()?;
+    m.add_class::<rbox::devlib_plus::models::NewAlbum>()?;
+    m.add_class::<rbox::devlib_plus::models::Artist>()?;
+    m.add_class::<rbox::devlib_plus::models::NewArtist>()?;
+    m.add_class::<rbox::devlib_plus::models::Category>()?;
+    m.add_class::<rbox::devlib_plus::models::NewCategory>()?;
+    m.add_class::<rbox::devlib_plus::models::Color>()?;
+    m.add_class::<rbox::devlib_plus::models::NewColor>()?;
+    m.add_class::<rbox::devlib_plus::models::Content>()?;
+    m.add_class::<rbox::devlib_plus::models::NewContent>()?;
+    m.add_class::<rbox::devlib_plus::models::Cue>()?;
+    m.add_class::<rbox::devlib_plus::models::Genre>()?;
+    m.add_class::<rbox::devlib_plus::models::NewGenre>()?;
+    m.add_class::<rbox::devlib_plus::models::History>()?;
+    m.add_class::<rbox::devlib_plus::models::HistoryContent>()?;
+    m.add_class::<rbox::devlib_plus::models::NewHistory>()?;
+    m.add_class::<rbox::devlib_plus::models::HotCueBankList>()?;
+    m.add_class::<rbox::devlib_plus::models::HotCueBankListCue>()?;
+    m.add_class::<rbox::devlib_plus::models::Image>()?;
+    m.add_class::<rbox::devlib_plus::models::NewImage>()?;
+    m.add_class::<rbox::devlib_plus::models::Key>()?;
+    m.add_class::<rbox::devlib_plus::models::NewKey>()?;
+    m.add_class::<rbox::devlib_plus::models::Label>()?;
+    m.add_class::<rbox::devlib_plus::models::NewLabel>()?;
+    m.add_class::<rbox::devlib_plus::models::MenuItem>()?;
+    m.add_class::<rbox::devlib_plus::models::NewMenuItem>()?;
+    m.add_class::<rbox::devlib_plus::models::MyTag>()?;
+    m.add_class::<rbox::devlib_plus::models::NewMyTag>()?;
+    m.add_class::<rbox::devlib_plus::models::MyTagContent>()?;
+    m.add_class::<rbox::devlib_plus::models::Playlist>()?;
+    m.add_class::<rbox::devlib_plus::models::NewPlaylist>()?;
+    m.add_class::<rbox::devlib_plus::models::PlaylistContent>()?;
+    m.add_class::<rbox::devlib_plus::models::Property>()?;
+    m.add_class::<rbox::devlib_plus::models::RecommendedLike>()?;
+    m.add_class::<rbox::devlib_plus::models::Sort>()?;
+    m.add_class::<rbox::devlib_plus::models::NewSort>()?;
 
     m.add_class::<anlz::PyAnlz>()?;
     m.add_class::<anlz::PyBeat>()?;

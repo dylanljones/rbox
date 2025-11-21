@@ -435,7 +435,6 @@ impl TreeSeq for DjmdSampler {
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
-#[cfg_attr(feature = "napi", napi(object))]
 pub struct NewDjmdSampler {
     /// The name of the sampler.
     pub name: String,

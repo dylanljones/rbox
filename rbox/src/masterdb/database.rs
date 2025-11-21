@@ -164,7 +164,7 @@ impl MasterDb {
 
     // -- AgentRegistry ----------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`AgentRegistry`] table in the database.
+    /// Retrieves all entries from the `agentRegistry` table in the database.
     ///
     /// # Returns
     /// A vector of [`AgentRegistry`] objects if the query is successful, or an error if the
@@ -186,7 +186,7 @@ impl MasterDb {
         Ok(AgentRegistry::all(&mut conn)?)
     }
 
-    /// Retrieves an [`AgentRegistry`] entry by its unique identifier.
+    /// Retrieves an `agentRegistry` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the agent registry entry.
@@ -212,7 +212,7 @@ impl MasterDb {
         Ok(AgentRegistry::find(&mut conn, id)?)
     }
 
-    /// Retrieves the local update sequence number (USN) from the [`AgentRegistry`] table.
+    /// Retrieves the local update sequence number (USN) from the `agentRegistry` table.
     ///
     /// # Returns
     /// The local USN as an integer if found, or an error if the entry does not exist.
@@ -234,7 +234,7 @@ impl MasterDb {
 
     // -- CloudAgentRegistry -----------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`CloudAgentRegistry`] table in the database.
+    /// Retrieves all entries from the `cloudAgentRegistry` table in the database.
     ///
     /// # Returns
     /// A vector of [`CloudAgentRegistry`] objects if the query is successful, or an error if
@@ -256,7 +256,7 @@ impl MasterDb {
         Ok(CloudAgentRegistry::all(&mut conn)?)
     }
 
-    /// Retrieves a [`CloudAgentRegistry`] entry by its unique identifier.
+    /// Retrieves a `cloudAgentRegistry` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the cloud agent registry entry.
@@ -287,7 +287,7 @@ impl MasterDb {
 
     // -- ContentActiveCensor ----------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`ContentActiveCensor`] table in the database.
+    /// Retrieves all entries from the `contentActiveCensor` table in the database.
     ///
     /// # Returns
     /// A vector of [`ContentActiveCensor`] objects if the query is successful, or an error if
@@ -309,7 +309,7 @@ impl MasterDb {
         Ok(ContentActiveCensor::all(&mut conn)?)
     }
 
-    /// Retrieves a [`ContentActiveCensor`] entry by its unique identifier.
+    /// Retrieves a `contentActiveCensor` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the content active censor entry.
@@ -340,7 +340,7 @@ impl MasterDb {
 
     // -- ContentCue -------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`ContentCue`] table in the database.
+    /// Retrieves all entries from the `contentCue` table in the database.
     ///
     /// # Returns
     /// A vector of [`ContentCue`] objects if the query is successful, or an error if the query fails.
@@ -361,7 +361,7 @@ impl MasterDb {
         Ok(ContentCue::all(&mut conn)?)
     }
 
-    /// Retrieves a [`ContentCue`] entry by its unique identifier.
+    /// Retrieves a `contentCue` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the content cue entry.
@@ -389,7 +389,7 @@ impl MasterDb {
 
     // -- ContentFile ------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`contentFile`] table in the database.
+    /// Retrieves all entries from the `contentFile` table in the database.
     ///
     /// # Returns
     /// A vector of [`ContentFile`] objects if the query is successful, or an error if the query fails.
@@ -410,7 +410,7 @@ impl MasterDb {
         Ok(ContentFile::all(&mut conn)?)
     }
 
-    /// Retrieves a [`ContentFile`] entry by its unique identifier.
+    /// Retrieves a `contentFile` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the content file entry.
@@ -438,7 +438,7 @@ impl MasterDb {
 
     // -- ActiveCensor -----------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdActiveCensor`] table in the database.
+    /// Retrieves all entries from the `djmdActiveCensor` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdActiveCensor`] objects if the query is successful, or an error if the query fails.
@@ -459,7 +459,7 @@ impl MasterDb {
         Ok(DjmdActiveCensor::all(&mut conn)?)
     }
 
-    /// Retrieves a [`DjmdActiveCensor`] entry by its unique identifier.
+    /// Retrieves a `djmdActiveCensor` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the active censor entry.
@@ -487,7 +487,7 @@ impl MasterDb {
 
     // -- Album ------------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdAlbum`] table in the database.
+    /// Retrieves all entries from the `djmdAlbum` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdAlbum`] objects if the query is successful, or an error if the query fails.
@@ -508,7 +508,7 @@ impl MasterDb {
         Ok(DjmdAlbum::all(&mut conn)?)
     }
 
-    /// Retrieves a [`DjmdAlbum`] entry by its unique identifier.
+    /// Retrieves a `djmdAlbum` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the album.
@@ -534,7 +534,7 @@ impl MasterDb {
         Ok(DjmdAlbum::find(&mut conn, id)?)
     }
 
-    /// Retrieves a [`DjmdAlbum`] entry by its name.
+    /// Retrieves a `djmdAlbum` entry by its name.
     ///
     /// # Arguments
     /// * `name` - A string slice representing the name of the album.
@@ -561,7 +561,7 @@ impl MasterDb {
         Ok(DjmdAlbum::find_by_name(&mut conn, name)?)
     }
 
-    /// Inserts a new album into the [`DjmdAlbum`] table in the database.
+    /// Inserts a new album into the `djmdAlbum` table in the database.
     ///
     /// # Arguments
     /// * `item` - A [`NewDjmdAlbum`] object containing the album details to be inserted.
@@ -586,7 +586,7 @@ impl MasterDb {
         Ok(item.insert(&mut conn)?)
     }
 
-    /// Creates a new album and inserts it into the [`DjmdAlbum`] table in the database.
+    /// Creates a new album and inserts it into the `djmdAlbum` table in the database.
     ///
     /// # Arguments
     /// * `name` - The name of the album.
@@ -631,7 +631,7 @@ impl MasterDb {
         Ok(item.insert(&mut conn)?)
     }
 
-    /// Inserts a new album into the [`DjmdAlbum`] table with the given name if it does not already exist.
+    /// Inserts a new album into the `djmdAlbum` table with the given name if it does not already exist.
     ///
     /// # Arguments
     /// * `name` - The name of the album to insert or retrieve.
@@ -657,7 +657,7 @@ impl MasterDb {
         Ok(item.insert_if_not_exists(&mut conn)?)
     }
 
-    /// Updates an existing [`DjmdAlbum`] entry in the database.
+    /// Updates an existing `djmdAlbum` entry in the database.
     ///
     /// # Arguments
     /// * `item` - A mutable reference to the [`DjmdAlbum`] object to be updated.
@@ -691,7 +691,7 @@ impl MasterDb {
         Ok(item.clone().update(&mut conn)?)
     }
 
-    /// Deletes an album entry from the [`DjmdAlbum`] table in the database.
+    /// Deletes an album entry from the `djmdAlbum` table in the database.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the album to be deleted.
@@ -722,7 +722,7 @@ impl MasterDb {
 
     // -- Artist -----------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdArtist`] table in the database.
+    /// Retrieves all entries from the `djmdArtist` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdArtist`] objects if the query is successful, or an error if the query fails.
@@ -743,7 +743,7 @@ impl MasterDb {
         Ok(DjmdArtist::all(&mut conn)?)
     }
 
-    /// Retrieves a [`DjmdArtist`] entry by its unique identifier.
+    /// Retrieves a `djmdArtist` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the artist.
@@ -769,7 +769,7 @@ impl MasterDb {
         Ok(DjmdArtist::find(&mut conn, id)?)
     }
 
-    /// Retrieves a [`DjmdArtist`] entry by its name.
+    /// Retrieves a `djmdArtist` entry by its name.
     ///
     /// # Arguments
     /// * `name` - A string slice representing the name of the artist.
@@ -796,7 +796,7 @@ impl MasterDb {
         Ok(DjmdArtist::find_by_name(&mut conn, name)?)
     }
 
-    /// Inserts a new artist into the [`DjmdArtist`] table in the database.
+    /// Inserts a new artist into the `djmdArtist` table in the database.
     ///
     /// # Arguments
     /// * `item` - A [`NewDjmdArtist`] object containing the album details to be inserted.
@@ -821,7 +821,7 @@ impl MasterDb {
         Ok(item.insert(&mut conn)?)
     }
 
-    /// Creates a new artist and inserts it into the [`DjmdArtist`] table in the database.
+    /// Creates a new artist and inserts it into the `djmdArtist` table in the database.
     ///
     /// # Arguments
     /// * `name` - The name of the artist to insert.
@@ -846,7 +846,7 @@ impl MasterDb {
         Ok(item.insert(&mut conn)?)
     }
 
-    /// Inserts a new [`DjmdArtist`] with the given name if it does not already exist.
+    /// Inserts a new `djmdArtist` with the given name if it does not already exist.
     ///
     /// # Arguments
     /// * `name` - The name of the artist to insert or retrieve.
@@ -872,7 +872,7 @@ impl MasterDb {
         Ok(item.insert_if_not_exists(&mut conn)?)
     }
 
-    /// Updates an existing [`DjmdArtist`] entry in the database.
+    /// Updates an existing `djmdArtist` entry in the database.
     ///
     /// # Arguments
     /// * `item` - A mutable reference to the [`DjmdArtist`] object to be updated.
@@ -906,7 +906,7 @@ impl MasterDb {
         Ok(item.clone().update(&mut conn)?)
     }
 
-    /// Deletes an artist entry from the [`DjmdArtist`] table in the database.
+    /// Deletes an artist entry from the `djmdArtist` table in the database.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the artist to be deleted.
@@ -938,7 +938,7 @@ impl MasterDb {
 
     // -- Category ---------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdCategory`] table in the database.
+    /// Retrieves all entries from the `djmdCategory` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdCategory`] objects if the query is successful, or an error if the query fails.
@@ -959,7 +959,7 @@ impl MasterDb {
         Ok(DjmdCategory::all(&mut conn)?)
     }
 
-    /// Retrieves a [`DjmdCategory`] entry by its unique identifier.
+    /// Retrieves a `djmdCategory` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the category.
@@ -987,7 +987,7 @@ impl MasterDb {
 
     // -- Color ------------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdColor`] table in the database.
+    /// Retrieves all entries from the `djmdColor` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdColor`] objects if the query is successful, or an error if the query fails.
@@ -1008,7 +1008,7 @@ impl MasterDb {
         Ok(DjmdColor::all(&mut conn)?)
     }
 
-    /// Retrieves a [`DjmdColor`] entry by its unique identifier.
+    /// Retrieves a `djmdColor` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the color.
@@ -1036,7 +1036,7 @@ impl MasterDb {
 
     // -- Content ----------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdContent`] table in the database.
+    /// Retrieves all entries from the `djmdContent` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdContent`] objects if the query is successful, or an error if the query fails.
@@ -1057,7 +1057,7 @@ impl MasterDb {
         Ok(DjmdContent::all(&mut conn)?)
     }
 
-    /// Retrieves a [`DjmdContent`] entry by its unique identifier.
+    /// Retrieves a `djmdContent` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the content.
@@ -1083,7 +1083,7 @@ impl MasterDb {
         Ok(DjmdContent::find(&mut conn, id)?)
     }
 
-    /// Retrieves multiple [`DjmdContent`] entries by their unique identifiers.
+    /// Retrieves multiple `djmdContent` entries by their unique identifiers.
     ///
     /// # Arguments
     /// * `ids` - A vector of string slices representing the unique identifiers of the contents.
@@ -1107,7 +1107,7 @@ impl MasterDb {
         Ok(DjmdContent::by_ids(&mut conn, ids)?)
     }
 
-    /// Retrieves a [`DjmdContent`] entry by its folder path.
+    /// Retrieves a `djmdContent` entry by its folder path.
     ///
     /// # Arguments
     /// * `path` - A string slice representing the folder path of the content.
@@ -1249,7 +1249,7 @@ impl MasterDb {
         Ok(Some(files))
     }
 
-    /// Inserts a new entry into the [`DjmdContent`] table for the specified file path.
+    /// Creates a new content entry and inserts it into the `djmdContent` table.
     ///
     /// **Note:** Not all fields of [`DjmdContent`] are set by this function. The user should update
     /// additional fields as needed after insertion. Also, after adding content via this method,
@@ -1288,7 +1288,7 @@ impl MasterDb {
         Ok(item.insert(&mut conn)?)
     }
 
-    /// Updates an existing [`DjmdContent`] entry in the database.
+    /// Updates an existing `djmdContent` entry in the database.
     ///
     /// # Arguments
     /// * `item` - A reference to the [`DjmdContent`] object to be updated.
@@ -1487,7 +1487,7 @@ impl MasterDb {
 
     // -- Cue --------------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdCue`] table.
+    /// Retrieves all entries from the `djmdCue` table.
     ///
     /// # Returns
     /// A vector of all cue entries.
@@ -1504,7 +1504,7 @@ impl MasterDb {
         Ok(DjmdCue::all(&mut conn)?)
     }
 
-    /// Retrieves a [`DjmdCue`] entry by its unique identifier.
+    /// Retrieves a `djmdCue` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - Cue entry ID.
@@ -1526,7 +1526,7 @@ impl MasterDb {
 
     // -- Device -----------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdDevice`] table.
+    /// Retrieves all entries from the `djmdDevice` table.
     ///
     /// # Returns
     /// A vector of all device entries.
@@ -1543,7 +1543,7 @@ impl MasterDb {
         Ok(DjmdDevice::all(&mut conn)?)
     }
 
-    /// Retrieves a [`DjmdDevice`] entry by its unique identifier.
+    /// Retrieves a `djmdDevice` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - Device entry ID.
@@ -1565,7 +1565,7 @@ impl MasterDb {
 
     // -- Genre ------------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdGenre`] table in the database.
+    /// Retrieves all entries from the `djmdGenre` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdGenre`] objects if the query is successful, or an error if the query fails.
@@ -1585,7 +1585,7 @@ impl MasterDb {
         Ok(DjmdGenre::all(&mut conn)?)
     }
 
-    /// Retrieves a [`DjmdGenre`] entry by its unique identifier.
+    /// Retrieves a `djmdGenre` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the genre.
@@ -1610,7 +1610,7 @@ impl MasterDb {
         Ok(DjmdGenre::find(&mut conn, id)?)
     }
 
-    /// Retrieves a [`DjmdGenre`] entry by its name.
+    /// Retrieves a `djmdGenre` entry by its name.
     ///
     /// # Arguments
     /// * `name` - A string slice representing the name of the genre.
@@ -1636,7 +1636,7 @@ impl MasterDb {
         Ok(DjmdGenre::find_by_name(&mut conn, name)?)
     }
 
-    /// Inserts a new genre into the [`DjmdGenre`] table in the database.
+    /// Inserts a new genre into the `djmdGenre` table in the database.
     ///
     /// # Arguments
     /// * `item` - The [`NewDjmdGenre`] object representing the genre to insert.
@@ -1660,7 +1660,7 @@ impl MasterDb {
         Ok(item.insert(&mut conn)?)
     }
 
-    /// Creates a new genre and inserts it into the [`DjmdGenre`] table in the database.
+    /// Creates a new genre and inserts it into the `djmdGenre` table in the database.
     ///
     /// # Arguments
     /// * `name` - The name of the genre to insert.
@@ -1684,7 +1684,7 @@ impl MasterDb {
         Ok(item.insert(&mut conn)?)
     }
 
-    /// Inserts a new [`DjmdGenre`] with the given name if it does not already exist.
+    /// Inserts a new `djmdGenre` with the given name if it does not already exist.
     ///
     /// # Arguments
     /// * `name` - The name of the genre to insert or retrieve.
@@ -1706,7 +1706,7 @@ impl MasterDb {
         Ok(item.insert_if_not_exists(&mut conn)?)
     }
 
-    /// Updates an existing [`DjmdGenre`] entry in the database.
+    /// Updates an existing `djmdGenre` entry in the database.
     ///
     /// # Arguments
     /// * `item` - A mutable reference to the [`DjmdGenre`] object to be updated.
@@ -1739,7 +1739,7 @@ impl MasterDb {
         Ok(item.clone().update(&mut conn)?)
     }
 
-    /// Deletes a genre entry from the [`DjmdGenre`] table in the database.
+    /// Deletes a genre entry from the `djmdGenre` table in the database.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the genre to be deleted.
@@ -1769,7 +1769,7 @@ impl MasterDb {
 
     // -- History ----------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdHistory`] table in the database.
+    /// Retrieves all entries from the `djmdHistory` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdHistory`] objects if the query is successful, or an error if the query fails.
@@ -1789,7 +1789,7 @@ impl MasterDb {
         Ok(DjmdHistory::all(&mut conn)?)
     }
 
-    /// Retrieves a [`DjmdHistory`] entry by its unique identifier.
+    /// Retrieves a `djmdHistory` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the history entry.
@@ -1862,7 +1862,7 @@ impl MasterDb {
 
     // -- HotCueBanklist ---------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdHotCueBanklist`] table in the database.
+    /// Retrieves all entries from the `djmdHotCueBanklist` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdHotCueBanklist`] objects if the query is successful, or an error if the query fails.
@@ -1882,7 +1882,7 @@ impl MasterDb {
         Ok(DjmdHotCueBanklist::all(&mut conn)?)
     }
 
-    /// Retrieves a [`DjmdHotCueBanklist`] entry by its unique identifier.
+    /// Retrieves a `djmdHotCueBanklist` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the hot cue banklist entry.
@@ -1907,7 +1907,7 @@ impl MasterDb {
         Ok(DjmdHotCueBanklist::find(&mut conn, id)?)
     }
 
-    /// Retrieves all child [`DjmdHotCueBanklist`] entries for a given parent ID, ordered by sequence.
+    /// Retrieves all child `djmdHotCueBanklist` entries for a given parent ID, ordered by sequence.
     ///
     /// # Arguments
     /// * `parent_id` - A string slice representing the parent hot cue banklist ID.
@@ -1933,7 +1933,7 @@ impl MasterDb {
         Ok(DjmdHotCueBanklist::by_parent_id(&mut conn, parent_id)?)
     }
 
-    /// Retrieves all [`DjmdSongHotCueBanklist`] entries for a given hot cue banklist ID, ordered by track number.
+    /// Retrieves all `djmdSongHotCueBanklist` entries for a given hot cue banklist ID, ordered by track number.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the hot cue banklist ID.
@@ -1958,7 +1958,7 @@ impl MasterDb {
         )?)
     }
 
-    /// Retrieves all [`DjmdContent`] entries referenced by the song hot cue banklist for a given hot cue banklist ID.
+    /// Retrieves all `djmdContent` entries referenced by the song hot cue banklist for a given hot cue banklist ID.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the hot cue banklist ID.
@@ -1981,7 +1981,7 @@ impl MasterDb {
         Ok(DjmdHotCueBanklist::get_contents(&mut conn, id)?)
     }
 
-    /// Retrieves all [`HotCueBanklistCue`] entries for a given hot cue banklist ID.
+    /// Retrieves all `hotCueBanklistCue` entries for a given hot cue banklist ID.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the hot cue banklist ID.
@@ -2006,7 +2006,7 @@ impl MasterDb {
 
     // -- Key --------------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdKey`] table in the database.
+    /// Retrieves all entries from the `djmdKey` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdKey`] objects if the query is successful.
@@ -2026,7 +2026,7 @@ impl MasterDb {
         Ok(DjmdKey::all(&mut conn)?)
     }
 
-    /// Retrieves a [`DjmdKey`] entry by its unique identifier.
+    /// Retrieves a `djmdKey` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the key.
@@ -2050,7 +2050,7 @@ impl MasterDb {
         Ok(DjmdKey::find(&mut conn, id)?)
     }
 
-    /// Retrieves a [`DjmdKey`] entry by its scale name.
+    /// Retrieves a `djmdKey` entry by its scale name.
     ///
     /// # Arguments
     /// * `name` - A string slice representing the scale name of the key.
@@ -2075,7 +2075,7 @@ impl MasterDb {
         Ok(DjmdKey::find_by_name(&mut conn, name)?)
     }
 
-    /// Inserts it into the [`DjmdKey`] table in the database.
+    /// Inserts it into the `djmdKey` table in the database.
     ///
     /// # Arguments
     /// * `item` - The [`NewDjmdKey`] object representing the key to insert.
@@ -2099,7 +2099,7 @@ impl MasterDb {
         Ok(item.insert(&mut conn)?)
     }
 
-    /// Creates a new key and inserts it into the [`DjmdKey`] table in the database.
+    /// Creates a new key and inserts it into the `djmdKey` table in the database.
     ///
     /// # Arguments
     /// * `name` - The scale name of the key to insert.
@@ -2123,7 +2123,7 @@ impl MasterDb {
         Ok(item.insert(&mut conn)?)
     }
 
-    /// Inserts a new [`DjmdKey`] with the given name if it does not already exist.
+    /// Inserts a new `djmdKey` with the given name if it does not already exist.
     ///
     /// # Arguments
     /// * `name` - The scale name of the key to insert or retrieve.
@@ -2140,7 +2140,7 @@ impl MasterDb {
         Ok(item.insert_if_not_exists(&mut conn)?)
     }
 
-    /// Updates an existing [`DjmdKey`] entry in the database.
+    /// Updates an existing `djmdKey` entry in the database.
     ///
     /// # Arguments
     /// * `item` - A mutable reference to the [`DjmdKey`] object to be updated.
@@ -2173,7 +2173,7 @@ impl MasterDb {
         Ok(item.clone().update(&mut conn)?)
     }
 
-    /// Deletes a key entry from the [`DjmdKey`] table in the database.
+    /// Deletes a key entry from the `djmdKey` table in the database.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the key to be deleted.
@@ -2203,7 +2203,7 @@ impl MasterDb {
 
     // -- Label ------------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdLabel`] table in the database.
+    /// Retrieves all entries from the `djmdLabel` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdLabel`] objects if the query is successful.
@@ -2223,7 +2223,7 @@ impl MasterDb {
         Ok(DjmdLabel::all(&mut conn)?)
     }
 
-    /// Retrieves a [`DjmdLabel`] entry by its unique identifier.
+    /// Retrieves a `djmdLabel` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the label.
@@ -2247,7 +2247,7 @@ impl MasterDb {
         Ok(DjmdLabel::find(&mut conn, id)?)
     }
 
-    /// Retrieves a [`DjmdLabel`] entry by its name.
+    /// Retrieves a `djmdLabel` entry by its name.
     ///
     /// # Arguments
     /// * `name` - A string slice representing the name of the label.
@@ -2272,7 +2272,7 @@ impl MasterDb {
         Ok(DjmdLabel::find_by_name(&mut conn, name)?)
     }
 
-    /// Inserts a new label into the [`DjmdLabel`] table in the database.
+    /// Inserts a new label into the `djmdLabel` table in the database.
     ///
     /// # Arguments
     /// * `item` - The [`NewDjmdLabel`] object representing the label to insert.
@@ -2296,7 +2296,7 @@ impl MasterDb {
         Ok(item.insert(&mut conn)?)
     }
 
-    /// Creates a new label and inserts it into the [`DjmdLabel`] table in the database.
+    /// Creates a new label and inserts it into the `djmdLabel` table in the database.
     ///
     /// # Arguments
     /// * `name` - The name of the label to insert.
@@ -2320,7 +2320,7 @@ impl MasterDb {
         Ok(item.insert(&mut conn)?)
     }
 
-    /// Inserts a new [`DjmdLabel`] with the given name if it does not already exist.
+    /// Inserts a new `djmdLabel` with the given name if it does not already exist.
     ///
     /// # Arguments
     /// * `name` - The name of the label to insert or retrieve.
@@ -2337,7 +2337,7 @@ impl MasterDb {
         Ok(item.insert_if_not_exists(&mut conn)?)
     }
 
-    /// Updates an existing [`DjmdLabel`] entry in the database.
+    /// Updates an existing `djmdLabel` entry in the database.
     ///
     /// # Arguments
     /// * `item` - A mutable reference to the [`DjmdLabel`] object to be updated.
@@ -2369,7 +2369,7 @@ impl MasterDb {
         Ok(item.clone().update(&mut conn)?)
     }
 
-    /// Deletes a label entry from the [`DjmdLabel`] table in the database.
+    /// Deletes a label entry from the `djmdLabel` table in the database.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the label to be deleted.
@@ -2399,7 +2399,7 @@ impl MasterDb {
 
     // -- MenuItems --------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdMenuItems`] table in the database.
+    /// Retrieves all entries from the `djmdMenuItems` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdMenuItems`] objects if the query is successful.
@@ -2419,7 +2419,7 @@ impl MasterDb {
         Ok(DjmdMenuItems::all(&mut conn)?)
     }
 
-    /// Retrieves a [`DjmdMenuItems`] entry by its unique identifier.
+    /// Retrieves a `djmdMenuItems` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the menu item.
@@ -2445,7 +2445,7 @@ impl MasterDb {
 
     // -- MixerParam -------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdMixerParam`] table in the database.
+    /// Retrieves all entries from the `djmdMixerParam` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdMixerParam`] objects if the query is successful.
@@ -2465,7 +2465,7 @@ impl MasterDb {
         Ok(DjmdMixerParam::all(&mut conn)?)
     }
 
-    /// Retrieves a [`DjmdMixerParam`] entry by its unique identifier.
+    /// Retrieves a `djmdMixerParam` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the mixer parameter.
@@ -2491,7 +2491,7 @@ impl MasterDb {
 
     // -- MyTag ------------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdMyTag`] table in the database.
+    /// Retrieves all entries from the `djmdMyTag` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdMyTag`] objects if the query is successful.
@@ -2511,7 +2511,7 @@ impl MasterDb {
         Ok(DjmdMyTag::all(&mut conn)?)
     }
 
-    /// Retrieves all child [`DjmdMyTag`] entries for a given parent ID, ordered by sequence.
+    /// Retrieves all child `djmdMyTag` entries for a given parent ID, ordered by sequence.
     ///
     /// # Arguments
     /// * `parent_id` - A string slice representing the parent tag ID.
@@ -2534,7 +2534,7 @@ impl MasterDb {
         Ok(DjmdMyTag::by_parent_id(&mut conn, parent_id)?)
     }
 
-    /// Retrieves a [`DjmdMyTag`] entry by its unique identifier.
+    /// Retrieves a `djmdMyTag` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the tag.
@@ -2558,7 +2558,7 @@ impl MasterDb {
         Ok(DjmdMyTag::find(&mut conn, id)?)
     }
 
-    /// Retrieves all [`DjmdSongMyTag`] entries for a given tag ID, ordered by track number.
+    /// Retrieves all `djmdSongMyTag` entries for a given tag ID, ordered by track number.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the tag ID.
@@ -2581,7 +2581,7 @@ impl MasterDb {
         Ok(DjmdSongMyTag::by_tag_id(&mut conn, id)?)
     }
 
-    /// Retrieves all [`DjmdContent`] entries referenced by the songs for a given tag ID.
+    /// Retrieves all `djmdContent` entries referenced by the songs for a given tag ID.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the tag ID.
@@ -2606,7 +2606,7 @@ impl MasterDb {
 
     // -- Playlist ---------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdPlaylist`] table in the database.
+    /// Retrieves all entries from the `djmdPlaylist` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdPlaylist`] objects if the query is successful.
@@ -2646,7 +2646,7 @@ impl MasterDb {
         Ok(DjmdPlaylist::tree(&mut conn)?)
     }
 
-    /// Retrieves all child [`DjmdPlaylist`] entries for a given parent ID, ordered by sequence.
+    /// Retrieves all child `djmdPlaylist` entries for a given parent ID, ordered by sequence.
     ///
     /// # Arguments
     /// * `parent_id` - A string slice representing the parent playlist ID.
@@ -2669,7 +2669,7 @@ impl MasterDb {
         Ok(DjmdPlaylist::by_parent_id(&mut conn, parent_id)?)
     }
 
-    /// Retrieves a [`DjmdPlaylist`] entry by its unique identifier.
+    /// Retrieves a `djmdPlaylist` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the playlist.
@@ -2693,7 +2693,7 @@ impl MasterDb {
         Ok(DjmdPlaylist::find(&mut conn, id)?)
     }
 
-    /// Retrieves a [`DjmdPlaylist`] entry by its hierarchical path.
+    /// Retrieves a `djmdPlaylist` entry by its hierarchical path.
     ///
     /// # Arguments
     /// * `path` - A vector of string slices representing the playlist path.
@@ -2717,7 +2717,7 @@ impl MasterDb {
         Ok(DjmdPlaylist::find_by_path(&mut conn, path)?)
     }
 
-    /// Retrieves all [`DjmdSongPlaylist`] entries for a given playlist ID, ordered by track number.
+    /// Retrieves all `djmdSongPlaylist` entries for a given playlist ID, ordered by track number.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the playlist ID.
@@ -2740,7 +2740,7 @@ impl MasterDb {
         Ok(DjmdSongPlaylist::by_playlist_id(&mut conn, id)?)
     }
 
-    /// Retrieves all [`DjmdContent`] entries referenced by the songs for a given playlist ID.
+    /// Retrieves all `djmdContent` entries referenced by the songs for a given playlist ID.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the playlist ID.
@@ -2763,7 +2763,7 @@ impl MasterDb {
         Ok(DjmdPlaylist::get_contents(&mut conn, id)?)
     }
 
-    /// Retrieves a [`DjmdSongPlaylist`] entry by its unique identifier.
+    /// Retrieves a `djmdSongPlaylist` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the song playlist entry.
@@ -2787,7 +2787,7 @@ impl MasterDb {
         Ok(DjmdSongPlaylist::find(&mut conn, id)?)
     }
 
-    /// Inserts a new playlist into the [`DjmdPlaylist`] table in the database.
+    /// Inserts a new playlist into the `djmdPlaylist` table in the database.
     ///
     /// # Arguments
     /// * `item` - The [`NewDjmdPlaylist`] object representing the playlist to insert.
@@ -2829,7 +2829,7 @@ impl MasterDb {
         Ok(result)
     }
 
-    /// Creates a new playlist and inserts it into the [`DjmdPlaylist`] table in the database.
+    /// Creates a new playlist and inserts it into the `djmdPlaylist` table in the database.
     ///
     /// # Arguments
     /// * `name` - The name of the playlist to insert.
@@ -2855,7 +2855,7 @@ impl MasterDb {
     ///
     /// # Example
     /// ```no_run
-    /// let playlist = db.create_playlist(
+    /// let playlist = db.create_playlist_node(
     ///     "My Playlist".to_string(),
     ///     PlaylistType::Regular,
     ///     Some("parent_id".to_string()),
@@ -2885,7 +2885,7 @@ impl MasterDb {
         self.insert_playlist(item)
     }
 
-    /// Creates a new regular playlist in the [`DjmdPlaylist`] table.
+    /// Creates a new regular playlist in the `djmdPlaylist` table.
     ///
     /// # Arguments
     /// * `name` - The name of the playlist.
@@ -2922,7 +2922,7 @@ impl MasterDb {
         )
     }
 
-    /// Creates a new playlist folder in the [`DjmdPlaylist`] table.
+    /// Creates a new playlist folder in the `djmdPlaylist` table.
     ///
     /// # Arguments
     /// * `name` - The name of the folder.
@@ -3112,7 +3112,7 @@ impl MasterDb {
         Ok(playlists)
     }
 
-    /// Deletes a playlist entry from the [`DjmdPlaylist`] table in the database.
+    /// Deletes a playlist entry from the `djmdPlaylist` table in the database.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the playlist to be deleted.
@@ -3153,7 +3153,7 @@ impl MasterDb {
         Ok(deleted_ids.len())
     }
 
-    /// Inserts a new [`DjmdSongPlaylist`] song into a playlist.
+    /// Inserts a new `djmdSongPlaylist` song into a playlist.
     ///
     /// # Arguments
     /// * `item` - The [`NewDjmdSongPlaylist`] object representing the song to insert.
@@ -3183,7 +3183,7 @@ impl MasterDb {
         Ok(result)
     }
 
-    /// Inserts a [`DjmdSongPlaylist`] song into a playlist at a specified sequence position.
+    /// Creates a new playlist song and inserts it into the `djmdSongPlaylist` table.
     ///
     /// # Arguments
     /// * `playlist_id` - The ID of the target playlist.
@@ -3320,7 +3320,7 @@ impl MasterDb {
 
     // -- Property ---------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdProperty`] table in the database.
+    /// Retrieves all entries from the `djmdProperty` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdProperty`] objects if the query is successful.
@@ -3340,7 +3340,7 @@ impl MasterDb {
         Ok(DjmdProperty::all(&mut conn)?)
     }
 
-    /// Retrieves a [`DjmdProperty`] entry by its unique identifier.
+    /// Retrieves a `djmdProperty` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the property.
@@ -3366,7 +3366,7 @@ impl MasterDb {
 
     // -- CloudProperty ----------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdCloudProperty`] table in the database.
+    /// Retrieves all entries from the `djmdCloudProperty` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdCloudProperty`] objects if the query is successful.
@@ -3386,7 +3386,7 @@ impl MasterDb {
         Ok(DjmdCloudProperty::all(&mut conn)?)
     }
 
-    /// Retrieves a [`DjmdCloudProperty`] entry by its unique identifier.
+    /// Retrieves a `djmdCloudProperty` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the cloud property.
@@ -3412,7 +3412,7 @@ impl MasterDb {
 
     // -- RecommendLike ----------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdRecommendLike`] table in the database.
+    /// Retrieves all entries from the `djmdRecommendLike` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdRecommendLike`] objects if the query is successful.
@@ -3432,7 +3432,7 @@ impl MasterDb {
         Ok(DjmdRecommendLike::all(&mut conn)?)
     }
 
-    /// Retrieves a [`DjmdRecommendLike`] entry by its unique identifier.
+    /// Retrieves a `djmdRecommendLike` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the recommend like entry.
@@ -3458,7 +3458,7 @@ impl MasterDb {
 
     // -- RelatedTracks ----------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdRelatedTracks`] table in the database.
+    /// Retrieves all entries from the `djmdRelatedTracks` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdRelatedTracks`] objects if the query is successful.
@@ -3478,7 +3478,7 @@ impl MasterDb {
         Ok(DjmdRelatedTracks::all(&mut conn)?)
     }
 
-    /// Retrieves all child [`DjmdRelatedTracks`] entries for a given parent ID, ordered by sequence.
+    /// Retrieves all child `djmdRelatedTracks` entries for a given parent ID, ordered by sequence.
     ///
     /// # Arguments
     /// * `parent_id` - A string slice representing the parent related tracks ID.
@@ -3504,7 +3504,7 @@ impl MasterDb {
         Ok(DjmdRelatedTracks::by_parent_id(&mut conn, parent_id)?)
     }
 
-    /// Retrieves a [`DjmdRelatedTracks`] entry by its unique identifier.
+    /// Retrieves a `djmdRelatedTracks` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the related tracks entry.
@@ -3528,7 +3528,7 @@ impl MasterDb {
         Ok(DjmdRelatedTracks::find(&mut conn, id)?)
     }
 
-    /// Retrieves all [`DjmdSongRelatedTracks`] entries for a given related tracks ID, ordered by track number.
+    /// Retrieves all `djmdSongRelatedTracks` entries for a given related tracks ID, ordered by track number.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the related tracks ID.
@@ -3551,7 +3551,7 @@ impl MasterDb {
         Ok(DjmdSongRelatedTracks::by_related_tracks_id(&mut conn, id)?)
     }
 
-    /// Retrieves all [`DjmdContent`] entries referenced by the songs for a given related tracks ID.
+    /// Retrieves all `djmdContent` entries referenced by the songs for a given related tracks ID.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the related tracks ID.
@@ -3576,7 +3576,7 @@ impl MasterDb {
 
     // -- Sampler ----------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdSampler`] table in the database.
+    /// Retrieves all entries from the `djmdSampler` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdSampler`] objects if the query is successful.
@@ -3596,7 +3596,7 @@ impl MasterDb {
         Ok(DjmdSampler::all(&mut conn)?)
     }
 
-    /// Retrieves all child [`DjmdSampler`] entries for a given parent ID, ordered by sequence.
+    /// Retrieves all child `djmdSampler` entries for a given parent ID, ordered by sequence.
     ///
     /// # Arguments
     /// * `parent_id` - A string slice representing the parent sampler ID.
@@ -3619,7 +3619,7 @@ impl MasterDb {
         Ok(DjmdSampler::by_parent_id(&mut conn, parent_id)?)
     }
 
-    /// Retrieves a [`DjmdSampler`] entry by its unique identifier.
+    /// Retrieves a `djmdSampler` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the sampler entry.
@@ -3643,7 +3643,7 @@ impl MasterDb {
         Ok(DjmdSampler::find(&mut conn, id)?)
     }
 
-    /// Retrieves all [`DjmdSongSampler`] entries for a given sampler ID, ordered by track number.
+    /// Retrieves all `djmdSongSampler` entries for a given sampler ID, ordered by track number.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the sampler ID.
@@ -3666,7 +3666,7 @@ impl MasterDb {
         Ok(DjmdSongSampler::by_sampler_id(&mut conn, id)?)
     }
 
-    /// Retrieves all [`DjmdContent`] entries referenced by the songs for a given sampler ID.
+    /// Retrieves all `djmdContent` entries referenced by the songs for a given sampler ID.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the sampler ID.
@@ -3691,7 +3691,7 @@ impl MasterDb {
 
     // -- SongTagList ------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdSongTagList`] table in the database.
+    /// Retrieves all entries from the `djmdSongTagList` table in the database.
     ///
     /// # Returns
     /// A vector of [`DjmdSongTagList`] objects if the query is successful.
@@ -3711,7 +3711,7 @@ impl MasterDb {
         Ok(DjmdSongTagList::all(&mut conn)?)
     }
 
-    /// Retrieves a [`DjmdSongTagList`] entry by its unique identifier.
+    /// Retrieves a `djmdSongTagList` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the song tag list entry.
@@ -3737,7 +3737,7 @@ impl MasterDb {
 
     // -- Sort -------------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`DjmdSort`] table in the database, ordered by sequence.
+    /// Retrieves all entries from the `djmdSort` table in the database, ordered by sequence.
     ///
     /// # Returns
     /// A vector of [`DjmdSort`] objects if the query is successful.
@@ -3757,7 +3757,7 @@ impl MasterDb {
         Ok(DjmdSort::all(&mut conn)?)
     }
 
-    /// Retrieves a [`DjmdSort`] entry by its unique identifier.
+    /// Retrieves a `djmdSort` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the sort entry.
@@ -3783,7 +3783,7 @@ impl MasterDb {
 
     // -- ImageFile --------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`ImageFile`] table in the database.
+    /// Retrieves all entries from the `imageFile` table in the database.
     ///
     /// # Returns
     /// A vector of [`ImageFile`] objects if the query is successful.
@@ -3803,7 +3803,7 @@ impl MasterDb {
         Ok(ImageFile::all(&mut conn)?)
     }
 
-    /// Retrieves an [`ImageFile`] entry by its unique identifier.
+    /// Retrieves an `imageFile` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the image file.
@@ -3829,7 +3829,7 @@ impl MasterDb {
 
     // -- SettingFile ------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`SettingFile`] table in the database.
+    /// Retrieves all entries from the `settingFile` table in the database.
     ///
     /// # Returns
     /// A vector of [`SettingFile`] objects if the query is successful.
@@ -3849,7 +3849,7 @@ impl MasterDb {
         Ok(SettingFile::all(&mut conn)?)
     }
 
-    /// Retrieves a [`SettingFile`] entry by its unique identifier.
+    /// Retrieves a `settingFile` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the setting file.
@@ -3875,7 +3875,7 @@ impl MasterDb {
 
     // -- UuidIDMap --------------------------------------------------------------------------------
 
-    /// Retrieves all entries from the [`UuidIDMap`] table in the database.
+    /// Retrieves all entries from the `uuidIDMap` table in the database.
     ///
     /// # Returns
     /// A vector of [`UuidIDMap`] objects if the query is successful.
@@ -3895,7 +3895,7 @@ impl MasterDb {
         Ok(UuidIDMap::all(&mut conn)?)
     }
 
-    /// Retrieves a [`UuidIDMap`] entry by its unique identifier.
+    /// Retrieves a `uuidIDMap` entry by its unique identifier.
     ///
     /// # Arguments
     /// * `id` - A string slice representing the unique identifier of the UUID ID map entry.

@@ -44,31 +44,43 @@ export interface AgentRegistry {
 }
 
 /**
- * Represents the raw structure of an album in the database.
+ * Represents the `album` table in the Rekordbox Device Library Plus database.
  *
- * This struct is used to map the `album` table in the database and provides
- * Diesel ORM annotations for querying and manipulating album records.
+ * This struct maps to the `album` table in the Device Library Plus export database.
+ * It stores album-related data, allowing multiple tracks to be associated with the same album.
+ * This table includes metadata such as album name, artist, and compilation status.
+ *
+ * # Referenced by
+ * * [`Content`] via `album_id` foreign key.
+ *
+ * # References
+ * * [`Artist`] via `artist_id` foreign key.
+ * * [`Image`] via `image_id` foreign key.
  */
-export interface AlbumRaw {
+export interface Album {
   /** The unique identifier of the album. */
   id: number
   /** The name of the album. */
   name: string
-  /** The optional foreign key referencing the artist associated with the album. */
+  /** An optional foreign key referencing the album [`Artist`]. */
   artistId?: number
-  /** The optional foreign key referencing the image associated with the album. */
+  /** An optional foreign key referencing the album artwork [`Image`]. */
   imageId?: number
-  /** Indicates whether the album is a compilation (1 for true, 0 for false). */
-  isComplation: number
-  /** An optional field for storing a search-optimized version of the album name. */
+  /** A flag if the album is a compilation. */
+  isCompilation: number
+  /** An optional string used for searching the album. */
   nameForSearch?: string
 }
 
 /**
- * Represents an artist in the database.
+ * Represents the `artist` table in the Rekordbox Device Library Plus database.
  *
- * This struct is used to map the `artist` table in the database and provides
- * Diesel ORM annotations for querying and manipulating artist records.
+ * This struct maps to the `artist` table in the Device Library Plus export database.
+ * It stores artist-related data, allowing multiple tracks to be associated with the same artist.
+ *
+ * # Referenced by
+ * * [`Album`] via `artist_id` foreign key.
+ * * [`Content`] via `artist_id`, `remixer_id`, `original_artist_id`, `composer_id` and `lyricist_id` foreign keys.
  */
 export interface Artist {
   /** The unique identifier of the artist. */
@@ -79,10 +91,22 @@ export interface Artist {
   nameForSearch?: string
 }
 
-export interface CategoryRaw {
+/**
+ * Represents the `category` table in the Rekordbox Device Library Plus database.
+ *
+ * This struct maps to the `category` table in the Device Library Plus export database.
+ *
+ * # References
+ * * [`MenuItem`] via `menu_item_id` foreign key.
+ */
+export interface Category {
+  /** The unique identifier of the category. */
   id: number
+  /** A foreign key referencing the [`MenuItem`]. */
   menuItemId: number
-  sequenceNo: number
+  /** The sequence/order of the category. */
+  seq: number
+  /** A flag if the category is visible. */
   isVisible: number
 }
 
@@ -132,8 +156,17 @@ export interface CloudAgentRegistry {
   text2?: string
 }
 
+/**
+ * Represents the `color` table in the Rekordbox Device Library Plus database.
+ *
+ *
+ * # Referenced by
+ * * [`Content`] via `color_id` foreign key.
+ */
 export interface Color {
+  /** The unique identifier of the color. */
   id: number
+  /** The name of the color */
   name: string
 }
 
@@ -141,6 +174,122 @@ export interface Composer {
   id: number
   name: string
   nameForSearch?: string
+}
+
+/**
+ * Represents the `content` table in the Rekordbox Device Library Plus database.
+ *
+ * This struct maps to the `content` table in the Device Library Plus export database.
+ * It contains metadata and attributes for each track in the collection, including file info,
+ * artist, album, genre, and more.
+ *
+ * # Referenced by
+ * * [`Cue`] via `content_id` foreign key.
+ * * [`HistoryContent`] via `content_id` foreign key.
+ * * [`MyTagContent`] via `content_id` foreign key.
+ * * [`PlaylistContent`] via `content_id` foreign key.
+ * * [`RecommendedLike`] via `content_id_1` and `content_id_2` foreign keys.
+ *
+ * # References
+ * * [`Artist`] via `artist_id`, `remixer_id`, `original_artist_id`, `composer_id` and `lyricist_id` foreign keys.
+ * * [`Album`] via `album_id` foreign key.
+ * * [`Genre`] via `genre_id` foreign key.
+ * * [`Label`] via `label_id` foreign key.
+ * * [`Kex`] via `key_id` foreign key.
+ * * [`Color`] via `color_id` foreign key.
+ * * [`Image`] via `image_id` foreign key.
+ */
+export interface Content {
+  /** The unique identifier of the content. */
+  id: number
+  /** The title of the track. */
+  title?: string
+  /** An optional title used for searching. */
+  titleForSearch?: string
+  /** The subtitle of the track */
+  subtitle?: string
+  /** The beats per minute multiplied by 100. */
+  bpmx100?: number
+  /** The length of the track in seconds. */
+  length?: number
+  /** The track number of the track */
+  trackNo?: number
+  /** The disc number of the track */
+  discNo?: number
+  /** Optional foreign key referencing the artist [`Artist`]. */
+  artistId?: number
+  /** Optional foreign key referencing the remixer [`Artist`]. */
+  remixerId?: number
+  /** Optional foreign key referencing the original artist [`Artist`]. */
+  originalArtistId?: number
+  /** Optional foreign key referencing the composer [`Artist`]. */
+  composerId?: number
+  /** Optional foreign key referencing the lyricist [`Artist`]. */
+  lyricistId?: number
+  /** Optional foreign key referencing the [`Album`]. */
+  albumId?: number
+  /** Optional foreign key referencing the [`Genre`]. */
+  genreId?: number
+  /** Optional foreign key referencing the [`Label`]. */
+  labelId?: number
+  /** Optional foreign key referencing the [`Key`]. */
+  keyId?: number
+  /** Optional foreign key referencing the [`Color`]. */
+  colorId?: number
+  /** Optional foreign key referencing the artwork [`Image`]. */
+  imageId?: number
+  /** The ccomment of the track. */
+  djComment?: string
+  /** The rating of the track. */
+  rating?: number
+  /** The release year of the track. */
+  releaseYear?: number
+  /** The release date of the track */
+  releaseDate?: string
+  /** The date the record was created */
+  dateCreated: Date
+  /** The date the record was added */
+  dateAdded: Date
+  /** The relative file path of the track (usually `'/Contents/<Artist>/<Title>'`) */
+  path: string
+  /** The file name of the track. */
+  fileName?: string
+  /** The file size of the track */
+  fileSize?: number
+  /** The file typo of the track */
+  fileType?: number
+  /** The bitrate of the trackk */
+  bitrate?: number
+  /** The bit depth of the track */
+  bitDepth?: number
+  /** The sample rate of the track. */
+  samplingRate?: number
+  /** The ISRC of the track */
+  isrc?: string
+  /** A flag if hot-cue auto load is enabled */
+  isHotCueAutoLoadOn?: number
+  /** A flag if kuvo delivery is enabled */
+  isKuvoDeliverStatusOn?: number
+  /** A kuvo delivery comment */
+  kuvoDeliveryComment?: string
+  /** The masterdb ID */
+  masterDbId?: number
+  /** The ID of the contnent in the masterdb */
+  masterContentId?: number
+  /** The relative path to the analysis data */
+  analysisDataFilePath?: string
+  /** The number of bits analysed (?) */
+  analysedBits?: number
+  /** The ID of the content in the content link database (seems to always be 788224) */
+  contentLink?: number
+  /** A flag if the content has been modified */
+  hasModified?: number
+  /** The number of updates to the associated cues */
+  cueUpdateCount?: number
+  /** The number of updates to the analysis data */
+  analysisDataUpdateCount?: number
+  /** The number of updates to the content record */
+  informationUpdateCount?: number
 }
 
 /**
@@ -170,12 +319,12 @@ export interface ContentActiveCensor {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the id of the associated [`DjmdContent`]. */
-  contentId?: string
-  /** An optional string representing the active censors. */
-  activeCensors?: string
-  /** An optional integer representing the count of active censors. */
-  rbActivecensorCount?: number
+  /** The id of the associated [`DjmdContent`]. */
+  contentId: string
+  /** A string representing the active censors. */
+  activeCensors: string
+  /** The count of active censors. */
+  rbActivecensorCount: number
 }
 
 /**
@@ -205,12 +354,12 @@ export interface ContentCue {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the id of the associated [`DjmdContent`]. */
-  contentId?: string
-  /** An optional string representing the cues. */
-  cues?: string
-  /** An optional integer representing the count of cues. */
-  rbCueCount?: number
+  /** The id of the associated [`DjmdContent`]. */
+  contentId: string
+  /** A JSON string representing the cue data. */
+  cues: string
+  /** The count of cues. */
+  rbCueCount: number
 }
 
 /**
@@ -241,16 +390,16 @@ export interface ContentFile {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the id of the associated [`DjmdContent`]. */
-  contentId?: string
-  /** An optional string representing the file path. */
-  path?: string
-  /** An optional string representing the file hash. */
-  hash?: string
-  /** An optional integer representing the file size. */
-  size?: number
-  /** An optional string representing the local file path. */
-  rbLocalPath?: string
+  /** The id of the associated [`DjmdContent`]. */
+  contentId: string
+  /** The relative file path. */
+  path: string
+  /** The file hash. */
+  hash: string
+  /** The file size. */
+  size: number
+  /** The absolute file path. */
+  rbLocalPath: string
   /** An optional string representing the in-sync file hash. */
   rbInsyncHash?: string
   /** An optional integer representing the in-sync local update sequence number. */
@@ -271,76 +420,83 @@ export interface ContentFile {
   rbFileSizeDirty?: number
 }
 
-export interface ContentRaw {
-  id: number
-  title?: string
-  titleForSearch?: string
-  subtitle?: string
-  bpmx100?: number
-  length?: number
-  trackNo?: number
-  discNo?: number
-  artistId?: number
-  remixerId?: number
-  originalArtistId?: number
-  composerId?: number
-  lyricistId?: number
-  albumId?: number
-  genreId?: number
-  labelId?: number
-  keyId?: number
-  colorId?: number
-  imageId?: number
-  djComment?: string
-  rating?: number
-  releaseYear?: number
-  releaseDate?: string
-  dateCreated: Date
-  dateAdded: Date
-  path: string
-  fileName?: string
-  fileSize?: number
-  fileType?: number
-  bitrate?: number
-  bitDepth?: number
-  samplingRate?: number
-  isrc?: string
-  isHotCueAutoLoadOn?: number
-  isKuvoDeliverStatusOn?: number
-  kuvoDeliveryComment?: string
-  masterDbId?: number
-  masterContentId?: number
-  analysisDataFilePath?: string
-  analysedBits?: number
-  contentLink?: number
-  hasModified?: number
-  cueUpdateCount?: number
-  analysisDataUpdateCount?: number
-  informationUpdateCount?: number
-}
-
+/**
+ * Represents the `cue` table in the Rekordbox Device Library Plus database.
+ *
+ * This struct maps to the `cue` table in the Device Library Plus export database.
+ * It stores information about cue points for tracks, including their timing, type, and
+ * additional metadata.
+ *
+ * # Notes
+ * Rekordbox internally represents time in “frames”, each being 1/150th of a second (6.666ms).
+ * The InFrame and OutFrame values use this unit of time. However, when a track is encoded with
+ * variable bit-rate (VBR) or average bit-rate (ABR), the InMpegFrame and OutMpegFrame values are
+ * filled out to assist with correct seeking. Despite the names, these values are not the frame
+ * indices within the MPEG file, but instead use an alternative timing scheme that is typically
+ * around 1/75th of a second (13.333ms) per frame, i.e. about half the granularity of normal frames.
+ *
+ * # Referenced by
+ * * [`HotCueBankListCue`] via `cue_id` foreign key.
+ *
+ * # References
+ * * [`Content`] via `content_id` foreign key.
+ */
 export interface Cue {
+  /** The unique identifier of the cue. */
   id: number
+  /** A foreign key referencing the [`Content`]. */
   contentId: number
+  /**
+   * The type of the cue.
+   *
+   * 0 if a memory cue, otherwise the number of Hot Cue
+   */
   kind?: number
+  /** An optional integer representing the index of the color in the color table. */
   colorTableIndex?: number
+  /** A comment for the cue */
   cueComment?: string
+  /** A flag whether the cue is part of an active loop. */
   isActiveLoop?: number
+  /** Unknown */
   beatLoopNumerator?: number
+  /** Unknonw */
   beatLoopDenominator?: number
+  /** The cue's start time in microseconds. */
   inUsec?: number
+  /** The cue's end time in microseconds. */
   outUsec?: number
+  /**
+   * The cue's start frame.
+   *
+   * One frame is 1/150th of a second
+   */
   in150FramePerSec?: number
+  /**
+   * The cue's end frame or -1 if not a loop.
+   *
+   * One frame is 1/150th of a second
+   */
   out150FramePerSec?: number
+  /** The cue's start MPEG frame or 0 if not a VBR/ABR MPEG file (see note). */
   inMpegFrameNumber?: number
+  /** The cue's end MPEG frame or 0 if not a loop or not a VBR/ABR MPEG file (see note) */
   outMpegFrameNumber?: number
+  /** The cue's start MPEG absolute frame or 0 if not a VBR/ABR MPEG file. */
   inMpegAbs?: number
+  /** The cue's end MPEG absolute frame or 0 if not a loop or not a VBR/ABR MPEG file */
   outMpegAbs?: number
+  /** The cue's start frame position in the decoding block. */
   inDecodingStartFramePosition?: number
+  /** The cue's end frame position in the decoding block. */
   outDecodingStartFramePosition?: number
+  /** The cue's start file offset in the decoding block. */
   inFileOffsetInBlock?: number
+  /** The cue's end file offset in the decoding block. */
   outFileOffsetInBlock?: number
+  /** The cue's start sample position in the decoding block. */
   inNumberOfSampleInBlock?: number
+  /** The cue's end sample position in the decoding block. */
   outNumberOfSampleInBlock?: number
 }
 
@@ -373,8 +529,8 @@ export interface DjmdActiveCensor {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the id of the associated [`DjmdContent`]. */
-  contentId?: string
+  /** The id of the associated [`DjmdContent`]. */
+  contentId: string
   /** An optional integer representing the start time of the censor in milliseconds. */
   inMsec?: number
   /** An optional integer representing the end time of the censor in milliseconds. */
@@ -415,14 +571,14 @@ export interface DjmdAlbum {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the name of the album. */
-  name?: string
+  /** The name of the album. */
+  name: string
   /** An optional string representing the id of the album artist [`DjmdArtist`]. */
   albumArtistId?: string
   /** An optional string representing the path to the album's image. */
   imagePath?: string
-  /** An optional integer indicating whether the album is a compilation. */
-  compilation?: number
+  /** A flag if the album is a compilation. */
+  compilation: number
   /** An optional string used for searching the album. */
   searchStr?: string
 }
@@ -455,7 +611,7 @@ export interface DjmdArtist {
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
   /** An optional string representing the name of the artist. */
-  name?: string
+  name: string
   /** An optional string used for searching the artist. */
   searchStr?: string
 }
@@ -487,14 +643,14 @@ export interface DjmdCategory {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the id of the associated [`DjmdMenuItems`]. */
-  menuItemId?: string
-  /** An optional integer representing the sequence/order of the category. */
-  seq?: number
-  /** An optional integer indicating whether the category is disabled. */
-  disable?: number
-  /** An optional integer representing the info order for the category. */
-  infoOrder?: number
+  /** The id of the associated [`DjmdMenuItems`]. */
+  menuItemId: string
+  /** The sequence/order of the category. */
+  seq: number
+  /** A flag indicating whether the category is disabled. */
+  disable: number
+  /** The info order for the category. */
+  infoOrder: number
 }
 
 /**
@@ -566,10 +722,10 @@ export interface DjmdColor {
   updatedAt: Date
   /** An optional string representing the color code (e.g., hex value). */
   colorCode?: string
-  /** An optional integer representing the sort key for ordering colors. */
-  sortKey?: number
-  /** An optional string for comments or additional information about the color. */
-  commnt?: string
+  /** The sort key for ordering colors. */
+  sortKey: number
+  /** A comment (usually the name) associated with the color. */
+  commnt: string
 }
 
 /**
@@ -744,6 +900,14 @@ export interface DjmdContent {
  * This struct maps to the `djmdCue` table in the SQLite database used by Rekordbox.
  * It stores information about cue points for tracks, including their timing, type, and
  * additional metadata.
+ *
+ * # Notes
+ * Rekordbox internally represents time in “frames”, each being 1/150th of a second (6.666ms).
+ * The InFrame and OutFrame values use this unit of time. However, when a track is encoded with
+ * variable bit-rate (VBR) or average bit-rate (ABR), the InMpegFrame and OutMpegFrame values are
+ * filled out to assist with correct seeking. Despite the names, these values are not the frame
+ * indices within the MPEG file, but instead use an alternative timing scheme that is typically
+ * around 1/75th of a second (13.333ms) per frame, i.e. about half the granularity of normal frames.
  */
 export interface DjmdCue {
   /** A unique identifier for the entry. */
@@ -766,28 +930,40 @@ export interface DjmdCue {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the ID of the associated track in [`DjmdContent`]. */
-  contentId?: string
-  /** An optional integer representing the cue's start time in milliseconds. */
-  inMsec?: number
-  /** An optional integer representing the cue's start frame. */
-  inFrame?: number
-  /** An optional integer representing the cue's start MPEG frame. */
-  inMpegFrame?: number
-  /** An optional integer representing the cue's start MPEG absolute frame. */
-  inMpegAbs?: number
-  /** An optional integer representing the cue's end time in milliseconds. */
-  outMsec?: number
-  /** An optional integer representing the cue's end frame. */
-  outFrame?: number
-  /** An optional integer representing the cue's end MPEG frame. */
-  outMpegFrame?: number
-  /** An optional integer representing the cue's end MPEG absolute frame. */
-  outMpegAbs?: number
-  /** An optional integer representing the type of the cue (e.g., hot cue, memory cue). */
-  kind?: number
-  /** An optional integer representing the color of the cue. */
-  color?: number
+  /** The ID of the associated track in [`DjmdContent`]. */
+  contentId: string
+  /** The cue's start time in milliseconds. */
+  inMsec: number
+  /**
+   * The cue's start frame.
+   *
+   * One frame is 1/150th of a second
+   */
+  inFrame: number
+  /** The cue's start MPEG frame or 0 if not a VBR/ABR MPEG file (see note). */
+  inMpegFrame: number
+  /** The cue's start MPEG absolute frame or 0 if not a VBR/ABR MPEG file. */
+  inMpegAbs: number
+  /** The cue's end time in milliseconds or -1 if not a loop. */
+  outMsec: number
+  /**
+   * The cue's end frame or -1 if not a loop.
+   *
+   * One frame is 1/150th of a second
+   */
+  outFrame: number
+  /** The cue's end MPEG frame or 0 if not a loop or not a VBR/ABR MPEG file (see note) */
+  outMpegFrame: number
+  /** The cue's end MPEG absolute frame or 0 if not a loop or not a VBR/ABR MPEG file */
+  outMpegAbs: number
+  /**
+   * The type of the cue.
+   *
+   * 0 if a memory cue, otherwise the number of Hot Cue
+   */
+  kind: number
+  /** The color ID of the cue or -1 if no color. */
+  color: number
   /** An optional integer representing the index of the color in the color table. */
   colorTableIndex?: number
   /** An optional integer indicating whether the cue is part of an active loop. */
@@ -834,10 +1010,10 @@ export interface DjmdDevice {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the ID of the master database associated with the device. */
-  masterDbId?: string
-  /** An optional string representing the name of the device. */
-  name?: string
+  /** The ID of the master database associated with the device. */
+  masterDbId: string
+  /** The name of the device. */
+  name: string
 }
 
 /**
@@ -868,7 +1044,7 @@ export interface DjmdGenre {
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
   /** An optional string representing the name of the genre. */
-  name?: string
+  name: string
 }
 
 /**
@@ -978,8 +1154,8 @@ export interface DjmdKey {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the name of the musical key. */
-  scaleName?: string
+  /** The name of the musical key. */
+  name: string
   /** An optional integer representing the sequence/order of the key. */
   seq?: number
 }
@@ -1011,8 +1187,8 @@ export interface DjmdLabel {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the name of the label. */
-  name?: string
+  /** The name of the label. */
+  name: string
 }
 
 /**
@@ -1042,10 +1218,10 @@ export interface DjmdMenuItems {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional integer representing the class of the menu item. */
-  class?: number
-  /** An optional string representing the name of the menu item. */
-  name?: string
+  /** The class of the menu item. */
+  class: number
+  /** The name of the menu item. */
+  name: string
 }
 
 /**
@@ -1053,6 +1229,14 @@ export interface DjmdMenuItems {
  *
  * This struct maps to the `djmdMixerParam` table in the SQLite database used by Rekordbox.
  * It stores information about mixer parameters, including gain and peak values for high and low frequencies.
+ *
+ * Each of the two gain values are represented by a 32-bit floating point number packed into a
+ * pair of 16-bit integers. The floating point value represents the linear gain factor, which can
+ * be converted into decibels (dB) by calculating 20.0 * math.log10(f) where f is the gain factor.
+ *
+ * The auto-gain value is the one shown in the grid edit panel. The peak value does not appear to
+ * be displayed anywhere in the program, and is most likely used internally for
+ * limiting and/or waveform scaling.
  */
 export interface DjmdMixerParam {
   /** A unique identifier for the entry. */
@@ -1075,16 +1259,16 @@ export interface DjmdMixerParam {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the ID of the associated [`DjmdContent`]. */
-  contentId?: string
-  /** An optional integer representing the high-frequency gain value. */
-  gainHigh?: number
-  /** An optional integer representing the low-frequency gain value. */
-  gainLow?: number
-  /** An optional integer representing the high-frequency peak value. */
-  peakHigh?: number
-  /** An optional integer representing the low-frequency peak value. */
-  peakLow?: number
+  /** The ID of the associated [`DjmdContent`]. */
+  contentId: string
+  /** The upper 16 bits of a IEEE754 single-precision floating point number representing the gain. */
+  gainHigh: number
+  /** The lower 16 bits of a IEEE754 single-precision floating point number representing the gain. */
+  gainLow: number
+  /** The upper 16 bits of a IEEE754 single-precision floating point number representing the peak. */
+  peakHigh: number
+  /** The lower 16 bits of a IEEE754 single-precision floating point number representing the peak. */
+  peakLow: number
 }
 
 /**
@@ -1131,6 +1315,10 @@ export interface DjmdMyTag {
  * This struct maps to the `djmdPlaylist` table in the SQLite database used by Rekordbox.
  * It stores information about playlists, including metadata such as sequence, name, image path,
  * attributes, and parent relationships.
+ *
+ * **Note**: This model does not implement `ModelDelete`, but provides slightly different
+ * `delete` and `delete_all` methods that return the deleted playlist Ids instead of the number
+ * of affected rows. This is required for the playlist XML handling.
  */
 export interface DjmdPlaylist {
   /** A unique identifier for the entry. */
@@ -1177,14 +1365,14 @@ export interface DjmdPlaylist {
 export interface DjmdProperty {
   /** A unique identifier for the database entry. */
   dbId: string
-  /** An optional string representing the version of the database. */
-  dbVersion?: string
-  /** An optional string representing the base drive of the database. */
-  baseDbDrive?: string
-  /** An optional string representing the current drive of the database. */
-  currentDbDrive?: string
-  /** An optional string representing the ID of the associated device in [`DjmdDevice`]. */
-  deviceId?: string
+  /** The version of the database. */
+  dbVersion: string
+  /** The base drive of the database. */
+  baseDbDrive: string
+  /** The current drive of the database. */
+  currentDbDrive: string
+  /** The ID of the associated device in [`DjmdDevice`]. */
+  deviceId: string
   /** An optional string for reserved data. */
   reserved1?: string
   /** An optional string for reserved data. */
@@ -1229,10 +1417,10 @@ export interface DjmdRecommendLike {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the ID of the first associated content in [`DjmdContent`]. */
-  contentId1?: string
-  /** An optional string representing the ID of the second associated content in [`DjmdContent`]. */
-  contentId2?: string
+  /** The ID of the first associated content in [`DjmdContent`]. */
+  contentId1: string
+  /** The ID of the second associated content in [`DjmdContent`]. */
+  contentId2: string
   /** An optional integer representing the like rate between the two associated contents. */
   likeRate?: number
   /** An optional integer representing the high part of the creation timestamp. */
@@ -1271,14 +1459,14 @@ export interface DjmdRelatedTracks {
   updatedAt: Date
   /** The sequence/order number of the record (1-based index) */
   seq: number
-  /** The name of the sampler. */
+  /** The name of the related track record. */
   name: string
-  /** The attribute of the sampler, either list (`0`) or a folder (`1`) */
+  /** The attribute of the related track, either list (`0`) or a folder (`1`) */
   attribute: number
   /** The ID of the parent [`DjmdRelatedTracks`], `'root'` for top-level records. */
   parentId: string
-  /** An optional string containing criteria for the related track entry. */
-  criteria?: string
+  /** A JSON string containing the criteria for the related tracks. */
+  criteria: string
 }
 
 /**
@@ -1361,6 +1549,14 @@ export interface DjmdSongHistory {
  * This struct maps to the `djmdSongHotCueBanklist` table in the SQLite database used by Rekordbox.
  * It stores information about the relationship between hot cue bank lists and their associated songs,
  * including the actual cue data
+ *
+ * # Notes
+ * Rekordbox internally represents time in “frames”, each being 1/150th of a second (6.666ms).
+ * The InFrame and OutFrame values use this unit of time. However, when a track is encoded with
+ * variable bit-rate (VBR) or average bit-rate (ABR), the InMpegFrame and OutMpegFrame values are
+ * filled out to assist with correct seeking. Despite the names, these values are not the frame
+ * indices within the MPEG file, but instead use an alternative timing scheme that is typically
+ * around 1/75th of a second (13.333ms) per frame, i.e. about half the granularity of normal frames.
  */
 export interface DjmdSongHotCueBanklist {
   /** A unique identifier for the entry. */
@@ -1391,24 +1587,32 @@ export interface DjmdSongHotCueBanklist {
   trackNo: number
   /** The ID of the associated [`DjmdCue`] */
   cueId: string
-  /** An optional integer representing the cue's start time in milliseconds. */
-  inMsec?: number
-  /** An optional integer representing the cue's start frame. */
-  inFrame?: number
-  /** An optional integer representing the cue's start MPEG frame. */
-  inMpegFrame?: number
-  /** An optional integer representing the cue's start MPEG absolute frame. */
-  inMpegAbs?: number
-  /** An optional integer representing the cue's end time in milliseconds. */
-  outMsec?: number
-  /** An optional integer representing the cue's end frame. */
-  outFrame?: number
-  /** An optional integer representing the cue's end MPEG frame. */
-  outMpegFrame?: number
-  /** An optional integer representing the cue's end MPEG absolute frame. */
-  outMpegAbs?: number
-  /** An optional integer representing the color of the cue. */
-  color?: number
+  /** The cue's start time in milliseconds. */
+  inMsec: number
+  /**
+   * The cue's start frame.
+   *
+   * One frame is 1/150th of a second
+   */
+  inFrame: number
+  /** The cue's start MPEG frame or 0 if not a VBR/ABR MPEG file (see note). */
+  inMpegFrame: number
+  /** The cue's start MPEG absolute frame or 0 if not a VBR/ABR MPEG file. */
+  inMpegAbs: number
+  /** The cue's end time in milliseconds or -1 if not a loop. */
+  outMsec: number
+  /**
+   * The cue's end frame or -1 if not a loop.
+   *
+   * One frame is 1/150th of a second
+   */
+  outFrame: number
+  /** The cue's end MPEG frame or 0 if not a loop or not a VBR/ABR MPEG file (see note) */
+  outMpegFrame: number
+  /** The cue's end MPEG absolute frame or 0 if not a loop or not a VBR/ABR MPEG file */
+  outMpegAbs: number
+  /** The color ID of the cue or -1 if no color. */
+  color: number
   /** An optional integer representing the index of the color in the color table. */
   colorTableIndex?: number
   /** An optional integer indicating whether the cue is part of an active loop. */
@@ -1598,10 +1802,10 @@ export interface DjmdSongTagList {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the ID of the associated content in [`DjmdContent`]. */
-  contentId?: string
-  /** An optional integer representing the track number in the tag list. */
-  trackNo?: number
+  /** The ID of the associated content in [`DjmdContent`]. */
+  contentId: string
+  /** The sequence/order number of the record (1-based index) */
+  trackNo: number
 }
 
 /**
@@ -1632,40 +1836,96 @@ export interface DjmdSort {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the ID of the associated menu item in [`DjmdMenuItems`]. */
-  menuItemId?: string
-  /** An optional integer representing the sequence/order of the sort entry. */
-  seq?: number
-  /** An optional integer indicating whether the sort entry is disabled. */
-  disable?: number
+  /** The ID of the associated menu item in [`DjmdMenuItems`]. */
+  menuItemId: string
+  /** The sequence/order of the sort entry. */
+  seq: number
+  /** A flag whether the sort entry is disabled. */
+  disable: number
 }
 
+/**
+ * Represents the `genre` table in the Rekordbox Device Library Plus database.
+ *
+ * This struct maps to the `genre` table in the Device Library Plus export database.
+ * It stores genre-related data, allowing multiple tracks to be associated with the same genre.
+ */
 export interface Genre {
+  /** The unique identifier of the genre. */
   id: number
+  /** The name of the genre. */
   name: string
 }
 
+/**
+ * Represents the `history` table in the Rekordbox Device Library Plus database.
+ *
+ * This struct maps to the `history` table in the Device Library Plus export database.
+ * It stores information about history entries, including metadata such as sequence, name,
+ * attributes, and parent relationships.
+ *
+ * # Referenced by
+ * * [`History`] via `parent_id` foreign key.
+ * * [`HistoryContent`] via `history_id` foreign key.
+ *
+ * # References
+ * * [`History`] via `parent_id` foreign key.
+ */
 export interface History {
+  /** A unique identifier for the entry. */
   id: number
-  sequenceNo: number
+  /** The sequence/order number of the history (1-based index) */
+  seq: number
+  /** The name of the history. */
   name: string
+  /** The attribute of the tag, either history (`0`) or a folder (`1`) */
   attribute: number
-  historyIdParent?: number
+  /** The ID of the parent [`History`] or `0` for top-level record. */
+  parentId: number
 }
 
+/**
+ * Represents the `history_content` table in the Rekordbox Device Library Plus database.
+ *
+ * This struct maps to the `history_content` table in the Device Library Plus export database.
+ * It stores information about the relationship between songs and history entries, including
+ * metadata such as track number and associated history or content IDs.
+ *
+ * # References
+ * * [`History`] via `history_id` foreign key.
+ * * [`Content`] via `content_id` foreign key.
+ */
 export interface HistoryContent {
+  /** The ID of the associated [`History`]. */
   historyId: number
+  /** The ID of the associated [`Content`]. */
   contentId: number
-  sequenceNo: number
+  /** The sequence/order number of the history content (1-based index) */
+  seq: number
 }
 
+/**
+ * Represents the `hotCueBankList` table in the Rekordbox Device Library Plus database.
+ *
+ * This struct maps to the `hotCueBankList` table in the Device Library Plus export database.
+ *
+ * # References
+ * * [`HotCueBankList`] via `parent_id` foreign key.
+ * * [`Image`] via `image_id` foreign key.
+ */
 export interface HotCueBankList {
+  /** The unique identifier of the hot cue bank list. */
   id: number
-  sequenceNo: number
+  /** The sequence/order number of the hot cue bank list (1-based index). */
+  seq: number
+  /** The name of the hot cue bank list. */
   name?: string
+  /** An optional foreign key referencing an [`Image`]. */
   imageId?: number
+  /** The hot cue bank list type, either list (`0`) or a folder (`1`). */
   attribute: number
-  hotCueBankListIdParent?: number
+  /** The ID of the parent [`HotCueBankList`], `0` for top-level records. */
+  parentId?: number
 }
 
 /**
@@ -1704,14 +1964,38 @@ export interface HotCueBanklistCue {
   rbCueCount?: number
 }
 
+/**
+ * Represents the `hotCueBankList_cue` table in the Rekordbox Device Library Plus database.
+ *
+ * This struct maps to the `hotCueBankList_cue` table in the Device Library Plus export database.
+ *
+ * # References
+ * * [`HotCueBankList`] via `hot_cue_bank_list_id` foreign key.
+ * * [`Cue`] via `cue_id` foreign key.
+ */
 export interface HotCueBankListCue {
+  /** The unique identifier of the hot cue bank list. */
   hotCueBankListId: number
+  /** The unique identifier of the cue. */
   cueId: number
-  sequenceNo: number
+  /** The sequence/order number of the hot cue bank list cue (1-based index). */
+  seq: number
 }
 
+/**
+ * Represents the `image` table in the Rekordbox Device Library Plus database.
+ *
+ * This struct maps to the `image` table in the Device Library Plus export database.
+ * It stores the relative file paths of all images on the device.
+ *
+ * # Referenced by
+ * * [`Album`] via `image_id` foreign key.
+ * * [`Content`] via `image_id` foreign key.
+ */
 export interface Image {
+  /** The unique identifier of the image. */
   id: number
+  /** The relative file path of the image. */
   path: string
 }
 
@@ -1777,13 +2061,35 @@ export interface ImageFile {
   rbFileSizeDirty?: number
 }
 
+/**
+ * Represents the `key` table in the Rekordbox Device Library Plus database.
+ *
+ * This struct maps to the `key` table in the Device Library Plus export database.
+ * It stores key-related data, allowing multiple tracks to be associated with the same key.
+ *
+ * # Referenced by
+ * * [`Content`] via `key_id` foreign key.
+ */
 export interface Key {
+  /** The unique identifier of the key. */
   id: number
+  /** The name of the key. */
   name: string
 }
 
+/**
+ * Represents the `label` table in the Rekordbox Device Library Plus database.
+ *
+ * This struct maps to the `label` table in the Device Library Plus export database.
+ * It stores label-related data, allowing multiple tracks to be associated with the same label.
+ *
+ * # Referenced by
+ * * [`Content`] via `label_id` foreign key.
+ */
 export interface Label {
+  /** The unique identifier of the label. */
   id: number
+  /** The name of the label. */
   name: string
 }
 
@@ -1793,49 +2099,109 @@ export interface Lyricist {
   nameForSearch?: string
 }
 
+/**
+ * Represents the `menuItem` table in the Rekordbox Device Library Plus database.
+ *
+ * This struct maps to the `menuItem` table in the Device Library Plus export database.
+ * It stores genre-related data, allowing multiple tracks to be associated with the same genre.
+ *
+ * # Referenced by
+ * * [`Category`] via `menu_item_id` foreign key.
+ * * [`Sort`] via `menu_item_id` foreign key.
+ */
 export interface MenuItem {
+  /** The unique identifier of the record. */
   id: number
+  /** The kind of menu item (similar to `class` in the main DB). */
   kind: number
+  /** The name of the menu item. */
   name: string
 }
 
+/**
+ * Represents the `myTag` table in the Rekordbox Device Library Plus database.
+ *
+ * This struct maps to the `myTag` table in the Device Library Plus export database.
+ * It stores information about my-tags, including metadata such as sequence, name
+ * attributes, and parent relationships.
+ *
+ * # Referenced by
+ * * [`MyTag`] via `parent_id` foreign key.
+ * * [`MyTagContent`] via `my_tag_id` foreign key.
+ *
+ * # References
+ * * [`MyTag`] via `parent_id` foreign key.
+ */
 export interface MyTag {
+  /** The unique identifier of the tag. */
   id: number
-  sequenceNo: number
+  /** The sequence/order number of the tag (1-based index). */
+  seq: number
+  /** The name of the tag. */
   name: string
+  /** The tag type, either list (`0`) or a folder (`1`). */
   attribute: number
-  myTagIdParent?: number
+  /** The ID of the parent [`MyTag`], `0` for top-level records. */
+  parentId: number
 }
 
+/**
+ * Represents the `myTag_content` table in the Rekordbox Device Library Plus database.
+ *
+ * This struct maps to the `myTag_content` table in the Device Library Plus export database.
+ * It stores information about the relationship between songs and myTags.
+ *
+ * This struct also is insertable into the `myTag_content` table.
+ *
+ * # References
+ * * [`MyTag`] via `my_tag_id` foreign key.
+ * * [`Content`] via `content_id` foreign key.
+ */
 export interface MyTagContent {
+  /** The ID of the associated [`MyTag`]. */
   myTagId: number
+  /** The ID of the associated [`Content`]. */
   contentId: number
 }
 
 /**
- * Represents a new album to be inserted into the database.
+ * Represents a new record insertale to the `album` table.
  *
- * This struct is used for creating new album records in the `album` table
- * and includes Diesel ORM annotations for database interactions.
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::devlib_plus::models.py::NewAlbum;
+ *
+ * let new = NewAlbum::new("Name").compilation(1);
+ * println!("{:?}", new);
+ * ```
  */
 export interface NewAlbum {
   /** The name of the album. */
   name: string
-  /** The optional foreign key referencing the artist associated with the album. */
+  /** An optional foreign key referencing the album artist [`Artist`]. */
   artistId?: number
-  /** The optional foreign key referencing the image associated with the album. */
+  /** An optional foreign key referencing the album artwork [`Image`]. */
   imageId?: number
-  /** Indicates whether the album is a compilation (1 for true, 0 for false). */
-  isComplation: number
-  /** An optional field for storing a search-optimized version of the album name. */
+  /** A flag if the album is a compilation. */
+  isCompilation: number
+  /** An optional string used for searching the album. */
   nameForSearch?: string
 }
 
 /**
- * Represents a new artist to be inserted into the database.
+ * Represents a new record insertale to the `artist` table.
  *
- * This struct is used for creating new artist records in the `artist` table
- * and includes Diesel ORM annotations for database interactions.
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::devlib_plus::models.py::NewArtist;
+ *
+ * let new = NewArtist::new("Name").name_for_search("Name");
+ * println!("{:?}", new);
+ * ```
  */
 export interface NewArtist {
   /** The name of the artist. */
@@ -1844,85 +2210,136 @@ export interface NewArtist {
   nameForSearch?: string
 }
 
+/**
+ * Represents a new record insertale to the `category` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::devlib_plus::models.py::NewCategory;
+ *
+ * let new = NewCategory::new("Name".into()).is_visible(1);
+ * println!("{:?}", new);
+ * ```
+ */
 export interface NewCategory {
+  /** A foreign key referencing the [`MenuItem`]. */
   menuItemId: number
-  sequenceNo: number
+  /** The sequence/order of the category. */
+  seq: number
+  /** A flag if the category is visible. */
   isVisible: number
 }
 
+/** Represents a new record insertale to the `color` table. */
 export interface NewColor {
+  /** The name of the color */
   name: string
 }
 
+/**
+ * Represents a new record insertale to the `content` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::devlib_plus::models.py::NewContent;
+ *
+ * let new = NewContent::new("Content/Artist/Title.mp3");
+ * println!("{:?}", new);
+ * ```
+ */
 export interface NewContent {
-  title?: string
-  titleForSearch?: string
-  subtitle?: string
-  bpmx100?: number
-  length?: number
-  trackNo?: number
-  discNo?: number
-  artistId?: number
-  remixerId?: number
-  originalArtistId?: number
-  composerId?: number
-  lyricistId?: number
-  albumId?: number
-  genreId?: number
-  labelId?: number
-  keyId?: number
-  colorId?: number
-  imageId?: number
-  djComment?: string
-  rating?: number
-  releaseYear?: number
-  releaseDate?: string
+  /** The date the record was created */
   dateCreated: Date
+  /** The date the record was added */
   dateAdded: Date
+  /** The relative file path of the track */
   path: string
+  /** The title of the track. */
+  title?: string
+  /** An optional title used for searching. */
+  titleForSearch?: string
+  /** The subtitle of the track */
+  subtitle?: string
+  /** The beats per minute multiplied by 100. */
+  bpmx100?: number
+  /** The length of the track in seconds. */
+  length?: number
+  /** The track number of the track */
+  trackNo?: number
+  /** The disc number of the track */
+  discNo?: number
+  /** Optional foreign key referencing the artist [`Artist`]. */
+  artistId?: number
+  /** Optional foreign key referencing the remixer [`Artist`]. */
+  remixerId?: number
+  /** Optional foreign key referencing the original artist [`Artist`]. */
+  originalArtistId?: number
+  /** Optional foreign key referencing the composer [`Artist`]. */
+  composerId?: number
+  /** Optional foreign key referencing the lyricist [`Artist`]. */
+  lyricistId?: number
+  /** Optional foreign key referencing the [`Album`]. */
+  albumId?: number
+  /** Optional foreign key referencing the [`Genre`]. */
+  genreId?: number
+  /** Optional foreign key referencing the [`Label`]. */
+  labelId?: number
+  /** Optional foreign key referencing the [`Key`]. */
+  keyId?: number
+  /** Optional foreign key referencing the [`Color`]. */
+  colorId?: number
+  /** Optional foreign key referencing the artwork [`Image`]. */
+  imageId?: number
+  /** The ccomment of the track. */
+  djComment?: string
+  /** The rating of the track. */
+  rating?: number
+  /** The release year of the track. */
+  releaseYear?: number
+  /** The release date of the track */
+  releaseDate?: string
+  /** The file name of the track. */
   fileName?: string
+  /** The file size of the track */
   fileSize?: number
+  /** The file typo of the track */
   fileType?: number
+  /** The bitrate of the trackk */
   bitrate?: number
+  /** The bit depth of the track */
   bitDepth?: number
+  /** The sample rate of the track. */
   samplingRate?: number
+  /** The ISRC of the track */
   isrc?: string
+  /** A flag if hot-cue auto load is enabled */
   isHotCueAutoLoadOn?: number
+  /** A flag if kuvo delivery is enabled */
   isKuvoDeliverStatusOn?: number
+  /** A kuvo delivery comment */
   kuvoDeliveryComment?: string
+  /** The masterdb ID */
   masterDbId?: number
+  /** The ID of the contnent in the masterdb */
   masterContentId?: number
+  /** The relative path to the analysis data */
   analysisDataFilePath?: string
+  /** The number of bits analysed (?) */
   analysedBits?: number
+  /** The ID of the content in the content link database (seems to always be 788224) */
   contentLink?: number
+  /** A flag if the content has been modified */
   hasModified?: number
+  /** The number of updates to the associated cues */
   cueUpdateCount?: number
+  /** The number of updates to the analysis data */
   analysisDataUpdateCount?: number
+  /** The number of updates to the content record */
   informationUpdateCount?: number
-}
-
-export interface NewCue {
-  contentId: number
-  kind?: number
-  colorTableIndex?: number
-  cueComment?: string
-  isActiveLoop?: number
-  beatLoopNumerator?: number
-  beatLoopDenominator?: number
-  inUsec?: number
-  outUsec?: number
-  in150FramePerSec?: number
-  out150FramePerSec?: number
-  inMpegFrameNumber?: number
-  outMpegFrameNumber?: number
-  inMpegAbs?: number
-  outMpegAbs?: number
-  inDecodingStartFramePosition?: number
-  outDecodingStartFramePosition?: number
-  inFileOffsetInBlock?: number
-  outFileOffsetInBlock?: number
-  inNumberOfSampleInBlock?: number
-  outNumberOfSampleInBlock?: number
 }
 
 /**
@@ -1932,9 +2349,9 @@ export interface NewCue {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models::NewDjmdAlbum;
+ * use rbox::masterdb::models.py::NewDjmdAlbum;
  *
- * let new = NewDjmdAlbum::new("Name".into()).compilation(1);
+ * let new = NewDjmdAlbum::new("Name").compilation(1);
  * println!("{:?}", new);
  * ```
  */
@@ -1958,7 +2375,7 @@ export interface NewDjmdAlbum {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models::NewDjmdArtist;
+ * use rbox::masterdb::models.py::NewDjmdArtist;
  *
  * let new = NewDjmdArtist::new("Name".into()).search_str("Search".into());
  * println!("{:?}", new);
@@ -1978,7 +2395,7 @@ export interface NewDjmdArtist {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models::NewDjmdContent;
+ * use rbox::masterdb::models.py::NewDjmdContent;
  *
  * let new = NewDjmdContent::new("path/to/file".into()).title("Title").artist_id("1")
  * println!("{:?}", new);
@@ -2048,9 +2465,9 @@ export interface NewDjmdContent {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models::NewDjmdGenre;
+ * use rbox::masterdb::models.py::NewDjmdGenre;
  *
- * let new = NewDjmdGenre::new("Name".into());
+ * let new = NewDjmdGenre::new("Name");
  * println!("{:?}", new);
  * ```
  */
@@ -2060,21 +2477,47 @@ export interface NewDjmdGenre {
 }
 
 /**
+ * Represents a new record insertale to the `djmdHistory` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::masterdb::models.py::NewDjmdHistory;
+ *
+ * let new = NewDjmdHistory::history("Name").seq(2);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdHistory {
+  /** The name of the history. */
+  name: string
+  /** The attribute of the tag, either history (`0`) or a folder (`1`) */
+  attribute: number
+  /** The sequence/order number of the history (1-based index) */
+  seq?: number
+  /** The ID of the parent [`DjmdHistory`], `'root'` for top-level my-tag records. */
+  parentId?: string
+  /** The creation date of the history. */
+  dateCreated?: string
+}
+
+/**
  * Represents a new record insertale to the `djmdKey` table.
  *
  * Implements the builder pattern for optional values of the new record.
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models::NewDjmdKey;
+ * use rbox::masterdb::models.py::NewDjmdKey;
  *
- * let new = NewDjmdKey::new("C".into()).seq(1);
+ * let new = NewDjmdKey::new("C").seq(1);
  * println!("{:?}", new);
  * ```
  */
 export interface NewDjmdKey {
   /** The name of the musical key. */
-  scaleName: string
+  name: string
   /** An optional integer representing the sequence/order of the key. */
   seq?: number
 }
@@ -2084,9 +2527,9 @@ export interface NewDjmdKey {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models::NewDjmdLabel;
+ * use rbox::masterdb::models.py::NewDjmdLabel;
  *
- * let new = NewDjmdArtist::new("Name".into());
+ * let new = NewDjmdArtist::new("Name");
  * println!("{:?}", new);
  * ```
  */
@@ -2102,9 +2545,9 @@ export interface NewDjmdLabel {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models::NewDjmdMyTag;
+ * use rbox::masterdb::models.py::NewDjmdMyTag;
  *
- * let new = NewDjmdMyTag::new("Name".into(), 0).seq(1);
+ * let new = NewDjmdMyTag::new("Name", 0).seq(1);
  * println!("{:?}", new);
  * ```
  */
@@ -2126,9 +2569,9 @@ export interface NewDjmdMyTag {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models::NewDjmdPlaylist;
+ * use rbox::masterdb::models.py::NewDjmdPlaylist;
  *
- * let new = NewDjmdPlaylist::new("Name".into()).seq(2);
+ * let new = NewDjmdPlaylist::playlist("Name").seq(2);
  * println!("{:?}", new);
  * ```
  */
@@ -2148,15 +2591,87 @@ export interface NewDjmdPlaylist {
 }
 
 /**
+ * Represents a new record insertale to the `djmdRelatedTracks` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::masterdb::models.py::NewDjmdRelatedTracks;
+ *
+ * let new = NewDjmdRelatedTracks::new("Name", 0).seq(1);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdRelatedTracks {
+  /** The name of the related track. */
+  name: string
+  /** The attribute of the related track, either list (`0`) or a folder (`1`) */
+  attribute: number
+  /** The sequence/order number of the record (1-based index) */
+  seq?: number
+  /** The ID of the parent [`DjmdRelatedTracks`], `'root'` for top-level records. */
+  parentId?: string
+  /** A JSON string containing the criteria for the related tracks. */
+  criteria?: string
+}
+
+/**
+ * Represents a new record insertale to the `djmdSampler` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::masterdb::models.py::NewDjmdSampler;
+ *
+ * let new = NewDjmdPlaylist::sampler("Name").seq(2);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdSampler {
+  /** The name of the sampler. */
+  name: string
+  /** The attribute of the sampler, either list (`0`) or a folder (`1`) */
+  attribute: number
+  /** The sequence/order number of the record (1-based index) */
+  seq?: number
+  /** The ID of the parent [`DjmdSampler`], `'root'` for top-level records. */
+  parentId?: string
+}
+
+/**
+ * Represents a new record insertale to the `djmdSongHistory` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::masterdb::models.py::NewDjmdSongHistory;
+ *
+ * let new = NewSongDjmdPlaylist::new("historyId".into(), "contentId".into()).track_no(1);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdSongHistory {
+  /** The ID of the associated history entry in [`DjmdHistory`]. */
+  historyId: string
+  /** The ID of the associated content entry in [`DjmdContent`]. */
+  contentId: string
+  /** The track number in the history entry. */
+  trackNo?: number
+}
+
+/**
  * Represents a new record insertale to the `djmdSongMyTag` table.
  *
  * Implements the builder pattern for optional values of the new record.
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models::NewDjmdSongMyTag;
+ * use rbox::masterdb::models.py::NewDjmdSongMyTag;
  *
- * let new = NewDjmdMyTag::new("Name".into(), 0).seq(1);
+ * let new = NewDjmdMyTag::new("my_tag_id", "content_id").track_no(1);
  * println!("{:?}", new);
  * ```
  */
@@ -2176,9 +2691,9 @@ export interface NewDjmdSongMyTag {
  *
  * # Examples
  * ```rust
- * use rbox::masterdb::models::NewDjmdSongPlaylist;
+ * use rbox::masterdb::models.py::NewDjmdSongPlaylist;
  *
- * let new = NewSongDjmdPlaylist::new("Name".into());
+ * let new = NewSongDjmdPlaylist::new("playlistId", "contentId").track_no(1);
  * println!("{:?}", new);
  * ```
  */
@@ -2191,60 +2706,177 @@ export interface NewDjmdSongPlaylist {
   trackNo?: number
 }
 
+/**
+ * Represents a new record insertale to the `djmdSongRelatedTracks` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::masterdb::models.py::NewDjmdSongRelatedTracks;
+ *
+ * let new = NewDjmdSongRelatedTracks::new("relatedId", "contentId").track_no(1);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdSongRelatedTracks {
+  /** The ID of the associated playlist in [`DjmdPlaylist`]. */
+  relatedTracksId: string
+  /** The ID of the associated content in [`DjmdContent`]. */
+  contentId: string
+  /** The track number in the playlist. */
+  trackNo?: number
+}
+
+/**
+ * Represents a new record insertale to the `djmdSongSampler` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::masterdb::models.py::NewDjmdSongSampler;
+ *
+ * let new = NewDjmdSongSampler::new("samplerId", "contentId").track_no(1);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdSongSampler {
+  /** The ID of the associated sampler in [`DjmdSampler`]. */
+  samplerId: string
+  /** The ID of the associated content in [`DjmdContent`]. */
+  contentId: string
+  /** The sequence/order number of the record (1-based index) */
+  trackNo?: number
+}
+
+/** Represents a new record insertale to the `genre` table. */
 export interface NewGenre {
+  /** The name of the genre. */
   name: string
 }
 
+/**
+ * Represents a new record insertale to the `history` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::devlib_plus::models.py::NewHistory;
+ *
+ * let new = NewHistory::history("Name").seq(2);
+ * println!("{:?}", new);
+ * ```
+ */
 export interface NewHistory {
-  id: number
-  sequenceNo: number
+  /** The sequence/order number of the history (1-based index) */
+  seq: number
+  /** The name of the history. */
   name: string
+  /** The attribute of the tag, either history (`0`) or a folder (`1`) */
   attribute: number
-  historyIdParent?: number
+  /** The ID of the parent [`History`] or `0` for top-level record. */
+  parentId: number
 }
 
-export interface NewHotCueBankList {
-  sequenceNo: number
-  name?: string
-  imageId?: number
-  attribute: number
-  hotCueBankListIdParent?: number
-}
-
+/** Represents a new record insertale to the `image` table. */
 export interface NewImage {
+  /** The relative file path of the image. */
   path: string
 }
 
+/** Represents a new record insertale to the `key` table. */
 export interface NewKey {
+  /** The name of the key. */
   name: string
 }
 
+/** Represents a new record insertale to the `label` table. */
 export interface NewLabel {
+  /** The name of the label. */
   name: string
 }
 
+/** Represents a new record insertale to the `menuItem` table. */
 export interface NewMenuItem {
+  /** The kind of menu item (similar to `class` in the main DB). */
   kind: number
+  /** The name of the menu item. */
   name: string
 }
 
+/**
+ * Represents a new record insertale to the `myTag` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::devlib_plus::models.py::NewMyTag;
+ *
+ * let new = NewMyTag::tag("Name").seq(2);
+ * println!("{:?}", new);
+ * ```
+ */
 export interface NewMyTag {
-  sequenceNo: number
+  /** The sequence/order number of the tag (1-based index). */
+  seq: number
+  /** The name of the tag. */
   name: string
+  /** The tag type, either list (`0`) or a folder (`1`). */
   attribute: number
-  myTagIdParent?: number
+  /** The ID of the parent [`MyTag`], `0` for top-level records. */
+  parentId: number
 }
 
+/**
+ * Represents a new record insertale to the `playlist` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::devlib_plus::models.py::NewPlaylist;
+ *
+ * let new = NewPlaylist::playlist("Name").seq(2);
+ * println!("{:?}", new);
+ * ```
+ */
 export interface NewPlaylist {
-  sequenceNo: number
+  /** The sequence/order number of the playlist (1-based index). */
+  seq: number
+  /** The name of the playlist. */
   name: string
+  /** Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image). */
+  imageId?: number
+  /** The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`). */
+  attribute: number
+  /** The ID of the parent [`Playlist`], `0` for top-level records. */
+  parentId: number
 }
 
+/**
+ * Represents a new record insertale to the `sort` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox::devlib_plus::models.py::NewSort;
+ *
+ * let new = NewSort::new(1234).visible(1);
+ * println!("{:?}", new);
+ * ```
+ */
 export interface NewSort {
-  id: number
+  /** An optional foreign key referencing the [`MenuItem`]. */
   menuItemId: number
-  sequenceNo: number
+  /** The sequence/order number of the item (1-based index) */
+  seq: number
+  /** A flag if the item is visible in the menu */
   isVisible: number
+  /** A flag if the item is selected as a sub-column */
   isSelectedAsSubColumn: number
 }
 
@@ -2254,31 +2886,99 @@ export interface OriginalArtist {
   nameForSearch?: string
 }
 
+/**
+ * Represents the `playlist` table in the Rekordbox Device Library Plus database.
+ *
+ * This struct maps to the `playlist` table in the Device Library Plus export database.
+ * It stores information about playlists, including metadata such as sequence, name, image path,
+ * attributes, and parent relationships.
+ *
+ * # Referenced by
+ * * [`Playlist`] via `parent_id` foreign key.
+ * * [`PlaylistContent`] via `playlist_id` foreign key.
+ *
+ * # References
+ * * [`Playlist`] via `parent_id` foreign key.
+ */
 export interface Playlist {
+  /** The unique identifier of the playlist. */
   id: number
-  sequenceNo: number
+  /** The sequence/order number of the playlist (1-based index). */
+  seq: number
+  /** The name of the playlist. */
   name: string
+  /** Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image). */
+  imageId?: number
+  /** The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`). */
+  attribute: number
+  /** The ID of the parent [`Playlist`], `0` for top-level records. */
+  parentId: number
 }
 
+/**
+ * Represents the `playlist_content` table in the Rekordbox Device Library Plus database.
+ *
+ * This struct maps to the `playlist_content` table in the Device Library Plus export database.
+ * It stores information about the relationship between songs and playlists, including
+ * metadata such as track number and associated playlist or content IDs.
+ *
+ * This struct also is insertable into the `playlist_content` table.
+ *
+ * # References
+ * * [`Playlist`] via `playlist_id` foreign key.
+ * * [`Content`] via `content_id` foreign key.
+ */
 export interface PlaylistContent {
+  /** The ID of the associated [`Playlist`]. */
   playlistId: number
+  /** The ID of the associated [`Content`]. */
   contentId: number
-  sequenceNo: number
+  /** The sequence/order number of the history content (1-based index) */
+  seq: number
 }
 
+/**
+ * Represents the `property` table in the Rekordbox Device Library Plus database.
+ *
+ * This struct maps to the `property` table in the Device Library Plus export database.
+ * It stores information about the device(s) and the export library.
+ */
 export interface Property {
+  /** The name of the device ('' by default) */
   deviceName: string
+  /** The DB version (1000 by default) */
   dbVersion: number
+  /** The number of ['Content'] in the device */
   numberOfContents: number
+  /** The date of creation for the device */
   createdDate: Date
-  backGroundColorType?: number
-  myTagMasterDbid?: number
+  /** The background color type (0 by default) */
+  backGroundColorType: number
+  /** The master.db database id of the tag data */
+  myTagMasterDbid: number
 }
 
+/**
+ * Represents the `recommendedLike` table in the Rekordbox Device Library Plus database.
+ *
+ * This struct maps to the `recommendedLike` table in the Device Library Plus export database.
+ * It stores information about recommended track relationships, including metadata such as
+ * a rating, creation timestamps, and associated content IDs.
+ *
+ * This struct also is insertable into the `recommendedLike` table.
+ *
+ * # References
+ * * [`Content`] via `content_id_1` foreign key.
+ * * [`Content`] via `content_id_2` foreign key.
+ */
 export interface RecommendedLike {
+  /** The ID of the first associated [`Content`]. */
   contentId1: number
+  /** The ID of the second associated [`Content`]. */
   contentId2: number
+  /** The rating of the relationship, between 1-5. */
   rating: number
+  /** The timestamp when the entry was created, serialized/deserialized as `Datetime<Utc>`. */
   createdDate: Date
 }
 
@@ -2316,12 +3016,12 @@ export interface SettingFile {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the file path of the setting file. */
-  path?: string
-  /** An optional string representing the hash of the setting file. */
-  hash?: string
-  /** An optional integer representing the size of the setting file. */
-  size?: number
+  /** The relative file path of the setting file. */
+  path: string
+  /** The hash of the setting file. */
+  hash: string
+  /** The size of the setting file. */
+  size: number
   /** An optional string representing the local path of the setting file in Rekordbox. */
   rbLocalPath?: string
   /** An optional string representing the in-sync hash of the setting file. */
@@ -2334,11 +3034,24 @@ export interface SettingFile {
   rbFileSizeDirty?: number
 }
 
+/**
+ * Represents the `sort` table in the Rekordbox Device Library Plus database.
+ *
+ * This struct maps to the `sort` table in the Device Library Plus export database.
+ *
+ * # References
+ * * [`MenuItem`] via `menu_item_id` foreign key.
+ */
 export interface Sort {
+  /** The unique identifier of the record. */
   id: number
+  /** An optional foreign key referencing the [`MenuItem`]. */
   menuItemId: number
-  sequenceNo: number
+  /** The sequence/order number of the *visible* items (1-based index) */
+  seq: number
+  /** A flag if the item is visible in the menu */
   isVisible: number
+  /** A flag if the item is selected as a sub-column */
   isSelectedAsSubColumn: number
 }
 
@@ -2370,12 +3083,12 @@ export interface UuidIdMap {
   createdAt: Date
   /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
   updatedAt: Date
-  /** An optional string representing the table name associated with the mapping. */
-  tableName?: string
-  /** An optional string representing the target UUID in the mapping. */
-  targetUuid?: string
-  /** An optional string representing the current ID in the mapping. */
-  currentId?: string
+  /** Table name associated with the mapping. */
+  tableName: string
+  /** The target UUID in the mapping. */
+  targetUuid: string
+  /** The current ID in the mapping. */
+  currentId: string
 }
 export declare class Anlz {
   constructor(path: string)
@@ -2406,36 +3119,36 @@ export declare class MasterDb {
   constructor(path: string)
   static open(): MasterDb
   setUnsafeWrites(unsafeWrites: boolean): void
-  getAgentRegistry(): Array<AgentRegistry>
+  getAgentRegistries(): Array<AgentRegistry>
   getAgentRegistryById(id: string): AgentRegistry | null
   getLocalUsn(): number
-  getCloudAgentRegistry(): Array<CloudAgentRegistry>
+  getCloudAgentRegistries(): Array<CloudAgentRegistry>
   getCloudAgentRegistryById(id: string): CloudAgentRegistry | null
-  getContentActiveCensor(): Array<ContentActiveCensor>
+  getContentActiveCensors(): Array<ContentActiveCensor>
   getContentActiveCensorById(id: string): ContentActiveCensor | null
-  getContentCue(): Array<ContentCue>
+  getContentCues(): Array<ContentCue>
   getContentCueById(id: string): ContentCue | null
-  getContentFile(): Array<ContentFile>
+  getContentFiles(): Array<ContentFile>
   getContentFileById(id: string): ContentFile | null
-  getActiveCensor(): Array<DjmdActiveCensor>
+  getActiveCensors(): Array<DjmdActiveCensor>
   getActiveCensorById(id: string): DjmdActiveCensor | null
-  getAlbum(): Array<DjmdAlbum>
+  getAlbums(): Array<DjmdAlbum>
   getAlbumById(id: string): DjmdAlbum | null
   getAlbumByName(name: string): DjmdAlbum | null
   createAlbum(name: string, artistId?: string | undefined | null, imagePath?: string | undefined | null, compilation?: number | undefined | null): DjmdAlbum
   updateAlbum(model: DjmdAlbum): DjmdAlbum
   deleteAlbum(id: string): void
-  getArtist(): Array<DjmdArtist>
+  getArtists(): Array<DjmdArtist>
   getArtistById(id: string): DjmdArtist | null
   getArtistByName(name: string): DjmdArtist | null
   createArtist(name: string): DjmdArtist
   updateArtist(model: DjmdArtist): DjmdArtist
   deleteArtist(id: string): void
-  getCategory(): Array<DjmdCategory>
+  getCategories(): Array<DjmdCategory>
   getCategoryById(id: string): DjmdCategory | null
-  getColor(): Array<DjmdColor>
+  getColors(): Array<DjmdColor>
   getColorById(id: string): DjmdColor | null
-  getContent(): Array<DjmdContent>
+  getContents(): Array<DjmdContent>
   getContentById(id: string): DjmdContent | null
   getContentByPath(id: string): DjmdContent | null
   getContentAnlzDir(id: string): string | null
@@ -2450,49 +3163,49 @@ export declare class MasterDb {
   updateContentGenre(id: string, name: string): number
   updateContentLabel(id: string, name: string): number
   updateContentKey(id: string, name: string): number
-  getCue(): Array<DjmdCue>
+  getCues(): Array<DjmdCue>
   getCueById(id: string): DjmdCue | null
-  getDevice(): Array<DjmdDevice>
+  getDevices(): Array<DjmdDevice>
   getDeviceById(id: string): DjmdDevice | null
-  getGenre(): Array<DjmdGenre>
+  getGenres(): Array<DjmdGenre>
   getGenreById(id: string): DjmdGenre | null
   getGenreByName(name: string): DjmdGenre | null
   createGenre(name: string): DjmdGenre
   updateGenre(model: DjmdGenre): DjmdGenre
   deleteGenre(id: string): void
-  getHistory(): Array<DjmdHistory>
+  getHistories(): Array<DjmdHistory>
   getHistoryById(id: string): DjmdHistory | null
   getHistorySongs(id: string): Array<DjmdSongHistory>
   getHistoryContents(id: string): Array<DjmdContent>
-  getHotCueBanklist(): Array<DjmdHotCueBanklist>
+  getHotCueBanklists(): Array<DjmdHotCueBanklist>
   getHotCueBanklistChildren(id: string): Array<DjmdHotCueBanklist>
   getHotCueBanklistById(id: string): DjmdHotCueBanklist | null
   getHotCueBanklistSongs(id: string): Array<DjmdSongHotCueBanklist>
   getHotCueBanklistContents(id: string): Array<DjmdContent>
   getHotCueBanklistCues(id: string): Array<HotCueBanklistCue>
-  getKey(): Array<DjmdKey>
+  getKeys(): Array<DjmdKey>
   getKeyById(id: string): DjmdKey | null
   getKeyByName(name: string): DjmdKey | null
   createKey(name: string): DjmdKey
   updateKey(model: DjmdKey): DjmdKey
   deleteKey(id: string): void
-  getLabel(): Array<DjmdLabel>
+  getLabels(): Array<DjmdLabel>
   getLabelById(id: string): DjmdLabel | null
   getLabelByName(name: string): DjmdLabel | null
   createLabel(name: string): DjmdLabel
   updateLabel(model: DjmdLabel): DjmdLabel
   deleteLabel(id: string): void
-  getMenuItem(): Array<DjmdMenuItems>
+  getMenuItems(): Array<DjmdMenuItems>
   getMenuItemById(id: string): DjmdMenuItems | null
-  getMixerParam(): Array<DjmdMixerParam>
+  getMixerParams(): Array<DjmdMixerParam>
   getMixerParamById(id: string): DjmdMixerParam | null
-  getMyTag(): Array<DjmdMyTag>
+  getMyTags(): Array<DjmdMyTag>
   getMyTagChildren(id: string): Array<DjmdMyTag>
   getMyTagById(id: string): DjmdMyTag | null
   getMyTagSongs(id: string): Array<DjmdSongMyTag>
   getMyTagContents(id: string): Array<DjmdContent>
-  getPlaylist(): Array<DjmdPlaylist>
-  getPlaylistTree(): Array<DjmdPlaylistTreeItem>
+  getPlaylists(): Array<DjmdPlaylist>
+  getPlaylistTree(): Array<DjmdPlaylistTreeNode>
   getPlaylistChildren(id: string): Array<DjmdPlaylist>
   getPlaylistById(id: string): DjmdPlaylist | null
   getPlaylistByPath(path: Array<string>): DjmdPlaylist | null
@@ -2506,31 +3219,31 @@ export declare class MasterDb {
   createPlaylistSong(playlistId: string, contentId: string, seq?: number | undefined | null): DjmdSongPlaylist
   movePlaylistSong(id: string, seq: number): DjmdSongPlaylist
   deletePlaylistSong(id: string): void
-  getProperty(): Array<DjmdProperty>
+  getProperties(): Array<DjmdProperty>
   getPropertyById(id: string): DjmdProperty | null
-  getCloudProperty(): Array<DjmdCloudProperty>
+  getCloudProperties(): Array<DjmdCloudProperty>
   getCloudPropertyById(id: string): DjmdCloudProperty | null
-  getRecommendLike(): Array<DjmdRecommendLike>
+  getRecommendLikes(): Array<DjmdRecommendLike>
   getRecommendLikeById(id: string): DjmdRecommendLike | null
   getRelatedTracks(): Array<DjmdRelatedTracks>
   getRelatedTracksChildren(id: string): Array<DjmdRelatedTracks>
   getRelatedTracksById(id: string): DjmdRelatedTracks | null
   getRelatedTracksSongs(id: string): Array<DjmdSongRelatedTracks>
   getRelatedTracksContents(id: string): Array<DjmdContent>
-  getSampler(): Array<DjmdSampler>
+  getSamplers(): Array<DjmdSampler>
   getSamplerChildren(id: string): Array<DjmdSampler>
   getSamplerById(id: string): DjmdSampler | null
   getSamplerSongs(id: string): Array<DjmdSongSampler>
   getSamplerContents(id: string): Array<DjmdContent>
-  getSongTagList(): Array<DjmdSongTagList>
+  getSongTagLists(): Array<DjmdSongTagList>
   getSongTagListById(id: string): DjmdSongTagList | null
-  getSort(): Array<DjmdSort>
+  getSorts(): Array<DjmdSort>
   getSortById(id: string): DjmdSort | null
-  getImageFile(): Array<ImageFile>
+  getImageFiles(): Array<ImageFile>
   getImageFileById(id: string): ImageFile | null
-  getSettingFile(): Array<SettingFile>
+  getSettingFiles(): Array<SettingFile>
   getSettingFileById(id: string): SettingFile | null
-  getUuidIdMap(): Array<UuidIDMap>
+  getUuidIdMaps(): Array<UuidIDMap>
   getUuidIdMapById(id: string): UuidIDMap | null
 }
 export type JsMasterDb = MasterDb
@@ -2695,6 +3408,16 @@ export declare class Setting {
 }
 export type JsSetting = Setting
 
+export interface AnlzCue {
+  hotCue: number
+  status: CueStatus
+  orderFirst: number
+  orderLast: number
+  cueType: CueType
+  time: number
+  loopTime: number
+}
+
 export interface AnlzPaths {
   dat: string
   ext?: string
@@ -2774,19 +3497,9 @@ export declare const enum CrossfaderCurve {
   FastCut = 'FastCut'
 }
 
-export interface Cue {
-  hotCue: number
-  status: CueStatus
-  orderFirst: number
-  orderLast: number
-  cueType: CueType
-  time: number
-  loopTime: number
-}
-
 export interface CueList {
   listType: CueListType
-  cues: Array<Cue>
+  cues: Array<AnlzCue>
 }
 
 export declare const enum CueListType {
@@ -2810,7 +3523,7 @@ export declare const enum DiscSlotIllumination {
   Bright = 'Bright'
 }
 
-export interface DjmdPlaylistTreeItem {
+export interface DjmdPlaylistTreeNode {
   id: string
   uuid: string
   rbDataStatus: number
@@ -2827,7 +3540,7 @@ export interface DjmdPlaylistTreeItem {
   attribute: number
   parentId: string
   smartList?: string
-  children: Array<DjmdPlaylistTreeItem>
+  children: Array<DjmdPlaylistTreeNode>
 }
 
 export declare const enum EjectLock {
@@ -2863,12 +3576,6 @@ export interface ExtendedCueList {
   listType: CueListType
   cues: Array<ExtendedCue>
 }
-
-export declare function getMasterDbPath(): string
-
-export declare function getRekordboxAppDirPath(): string
-
-export declare function getRekordboxSharePath(): string
 
 export declare const enum HeadphonesMonoSplit {
   MonoSplit = 'MonoSplit',
@@ -3023,6 +3730,8 @@ export declare const enum OnAirDisplay {
   On = 'On'
 }
 
+export declare function optionsJsonPath(): string
+
 export declare const enum OverviewWaveformType {
   HalfWaveform = 'HalfWaveform',
   FullWaveform = 'FullWaveform'
@@ -3093,6 +3802,10 @@ export declare const enum QuantizeBeatValue {
   HalfBeat = 'HalfBeat',
   FullBeat = 'FullBeat'
 }
+
+export declare function rekordboxAgentAppDir(): string
+
+export declare function rekordboxAppDir(): string
 
 export declare const enum SlipFlashing {
   Off = 'Off',

@@ -1,24 +1,24 @@
 # -*- coding: utf-8 -*-
 # Author: Dylan Jones
-# Date:   2025-06-01
+# Date:   2025-05-01
 
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
+from .._rbox import PyMasterDb
+from ..anlz import Anlz
 from . import models
-from ._rbox import PyMasterDb as _PyMasterDb
-from .anlz import Anlz
 
 
 class MasterDb:
     def __init__(self, path: Union[str, Path] = None) -> None:
         if path is None:
-            db = _PyMasterDb.open()
+            db = PyMasterDb.open()
         else:
             path = Path(path)
             if not path.exists():
                 raise FileNotFoundError(f"File not found: {path}")
-            db = _PyMasterDb(str(path))
+            db = PyMasterDb(str(path))
         self._db = db
 
     @classmethod

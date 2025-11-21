@@ -674,7 +674,7 @@ impl JsMasterDb {
     }
 
     #[napi]
-    pub fn get_playlist_tree(&mut self) -> Result<Vec<JsDjmdPlaylistTreeItem>> {
+    pub fn get_playlist_tree(&mut self) -> Result<Vec<JsDjmdPlaylistTreeNode>> {
         let models = self.db.get_playlist_tree()?;
         Ok(models
             .into_iter()
