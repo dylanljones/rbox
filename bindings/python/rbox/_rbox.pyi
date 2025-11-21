@@ -2464,9 +2464,9 @@ class PyMasterDb:
     def create_album(
         self,
         name: str,
-        artist_id: Optional[str],
-        image_path: Optional[str],
-        compilation: Optional[int],
+        artist_id: Optional[str] = None,
+        image_path: Optional[str] = None,
+        compilation: Optional[int] = None,
     ) -> DjmdAlbum:
         """Creates a new album and inserts it into the `djmdAlbum` table in the database."""
         ...
@@ -2705,24 +2705,26 @@ class PyMasterDb:
         self,
         name: str,
         attribute: int,
-        parent_id: Optional[str],
-        seq: Optional[int],
-        image_path: Optional[str],
-        smart_list: Optional[str],
+        parent_id: Optional[str] = None,
+        seq: Optional[int] = None,
+        image_path: Optional[str] = None,
+        smart_list: Optional[str] = None,
     ) -> DjmdPlaylist:
         """Creates a new playlist and inserts it into the `djmdPlaylist` table in the database."""
         ...
     def rename_playlist(self, id: str, name: str) -> DjmdPlaylist:
         """Renames an existing playlist."""
         ...
-    def move_playlist(self, id: str, seq: Optional[int], parent_id: Optional[str]) -> DjmdPlaylist:
+    def move_playlist(
+        self, id: str, seq: Optional[int] = None, parent_id: Optional[str] = None
+    ) -> DjmdPlaylist:
         """Moves a playlist to a new parent folder or changes its sequence within the same parent."""
         ...
     def delete_playlist(self, id: str) -> None:
         """Deletes a playlist entry from the `djmdPlaylist` table in the database."""
         ...
     def create_playlist_song(
-        self, playlist_id: str, content_id: str, seq: Optional[int]
+        self, playlist_id: str, content_id: str, seq: Optional[int] = None
     ) -> DjmdSongPlaylist:
         """Creates a new playlist song and inserts it into the `djmdSongPlaylist` table."""
         ...

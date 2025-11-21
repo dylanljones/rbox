@@ -19,7 +19,7 @@ DEMO_DB = DEMO_DIR / "master-copy.db"
 def db():
     """Return a clean Rekordbox database instance."""
     shutil.copy(DEMO_DB_SRC, DEMO_DB)
-    db = MasterDb(DEMO_DB)
+    db = MasterDb(str(DEMO_DB))
     yield db
 
 

@@ -2,5 +2,5 @@
 # Author: Dylan Jones
 # Date:   2025-05-01
 
-from .database import MasterDb
+from .._rbox import PyMasterDb as MasterDb
 from .models import *

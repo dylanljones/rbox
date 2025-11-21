@@ -245,6 +245,7 @@ impl PyMasterDb {
     }
 
     /// Creates a new album and inserts it into the `djmdAlbum` table in the database.
+    #[pyo3(signature = (name, artist_id=None, image_path=None, compilation=None))]
     pub fn create_album(
         &mut self,
         name: &str,
@@ -849,6 +850,7 @@ impl PyMasterDb {
     }
 
     /// Creates a new playlist and inserts it into the `djmdPlaylist` table in the database.
+    #[pyo3(signature = (name, attribute, parent_id=None, seq=None, image_path=None, smart_list=None))]
     pub fn create_playlist_node(
         &mut self,
         name: &str,
@@ -887,6 +889,7 @@ impl PyMasterDb {
     }
 
     /// Moves a playlist to a new parent folder or changes its sequence within the same parent.
+    #[pyo3(signature = (id, seq=None, parent_id=None))]
     pub fn move_playlist(
         &mut self,
         id: &str,
@@ -909,6 +912,7 @@ impl PyMasterDb {
     }
 
     /// Creates a new playlist song and inserts it into the `djmdSongPlaylist` table.
+    #[pyo3(signature = (playlist_id, content_id, seq=None))]
     pub fn create_playlist_song(
         &mut self,
         playlist_id: &str,
