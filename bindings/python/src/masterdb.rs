@@ -92,8 +92,8 @@ impl PyMasterDb {
 
     // -- AgentRegistry ----------------------------------------------------------------------------
 
-    pub fn get_agent_registry(&mut self) -> PyResult<Vec<AgentRegistry>> {
-        let models = self.db.get_agent_registry().map_err(|e| db_error(e))?;
+    pub fn get_agent_registries(&mut self) -> PyResult<Vec<AgentRegistry>> {
+        let models = self.db.get_agent_registries().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -112,10 +112,10 @@ impl PyMasterDb {
 
     // -- CloudAgentRegistry -----------------------------------------------------------------------
 
-    pub fn get_cloud_agent_registry(&mut self) -> PyResult<Vec<CloudAgentRegistry>> {
+    pub fn get_cloud_agent_registries(&mut self) -> PyResult<Vec<CloudAgentRegistry>> {
         let models = self
             .db
-            .get_cloud_agent_registry()
+            .get_cloud_agent_registries()
             .map_err(|e| db_error(e))?;
         Ok(models)
     }
@@ -133,10 +133,10 @@ impl PyMasterDb {
 
     // -- ContentActiveCensor ----------------------------------------------------------------------
 
-    pub fn get_content_active_censor(&mut self) -> PyResult<Vec<ContentActiveCensor>> {
+    pub fn get_content_active_censors(&mut self) -> PyResult<Vec<ContentActiveCensor>> {
         let models = self
             .db
-            .get_content_active_censor()
+            .get_content_active_censors()
             .map_err(|e| db_error(e))?;
         Ok(models)
     }
@@ -154,8 +154,8 @@ impl PyMasterDb {
 
     // -- ContentCue -------------------------------------------------------------------------------
 
-    pub fn get_content_cue(&mut self) -> PyResult<Vec<ContentCue>> {
-        let models = self.db.get_content_cue().map_err(|e| db_error(e))?;
+    pub fn get_content_cues(&mut self) -> PyResult<Vec<ContentCue>> {
+        let models = self.db.get_content_cues().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -166,8 +166,8 @@ impl PyMasterDb {
 
     // -- ContentFile ------------------------------------------------------------------------------
 
-    pub fn get_content_file(&mut self) -> PyResult<Vec<ContentFile>> {
-        let models = self.db.get_content_file().map_err(|e| db_error(e))?;
+    pub fn get_content_files(&mut self) -> PyResult<Vec<ContentFile>> {
+        let models = self.db.get_content_files().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -181,8 +181,8 @@ impl PyMasterDb {
 
     // -- ActiveCensor -----------------------------------------------------------------------------
 
-    pub fn get_active_censor(&mut self) -> PyResult<Vec<DjmdActiveCensor>> {
-        let models = self.db.get_active_censor().map_err(|e| db_error(e))?;
+    pub fn get_active_censors(&mut self) -> PyResult<Vec<DjmdActiveCensor>> {
+        let models = self.db.get_active_censors().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -196,8 +196,8 @@ impl PyMasterDb {
 
     // -- Album ------------------------------------------------------------------------------------
 
-    pub fn get_album(&mut self) -> PyResult<Vec<DjmdAlbum>> {
-        let models = self.db.get_album().map_err(|e| db_error(e))?;
+    pub fn get_albums(&mut self) -> PyResult<Vec<DjmdAlbum>> {
+        let models = self.db.get_albums().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -240,8 +240,8 @@ impl PyMasterDb {
 
     // -- Artist -----------------------------------------------------------------------------------
 
-    pub fn get_artist(&mut self) -> PyResult<Vec<DjmdArtist>> {
-        let models = self.db.get_artist().map_err(|e| db_error(e))?;
+    pub fn get_artists(&mut self) -> PyResult<Vec<DjmdArtist>> {
+        let models = self.db.get_artists().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -275,8 +275,8 @@ impl PyMasterDb {
 
     // -- Category ---------------------------------------------------------------------------------
 
-    pub fn get_category(&mut self) -> PyResult<Vec<DjmdCategory>> {
-        let models = self.db.get_category().map_err(|e| db_error(e))?;
+    pub fn get_categories(&mut self) -> PyResult<Vec<DjmdCategory>> {
+        let models = self.db.get_categories().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -287,8 +287,8 @@ impl PyMasterDb {
 
     // -- Color ------------------------------------------------------------------------------------
 
-    pub fn get_color(&mut self) -> PyResult<Vec<DjmdColor>> {
-        let models = self.db.get_color().map_err(|e| db_error(e))?;
+    pub fn get_colors(&mut self) -> PyResult<Vec<DjmdColor>> {
+        let models = self.db.get_colors().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -299,8 +299,8 @@ impl PyMasterDb {
 
     // -- Content ----------------------------------------------------------------------------------
 
-    pub fn get_content(&mut self) -> PyResult<Vec<DjmdContent>> {
-        let models = self.db.get_content().map_err(|e| db_error(e))?;
+    pub fn get_contents(&mut self) -> PyResult<Vec<DjmdContent>> {
+        let models = self.db.get_contents().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -420,8 +420,8 @@ impl PyMasterDb {
 
     // -- Cue --------------------------------------------------------------------------------------
 
-    pub fn get_cue(&mut self) -> PyResult<Vec<DjmdCue>> {
-        let models = self.db.get_cue().map_err(|e| db_error(e))?;
+    pub fn get_cues(&mut self) -> PyResult<Vec<DjmdCue>> {
+        let models = self.db.get_cues().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -432,8 +432,8 @@ impl PyMasterDb {
 
     // -- Device -----------------------------------------------------------------------------------
 
-    pub fn get_device(&mut self) -> PyResult<Vec<DjmdDevice>> {
-        let models = self.db.get_device().map_err(|e| db_error(e))?;
+    pub fn get_devices(&mut self) -> PyResult<Vec<DjmdDevice>> {
+        let models = self.db.get_devices().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -444,8 +444,8 @@ impl PyMasterDb {
 
     // -- Genre ------------------------------------------------------------------------------------
 
-    pub fn get_genre(&mut self) -> PyResult<Vec<DjmdGenre>> {
-        let models = self.db.get_genre().map_err(|e| db_error(e))?;
+    pub fn get_genres(&mut self) -> PyResult<Vec<DjmdGenre>> {
+        let models = self.db.get_genres().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -479,8 +479,8 @@ impl PyMasterDb {
 
     // -- History ----------------------------------------------------------------------------------
 
-    pub fn get_history(&mut self) -> PyResult<Vec<DjmdHistory>> {
-        let models = self.db.get_history().map_err(|e| db_error(e))?;
+    pub fn get_histories(&mut self) -> PyResult<Vec<DjmdHistory>> {
+        let models = self.db.get_histories().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -501,8 +501,8 @@ impl PyMasterDb {
 
     // -- HotCueBanklist ---------------------------------------------------------------------------
 
-    pub fn get_hot_cue_banklist(&mut self) -> PyResult<Vec<DjmdHotCueBanklist>> {
-        let models = self.db.get_hot_cue_banklist().map_err(|e| db_error(e))?;
+    pub fn get_hot_cue_banklists(&mut self) -> PyResult<Vec<DjmdHotCueBanklist>> {
+        let models = self.db.get_hot_cue_banklists().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -554,8 +554,8 @@ impl PyMasterDb {
 
     // -- Key --------------------------------------------------------------------------------------
 
-    pub fn get_key(&mut self) -> PyResult<Vec<DjmdKey>> {
-        let models = self.db.get_key().map_err(|e| db_error(e))?;
+    pub fn get_keys(&mut self) -> PyResult<Vec<DjmdKey>> {
+        let models = self.db.get_keys().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -589,8 +589,8 @@ impl PyMasterDb {
 
     // -- Label ------------------------------------------------------------------------------------
 
-    pub fn get_label(&mut self) -> PyResult<Vec<DjmdLabel>> {
-        let models = self.db.get_label().map_err(|e| db_error(e))?;
+    pub fn get_labels(&mut self) -> PyResult<Vec<DjmdLabel>> {
+        let models = self.db.get_labels().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -624,8 +624,8 @@ impl PyMasterDb {
 
     // -- MenuItems --------------------------------------------------------------------------------
 
-    pub fn get_menu_item(&mut self) -> PyResult<Vec<DjmdMenuItems>> {
-        let models = self.db.get_menu_item().map_err(|e| db_error(e))?;
+    pub fn get_menu_items(&mut self) -> PyResult<Vec<DjmdMenuItems>> {
+        let models = self.db.get_menu_items().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -636,8 +636,8 @@ impl PyMasterDb {
 
     // -- MixerParam -------------------------------------------------------------------------------
 
-    pub fn get_mixer_param(&mut self) -> PyResult<Vec<DjmdMixerParam>> {
-        let models = self.db.get_mixer_param().map_err(|e| db_error(e))?;
+    pub fn get_mixer_params(&mut self) -> PyResult<Vec<DjmdMixerParam>> {
+        let models = self.db.get_mixer_params().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -648,8 +648,8 @@ impl PyMasterDb {
 
     // -- MyTag ------------------------------------------------------------------------------------
 
-    pub fn get_my_tag(&mut self) -> PyResult<Vec<DjmdMyTag>> {
-        let models = self.db.get_my_tag().map_err(|e| db_error(e))?;
+    pub fn get_my_tags(&mut self) -> PyResult<Vec<DjmdMyTag>> {
+        let models = self.db.get_my_tags().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -678,8 +678,8 @@ impl PyMasterDb {
 
     // -- Playlist ---------------------------------------------------------------------------------
 
-    pub fn get_playlist(&mut self) -> PyResult<Vec<DjmdPlaylist>> {
-        let models = self.db.get_playlist().map_err(|e| db_error(e))?;
+    pub fn get_playlists(&mut self) -> PyResult<Vec<DjmdPlaylist>> {
+        let models = self.db.get_playlists().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -820,8 +820,8 @@ impl PyMasterDb {
 
     // -- Property ---------------------------------------------------------------------------------
 
-    pub fn get_property(&mut self) -> PyResult<Vec<DjmdProperty>> {
-        let models = self.db.get_property().map_err(|e| db_error(e))?;
+    pub fn get_properties(&mut self) -> PyResult<Vec<DjmdProperty>> {
+        let models = self.db.get_properties().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -832,8 +832,8 @@ impl PyMasterDb {
 
     // -- CloudProperty ----------------------------------------------------------------------------
 
-    pub fn get_cloud_property(&mut self) -> PyResult<Vec<DjmdCloudProperty>> {
-        let models = self.db.get_cloud_property().map_err(|e| db_error(e))?;
+    pub fn get_cloud_properties(&mut self) -> PyResult<Vec<DjmdCloudProperty>> {
+        let models = self.db.get_cloud_properties().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -847,8 +847,8 @@ impl PyMasterDb {
 
     // -- RecommendLike ----------------------------------------------------------------------------
 
-    pub fn get_recommend_like(&mut self) -> PyResult<Vec<DjmdRecommendLike>> {
-        let models = self.db.get_recommend_like().map_err(|e| db_error(e))?;
+    pub fn get_recommend_likes(&mut self) -> PyResult<Vec<DjmdRecommendLike>> {
+        let models = self.db.get_recommend_likes().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -904,8 +904,8 @@ impl PyMasterDb {
 
     // -- Sampler ----------------------------------------------------------------------------------
 
-    pub fn get_sampler(&mut self) -> PyResult<Vec<DjmdSampler>> {
-        let models = self.db.get_sampler().map_err(|e| db_error(e))?;
+    pub fn get_samplers(&mut self) -> PyResult<Vec<DjmdSampler>> {
+        let models = self.db.get_samplers().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -934,8 +934,8 @@ impl PyMasterDb {
 
     // -- SongTagList ------------------------------------------------------------------------------
 
-    pub fn get_song_tag_list(&mut self) -> PyResult<Vec<DjmdSongTagList>> {
-        let models = self.db.get_song_tag_list().map_err(|e| db_error(e))?;
+    pub fn get_song_tag_lists(&mut self) -> PyResult<Vec<DjmdSongTagList>> {
+        let models = self.db.get_song_tag_lists().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -949,8 +949,8 @@ impl PyMasterDb {
 
     // -- Sort -------------------------------------------------------------------------------------
 
-    pub fn get_sort(&mut self) -> PyResult<Vec<DjmdSort>> {
-        let models = self.db.get_sort().map_err(|e| db_error(e))?;
+    pub fn get_sorts(&mut self) -> PyResult<Vec<DjmdSort>> {
+        let models = self.db.get_sorts().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -961,8 +961,8 @@ impl PyMasterDb {
 
     // -- ImageFile --------------------------------------------------------------------------------
 
-    pub fn get_image_file(&mut self) -> PyResult<Vec<ImageFile>> {
-        let models = self.db.get_image_file().map_err(|e| db_error(e))?;
+    pub fn get_image_files(&mut self) -> PyResult<Vec<ImageFile>> {
+        let models = self.db.get_image_files().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -973,8 +973,8 @@ impl PyMasterDb {
 
     // -- SettingFile ------------------------------------------------------------------------------
 
-    pub fn get_setting_file(&mut self) -> PyResult<Vec<SettingFile>> {
-        let models = self.db.get_setting_file().map_err(|e| db_error(e))?;
+    pub fn get_setting_files(&mut self) -> PyResult<Vec<SettingFile>> {
+        let models = self.db.get_setting_files().map_err(|e| db_error(e))?;
         Ok(models)
     }
 
@@ -988,8 +988,8 @@ impl PyMasterDb {
 
     // -- UuidIDMap --------------------------------------------------------------------------------
 
-    pub fn get_uuid_id_map(&mut self) -> PyResult<Vec<UuidIDMap>> {
-        let models = self.db.get_uuid_id_map().map_err(|e| db_error(e))?;
+    pub fn get_uuid_id_maps(&mut self) -> PyResult<Vec<UuidIDMap>> {
+        let models = self.db.get_uuid_id_maps().map_err(|e| db_error(e))?;
         Ok(models)
     }
 

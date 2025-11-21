@@ -6,7 +6,7 @@ use pyo3::types::PyDict;
 use pyo3::PyClass;
 use std::collections::HashMap;
 
-use super::iter::{PyItemsIter, PyObjectIter, PyStrIter};
+use rbox::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
 pub trait IntoPy<T> {
     fn into_py(self, py: Python) -> PyResult<T>;
@@ -27,8 +27,8 @@ pub trait MutableMapping {
         Self::field_names().iter().any(|k| k == key)
     }
 
-    fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject>;
-    fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()>;
+    fn __getitem__(&self, py: Python, key: &str) -> PyResult<Py<PyAny>>;
+    fn __setitem__(&mut self, py: Python, key: &str, value: Py<PyAny>) -> PyResult<()>;
 
     fn __iter__(&self, py: Python) -> PyResult<Py<PyStrIter>> {
         let iter = PyStrIter::new(Self::field_names());
@@ -40,7 +40,7 @@ pub trait MutableMapping {
     }
 
     fn values(&self, py: Python) -> PyResult<Py<PyObjectIter>> {
-        let mut values: Vec<PyObject> = Vec::new();
+        let mut values: Vec<Py<PyAny>> = Vec::new();
         for key in Self::field_names() {
             let value = self.__getitem__(py, &key)?;
             values.push(value);
@@ -50,7 +50,7 @@ pub trait MutableMapping {
     }
 
     fn items(&self, py: Python) -> PyResult<Py<PyItemsIter>> {
-        let mut values: Vec<(String, PyObject)> = Vec::new();
+        let mut values: Vec<(String, Py<PyAny>)> = Vec::new();
         for key in Self::field_names() {
             let value = self.__getitem__(py, &key)?;
             values.push((key, value));
@@ -59,7 +59,7 @@ pub trait MutableMapping {
         Py::new(py, iter)
     }
 
-    fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+    fn get(&self, py: Python, key: &str, default: Py<PyAny>) -> PyResult<Py<PyAny>> {
         let res = self.__getitem__(py, key);
         if let Ok(res) = res {
             Ok(res)
@@ -68,7 +68,7 @@ pub trait MutableMapping {
         }
     }
 
-    fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+    fn update(&mut self, py: Python, data: HashMap<String, Py<PyAny>>) -> PyResult<()> {
         for (key, py_value) in data.into_iter() {
             let _ = self.__setitem__(py, &key, py_value);
         }

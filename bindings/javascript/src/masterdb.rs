@@ -8,8 +8,8 @@ use rbox::masterdb::{models::*, MasterDb, PlaylistType};
 
 use super::anlz::JsAnlzPaths;
 
-#[napi(object, js_name = "DjmdPlaylistTreeItem")]
-pub struct JsDjmdPlaylistTreeItem {
+#[napi(object, js_name = "DjmdPlaylistTreeNode")]
+pub struct JsDjmdPlaylistTreeNode {
     pub id: String,
     pub uuid: String,
     pub rb_data_status: i32,
@@ -26,17 +26,17 @@ pub struct JsDjmdPlaylistTreeItem {
     pub attribute: i32,
     pub parent_id: String,
     pub smart_list: Option<String>,
-    pub children: Vec<JsDjmdPlaylistTreeItem>,
+    pub children: Vec<JsDjmdPlaylistTreeNode>,
 }
 
-impl Into<JsDjmdPlaylistTreeItem> for DjmdPlaylistTreeItem {
-    fn into(self) -> JsDjmdPlaylistTreeItem {
+impl Into<JsDjmdPlaylistTreeNode> for DjmdPlaylistTreeNode {
+    fn into(self) -> JsDjmdPlaylistTreeNode {
         let children = self
             .children
             .into_iter()
             .map(|c| c.borrow().clone().into())
             .collect();
-        JsDjmdPlaylistTreeItem {
+        JsDjmdPlaylistTreeNode {
             id: self.id,
             uuid: self.uuid,
             rb_data_status: self.rb_data_status,
@@ -87,8 +87,8 @@ impl JsMasterDb {
     // -- AgentRegistry ----------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_agent_registry(&mut self) -> Result<Vec<AgentRegistry>> {
-        let models = self.db.get_agent_registry()?;
+    pub fn get_agent_registries(&mut self) -> Result<Vec<AgentRegistry>> {
+        let models = self.db.get_agent_registries()?;
         Ok(models)
     }
 
@@ -106,8 +106,8 @@ impl JsMasterDb {
     // -- CloudAgentRegistry -----------------------------------------------------------------------
 
     #[napi]
-    pub fn get_cloud_agent_registry(&mut self) -> Result<Vec<CloudAgentRegistry>> {
-        let models = self.db.get_cloud_agent_registry()?;
+    pub fn get_cloud_agent_registries(&mut self) -> Result<Vec<CloudAgentRegistry>> {
+        let models = self.db.get_cloud_agent_registries()?;
         Ok(models)
     }
 
@@ -123,8 +123,8 @@ impl JsMasterDb {
     // -- ContentActiveCensor ----------------------------------------------------------------------
 
     #[napi]
-    pub fn get_content_active_censor(&mut self) -> Result<Vec<ContentActiveCensor>> {
-        let models = self.db.get_content_active_censor()?;
+    pub fn get_content_active_censors(&mut self) -> Result<Vec<ContentActiveCensor>> {
+        let models = self.db.get_content_active_censors()?;
         Ok(models)
     }
 
@@ -140,8 +140,8 @@ impl JsMasterDb {
     // -- ContentCue -------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_content_cue(&mut self) -> Result<Vec<ContentCue>> {
-        let models = self.db.get_content_cue()?;
+    pub fn get_content_cues(&mut self) -> Result<Vec<ContentCue>> {
+        let models = self.db.get_content_cues()?;
         Ok(models)
     }
 
@@ -154,8 +154,8 @@ impl JsMasterDb {
     // -- ContentFile ------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_content_file(&mut self) -> Result<Vec<ContentFile>> {
-        let models = self.db.get_content_file()?;
+    pub fn get_content_files(&mut self) -> Result<Vec<ContentFile>> {
+        let models = self.db.get_content_files()?;
         Ok(models)
     }
 
@@ -168,8 +168,8 @@ impl JsMasterDb {
     // -- ActiveCensor -----------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_active_censor(&mut self) -> Result<Vec<DjmdActiveCensor>> {
-        let models = self.db.get_active_censor()?;
+    pub fn get_active_censors(&mut self) -> Result<Vec<DjmdActiveCensor>> {
+        let models = self.db.get_active_censors()?;
         Ok(models)
     }
 
@@ -182,8 +182,8 @@ impl JsMasterDb {
     // -- Album ------------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_album(&mut self) -> Result<Vec<DjmdAlbum>> {
-        let models = self.db.get_album()?;
+    pub fn get_albums(&mut self) -> Result<Vec<DjmdAlbum>> {
+        let models = self.db.get_albums()?;
         Ok(models)
     }
 
@@ -228,8 +228,8 @@ impl JsMasterDb {
     // -- Artist -----------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_artist(&mut self) -> Result<Vec<DjmdArtist>> {
-        let models = self.db.get_artist()?;
+    pub fn get_artists(&mut self) -> Result<Vec<DjmdArtist>> {
+        let models = self.db.get_artists()?;
         Ok(models)
     }
 
@@ -266,8 +266,8 @@ impl JsMasterDb {
     // -- Category ---------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_category(&mut self) -> Result<Vec<DjmdCategory>> {
-        let models = self.db.get_category()?;
+    pub fn get_categories(&mut self) -> Result<Vec<DjmdCategory>> {
+        let models = self.db.get_categories()?;
         Ok(models)
     }
 
@@ -280,8 +280,8 @@ impl JsMasterDb {
     // -- Color ------------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_color(&mut self) -> Result<Vec<DjmdColor>> {
-        let models = self.db.get_color()?;
+    pub fn get_colors(&mut self) -> Result<Vec<DjmdColor>> {
+        let models = self.db.get_colors()?;
         Ok(models)
     }
 
@@ -294,8 +294,8 @@ impl JsMasterDb {
     // -- Content ----------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_content(&mut self) -> Result<Vec<DjmdContent>> {
-        let models = self.db.get_content()?;
+    pub fn get_contents(&mut self) -> Result<Vec<DjmdContent>> {
+        let models = self.db.get_contents()?;
         Ok(models)
     }
 
@@ -399,8 +399,8 @@ impl JsMasterDb {
     // -- Cue --------------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_cue(&mut self) -> Result<Vec<DjmdCue>> {
-        let models = self.db.get_cue()?;
+    pub fn get_cues(&mut self) -> Result<Vec<DjmdCue>> {
+        let models = self.db.get_cues()?;
         Ok(models)
     }
 
@@ -413,8 +413,8 @@ impl JsMasterDb {
     // -- Device -----------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_device(&mut self) -> Result<Vec<DjmdDevice>> {
-        let models = self.db.get_device()?;
+    pub fn get_devices(&mut self) -> Result<Vec<DjmdDevice>> {
+        let models = self.db.get_devices()?;
         Ok(models)
     }
 
@@ -427,8 +427,8 @@ impl JsMasterDb {
     // -- Genre ------------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_genre(&mut self) -> Result<Vec<DjmdGenre>> {
-        let models = self.db.get_genre()?;
+    pub fn get_genres(&mut self) -> Result<Vec<DjmdGenre>> {
+        let models = self.db.get_genres()?;
         Ok(models)
     }
 
@@ -465,8 +465,8 @@ impl JsMasterDb {
     // -- History ----------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_history(&mut self) -> Result<Vec<DjmdHistory>> {
-        let models = self.db.get_history()?;
+    pub fn get_histories(&mut self) -> Result<Vec<DjmdHistory>> {
+        let models = self.db.get_histories()?;
         Ok(models)
     }
 
@@ -491,8 +491,8 @@ impl JsMasterDb {
     // -- HotCueBanklist ---------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_hot_cue_banklist(&mut self) -> Result<Vec<DjmdHotCueBanklist>> {
-        let models = self.db.get_hot_cue_banklist()?;
+    pub fn get_hot_cue_banklists(&mut self) -> Result<Vec<DjmdHotCueBanklist>> {
+        let models = self.db.get_hot_cue_banklists()?;
         Ok(models)
     }
 
@@ -532,8 +532,8 @@ impl JsMasterDb {
     // -- Key --------------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_key(&mut self) -> Result<Vec<DjmdKey>> {
-        let models = self.db.get_key()?;
+    pub fn get_keys(&mut self) -> Result<Vec<DjmdKey>> {
+        let models = self.db.get_keys()?;
         Ok(models)
     }
 
@@ -570,8 +570,8 @@ impl JsMasterDb {
     // -- Label ------------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_label(&mut self) -> Result<Vec<DjmdLabel>> {
-        let models = self.db.get_label()?;
+    pub fn get_labels(&mut self) -> Result<Vec<DjmdLabel>> {
+        let models = self.db.get_labels()?;
         Ok(models)
     }
 
@@ -608,8 +608,8 @@ impl JsMasterDb {
     // -- MenuItems --------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_menu_item(&mut self) -> Result<Vec<DjmdMenuItems>> {
-        let models = self.db.get_menu_item()?;
+    pub fn get_menu_items(&mut self) -> Result<Vec<DjmdMenuItems>> {
+        let models = self.db.get_menu_items()?;
         Ok(models)
     }
 
@@ -622,8 +622,8 @@ impl JsMasterDb {
     // -- MixerParam -------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_mixer_param(&mut self) -> Result<Vec<DjmdMixerParam>> {
-        let models = self.db.get_mixer_param()?;
+    pub fn get_mixer_params(&mut self) -> Result<Vec<DjmdMixerParam>> {
+        let models = self.db.get_mixer_params()?;
         Ok(models)
     }
 
@@ -636,8 +636,8 @@ impl JsMasterDb {
     // -- MyTag ------------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_my_tag(&mut self) -> Result<Vec<DjmdMyTag>> {
-        let models = self.db.get_my_tag()?;
+    pub fn get_my_tags(&mut self) -> Result<Vec<DjmdMyTag>> {
+        let models = self.db.get_my_tags()?;
         Ok(models)
     }
 
@@ -668,8 +668,8 @@ impl JsMasterDb {
     // -- Playlist ---------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_playlist(&mut self) -> Result<Vec<DjmdPlaylist>> {
-        let models = self.db.get_playlist()?;
+    pub fn get_playlists(&mut self) -> Result<Vec<DjmdPlaylist>> {
+        let models = self.db.get_playlists()?;
         Ok(models)
     }
 
@@ -787,8 +787,8 @@ impl JsMasterDb {
     // -- Property ---------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_property(&mut self) -> Result<Vec<DjmdProperty>> {
-        let models = self.db.get_property()?;
+    pub fn get_properties(&mut self) -> Result<Vec<DjmdProperty>> {
+        let models = self.db.get_properties()?;
         Ok(models)
     }
 
@@ -801,8 +801,8 @@ impl JsMasterDb {
     // -- CloudProperty ----------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_cloud_property(&mut self) -> Result<Vec<DjmdCloudProperty>> {
-        let models = self.db.get_cloud_property()?;
+    pub fn get_cloud_properties(&mut self) -> Result<Vec<DjmdCloudProperty>> {
+        let models = self.db.get_cloud_properties()?;
         Ok(models)
     }
 
@@ -815,8 +815,8 @@ impl JsMasterDb {
     // -- RecommendLike ----------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_recommend_like(&mut self) -> Result<Vec<DjmdRecommendLike>> {
-        let models = self.db.get_recommend_like()?;
+    pub fn get_recommend_likes(&mut self) -> Result<Vec<DjmdRecommendLike>> {
+        let models = self.db.get_recommend_likes()?;
         Ok(models)
     }
 
@@ -861,8 +861,8 @@ impl JsMasterDb {
     // -- Sampler ----------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_sampler(&mut self) -> Result<Vec<DjmdSampler>> {
-        let models = self.db.get_sampler()?;
+    pub fn get_samplers(&mut self) -> Result<Vec<DjmdSampler>> {
+        let models = self.db.get_samplers()?;
         Ok(models)
     }
 
@@ -893,8 +893,8 @@ impl JsMasterDb {
     // -- SongTagList ------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_song_tag_list(&mut self) -> Result<Vec<DjmdSongTagList>> {
-        let models = self.db.get_song_tag_list()?;
+    pub fn get_song_tag_lists(&mut self) -> Result<Vec<DjmdSongTagList>> {
+        let models = self.db.get_song_tag_lists()?;
         Ok(models)
     }
 
@@ -907,8 +907,8 @@ impl JsMasterDb {
     // -- Sort -------------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_sort(&mut self) -> Result<Vec<DjmdSort>> {
-        let models = self.db.get_sort()?;
+    pub fn get_sorts(&mut self) -> Result<Vec<DjmdSort>> {
+        let models = self.db.get_sorts()?;
         Ok(models)
     }
 
@@ -921,8 +921,8 @@ impl JsMasterDb {
     // -- ImageFile --------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_image_file(&mut self) -> Result<Vec<ImageFile>> {
-        let models = self.db.get_image_file()?;
+    pub fn get_image_files(&mut self) -> Result<Vec<ImageFile>> {
+        let models = self.db.get_image_files()?;
         Ok(models)
     }
 
@@ -935,8 +935,8 @@ impl JsMasterDb {
     // -- SettingFile ------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_setting_file(&mut self) -> Result<Vec<SettingFile>> {
-        let models = self.db.get_setting_file()?;
+    pub fn get_setting_files(&mut self) -> Result<Vec<SettingFile>> {
+        let models = self.db.get_setting_files()?;
         Ok(models)
     }
 
@@ -949,8 +949,8 @@ impl JsMasterDb {
     // -- UuidIDMap --------------------------------------------------------------------------------
 
     #[napi]
-    pub fn get_uuid_id_map(&mut self) -> Result<Vec<UuidIDMap>> {
-        let models = self.db.get_uuid_id_map()?;
+    pub fn get_uuid_id_maps(&mut self) -> Result<Vec<UuidIDMap>> {
+        let models = self.db.get_uuid_id_maps()?;
         Ok(models)
     }
 

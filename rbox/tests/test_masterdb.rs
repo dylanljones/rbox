@@ -29,7 +29,7 @@ fn test_get_local_usn() -> anyhow::Result<()> {
 #[test]
 fn test_get_albums() -> anyhow::Result<()> {
     let mut db = common::setup_master_db();
-    let _album = db.get_album()?;
+    let _album = db.get_albums()?;
     Ok(())
 }
 
@@ -115,7 +115,7 @@ fn test_delete_album() -> anyhow::Result<()> {
     let album = db.create_album("New Album".to_string(), None, None, None)?;
 
     // Refer to the album by its ID in content
-    let contents = db.get_content()?;
+    let contents = db.get_contents()?;
     let cid = contents[0].id.clone();
     let mut content = db
         .get_content_by_id(cid.as_str())?
@@ -150,7 +150,7 @@ fn test_delete_album() -> anyhow::Result<()> {
 #[test]
 fn test_get_artist() -> anyhow::Result<()> {
     let mut db = common::setup_master_db();
-    let _items = db.get_artist()?;
+    let _items = db.get_artists()?;
     Ok(())
 }
 
@@ -160,7 +160,7 @@ fn test_get_artist_by_id() -> anyhow::Result<()> {
     let item = db.get_artist_by_id("1234")?;
     assert!(item.is_none());
 
-    let items = db.get_artist()?;
+    let items = db.get_artists()?;
     let artist = items[0].id.clone();
     let item = db.get_artist_by_id(artist.as_str())?;
     assert!(item.is_some());
@@ -238,7 +238,7 @@ fn test_delete_artist() -> anyhow::Result<()> {
     let item = db.create_artist("New Artist".to_string())?;
 
     // Refer to the artist by its ID in content
-    let contents = db.get_content()?;
+    let contents = db.get_contents()?;
     let cid = contents[0].id.clone();
     let mut content = db
         .get_content_by_id(cid.as_str())?
@@ -276,7 +276,7 @@ fn test_delete_artist() -> anyhow::Result<()> {
 #[test]
 fn test_get_content() -> anyhow::Result<()> {
     let mut db = common::setup_master_db();
-    let _items = db.get_content()?;
+    let _items = db.get_contents()?;
     Ok(())
 }
 
@@ -286,7 +286,7 @@ fn test_get_content_by_id() -> anyhow::Result<()> {
     let item = db.get_content_by_id("1234")?;
     assert!(item.is_none());
 
-    let items = db.get_content()?;
+    let items = db.get_contents()?;
     let reference = items[0].id.clone();
 
     let item = db.get_content_by_id(reference.as_str())?;
@@ -300,7 +300,7 @@ fn test_get_content_by_path() -> anyhow::Result<()> {
     let item = db.get_content_by_path("invalid/path")?;
     assert!(item.is_none());
 
-    let items = db.get_content()?;
+    let items = db.get_contents()?;
     let reference = items[0].folder_path.clone().expect("No folder path");
 
     let item = db.get_content_by_path(reference.as_str())?;
@@ -313,7 +313,7 @@ fn test_get_content_by_path() -> anyhow::Result<()> {
 #[test]
 fn test_get_genre() -> anyhow::Result<()> {
     let mut db = common::setup_master_db();
-    let _items = db.get_genre()?;
+    let _items = db.get_genres()?;
     Ok(())
 }
 
@@ -396,7 +396,7 @@ fn test_delete_genre() -> anyhow::Result<()> {
     let item = db.create_genre("New Genre".to_string())?;
 
     // Refer to the artist by its ID in content
-    let contents = db.get_content()?;
+    let contents = db.get_contents()?;
     let cid = contents[0].id.clone();
     let mut content = db
         .get_content_by_id(cid.as_str())?
@@ -432,7 +432,7 @@ fn test_delete_genre() -> anyhow::Result<()> {
 #[test]
 fn test_get_key() -> anyhow::Result<()> {
     let mut db = common::setup_master_db();
-    let _items = db.get_key()?;
+    let _items = db.get_keys()?;
     Ok(())
 }
 
@@ -515,7 +515,7 @@ fn test_delete_key() -> anyhow::Result<()> {
     let item = db.create_key("New Key".to_string())?;
 
     // Refer to the artist by its ID in content
-    let contents = db.get_content()?;
+    let contents = db.get_contents()?;
     let cid = contents[0].id.clone();
     let mut content = db
         .get_content_by_id(cid.as_str())?
@@ -551,7 +551,7 @@ fn test_delete_key() -> anyhow::Result<()> {
 #[test]
 fn test_get_label() -> anyhow::Result<()> {
     let mut db = common::setup_master_db();
-    let _items = db.get_label()?;
+    let _items = db.get_labels()?;
     Ok(())
 }
 
@@ -634,7 +634,7 @@ fn test_delete_label() -> anyhow::Result<()> {
     let item = db.create_label("New Label".to_string())?;
 
     // Refer to the artist by its ID in content
-    let contents = db.get_content()?;
+    let contents = db.get_contents()?;
     let cid = contents[0].id.clone();
     let mut content = db
         .get_content_by_id(cid.as_str())?
@@ -689,7 +689,7 @@ fn assert_playlist_song_seq(items: Vec<DjmdSongPlaylist>) {
 fn check_playlist_xml(db: &mut MasterDb) -> anyhow::Result<bool> {
     let xml = MasterPlaylistXml::load(db.playlist_xml_path().unwrap());
     // Check that playlist is in XML and update time is correct
-    for playlist in db.get_playlist()? {
+    for playlist in db.get_playlists()? {
         let playlist_xml = xml.get_playlist(playlist.id.clone());
         if let Some(playlist_xml) = playlist_xml {
             if playlist.id != "100000" {
@@ -736,7 +736,7 @@ fn assert_playlist_xml(db: &mut MasterDb) {
 #[test]
 fn test_get_playlist() -> anyhow::Result<()> {
     let mut db = common::setup_master_db();
-    let _items = db.get_playlist()?;
+    let _items = db.get_playlists()?;
     Ok(())
 }
 
@@ -891,7 +891,7 @@ fn test_create_playlist_song() -> anyhow::Result<()> {
     let pl = db.create_playlist("Playlist".to_string(), None, None, None, None)?;
 
     // Add a song to the playlist
-    let contents = db.get_content()?;
+    let contents = db.get_contents()?;
     let cid1 = contents[0].id.clone();
     let cid2 = contents[1].id.clone();
     let cid3 = contents[2].id.clone();
@@ -940,7 +940,7 @@ fn test_delete_playlist() -> anyhow::Result<()> {
     let pl2 = db.create_playlist("Sub 2".to_string(), pid.clone(), None, None, None)?;
     let pl3 = db.create_playlist("Sub 3".to_string(), pid.clone(), None, None, None)?;
     // Add a song to pl3
-    let contents = db.get_content()?;
+    let contents = db.get_contents()?;
     let cid1 = contents[0].id.clone();
     let cid2 = contents[1].id.clone();
     let cid3 = contents[2].id.clone();
@@ -991,7 +991,7 @@ fn test_delete_playlist_folder() -> anyhow::Result<()> {
     let pl2 = db.create_playlist("Sub 2".to_string(), pid.clone(), None, None, None)?;
     let pl3 = db.create_playlist("Sub 3".to_string(), pid.clone(), None, None, None)?;
     // Add a song to pl3
-    let contents = db.get_content()?;
+    let contents = db.get_contents()?;
     let cid1 = contents[0].id.clone();
     let cid2 = contents[1].id.clone();
     let cid3 = contents[2].id.clone();
@@ -1037,7 +1037,7 @@ pub fn test_delete_playlist_song() -> anyhow::Result<()> {
     let pl = db.create_playlist("Playlist".to_string(), None, None, None, None)?;
 
     // Add a songs to the playlist
-    let contents = db.get_content()?;
+    let contents = db.get_contents()?;
     let cid1 = contents[0].id.clone();
     let cid2 = contents[1].id.clone();
     let cid3 = contents[2].id.clone();
@@ -1222,7 +1222,7 @@ pub fn test_move_playlist_song() -> anyhow::Result<()> {
     // Create playlist structure
     let pl = db.create_playlist("Playlist".to_string(), None, None, None, None)?;
     // Add a songs to the playlist
-    let contents = db.get_content()?;
+    let contents = db.get_contents()?;
     let cid1 = contents[0].id.clone();
     let cid2 = contents[1].id.clone();
     let cid3 = contents[2].id.clone();

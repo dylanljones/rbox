@@ -167,8 +167,8 @@ impl MasterDb {
     /// Retrieves all entries from the [`AgentRegistry`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<AgentRegistry>>` - A vector of [`AgentRegistry`] objects if the query is successful,
-    ///   or an error if the query fails.
+    /// A vector of [`AgentRegistry`] objects if the query is successful, or an error if the
+    /// query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -176,12 +176,12 @@ impl MasterDb {
     /// # Example
     /// ```no_run
     /// let mut db = MasterDb::open().unwrap();
-    /// let registries = db.get_agent_registry().unwrap();
+    /// let registries = db.get_agent_registries().unwrap();
     /// for registry in registries {
     ///     println!("{:?}", registry);
     /// }
     /// ```
-    pub fn get_agent_registry(&mut self) -> Result<Vec<AgentRegistry>> {
+    pub fn get_agent_registries(&mut self) -> Result<Vec<AgentRegistry>> {
         let mut conn = self.pool.get()?;
         Ok(AgentRegistry::all(&mut conn)?)
     }
@@ -192,8 +192,8 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the agent registry entry.
     ///
     /// # Returns
-    /// * `Result<Option<AgentRegistry>>` - Returns an `Option` containing the [`AgentRegistry`] object
-    ///   if found, or `None` if no entry matches the given identifier. Returns an error if the query fails.
+    /// An `Option` containing the [`AgentRegistry`] object if found, or `None` if no entry matches
+    /// the given identifier. Returns an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -215,8 +215,7 @@ impl MasterDb {
     /// Retrieves the local update sequence number (USN) from the [`AgentRegistry`] table.
     ///
     /// # Returns
-    /// * `Result<i32>` - Returns the local USN as an integer if found, or an error if the entry
-    ///   does not exist.
+    /// The local USN as an integer if found, or an error if the entry does not exist.
     ///
     /// # Errors
     /// * Returns an error if the `localUpdateCount` entry is not found in the [`AgentRegistry`] table
@@ -238,8 +237,8 @@ impl MasterDb {
     /// Retrieves all entries from the [`CloudAgentRegistry`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<CloudAgentRegistry>>` - A vector of [`CloudAgentRegistry`] objects if the query is successful,
-    ///   or an error if the query fails.
+    /// A vector of [`CloudAgentRegistry`] objects if the query is successful, or an error if
+    /// the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -247,12 +246,12 @@ impl MasterDb {
     /// # Example
     /// ```no_run
     /// let mut db = MasterDb::open().unwrap();
-    /// let registries = db.get_cloud_agent_registry().unwrap();
+    /// let registries = db.get_cloud_agent_registries().unwrap();
     /// for registry in registries {
     ///     println!("{:?}", registry);
     /// }
     /// ```
-    pub fn get_cloud_agent_registry(&mut self) -> Result<Vec<CloudAgentRegistry>> {
+    pub fn get_cloud_agent_registries(&mut self) -> Result<Vec<CloudAgentRegistry>> {
         let mut conn = self.pool.get()?;
         Ok(CloudAgentRegistry::all(&mut conn)?)
     }
@@ -291,8 +290,8 @@ impl MasterDb {
     /// Retrieves all entries from the [`ContentActiveCensor`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<ContentActiveCensor>>` - A vector of [`ContentActiveCensor`] objects if the query is successful,
-    ///   or an error if the query fails.
+    /// A vector of [`ContentActiveCensor`] objects if the query is successful, or an error if
+    /// the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -300,12 +299,12 @@ impl MasterDb {
     /// # Example
     /// ```no_run
     /// let mut db = MasterDb::open().unwrap();
-    /// let active_censors = db.get_content_active_censor().unwrap();
+    /// let active_censors = db.get_content_active_censors().unwrap();
     /// for censor in active_censors {
     ///     println!("{:?}", censor);
     /// }
     /// ```
-    pub fn get_content_active_censor(&mut self) -> Result<Vec<ContentActiveCensor>> {
+    pub fn get_content_active_censors(&mut self) -> Result<Vec<ContentActiveCensor>> {
         let mut conn = self.pool.get()?;
         Ok(ContentActiveCensor::all(&mut conn)?)
     }
@@ -316,8 +315,8 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the content active censor entry.
     ///
     /// # Returns
-    /// * `Result<Option<ContentActiveCensor>>` - Returns an `Option` containing the [`ContentActiveCensor`] object
-    ///   if found, or `None` if no entry matches the given identifier. Returns an error if the query fails.
+    /// An `Option` containing the [`ContentActiveCensor`] object if found, or `None` if no entry
+    /// matches the given identifier. Returns an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -344,8 +343,7 @@ impl MasterDb {
     /// Retrieves all entries from the [`ContentCue`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<ContentCue>>` - A vector of [`ContentCue`] objects if the query is successful,
-    ///   or an error if the query fails.
+    /// A vector of [`ContentCue`] objects if the query is successful, or an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -353,12 +351,12 @@ impl MasterDb {
     /// # Example
     /// ```no_run
     /// let mut db = MasterDb::open().unwrap();
-    /// let cues = db.get_content_cue().unwrap();
+    /// let cues = db.get_content_cues().unwrap();
     /// for cue in cues {
     ///     println!("{:?}", cue);
     /// }
     /// ```
-    pub fn get_content_cue(&mut self) -> Result<Vec<ContentCue>> {
+    pub fn get_content_cues(&mut self) -> Result<Vec<ContentCue>> {
         let mut conn = self.pool.get()?;
         Ok(ContentCue::all(&mut conn)?)
     }
@@ -369,8 +367,8 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the content cue entry.
     ///
     /// # Returns
-    /// * `Result<Option<ContentCue>>` - Returns an `Option` containing the [`ContentCue`] object
-    ///   if found, or `None` if no entry matches the given identifier. Returns an error if the query fails.
+    /// An `Option` containing the [`ContentCue`] object if found, or `None` if no entry matches
+    /// the given identifier. Returns an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -394,8 +392,7 @@ impl MasterDb {
     /// Retrieves all entries from the [`contentFile`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<ContentFile>>` - A vector of [`ContentFile`] objects if the query is successful,
-    ///   or an error if the query fails.
+    /// A vector of [`ContentFile`] objects if the query is successful, or an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -403,12 +400,12 @@ impl MasterDb {
     /// # Example
     /// ```no_run
     /// let mut db = MasterDb::open().unwrap();
-    /// let files = db.get_content_file().unwrap();
+    /// let files = db.get_content_files().unwrap();
     /// for file in files {
     ///     println!("{:?}", file);
     /// }
     /// ```
-    pub fn get_content_file(&mut self) -> Result<Vec<ContentFile>> {
+    pub fn get_content_files(&mut self) -> Result<Vec<ContentFile>> {
         let mut conn = self.pool.get()?;
         Ok(ContentFile::all(&mut conn)?)
     }
@@ -419,8 +416,8 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the content file entry.
     ///
     /// # Returns
-    /// * `Result<Option<ContentFile>>` - Returns an `Option` containing the [`ContentFile`] object
-    ///   if found, or `None` if no entry matches the given identifier. Returns an error if the query fails.
+    /// An `Option` containing the [`ContentFile`] object if found, or `None` if no entry matches
+    /// the given identifier. Returns an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -444,8 +441,7 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdActiveCensor`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdActiveCensor>>` - A vector of [`DjmdActiveCensor`] objects if the query is successful,
-    ///   or an error if the query fails.
+    /// A vector of [`DjmdActiveCensor`] objects if the query is successful, or an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -453,12 +449,12 @@ impl MasterDb {
     /// # Example
     /// ```no_run
     /// let mut db = MasterDb::open().unwrap();
-    /// let active_censors = db.get_active_censor().unwrap();
+    /// let active_censors = db.get_active_censors().unwrap();
     /// for censor in active_censors {
     ///     println!("{:?}", censor);
     /// }
     /// ```
-    pub fn get_active_censor(&mut self) -> Result<Vec<DjmdActiveCensor>> {
+    pub fn get_active_censors(&mut self) -> Result<Vec<DjmdActiveCensor>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdActiveCensor::all(&mut conn)?)
     }
@@ -469,8 +465,8 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the active censor entry.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdActiveCensor>>` - Returns an `Option` containing the [`DjmdActiveCensor`] object
-    ///   if found, or `None` if no entry matches the given identifier. Returns an error if the query fails.
+    /// An `Option` containing the [`DjmdActiveCensor`] object if found, or `None` if no entry
+    /// matches the given identifier. Returns an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -494,8 +490,7 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdAlbum`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdAlbum>>` - A vector of [`DjmdAlbum`] objects if the query is successful,
-    ///   or an error if the query fails.
+    /// A vector of [`DjmdAlbum`] objects if the query is successful, or an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -503,12 +498,12 @@ impl MasterDb {
     /// # Example
     /// ```no_run
     /// let mut db = MasterDb::open().unwrap();
-    /// let albums = db.get_album().unwrap();
+    /// let albums = db.get_albums().unwrap();
     /// for album in albums {
     ///     println!("{:?}", album);
     /// }
     /// ```
-    pub fn get_album(&mut self) -> Result<Vec<DjmdAlbum>> {
+    pub fn get_albums(&mut self) -> Result<Vec<DjmdAlbum>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdAlbum::all(&mut conn)?)
     }
@@ -519,8 +514,8 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the album.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdAlbum>>` - Returns an `Option` containing the [`DjmdAlbum`] object
-    ///   if found, or `None` if no entry matches the given identifier. Returns an error if the query fails.
+    /// An `Option` containing the [`DjmdAlbum`] object if found, or `None` if no entry matches
+    /// the given identifier. Returns an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -545,9 +540,8 @@ impl MasterDb {
     /// * `name` - A string slice representing the name of the album.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdAlbum>>` - Returns an `Option` containing the [`DjmdAlbum`] object
-    ///   if found, or `None` if no entry matches the given name. Returns an error if multiple entries
-    ///   match the given name.
+    /// An `Option` containing the [`DjmdAlbum`] object if found, or `None` if no entry matches the
+    /// given name. Returns an error if multiple entries match the given name.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed or if more than one album
@@ -567,13 +561,32 @@ impl MasterDb {
         Ok(DjmdAlbum::find_by_name(&mut conn, name)?)
     }
 
+    /// Inserts a new album into the [`DjmdAlbum`] table in the database.
+    ///
+    /// # Arguments
+    /// * `item` - A [`NewDjmdAlbum`] object containing the album details to be inserted.
+    ///
+    /// # Returns
+    /// The newly created [`DjmdAlbum`] object if successful, or an error.
+    ///
+    /// # Errors
+    /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
+    /// * Returns an error if the database insertion fails.
+    ///
+    /// # Example
+    /// ```no_run
+    /// let mut db = MasterDb::open().unwrap();
+    /// let item = NewDjmdAlbum::new("name").album_artist_id("artist_id");
+    /// let album = db.insert_album(item).unwrap();
+    /// println!("{:?}", album);
+    /// ```
     pub fn insert_album(&mut self, item: NewDjmdAlbum) -> Result<DjmdAlbum> {
         self.assert_write_mode()?;
         let mut conn = self.pool.get()?;
         Ok(item.insert(&mut conn)?)
     }
 
-    /// Inserts a new album into the [`DjmdAlbum`] table in the database.
+    /// Creates a new album and inserts it into the [`DjmdAlbum`] table in the database.
     ///
     /// # Arguments
     /// * `name` - The name of the album.
@@ -582,7 +595,7 @@ impl MasterDb {
     /// * `compilation` - An optional integer indicating whether the album is a compilation.
     ///
     /// # Returns
-    /// * `Result<DjmdAlbum>` - Returns the newly created [`DjmdAlbum`] object if successful, or an error.
+    /// The newly created [`DjmdAlbum`] object if successful, or an error.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -624,7 +637,7 @@ impl MasterDb {
     /// * `name` - The name of the album to insert or retrieve.
     ///
     /// # Returns
-    /// * `Result<DjmdAlbum>` - Returns the existing or newly created [`DjmdAlbum`] object.
+    /// The existing or newly created [`DjmdAlbum`] object.
     ///
     /// # Errors
     /// * Returns an error if the album cannot be inserted or retrieved.
@@ -650,7 +663,7 @@ impl MasterDb {
     /// * `item` - A mutable reference to the [`DjmdAlbum`] object to be updated.
     ///
     /// # Returns
-    /// * `Result<DjmdAlbum>` - Returns the updated [`DjmdAlbum`] object if successful, or an error.
+    /// The updated [`DjmdAlbum`] object if successful, or an error.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -684,7 +697,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the album to be deleted.
     ///
     /// # Returns
-    /// * `Result<usize>` - Returns the number of rows affected by the delete operation.
+    /// The number of rows affected by the delete operation.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -712,8 +725,7 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdArtist`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdArtist>>` - A vector of [`DjmdArtist`] objects if the query is successful,
-    ///   or an error if the query fails.
+    /// A vector of [`DjmdArtist`] objects if the query is successful, or an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -721,12 +733,12 @@ impl MasterDb {
     /// # Example
     /// ```no_run
     /// let mut db = MasterDb::open().unwrap();
-    /// let artists = db.get_artist().unwrap();
+    /// let artists = db.get_artists().unwrap();
     /// for artist in artists {
     ///     println!("{:?}", artist);
     /// }
     /// ```
-    pub fn get_artist(&mut self) -> Result<Vec<DjmdArtist>> {
+    pub fn get_artists(&mut self) -> Result<Vec<DjmdArtist>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdArtist::all(&mut conn)?)
     }
@@ -737,8 +749,8 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the artist.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdArtist>>` - Returns an `Option` containing the [`DjmdArtist`] object
-    ///   if found, or `None` if no entry matches the given identifier. Returns an error if the query fails.
+    /// An `Option` containing the [`DjmdArtist`] object if found, or `None` if no entry matches
+    /// the given identifier. Returns an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -763,9 +775,8 @@ impl MasterDb {
     /// * `name` - A string slice representing the name of the artist.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdArtist>>` - Returns an `Option` containing the [`DjmdArtist`] object
-    ///   if found, or `None` if no entry matches the given name. Returns an error if multiple entries
-    ///   match the given name.
+    /// An `Option` containing the [`DjmdArtist`] object if found, or `None` if no entry matches
+    /// the given name. Returns an error if multiple entries match the given name.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed or if more than one artist
@@ -785,19 +796,38 @@ impl MasterDb {
         Ok(DjmdArtist::find_by_name(&mut conn, name)?)
     }
 
+    /// Inserts a new artist into the [`DjmdArtist`] table in the database.
+    ///
+    /// # Arguments
+    /// * `item` - A [`NewDjmdArtist`] object containing the album details to be inserted.
+    ///
+    /// # Returns
+    /// The newly created [`DjmdArtist`] object if successful, or an error.
+    ///
+    /// # Errors
+    /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
+    /// * Returns an error if the database insertion fails.
+    ///
+    /// # Example
+    /// ```no_run
+    /// let mut db = MasterDb::open().unwrap();
+    /// let item = NewDjmdArtist::new("name");
+    /// let album = db.insert_artist(item).unwrap();
+    /// println!("{:?}", album);
+    /// ```
     pub fn insert_artist(&mut self, item: NewDjmdArtist) -> Result<DjmdArtist> {
         self.assert_write_mode()?;
         let mut conn = self.pool.get()?;
         Ok(item.insert(&mut conn)?)
     }
 
-    /// Inserts a new artist into the [`DjmdArtist`] table in the database.
+    /// Creates a new artist and inserts it into the [`DjmdArtist`] table in the database.
     ///
     /// # Arguments
     /// * `name` - The name of the artist to insert.
     ///
     /// # Returns
-    /// * `Result<DjmdArtist>` - Returns the newly created [`DjmdArtist`] object if successful, or an error.
+    /// The newly created [`DjmdArtist`] object if successful, or an error.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -822,7 +852,7 @@ impl MasterDb {
     /// * `name` - The name of the artist to insert or retrieve.
     ///
     /// # Returns
-    /// * `Result<DjmdArtist>` - Returns the existing or newly created [`DjmdArtist`] object.
+    /// The existing or newly created [`DjmdArtist`] object.
     ///
     /// # Errors
     /// * Returns an error if the artist cannot be inserted or retrieved.
@@ -848,7 +878,7 @@ impl MasterDb {
     /// * `item` - A mutable reference to the [`DjmdArtist`] object to be updated.
     ///
     /// # Returns
-    /// * `Result<DjmdArtist>` - Returns the updated [`DjmdArtist`] object if successful, or an error.
+    /// The updated [`DjmdArtist`] object if successful, or an error.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -882,7 +912,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the artist to be deleted.
     ///
     /// # Returns
-    /// * `Result<usize>` - Returns the number of rows affected by the delete operation.
+    /// The number of rows affected by the delete operation.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -911,8 +941,7 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdCategory`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdCategory>>` - A vector of [`DjmdCategory`] objects if the query is successful,
-    ///   or an error if the query fails.
+    /// A vector of [`DjmdCategory`] objects if the query is successful, or an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -920,12 +949,12 @@ impl MasterDb {
     /// # Example
     /// ```no_run
     /// let mut db = MasterDb::open().unwrap();
-    /// let categories = db.get_category().unwrap();
+    /// let categories = db.get_categories().unwrap();
     /// for category in categories {
     ///     println!("{:?}", category);
     /// }
     /// ```
-    pub fn get_category(&mut self) -> Result<Vec<DjmdCategory>> {
+    pub fn get_categories(&mut self) -> Result<Vec<DjmdCategory>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdCategory::all(&mut conn)?)
     }
@@ -936,8 +965,8 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the category.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdCategory>>` - Returns an `Option` containing the [`DjmdCategory`] object
-    ///   if found, or `None` if no entry matches the given identifier. Returns an error if the query fails.
+    /// An `Option` containing the [`DjmdCategory`] object if found, or `None` if no entry matches
+    /// the given identifier. Returns an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -961,8 +990,7 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdColor`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdColor>>` - A vector of [`DjmdColor`] objects if the query is successful,
-    ///   or an error if the query fails.
+    /// A vector of [`DjmdColor`] objects if the query is successful, or an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -970,12 +998,12 @@ impl MasterDb {
     /// # Example
     /// ```no_run
     /// let mut db = MasterDb::open().unwrap();
-    /// let colors = db.get_color().unwrap();
+    /// let colors = db.get_colors().unwrap();
     /// for color in colors {
     ///     println!("{:?}", color);
     /// }
     /// ```
-    pub fn get_color(&mut self) -> Result<Vec<DjmdColor>> {
+    pub fn get_colors(&mut self) -> Result<Vec<DjmdColor>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdColor::all(&mut conn)?)
     }
@@ -986,8 +1014,8 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the color.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdColor>>` - Returns an `Option` containing the [`DjmdColor`] object
-    ///   if found, or `None` if no entry matches the given identifier. Returns an error if the query fails.
+    /// An `Option` containing the [`DjmdColor`] object if found, or `None` if no entry matches the
+    /// given identifier. Returns an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -1011,8 +1039,7 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdContent`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdContent>>` - A vector of [`DjmdContent`] objects if the query is successful,
-    ///   or an error if the query fails.
+    /// A vector of [`DjmdContent`] objects if the query is successful, or an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -1020,12 +1047,12 @@ impl MasterDb {
     /// # Example
     /// ```no_run
     /// let mut db = MasterDb::open().unwrap();
-    /// let contents = db.get_content().unwrap();
+    /// let contents = db.get_contents().unwrap();
     /// for content in contents {
     ///     println!("{:?}", content);
     /// }
     /// ```
-    pub fn get_content(&mut self) -> Result<Vec<DjmdContent>> {
+    pub fn get_contents(&mut self) -> Result<Vec<DjmdContent>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdContent::all(&mut conn)?)
     }
@@ -1036,8 +1063,8 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the content.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdContent>>` - Returns an `Option` containing the [`DjmdContent`] object
-    ///   if found, or `None` if no entry matches the given identifier. Returns an error if the query fails.
+    /// An `Option` containing the [`DjmdContent`] object if found, or `None` if no entry matches
+    /// the given identifier. Returns an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -1062,7 +1089,7 @@ impl MasterDb {
     /// * `ids` - A vector of string slices representing the unique identifiers of the contents.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdContent>>` - A vector of [`DjmdContent`] objects found for the given IDs.
+    /// A vector of [`DjmdContent`] objects found for the given IDs.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -1086,8 +1113,8 @@ impl MasterDb {
     /// * `path` - A string slice representing the folder path of the content.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdContent>>` - Returns an `Option` containing the [`DjmdContent`] object
-    ///   if found, or `None` if no entry matches the given path. Returns an error if the query fails.
+    /// An `Option` containing the [`DjmdContent`] object if found, or `None` if no entry matches
+    /// the given path. Returns an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -1112,7 +1139,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the content.
     ///
     /// # Returns
-    /// * `Result<PathBuf>` - The canonicalized path to the analysis data file.
+    /// The canonicalized path to the analysis data file.
     ///
     /// # Errors
     /// * Returns an error if the share directory is not set or the path cannot be resolved.
@@ -1152,7 +1179,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the content.
     ///
     /// # Returns
-    /// * `Result<Option<PathBuf>>` - The path to the analysis directory, or `None` if not found.
+    /// The path to the analysis directory, or `None` if not found.
     ///
     /// # Example
     /// ```no_run
@@ -1172,7 +1199,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the content.
     ///
     /// # Returns
-    /// * `Result<Option<AnlzPaths>>` - The [`AnlzPaths`] struct with analysis file paths, or `None` if not found.
+    /// The [`AnlzPaths`] struct with analysis file paths, or `None` if not found.
     ///
     /// # Example
     /// ```no_run
@@ -1194,7 +1221,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the content.
     ///
     /// # Returns
-    /// * `Result<Option<AnlzFiles>>` - The [`AnlzFiles`] struct with loaded analysis files, or `None` if not found.
+    /// The [`AnlzFiles`] struct with loaded analysis files, or `None` if not found.
     ///
     /// # Example
     /// ```no_run
@@ -1233,7 +1260,7 @@ impl MasterDb {
     /// * `path` - The file path to be added as content. Accepts any type implementing [`AsRef<Path>`] and [`AsRef<OsStr>`].
     ///
     /// # Returns
-    /// * `Result<DjmdContent>` - The newly inserted [`DjmdContent`] object if successful.
+    /// The newly inserted [`DjmdContent`] object if successful.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -1267,7 +1294,7 @@ impl MasterDb {
     /// * `item` - A reference to the [`DjmdContent`] object to be updated.
     ///
     /// # Returns
-    /// * `Result<usize>` - The number of rows affected by the update operation.
+    /// The number of rows affected by the update operation.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -1402,7 +1429,7 @@ impl MasterDb {
     /// * `path` - A string slice representing the new file path to be set.
     ///
     /// # Returns
-    /// * `Result<usize>` - The number of rows affected by the update operation.
+    /// The number of rows affected by the update operation.
     ///
     /// # Errors
     /// * Returns an error if:
@@ -1458,28 +1485,21 @@ impl MasterDb {
         Ok(DjmdContent::set_path(&mut conn, content_id, &rb_path_str)?)
     }
 
-    // pub fn delete_content(&mut self, id: &str) -> Result<usize> {
-    //     self.assert_write_mode()?;
-    //     let result = diesel::delete(djmdContent.filter(schema::djmdContent::id.eq(id)))
-    //         .execute(&mut conn)?;
-    //     Ok(result)
-    // }
-
     // -- Cue --------------------------------------------------------------------------------------
 
     /// Retrieves all entries from the [`DjmdCue`] table.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdCue>>` - Vector of all cue entries.
+    /// A vector of all cue entries.
     ///
     /// # Errors
     /// Returns an error if the database query fails.
     ///
     /// # Example
     /// ```no_run
-    /// let cues = db.get_cue()?;
+    /// let cues = db.get_cues()?;
     /// ```
-    pub fn get_cue(&mut self) -> Result<Vec<DjmdCue>> {
+    pub fn get_cues(&mut self) -> Result<Vec<DjmdCue>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdCue::all(&mut conn)?)
     }
@@ -1509,16 +1529,16 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdDevice`] table.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdDevice>>` - Vector of all device entries.
+    /// A vector of all device entries.
     ///
     /// # Errors
     /// Returns an error if the database query fails.
     ///
     /// # Example
     /// ```no_run
-    /// let devices = db.get_device()?;
+    /// let devices = db.get_devices()?;
     /// ```
-    pub fn get_device(&mut self) -> Result<Vec<DjmdDevice>> {
+    pub fn get_devices(&mut self) -> Result<Vec<DjmdDevice>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdDevice::all(&mut conn)?)
     }
@@ -1529,7 +1549,7 @@ impl MasterDb {
     /// * `id` - Device entry ID.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdDevice>>` - The device entry if found, or `None`.
+    /// The device entry if found, or `None`.
     ///
     /// # Errors
     /// Returns an error if the database query fails.
@@ -1548,20 +1568,19 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdGenre`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdGenre>>` - A vector of [`DjmdGenre`] objects if the query is successful,
-    ///   or an error if the query fails.
+    /// A vector of [`DjmdGenre`] objects if the query is successful, or an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
     ///
     /// # Example
     /// ```no_run
-    /// let genres = db.get_genre().unwrap();
+    /// let genres = db.get_genres().unwrap();
     /// for genre in genres {
     ///     println!("{:?}", genre);
     /// }
     /// ```
-    pub fn get_genre(&mut self) -> Result<Vec<DjmdGenre>> {
+    pub fn get_genres(&mut self) -> Result<Vec<DjmdGenre>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdGenre::all(&mut conn)?)
     }
@@ -1572,8 +1591,8 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the genre.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdGenre>>` - Returns an `Option` containing the [`DjmdGenre`] object
-    ///   if found, or `None` if no entry matches the given identifier. Returns an error if the query fails.
+    /// An `Option` containing the [`DjmdGenre`] object if found, or `None` if no entry matches
+    /// the given identifier. Returns an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -1597,9 +1616,8 @@ impl MasterDb {
     /// * `name` - A string slice representing the name of the genre.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdGenre>>` - Returns an `Option` containing the [`DjmdGenre`] object
-    ///   if found, or `None` if no entry matches the given name. Returns an error if multiple entries
-    ///   match the given name.
+    /// An `Option` containing the [`DjmdGenre`] object if found, or `None` if no entry matches
+    /// the given name. Returns an error if multiple entries match the given name.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed or if more than one genre
@@ -1618,19 +1636,37 @@ impl MasterDb {
         Ok(DjmdGenre::find_by_name(&mut conn, name)?)
     }
 
+    /// Inserts a new genre into the [`DjmdGenre`] table in the database.
+    ///
+    /// # Arguments
+    /// * `item` - The [`NewDjmdGenre`] object representing the genre to insert.
+    ///
+    /// # Returns
+    /// The newly created [`DjmdGenre`] object if successful, or an error.
+    ///
+    /// # Errors
+    /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
+    /// * Returns an error if the database insertion fails.
+    ///
+    /// # Example
+    /// ```no_run
+    /// let item = NewDjmdGenre::new("name");
+    /// let genre = db.insert_genre(item).unwrap();
+    /// println!("{:?}", genre);
+    /// ```
     pub fn insert_genre(&mut self, item: NewDjmdGenre) -> Result<DjmdGenre> {
         self.assert_write_mode()?;
         let mut conn = self.pool.get()?;
         Ok(item.insert(&mut conn)?)
     }
 
-    /// Inserts a new genre into the [`DjmdGenre`] table in the database.
+    /// Creates a new genre and inserts it into the [`DjmdGenre`] table in the database.
     ///
     /// # Arguments
     /// * `name` - The name of the genre to insert.
     ///
     /// # Returns
-    /// * `Result<DjmdGenre>` - Returns the newly created [`DjmdGenre`] object if successful, or an error.
+    /// The newly created [`DjmdGenre`] object if successful, or an error.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -1654,7 +1690,7 @@ impl MasterDb {
     /// * `name` - The name of the genre to insert or retrieve.
     ///
     /// # Returns
-    /// * `Result<DjmdGenre>` - Returns the existing or newly created [`DjmdGenre`] object.
+    /// The existing or newly created [`DjmdGenre`] object.
     ///
     /// # Errors
     /// * Returns an error if the genre cannot be inserted or retrieved.
@@ -1676,7 +1712,7 @@ impl MasterDb {
     /// * `item` - A mutable reference to the [`DjmdGenre`] object to be updated.
     ///
     /// # Returns
-    /// * `Result<DjmdGenre>` - Returns the updated [`DjmdGenre`] object if successful, or an error.
+    /// The updated [`DjmdGenre`] object if successful, or an error.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -1709,7 +1745,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the genre to be deleted.
     ///
     /// # Returns
-    /// * `Result<usize>` - Returns the number of rows affected by the delete operation.
+    /// The number of rows affected by the delete operation.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -1736,20 +1772,19 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdHistory`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdHistory>>` - A vector of [`DjmdHistory`] objects if the query is successful,
-    ///   or an error if the query fails.
+    /// A vector of [`DjmdHistory`] objects if the query is successful, or an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
     ///
     /// # Example
     /// ```no_run
-    /// let histories = db.get_history().unwrap();
+    /// let histories = db.get_histories().unwrap();
     /// for history in histories {
     ///     println!("{:?}", history);
     /// }
     /// ```
-    pub fn get_history(&mut self) -> Result<Vec<DjmdHistory>> {
+    pub fn get_histories(&mut self) -> Result<Vec<DjmdHistory>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdHistory::all(&mut conn)?)
     }
@@ -1760,8 +1795,8 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the history entry.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdHistory>>` - Returns an `Option` containing the [`DjmdHistory`] object
-    ///   if found, or `None` if no entry matches the given identifier. Returns an error if the query fails.
+    /// An `Option` containing the [`DjmdHistory`] object if found, or `None` if no entry matches
+    /// the given identifier. Returns an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -1785,7 +1820,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the history entry.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdSongHistory>>` - A vector of [`DjmdSongHistory`] objects for the given history ID.
+    /// A vector of [`DjmdSongHistory`] objects for the given history ID.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -1808,7 +1843,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the history entry.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdContent>>` - A vector of [`DjmdContent`] objects referenced by the song history.
+    /// A vector of [`DjmdContent`] objects referenced by the song history.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -1830,20 +1865,19 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdHotCueBanklist`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdHotCueBanklist>>` - A vector of [`DjmdHotCueBanklist`] objects if the query is successful,
-    ///   or an error if the query fails.
+    /// A vector of [`DjmdHotCueBanklist`] objects if the query is successful, or an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
     ///
     /// # Example
     /// ```no_run
-    /// let banklists = db.get_hot_cue_banklist().unwrap();
+    /// let banklists = db.get_hot_cue_banklists().unwrap();
     /// for banklist in banklists {
     ///     println!("{:?}", banklist);
     /// }
     /// ```
-    pub fn get_hot_cue_banklist(&mut self) -> Result<Vec<DjmdHotCueBanklist>> {
+    pub fn get_hot_cue_banklists(&mut self) -> Result<Vec<DjmdHotCueBanklist>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdHotCueBanklist::all(&mut conn)?)
     }
@@ -1854,8 +1888,8 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the hot cue banklist entry.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdHotCueBanklist>>` - Returns an `Option` containing the [`DjmdHotCueBanklist`] object
-    ///   if found, or `None` if no entry matches the given identifier. Returns an error if the query fails.
+    /// An `Option` containing the [`DjmdHotCueBanklist`] objectif found, or `None` if no entry
+    /// matches the given identifier. Returns an error if the query fails.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -1879,7 +1913,7 @@ impl MasterDb {
     /// * `parent_id` - A string slice representing the parent hot cue banklist ID.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdHotCueBanklist>>` - A vector of child [`DjmdHotCueBanklist`] objects.
+    /// A vector of child [`DjmdHotCueBanklist`] objects.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -1905,7 +1939,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the hot cue banklist ID.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdSongHotCueBanklist>>` - A vector of [`DjmdSongHotCueBanklist`] objects.
+    /// A vector of [`DjmdSongHotCueBanklist`] objects.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -1930,7 +1964,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the hot cue banklist ID.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdContent>>` - A vector of [`DjmdContent`] objects referenced by the song hot cue banklist.
+    /// A vector of [`DjmdContent`] objects referenced by the song hot cue banklist.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -1953,7 +1987,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the hot cue banklist ID.
     ///
     /// # Returns
-    /// * `Result<Vec<HotCueBanklistCue>>` - A vector of [`HotCueBanklistCue`] objects for the given banklist ID.
+    /// A vector of [`HotCueBanklistCue`] objects for the given banklist ID.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -1975,19 +2009,19 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdKey`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdKey>>` - A vector of [`DjmdKey`] objects if the query is successful.
+    /// A vector of [`DjmdKey`] objects if the query is successful.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
     ///
     /// # Example
     /// ```no_run
-    /// let keys = db.get_key().unwrap();
+    /// let keys = db.get_keys().unwrap();
     /// for key in keys {
     ///     println!("{:?}", key);
     /// }
     /// ```
-    pub fn get_key(&mut self) -> Result<Vec<DjmdKey>> {
+    pub fn get_keys(&mut self) -> Result<Vec<DjmdKey>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdKey::all(&mut conn)?)
     }
@@ -1998,7 +2032,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the key.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdKey>>` - Returns an `Option` containing the [`DjmdKey`] object if found, or `None`.
+    /// An `Option` containing the [`DjmdKey`] object if found, or `None`.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -2022,8 +2056,8 @@ impl MasterDb {
     /// * `name` - A string slice representing the scale name of the key.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdKey>>` - Returns an `Option` containing the [`DjmdKey`] object if found, or `None`.
-    ///   Returns an error if multiple entries match the given name.
+    /// An `Option` containing the [`DjmdKey`] object if found, or `None`. Returns an error if
+    /// multiple entries match the given name.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed or if more than one key matches the given name.
@@ -2041,19 +2075,37 @@ impl MasterDb {
         Ok(DjmdKey::find_by_name(&mut conn, name)?)
     }
 
+    /// Inserts it into the [`DjmdKey`] table in the database.
+    ///
+    /// # Arguments
+    /// * `item` - The [`NewDjmdKey`] object representing the key to insert.
+    ///
+    /// # Returns
+    /// The newly created [`DjmdKey`] object if successful.
+    ///
+    /// # Errors
+    /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
+    /// * Returns an error if the database insertion fails.
+    ///
+    /// # Example
+    /// ```no_run
+    /// let item = NewDjmdKey::new("C#m");
+    /// let key = db.insert_key(item).unwrap();
+    /// println!("{:?}", key);
+    /// ```
     pub fn insert_key(&mut self, item: NewDjmdKey) -> Result<DjmdKey> {
         self.assert_write_mode()?;
         let mut conn = self.pool.get()?;
         Ok(item.insert(&mut conn)?)
     }
 
-    /// Inserts a new key into the [`DjmdKey`] table in the database.
+    /// Creates a new key and inserts it into the [`DjmdKey`] table in the database.
     ///
     /// # Arguments
     /// * `name` - The scale name of the key to insert.
     ///
     /// # Returns
-    /// * `Result<DjmdKey>` - Returns the newly created [`DjmdKey`] object if successful.
+    /// The newly created [`DjmdKey`] object if successful.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -2077,7 +2129,7 @@ impl MasterDb {
     /// * `name` - The scale name of the key to insert or retrieve.
     ///
     /// # Returns
-    /// * `Result<DjmdKey>` - Returns the existing or newly created [`DjmdKey`] object.
+    /// The existing or newly created [`DjmdKey`] object.
     ///
     /// # Errors
     /// * Returns an error if the key cannot be inserted or retrieved.
@@ -2094,7 +2146,7 @@ impl MasterDb {
     /// * `item` - A mutable reference to the [`DjmdKey`] object to be updated.
     ///
     /// # Returns
-    /// * `Result<DjmdKey>` - Returns the updated [`DjmdKey`] object if successful.
+    /// The updated [`DjmdKey`] object if successful.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -2127,7 +2179,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the key to be deleted.
     ///
     /// # Returns
-    /// * `Result<usize>` - Returns the number of rows affected by the delete operation.
+    /// The number of rows affected by the delete operation.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -2154,19 +2206,19 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdLabel`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdLabel>>` - A vector of [`DjmdLabel`] objects if the query is successful.
+    /// A vector of [`DjmdLabel`] objects if the query is successful.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
     ///
     /// # Example
     /// ```no_run
-    /// let labels = db.get_label().unwrap();
+    /// let labels = db.get_labels().unwrap();
     /// for label in labels {
     ///     println!("{:?}", label);
     /// }
     /// ```
-    pub fn get_label(&mut self) -> Result<Vec<DjmdLabel>> {
+    pub fn get_labels(&mut self) -> Result<Vec<DjmdLabel>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdLabel::all(&mut conn)?)
     }
@@ -2201,8 +2253,8 @@ impl MasterDb {
     /// * `name` - A string slice representing the name of the label.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdLabel>>` - Returns an `Option` containing the [`DjmdLabel`] object if found, or `None`.
-    ///   Returns an error if multiple entries match the given name.
+    /// An `Option` containing the [`DjmdLabel`] object if found, or `None`. Returns an error if
+    /// multiple entries match the given name.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed or if more than one label matches the given name.
@@ -2220,19 +2272,37 @@ impl MasterDb {
         Ok(DjmdLabel::find_by_name(&mut conn, name)?)
     }
 
+    /// Inserts a new label into the [`DjmdLabel`] table in the database.
+    ///
+    /// # Arguments
+    /// * `item` - The [`NewDjmdLabel`] object representing the label to insert.
+    ///
+    /// # Returns
+    /// The newly created [`DjmdLabel`] object if successful.
+    ///
+    /// # Errors
+    /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
+    /// * Returns an error if the database insertion fails.
+    ///
+    /// # Example
+    /// ```no_run
+    /// let item = NewDjmdLabel::new("name");
+    /// let label = db.insert_label(item).unwrap();
+    /// println!("{:?}", label);
+    /// ```
     pub fn insert_label(&mut self, item: NewDjmdLabel) -> Result<DjmdLabel> {
         self.assert_write_mode()?;
         let mut conn = self.pool.get()?;
         Ok(item.insert(&mut conn)?)
     }
 
-    /// Inserts a new label into the [`DjmdLabel`] table in the database.
+    /// Creates a new label and inserts it into the [`DjmdLabel`] table in the database.
     ///
     /// # Arguments
     /// * `name` - The name of the label to insert.
     ///
     /// # Returns
-    /// * `Result<DjmdLabel>` - Returns the newly created [`DjmdLabel`] object if successful.
+    /// The newly created [`DjmdLabel`] object if successful.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -2256,7 +2326,7 @@ impl MasterDb {
     /// * `name` - The name of the label to insert or retrieve.
     ///
     /// # Returns
-    /// * `Result<DjmdLabel>` - Returns the existing or newly created [`DjmdLabel`] object.
+    /// The existing or newly created [`DjmdLabel`] object.
     ///
     /// # Errors
     /// * Returns an error if the label cannot be inserted or retrieved.
@@ -2273,7 +2343,7 @@ impl MasterDb {
     /// * `item` - A mutable reference to the [`DjmdLabel`] object to be updated.
     ///
     /// # Returns
-    /// * `Result<DjmdLabel>` - Returns the updated [`DjmdLabel`] object if successful.
+    /// The updated [`DjmdLabel`] object if successful.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -2305,7 +2375,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the label to be deleted.
     ///
     /// # Returns
-    /// * `Result<usize>` - Returns the number of rows affected by the delete operation.
+    /// The number of rows affected by the delete operation.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -2332,19 +2402,19 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdMenuItems`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdMenuItems>>` - A vector of [`DjmdMenuItems`] objects if the query is successful.
+    /// A vector of [`DjmdMenuItems`] objects if the query is successful.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
     ///
     /// # Example
     /// ```no_run
-    /// let items = db.get_menu_item().unwrap();
+    /// let items = db.get_menu_items().unwrap();
     /// for item in items {
     ///     println!("{:?}", item);
     /// }
     /// ```
-    pub fn get_menu_item(&mut self) -> Result<Vec<DjmdMenuItems>> {
+    pub fn get_menu_items(&mut self) -> Result<Vec<DjmdMenuItems>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdMenuItems::all(&mut conn)?)
     }
@@ -2355,7 +2425,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the menu item.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdMenuItems>>` - Returns an `Option` containing the [`DjmdMenuItems`] object if found, or `None`.
+    /// An `Option` containing the [`DjmdMenuItems`] object if found, or `None`.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -2378,19 +2448,19 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdMixerParam`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdMixerParam>>` - A vector of [`DjmdMixerParam`] objects if the query is successful.
+    /// A vector of [`DjmdMixerParam`] objects if the query is successful.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
     ///
     /// # Example
     /// ```no_run
-    /// let params = db.get_mixer_param().unwrap();
+    /// let params = db.get_mixer_params().unwrap();
     /// for param in params {
     ///     println!("{:?}", param);
     /// }
     /// ```
-    pub fn get_mixer_param(&mut self) -> Result<Vec<DjmdMixerParam>> {
+    pub fn get_mixer_params(&mut self) -> Result<Vec<DjmdMixerParam>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdMixerParam::all(&mut conn)?)
     }
@@ -2401,7 +2471,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the mixer parameter.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdMixerParam>>` - Returns an `Option` containing the [`DjmdMixerParam`] object if found, or `None`.
+    /// An `Option` containing the [`DjmdMixerParam`] object if found, or `None`.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -2424,19 +2494,19 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdMyTag`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdMyTag>>` - A vector of [`DjmdMyTag`] objects if the query is successful.
+    /// A vector of [`DjmdMyTag`] objects if the query is successful.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
     ///
     /// # Example
     /// ```no_run
-    /// let tags = db.get_my_tag().unwrap();
+    /// let tags = db.get_my_tags().unwrap();
     /// for tag in tags {
     ///     println!("{:?}", tag);
     /// }
     /// ```
-    pub fn get_my_tag(&mut self) -> Result<Vec<DjmdMyTag>> {
+    pub fn get_my_tags(&mut self) -> Result<Vec<DjmdMyTag>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdMyTag::all(&mut conn)?)
     }
@@ -2447,7 +2517,7 @@ impl MasterDb {
     /// * `parent_id` - A string slice representing the parent tag ID.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdMyTag>>` - A vector of child [`DjmdMyTag`] objects.
+    /// A vector of child [`DjmdMyTag`] objects.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -2470,7 +2540,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the tag.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdMyTag>>` - Returns an `Option` containing the [`DjmdMyTag`] object if found, or `None`.
+    /// An `Option` containing the [`DjmdMyTag`] object if found, or `None`.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -2494,7 +2564,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the tag ID.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdSongMyTag>>` - A vector of [`DjmdSongMyTag`] objects.
+    /// A vector of [`DjmdSongMyTag`] objects.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -2517,7 +2587,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the tag ID.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdContent>>` - A vector of [`DjmdContent`] objects referenced by the tag.
+    /// A vector of [`DjmdContent`] objects referenced by the tag.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -2539,19 +2609,19 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdPlaylist`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdPlaylist>>` - A vector of [`DjmdPlaylist`] objects if the query is successful.
+    /// A vector of [`DjmdPlaylist`] objects if the query is successful.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
     ///
     /// # Example
     /// ```no_run
-    /// let playlists = db.get_playlist().unwrap();
+    /// let playlists = db.get_playlists().unwrap();
     /// for playlist in playlists {
     ///     println!("{:?}", playlist);
     /// }
     /// ```
-    pub fn get_playlist(&mut self) -> Result<Vec<DjmdPlaylist>> {
+    pub fn get_playlists(&mut self) -> Result<Vec<DjmdPlaylist>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdPlaylist::all(&mut conn)?)
     }
@@ -2559,7 +2629,7 @@ impl MasterDb {
     /// Returns a sorted tree of playlists as [`DjmdPlaylistTreeItem`] nodes.
     ///
     /// # Returns
-    /// * A vector of root nodes representing the playlist tree.
+    /// A vector of root nodes representing the playlist tree.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -2582,7 +2652,7 @@ impl MasterDb {
     /// * `parent_id` - A string slice representing the parent playlist ID.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdPlaylist>>` - A vector of child [`DjmdPlaylist`] objects.
+    /// A vector of child [`DjmdPlaylist`] objects.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -2605,7 +2675,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the playlist.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdPlaylist>>` - Returns an `Option` containing the [`DjmdPlaylist`] object if found, or `None`.
+    /// An `Option` containing the [`DjmdPlaylist`] object if found, or `None`.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -2629,7 +2699,7 @@ impl MasterDb {
     /// * `path` - A vector of string slices representing the playlist path.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdPlaylist>>` - Returns an `Option` containing the [`DjmdPlaylist`] object if found, or `None`.
+    /// An `Option` containing the [`DjmdPlaylist`] object if found, or `None`.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -2653,7 +2723,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the playlist ID.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdSongPlaylist>>` - A vector of [`DjmdSongPlaylist`] objects.
+    /// A vector of [`DjmdSongPlaylist`] objects.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -2676,7 +2746,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the playlist ID.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdContent>>` - A vector of [`DjmdContent`] objects referenced by the playlist.
+    /// A vector of [`DjmdContent`] objects referenced by the playlist.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -2699,7 +2769,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the song playlist entry.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdSongPlaylist>>` - Returns an `Option` containing the [`DjmdSongPlaylist`] object if found, or `None`.
+    /// An `Option` containing the [`DjmdSongPlaylist`] object if found, or `None`.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -2717,6 +2787,31 @@ impl MasterDb {
         Ok(DjmdSongPlaylist::find(&mut conn, id)?)
     }
 
+    /// Inserts a new playlist into the [`DjmdPlaylist`] table in the database.
+    ///
+    /// # Arguments
+    /// * `item` - The [`NewDjmdPlaylist`] object representing the playlist to insert.
+    ///
+    /// # Returns
+    /// The newly created [`DjmdPlaylist`] object if successful.
+    ///
+    /// # Errors
+    /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
+    /// * Returns an error if the parent playlist is not a folder or does not exist.
+    /// * Returns an error if the sequence number is invalid or the database insertion fails.
+    ///
+    /// # Behavior
+    /// * Validates the parent playlist and sequence.
+    /// * Shifts existing playlists if inserting at a specific sequence.
+    /// * Increments the local update sequence number (USN).
+    /// * Updates the playlist XML file if configured.
+    ///
+    /// # Example
+    /// ```no_run
+    /// let item = NewDjmdPlaylist::playlist("name").seq(1);
+    /// let playlist = db.insert_playlist(item).unwrap();
+    /// println!("{:?}", playlist);
+    /// ```
     pub fn insert_playlist(&mut self, item: NewDjmdPlaylist) -> Result<DjmdPlaylist> {
         let mut conn = self.pool.get()?;
         self.assert_write_mode()?;
@@ -2734,7 +2829,7 @@ impl MasterDb {
         Ok(result)
     }
 
-    /// Inserts a new playlist into the [`DjmdPlaylist`] table in the database.
+    /// Creates a new playlist and inserts it into the [`DjmdPlaylist`] table in the database.
     ///
     /// # Arguments
     /// * `name` - The name of the playlist to insert.
@@ -2745,7 +2840,7 @@ impl MasterDb {
     /// * `smart_list` - Optional smart list configuration.
     ///
     /// # Returns
-    /// * `Result<DjmdPlaylist>` - Returns the newly created [`DjmdPlaylist`] object if successful.
+    /// The newly created [`DjmdPlaylist`] object if successful.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -2800,7 +2895,7 @@ impl MasterDb {
     /// * `smart_list` - Optional smart list configuration.
     ///
     /// # Returns
-    /// * `Result<DjmdPlaylist>` - The newly created playlist.
+    /// The newly created playlist.
     ///
     /// # Errors
     /// * Returns an error if the parent is invalid or database insertion fails.
@@ -2835,7 +2930,7 @@ impl MasterDb {
     /// * `seq` - Optional sequence number for ordering.
     ///
     /// # Returns
-    /// * `Result<DjmdPlaylist>` - The newly created folder.
+    /// The newly created folder.
     ///
     /// # Errors
     /// * Returns an error if the parent is invalid or database insertion fails.
@@ -2860,7 +2955,7 @@ impl MasterDb {
     /// * `name` - The new name for the playlist.
     ///
     /// # Returns
-    /// * `Result<DjmdPlaylist>` - The updated playlist.
+    /// The updated playlist.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -2893,7 +2988,7 @@ impl MasterDb {
     /// * `parent_id` - Optional new parent playlist ID. If not provided, keeps the current parent.
     ///
     /// # Returns
-    /// * `Result<DjmdPlaylist>` - The updated [`DjmdPlaylist`] object.
+    /// The updated [`DjmdPlaylist`] object.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -2955,7 +3050,7 @@ impl MasterDb {
     /// * `parent_id` - Optional new parent playlist ID. If not provided, keeps the current parent.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdPlaylist>>` - The updated [`DjmdPlaylist`] objects.
+    /// The updated [`DjmdPlaylist`] objects.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -3023,7 +3118,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the playlist to be deleted.
     ///
     /// # Returns
-    /// * `Result<usize>` - The number of rows affected by the delete operation.
+    /// The number of rows affected by the delete operation.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -3058,6 +3153,29 @@ impl MasterDb {
         Ok(deleted_ids.len())
     }
 
+    /// Inserts a new [`DjmdSongPlaylist`] song into a playlist.
+    ///
+    /// # Arguments
+    /// * `item` - The [`NewDjmdSongPlaylist`] object representing the song to insert.
+    ///
+    /// # Returns
+    /// The newly created [`DjmdSongPlaylist`] object.
+    ///
+    /// # Errors
+    /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
+    /// * Returns an error if the playlist or content does not exist.
+    /// * Returns an error if the sequence number is invalid.
+    ///
+    /// # Behavior
+    /// * Shifts songs with a higher sequence if inserting at a specific position.
+    /// * Increments the local update sequence number (USN).
+    ///
+    /// # Example
+    /// ```no_run
+    /// let item = NewDjmdSongPlaylist::new("playlist_id", "content_id").seq(1);
+    /// let song = db.insert_playlist_song(item).unwrap();
+    /// println!("{:?}", song);
+    /// ```
     pub fn insert_playlist_song(&mut self, item: NewDjmdSongPlaylist) -> Result<DjmdSongPlaylist> {
         self.assert_write_mode()?;
         let mut conn = self.pool.get()?;
@@ -3073,7 +3191,7 @@ impl MasterDb {
     /// * `seq` - Optional sequence number for the song's position. If not provided, inserts at the end.
     ///
     /// # Returns
-    /// * `Result<DjmdSongPlaylist>` - The newly created [`DjmdSongPlaylist`] object.
+    /// The newly created [`DjmdSongPlaylist`] object.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -3114,7 +3232,7 @@ impl MasterDb {
     /// * `seq` - The new sequence number for the song.
     ///
     /// # Returns
-    /// * `Result<DjmdSongPlaylist>` - The updated [`DjmdSongPlaylist`] object.
+    /// The updated [`DjmdSongPlaylist`] object.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -3145,7 +3263,7 @@ impl MasterDb {
     /// * `start_seq` - The starting sequence number for the songs.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdSongPlaylist>>` - The updated [`DjmdSongPlaylist`] objects.
+    /// The updated [`DjmdSongPlaylist`] objects.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -3179,7 +3297,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the song playlist entry to be deleted.
     ///
     /// # Returns
-    /// * `Result<usize>` - The number of rows affected by the delete operation.
+    /// The number of rows affected by the delete operation.
     ///
     /// # Errors
     /// * Returns an error if Rekordbox is running and unsafe writes are not allowed.
@@ -3205,19 +3323,19 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdProperty`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdProperty>>` - A vector of [`DjmdProperty`] objects if the query is successful.
+    /// A vector of [`DjmdProperty`] objects if the query is successful.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
     ///
     /// # Example
     /// ```no_run
-    /// let properties = db.get_property().unwrap();
+    /// let properties = db.get_properties().unwrap();
     /// for property in properties {
     ///     println!("{:?}", property);
     /// }
     /// ```
-    pub fn get_property(&mut self) -> Result<Vec<DjmdProperty>> {
+    pub fn get_properties(&mut self) -> Result<Vec<DjmdProperty>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdProperty::all(&mut conn)?)
     }
@@ -3228,7 +3346,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the property.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdProperty>>` - Returns an `Option` containing the [`DjmdProperty`] object if found, or `None`.
+    /// An `Option` containing the [`DjmdProperty`] object if found, or `None`.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -3251,19 +3369,19 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdCloudProperty`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdCloudProperty>>` - A vector of [`DjmdCloudProperty`] objects if the query is successful.
+    /// A vector of [`DjmdCloudProperty`] objects if the query is successful.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
     ///
     /// # Example
     /// ```no_run
-    /// let cloud_properties = db.get_cloud_property().unwrap();
+    /// let cloud_properties = db.get_cloud_properties().unwrap();
     /// for property in cloud_properties {
     ///     println!("{:?}", property);
     /// }
     /// ```
-    pub fn get_cloud_property(&mut self) -> Result<Vec<DjmdCloudProperty>> {
+    pub fn get_cloud_properties(&mut self) -> Result<Vec<DjmdCloudProperty>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdCloudProperty::all(&mut conn)?)
     }
@@ -3274,7 +3392,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the cloud property.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdCloudProperty>>` - Returns an `Option` containing the [`DjmdCloudProperty`] object if found, or `None`.
+    /// An `Option` containing the [`DjmdCloudProperty`] object if found, or `None`.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -3297,19 +3415,19 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdRecommendLike`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdRecommendLike>>` - A vector of [`DjmdRecommendLike`] objects if the query is successful.
+    /// A vector of [`DjmdRecommendLike`] objects if the query is successful.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
     ///
     /// # Example
     /// ```no_run
-    /// let likes = db.get_recommend_like().unwrap();
+    /// let likes = db.get_recommend_likes().unwrap();
     /// for like in likes {
     ///     println!("{:?}", like);
     /// }
     /// ```
-    pub fn get_recommend_like(&mut self) -> Result<Vec<DjmdRecommendLike>> {
+    pub fn get_recommend_likes(&mut self) -> Result<Vec<DjmdRecommendLike>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdRecommendLike::all(&mut conn)?)
     }
@@ -3320,7 +3438,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the recommend like entry.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdRecommendLike>>` - Returns an `Option` containing the [`DjmdRecommendLike`] object if found, or `None`.
+    /// An `Option` containing the [`DjmdRecommendLike`] object if found, or `None`.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -3343,7 +3461,7 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdRelatedTracks`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdRelatedTracks>>` - A vector of [`DjmdRelatedTracks`] objects if the query is successful.
+    /// A vector of [`DjmdRelatedTracks`] objects if the query is successful.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -3366,7 +3484,7 @@ impl MasterDb {
     /// * `parent_id` - A string slice representing the parent related tracks ID.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdRelatedTracks>>` - A vector of child [`DjmdRelatedTracks`] objects.
+    /// A vector of child [`DjmdRelatedTracks`] objects.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -3392,7 +3510,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the related tracks entry.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdRelatedTracks>>` - Returns an `Option` containing the [`DjmdRelatedTracks`] object if found, or `None`.
+    /// An `Option` containing the [`DjmdRelatedTracks`] object if found, or `None`.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -3416,7 +3534,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the related tracks ID.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdSongRelatedTracks>>` - A vector of [`DjmdSongRelatedTracks`] objects.
+    /// A vector of [`DjmdSongRelatedTracks`] objects.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -3439,7 +3557,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the related tracks ID.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdContent>>` - A vector of [`DjmdContent`] objects referenced by the related tracks.
+    /// A vector of [`DjmdContent`] objects referenced by the related tracks.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -3461,19 +3579,19 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdSampler`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdSampler>>` - A vector of [`DjmdSampler`] objects if the query is successful.
+    /// A vector of [`DjmdSampler`] objects if the query is successful.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
     ///
     /// # Example
     /// ```no_run
-    /// let samplers = db.get_sampler().unwrap();
+    /// let samplers = db.get_samplers().unwrap();
     /// for sampler in samplers {
     ///     println!("{:?}", sampler);
     /// }
     /// ```
-    pub fn get_sampler(&mut self) -> Result<Vec<DjmdSampler>> {
+    pub fn get_samplers(&mut self) -> Result<Vec<DjmdSampler>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdSampler::all(&mut conn)?)
     }
@@ -3484,7 +3602,7 @@ impl MasterDb {
     /// * `parent_id` - A string slice representing the parent sampler ID.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdSampler>>` - A vector of child [`DjmdSampler`] objects.
+    /// A vector of child [`DjmdSampler`] objects.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -3507,7 +3625,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the sampler entry.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdSampler>>` - Returns an `Option` containing the [`DjmdSampler`] object if found, or `None`.
+    /// An `Option` containing the [`DjmdSampler`] object if found, or `None`.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -3531,7 +3649,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the sampler ID.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdSongSampler>>` - A vector of [`DjmdSongSampler`] objects.
+    /// A vector of [`DjmdSongSampler`] objects.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -3554,7 +3672,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the sampler ID.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdContent>>` - A vector of [`DjmdContent`] objects referenced by the sampler.
+    /// A vector of [`DjmdContent`] objects referenced by the sampler.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -3576,19 +3694,19 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdSongTagList`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdSongTagList>>` - A vector of [`DjmdSongTagList`] objects if the query is successful.
+    /// A vector of [`DjmdSongTagList`] objects if the query is successful.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
     ///
     /// # Example
     /// ```no_run
-    /// let tags = db.get_song_tag_list().unwrap();
+    /// let tags = db.get_song_tag_lists().unwrap();
     /// for tag in tags {
     ///     println!("{:?}", tag);
     /// }
     /// ```
-    pub fn get_song_tag_list(&mut self) -> Result<Vec<DjmdSongTagList>> {
+    pub fn get_song_tag_lists(&mut self) -> Result<Vec<DjmdSongTagList>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdSongTagList::all(&mut conn)?)
     }
@@ -3599,7 +3717,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the song tag list entry.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdSongTagList>>` - Returns an `Option` containing the [`DjmdSongTagList`] object if found, or `None`.
+    /// An `Option` containing the [`DjmdSongTagList`] object if found, or `None`.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -3622,7 +3740,7 @@ impl MasterDb {
     /// Retrieves all entries from the [`DjmdSort`] table in the database, ordered by sequence.
     ///
     /// # Returns
-    /// * `Result<Vec<DjmdSort>>` - A vector of [`DjmdSort`] objects if the query is successful.
+    /// A vector of [`DjmdSort`] objects if the query is successful.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -3634,7 +3752,7 @@ impl MasterDb {
     ///     println!("{:?}", sort);
     /// }
     /// ```
-    pub fn get_sort(&mut self) -> Result<Vec<DjmdSort>> {
+    pub fn get_sorts(&mut self) -> Result<Vec<DjmdSort>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdSort::all(&mut conn)?)
     }
@@ -3645,7 +3763,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the sort entry.
     ///
     /// # Returns
-    /// * `Result<Option<DjmdSort>>` - Returns an `Option` containing the [`DjmdSort`] object if found, or `None`.
+    /// An `Option` containing the [`DjmdSort`] object if found, or `None`.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -3668,19 +3786,19 @@ impl MasterDb {
     /// Retrieves all entries from the [`ImageFile`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<ImageFile>>` - A vector of [`ImageFile`] objects if the query is successful.
+    /// A vector of [`ImageFile`] objects if the query is successful.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
     ///
     /// # Example
     /// ```no_run
-    /// let images = db.get_image_file().unwrap();
+    /// let images = db.get_image_files().unwrap();
     /// for image in images {
     ///     println!("{:?}", image);
     /// }
     /// ```
-    pub fn get_image_file(&mut self) -> Result<Vec<ImageFile>> {
+    pub fn get_image_files(&mut self) -> Result<Vec<ImageFile>> {
         let mut conn = self.pool.get()?;
         Ok(ImageFile::all(&mut conn)?)
     }
@@ -3691,7 +3809,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the image file.
     ///
     /// # Returns
-    /// * `Result<Option<ImageFile>>` - Returns an `Option` containing the [`ImageFile`] object if found, or `None`.
+    /// An `Option` containing the [`ImageFile`] object if found, or `None`.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -3714,7 +3832,7 @@ impl MasterDb {
     /// Retrieves all entries from the [`SettingFile`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<SettingFile>>` - A vector of [`SettingFile`] objects if the query is successful.
+    /// A vector of [`SettingFile`] objects if the query is successful.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -3726,7 +3844,7 @@ impl MasterDb {
     ///     println!("{:?}", setting);
     /// }
     /// ```
-    pub fn get_setting_file(&mut self) -> Result<Vec<SettingFile>> {
+    pub fn get_setting_files(&mut self) -> Result<Vec<SettingFile>> {
         let mut conn = self.pool.get()?;
         Ok(SettingFile::all(&mut conn)?)
     }
@@ -3737,7 +3855,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the setting file.
     ///
     /// # Returns
-    /// * `Result<Option<SettingFile>>` - Returns an `Option` containing the [`SettingFile`] object if found, or `None`.
+    /// An `Option` containing the [`SettingFile`] object if found, or `None`.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -3760,7 +3878,7 @@ impl MasterDb {
     /// Retrieves all entries from the [`UuidIDMap`] table in the database.
     ///
     /// # Returns
-    /// * `Result<Vec<UuidIDMap>>` - A vector of [`UuidIDMap`] objects if the query is successful.
+    /// A vector of [`UuidIDMap`] objects if the query is successful.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.
@@ -3772,7 +3890,7 @@ impl MasterDb {
     ///     println!("{:?}", map);
     /// }
     /// ```
-    pub fn get_uuid_id_map(&mut self) -> Result<Vec<UuidIDMap>> {
+    pub fn get_uuid_id_maps(&mut self) -> Result<Vec<UuidIDMap>> {
         let mut conn = self.pool.get()?;
         Ok(UuidIDMap::all(&mut conn)?)
     }
@@ -3783,7 +3901,7 @@ impl MasterDb {
     /// * `id` - A string slice representing the unique identifier of the UUID ID map entry.
     ///
     /// # Returns
-    /// * `Result<Option<UuidIDMap>>` - Returns an `Option` containing the [`UuidIDMap`] object if found, or `None`.
+    /// An `Option` containing the [`UuidIDMap`] object if found, or `None`.
     ///
     /// # Errors
     /// * Returns an error if the database query cannot be executed.

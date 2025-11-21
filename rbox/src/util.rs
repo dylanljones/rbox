@@ -307,7 +307,7 @@ pub fn is_rekordbox_running() -> bool {
 /// String iterator used for Python bindings.
 #[cfg(feature = "pyo3")]
 #[pyclass]
-pub(crate) struct PyStrIter {
+pub struct PyStrIter {
     pub inner: std::vec::IntoIter<String>,
 }
 
@@ -335,13 +335,13 @@ impl PyStrIter {
 /// Object iterator used for Python bindings.
 #[cfg(feature = "pyo3")]
 #[pyclass]
-pub(crate) struct PyObjectIter {
-    pub inner: std::vec::IntoIter<PyObject>,
+pub struct PyObjectIter {
+    pub inner: std::vec::IntoIter<Py<PyAny>>,
 }
 
 #[cfg(feature = "pyo3")]
 impl PyObjectIter {
-    pub fn new(items: Vec<PyObject>) -> Self {
+    pub fn new(items: Vec<Py<PyAny>>) -> Self {
         Self {
             inner: items.into_iter(),
         }
@@ -355,7 +355,7 @@ impl PyObjectIter {
         slf
     }
 
-    pub fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<PyObject> {
+    pub fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<Py<PyAny>> {
         slf.inner.next()
     }
 }
@@ -363,13 +363,13 @@ impl PyObjectIter {
 /// Items iterator used for Python bindings.
 #[cfg(feature = "pyo3")]
 #[pyclass]
-pub(crate) struct PyItemsIter {
-    pub inner: std::vec::IntoIter<(String, PyObject)>,
+pub struct PyItemsIter {
+    pub inner: std::vec::IntoIter<(String, Py<PyAny>)>,
 }
 
 #[cfg(feature = "pyo3")]
 impl PyItemsIter {
-    pub fn new(items: Vec<(String, PyObject)>) -> Self {
+    pub fn new(items: Vec<(String, Py<PyAny>)>) -> Self {
         Self {
             inner: items.into_iter(),
         }
@@ -383,7 +383,7 @@ impl PyItemsIter {
         slf
     }
 
-    pub fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<(String, PyObject)> {
+    pub fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<(String, Py<PyAny>)> {
         slf.inner.next()
     }
 }
