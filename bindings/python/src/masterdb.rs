@@ -15,8 +15,8 @@ fn db_error<E: ToString>(e: E) -> PyErr {
 }
 
 #[derive(Clone)]
-#[pyclass(name = "DjmdPlaylistTreeItem", unsendable, get_all, set_all)]
-pub struct PyDjmdPlaylistTreeItem {
+#[pyclass(name = "DjmdPlaylistTreeNode", unsendable, get_all, set_all)]
+pub struct PyDjmdPlaylistTreeNode {
     pub id: String,
     pub uuid: String,
     pub rb_data_status: i32,
@@ -33,17 +33,17 @@ pub struct PyDjmdPlaylistTreeItem {
     pub attribute: i32,
     pub parent_id: String,
     pub smart_list: Option<String>,
-    pub children: Vec<PyDjmdPlaylistTreeItem>,
+    pub children: Vec<PyDjmdPlaylistTreeNode>,
 }
 
-impl IntoPy<PyDjmdPlaylistTreeItem> for DjmdPlaylistTreeItem {
-    fn into_py(self, py: Python) -> PyResult<PyDjmdPlaylistTreeItem> {
+impl IntoPy<PyDjmdPlaylistTreeNode> for DjmdPlaylistTreeNode {
+    fn into_py(self, py: Python) -> PyResult<PyDjmdPlaylistTreeNode> {
         let children = self
             .children
             .into_iter()
             .map(|c| c.borrow().clone().into_py(py).unwrap())
             .collect();
-        let model = PyDjmdPlaylistTreeItem {
+        let model = PyDjmdPlaylistTreeNode {
             id: self.id,
             uuid: self.uuid,
             rb_data_status: self.rb_data_status,
@@ -105,7 +105,7 @@ impl PyMasterDb {
         Ok(model)
     }
 
-    pub fn get_local_usn(&mut self, _py: Python) -> PyResult<i32> {
+    pub fn get_local_usn(&mut self) -> PyResult<i32> {
         let result = self.db.get_local_usn().map_err(|e| db_error(e))?;
         Ok(result)
     }
@@ -683,7 +683,7 @@ impl PyMasterDb {
         Ok(models)
     }
 
-    pub fn get_playlist_tree(&mut self, py: Python) -> PyResult<Vec<PyDjmdPlaylistTreeItem>> {
+    pub fn get_playlist_tree(&mut self, py: Python) -> PyResult<Vec<PyDjmdPlaylistTreeNode>> {
         let models = self.db.get_playlist_tree().map_err(|e| db_error(e))?;
         let items = models
             .into_iter()
