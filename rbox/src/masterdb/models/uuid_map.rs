@@ -26,7 +26,7 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
-#[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "napi", napi(object, js_name = "UuidIdMap"))]
 pub struct UuidIDMap {
     /// A unique identifier for the entry.
     pub id: String,
