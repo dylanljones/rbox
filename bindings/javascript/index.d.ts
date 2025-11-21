@@ -3243,8 +3243,8 @@ export declare class MasterDb {
   getImageFileById(id: string): ImageFile | null
   getSettingFiles(): Array<SettingFile>
   getSettingFileById(id: string): SettingFile | null
-  getUuidIdMaps(): Array<UuidIDMap>
-  getUuidIdMapById(id: string): UuidIDMap | null
+  getUuidIdMaps(): Array<UuidIdMap>
+  getUuidIdMapById(id: string): UuidIdMap | null
 }
 export type JsMasterDb = MasterDb
 
