@@ -3,7 +3,7 @@
 
 #![allow(dead_code)]
 
-use rbox::{Anlz, MasterDb};
+use rbox::Anlz;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -109,18 +109,16 @@ fn create_rbv6_temp_db_dir() -> TempDir {
 }
 
 /// Setup code for the database tests.
-pub fn setup_master_db() -> MasterDb {
+pub fn setup_master_db_path() -> NamedTempFile {
     let fixture_path = testdata_demo_dir().join("rekordbox").join("master.db");
     let tmp = create_temp_file(&fixture_path);
-    MasterDb::new(tmp.path().to_str().unwrap()).expect("Failed to open database")
+    tmp
 }
 
 /// Setup code for the database tests that need all additional files.
-pub fn setup_master_db_dir() -> (MasterDb, TempDir) {
+pub fn setup_master_db_dir_path() -> TempDir {
     let tmp_root = create_rbv6_temp_db_dir();
-    let db_path = tmp_root.path().join("rekordbox").join("master.db");
-    let db = MasterDb::new(db_path.to_str().unwrap()).expect("Failed to open database");
-    (db, tmp_root)
+    tmp_root
 }
 
 /// Setup code for the database tests.

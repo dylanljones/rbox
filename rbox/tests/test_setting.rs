@@ -1,20 +1,14 @@
 // Author: Dylan Jones
 // Date:   2025-08-11
 
+use anyhow::Result;
 use rbox::settings::*;
+use rstest::*;
 use std::path::PathBuf;
 
 mod common;
 
-fn path(dir: &PathBuf, file_name: &str, key: &str, value: &str) -> PathBuf {
-    dir.join(key).join(value).join(file_name)
-}
-
-fn load(dir: &PathBuf, file_name: &str, key: &str, value: &str) -> anyhow::Result<Setting> {
-    Ok(Setting::load(path(dir, file_name, key, value))?)
-}
-
-fn assert_file(sett: &mut Setting, expected: &PathBuf, name: &str) -> anyhow::Result<()> {
+fn assert_file(sett: &mut Setting, expected: &PathBuf, name: &str) -> Result<()> {
     let tmp_dir = common::create_temp_dir();
     let out_file = tmp_dir.path().join(name);
     sett.dump_copy(&out_file)?;
@@ -27,1376 +21,1184 @@ fn assert_file(sett: &mut Setting, expected: &PathBuf, name: &str) -> anyhow::Re
     Ok(())
 }
 
-fn assert_get_auto_cue(dir: &PathBuf, name: &str, value: AutoCue) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "auto_cue", name)?;
-    assert_eq!(sett.get_auto_cue()?, value);
-    Ok(())
+fn mysetting_path(key: &str, value: &str) -> PathBuf {
+    let root = common::setup_mysettings_path();
+    root.join("mysetting")
+        .join(key)
+        .join(value)
+        .join("MYSETTING.DAT")
 }
 
-fn assert_set_auto_cue(dir: &PathBuf, name: &str, value: AutoCue) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "auto_cue", name);
-    let mut sett = Setting::load(&in_file)?;
-    sett.set_auto_cue(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
+fn assert_mysetting_file(sett: &mut Setting, expected: &PathBuf) -> Result<()> {
+    assert_file(sett, &expected, "MYSETTING.DAT")
 }
 
-fn assert_get_auto_cue_level(dir: &PathBuf, name: &str, value: AutoCueLevel) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "auto_cue_level", name)?;
-    assert_eq!(sett.get_auto_cue_level()?, value);
-    Ok(())
+fn mysetting2_path(key: &str, value: &str) -> PathBuf {
+    let root = common::setup_mysettings_path();
+    root.join("mysetting2")
+        .join(key)
+        .join(value)
+        .join("MYSETTING2.DAT")
 }
 
-fn assert_set_auto_cue_level(dir: &PathBuf, name: &str, value: AutoCueLevel) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "auto_cue_level", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_auto_cue_level(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
+fn assert_mysetting2_file(sett: &mut Setting, expected: &PathBuf) -> Result<()> {
+    assert_file(sett, &expected, "MYSETTING2.DAT")
 }
 
-fn assert_get_disc_slot_illumination(
-    dir: &PathBuf,
-    name: &str,
-    value: DiscSlotIllumination,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "disc_slot_illumination", name)?;
-    assert_eq!(sett.get_disc_slot_illumination()?, value);
-    Ok(())
+fn djmdmysetting_path(key: &str, value: &str) -> PathBuf {
+    let root = common::setup_mysettings_path();
+    root.join("djmmysetting")
+        .join(key)
+        .join(value)
+        .join("DJMMYSETTING.DAT")
 }
 
-fn assert_set_disc_slot_illumination(
-    dir: &PathBuf,
-    name: &str,
-    value: DiscSlotIllumination,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "disc_slot_illumination", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_disc_slot_illumination(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
+fn assert_djmdmysetting_file(sett: &mut Setting, expected: &PathBuf) -> Result<()> {
+    assert_file(sett, &expected, "DJMMYSETTING.DAT")
 }
 
-fn assert_get_eject_lock(dir: &PathBuf, name: &str, value: EjectLock) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "eject_lock", name)?;
-    assert_eq!(sett.get_eject_lock()?, value);
-    Ok(())
+fn devmysetting_path(key: &str, value: &str) -> PathBuf {
+    let root = common::setup_mysettings_path();
+    root.join("devsetting")
+        .join(key)
+        .join(value)
+        .join("DEVSETTING.DAT")
 }
 
-fn assert_set_eject_lock(dir: &PathBuf, name: &str, value: EjectLock) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "eject_lock", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_eject_lock(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
-}
-
-fn assert_get_hotcue_autoload(
-    dir: &PathBuf,
-    name: &str,
-    value: HotCueAutoLoad,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "hotcue_autoload", name)?;
-    assert_eq!(sett.get_hotcue_autoload()?, value);
-    Ok(())
-}
-
-fn assert_set_hotcue_autoload(
-    dir: &PathBuf,
-    name: &str,
-    value: HotCueAutoLoad,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "hotcue_autoload", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_hotcue_autoload(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
-}
-
-fn assert_get_hotcue_color(dir: &PathBuf, name: &str, value: HotCueColor) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "hotcue_color", name)?;
-    assert_eq!(sett.get_hotcue_color()?, value);
-    Ok(())
-}
-
-fn assert_set_hotcue_color(dir: &PathBuf, name: &str, value: HotCueColor) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "hotcue_color", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_hotcue_color(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
-}
-
-fn assert_get_jog_mode(dir: &PathBuf, name: &str, value: JogMode) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "jog_mode", name)?;
-    assert_eq!(sett.get_jog_mode()?, value);
-    Ok(())
-}
-
-fn assert_set_jog_mode(dir: &PathBuf, name: &str, value: JogMode) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "jog_mode", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_jog_mode(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
-}
-
-fn assert_get_jog_ring_brightness(
-    dir: &PathBuf,
-    name: &str,
-    value: JogRingBrightness,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "jog_ring_brightness", name)?;
-    assert_eq!(sett.get_jog_ring_brightness()?, value);
-    Ok(())
-}
-
-fn assert_set_jog_ring_brightness(
-    dir: &PathBuf,
-    name: &str,
-    value: JogRingBrightness,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "jog_ring_brightness", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_jog_ring_brightness(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
-}
-
-fn assert_get_jog_ring_indicator(
-    dir: &PathBuf,
-    name: &str,
-    value: JogRingIndicator,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "jog_ring_indicator", name)?;
-    assert_eq!(sett.get_jog_ring_indicator()?, value);
-    Ok(())
-}
-
-fn assert_set_jog_ring_indicator(
-    dir: &PathBuf,
-    name: &str,
-    value: JogRingIndicator,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "jog_ring_indicator", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_jog_ring_indicator(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
-}
-
-fn assert_get_language(dir: &PathBuf, name: &str, value: Language) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "language", name)?;
-    assert_eq!(sett.get_language()?, value);
-    Ok(())
-}
-
-fn assert_set_language(dir: &PathBuf, name: &str, value: Language) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "language", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_language(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
-}
-
-fn assert_get_lcd_brightness(
-    dir: &PathBuf,
-    name: &str,
-    value: LCDBrightness,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "lcd_brightness", name)?;
-    assert_eq!(sett.get_lcd_brightness()?, value);
-    Ok(())
-}
-
-fn assert_set_lcd_brightness(
-    dir: &PathBuf,
-    name: &str,
-    value: LCDBrightness,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "lcd_brightness", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_lcd_brightness(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
-}
-
-fn assert_get_master_tempo(dir: &PathBuf, name: &str, value: MasterTempo) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "master_tempo", name)?;
-    assert_eq!(sett.get_master_tempo()?, value);
-    Ok(())
-}
-
-fn assert_set_master_tempo(dir: &PathBuf, name: &str, value: MasterTempo) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "master_tempo", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_master_tempo(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
-}
-
-fn assert_get_needle_lock(dir: &PathBuf, name: &str, value: NeedleLock) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "needle_lock", name)?;
-    assert_eq!(sett.get_needle_lock()?, value);
-    Ok(())
-}
-
-fn assert_set_needle_lock(dir: &PathBuf, name: &str, value: NeedleLock) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "needle_lock", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_needle_lock(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
-}
-
-fn assert_get_on_air_display(dir: &PathBuf, name: &str, value: OnAirDisplay) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "on_air_display", name)?;
-    assert_eq!(sett.get_on_air_display()?, value);
-    Ok(())
-}
-
-fn assert_set_on_air_display(dir: &PathBuf, name: &str, value: OnAirDisplay) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "on_air_display", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_on_air_display(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
-}
-
-fn assert_get_phase_meter(dir: &PathBuf, name: &str, value: PhaseMeter) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "phase_meter", name)?;
-    assert_eq!(sett.get_phase_meter()?, value);
-    Ok(())
-}
-
-fn assert_set_phase_meter(dir: &PathBuf, name: &str, value: PhaseMeter) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "phase_meter", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_phase_meter(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
-}
-
-fn assert_get_play_mode(dir: &PathBuf, name: &str, value: PlayMode) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "play_mode", name)?;
-    assert_eq!(sett.get_play_mode()?, value);
-    Ok(())
-}
-
-fn assert_set_play_mode(dir: &PathBuf, name: &str, value: PlayMode) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "play_mode", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_play_mode(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
-}
-
-fn assert_get_quantize(dir: &PathBuf, name: &str, value: Quantize) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "quantize", name)?;
-    assert_eq!(sett.get_quantize()?, value);
-    Ok(())
-}
-
-fn assert_set_quantize(dir: &PathBuf, name: &str, value: Quantize) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "quantize", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_quantize(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
-}
-
-fn assert_get_quantize_beat_value(
-    dir: &PathBuf,
-    name: &str,
-    value: QuantizeBeatValue,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "quantize_beat_value", name)?;
-    assert_eq!(sett.get_quantize_beat_value()?, value);
-    Ok(())
-}
-
-fn assert_set_quantize_beat_value(
-    dir: &PathBuf,
-    name: &str,
-    value: QuantizeBeatValue,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "quantize_beat_value", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_quantize_beat_value(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
-}
-
-fn assert_get_slip_flashing(dir: &PathBuf, name: &str, value: SlipFlashing) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "slip_flashing", name)?;
-    assert_eq!(sett.get_slip_flashing()?, value);
-    Ok(())
-}
-
-fn assert_set_slip_flashing(dir: &PathBuf, name: &str, value: SlipFlashing) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "slip_flashing", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_slip_flashing(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
-}
-
-fn assert_get_sync(dir: &PathBuf, name: &str, value: Sync) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "sync", name)?;
-    assert_eq!(sett.get_sync()?, value);
-    Ok(())
-}
-
-fn assert_set_sync(dir: &PathBuf, name: &str, value: Sync) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "sync", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_sync(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
-}
-
-fn assert_get_tempo_range(dir: &PathBuf, name: &str, value: TempoRange) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "tempo_range", name)?;
-    assert_eq!(sett.get_tempo_range()?, value);
-    Ok(())
-}
-
-fn assert_set_tempo_range(dir: &PathBuf, name: &str, value: TempoRange) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "tempo_range", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_tempo_range(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
-}
-
-fn assert_get_time_mode(dir: &PathBuf, name: &str, value: TimeMode) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING.DAT", "time_mode", name)?;
-    assert_eq!(sett.get_time_mode()?, value);
-    Ok(())
-}
-
-fn assert_set_time_mode(dir: &PathBuf, name: &str, value: TimeMode) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING.DAT", "time_mode", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_time_mode(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING.DAT")
-}
-
-fn assert_get_beat_jump_beat_value(
-    dir: &PathBuf,
-    name: &str,
-    value: BeatJumpBeatValue,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING2.DAT", "beat_jump_beat_value", name)?;
-    assert_eq!(sett.get_beat_jump_beat_value()?, value);
-    Ok(())
-}
-
-fn assert_set_beat_jump_beat_value(
-    dir: &PathBuf,
-    name: &str,
-    value: BeatJumpBeatValue,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING2.DAT", "beat_jump_beat_value", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_beat_jump_beat_value(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING2.DAT")
-}
-
-fn assert_get_jog_display_mode(
-    dir: &PathBuf,
-    name: &str,
-    value: JogDisplayMode,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING2.DAT", "jog_display_mode", name)?;
-    assert_eq!(sett.get_jog_display_mode()?, value);
-    Ok(())
-}
-
-fn assert_set_jog_display_mode(
-    dir: &PathBuf,
-    name: &str,
-    value: JogDisplayMode,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING2.DAT", "jog_display_mode", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_jog_display_mode(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING2.DAT")
-}
-
-fn assert_get_jog_lcd_brightness(
-    dir: &PathBuf,
-    name: &str,
-    value: JogLCDBrightness,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING2.DAT", "jog_lcd_brightness", name)?;
-    assert_eq!(sett.get_jog_lcd_brightness()?, value);
-    Ok(())
-}
-
-fn assert_set_jog_lcd_brightness(
-    dir: &PathBuf,
-    name: &str,
-    value: JogLCDBrightness,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING2.DAT", "jog_lcd_brightness", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_jog_lcd_brightness(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING2.DAT")
-}
-
-fn assert_get_pad_button_brightness(
-    dir: &PathBuf,
-    name: &str,
-    value: PadButtonBrightness,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING2.DAT", "pad_button_brightness", name)?;
-    assert_eq!(sett.get_pad_button_brightness()?, value);
-    Ok(())
-}
-
-fn assert_set_pad_button_brightness(
-    dir: &PathBuf,
-    name: &str,
-    value: PadButtonBrightness,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING2.DAT", "pad_button_brightness", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_pad_button_brightness(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING2.DAT")
-}
-
-fn assert_get_vinyl_speed_adjust(
-    dir: &PathBuf,
-    name: &str,
-    value: VinylSpeedAdjust,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING2.DAT", "vinyl_speed_adjust", name)?;
-    assert_eq!(sett.get_vinyl_speed_adjust()?, value);
-    Ok(())
-}
-
-fn assert_set_vinyl_speed_adjust(
-    dir: &PathBuf,
-    name: &str,
-    value: VinylSpeedAdjust,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING2.DAT", "vinyl_speed_adjust", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_vinyl_speed_adjust(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING2.DAT")
-}
-
-fn assert_get_waveform(dir: &PathBuf, name: &str, value: Waveform) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING2.DAT", "waveform", name)?;
-    assert_eq!(sett.get_waveform()?, value);
-    Ok(())
-}
-
-fn assert_set_waveform(dir: &PathBuf, name: &str, value: Waveform) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING2.DAT", "waveform", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_waveform(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING2.DAT")
-}
-
-fn assert_get_waveform_divisions(
-    dir: &PathBuf,
-    name: &str,
-    value: WaveformDivisions,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "MYSETTING2.DAT", "waveform_divisions", name)?;
-    assert_eq!(sett.get_waveform_divisions()?, value);
-    Ok(())
-}
-
-fn assert_set_waveform_divisions(
-    dir: &PathBuf,
-    name: &str,
-    value: WaveformDivisions,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "MYSETTING2.DAT", "waveform_divisions", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_waveform_divisions(value)?;
-    assert_file(&mut sett, &in_file, "MYSETTING2.DAT")
-}
-
-fn assert_get_beat_fx_quantize(
-    dir: &PathBuf,
-    name: &str,
-    value: BeatFXQuantize,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "DJMMYSETTING.DAT", "beat_fx_quantize", name)?;
-    assert_eq!(sett.get_beat_fx_quantize()?, value);
-    Ok(())
-}
-
-fn assert_set_beat_fx_quantize(
-    dir: &PathBuf,
-    name: &str,
-    value: BeatFXQuantize,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "DJMMYSETTING.DAT", "beat_fx_quantize", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_beat_fx_quantize(value)?;
-    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
-}
-
-fn assert_get_channel_fader_curve(
-    dir: &PathBuf,
-    name: &str,
-    value: ChannelFaderCurve,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "DJMMYSETTING.DAT", "channel_fader_curve", name)?;
-    assert_eq!(sett.get_channel_fader_curve()?, value);
-    Ok(())
-}
-
-fn assert_set_channel_fader_curve(
-    dir: &PathBuf,
-    name: &str,
-    value: ChannelFaderCurve,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "DJMMYSETTING.DAT", "channel_fader_curve", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_channel_fader_curve(value)?;
-    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
-}
-
-fn assert_get_channel_fader_curve_long_fader(
-    dir: &PathBuf,
-    name: &str,
-    value: ChannelFaderCurveLongFader,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "DJMMYSETTING.DAT", "channel_fader_curve_long", name)?;
-    assert_eq!(sett.get_channel_fader_curve_long_fader()?, value);
-    Ok(())
-}
-
-fn assert_set_channel_fader_curve_long_fader(
-    dir: &PathBuf,
-    name: &str,
-    value: ChannelFaderCurveLongFader,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "DJMMYSETTING.DAT", "channel_fader_curve_long", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_channel_fader_curve_long_fader(value)?;
-    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
-}
-
-fn assert_get_cross_fader_curve(
-    dir: &PathBuf,
-    name: &str,
-    value: CrossfaderCurve,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "DJMMYSETTING.DAT", "cross_fader_curve", name)?;
-    assert_eq!(sett.get_crossfader_curve()?, value);
-    Ok(())
-}
-
-fn assert_set_cross_fader_curve(
-    dir: &PathBuf,
-    name: &str,
-    value: CrossfaderCurve,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "DJMMYSETTING.DAT", "cross_fader_curve", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_crossfader_curve(value)?;
-    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
-}
-
-fn assert_get_mixer_display_brightness(
-    dir: &PathBuf,
-    name: &str,
-    value: MixerDisplayBrightness,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "DJMMYSETTING.DAT", "display_brightness", name)?;
-    assert_eq!(sett.get_mixer_display_brightness()?, value);
-    Ok(())
-}
-
-fn assert_set_mixer_display_brightness(
-    dir: &PathBuf,
-    name: &str,
-    value: MixerDisplayBrightness,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "DJMMYSETTING.DAT", "display_brightness", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_mixer_display_brightness(value)?;
-    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
-}
-
-fn assert_get_headphones_mono_split(
-    dir: &PathBuf,
-    name: &str,
-    value: HeadphonesMonoSplit,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "DJMMYSETTING.DAT", "headphones_mono_split", name)?;
-    assert_eq!(sett.get_headphones_mono_split()?, value);
-    Ok(())
-}
-
-fn assert_set_headphones_mono_split(
-    dir: &PathBuf,
-    name: &str,
-    value: HeadphonesMonoSplit,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "DJMMYSETTING.DAT", "headphones_mono_split", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_headphones_mono_split(value)?;
-    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
-}
-
-fn assert_get_headphones_pre_eq(
-    dir: &PathBuf,
-    name: &str,
-    value: HeadphonesPreEQ,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "DJMMYSETTING.DAT", "headphones_pre_eq", name)?;
-    assert_eq!(sett.get_headphones_pre_eq()?, value);
-    Ok(())
-}
-
-fn assert_set_headphones_pre_eq(
-    dir: &PathBuf,
-    name: &str,
-    value: HeadphonesPreEQ,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "DJMMYSETTING.DAT", "headphones_pre_eq", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_headphones_pre_eq(value)?;
-    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
-}
-
-fn assert_get_mixer_indicator_brightness(
-    dir: &PathBuf,
-    name: &str,
-    value: MixerIndicatorBrightness,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "DJMMYSETTING.DAT", "indicator_brightness", name)?;
-    assert_eq!(sett.get_mixer_indicator_brightness()?, value);
-    Ok(())
-}
-
-fn assert_set_mixer_indicator_brightness(
-    dir: &PathBuf,
-    name: &str,
-    value: MixerIndicatorBrightness,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "DJMMYSETTING.DAT", "indicator_brightness", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_mixer_indicator_brightness(value)?;
-    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
-}
-
-fn assert_get_mic_low_cut(dir: &PathBuf, name: &str, value: MicLowCut) -> anyhow::Result<()> {
-    let sett = load(dir, "DJMMYSETTING.DAT", "mic_low_cut", name)?;
-    assert_eq!(sett.get_mic_low_cut()?, value);
-    Ok(())
-}
-
-fn assert_set_mic_low_cut(dir: &PathBuf, name: &str, value: MicLowCut) -> anyhow::Result<()> {
-    let in_file = path(dir, "DJMMYSETTING.DAT", "mic_low_cut", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_mic_low_cut(value)?;
-    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
-}
-
-fn assert_get_midi_button_type(
-    dir: &PathBuf,
-    name: &str,
-    value: MidiButtonType,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "DJMMYSETTING.DAT", "midi_button_type", name)?;
-    assert_eq!(sett.get_midi_button_type()?, value);
-    Ok(())
-}
-
-fn assert_set_midi_button_type(
-    dir: &PathBuf,
-    name: &str,
-    value: MidiButtonType,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "DJMMYSETTING.DAT", "midi_button_type", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_midi_button_type(value)?;
-    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
-}
-
-fn assert_get_midi_channel(dir: &PathBuf, name: &str, value: MidiChannel) -> anyhow::Result<()> {
-    let sett = load(dir, "DJMMYSETTING.DAT", "midi_channel", name)?;
-    assert_eq!(sett.get_midi_channel()?, value);
-    Ok(())
-}
-
-fn assert_set_midi_channel(dir: &PathBuf, name: &str, value: MidiChannel) -> anyhow::Result<()> {
-    let in_file = path(dir, "DJMMYSETTING.DAT", "midi_channel", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_midi_channel(value)?;
-    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
-}
-
-fn assert_get_talk_over_level(
-    dir: &PathBuf,
-    name: &str,
-    value: TalkOverLevel,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "DJMMYSETTING.DAT", "talk_over_level", name)?;
-    assert_eq!(sett.get_talk_over_level()?, value);
-    Ok(())
-}
-
-fn assert_set_talk_over_level(
-    dir: &PathBuf,
-    name: &str,
-    value: TalkOverLevel,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "DJMMYSETTING.DAT", "talk_over_level", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_talk_over_level(value)?;
-    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
-}
-
-fn assert_get_talk_over_mode(dir: &PathBuf, name: &str, value: TalkOverMode) -> anyhow::Result<()> {
-    let sett = load(dir, "DJMMYSETTING.DAT", "talk_over_mode", name)?;
-    assert_eq!(sett.get_talk_over_mode()?, value);
-    Ok(())
-}
-
-fn assert_set_talk_over_mode(dir: &PathBuf, name: &str, value: TalkOverMode) -> anyhow::Result<()> {
-    let in_file = path(dir, "DJMMYSETTING.DAT", "talk_over_mode", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_talk_over_mode(value)?;
-    assert_file(&mut sett, &in_file, "DJMMYSETTING.DAT")
-}
-
-fn assert_get_overview_waveform_type(
-    dir: &PathBuf,
-    name: &str,
-    value: OverviewWaveformType,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "DEVSETTING.DAT", "overview_waveform_type", name)?;
-    assert_eq!(sett.get_overview_waveform_type()?, value);
-    Ok(())
-}
-
-fn assert_set_overview_waveform_type(
-    dir: &PathBuf,
-    name: &str,
-    value: OverviewWaveformType,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "DEVSETTING.DAT", "overview_waveform_type", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_overview_waveform_type(value)?;
-    assert_file(&mut sett, &in_file, "DEVSETTING.DAT")
-}
-
-fn assert_get_waveform_color(
-    dir: &PathBuf,
-    name: &str,
-    value: WaveformColor,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "DEVSETTING.DAT", "waveform_color", name)?;
-    assert_eq!(sett.get_waveform_color()?, value);
-    Ok(())
-}
-
-fn assert_set_waveform_color(
-    dir: &PathBuf,
-    name: &str,
-    value: WaveformColor,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "DEVSETTING.DAT", "waveform_color", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_waveform_color(value)?;
-    assert_file(&mut sett, &in_file, "DEVSETTING.DAT")
-}
-
-fn assert_get_key_display_format(
-    dir: &PathBuf,
-    name: &str,
-    value: KeyDisplayFormat,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "DEVSETTING.DAT", "key_display_format", name)?;
-    assert_eq!(sett.get_key_display_format()?, value);
-    Ok(())
-}
-
-fn assert_set_key_display_format(
-    dir: &PathBuf,
-    name: &str,
-    value: KeyDisplayFormat,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "DEVSETTING.DAT", "key_display_format", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_key_display_format(value)?;
-    assert_file(&mut sett, &in_file, "DEVSETTING.DAT")
-}
-
-fn assert_get_waveform_pos(
-    dir: &PathBuf,
-    name: &str,
-    value: WaveformCurrentPosition,
-) -> anyhow::Result<()> {
-    let sett = load(dir, "DEVSETTING.DAT", "waveform_current_pos", name)?;
-    assert_eq!(sett.get_waveform_current_position()?, value);
-    Ok(())
-}
-
-fn assert_set_waveform_pos(
-    dir: &PathBuf,
-    name: &str,
-    value: WaveformCurrentPosition,
-) -> anyhow::Result<()> {
-    let in_file = path(dir, "DEVSETTING.DAT", "waveform_current_pos", name);
-    let mut sett = Setting::load(in_file.clone())?;
-    sett.set_waveform_current_position(value)?;
-    assert_file(&mut sett, &in_file, "DEVSETTING.DAT")
+fn assert_devmysetting_file(sett: &mut Setting, expected: &PathBuf) -> Result<()> {
+    assert_file(sett, &expected, "DEVSETTING.DAT")
 }
 
 // ---- MySetting ----------------------------------------------------------------------------------
 
-#[test]
-fn test_get_mysetting() -> anyhow::Result<()> {
-    let root = common::setup_mysettings_path();
-    let dir = root.join("mysetting");
-
-    assert_get_auto_cue(&dir, "on", AutoCue::On)?;
-    assert_get_auto_cue(&dir, "off", AutoCue::Off)?;
-    assert_get_auto_cue_level(&dir, "memory", AutoCueLevel::Memory)?;
-    assert_get_auto_cue_level(&dir, "minus_36db", AutoCueLevel::Minus36dB)?;
-    assert_get_auto_cue_level(&dir, "minus_42db", AutoCueLevel::Minus42dB)?;
-    assert_get_auto_cue_level(&dir, "minus_48db", AutoCueLevel::Minus48dB)?;
-    assert_get_auto_cue_level(&dir, "minus_54db", AutoCueLevel::Minus54dB)?;
-    assert_get_auto_cue_level(&dir, "minus_60db", AutoCueLevel::Minus60dB)?;
-    assert_get_auto_cue_level(&dir, "minus_66db", AutoCueLevel::Minus66dB)?;
-    assert_get_auto_cue_level(&dir, "minus_72db", AutoCueLevel::Minus72dB)?;
-    assert_get_auto_cue_level(&dir, "minus_78db", AutoCueLevel::Minus78dB)?;
-    assert_get_disc_slot_illumination(&dir, "bright", DiscSlotIllumination::Bright)?;
-    assert_get_disc_slot_illumination(&dir, "dark", DiscSlotIllumination::Dark)?;
-    assert_get_disc_slot_illumination(&dir, "off", DiscSlotIllumination::Off)?;
-    assert_get_eject_lock(&dir, "lock", EjectLock::Lock)?;
-    assert_get_eject_lock(&dir, "unlock", EjectLock::Unlock)?;
-    assert_get_hotcue_autoload(&dir, "off", HotCueAutoLoad::Off)?;
-    assert_get_hotcue_autoload(&dir, "on", HotCueAutoLoad::On)?;
-    assert_get_hotcue_autoload(&dir, "rekordbox", HotCueAutoLoad::RekordboxSetting)?;
-    assert_get_hotcue_color(&dir, "off", HotCueColor::Off)?;
-    assert_get_hotcue_color(&dir, "on", HotCueColor::On)?;
-    assert_get_jog_mode(&dir, "cdj", JogMode::CDJ)?;
-    assert_get_jog_mode(&dir, "vinyl", JogMode::Vinyl)?;
-    assert_get_jog_ring_brightness(&dir, "bright", JogRingBrightness::Bright)?;
-    assert_get_jog_ring_brightness(&dir, "dark", JogRingBrightness::Dark)?;
-    assert_get_jog_ring_brightness(&dir, "off", JogRingBrightness::Off)?;
-    assert_get_jog_ring_indicator(&dir, "off", JogRingIndicator::Off)?;
-    assert_get_jog_ring_indicator(&dir, "on", JogRingIndicator::On)?;
-    assert_get_language(&dir, "chinese_simplified", Language::ChineseSimplified)?;
-    assert_get_language(&dir, "chinese_traditional", Language::ChineseTraditional)?;
-    assert_get_language(&dir, "czech", Language::Czech)?;
-    assert_get_language(&dir, "danish", Language::Danish)?;
-    assert_get_language(&dir, "dutch", Language::Dutch)?;
-    assert_get_language(&dir, "english", Language::English)?;
-    assert_get_language(&dir, "french", Language::French)?;
-    assert_get_language(&dir, "german", Language::German)?;
-    assert_get_language(&dir, "greek", Language::Greek)?;
-    assert_get_language(&dir, "hungarian", Language::Hungarian)?;
-    assert_get_language(&dir, "italian", Language::Italian)?;
-    assert_get_language(&dir, "japanese", Language::Japanese)?;
-    assert_get_language(&dir, "korean", Language::Korean)?;
-    assert_get_language(&dir, "portuguese", Language::Portuguese)?;
-    assert_get_language(&dir, "russian", Language::Russian)?;
-    assert_get_language(&dir, "spanish", Language::Spanish)?;
-    assert_get_language(&dir, "swedish", Language::Swedish)?;
-    assert_get_language(&dir, "turkish", Language::Turkish)?;
-    assert_get_lcd_brightness(&dir, "five", LCDBrightness::Five)?;
-    assert_get_lcd_brightness(&dir, "four", LCDBrightness::Four)?;
-    assert_get_lcd_brightness(&dir, "three", LCDBrightness::Three)?;
-    assert_get_lcd_brightness(&dir, "two", LCDBrightness::Two)?;
-    assert_get_lcd_brightness(&dir, "one", LCDBrightness::One)?;
-    assert_get_master_tempo(&dir, "off", MasterTempo::Off)?;
-    assert_get_master_tempo(&dir, "on", MasterTempo::On)?;
-    assert_get_needle_lock(&dir, "lock", NeedleLock::Lock)?;
-    assert_get_needle_lock(&dir, "unlock", NeedleLock::Unlock)?;
-    assert_get_on_air_display(&dir, "off", OnAirDisplay::Off)?;
-    assert_get_on_air_display(&dir, "on", OnAirDisplay::On)?;
-    assert_get_phase_meter(&dir, "type1", PhaseMeter::Type1)?;
-    assert_get_phase_meter(&dir, "type2", PhaseMeter::Type2)?;
-    assert_get_play_mode(&dir, "continue", PlayMode::Continue)?;
-    assert_get_play_mode(&dir, "single", PlayMode::Single)?;
-    assert_get_quantize(&dir, "off", Quantize::Off)?;
-    assert_get_quantize(&dir, "on", Quantize::On)?;
-    assert_get_quantize_beat_value(&dir, "eighth", QuantizeBeatValue::EighthBeat)?;
-    assert_get_quantize_beat_value(&dir, "quarter", QuantizeBeatValue::QuarterBeat)?;
-    assert_get_quantize_beat_value(&dir, "half", QuantizeBeatValue::HalfBeat)?;
-    assert_get_quantize_beat_value(&dir, "one", QuantizeBeatValue::FullBeat)?;
-    assert_get_slip_flashing(&dir, "off", SlipFlashing::Off)?;
-    assert_get_slip_flashing(&dir, "on", SlipFlashing::On)?;
-    assert_get_sync(&dir, "off", Sync::Off)?;
-    assert_get_sync(&dir, "on", Sync::On)?;
-    assert_get_tempo_range(&dir, "wide", TempoRange::Wide)?;
-    assert_get_tempo_range(&dir, "sixteen", TempoRange::SixteenPercent)?;
-    assert_get_tempo_range(&dir, "ten", TempoRange::TenPercent)?;
-    assert_get_tempo_range(&dir, "six", TempoRange::SixPercent)?;
-    assert_get_time_mode(&dir, "elapsed", TimeMode::Elapsed)?;
-    assert_get_time_mode(&dir, "remain", TimeMode::Remain)?;
-
+#[rstest]
+#[case("on", AutoCue::On)]
+#[case("off", AutoCue::Off)]
+fn test_get_auto_cue(#[case] name: &str, #[case] value: AutoCue) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("auto_cue", name))?;
+    assert_eq!(sett.get_auto_cue()?, value);
     Ok(())
 }
 
-#[test]
-fn test_set_mysetting() -> anyhow::Result<()> {
-    let root = common::setup_mysettings_path();
-    let dir = root.join("mysetting");
+#[rstest]
+#[case("on", AutoCue::On)]
+#[case("off", AutoCue::Off)]
+fn test_set_auto_cue(#[case] name: &str, #[case] value: AutoCue) -> Result<()> {
+    let in_file = mysetting_path("auto_cue", name);
+    let mut sett = Setting::load(&in_file)?;
+    sett.set_auto_cue(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
 
-    assert_set_auto_cue(&dir, "on", AutoCue::On)?;
-    assert_set_auto_cue(&dir, "off", AutoCue::Off)?;
-    assert_set_auto_cue_level(&dir, "memory", AutoCueLevel::Memory)?;
-    assert_set_auto_cue_level(&dir, "minus_36db", AutoCueLevel::Minus36dB)?;
-    assert_set_auto_cue_level(&dir, "minus_42db", AutoCueLevel::Minus42dB)?;
-    assert_set_auto_cue_level(&dir, "minus_48db", AutoCueLevel::Minus48dB)?;
-    assert_set_auto_cue_level(&dir, "minus_54db", AutoCueLevel::Minus54dB)?;
-    assert_set_auto_cue_level(&dir, "minus_60db", AutoCueLevel::Minus60dB)?;
-    assert_set_auto_cue_level(&dir, "minus_66db", AutoCueLevel::Minus66dB)?;
-    assert_set_auto_cue_level(&dir, "minus_72db", AutoCueLevel::Minus72dB)?;
-    assert_set_auto_cue_level(&dir, "minus_78db", AutoCueLevel::Minus78dB)?;
-    assert_set_disc_slot_illumination(&dir, "bright", DiscSlotIllumination::Bright)?;
-    assert_set_disc_slot_illumination(&dir, "dark", DiscSlotIllumination::Dark)?;
-    assert_set_disc_slot_illumination(&dir, "off", DiscSlotIllumination::Off)?;
-    assert_set_eject_lock(&dir, "lock", EjectLock::Lock)?;
-    assert_set_eject_lock(&dir, "unlock", EjectLock::Unlock)?;
-    assert_set_hotcue_autoload(&dir, "off", HotCueAutoLoad::Off)?;
-    assert_set_hotcue_autoload(&dir, "on", HotCueAutoLoad::On)?;
-    assert_set_hotcue_autoload(&dir, "rekordbox", HotCueAutoLoad::RekordboxSetting)?;
-    assert_set_hotcue_color(&dir, "off", HotCueColor::Off)?;
-    assert_set_hotcue_color(&dir, "on", HotCueColor::On)?;
-    assert_set_jog_mode(&dir, "cdj", JogMode::CDJ)?;
-    assert_set_jog_mode(&dir, "vinyl", JogMode::Vinyl)?;
-    assert_set_jog_ring_brightness(&dir, "bright", JogRingBrightness::Bright)?;
-    assert_set_jog_ring_brightness(&dir, "dark", JogRingBrightness::Dark)?;
-    assert_set_jog_ring_brightness(&dir, "off", JogRingBrightness::Off)?;
-    assert_set_jog_ring_indicator(&dir, "off", JogRingIndicator::Off)?;
-    assert_set_jog_ring_indicator(&dir, "on", JogRingIndicator::On)?;
-    assert_set_language(&dir, "chinese_simplified", Language::ChineseSimplified)?;
-    assert_set_language(&dir, "chinese_traditional", Language::ChineseTraditional)?;
-    assert_set_language(&dir, "czech", Language::Czech)?;
-    assert_set_language(&dir, "danish", Language::Danish)?;
-    assert_set_language(&dir, "dutch", Language::Dutch)?;
-    assert_set_language(&dir, "english", Language::English)?;
-    assert_set_language(&dir, "french", Language::French)?;
-    assert_set_language(&dir, "german", Language::German)?;
-    assert_set_language(&dir, "greek", Language::Greek)?;
-    assert_set_language(&dir, "hungarian", Language::Hungarian)?;
-    assert_set_language(&dir, "italian", Language::Italian)?;
-    assert_set_language(&dir, "japanese", Language::Japanese)?;
-    assert_set_language(&dir, "korean", Language::Korean)?;
-    assert_set_language(&dir, "portuguese", Language::Portuguese)?;
-    assert_set_language(&dir, "russian", Language::Russian)?;
-    assert_set_language(&dir, "spanish", Language::Spanish)?;
-    assert_set_language(&dir, "swedish", Language::Swedish)?;
-    assert_set_language(&dir, "turkish", Language::Turkish)?;
-    assert_set_lcd_brightness(&dir, "five", LCDBrightness::Five)?;
-    assert_set_lcd_brightness(&dir, "four", LCDBrightness::Four)?;
-    assert_set_lcd_brightness(&dir, "three", LCDBrightness::Three)?;
-    assert_set_lcd_brightness(&dir, "two", LCDBrightness::Two)?;
-    assert_set_lcd_brightness(&dir, "one", LCDBrightness::One)?;
-    assert_set_master_tempo(&dir, "off", MasterTempo::Off)?;
-    assert_set_master_tempo(&dir, "on", MasterTempo::On)?;
-    assert_set_needle_lock(&dir, "lock", NeedleLock::Lock)?;
-    assert_set_needle_lock(&dir, "unlock", NeedleLock::Unlock)?;
-    assert_set_on_air_display(&dir, "off", OnAirDisplay::Off)?;
-    assert_set_on_air_display(&dir, "on", OnAirDisplay::On)?;
-    assert_set_phase_meter(&dir, "type1", PhaseMeter::Type1)?;
-    assert_set_phase_meter(&dir, "type2", PhaseMeter::Type2)?;
-    assert_set_play_mode(&dir, "continue", PlayMode::Continue)?;
-    assert_set_play_mode(&dir, "single", PlayMode::Single)?;
-    assert_set_quantize(&dir, "off", Quantize::Off)?;
-    assert_set_quantize(&dir, "on", Quantize::On)?;
-    assert_set_quantize_beat_value(&dir, "eighth", QuantizeBeatValue::EighthBeat)?;
-    assert_set_quantize_beat_value(&dir, "quarter", QuantizeBeatValue::QuarterBeat)?;
-    assert_set_quantize_beat_value(&dir, "half", QuantizeBeatValue::HalfBeat)?;
-    assert_set_quantize_beat_value(&dir, "one", QuantizeBeatValue::FullBeat)?;
-    assert_set_slip_flashing(&dir, "off", SlipFlashing::Off)?;
-    assert_set_slip_flashing(&dir, "on", SlipFlashing::On)?;
-    assert_set_sync(&dir, "off", Sync::Off)?;
-    assert_set_sync(&dir, "on", Sync::On)?;
-    assert_set_tempo_range(&dir, "wide", TempoRange::Wide)?;
-    assert_set_tempo_range(&dir, "sixteen", TempoRange::SixteenPercent)?;
-    assert_set_tempo_range(&dir, "ten", TempoRange::TenPercent)?;
-    assert_set_tempo_range(&dir, "six", TempoRange::SixPercent)?;
-    assert_set_time_mode(&dir, "elapsed", TimeMode::Elapsed)?;
-    assert_set_time_mode(&dir, "remain", TimeMode::Remain)?;
-
+#[rstest]
+#[case("memory", AutoCueLevel::Memory)]
+#[case("minus_36db", AutoCueLevel::Minus36dB)]
+#[case("minus_42db", AutoCueLevel::Minus42dB)]
+#[case("minus_48db", AutoCueLevel::Minus48dB)]
+#[case("minus_54db", AutoCueLevel::Minus54dB)]
+#[case("minus_60db", AutoCueLevel::Minus60dB)]
+#[case("minus_66db", AutoCueLevel::Minus66dB)]
+#[case("minus_72db", AutoCueLevel::Minus72dB)]
+#[case("minus_78db", AutoCueLevel::Minus78dB)]
+fn test_get_auto_cue_level(#[case] name: &str, #[case] value: AutoCueLevel) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("auto_cue_level", name))?;
+    assert_eq!(sett.get_auto_cue_level()?, value);
     Ok(())
 }
 
+#[rstest]
+#[case("memory", AutoCueLevel::Memory)]
+#[case("minus_36db", AutoCueLevel::Minus36dB)]
+#[case("minus_42db", AutoCueLevel::Minus42dB)]
+#[case("minus_48db", AutoCueLevel::Minus48dB)]
+#[case("minus_54db", AutoCueLevel::Minus54dB)]
+#[case("minus_60db", AutoCueLevel::Minus60dB)]
+#[case("minus_66db", AutoCueLevel::Minus66dB)]
+#[case("minus_72db", AutoCueLevel::Minus72dB)]
+#[case("minus_78db", AutoCueLevel::Minus78dB)]
+fn test_set_auto_cue_level(#[case] name: &str, #[case] value: AutoCueLevel) -> Result<()> {
+    let in_file = mysetting_path("auto_cue_level", name);
+    let mut sett = Setting::load(&in_file)?;
+    sett.set_auto_cue_level(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("bright", DiscSlotIllumination::Bright)]
+#[case("dark", DiscSlotIllumination::Dark)]
+#[case("off", DiscSlotIllumination::Off)]
+fn test_get_disc_slot_illumination(
+    #[case] name: &str,
+    #[case] value: DiscSlotIllumination,
+) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("disc_slot_illumination", name))?;
+    assert_eq!(sett.get_disc_slot_illumination()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("bright", DiscSlotIllumination::Bright)]
+#[case("dark", DiscSlotIllumination::Dark)]
+#[case("off", DiscSlotIllumination::Off)]
+fn test_set_disc_slot_illumination(
+    #[case] name: &str,
+    #[case] value: DiscSlotIllumination,
+) -> Result<()> {
+    let in_file = mysetting_path("disc_slot_illumination", name);
+    let mut sett = Setting::load(&in_file)?;
+    sett.set_disc_slot_illumination(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("lock", EjectLock::Lock)]
+#[case("unlock", EjectLock::Unlock)]
+fn test_get_eject_lock(#[case] name: &str, #[case] value: EjectLock) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("eject_lock", name))?;
+    assert_eq!(sett.get_eject_lock()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("lock", EjectLock::Lock)]
+#[case("unlock", EjectLock::Unlock)]
+fn test_set_eject_lock(#[case] name: &str, #[case] value: EjectLock) -> Result<()> {
+    let in_file = mysetting_path("eject_lock", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_eject_lock(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("off", HotCueAutoLoad::Off)]
+#[case("on", HotCueAutoLoad::On)]
+#[case("rekordbox", HotCueAutoLoad::RekordboxSetting)]
+fn test_get_hotcue_autoload(#[case] name: &str, #[case] value: HotCueAutoLoad) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("hotcue_autoload", name))?;
+    assert_eq!(sett.get_hotcue_autoload()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("off", HotCueAutoLoad::Off)]
+#[case("on", HotCueAutoLoad::On)]
+#[case("rekordbox", HotCueAutoLoad::RekordboxSetting)]
+fn test_set_hotcue_autoload(#[case] name: &str, #[case] value: HotCueAutoLoad) -> Result<()> {
+    let in_file = mysetting_path("hotcue_autoload", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_hotcue_autoload(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("off", HotCueColor::Off)]
+#[case("on", HotCueColor::On)]
+fn test_get_hotcue_color(#[case] name: &str, #[case] value: HotCueColor) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("hotcue_color", name))?;
+    assert_eq!(sett.get_hotcue_color()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("off", HotCueColor::Off)]
+#[case("on", HotCueColor::On)]
+fn test_set_hotcue_color(#[case] name: &str, #[case] value: HotCueColor) -> Result<()> {
+    let in_file = mysetting_path("hotcue_color", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_hotcue_color(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("cdj", JogMode::CDJ)]
+#[case("vinyl", JogMode::Vinyl)]
+fn test_get_jog_mode(#[case] name: &str, #[case] value: JogMode) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("jog_mode", name))?;
+    assert_eq!(sett.get_jog_mode()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("cdj", JogMode::CDJ)]
+#[case("vinyl", JogMode::Vinyl)]
+fn test_set_jog_mode(#[case] name: &str, #[case] value: JogMode) -> Result<()> {
+    let in_file = mysetting_path("jog_mode", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_jog_mode(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("bright", JogRingBrightness::Bright)]
+#[case("dark", JogRingBrightness::Dark)]
+#[case("off", JogRingBrightness::Off)]
+fn test_get_jog_ring_brightness(
+    #[case] name: &str,
+    #[case] value: JogRingBrightness,
+) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("jog_ring_brightness", name))?;
+    assert_eq!(sett.get_jog_ring_brightness()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("bright", JogRingBrightness::Bright)]
+#[case("dark", JogRingBrightness::Dark)]
+#[case("off", JogRingBrightness::Off)]
+fn test_set_jog_ring_brightness(
+    #[case] name: &str,
+    #[case] value: JogRingBrightness,
+) -> Result<()> {
+    let in_file = mysetting_path("jog_ring_brightness", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_jog_ring_brightness(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("off", JogRingIndicator::Off)]
+#[case("on", JogRingIndicator::On)]
+fn test_get_jog_ring_indicator(#[case] name: &str, #[case] value: JogRingIndicator) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("jog_ring_indicator", name))?;
+    assert_eq!(sett.get_jog_ring_indicator()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("off", JogRingIndicator::Off)]
+#[case("on", JogRingIndicator::On)]
+fn test_set_jog_ring_indicator(#[case] name: &str, #[case] value: JogRingIndicator) -> Result<()> {
+    let in_file = mysetting_path("jog_ring_indicator", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_jog_ring_indicator(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("chinese_simplified", Language::ChineseSimplified)]
+#[case("chinese_traditional", Language::ChineseTraditional)]
+#[case("czech", Language::Czech)]
+#[case("danish", Language::Danish)]
+#[case("dutch", Language::Dutch)]
+#[case("english", Language::English)]
+#[case("french", Language::French)]
+#[case("german", Language::German)]
+#[case("greek", Language::Greek)]
+#[case("hungarian", Language::Hungarian)]
+#[case("italian", Language::Italian)]
+#[case("japanese", Language::Japanese)]
+#[case("korean", Language::Korean)]
+#[case("portuguese", Language::Portuguese)]
+#[case("russian", Language::Russian)]
+#[case("spanish", Language::Spanish)]
+#[case("swedish", Language::Swedish)]
+#[case("turkish", Language::Turkish)]
+fn test_get_language(#[case] name: &str, #[case] value: Language) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("language", name))?;
+    assert_eq!(sett.get_language()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("chinese_simplified", Language::ChineseSimplified)]
+#[case("chinese_traditional", Language::ChineseTraditional)]
+#[case("czech", Language::Czech)]
+#[case("danish", Language::Danish)]
+#[case("dutch", Language::Dutch)]
+#[case("english", Language::English)]
+#[case("french", Language::French)]
+#[case("german", Language::German)]
+#[case("greek", Language::Greek)]
+#[case("hungarian", Language::Hungarian)]
+#[case("italian", Language::Italian)]
+#[case("japanese", Language::Japanese)]
+#[case("korean", Language::Korean)]
+#[case("portuguese", Language::Portuguese)]
+#[case("russian", Language::Russian)]
+#[case("spanish", Language::Spanish)]
+#[case("swedish", Language::Swedish)]
+#[case("turkish", Language::Turkish)]
+fn test_set_language(#[case] name: &str, #[case] value: Language) -> Result<()> {
+    let in_file = mysetting_path("language", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_language(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("five", LCDBrightness::Five)]
+#[case("four", LCDBrightness::Four)]
+#[case("three", LCDBrightness::Three)]
+#[case("two", LCDBrightness::Two)]
+#[case("one", LCDBrightness::One)]
+fn test_get_lcd_brightness(#[case] name: &str, #[case] value: LCDBrightness) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("lcd_brightness", name))?;
+    assert_eq!(sett.get_lcd_brightness()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("five", LCDBrightness::Five)]
+#[case("four", LCDBrightness::Four)]
+#[case("three", LCDBrightness::Three)]
+#[case("two", LCDBrightness::Two)]
+#[case("one", LCDBrightness::One)]
+fn test_set_lcd_brightness(#[case] name: &str, #[case] value: LCDBrightness) -> Result<()> {
+    let in_file = mysetting_path("lcd_brightness", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_lcd_brightness(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("off", MasterTempo::Off)]
+#[case("on", MasterTempo::On)]
+fn test_get_master_tempo(#[case] name: &str, #[case] value: MasterTempo) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("master_tempo", name))?;
+    assert_eq!(sett.get_master_tempo()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("off", MasterTempo::Off)]
+#[case("on", MasterTempo::On)]
+fn test_set_master_tempo(#[case] name: &str, #[case] value: MasterTempo) -> Result<()> {
+    let in_file = mysetting_path("master_tempo", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_master_tempo(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("lock", NeedleLock::Lock)]
+#[case("unlock", NeedleLock::Unlock)]
+fn test_get_needle_lock(#[case] name: &str, #[case] value: NeedleLock) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("needle_lock", name))?;
+    assert_eq!(sett.get_needle_lock()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("lock", NeedleLock::Lock)]
+#[case("unlock", NeedleLock::Unlock)]
+fn test_set_needle_lock(#[case] name: &str, #[case] value: NeedleLock) -> Result<()> {
+    let in_file = mysetting_path("needle_lock", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_needle_lock(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("off", OnAirDisplay::Off)]
+#[case("on", OnAirDisplay::On)]
+fn test_get_on_air_display(#[case] name: &str, #[case] value: OnAirDisplay) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("on_air_display", name))?;
+    assert_eq!(sett.get_on_air_display()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("off", OnAirDisplay::Off)]
+#[case("on", OnAirDisplay::On)]
+fn test_set_on_air_display(#[case] name: &str, #[case] value: OnAirDisplay) -> Result<()> {
+    let in_file = mysetting_path("on_air_display", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_on_air_display(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("type1", PhaseMeter::Type1)]
+#[case("type2", PhaseMeter::Type2)]
+fn test_get_phase_meter(#[case] name: &str, #[case] value: PhaseMeter) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("phase_meter", name))?;
+    assert_eq!(sett.get_phase_meter()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("type1", PhaseMeter::Type1)]
+#[case("type2", PhaseMeter::Type2)]
+fn test_set_phase_meter(#[case] name: &str, #[case] value: PhaseMeter) -> Result<()> {
+    let in_file = mysetting_path("phase_meter", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_phase_meter(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("continue", PlayMode::Continue)]
+#[case("single", PlayMode::Single)]
+fn test_get_play_mode(#[case] name: &str, #[case] value: PlayMode) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("play_mode", name))?;
+    assert_eq!(sett.get_play_mode()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("continue", PlayMode::Continue)]
+#[case("single", PlayMode::Single)]
+fn test_set_play_mode(#[case] name: &str, #[case] value: PlayMode) -> Result<()> {
+    let in_file = mysetting_path("play_mode", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_play_mode(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("off", Quantize::Off)]
+#[case("on", Quantize::On)]
+fn test_get_quantize(#[case] name: &str, #[case] value: Quantize) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("quantize", name))?;
+    assert_eq!(sett.get_quantize()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("off", Quantize::Off)]
+#[case("on", Quantize::On)]
+fn test_set_quantize(#[case] name: &str, #[case] value: Quantize) -> Result<()> {
+    let in_file = mysetting_path("quantize", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_quantize(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("eighth", QuantizeBeatValue::EighthBeat)]
+#[case("quarter", QuantizeBeatValue::QuarterBeat)]
+#[case("half", QuantizeBeatValue::HalfBeat)]
+#[case("one", QuantizeBeatValue::FullBeat)]
+fn test_get_quantize_beat_value(
+    #[case] name: &str,
+    #[case] value: QuantizeBeatValue,
+) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("quantize_beat_value", name))?;
+    assert_eq!(sett.get_quantize_beat_value()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("eighth", QuantizeBeatValue::EighthBeat)]
+#[case("quarter", QuantizeBeatValue::QuarterBeat)]
+#[case("half", QuantizeBeatValue::HalfBeat)]
+#[case("one", QuantizeBeatValue::FullBeat)]
+fn test_set_quantize_beat_value(
+    #[case] name: &str,
+    #[case] value: QuantizeBeatValue,
+) -> Result<()> {
+    let in_file = mysetting_path("quantize_beat_value", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_quantize_beat_value(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("off", SlipFlashing::Off)]
+#[case("on", SlipFlashing::On)]
+fn test_get_slip_flashing(#[case] name: &str, #[case] value: SlipFlashing) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("slip_flashing", name))?;
+    assert_eq!(sett.get_slip_flashing()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("off", SlipFlashing::Off)]
+#[case("on", SlipFlashing::On)]
+fn test_set_slip_flashing(#[case] name: &str, #[case] value: SlipFlashing) -> Result<()> {
+    let in_file = mysetting_path("slip_flashing", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_slip_flashing(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("off", Sync::Off)]
+#[case("on", Sync::On)]
+fn test_get_sync(#[case] name: &str, #[case] value: Sync) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("sync", name))?;
+    assert_eq!(sett.get_sync()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("off", Sync::Off)]
+#[case("on", Sync::On)]
+fn test_set_sync(#[case] name: &str, #[case] value: Sync) -> Result<()> {
+    let in_file = mysetting_path("sync", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_sync(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("wide", TempoRange::Wide)]
+#[case("sixteen", TempoRange::SixteenPercent)]
+#[case("ten", TempoRange::TenPercent)]
+#[case("six", TempoRange::SixPercent)]
+fn test_get_tempo_range(#[case] name: &str, #[case] value: TempoRange) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("tempo_range", name))?;
+    assert_eq!(sett.get_tempo_range()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("wide", TempoRange::Wide)]
+#[case("sixteen", TempoRange::SixteenPercent)]
+#[case("ten", TempoRange::TenPercent)]
+#[case("six", TempoRange::SixPercent)]
+fn test_set_tempo_range(#[case] name: &str, #[case] value: TempoRange) -> Result<()> {
+    let in_file = mysetting_path("tempo_range", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_tempo_range(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("elapsed", TimeMode::Elapsed)]
+#[case("remain", TimeMode::Remain)]
+fn test_get_time_mode(#[case] name: &str, #[case] value: TimeMode) -> Result<()> {
+    let sett = Setting::load(&mysetting_path("time_mode", name))?;
+    assert_eq!(sett.get_time_mode()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("elapsed", TimeMode::Elapsed)]
+#[case("remain", TimeMode::Remain)]
+fn test_set_time_mode(#[case] name: &str, #[case] value: TimeMode) -> Result<()> {
+    let in_file = mysetting_path("time_mode", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_time_mode(value)?;
+    assert_mysetting_file(&mut sett, &in_file)
+}
+
 #[test]
-fn test_mysetting_defaults() -> anyhow::Result<()> {
+fn test_mysetting_defaults() -> Result<()> {
     let root = common::setup_mysettings_path();
     let sett = Setting::load(root.join("MYSETTING.DAT"))?;
     let default = Setting::new_mysetting("MYSETTING.DAT")?;
-
-    assert_eq!(sett.get_auto_cue()?, default.get_auto_cue()?);
-    assert_eq!(sett.get_auto_cue_level()?, default.get_auto_cue_level()?);
-    assert_eq!(
-        sett.get_disc_slot_illumination()?,
-        default.get_disc_slot_illumination()?
-    );
-    assert_eq!(sett.get_eject_lock()?, default.get_eject_lock()?);
-    assert_eq!(sett.get_hotcue_autoload()?, default.get_hotcue_autoload()?);
-    assert_eq!(sett.get_hotcue_color()?, default.get_hotcue_color()?);
-    assert_eq!(sett.get_jog_mode()?, default.get_jog_mode()?);
-    assert_eq!(
-        sett.get_jog_ring_brightness()?,
-        default.get_jog_ring_brightness()?
-    );
-    assert_eq!(
-        sett.get_jog_ring_indicator()?,
-        default.get_jog_ring_indicator()?
-    );
-    assert_eq!(sett.get_language()?, default.get_language()?);
-    assert_eq!(sett.get_lcd_brightness()?, default.get_lcd_brightness()?);
-    assert_eq!(sett.get_master_tempo()?, default.get_master_tempo()?);
-    assert_eq!(sett.get_needle_lock()?, default.get_needle_lock()?);
-    assert_eq!(sett.get_on_air_display()?, default.get_on_air_display()?);
-    assert_eq!(sett.get_phase_meter()?, default.get_phase_meter()?);
-    assert_eq!(sett.get_play_mode()?, default.get_play_mode()?);
-    assert_eq!(sett.get_quantize()?, default.get_quantize()?);
-    assert_eq!(
-        sett.get_quantize_beat_value()?,
-        default.get_quantize_beat_value()?
-    );
-    assert_eq!(sett.get_slip_flashing()?, default.get_slip_flashing()?);
-    assert_eq!(sett.get_sync()?, default.get_sync()?);
-    assert_eq!(sett.get_tempo_range()?, default.get_tempo_range()?);
-    assert_eq!(sett.get_time_mode()?, default.get_time_mode()?);
-
+    assert_eq!(sett.data.content, default.data.content);
     Ok(())
 }
 
 // ---- MySetting2 ---------------------------------------------------------------------------------
 
-#[test]
-fn test_get_mysetting2() -> anyhow::Result<()> {
-    let root = common::setup_mysettings_path();
-    let dir = root.join("mysetting2");
-
-    assert_get_beat_jump_beat_value(&dir, "half", BeatJumpBeatValue::HalfBeat)?;
-    assert_get_beat_jump_beat_value(&dir, "one", BeatJumpBeatValue::OneBeat)?;
-    assert_get_beat_jump_beat_value(&dir, "two", BeatJumpBeatValue::TwoBeat)?;
-    assert_get_beat_jump_beat_value(&dir, "four", BeatJumpBeatValue::FourBeat)?;
-    assert_get_beat_jump_beat_value(&dir, "eight", BeatJumpBeatValue::EightBeat)?;
-    assert_get_beat_jump_beat_value(&dir, "sixteen", BeatJumpBeatValue::SixteenBeat)?;
-    assert_get_beat_jump_beat_value(&dir, "thirtytwo", BeatJumpBeatValue::ThirtytwoBeat)?;
-    assert_get_beat_jump_beat_value(&dir, "sixtyfour", BeatJumpBeatValue::SixtyfourBeat)?;
-    assert_get_jog_display_mode(&dir, "artwork", JogDisplayMode::Artwork)?;
-    assert_get_jog_display_mode(&dir, "auto", JogDisplayMode::Auto)?;
-    assert_get_jog_display_mode(&dir, "info", JogDisplayMode::Info)?;
-    assert_get_jog_display_mode(&dir, "simple", JogDisplayMode::Simple)?;
-    assert_get_jog_lcd_brightness(&dir, "one", JogLCDBrightness::One)?;
-    assert_get_jog_lcd_brightness(&dir, "two", JogLCDBrightness::Two)?;
-    assert_get_jog_lcd_brightness(&dir, "three", JogLCDBrightness::Three)?;
-    assert_get_jog_lcd_brightness(&dir, "four", JogLCDBrightness::Four)?;
-    assert_get_jog_lcd_brightness(&dir, "five", JogLCDBrightness::Five)?;
-    assert_get_pad_button_brightness(&dir, "one", PadButtonBrightness::One)?;
-    assert_get_pad_button_brightness(&dir, "two", PadButtonBrightness::Two)?;
-    assert_get_pad_button_brightness(&dir, "three", PadButtonBrightness::Three)?;
-    assert_get_pad_button_brightness(&dir, "four", PadButtonBrightness::Four)?;
-    assert_get_vinyl_speed_adjust(&dir, "release", VinylSpeedAdjust::Release)?;
-    assert_get_vinyl_speed_adjust(&dir, "touch", VinylSpeedAdjust::Touch)?;
-    assert_get_vinyl_speed_adjust(&dir, "touch_release", VinylSpeedAdjust::TouchRelease)?;
-    assert_get_waveform(&dir, "phase_meter", Waveform::PhaseMeter)?;
-    assert_get_waveform(&dir, "waveform", Waveform::Waveform)?;
-    assert_get_waveform_divisions(&dir, "phrase", WaveformDivisions::Phrase)?;
-    assert_get_waveform_divisions(&dir, "time_scale", WaveformDivisions::TimeScale)?;
-
+#[rstest]
+#[case("half", BeatJumpBeatValue::HalfBeat)]
+#[case("one", BeatJumpBeatValue::OneBeat)]
+#[case("two", BeatJumpBeatValue::TwoBeat)]
+#[case("four", BeatJumpBeatValue::FourBeat)]
+#[case("eight", BeatJumpBeatValue::EightBeat)]
+#[case("sixteen", BeatJumpBeatValue::SixteenBeat)]
+#[case("thirtytwo", BeatJumpBeatValue::ThirtytwoBeat)]
+#[case("sixtyfour", BeatJumpBeatValue::SixtyfourBeat)]
+fn test_get_beat_jump_beat_value(
+    #[case] name: &str,
+    #[case] value: BeatJumpBeatValue,
+) -> Result<()> {
+    let sett = Setting::load(&mysetting2_path("beat_jump_beat_value", name))?;
+    assert_eq!(sett.get_beat_jump_beat_value()?, value);
     Ok(())
 }
 
-#[test]
-fn test_set_mysetting2() -> anyhow::Result<()> {
-    let root = common::setup_mysettings_path();
-    let dir = root.join("mysetting2");
+#[rstest]
+#[case("half", BeatJumpBeatValue::HalfBeat)]
+#[case("one", BeatJumpBeatValue::OneBeat)]
+#[case("two", BeatJumpBeatValue::TwoBeat)]
+#[case("four", BeatJumpBeatValue::FourBeat)]
+#[case("eight", BeatJumpBeatValue::EightBeat)]
+#[case("sixteen", BeatJumpBeatValue::SixteenBeat)]
+#[case("thirtytwo", BeatJumpBeatValue::ThirtytwoBeat)]
+#[case("sixtyfour", BeatJumpBeatValue::SixtyfourBeat)]
+fn test_set_beat_jump_beat_value(
+    #[case] name: &str,
+    #[case] value: BeatJumpBeatValue,
+) -> Result<()> {
+    let in_file = mysetting2_path("beat_jump_beat_value", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_beat_jump_beat_value(value)?;
+    assert_mysetting2_file(&mut sett, &in_file)
+}
 
-    assert_set_beat_jump_beat_value(&dir, "half", BeatJumpBeatValue::HalfBeat)?;
-    assert_set_beat_jump_beat_value(&dir, "one", BeatJumpBeatValue::OneBeat)?;
-    assert_set_beat_jump_beat_value(&dir, "two", BeatJumpBeatValue::TwoBeat)?;
-    assert_set_beat_jump_beat_value(&dir, "four", BeatJumpBeatValue::FourBeat)?;
-    assert_set_beat_jump_beat_value(&dir, "eight", BeatJumpBeatValue::EightBeat)?;
-    assert_set_beat_jump_beat_value(&dir, "sixteen", BeatJumpBeatValue::SixteenBeat)?;
-    assert_set_beat_jump_beat_value(&dir, "thirtytwo", BeatJumpBeatValue::ThirtytwoBeat)?;
-    assert_set_beat_jump_beat_value(&dir, "sixtyfour", BeatJumpBeatValue::SixtyfourBeat)?;
-    assert_set_jog_display_mode(&dir, "artwork", JogDisplayMode::Artwork)?;
-    assert_set_jog_display_mode(&dir, "auto", JogDisplayMode::Auto)?;
-    assert_set_jog_display_mode(&dir, "info", JogDisplayMode::Info)?;
-    assert_set_jog_display_mode(&dir, "simple", JogDisplayMode::Simple)?;
-    assert_set_jog_lcd_brightness(&dir, "one", JogLCDBrightness::One)?;
-    assert_set_jog_lcd_brightness(&dir, "two", JogLCDBrightness::Two)?;
-    assert_set_jog_lcd_brightness(&dir, "three", JogLCDBrightness::Three)?;
-    assert_set_jog_lcd_brightness(&dir, "four", JogLCDBrightness::Four)?;
-    assert_set_jog_lcd_brightness(&dir, "five", JogLCDBrightness::Five)?;
-    assert_set_pad_button_brightness(&dir, "one", PadButtonBrightness::One)?;
-    assert_set_pad_button_brightness(&dir, "two", PadButtonBrightness::Two)?;
-    assert_set_pad_button_brightness(&dir, "three", PadButtonBrightness::Three)?;
-    assert_set_pad_button_brightness(&dir, "four", PadButtonBrightness::Four)?;
-    assert_set_vinyl_speed_adjust(&dir, "release", VinylSpeedAdjust::Release)?;
-    assert_set_vinyl_speed_adjust(&dir, "touch", VinylSpeedAdjust::Touch)?;
-    assert_set_vinyl_speed_adjust(&dir, "touch_release", VinylSpeedAdjust::TouchRelease)?;
-    assert_set_waveform(&dir, "phase_meter", Waveform::PhaseMeter)?;
-    assert_set_waveform(&dir, "waveform", Waveform::Waveform)?;
-    assert_set_waveform_divisions(&dir, "phrase", WaveformDivisions::Phrase)?;
-    assert_set_waveform_divisions(&dir, "time_scale", WaveformDivisions::TimeScale)?;
-
+#[rstest]
+#[case("artwork", JogDisplayMode::Artwork)]
+#[case("auto", JogDisplayMode::Auto)]
+#[case("info", JogDisplayMode::Info)]
+#[case("simple", JogDisplayMode::Simple)]
+fn test_get_jog_display_mode(#[case] name: &str, #[case] value: JogDisplayMode) -> Result<()> {
+    let sett = Setting::load(&mysetting2_path("jog_display_mode", name))?;
+    assert_eq!(sett.get_jog_display_mode()?, value);
     Ok(())
 }
 
+#[rstest]
+#[case("artwork", JogDisplayMode::Artwork)]
+#[case("auto", JogDisplayMode::Auto)]
+#[case("info", JogDisplayMode::Info)]
+#[case("simple", JogDisplayMode::Simple)]
+fn test_set_jog_display_mode(#[case] name: &str, #[case] value: JogDisplayMode) -> Result<()> {
+    let in_file = mysetting2_path("jog_display_mode", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_jog_display_mode(value)?;
+    assert_mysetting2_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("one", JogLCDBrightness::One)]
+#[case("two", JogLCDBrightness::Two)]
+#[case("three", JogLCDBrightness::Three)]
+#[case("four", JogLCDBrightness::Four)]
+#[case("five", JogLCDBrightness::Five)]
+fn test_get_jog_lcd_brightness(#[case] name: &str, #[case] value: JogLCDBrightness) -> Result<()> {
+    let sett = Setting::load(&mysetting2_path("jog_lcd_brightness", name))?;
+    assert_eq!(sett.get_jog_lcd_brightness()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("one", JogLCDBrightness::One)]
+#[case("two", JogLCDBrightness::Two)]
+#[case("three", JogLCDBrightness::Three)]
+#[case("four", JogLCDBrightness::Four)]
+#[case("five", JogLCDBrightness::Five)]
+fn test_set_jog_lcd_brightness(#[case] name: &str, #[case] value: JogLCDBrightness) -> Result<()> {
+    let in_file = mysetting2_path("jog_lcd_brightness", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_jog_lcd_brightness(value)?;
+    assert_mysetting2_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("one", PadButtonBrightness::One)]
+#[case("two", PadButtonBrightness::Two)]
+#[case("three", PadButtonBrightness::Three)]
+#[case("four", PadButtonBrightness::Four)]
+fn test_get_pad_button_brightness(
+    #[case] name: &str,
+    #[case] value: PadButtonBrightness,
+) -> Result<()> {
+    let sett = Setting::load(&mysetting2_path("pad_button_brightness", name))?;
+    assert_eq!(sett.get_pad_button_brightness()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("one", PadButtonBrightness::One)]
+#[case("two", PadButtonBrightness::Two)]
+#[case("three", PadButtonBrightness::Three)]
+#[case("four", PadButtonBrightness::Four)]
+fn test_set_pad_button_brightness(
+    #[case] name: &str,
+    #[case] value: PadButtonBrightness,
+) -> Result<()> {
+    let in_file = mysetting2_path("pad_button_brightness", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_pad_button_brightness(value)?;
+    assert_mysetting2_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("release", VinylSpeedAdjust::Release)]
+#[case("touch", VinylSpeedAdjust::Touch)]
+#[case("touch_release", VinylSpeedAdjust::TouchRelease)]
+fn test_get_vinyl_speed_adjust(#[case] name: &str, #[case] value: VinylSpeedAdjust) -> Result<()> {
+    let sett = Setting::load(&mysetting2_path("vinyl_speed_adjust", name))?;
+    assert_eq!(sett.get_vinyl_speed_adjust()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("release", VinylSpeedAdjust::Release)]
+#[case("touch", VinylSpeedAdjust::Touch)]
+#[case("touch_release", VinylSpeedAdjust::TouchRelease)]
+fn test_set_vinyl_speed_adjust(#[case] name: &str, #[case] value: VinylSpeedAdjust) -> Result<()> {
+    let in_file = mysetting2_path("vinyl_speed_adjust", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_vinyl_speed_adjust(value)?;
+    assert_mysetting2_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("phase_meter", Waveform::PhaseMeter)]
+#[case("waveform", Waveform::Waveform)]
+fn test_get_waveform(#[case] name: &str, #[case] value: Waveform) -> Result<()> {
+    let sett = Setting::load(&mysetting2_path("waveform", name))?;
+    assert_eq!(sett.get_waveform()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("phase_meter", Waveform::PhaseMeter)]
+#[case("waveform", Waveform::Waveform)]
+fn test_set_waveform(#[case] name: &str, #[case] value: Waveform) -> Result<()> {
+    let in_file = mysetting2_path("waveform", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_waveform(value)?;
+    assert_mysetting2_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("phrase", WaveformDivisions::Phrase)]
+#[case("time_scale", WaveformDivisions::TimeScale)]
+fn test_get_waveform_divisions(#[case] name: &str, #[case] value: WaveformDivisions) -> Result<()> {
+    let sett = Setting::load(&mysetting2_path("waveform_divisions", name))?;
+    assert_eq!(sett.get_waveform_divisions()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("phrase", WaveformDivisions::Phrase)]
+#[case("time_scale", WaveformDivisions::TimeScale)]
+fn test_set_waveform_divisions(#[case] name: &str, #[case] value: WaveformDivisions) -> Result<()> {
+    let in_file = mysetting2_path("waveform_divisions", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_waveform_divisions(value)?;
+    assert_mysetting2_file(&mut sett, &in_file)
+}
+
 #[test]
-fn test_mysetting2_defaults() -> anyhow::Result<()> {
+fn test_mysetting2_defaults() -> Result<()> {
     let root = common::setup_mysettings_path();
     let sett = Setting::load(root.join("MYSETTING2.DAT"))?;
     let default = Setting::new_mysetting2("MYSETTING2.DAT")?;
-
-    assert_eq!(
-        sett.get_beat_jump_beat_value()?,
-        default.get_beat_jump_beat_value()?
-    );
-    assert_eq!(
-        sett.get_jog_display_mode()?,
-        default.get_jog_display_mode()?
-    );
-    assert_eq!(
-        sett.get_jog_lcd_brightness()?,
-        default.get_jog_lcd_brightness()?
-    );
-    assert_eq!(
-        sett.get_pad_button_brightness()?,
-        default.get_pad_button_brightness()?
-    );
-    assert_eq!(
-        sett.get_vinyl_speed_adjust()?,
-        default.get_vinyl_speed_adjust()?
-    );
-    assert_eq!(sett.get_waveform()?, default.get_waveform()?);
-    assert_eq!(
-        sett.get_waveform_divisions()?,
-        default.get_waveform_divisions()?
-    );
-
+    assert_eq!(sett.data.content, default.data.content);
     Ok(())
 }
 
 // ---- DjmdMySetting ------------------------------------------------------------------------------
 
-#[test]
-fn test_get_djmdmysetting() -> anyhow::Result<()> {
-    let root = common::setup_mysettings_path();
-    let dir = root.join("djmmysetting");
-
-    assert_get_beat_fx_quantize(&dir, "off", BeatFXQuantize::Off)?;
-    assert_get_beat_fx_quantize(&dir, "on", BeatFXQuantize::On)?;
-    assert_get_channel_fader_curve(&dir, "linear", ChannelFaderCurve::Linear)?;
-    assert_get_channel_fader_curve(&dir, "steep_bottom", ChannelFaderCurve::SteepBottom)?;
-    assert_get_channel_fader_curve(&dir, "steep_top", ChannelFaderCurve::SteepTop)?;
-    assert_get_channel_fader_curve_long_fader(&dir, "linear", ChannelFaderCurveLongFader::Linear)?;
-    assert_get_channel_fader_curve_long_fader(
-        &dir,
-        "exponential",
-        ChannelFaderCurveLongFader::Exponential,
-    )?;
-    assert_get_channel_fader_curve_long_fader(&dir, "smooth", ChannelFaderCurveLongFader::Smooth)?;
-    assert_get_cross_fader_curve(&dir, "constant", CrossfaderCurve::ConstantPower)?;
-    assert_get_cross_fader_curve(&dir, "fast_cut", CrossfaderCurve::FastCut)?;
-    assert_get_cross_fader_curve(&dir, "slow_cut", CrossfaderCurve::SlowCut)?;
-    assert_get_mixer_display_brightness(&dir, "one", MixerDisplayBrightness::One)?;
-    assert_get_mixer_display_brightness(&dir, "two", MixerDisplayBrightness::Two)?;
-    assert_get_mixer_display_brightness(&dir, "three", MixerDisplayBrightness::Three)?;
-    assert_get_mixer_display_brightness(&dir, "four", MixerDisplayBrightness::Four)?;
-    assert_get_mixer_display_brightness(&dir, "five", MixerDisplayBrightness::Five)?;
-    assert_get_mixer_display_brightness(&dir, "white", MixerDisplayBrightness::White)?;
-    assert_get_headphones_mono_split(&dir, "mono_split", HeadphonesMonoSplit::MonoSplit)?;
-    assert_get_headphones_mono_split(&dir, "stereo", HeadphonesMonoSplit::Stereo)?;
-    assert_get_headphones_pre_eq(&dir, "pre_eq", HeadphonesPreEQ::PreEQ)?;
-    assert_get_headphones_pre_eq(&dir, "post_eq", HeadphonesPreEQ::PostEQ)?;
-    assert_get_mixer_indicator_brightness(&dir, "one", MixerIndicatorBrightness::One)?;
-    assert_get_mixer_indicator_brightness(&dir, "two", MixerIndicatorBrightness::Two)?;
-    assert_get_mixer_indicator_brightness(&dir, "three", MixerIndicatorBrightness::Three)?;
-    assert_get_mic_low_cut(&dir, "off", MicLowCut::Off)?;
-    assert_get_mic_low_cut(&dir, "on", MicLowCut::On)?;
-    assert_get_midi_button_type(&dir, "toggle", MidiButtonType::Toggle)?;
-    assert_get_midi_button_type(&dir, "trigger", MidiButtonType::Trigger)?;
-    assert_get_midi_channel(&dir, "one", MidiChannel::One)?;
-    assert_get_midi_channel(&dir, "two", MidiChannel::Two)?;
-    assert_get_midi_channel(&dir, "three", MidiChannel::Three)?;
-    assert_get_midi_channel(&dir, "four", MidiChannel::Four)?;
-    assert_get_midi_channel(&dir, "five", MidiChannel::Five)?;
-    assert_get_midi_channel(&dir, "six", MidiChannel::Six)?;
-    assert_get_midi_channel(&dir, "seven", MidiChannel::Seven)?;
-    assert_get_midi_channel(&dir, "eight", MidiChannel::Eight)?;
-    assert_get_midi_channel(&dir, "nine", MidiChannel::Nine)?;
-    assert_get_midi_channel(&dir, "ten", MidiChannel::Ten)?;
-    assert_get_midi_channel(&dir, "eleven", MidiChannel::Eleven)?;
-    assert_get_midi_channel(&dir, "twelve", MidiChannel::Twelve)?;
-    assert_get_midi_channel(&dir, "thirteen", MidiChannel::Thirteen)?;
-    assert_get_midi_channel(&dir, "fourteen", MidiChannel::Fourteen)?;
-    assert_get_midi_channel(&dir, "fifteen", MidiChannel::Fifteen)?;
-    assert_get_midi_channel(&dir, "sixteen", MidiChannel::Sixteen)?;
-    assert_get_talk_over_level(&dir, "minus_6db", TalkOverLevel::Minus6dB)?;
-    assert_get_talk_over_level(&dir, "minus_12db", TalkOverLevel::Minus12dB)?;
-    assert_get_talk_over_level(&dir, "minus_18db", TalkOverLevel::Minus18dB)?;
-    assert_get_talk_over_level(&dir, "minus_24db", TalkOverLevel::Minus24dB)?;
-    assert_get_talk_over_mode(&dir, "advanced", TalkOverMode::Advanced)?;
-    assert_get_talk_over_mode(&dir, "normal", TalkOverMode::Normal)?;
-
+#[rstest]
+#[case("off", BeatFXQuantize::Off)]
+#[case("on", BeatFXQuantize::On)]
+fn test_get_beat_fx_quantize(#[case] name: &str, #[case] value: BeatFXQuantize) -> Result<()> {
+    let sett = Setting::load(&djmdmysetting_path("beat_fx_quantize", name))?;
+    assert_eq!(sett.get_beat_fx_quantize()?, value);
     Ok(())
 }
 
-#[test]
-fn test_set_djmdmysetting() -> anyhow::Result<()> {
-    let root = common::setup_mysettings_path();
-    let dir = root.join("djmmysetting");
+#[rstest]
+#[case("off", BeatFXQuantize::Off)]
+#[case("on", BeatFXQuantize::On)]
+fn test_set_beat_fx_quantize(#[case] name: &str, #[case] value: BeatFXQuantize) -> Result<()> {
+    let in_file = djmdmysetting_path("beat_fx_quantize", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_beat_fx_quantize(value)?;
+    assert_djmdmysetting_file(&mut sett, &in_file)
+}
 
-    assert_set_beat_fx_quantize(&dir, "off", BeatFXQuantize::Off)?;
-    assert_set_beat_fx_quantize(&dir, "on", BeatFXQuantize::On)?;
-    assert_set_channel_fader_curve(&dir, "linear", ChannelFaderCurve::Linear)?;
-    assert_set_channel_fader_curve(&dir, "steep_bottom", ChannelFaderCurve::SteepBottom)?;
-    assert_set_channel_fader_curve(&dir, "steep_top", ChannelFaderCurve::SteepTop)?;
-    assert_set_channel_fader_curve_long_fader(&dir, "linear", ChannelFaderCurveLongFader::Linear)?;
-    assert_set_channel_fader_curve_long_fader(
-        &dir,
-        "exponential",
-        ChannelFaderCurveLongFader::Exponential,
-    )?;
-    assert_set_channel_fader_curve_long_fader(&dir, "smooth", ChannelFaderCurveLongFader::Smooth)?;
-    assert_set_cross_fader_curve(&dir, "constant", CrossfaderCurve::ConstantPower)?;
-    assert_set_cross_fader_curve(&dir, "fast_cut", CrossfaderCurve::FastCut)?;
-    assert_set_cross_fader_curve(&dir, "slow_cut", CrossfaderCurve::SlowCut)?;
-    assert_set_mixer_display_brightness(&dir, "one", MixerDisplayBrightness::One)?;
-    assert_set_mixer_display_brightness(&dir, "two", MixerDisplayBrightness::Two)?;
-    assert_set_mixer_display_brightness(&dir, "three", MixerDisplayBrightness::Three)?;
-    assert_set_mixer_display_brightness(&dir, "four", MixerDisplayBrightness::Four)?;
-    assert_set_mixer_display_brightness(&dir, "five", MixerDisplayBrightness::Five)?;
-    assert_set_mixer_display_brightness(&dir, "white", MixerDisplayBrightness::White)?;
-    assert_set_headphones_mono_split(&dir, "mono_split", HeadphonesMonoSplit::MonoSplit)?;
-    assert_set_headphones_mono_split(&dir, "stereo", HeadphonesMonoSplit::Stereo)?;
-    assert_set_headphones_pre_eq(&dir, "pre_eq", HeadphonesPreEQ::PreEQ)?;
-    assert_set_headphones_pre_eq(&dir, "post_eq", HeadphonesPreEQ::PostEQ)?;
-    assert_set_mixer_indicator_brightness(&dir, "one", MixerIndicatorBrightness::One)?;
-    assert_set_mixer_indicator_brightness(&dir, "two", MixerIndicatorBrightness::Two)?;
-    assert_set_mixer_indicator_brightness(&dir, "three", MixerIndicatorBrightness::Three)?;
-    assert_set_mic_low_cut(&dir, "off", MicLowCut::Off)?;
-    assert_set_mic_low_cut(&dir, "on", MicLowCut::On)?;
-    assert_set_midi_button_type(&dir, "toggle", MidiButtonType::Toggle)?;
-    assert_set_midi_button_type(&dir, "trigger", MidiButtonType::Trigger)?;
-    assert_set_midi_channel(&dir, "one", MidiChannel::One)?;
-    assert_set_midi_channel(&dir, "two", MidiChannel::Two)?;
-    assert_set_midi_channel(&dir, "three", MidiChannel::Three)?;
-    assert_set_midi_channel(&dir, "four", MidiChannel::Four)?;
-    assert_set_midi_channel(&dir, "five", MidiChannel::Five)?;
-    assert_set_midi_channel(&dir, "six", MidiChannel::Six)?;
-    assert_set_midi_channel(&dir, "seven", MidiChannel::Seven)?;
-    assert_set_midi_channel(&dir, "eight", MidiChannel::Eight)?;
-    assert_set_midi_channel(&dir, "nine", MidiChannel::Nine)?;
-    assert_set_midi_channel(&dir, "ten", MidiChannel::Ten)?;
-    assert_set_midi_channel(&dir, "eleven", MidiChannel::Eleven)?;
-    assert_set_midi_channel(&dir, "twelve", MidiChannel::Twelve)?;
-    assert_set_midi_channel(&dir, "thirteen", MidiChannel::Thirteen)?;
-    assert_set_midi_channel(&dir, "fourteen", MidiChannel::Fourteen)?;
-    assert_set_midi_channel(&dir, "fifteen", MidiChannel::Fifteen)?;
-    assert_set_midi_channel(&dir, "sixteen", MidiChannel::Sixteen)?;
-    assert_set_talk_over_level(&dir, "minus_6db", TalkOverLevel::Minus6dB)?;
-    assert_set_talk_over_level(&dir, "minus_12db", TalkOverLevel::Minus12dB)?;
-    assert_set_talk_over_level(&dir, "minus_18db", TalkOverLevel::Minus18dB)?;
-    assert_set_talk_over_level(&dir, "minus_24db", TalkOverLevel::Minus24dB)?;
-    assert_set_talk_over_mode(&dir, "advanced", TalkOverMode::Advanced)?;
-    assert_set_talk_over_mode(&dir, "normal", TalkOverMode::Normal)?;
-
+#[rstest]
+#[case("linear", ChannelFaderCurve::Linear)]
+#[case("steep_bottom", ChannelFaderCurve::SteepBottom)]
+#[case("steep_top", ChannelFaderCurve::SteepTop)]
+fn test_get_channel_fader_curve(
+    #[case] name: &str,
+    #[case] value: ChannelFaderCurve,
+) -> Result<()> {
+    let sett = Setting::load(&djmdmysetting_path("channel_fader_curve", name))?;
+    assert_eq!(sett.get_channel_fader_curve()?, value);
     Ok(())
 }
 
+#[rstest]
+#[case("linear", ChannelFaderCurve::Linear)]
+#[case("steep_bottom", ChannelFaderCurve::SteepBottom)]
+#[case("steep_top", ChannelFaderCurve::SteepTop)]
+fn test_set_channel_fader_curve(
+    #[case] name: &str,
+    #[case] value: ChannelFaderCurve,
+) -> Result<()> {
+    let in_file = djmdmysetting_path("channel_fader_curve", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_channel_fader_curve(value)?;
+    assert_djmdmysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("linear", ChannelFaderCurveLongFader::Linear)]
+#[case("exponential", ChannelFaderCurveLongFader::Exponential)]
+#[case("smooth", ChannelFaderCurveLongFader::Smooth)]
+fn test_get_channel_fader_curve_long(
+    #[case] name: &str,
+    #[case] value: ChannelFaderCurveLongFader,
+) -> Result<()> {
+    let sett = Setting::load(&djmdmysetting_path("channel_fader_curve_long", name))?;
+    assert_eq!(sett.get_channel_fader_curve_long_fader()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("linear", ChannelFaderCurveLongFader::Linear)]
+#[case("exponential", ChannelFaderCurveLongFader::Exponential)]
+#[case("smooth", ChannelFaderCurveLongFader::Smooth)]
+fn test_set_channel_fader_curve_long(
+    #[case] name: &str,
+    #[case] value: ChannelFaderCurveLongFader,
+) -> Result<()> {
+    let in_file = djmdmysetting_path("channel_fader_curve_long", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_channel_fader_curve_long_fader(value)?;
+    assert_djmdmysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("constant", CrossfaderCurve::ConstantPower)]
+#[case("fast_cut", CrossfaderCurve::FastCut)]
+#[case("slow_cut", CrossfaderCurve::SlowCut)]
+fn test_get_cross_fader_curve(#[case] name: &str, #[case] value: CrossfaderCurve) -> Result<()> {
+    let sett = Setting::load(&djmdmysetting_path("cross_fader_curve", name))?;
+    assert_eq!(sett.get_crossfader_curve()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("constant", CrossfaderCurve::ConstantPower)]
+#[case("fast_cut", CrossfaderCurve::FastCut)]
+#[case("slow_cut", CrossfaderCurve::SlowCut)]
+fn test_set_cross_fader_curve(#[case] name: &str, #[case] value: CrossfaderCurve) -> Result<()> {
+    let in_file = djmdmysetting_path("cross_fader_curve", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_crossfader_curve(value)?;
+    assert_djmdmysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("one", MixerDisplayBrightness::One)]
+#[case("two", MixerDisplayBrightness::Two)]
+#[case("three", MixerDisplayBrightness::Three)]
+#[case("four", MixerDisplayBrightness::Four)]
+#[case("five", MixerDisplayBrightness::Five)]
+#[case("white", MixerDisplayBrightness::White)]
+fn test_get_display_brightness(
+    #[case] name: &str,
+    #[case] value: MixerDisplayBrightness,
+) -> Result<()> {
+    let sett = Setting::load(&djmdmysetting_path("display_brightness", name))?;
+    assert_eq!(sett.get_mixer_display_brightness()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("one", MixerDisplayBrightness::One)]
+#[case("two", MixerDisplayBrightness::Two)]
+#[case("three", MixerDisplayBrightness::Three)]
+#[case("four", MixerDisplayBrightness::Four)]
+#[case("five", MixerDisplayBrightness::Five)]
+#[case("white", MixerDisplayBrightness::White)]
+fn test_set_display_brightness(
+    #[case] name: &str,
+    #[case] value: MixerDisplayBrightness,
+) -> Result<()> {
+    let in_file = djmdmysetting_path("display_brightness", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_mixer_display_brightness(value)?;
+    assert_djmdmysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("mono_split", HeadphonesMonoSplit::MonoSplit)]
+#[case("stereo", HeadphonesMonoSplit::Stereo)]
+fn test_get_headphones_mono_split(
+    #[case] name: &str,
+    #[case] value: HeadphonesMonoSplit,
+) -> Result<()> {
+    let sett = Setting::load(&djmdmysetting_path("headphones_mono_split", name))?;
+    assert_eq!(sett.get_headphones_mono_split()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("mono_split", HeadphonesMonoSplit::MonoSplit)]
+#[case("stereo", HeadphonesMonoSplit::Stereo)]
+fn test_set_headphones_mono_split(
+    #[case] name: &str,
+    #[case] value: HeadphonesMonoSplit,
+) -> Result<()> {
+    let in_file = djmdmysetting_path("headphones_mono_split", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_headphones_mono_split(value)?;
+    assert_djmdmysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("pre_eq", HeadphonesPreEQ::PreEQ)]
+#[case("post_eq", HeadphonesPreEQ::PostEQ)]
+fn test_get_headphones_pre_eq(#[case] name: &str, #[case] value: HeadphonesPreEQ) -> Result<()> {
+    let sett = Setting::load(&djmdmysetting_path("headphones_pre_eq", name))?;
+    assert_eq!(sett.get_headphones_pre_eq()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("pre_eq", HeadphonesPreEQ::PreEQ)]
+#[case("post_eq", HeadphonesPreEQ::PostEQ)]
+fn test_set_headphones_pre_eq(#[case] name: &str, #[case] value: HeadphonesPreEQ) -> Result<()> {
+    let in_file = djmdmysetting_path("headphones_pre_eq", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_headphones_pre_eq(value)?;
+    assert_djmdmysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("one", MixerIndicatorBrightness::One)]
+#[case("two", MixerIndicatorBrightness::Two)]
+#[case("three", MixerIndicatorBrightness::Three)]
+fn test_get_indicator_brightness(
+    #[case] name: &str,
+    #[case] value: MixerIndicatorBrightness,
+) -> Result<()> {
+    let sett = Setting::load(&djmdmysetting_path("indicator_brightness", name))?;
+    assert_eq!(sett.get_mixer_indicator_brightness()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("one", MixerIndicatorBrightness::One)]
+#[case("two", MixerIndicatorBrightness::Two)]
+#[case("three", MixerIndicatorBrightness::Three)]
+fn test_set_indicator_brightness(
+    #[case] name: &str,
+    #[case] value: MixerIndicatorBrightness,
+) -> Result<()> {
+    let in_file = djmdmysetting_path("indicator_brightness", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_mixer_indicator_brightness(value)?;
+    assert_djmdmysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("off", MicLowCut::Off)]
+#[case("on", MicLowCut::On)]
+fn test_get_mic_low_cut(#[case] name: &str, #[case] value: MicLowCut) -> Result<()> {
+    let sett = Setting::load(&djmdmysetting_path("mic_low_cut", name))?;
+    assert_eq!(sett.get_mic_low_cut()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("off", MicLowCut::Off)]
+#[case("on", MicLowCut::On)]
+fn test_set_mic_low_cut(#[case] name: &str, #[case] value: MicLowCut) -> Result<()> {
+    let in_file = djmdmysetting_path("mic_low_cut", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_mic_low_cut(value)?;
+    assert_djmdmysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("toggle", MidiButtonType::Toggle)]
+#[case("trigger", MidiButtonType::Trigger)]
+fn test_get_midi_button_type(#[case] name: &str, #[case] value: MidiButtonType) -> Result<()> {
+    let sett = Setting::load(&djmdmysetting_path("midi_button_type", name))?;
+    assert_eq!(sett.get_midi_button_type()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("toggle", MidiButtonType::Toggle)]
+#[case("trigger", MidiButtonType::Trigger)]
+fn test_set_midi_button_type(#[case] name: &str, #[case] value: MidiButtonType) -> Result<()> {
+    let in_file = djmdmysetting_path("midi_button_type", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_midi_button_type(value)?;
+    assert_djmdmysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("one", MidiChannel::One)]
+#[case("two", MidiChannel::Two)]
+#[case("three", MidiChannel::Three)]
+#[case("four", MidiChannel::Four)]
+#[case("five", MidiChannel::Five)]
+#[case("six", MidiChannel::Six)]
+#[case("seven", MidiChannel::Seven)]
+#[case("eight", MidiChannel::Eight)]
+#[case("nine", MidiChannel::Nine)]
+#[case("ten", MidiChannel::Ten)]
+#[case("eleven", MidiChannel::Eleven)]
+#[case("twelve", MidiChannel::Twelve)]
+#[case("thirteen", MidiChannel::Thirteen)]
+#[case("fourteen", MidiChannel::Fourteen)]
+#[case("fifteen", MidiChannel::Fifteen)]
+#[case("sixteen", MidiChannel::Sixteen)]
+fn test_get_midi_channel(#[case] name: &str, #[case] value: MidiChannel) -> Result<()> {
+    let sett = Setting::load(&djmdmysetting_path("midi_channel", name))?;
+    assert_eq!(sett.get_midi_channel()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("one", MidiChannel::One)]
+#[case("two", MidiChannel::Two)]
+#[case("three", MidiChannel::Three)]
+#[case("four", MidiChannel::Four)]
+#[case("five", MidiChannel::Five)]
+#[case("six", MidiChannel::Six)]
+#[case("seven", MidiChannel::Seven)]
+#[case("eight", MidiChannel::Eight)]
+#[case("nine", MidiChannel::Nine)]
+#[case("ten", MidiChannel::Ten)]
+#[case("eleven", MidiChannel::Eleven)]
+#[case("twelve", MidiChannel::Twelve)]
+#[case("thirteen", MidiChannel::Thirteen)]
+#[case("fourteen", MidiChannel::Fourteen)]
+#[case("fifteen", MidiChannel::Fifteen)]
+#[case("sixteen", MidiChannel::Sixteen)]
+fn test_set_midi_channel(#[case] name: &str, #[case] value: MidiChannel) -> Result<()> {
+    let in_file = djmdmysetting_path("midi_channel", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_midi_channel(value)?;
+    assert_djmdmysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("minus_6db", TalkOverLevel::Minus6dB)]
+#[case("minus_12db", TalkOverLevel::Minus12dB)]
+#[case("minus_18db", TalkOverLevel::Minus18dB)]
+#[case("minus_24db", TalkOverLevel::Minus24dB)]
+fn test_get_talk_over_level(#[case] name: &str, #[case] value: TalkOverLevel) -> Result<()> {
+    let sett = Setting::load(&djmdmysetting_path("talk_over_level", name))?;
+    assert_eq!(sett.get_talk_over_level()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("minus_6db", TalkOverLevel::Minus6dB)]
+#[case("minus_12db", TalkOverLevel::Minus12dB)]
+#[case("minus_18db", TalkOverLevel::Minus18dB)]
+#[case("minus_24db", TalkOverLevel::Minus24dB)]
+fn test_set_talk_over_level(#[case] name: &str, #[case] value: TalkOverLevel) -> Result<()> {
+    let in_file = djmdmysetting_path("talk_over_level", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_talk_over_level(value)?;
+    assert_djmdmysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("advanced", TalkOverMode::Advanced)]
+#[case("normal", TalkOverMode::Normal)]
+fn test_get_talk_over_mode(#[case] name: &str, #[case] value: TalkOverMode) -> Result<()> {
+    let sett = Setting::load(&djmdmysetting_path("talk_over_mode", name))?;
+    assert_eq!(sett.get_talk_over_mode()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("advanced", TalkOverMode::Advanced)]
+#[case("normal", TalkOverMode::Normal)]
+fn test_set_talk_over_mode(#[case] name: &str, #[case] value: TalkOverMode) -> Result<()> {
+    let in_file = djmdmysetting_path("talk_over_mode", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_talk_over_mode(value)?;
+    assert_djmdmysetting_file(&mut sett, &in_file)
+}
+
 #[test]
-fn test_djmdmysetting_defaults() -> anyhow::Result<()> {
+fn test_djmdsetting_defaults() -> Result<()> {
     let root = common::setup_mysettings_path();
     let sett = Setting::load(root.join("DJMMYSETTING.DAT"))?;
     let default = Setting::new_djmmysetting("DJMMYSETTING.DAT")?;
-
-    assert_eq!(
-        sett.get_beat_fx_quantize()?,
-        default.get_beat_fx_quantize()?
-    );
-    assert_eq!(
-        sett.get_channel_fader_curve()?,
-        default.get_channel_fader_curve()?
-    );
-    assert_eq!(
-        sett.get_channel_fader_curve_long_fader()?,
-        default.get_channel_fader_curve_long_fader()?
-    );
-    assert_eq!(
-        sett.get_crossfader_curve()?,
-        default.get_crossfader_curve()?
-    );
-    assert_eq!(
-        sett.get_mixer_display_brightness()?,
-        default.get_mixer_display_brightness()?
-    );
-    assert_eq!(
-        sett.get_headphones_mono_split()?,
-        default.get_headphones_mono_split()?
-    );
-    assert_eq!(
-        sett.get_headphones_pre_eq()?,
-        default.get_headphones_pre_eq()?
-    );
-    assert_eq!(
-        sett.get_mixer_indicator_brightness()?,
-        default.get_mixer_indicator_brightness()?
-    );
-    assert_eq!(sett.get_mic_low_cut()?, default.get_mic_low_cut()?);
-    assert_eq!(
-        sett.get_midi_button_type()?,
-        default.get_midi_button_type()?
-    );
-    assert_eq!(sett.get_midi_channel()?, default.get_midi_channel()?);
-    assert_eq!(sett.get_talk_over_level()?, default.get_talk_over_level()?);
-    assert_eq!(sett.get_talk_over_mode()?, default.get_talk_over_mode()?);
-
+    assert_eq!(sett.data.content, default.data.content);
     Ok(())
 }
 
 // ---- DevSetting ---------------------------------------------------------------------------------
 
-#[test]
-fn test_get_devsetting() -> anyhow::Result<()> {
-    let root = common::setup_mysettings_path();
-    let dir = root.join("devsetting");
-
-    assert_get_overview_waveform_type(&dir, "half", OverviewWaveformType::HalfWaveform)?;
-    assert_get_overview_waveform_type(&dir, "full", OverviewWaveformType::FullWaveform)?;
-    assert_get_waveform_color(&dir, "blue", WaveformColor::Blue)?;
-    assert_get_waveform_color(&dir, "rgb", WaveformColor::Rgb)?;
-    assert_get_waveform_color(&dir, "tri_band", WaveformColor::TriBand)?;
-    assert_get_key_display_format(&dir, "classic", KeyDisplayFormat::Classic)?;
-    assert_get_key_display_format(&dir, "alpha_numeric", KeyDisplayFormat::Alphanumeric)?;
-    assert_get_waveform_pos(&dir, "center", WaveformCurrentPosition::Center)?;
-    assert_get_waveform_pos(&dir, "left", WaveformCurrentPosition::Left)?;
-
+#[rstest]
+#[case("half", OverviewWaveformType::HalfWaveform)]
+#[case("full", OverviewWaveformType::FullWaveform)]
+fn test_get_overview_waveform_type(
+    #[case] name: &str,
+    #[case] value: OverviewWaveformType,
+) -> Result<()> {
+    let sett = Setting::load(&devmysetting_path("overview_waveform_type", name))?;
+    assert_eq!(sett.get_overview_waveform_type()?, value);
     Ok(())
 }
 
-#[test]
-fn test_set_devsetting() -> anyhow::Result<()> {
-    let root = common::setup_mysettings_path();
-    let dir = root.join("devsetting");
+#[rstest]
+#[case("half", OverviewWaveformType::HalfWaveform)]
+#[case("full", OverviewWaveformType::FullWaveform)]
+fn test_set_overview_waveform_type(
+    #[case] name: &str,
+    #[case] value: OverviewWaveformType,
+) -> Result<()> {
+    let in_file = devmysetting_path("overview_waveform_type", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_overview_waveform_type(value)?;
+    assert_devmysetting_file(&mut sett, &in_file)
+}
 
-    assert_set_overview_waveform_type(&dir, "half", OverviewWaveformType::HalfWaveform)?;
-    assert_set_overview_waveform_type(&dir, "full", OverviewWaveformType::FullWaveform)?;
-    assert_set_waveform_color(&dir, "blue", WaveformColor::Blue)?;
-    assert_set_waveform_color(&dir, "rgb", WaveformColor::Rgb)?;
-    assert_set_waveform_color(&dir, "tri_band", WaveformColor::TriBand)?;
-    assert_set_key_display_format(&dir, "classic", KeyDisplayFormat::Classic)?;
-    assert_set_key_display_format(&dir, "alpha_numeric", KeyDisplayFormat::Alphanumeric)?;
-    assert_set_waveform_pos(&dir, "center", WaveformCurrentPosition::Center)?;
-    assert_set_waveform_pos(&dir, "left", WaveformCurrentPosition::Left)?;
-
+#[rstest]
+#[case("blue", WaveformColor::Blue)]
+#[case("rgb", WaveformColor::Rgb)]
+#[case("tri_band", WaveformColor::TriBand)]
+fn test_get_waveform_color(#[case] name: &str, #[case] value: WaveformColor) -> Result<()> {
+    let sett = Setting::load(&devmysetting_path("waveform_color", name))?;
+    assert_eq!(sett.get_waveform_color()?, value);
     Ok(())
 }
 
+#[rstest]
+#[case("blue", WaveformColor::Blue)]
+#[case("rgb", WaveformColor::Rgb)]
+#[case("tri_band", WaveformColor::TriBand)]
+fn test_set_waveform_color(#[case] name: &str, #[case] value: WaveformColor) -> Result<()> {
+    let in_file = devmysetting_path("waveform_color", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_waveform_color(value)?;
+    assert_devmysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("classic", KeyDisplayFormat::Classic)]
+#[case("alpha_numeric", KeyDisplayFormat::Alphanumeric)]
+fn test_get_key_display_format(#[case] name: &str, #[case] value: KeyDisplayFormat) -> Result<()> {
+    let sett = Setting::load(&devmysetting_path("key_display_format", name))?;
+    assert_eq!(sett.get_key_display_format()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("classic", KeyDisplayFormat::Classic)]
+#[case("alpha_numeric", KeyDisplayFormat::Alphanumeric)]
+fn test_set_key_display_format(#[case] name: &str, #[case] value: KeyDisplayFormat) -> Result<()> {
+    let in_file = devmysetting_path("key_display_format", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_key_display_format(value)?;
+    assert_devmysetting_file(&mut sett, &in_file)
+}
+
+#[rstest]
+#[case("center", WaveformCurrentPosition::Center)]
+#[case("left", WaveformCurrentPosition::Left)]
+fn test_get_waveform_current_pos(
+    #[case] name: &str,
+    #[case] value: WaveformCurrentPosition,
+) -> Result<()> {
+    let sett = Setting::load(&devmysetting_path("waveform_current_pos", name))?;
+    assert_eq!(sett.get_waveform_current_position()?, value);
+    Ok(())
+}
+
+#[rstest]
+#[case("center", WaveformCurrentPosition::Center)]
+#[case("left", WaveformCurrentPosition::Left)]
+fn test_set_waveform_current_pos(
+    #[case] name: &str,
+    #[case] value: WaveformCurrentPosition,
+) -> Result<()> {
+    let in_file = devmysetting_path("waveform_current_pos", name);
+    let mut sett = Setting::load(in_file.clone())?;
+    sett.set_waveform_current_position(value)?;
+    assert_devmysetting_file(&mut sett, &in_file)
+}
+
 #[test]
-fn test_devsetting_defaults() -> anyhow::Result<()> {
+fn test_devsetting_defaults() -> Result<()> {
     let root = common::setup_mysettings_path();
     let sett = Setting::load(root.join("DEVSETTING.DAT"))?;
     let default = Setting::new_devsetting("DEVSETTING.DAT")?;
-
-    assert_eq!(
-        sett.get_overview_waveform_type()?,
-        default.get_overview_waveform_type()?
-    );
-    assert_eq!(sett.get_waveform_color()?, default.get_waveform_color()?);
-    assert_eq!(
-        sett.get_key_display_format()?,
-        default.get_key_display_format()?
-    );
-    assert_eq!(
-        sett.get_waveform_current_position()?,
-        default.get_waveform_current_position()?
-    );
-
+    assert_eq!(sett.data.content, default.data.content);
     Ok(())
 }
