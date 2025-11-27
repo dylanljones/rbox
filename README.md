@@ -26,10 +26,10 @@
 It supports the following Rekordbox files:
 
 - **Rekordbox database**: Query and update the Rekordbox v6/v7 master.db database through a type-safe ORM
+- **One Library**: Read and write Rekordbox One Library (Device Library Plus) export files
 - **XML database**: Read and write Rekordbox XML database files
 - **Analysis Files**: Read and write ANLZ files containing waveforms, beat grids, hot cues and more
 - **Settings Access**: Read and write My-Setting files
-- **Device Library Plus**: Read and write Rekordbox Device Library Plus export files
 
 #### Language support
 
@@ -122,7 +122,7 @@ Can I run the analysis provided by Rekordbox with rbox?
 Can I use rbox to prepare device exports without Rekordbox?
 </summary>
 
-> Although `rbox` does support the new Device Library Plus export format, the library
+> Although `rbox` does support the new One Library (Device Library Plus) export format, the library
 > cannot run the analysis provided by Rekordbox.
 > Once files have been analyzed, the analysis data can be exported to the device.
 

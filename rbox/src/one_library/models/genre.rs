@@ -14,9 +14,9 @@ use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `genre` table in the Rekordbox Device Library Plus database.
+/// Represents the `genre` table in the Rekordbox One Library database.
 ///
-/// This struct maps to the `genre` table in the Device Library Plus export database.
+/// This struct maps to the `genre` table in the One Library export database.
 /// It stores genre-related data, allowing multiple tracks to be associated with the same genre.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset)]
 #[diesel(table_name = genre)]

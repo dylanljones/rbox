@@ -16,9 +16,9 @@ use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `property` table in the Rekordbox Device Library Plus database.
+/// Represents the `property` table in the Rekordbox One Library database.
 ///
-/// This struct maps to the `property` table in the Device Library Plus export database.
+/// This struct maps to the `property` table in the One Library export database.
 /// It stores information about the device(s) and the export library.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset, Insertable)]
 #[diesel(table_name = property)]

@@ -9,33 +9,31 @@ use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-use super::schema::{content, label};
+use super::schema::{color, content};
 use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `label` table in the Rekordbox Device Library Plus database.
+/// Represents the `color` table in the Rekordbox One Library database.
 ///
-/// This struct maps to the `label` table in the Device Library Plus export database.
-/// It stores label-related data, allowing multiple tracks to be associated with the same label.
 ///
 /// # Referenced by
-/// * [`Content`] via `label_id` foreign key.
+/// * [`Content`] via `color_id` foreign key.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset)]
-#[diesel(table_name = label)]
+#[diesel(table_name = color)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
-pub struct Label {
-    /// The unique identifier of the label.
+pub struct Color {
+    /// The unique identifier of the color.
     pub id: i32,
-    /// The name of the label.
+    /// The name of the color
     pub name: String,
 }
 
-impl Model for Label {
+impl Model for Color {
     type Id = i32;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
@@ -51,88 +49,72 @@ impl Model for Label {
     }
 }
 
-impl ModelUpdate for Label {
+impl ModelUpdate for Color {
     fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
-        diesel::update(label::table.find(self.id.clone()))
+        diesel::update(color::table.find(self.id))
             .set(self)
             .get_result(conn)
     }
 }
 
-impl ModelDelete for Label {
+impl ModelDelete for Color {
     fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
-        let result = diesel::delete(label::table.find(id)).execute(conn)?;
-        // Remove any references to the label in the content table
-        diesel::update(content::table.filter(content::label_id.eq(id)))
-            .set(content::label_id.eq(None::<i32>))
-            .execute(conn)?;
-        Ok(result)
-    }
-
-    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
-        let result = diesel::delete(label::table.filter(label::id.eq_any(&ids))).execute(conn)?;
-        // Remove any references to the label in the content table
-        diesel::update(content::table.filter(content::label_id.eq_any(&ids)))
-            .set(content::label_id.eq(None::<i32>))
+        let result = diesel::delete(color::table.find(id)).execute(conn)?;
+        // Remove any references to the color in the content table (0 by default)
+        diesel::update(content::table.filter(content::color_id.eq(id)))
+            .set(content::color_id.eq(0))
             .execute(conn)?;
         Ok(result)
     }
 }
 
-impl Label {
-    /// Queries a record from the `label` table by its `name`.
+impl Color {
+    /// Queries a record from the `color` table by its `name`.
     pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
         Self::query()
-            .filter(label::name.eq(name))
+            .filter(color::name.eq(name))
             .first(conn)
             .optional()
     }
 
-    /// Checks if a record with the given `name` exists in the `label` table.
+    /// Checks if a record with the given `name` exists in the `color` table.
     pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
-        let query = Self::query().filter(label::name.eq(name));
+        let query = Self::query().filter(color::name.eq(name));
         diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
     }
 }
 
-/// Represents a new record insertale to the `label` table.
+/// Represents a new record insertale to the `color` table.
 #[derive(Debug, Clone, PartialEq, Default, Insertable)]
-#[diesel(table_name = label)]
+#[diesel(table_name = color)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
-pub struct NewLabel {
-    /// The name of the label.
+pub struct NewColor {
+    /// The name of the color
     pub name: String,
 }
 
-impl ModelInsert for NewLabel {
-    type Model = Label;
+impl ModelInsert for NewColor {
+    type Model = Color;
 
     fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
-        diesel::insert_into(label::table)
+        diesel::insert_into(color::table)
             .values(self)
             .get_result(conn)
     }
 
     fn insert_all(conn: &mut SqliteConnection, items: Vec<Self>) -> QueryResult<Vec<Self::Model>> {
-        diesel::insert_into(label::table)
+        diesel::insert_into(color::table)
             .values(items)
             .get_results(conn)
     }
 }
 
-impl NewLabel {
-    /// Creates a new label record with the required fields.
+impl NewColor {
+    /// Creates a new color record with the required fields.
     pub fn new<S: Into<String>>(name: S) -> Self {
         Self { name: name.into() }
-    }
-}
-
-#[cfg(feature = "master-db")]
-impl Into<NewLabel> for crate::masterdb::models::DjmdLabel {
-    fn into(self) -> NewLabel {
-        NewLabel { name: self.name }
     }
 }

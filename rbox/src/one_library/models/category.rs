@@ -17,9 +17,9 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
 type JoinTuple = (Category, Option<MenuItem>);
 
-/// Represents the `category` table in the Rekordbox Device Library Plus database.
+/// Represents the `category` table in the Rekordbox One Library database.
 ///
-/// This struct maps to the `category` table in the Device Library Plus export database.
+/// This struct maps to the `category` table in the One Library export database.
 ///
 /// # References
 /// * [`MenuItem`] via `menu_item_id` foreign key.

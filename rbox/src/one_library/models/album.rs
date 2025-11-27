@@ -18,9 +18,9 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
 type JoinTuple = (Album, Option<Artist>, Option<Image>);
 
-/// Represents the `album` table in the Rekordbox Device Library Plus database.
+/// Represents the `album` table in the Rekordbox One Library database.
 ///
-/// This struct maps to the `album` table in the Device Library Plus export database.
+/// This struct maps to the `album` table in the One Library export database.
 /// It stores album-related data, allowing multiple tracks to be associated with the same album.
 /// This table includes metadata such as album name, artist, and compilation status.
 ///

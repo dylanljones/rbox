@@ -17,9 +17,9 @@ name = "rbox"
 [features]
 default = ["bundled-vendored-openssl", "full"]
 # Component features
-full        = ["master-db", "devlib-plus", "anlz", "xml", "settings"]
+full        = ["master-db", "one-library", "anlz", "xml", "settings"]
 master-db   = ["anlz", "dep:diesel", "dep:libsqlite3-sys", "dep:quick-xml", "dep:rand", "dep:uuid", "dep:dunce"]
-devlib-plus = ["dep:diesel", "dep:diesel_migrations", "dep:libsqlite3-sys", "dep:dunce"]
+one-library = ["dep:diesel", "dep:diesel_migrations", "dep:libsqlite3-sys", "dep:dunce"]
 anlz        = ["dep:binrw", "dep:modular-bitfield"]
 settings    = ["dep:binrw", "dep:parse-display", "dep:crc16"]
 xml         = ["dep:quick-xml", "dep:lazy-regex"]

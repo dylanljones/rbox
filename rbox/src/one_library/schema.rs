@@ -1,7 +1,7 @@
 // Author: Dylan Jones
 // Date:   2025-08-16
 
-//! Rekordbox exportLibrary.db database schemas
+//! Rekordbox One Library database schemas
 
 #![allow(non_snake_case)]
 

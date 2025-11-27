@@ -1,9 +1,9 @@
 // Author: Dylan Jones
 // Date:   2025-11-06
 
-//! # Rekordbox Device Library Plus database models
+//! # Rekordbox One Library (Device Library Plus) database models
 //!
-//! This module defines the data models that map to the tables in the Rekordbox Device Library Plus
+//! This module defines the data models that map to the tables in the Rekordbox One Library
 //! SQLite database.
 
 mod album;

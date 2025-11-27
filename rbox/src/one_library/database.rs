@@ -1,21 +1,21 @@
 // Author: Dylan Jones
 // Date:   2025-11-16
 
-//! # Rekordbox Device Library Plus Database Handler
+//! # Rekordbox One Library (Device Library Plus) Database Handler
 //!
 //! This module provides a high-level interface for interacting with the Rekordbox
 //! device library plus export SQLite database.
 //!
-//! The main struct [`DevlibPlus`] encapsulates the database connection and provides methods for
+//! The main struct [`OneLibrary`] encapsulates the database connection and provides methods for
 //! accessing and modifying database entries. The queries are handled by the individual model structs.
 //! For a lower level interface, these models can be used directly to perform database operations.
 //!
 //! ## Basic Usage
 //! ```no_run
-//! use rbox::DevlibPlus;
+//! use rbox::OneLibrary;
 //!
 //! // Open the database
-//! let mut db = DevlibPlus::new("exportLibrary.db").unwrap();
+//! let mut db = OneLibrary::new("exportLibrary.db").unwrap();
 //!
 //! // Query all playlists
 //! let playlists = db.get_playlists().unwrap();
@@ -34,12 +34,12 @@ use crate::error::{Error, Result};
 use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 
 #[derive(Clone, Debug)]
-pub struct DevlibPlus {
+pub struct OneLibrary {
     /// A connection pool used for interacting with the database.
     pool: DbPool,
 }
 
-impl DevlibPlus {
+impl OneLibrary {
     /// Open a device library plus database specified by path.
     ///
     /// The `path` must be a valid database file.

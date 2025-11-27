@@ -17,9 +17,9 @@ use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelTree, TreeSeq};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `myTag` table in the Rekordbox Device Library Plus database.
+/// Represents the `myTag` table in the Rekordbox One Library database.
 ///
-/// This struct maps to the `myTag` table in the Device Library Plus export database.
+/// This struct maps to the `myTag` table in the One Library export database.
 /// It stores information about my-tags, including metadata such as sequence, name
 /// attributes, and parent relationships.
 ///
@@ -408,9 +408,9 @@ impl NewMyTag {
     }
 }
 
-/// Represents the `myTag_content` table in the Rekordbox Device Library Plus database.
+/// Represents the `myTag_content` table in the Rekordbox One Library database.
 ///
-/// This struct maps to the `myTag_content` table in the Device Library Plus export database.
+/// This struct maps to the `myTag_content` table in the One Library export database.
 /// It stores information about the relationship between songs and myTags.
 ///
 /// This struct also is insertable into the `myTag_content` table.

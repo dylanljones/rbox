@@ -14,9 +14,9 @@ use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `image` table in the Rekordbox Device Library Plus database.
+/// Represents the `image` table in the Rekordbox One Library database.
 ///
-/// This struct maps to the `image` table in the Device Library Plus export database.
+/// This struct maps to the `image` table in the One Library export database.
 /// It stores the relative file paths of all images on the device.
 ///
 /// # Referenced by

@@ -17,9 +17,9 @@ use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelList, ModelTree,
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `history` table in the Rekordbox Device Library Plus database.
+/// Represents the `history` table in the Rekordbox One Library database.
 ///
-/// This struct maps to the `history` table in the Device Library Plus export database.
+/// This struct maps to the `history` table in the One Library export database.
 /// It stores information about history entries, including metadata such as sequence, name,
 /// attributes, and parent relationships.
 ///
@@ -375,9 +375,9 @@ impl NewHistory {
     }
 }
 
-/// Represents the `history_content` table in the Rekordbox Device Library Plus database.
+/// Represents the `history_content` table in the Rekordbox One Library database.
 ///
-/// This struct maps to the `history_content` table in the Device Library Plus export database.
+/// This struct maps to the `history_content` table in the One Library export database.
 /// It stores information about the relationship between songs and history entries, including
 /// metadata such as track number and associated history or content IDs.
 ///

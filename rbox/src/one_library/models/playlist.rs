@@ -21,9 +21,9 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
 pub type PlaylistTreeNodeRef = Rc<RefCell<PlaylistTreeNode>>;
 
-/// Represents the `playlist` table in the Rekordbox Device Library Plus database.
+/// Represents the `playlist` table in the Rekordbox One Library database.
 ///
-/// This struct maps to the `playlist` table in the Device Library Plus export database.
+/// This struct maps to the `playlist` table in the One Library export database.
 /// It stores information about playlists, including metadata such as sequence, name, image path,
 /// attributes, and parent relationships.
 ///
@@ -429,9 +429,9 @@ impl NewPlaylist {
     }
 }
 
-/// Represents the `playlist_content` table in the Rekordbox Device Library Plus database.
+/// Represents the `playlist_content` table in the Rekordbox One Library database.
 ///
-/// This struct maps to the `playlist_content` table in the Device Library Plus export database.
+/// This struct maps to the `playlist_content` table in the One Library export database.
 /// It stores information about the relationship between songs and playlists, including
 /// metadata such as track number and associated playlist or content IDs.
 ///

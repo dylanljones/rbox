@@ -14,9 +14,9 @@ use crate::model_traits::Model;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `hotCueBankList` table in the Rekordbox Device Library Plus database.
+/// Represents the `hotCueBankList` table in the Rekordbox One Library database.
 ///
-/// This struct maps to the `hotCueBankList` table in the Device Library Plus export database.
+/// This struct maps to the `hotCueBankList` table in the One Library export database.
 ///
 /// # References
 /// * [`HotCueBankList`] via `parent_id` foreign key.
@@ -59,9 +59,9 @@ impl Model for HotCueBankList {
     }
 }
 
-/// Represents the `hotCueBankList_cue` table in the Rekordbox Device Library Plus database.
+/// Represents the `hotCueBankList_cue` table in the Rekordbox One Library database.
 ///
-/// This struct maps to the `hotCueBankList_cue` table in the Device Library Plus export database.
+/// This struct maps to the `hotCueBankList_cue` table in the One Library export database.
 ///
 /// # References
 /// * [`HotCueBankList`] via `hot_cue_bank_list_id` foreign key.

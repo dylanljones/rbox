@@ -16,9 +16,9 @@ use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `recommendedLike` table in the Rekordbox Device Library Plus database.
+/// Represents the `recommendedLike` table in the Rekordbox One Library database.
 ///
-/// This struct maps to the `recommendedLike` table in the Device Library Plus export database.
+/// This struct maps to the `recommendedLike` table in the One Library export database.
 /// It stores information about recommended track relationships, including metadata such as
 /// a rating, creation timestamps, and associated content IDs.
 ///

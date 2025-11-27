@@ -43,9 +43,9 @@ type JoinTuple = (
     Option<Image>,
 );
 
-/// Represents the `content` table in the Rekordbox Device Library Plus database.
+/// Represents the `content` table in the Rekordbox One Library database.
 ///
-/// This struct maps to the `content` table in the Device Library Plus export database.
+/// This struct maps to the `content` table in the One Library export database.
 /// It contains metadata and attributes for each track in the collection, including file info,
 /// artist, album, genre, and more.
 ///
