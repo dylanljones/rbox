@@ -13,7 +13,7 @@ fn anlz(c: &mut Criterion) {
     let mut group = c.benchmark_group("anlz");
     group.measurement_time(std::time::Duration::from_secs(35));
 
-    let root = common::testdata_anlz_dir();
+    let root = common::anlz_dir(6);
     let anlz_dir = root.join("e35").join("fa187-3f34-47e2-9880-2b33cb8d1304");
 
     let dat_file = anlz_dir.join("ANLZ0000.DAT");

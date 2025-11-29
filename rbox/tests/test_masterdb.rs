@@ -3,6 +3,7 @@
 
 use rbox::masterdb::{DjmdPlaylist, DjmdSongPlaylist, MasterDb, MasterPlaylistXml, PlaylistType};
 use rbox::model_traits::validate_seq_numbers;
+use rbox::model_traits::TreeSeq;
 
 mod common;
 
@@ -10,7 +11,7 @@ const SECONDS_THRESH: i64 = 5;
 
 #[test]
 fn test_open_master_db() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let _db = MasterDb::new(db_path.path())?;
     Ok(())
 }
@@ -19,7 +20,7 @@ fn test_open_master_db() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_local_usn() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let usn = db.get_local_usn()?;
     assert!(usn > 0);
@@ -30,7 +31,7 @@ fn test_get_local_usn() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_albums() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let _album = db.get_albums()?;
     Ok(())
@@ -38,7 +39,7 @@ fn test_get_albums() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_album_by_id() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let album = db.get_album_by_id("1234")?;
     assert!(album.is_none());
@@ -47,7 +48,7 @@ fn test_get_album_by_id() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_album_by_name() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let name = "Name".to_string();
 
@@ -64,7 +65,7 @@ fn test_get_album_by_name() -> anyhow::Result<()> {
 
 #[test]
 fn test_create_album() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
 
     let old_usn = db.get_local_usn()?;
@@ -89,7 +90,7 @@ fn test_create_album() -> anyhow::Result<()> {
 
 #[test]
 fn test_update_album() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
 
     // Insert a new album
@@ -116,7 +117,7 @@ fn test_update_album() -> anyhow::Result<()> {
 
 #[test]
 fn test_delete_album() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
 
     // Insert a new album
@@ -157,7 +158,7 @@ fn test_delete_album() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_artist() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let _items = db.get_artists()?;
     Ok(())
@@ -165,7 +166,7 @@ fn test_get_artist() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_artist_by_id() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let item = db.get_artist_by_id("1234")?;
     assert!(item.is_none());
@@ -179,7 +180,7 @@ fn test_get_artist_by_id() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_artist_by_name() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let name = "Name".to_string();
 
@@ -196,7 +197,7 @@ fn test_get_artist_by_name() -> anyhow::Result<()> {
 
 #[test]
 fn test_create_artist() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
 
     let old_usn = db.get_local_usn()?;
@@ -218,7 +219,7 @@ fn test_create_artist() -> anyhow::Result<()> {
 
 #[test]
 fn test_update_artist() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
 
     // Insert a new artist
@@ -245,7 +246,7 @@ fn test_update_artist() -> anyhow::Result<()> {
 
 #[test]
 fn test_delete_artist() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
 
     // Insert a new artist
@@ -289,7 +290,7 @@ fn test_delete_artist() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_content() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let _items = db.get_contents()?;
     Ok(())
@@ -297,7 +298,7 @@ fn test_get_content() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_content_by_id() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let item = db.get_content_by_id("1234")?;
     assert!(item.is_none());
@@ -312,7 +313,7 @@ fn test_get_content_by_id() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_content_by_path() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let item = db.get_content_by_path("invalid/path")?;
     assert!(item.is_none());
@@ -329,7 +330,7 @@ fn test_get_content_by_path() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_genre() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let _items = db.get_genres()?;
     Ok(())
@@ -337,7 +338,7 @@ fn test_get_genre() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_genre_by_id() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let item = db.get_genre_by_id("1234")?;
     assert!(item.is_none());
@@ -346,7 +347,7 @@ fn test_get_genre_by_id() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_genre_by_name() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let name = "Name".to_string();
 
@@ -363,7 +364,7 @@ fn test_get_genre_by_name() -> anyhow::Result<()> {
 
 #[test]
 fn test_create_genre() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
 
     let old_usn = db.get_local_usn()?;
@@ -385,7 +386,7 @@ fn test_create_genre() -> anyhow::Result<()> {
 
 #[test]
 fn test_update_genre() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
 
     // Insert a new artist
@@ -412,7 +413,7 @@ fn test_update_genre() -> anyhow::Result<()> {
 
 #[test]
 fn test_delete_genre() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
 
     // Insert a new artist
@@ -454,7 +455,7 @@ fn test_delete_genre() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_key() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let _items = db.get_keys()?;
     Ok(())
@@ -462,7 +463,7 @@ fn test_get_key() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_key_by_id() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let item = db.get_key_by_id("1234")?;
     assert!(item.is_none());
@@ -471,7 +472,7 @@ fn test_get_key_by_id() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_key_by_name() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let name = "Name".to_string();
 
@@ -488,7 +489,7 @@ fn test_get_key_by_name() -> anyhow::Result<()> {
 
 #[test]
 fn test_create_key() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
 
     let old_usn = db.get_local_usn()?;
@@ -510,7 +511,7 @@ fn test_create_key() -> anyhow::Result<()> {
 
 #[test]
 fn test_update_key() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
 
     // Insert a new artist
@@ -537,7 +538,7 @@ fn test_update_key() -> anyhow::Result<()> {
 
 #[test]
 fn test_delete_key() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
 
     // Insert a new artist
@@ -579,7 +580,7 @@ fn test_delete_key() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_label() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let _items = db.get_labels()?;
     Ok(())
@@ -587,7 +588,7 @@ fn test_get_label() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_label_by_id() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let item = db.get_label_by_id("1234")?;
     assert!(item.is_none());
@@ -596,7 +597,7 @@ fn test_get_label_by_id() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_label_by_name() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let name = "Name".to_string();
 
@@ -613,7 +614,7 @@ fn test_get_label_by_name() -> anyhow::Result<()> {
 
 #[test]
 fn test_create_label() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
 
     let old_usn = db.get_local_usn()?;
@@ -635,7 +636,7 @@ fn test_create_label() -> anyhow::Result<()> {
 
 #[test]
 fn test_update_label() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
 
     // Insert a new label
@@ -662,7 +663,7 @@ fn test_update_label() -> anyhow::Result<()> {
 
 #[test]
 fn test_delete_label() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
 
     // Insert a new artist
@@ -710,6 +711,24 @@ fn assert_playlist_seq(items: Vec<DjmdPlaylist>) {
         validate_seq_numbers(&seq_nums, 1),
         "Seq number mismatch: {seq_nums:?}"
     );
+}
+
+fn assert_all_playlist_seqs(db: &mut MasterDb) -> anyhow::Result<()> {
+    let playlists = db.get_playlists()?;
+    let mut conn = db.pool.get()?;
+    for playlist in playlists {
+        let kind: PlaylistType = playlist.attribute.try_into().unwrap();
+        if kind != PlaylistType::Folder {
+            continue;
+        }
+        let is_ok = DjmdPlaylist::validate_seq_numbers(&mut conn, &playlist.id)?;
+        assert!(
+            is_ok,
+            "Seq number validation failed for playlist {}",
+            playlist.id
+        );
+    }
+    Ok(())
 }
 
 fn assert_playlist_song_seq(items: Vec<DjmdSongPlaylist>) {
@@ -770,7 +789,7 @@ fn assert_playlist_xml(db: &mut MasterDb) {
 
 #[test]
 fn test_get_playlist() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let _items = db.get_playlists()?;
     Ok(())
@@ -778,7 +797,7 @@ fn test_get_playlist() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_playlist_children() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let _items = db.get_playlist_children("root")?;
     Ok(())
@@ -786,7 +805,7 @@ fn test_get_playlist_children() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_playlist_by_id() -> anyhow::Result<()> {
-    let db_path = common::setup_master_db_path();
+    let db_path = common::setup_master_db_path(6);
     let mut db = MasterDb::new(db_path.path())?;
     let item = db.get_playlist_by_id("1234")?;
     assert!(item.is_none());
@@ -795,7 +814,7 @@ fn test_get_playlist_by_id() -> anyhow::Result<()> {
 
 #[test]
 fn test_create_playlist() -> anyhow::Result<()> {
-    let tmp_dir = common::setup_master_db_dir_path();
+    let tmp_dir = common::setup_master_db_dir_path(6);
     let mut db = MasterDb::new(tmp_dir.path().join("rekordbox").join("master.db"))?;
 
     let old_usn = db.get_local_usn()?;
@@ -837,7 +856,7 @@ fn test_create_playlist() -> anyhow::Result<()> {
 
 #[test]
 fn test_create_playlist_seq() -> anyhow::Result<()> {
-    let tmp_dir = common::setup_master_db_dir_path();
+    let tmp_dir = common::setup_master_db_dir_path(6);
     let mut db = MasterDb::new(tmp_dir.path().join("rekordbox").join("master.db"))?;
 
     // Insert root
@@ -870,7 +889,7 @@ fn test_create_playlist_seq() -> anyhow::Result<()> {
 
 #[test]
 fn test_create_playlist_folder() -> anyhow::Result<()> {
-    let tmp_dir = common::setup_master_db_dir_path();
+    let tmp_dir = common::setup_master_db_dir_path(6);
     let mut db = MasterDb::new(tmp_dir.path().join("rekordbox").join("master.db"))?;
 
     let old_usn = db.get_local_usn()?;
@@ -926,7 +945,7 @@ fn test_create_playlist_folder() -> anyhow::Result<()> {
 
 #[test]
 fn test_create_playlist_song() -> anyhow::Result<()> {
-    let tmp_dir = common::setup_master_db_dir_path();
+    let tmp_dir = common::setup_master_db_dir_path(6);
     let mut db = MasterDb::new(tmp_dir.path().join("rekordbox").join("master.db"))?;
 
     // Create playlist structure
@@ -973,7 +992,7 @@ fn test_create_playlist_song() -> anyhow::Result<()> {
 
 #[test]
 fn test_delete_playlist() -> anyhow::Result<()> {
-    let tmp_dir = common::setup_master_db_dir_path();
+    let tmp_dir = common::setup_master_db_dir_path(6);
     let mut db = MasterDb::new(tmp_dir.path().join("rekordbox").join("master.db"))?;
 
     // Create playlist structure
@@ -1025,7 +1044,7 @@ fn test_delete_playlist() -> anyhow::Result<()> {
 
 #[test]
 fn test_delete_playlist_folder() -> anyhow::Result<()> {
-    let tmp_dir = common::setup_master_db_dir_path();
+    let tmp_dir = common::setup_master_db_dir_path(6);
     let mut db = MasterDb::new(tmp_dir.path().join("rekordbox").join("master.db"))?;
 
     // Create playlist structure
@@ -1075,7 +1094,7 @@ fn test_delete_playlist_folder() -> anyhow::Result<()> {
 
 #[test]
 pub fn test_delete_playlist_song() -> anyhow::Result<()> {
-    let tmp_dir = common::setup_master_db_dir_path();
+    let tmp_dir = common::setup_master_db_dir_path(6);
     let mut db = MasterDb::new(tmp_dir.path().join("rekordbox").join("master.db"))?;
 
     // Create playlist structure
@@ -1120,7 +1139,7 @@ pub fn test_delete_playlist_song() -> anyhow::Result<()> {
 
 #[test]
 pub fn test_move_playlist_seq() -> anyhow::Result<()> {
-    let tmp_dir = common::setup_master_db_dir_path();
+    let tmp_dir = common::setup_master_db_dir_path(6);
     let mut db = MasterDb::new(tmp_dir.path().join("rekordbox").join("master.db"))?;
 
     // Create playlist structure
@@ -1182,7 +1201,7 @@ pub fn test_move_playlist_seq() -> anyhow::Result<()> {
 
 #[test]
 pub fn test_move_playlist_parent() -> anyhow::Result<()> {
-    let tmp_dir = common::setup_master_db_dir_path();
+    let tmp_dir = common::setup_master_db_dir_path(6);
     let mut db = MasterDb::new(tmp_dir.path().join("rekordbox").join("master.db"))?;
 
     // Create playlist structure
@@ -1263,8 +1282,42 @@ pub fn test_move_playlist_parent() -> anyhow::Result<()> {
 }
 
 #[test]
+pub fn test_move_all_playlists() -> anyhow::Result<()> {
+    let tmp_dir = common::setup_master_db_dir_path(6);
+    let mut db = MasterDb::new(tmp_dir.path().join("rekordbox").join("master.db"))?;
+
+    // Create playlist structure
+    let root = db.create_playlist_folder("folder".into(), None, None)?;
+    let f1 = db.create_playlist_folder("f1".into(), Some(root.id.clone()), None)?;
+    let f2 = db.create_playlist_folder("f2".into(), Some(root.id.clone()), None)?;
+    let p1 = db.create_playlist("pl1".into(), Some(root.id.clone()), None, None, None)?;
+    let _p2 = db.create_playlist("pl2".into(), Some(root.id.clone()), None, None, None)?;
+    let p3 = db.create_playlist("pl3".into(), Some(root.id.clone()), None, None, None)?;
+    let _p4 = db.create_playlist("pl4".into(), Some(root.id.clone()), None, None, None)?;
+    let _p5 = db.create_playlist("subpl1".into(), Some(f1.id.clone()), None, None, None)?;
+    let p6 = db.create_playlist("subpl2".into(), Some(f1.id.clone()), None, None, None)?;
+    let p7 = db.create_playlist("subpl3".into(), Some(f1.id.clone()), None, None, None)?;
+    let _p8 = db.create_playlist("subpl4".into(), Some(f1.id.clone()), None, None, None)?;
+
+    assert_all_playlist_seqs(&mut db)?;
+
+    let ids = vec![
+        p1.id.as_str(),
+        p3.id.as_str(),
+        p6.id.as_str(),
+        p7.id.as_str(),
+    ];
+    db.move_playlists(ids, f2.id.as_str(), None)?;
+
+    assert_all_playlist_seqs(&mut db)?;
+    assert_playlist_xml(&mut db);
+
+    Ok(())
+}
+
+#[test]
 pub fn test_move_playlist_song() -> anyhow::Result<()> {
-    let tmp_dir = common::setup_master_db_dir_path();
+    let tmp_dir = common::setup_master_db_dir_path(6);
     let mut db = MasterDb::new(tmp_dir.path().join("rekordbox").join("master.db"))?;
 
     // Create playlist structure
@@ -1387,6 +1440,64 @@ pub fn test_move_playlist_song() -> anyhow::Result<()> {
     assert!(res.is_err());
 
     assert_playlist_xml(&mut db);
+
+    Ok(())
+}
+
+#[test]
+pub fn test_move_all_playlist_songs() -> anyhow::Result<()> {
+    let tmp_dir = common::setup_master_db_dir_path(6);
+    let mut db = MasterDb::new(tmp_dir.path().join("rekordbox").join("master.db"))?;
+
+    // Create playlist structure
+    let pl = db.create_playlist("Playlist".to_string(), None, None, None, None)?;
+    // Add a songs to the playlist
+    let contents = db.get_contents()?;
+    let cid1 = contents[0].id.clone();
+    let cid2 = contents[1].id.clone();
+    let cid3 = contents[2].id.clone();
+    let cid4 = contents[3].id.clone();
+    let cid5 = contents[4].id.clone();
+    let song1 = db.create_playlist_song(&pl.id, &cid1, None)?;
+    let song2 = db.create_playlist_song(&pl.id, &cid2, None)?;
+    let song3 = db.create_playlist_song(&pl.id, &cid3, None)?;
+    let song4 = db.create_playlist_song(&pl.id, &cid4, None)?;
+    let song5 = db.create_playlist_song(&pl.id, &cid5, None)?;
+    let sid1 = song1.id.clone();
+    let sid2 = song2.id.clone();
+    let sid3 = song3.id.clone();
+    let sid4 = song4.id.clone();
+    let sid5 = song5.id.clone();
+    let songs = db.get_playlist_songs(&pl.id)?;
+    let song_ids: Vec<String> = songs.iter().map(|s| s.id.clone()).collect();
+    assert_eq!(
+        song_ids,
+        vec![
+            sid1.clone(),
+            sid2.clone(),
+            sid3.clone(),
+            sid4.clone(),
+            sid5.clone()
+        ]
+    );
+    assert_playlist_song_seq(songs);
+
+    // Move song 3 and 5 to position 2
+    db.move_playlist_songs(vec![&song3.id, &song5.id], 2)?;
+
+    let songs = db.get_playlist_songs(&pl.id)?;
+    let song_ids: Vec<String> = songs.iter().map(|s| s.id.clone()).collect();
+    assert_eq!(
+        song_ids,
+        vec![
+            sid1.clone(),
+            sid3.clone(),
+            sid5.clone(),
+            sid2.clone(),
+            sid4.clone(),
+        ]
+    );
+    assert_playlist_song_seq(songs);
 
     Ok(())
 }

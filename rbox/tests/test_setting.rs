@@ -22,7 +22,7 @@ fn assert_file(sett: &mut Setting, expected: &PathBuf, name: &str) -> Result<()>
 }
 
 fn mysetting_path(key: &str, value: &str) -> PathBuf {
-    let root = common::setup_mysettings_path();
+    let root = common::settings_dir();
     root.join("mysetting")
         .join(key)
         .join(value)
@@ -34,7 +34,7 @@ fn assert_mysetting_file(sett: &mut Setting, expected: &PathBuf) -> Result<()> {
 }
 
 fn mysetting2_path(key: &str, value: &str) -> PathBuf {
-    let root = common::setup_mysettings_path();
+    let root = common::settings_dir();
     root.join("mysetting2")
         .join(key)
         .join(value)
@@ -46,7 +46,7 @@ fn assert_mysetting2_file(sett: &mut Setting, expected: &PathBuf) -> Result<()> 
 }
 
 fn djmdmysetting_path(key: &str, value: &str) -> PathBuf {
-    let root = common::setup_mysettings_path();
+    let root = common::settings_dir();
     root.join("djmmysetting")
         .join(key)
         .join(value)
@@ -58,7 +58,7 @@ fn assert_djmdmysetting_file(sett: &mut Setting, expected: &PathBuf) -> Result<(
 }
 
 fn devmysetting_path(key: &str, value: &str) -> PathBuf {
-    let root = common::setup_mysettings_path();
+    let root = common::settings_dir();
     root.join("devsetting")
         .join(key)
         .join(value)
@@ -575,7 +575,7 @@ fn test_set_time_mode(#[case] name: &str, #[case] value: TimeMode) -> Result<()>
 
 #[test]
 fn test_mysetting_defaults() -> Result<()> {
-    let root = common::setup_mysettings_path();
+    let root = common::settings_dir();
     let sett = Setting::load(root.join("MYSETTING.DAT"))?;
     let default = Setting::new_mysetting("MYSETTING.DAT")?;
     assert_eq!(sett.data.content, default.data.content);
@@ -759,7 +759,7 @@ fn test_set_waveform_divisions(#[case] name: &str, #[case] value: WaveformDivisi
 
 #[test]
 fn test_mysetting2_defaults() -> Result<()> {
-    let root = common::setup_mysettings_path();
+    let root = common::settings_dir();
     let sett = Setting::load(root.join("MYSETTING2.DAT"))?;
     let default = Setting::new_mysetting2("MYSETTING2.DAT")?;
     assert_eq!(sett.data.content, default.data.content);
@@ -1095,7 +1095,7 @@ fn test_set_talk_over_mode(#[case] name: &str, #[case] value: TalkOverMode) -> R
 
 #[test]
 fn test_djmdsetting_defaults() -> Result<()> {
-    let root = common::setup_mysettings_path();
+    let root = common::settings_dir();
     let sett = Setting::load(root.join("DJMMYSETTING.DAT"))?;
     let default = Setting::new_djmmysetting("DJMMYSETTING.DAT")?;
     assert_eq!(sett.data.content, default.data.content);
@@ -1196,7 +1196,7 @@ fn test_set_waveform_current_pos(
 
 #[test]
 fn test_devsetting_defaults() -> Result<()> {
-    let root = common::setup_mysettings_path();
+    let root = common::settings_dir();
     let sett = Setting::load(root.join("DEVSETTING.DAT"))?;
     let default = Setting::new_devsetting("DEVSETTING.DAT")?;
     assert_eq!(sett.data.content, default.data.content);

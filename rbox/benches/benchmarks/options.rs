@@ -10,7 +10,7 @@ use std::hint::black_box;
 use rbox::RekordboxOptions;
 
 fn options(c: &mut Criterion) {
-    let file = common::testdata_options_path();
+    let file = common::options_path(6);
 
     c.bench_function("read_options", |b| {
         b.iter(|| RekordboxOptions::load(black_box(&file)).unwrap())
