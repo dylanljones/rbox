@@ -19,6 +19,10 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 ///
 /// This struct maps to the `djmdMenuItems` table in the SQLite database used by Rekordbox.
 /// It stores information about menu items, including their class, name, and metadata.
+///
+/// # Referenced by
+/// * [`DjmdCategory`] via `menu_item_id` foreign key.
+/// * [`DjmdSort`] via `menu_item_id` foreign key.
 #[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = djmdMenuItems)]
 #[diesel(primary_key(id))]

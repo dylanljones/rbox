@@ -1,6 +1,13 @@
 // Author: Dylan Jones
 // Date:   2025-09-02
 
+use super::djmd_menu_items::DjmdMenuItems;
+use super::schema::djmdSort;
+use super::{Date, DateString};
+use crate::masterdb::{DjmdContent, DjmdPlaylist};
+use crate::model_traits::Model;
+#[cfg(feature = "pyo3")]
+use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -9,18 +16,14 @@ use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-use super::djmd_menu_items::DjmdMenuItems;
-use super::schema::djmdSort;
-use super::{Date, DateString};
-use crate::model_traits::Model;
-#[cfg(feature = "pyo3")]
-use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
-
 /// Represents the `djmdSort` table in the Rekordbox database.
 ///
 /// This struct maps to the `djmdSort` table in the SQLite database used by Rekordbox.
 /// It stores information about sorting options, including metadata such as sequence,
 /// menu item associations, and disable status.
+///
+/// # References
+/// * [`DjmdMenuItems`] via `menu_item_id` foreign key.
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]

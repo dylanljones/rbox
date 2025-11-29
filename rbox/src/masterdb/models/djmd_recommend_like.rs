@@ -21,6 +21,9 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 /// This struct maps to the `djmdRecommendLike` table in the SQLite database used by Rekordbox.
 /// It stores information about recommended track relationships, including metadata such as
 /// like rate, creation timestamps, and associated content IDs.
+///
+/// # References
+/// * [`DjmdContent`] via `content_id1` and `content_id2` foreign keys.
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]

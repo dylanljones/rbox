@@ -1,6 +1,14 @@
 // Author: Dylan Jones
 // Date:   2025-09-02
 
+use super::djmd_content::DjmdContent;
+use super::schema::djmdCue;
+use super::{Date, DateString};
+use crate::masterdb::{DjmdHotCueBanklist, DjmdSongHotCueBanklist, HotCueBanklistCue};
+use crate::model_traits::Model;
+use crate::one_library::{Album, Artist, Color, Genre, Label};
+#[cfg(feature = "pyo3")]
+use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -8,13 +16,6 @@ use napi_derive::napi;
 use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
-
-use super::djmd_content::DjmdContent;
-use super::schema::djmdCue;
-use super::{Date, DateString};
-use crate::model_traits::Model;
-#[cfg(feature = "pyo3")]
-use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
 /// Represents the `djmdCue` table in the Rekordbox database.
 ///
@@ -29,6 +30,12 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 /// filled out to assist with correct seeking. Despite the names, these values are not the frame
 /// indices within the MPEG file, but instead use an alternative timing scheme that is typically
 /// around 1/75th of a second (13.333ms) per frame, i.e. about half the granularity of normal frames.
+///
+/// # References
+/// * [`DjmdContent`] via `content_id` and `content_uuid` foreign keys.
+///
+/// # Referenced by
+/// * [`DjmdSongHotCueBanklist`] via `cue_id` foreign key.
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]

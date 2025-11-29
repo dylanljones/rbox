@@ -21,6 +21,9 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 /// This struct maps to the `contentFile` table in the SQLite database used by Rekordbox.
 /// It contains metadata and attributes of the additional file of contents. These include
 /// the analysis and artwork files linked to a track
+///
+/// # References
+/// * [`DjmdContent`] via `content_id` foreign key.
 #[derive(
     Debug, Clone, PartialEq, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]

@@ -22,6 +22,9 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 ///
 /// This struct maps to the `djmdGenre` table in the SQLite database used by Rekordbox.
 /// It stores genre-related data, allowing tracks to be categorized by genre.
+///
+/// # Referenced by
+/// * [`DjmdContent`] via `genre_id` foreign key.
 #[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = djmdGenre)]
 #[diesel(primary_key(id))]

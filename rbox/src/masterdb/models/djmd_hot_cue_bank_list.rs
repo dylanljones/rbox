@@ -1,6 +1,13 @@
 // Author: Dylan Jones
 // Date:   2025-09-02
 
+use super::djmd_content::DjmdContent;
+use super::schema::{djmdContent, djmdHotCueBanklist, djmdSongHotCueBanklist, hotCueBanklistCue};
+use super::{Date, DateString};
+use crate::masterdb::{DjmdHistory, DjmdSongHistory};
+use crate::model_traits::Model;
+#[cfg(feature = "pyo3")]
+use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -9,18 +16,19 @@ use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-use super::djmd_content::DjmdContent;
-use super::schema::{djmdContent, djmdHotCueBanklist, djmdSongHotCueBanklist, hotCueBanklistCue};
-use super::{Date, DateString};
-use crate::model_traits::Model;
-#[cfg(feature = "pyo3")]
-use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
-
 /// Represents the `djmdHotCueBanklist` table in the Rekordbox database.
 ///
 /// This struct maps to the `djmdHotCueBanklist` table in the SQLite database used by Rekordbox.
 /// It stores information about hot cue bank lists, including metadata such as sequence, name,
 /// image path, and parent relationships.
+///
+/// # Referenced by
+/// * [`DjmdHotCueBanklist`] via `parent_id` foreign key.
+/// * [`DjmdSongHotCueBanklist`] via `hot_cue_banklist_id` and `hot_cue_banklist_uuid` foreign keys.
+/// * [`HotCueBanklistCue`] via `hot_cue_banklist_id` foreign key.
+///
+/// # References
+/// * [`DjmdHotCueBanklist`] via `parent_id` foreign key.
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
@@ -119,6 +127,11 @@ impl DjmdHotCueBanklist {
 /// filled out to assist with correct seeking. Despite the names, these values are not the frame
 /// indices within the MPEG file, but instead use an alternative timing scheme that is typically
 /// around 1/75th of a second (13.333ms) per frame, i.e. about half the granularity of normal frames.
+///
+/// # References
+/// * [`DjmdHotCueBanklist`] via `hot_cue_banklist_id` and `hot_cue_banklist_uuid` foreign keys.
+/// * [`DjmdContent`] via `content_id` foreign key.
+/// * [`DjmdCue`] via `cue_id` foreign key.
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
@@ -244,6 +257,9 @@ impl DjmdSongHotCueBanklist {
 /// This struct maps to the `hotCueBanklistCue` table in the SQLite database used by Rekordbox.
 /// It stores information about the relationship between hot cue bank lists and their associated cues,
 /// including metadata such as update sequence numbers, timestamps, and cue data as JSON string.
+///
+/// # References
+/// * [`DjmdHotCueBanklist`] via `hot_cue_banklist_id` foreign key.
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]

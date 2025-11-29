@@ -15,6 +15,7 @@ use super::agent_registry::AgentRegistry;
 use super::schema::{djmdAlbum, djmdArtist};
 use super::{Date, DateString, RandomIdGenerator};
 use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
+use crate::one_library::{Artist, Image};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -22,6 +23,10 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 ///
 /// This struct maps to the `djmdArtist` table in the SQLite database used by Rekordbox.
 /// It stores artist-related data, allowing multiple tracks to be associated with the same artist.
+///
+/// # Referenced by
+/// * [`DjmdContent`] via `artist_id` foreign key.
+/// * [`DjmdAlbum`] via `album_artist_id` foreign key.
 #[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = djmdArtist)]
 #[diesel(primary_key(id))]

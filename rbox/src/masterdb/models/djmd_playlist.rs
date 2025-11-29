@@ -11,19 +11,19 @@ use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-use std::collections::{HashSet, VecDeque};
-use uuid::Uuid;
-
 use super::agent_registry::AgentRegistry;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdPlaylist, djmdSongPlaylist};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
+use crate::masterdb::{DjmdHistory, DjmdSongHistory};
 use crate::model_traits::{
     build_tree_list, Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, NodeRef,
     TreeNode, TreeSeq,
 };
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
+use std::collections::{HashSet, VecDeque};
+use uuid::Uuid;
 
 /// Represents the `djmdPlaylist` table in the Rekordbox database.
 ///
@@ -34,6 +34,13 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 /// **Note**: This model does not implement `ModelDelete`, but provides slightly different
 /// `delete` and `delete_all` methods that return the deleted playlist Ids instead of the number
 /// of affected rows. This is required for the playlist XML handling.
+///
+/// # Referenced by
+/// * [`DjmdPlaylist`] via `parent_id` foreign key.
+/// * [`DjmdSongPlaylist`] via `playlist_id` foreign key.
+///
+/// # References
+/// * [`DjmdPlaylist`] via `parent_id` foreign key.
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
@@ -679,6 +686,10 @@ impl NewDjmdPlaylist {
 /// This struct maps to the `djmdSongPlaylist` table in the SQLite database used by Rekordbox.
 /// It stores information about the relationship between songs and playlists, including
 /// metadata such as track number and associated playlist or content IDs.
+///
+/// # References
+/// * [`DjmdPlaylist`] via `playlist_id` foreign key.
+/// * [`DjmdContent`] via `content_id` foreign key.
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]

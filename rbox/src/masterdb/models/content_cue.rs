@@ -20,6 +20,9 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 ///
 /// This struct maps to the `contentCue` table in the SQLite database used by Rekordbox.
 /// It contains the cue entry [`DjmdCue`] of a file as stringified JSON data.
+///
+/// # References
+/// * [`DjmdContent`] via `content_id` foreign key.
 #[derive(
     Debug, Clone, PartialEq, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]

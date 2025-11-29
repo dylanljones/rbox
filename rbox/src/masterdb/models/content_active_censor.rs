@@ -13,6 +13,7 @@ use super::djmd_content::DjmdContent;
 use super::schema::contentActiveCensor;
 use super::{Date, DateString};
 use crate::model_traits::Model;
+use crate::one_library::{Artist, Image};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -20,6 +21,9 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 ///
 /// This struct maps to the `contentActiveCensor` table in the SQLite database used by Rekordbox.
 /// It contains the active censor entries [`DjmdActiveCensor`] of a file as stringified JSON data.
+///
+/// # References
+/// * [`DjmdContent`] via `content_id` foreign key.
 #[derive(
     Debug, Clone, PartialEq, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]

@@ -12,6 +12,7 @@ use pyo3::prelude::*;
 use super::schema::djmdColor;
 use super::{Date, DateString};
 use crate::model_traits::Model;
+use crate::one_library::{Artist, Image};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -19,6 +20,9 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 ///
 /// This struct maps to the `djmdColor` table in the SQLite database used by Rekordbox.
 /// It stores color-related data, which can be associated with tracks and other entities.
+///
+/// # Referenced by
+/// * [`DjmdContent`] via `color_id` foreign key.
 #[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = djmdColor)]
 #[diesel(primary_key(id))]

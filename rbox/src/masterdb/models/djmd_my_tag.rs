@@ -1,6 +1,16 @@
 // Author: Dylan Jones
 // Date:   2025-09-02
 
+use super::agent_registry::AgentRegistry;
+use super::djmd_content::DjmdContent;
+use super::schema::{djmdContent, djmdMyTag, djmdSongMyTag};
+use super::{format_datetime, Date, DateString, RandomIdGenerator};
+use crate::masterdb::{DjmdHistory, DjmdSongHistory};
+use crate::model_traits::{
+    Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, TreeSeq,
+};
+#[cfg(feature = "pyo3")]
+use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel::result::Error;
@@ -13,21 +23,18 @@ use pyo3::prelude::*;
 use std::collections::VecDeque;
 use uuid::Uuid;
 
-use super::agent_registry::AgentRegistry;
-use super::djmd_content::DjmdContent;
-use super::schema::{djmdContent, djmdMyTag, djmdSongMyTag};
-use super::{format_datetime, Date, DateString, RandomIdGenerator};
-use crate::model_traits::{
-    Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, TreeSeq,
-};
-#[cfg(feature = "pyo3")]
-use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
-
 /// Represents the `djmdMyTag` table in the Rekordbox database.
 ///
 /// This struct maps to the `djmdMyTag` table in the SQLite database used by Rekordbox.
 /// It stores information about custom tags (MyTags) that can be associated with tracks,
 /// including metadata such as sequence, name, attributes, and parent relationships.
+///
+/// # Referenced by
+/// * [`DjmdMyTag`] via `parent_id` foreign key.
+/// * [`DjmdSongMyTag`] via `my_tag_id` foreign key.
+///
+/// # References
+/// * [`DjmdMyTag`] via `parent_id` foreign key.
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
@@ -525,6 +532,10 @@ impl NewDjmdMyTag {
 ///
 /// This struct maps to the `djmdSongMyTag` table in the SQLite database used by Rekordbox.
 /// It links the `djmdMyTag` records to the associated `djmdContent` records.
+///
+/// # References
+/// * [`DjmdMyTag`] via `my_tag_id` foreign key.
+/// * [`DjmdContent`] via `content_id` foreign key.
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]

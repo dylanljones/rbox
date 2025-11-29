@@ -13,6 +13,7 @@ use super::djmd_menu_items::DjmdMenuItems;
 use super::schema::djmdCategory;
 use super::{Date, DateString};
 use crate::model_traits::Model;
+use crate::one_library::{Artist, Image};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -20,6 +21,9 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 ///
 /// This struct maps to the `djmdCategory` table in the SQLite database used by Rekordbox.
 /// It stores category-related data, which can be associated with menu items.
+///
+/// # References
+/// * [`DjmdMenuItems`] via `menu_item_id` foreign key.
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]

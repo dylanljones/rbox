@@ -23,8 +23,12 @@ use super::djmd_key::DjmdKey;
 use super::djmd_label::DjmdLabel;
 use super::schema::djmdContent;
 use super::{Date, DateString, RandomIdGenerator};
-use crate::masterdb::FileType;
+use crate::masterdb::{DjmdRecommendLike, FileType};
 use crate::model_traits::{Model, ModelInsert, ModelUpdate};
+use crate::one_library::{
+    Album, Artist, Color, Cue, Genre, HistoryContent, Image, Label, MyTagContent, PlaylistContent,
+    RecommendedLike,
+};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 use crate::NormalizePath;
@@ -34,6 +38,29 @@ use crate::NormalizePath;
 /// This struct maps to the `djmdContent` table in the SQLite database used by Rekordbox.
 /// It contains metadata and attributes for each track in the collection, including file info,
 /// artist, album, genre, and more.
+///
+/// # Referenced by
+/// * [`ContentActiveCensor`] via `content_id` foreign key.
+/// * [`ContentCue`] via `content_id` foreign key.
+/// * [`ContentFile`] via `content_id` foreign key.
+/// * [`DjmdActiveCensor`] via `content_id` and `content_uuid` foreign keys.
+/// * [`DjmdSongHistory`] via `content_id` foreign key.
+/// * [`DjmdSongHotCueBanklist`] via `content_id` foreign key.
+/// * [`DjmdMixerParam`] via `content_id` foreign key.
+/// * [`DjmdSongMyTag`] via `content_id` foreign key.
+/// * [`DjmdSongPlaylist`] via `content_id` foreign key.
+/// * [`DjmdRecommendLike`] via `content_id1` and `content_id2` foreign keys.
+/// * [`DjmdSongRelatedTracks`] via `content_id` foreign key.
+/// * [`DjmdSongSampler`] via `content_id` foreign key.
+/// * [`DjmdSongTagList`] via `content_id` foreign key.
+///
+/// # References
+/// * [`DjmdArtist`] via `artist_id`, `remixer_id`, `original_artist_id`, `composer_id` and `lyricist` foreign keys.
+/// * [`DjmdAlbum`] via `album_id` foreign key.
+/// * [`DjmdGenre`] via `genre_id` foreign key.
+/// * [`DjmdLabel`] via `label_id` foreign key.
+/// * [`DjmdKey`] via `key_id` foreign key.
+/// * [`DjmdColor`] via `color_id` foreign key.
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]

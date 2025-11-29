@@ -22,6 +22,9 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 ///
 /// This struct maps to the `djmdLabel` table in the SQLite database used by Rekordbox.
 /// It stores information about labels, including their names and metadata.
+///
+/// # Referenced by
+/// * [`DjmdContent`] via `label_id` foreign key.
 #[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = djmdLabel)]
 #[diesel(primary_key(id))]

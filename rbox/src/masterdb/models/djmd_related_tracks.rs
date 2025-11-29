@@ -1,6 +1,16 @@
 // Author: Dylan Jones
 // Date:   2025-09-02
 
+use super::agent_registry::AgentRegistry;
+use super::djmd_content::DjmdContent;
+use super::schema::{djmdContent, djmdRelatedTracks, djmdSongRelatedTracks};
+use super::{format_datetime, Date, DateString, RandomIdGenerator};
+use crate::masterdb::{DjmdPlaylist, DjmdSongPlaylist};
+use crate::model_traits::{
+    Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, TreeSeq,
+};
+#[cfg(feature = "pyo3")]
+use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel::result::Error;
@@ -13,21 +23,18 @@ use pyo3::prelude::*;
 use std::collections::VecDeque;
 use uuid::Uuid;
 
-use super::agent_registry::AgentRegistry;
-use super::djmd_content::DjmdContent;
-use super::schema::{djmdContent, djmdRelatedTracks, djmdSongRelatedTracks};
-use super::{format_datetime, Date, DateString, RandomIdGenerator};
-use crate::model_traits::{
-    Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, TreeSeq,
-};
-#[cfg(feature = "pyo3")]
-use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
-
 /// Represents the `djmdRelatedTracks` table in the Rekordbox database.
 ///
 /// This struct maps to the `djmdRelatedTracks` table in the SQLite database used by Rekordbox.
 /// It stores information about related tracks, including metadata such as sequence, name,
 /// attributes, and parent relationships.
+///
+/// # Referenced by
+/// * [`DjmdRelatedTracks`] via `parent_id` foreign key.
+/// * [`DjmdSongRelatedTracks`] via `related_tracks_id` foreign key.
+///
+/// # References
+/// * [`DjmdRelatedTracks`] via `parent_id` foreign key.
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
@@ -559,6 +566,10 @@ impl NewDjmdRelatedTracks {
 /// This struct maps to the `djmdSongRelatedTracks` table in the SQLite database used by Rekordbox.
 /// It stores information about the relationship between songs and related tracks, including
 /// metadata such as update sequence numbers, timestamps, and associated content or related tracks IDs.
+///
+/// # References
+/// * [`DjmdRelatedTracks`] via `related_tracks_id` foreign key.
+/// * [`DjmdContent`] via `content_id` foreign key.
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]

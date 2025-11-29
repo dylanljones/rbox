@@ -20,6 +20,7 @@ use super::{format_datetime, Date, DateString, RandomIdGenerator};
 use crate::model_traits::{
     Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, TreeSeq,
 };
+use crate::one_library::{Content, History, HistoryContent};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -28,6 +29,13 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 /// This struct maps to the `djmdHistory` table in the SQLite database used by Rekordbox.
 /// It stores information about history entries, including metadata such as sequence, name,
 /// attributes, and parent relationships.
+///
+/// # Referenced by
+/// * [`DjmdHistory`] via `parent_id` foreign key.
+/// * [`DjmdSongHistory`] via `history_id` foreign key.
+///
+/// # References
+/// * [`DjmdHistory`] via `parent_id` foreign key.
 #[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = djmdHistory)]
 #[diesel(primary_key(id))]
@@ -539,6 +547,10 @@ impl NewDjmdHistory {
 /// This struct maps to the `djmdSongHistory` table in the SQLite database used by Rekordbox.
 /// It stores information about the relationship between songs and history entries, including
 /// metadata such as track number and associated history or content IDs.
+///
+/// # References
+/// * [`DjmdHistory`] via `history_id` foreign key.
+/// * [`DjmdContent`] via `content_id` foreign key.
 #[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = djmdSongHistory)]
 #[diesel(primary_key(id))]

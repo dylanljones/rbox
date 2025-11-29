@@ -1,6 +1,13 @@
 // Author: Dylan Jones
 // Date:   2025-09-02
 
+use super::djmd_content::DjmdContent;
+use super::schema::djmdSongTagList;
+use super::{Date, DateString};
+use crate::masterdb::DjmdSampler;
+use crate::model_traits::Model;
+#[cfg(feature = "pyo3")]
+use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -9,18 +16,14 @@ use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-use super::djmd_content::DjmdContent;
-use super::schema::djmdSongTagList;
-use super::{Date, DateString};
-use crate::model_traits::Model;
-#[cfg(feature = "pyo3")]
-use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
-
 /// Represents the `djmdSongTagList` table in the Rekordbox database.
 ///
 /// This struct maps to the `djmdSongTagList` table in the SQLite database used by Rekordbox.
 /// It stores information about the relationship between songs and tag lists, including
 /// metadata such as update sequence numbers, timestamps, and associated content IDs.
+///
+/// # References
+/// * [`DjmdContent`] via `content_id` foreign key.
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]

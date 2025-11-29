@@ -22,6 +22,9 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 ///
 /// This struct maps to the `djmdKey` table in the SQLite database used by Rekordbox.
 /// It stores information about musical keys, including their names and sequence order.
+///
+/// # Referenced by
+/// * [`DjmdContent`] via `key_id` foreign key.
 #[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = djmdKey)]
 #[diesel(primary_key(id))]

@@ -22,6 +22,9 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 /// It contains information for actively censoring explicit content of tracks in the Rekordbox
 /// collection. Active Censor items behave like two cue points, between which an effect is applied
 /// to the audio of a track.
+///
+/// # References
+/// * [`DjmdContent`] via `content_id` and `content_uuid` foreign keys.
 #[derive(
     Debug, Clone, PartialEq, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]

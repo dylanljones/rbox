@@ -62,7 +62,7 @@ type JoinTuple = (
 /// * [`Album`] via `album_id` foreign key.
 /// * [`Genre`] via `genre_id` foreign key.
 /// * [`Label`] via `label_id` foreign key.
-/// * [`Kex`] via `key_id` foreign key.
+/// * [`Key`] via `key_id` foreign key.
 /// * [`Color`] via `color_id` foreign key.
 /// * [`Image`] via `image_id` foreign key.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset, Associations)]
