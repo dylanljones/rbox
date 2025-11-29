@@ -68,7 +68,7 @@ diesel::table! {
         artist_id -> Nullable<Integer>,
         #[sql_name = "artist_id_remixer"]
         remixer_id -> Nullable<Integer>,
-        #[sql_name = "originalArtist_id"]
+        #[sql_name = "artist_id_originalArtist"]
         original_artist_id -> Nullable<Integer>,
         #[sql_name = "artist_id_composer"]
         composer_id -> Nullable<Integer>,

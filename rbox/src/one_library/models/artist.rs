@@ -68,16 +68,16 @@ impl ModelDelete for Artist {
         // Remove any references to the artist in the content table
         result += diesel::sql_query(
             "UPDATE content
-             SET artist_id_artist   = CASE WHEN artist_id_artist   =? THEN NULL ELSE artist_id_artist END,
-                 artist_id_remixer  = CASE WHEN artist_id_remixer  =? THEN NULL ELSE artist_id_remixer END,
-                 originalArtist_id  = CASE WHEN originalArtist_id  =? THEN NULL ELSE originalArtist_id END,
-                 artist_id_composer = CASE WHEN artist_id_composer =? THEN NULL ELSE artist_id_composer END,
-                 artist_id_lyricist = CASE WHEN artist_id_lyricist =? THEN NULL ELSE artist_id_lyricist END
-             WHERE artist_id_artist =?
-                OR artist_id_remixer =?
-                OR originalArtist_id =?
-                OR artist_id_composer =?
-                OR artist_id_lyricist =?"
+             SET artist_id_artist         = CASE WHEN artist_id_artist          =? THEN NULL ELSE artist_id_artist END,
+                 artist_id_remixer        = CASE WHEN artist_id_remixer         =? THEN NULL ELSE artist_id_remixer END,
+                 artist_id_originalArtist = CASE WHEN artist_id_originalArtist  =? THEN NULL ELSE artist_id_originalArtist END,
+                 artist_id_composer       = CASE WHEN artist_id_composer        =? THEN NULL ELSE artist_id_composer END,
+                 artist_id_lyricist       = CASE WHEN artist_id_lyricist        =? THEN NULL ELSE artist_id_lyricist END
+             WHERE artist_id_artist         =?
+                OR artist_id_remixer        =?
+                OR artist_id_originalArtist =?
+                OR artist_id_composer       =?
+                OR artist_id_lyricist       =?"
         )
             .bind::<diesel::sql_types::Integer, _>(id)
             .bind::<diesel::sql_types::Integer, _>(id)
@@ -102,16 +102,16 @@ impl ModelDelete for Artist {
         result += diesel::sql_query(
             "WITH ids(val) AS (SELECT value FROM json_each(?))
             UPDATE content
-            SET artist_id_artist   = CASE WHEN artist_id_artist   IN (SELECT val FROM ids) THEN NULL ELSE artist_id_artist END,
-                artist_id_remixer  = CASE WHEN artist_id_remixer  IN (SELECT val FROM ids) THEN NULL ELSE artist_id_remixer END,
-                originalArtist_id  = CASE WHEN originalArtist_id  IN (SELECT val FROM ids) THEN NULL ELSE originalArtist_id END,
-                artist_id_composer = CASE WHEN artist_id_composer IN (SELECT val FROM ids) THEN NULL ELSE artist_id_composer END,
-                artist_id_lyricist = CASE WHEN artist_id_lyricist IN (SELECT val FROM ids) THEN NULL ELSE artist_id_lyricist END
-            WHERE artist_id_artist IN (SELECT val FROM ids)
-               OR artist_id_remixer IN (SELECT val FROM ids)
-               OR originalArtist_id IN (SELECT val FROM ids)
-               OR artist_id_composer IN (SELECT val FROM ids)
-               OR artist_id_lyricist IN (SELECT val FROM ids)"
+            SET artist_id_artist          = CASE WHEN artist_id_artist          IN (SELECT val FROM ids) THEN NULL ELSE artist_id_artist END,
+                artist_id_remixer         = CASE WHEN artist_id_remixer         IN (SELECT val FROM ids) THEN NULL ELSE artist_id_remixer END,
+                artist_id_originalArtist  = CASE WHEN artist_id_originalArtist  IN (SELECT val FROM ids) THEN NULL ELSE artist_id_originalArtist END,
+                artist_id_composer        = CASE WHEN artist_id_composer        IN (SELECT val FROM ids) THEN NULL ELSE artist_id_composer END,
+                artist_id_lyricist        = CASE WHEN artist_id_lyricist        IN (SELECT val FROM ids) THEN NULL ELSE artist_id_lyricist END
+            WHERE artist_id_artist         IN (SELECT val FROM ids)
+               OR artist_id_remixer        IN (SELECT val FROM ids)
+               OR artist_id_originalArtist IN (SELECT val FROM ids)
+               OR artist_id_composer       IN (SELECT val FROM ids)
+               OR artist_id_lyricist       IN (SELECT val FROM ids)"
         )
             .bind::<diesel::sql_types::Text, _>(ids_json)
             .execute(conn)?;
@@ -141,7 +141,7 @@ impl Artist {
 ///
 /// # Examples
 /// ```rust
-/// use rbox::devlib_plus::models::NewArtist;
+/// use rbox::one_library::models::NewArtist;
 ///
 /// let new = NewArtist::new("Name").name_for_search("Name");
 /// println!("{:?}", new);

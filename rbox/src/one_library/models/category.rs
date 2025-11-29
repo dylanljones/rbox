@@ -224,9 +224,9 @@ impl From<Category> for CategoryJoin {
 ///
 /// # Examples
 /// ```rust
-/// use rbox::devlib_plus::models::NewCategory;
+/// use rbox::one_library::models::NewCategory;
 ///
-/// let new = NewCategory::new("Name".into()).is_visible(1);
+/// let new = NewCategory::new(0).is_visible(1);
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default, Insertable)]
@@ -269,7 +269,7 @@ impl NewCategory {
     }
 
     /// Builder for `seq`.
-    pub fn image_id(mut self, seq: i32) -> Self {
+    pub fn seq(mut self, seq: i32) -> Self {
         self.seq = seq;
         self
     }

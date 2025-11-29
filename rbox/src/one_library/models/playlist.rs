@@ -346,7 +346,7 @@ impl TreeSeq for Playlist {
 ///
 /// # Examples
 /// ```rust
-/// use rbox::devlib_plus::models::NewPlaylist;
+/// use rbox::one_library::models::NewPlaylist;
 ///
 /// let new = NewPlaylist::playlist("Name").seq(2);
 /// println!("{:?}", new);

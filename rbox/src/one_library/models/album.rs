@@ -217,7 +217,7 @@ impl From<Album> for AlbumJoin {
 ///
 /// # Examples
 /// ```rust
-/// use rbox::devlib_plus::models::NewAlbum;
+/// use rbox::one_library::models::NewAlbum;
 ///
 /// let new = NewAlbum::new("Name").compilation(1);
 /// println!("{:?}", new);

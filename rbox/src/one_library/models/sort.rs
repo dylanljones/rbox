@@ -163,7 +163,7 @@ impl SequenceVisible for Sort {
 ///
 /// # Examples
 /// ```rust
-/// use rbox::devlib_plus::models::NewSort;
+/// use rbox::one_library::models::NewSort;
 ///
 /// let new = NewSort::new(1234).visible(1);
 /// println!("{:?}", new);

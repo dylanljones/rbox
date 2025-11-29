@@ -52,19 +52,19 @@ pub enum Error {
     #[cfg(feature = "anlz")]
     AnlzError(String),
 
-    #[cfg(any(feature = "master-db", feature = "devlib-plus"))]
+    #[cfg(any(feature = "master-db", feature = "one-library"))]
     #[error("Diesel error: {0}")]
     Diesel(#[from] diesel::result::Error),
 
-    #[cfg(any(feature = "master-db", feature = "devlib-plus"))]
+    #[cfg(any(feature = "master-db", feature = "one-library"))]
     #[error("Connection pool error: {0}")]
     Pool(#[from] diesel::r2d2::PoolError),
 
-    #[cfg(any(feature = "master-db", feature = "devlib-plus"))]
+    #[cfg(any(feature = "master-db", feature = "one-library"))]
     #[error("Database error: {0}")]
     Database(String),
 
-    #[cfg(any(feature = "master-db", feature = "devlib-plus"))]
+    #[cfg(any(feature = "master-db", feature = "one-library"))]
     #[error("Connection error: {0}")]
     Connection(#[from] diesel::ConnectionError),
 

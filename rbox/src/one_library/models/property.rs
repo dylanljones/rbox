@@ -102,6 +102,7 @@ impl Property {
     pub fn new<S: Into<String>>(device_name: S, my_tag_master_dbid: i32) -> Self {
         Self {
             device_name: device_name.into(),
+            created_date: Utc::now(),
             my_tag_master_dbid,
             ..Default::default()
         }
@@ -134,5 +135,15 @@ impl Property {
         )
         .bind::<diesel::sql_types::Integer, _>(number_of_contents)
         .execute(conn)
+    }
+
+    /// Set the `number_of_contents` field of all records in the `property` table.
+    pub fn set_number_of_contents_all(
+        conn: &mut SqliteConnection,
+        number_of_contents: i32,
+    ) -> QueryResult<usize> {
+        diesel::update(property::table)
+            .set(property::number_of_contents.eq(number_of_contents))
+            .execute(conn)
     }
 }

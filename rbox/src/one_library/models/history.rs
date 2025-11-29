@@ -300,7 +300,7 @@ impl TreeSeq for History {
 ///
 /// # Examples
 /// ```rust
-/// use rbox::devlib_plus::models::NewHistory;
+/// use rbox::one_library::models::NewHistory;
 ///
 /// let new = NewHistory::history("Name").seq(2);
 /// println!("{:?}", new);

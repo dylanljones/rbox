@@ -56,7 +56,7 @@ use crate::util::is_rekordbox_running;
 #[derive(Clone, Debug)]
 pub struct MasterDb {
     /// A connection pool used for interacting with the database.
-    pool: DbPool,
+    pub pool: DbPool,
     // /// Represents the SQLite database connection used for interacting with the database.
     // conn: SqliteConnection,
     /// Stores the path to the PIONEER share directory, which contains analysis and other files.
@@ -3107,7 +3107,7 @@ impl MasterDb {
             }
             let _ = pl_xml.dump();
         } else {
-            eprintln!("WARNING: Coulnd't update playlist XML, file not found!");
+            eprintln!("WARNING: Couldn't update playlist XML, file not found!");
         }
         Ok(playlists)
     }
@@ -3316,6 +3316,13 @@ impl MasterDb {
         self.assert_write_mode()?;
         let mut conn = self.pool.get()?;
         Ok(DjmdSongPlaylist::delete(&mut conn, id)?)
+    }
+
+    /// Deletes multiple song entries from a playlist.
+    pub fn delete_playlist_songs(&mut self, ids: Vec<&str>) -> Result<usize> {
+        self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
+        Ok(DjmdSongPlaylist::delete_all(&mut conn, ids)?)
     }
 
     // -- Property ---------------------------------------------------------------------------------

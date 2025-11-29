@@ -46,7 +46,7 @@ pub use property::Property;
 pub use recommend_like::RecommendedLike;
 pub use sort::{NewSort, Sort};
 
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use diesel::backend::Backend;
 use diesel::deserialize::{FromSql, Result as DResult};
 use diesel::serialize::{IsNull, Output, Result as SResult, ToSql};
@@ -61,10 +61,12 @@ const DATEFMT: &str = "%Y-%m-%d";
 
 /// Parse a Devicelib Plus date string into a chrono DateTime.
 pub fn parse_datetime(s: &str) -> Result<Date> {
-    let date = DateTime::parse_from_str(s, DATEFMT)
-        .map(|dt| dt.with_timezone(&Utc))
+    let naive_date = NaiveDate::parse_from_str(s.trim(), DATEFMT)
         .map_err(|e| Error::Error(format!("Failed to parse datetime: {}", e)))?;
-    Ok(date)
+    let naive_dt = naive_date
+        .and_hms_opt(0, 0, 0)
+        .ok_or_else(|| Error::Error("Failed to build datetime from date".into()))?;
+    Ok(DateTime::from_naive_utc_and_offset(naive_dt, Utc))
 }
 
 /// Format a chrono DateTime<Tz> into a Devicelib Plus date string.

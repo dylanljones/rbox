@@ -70,6 +70,22 @@ impl ModelDelete for MenuItem {
     }
 }
 
+impl MenuItem {
+    /// Queries a record from the `menuItem` table by its `name`.
+    pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
+        Self::query()
+            .filter(menuItem::name.eq(name))
+            .first(conn)
+            .optional()
+    }
+
+    /// Checks if a record with the given `name` exists in the `menuItem` table.
+    pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
+        let query = Self::query().filter(menuItem::name.eq(name));
+        diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
+    }
+}
+
 /// Represents a new record insertale to the `menuItem` table.
 #[derive(Debug, Clone, PartialEq, Default, Insertable)]
 #[diesel(table_name = menuItem)]

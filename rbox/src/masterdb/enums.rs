@@ -97,6 +97,7 @@ pub enum PlaylistType {
     Playlist = 0,
     Folder = 1,
     SmartPlaylist = 4,
+    CloudLibrarySync = -128,
 }
 
 impl TryFrom<i32> for PlaylistType {
@@ -107,7 +108,8 @@ impl TryFrom<i32> for PlaylistType {
             0 => Ok(Self::Playlist),
             1 => Ok(Self::Folder),
             4 => Ok(Self::SmartPlaylist),
-            _ => Err("Invalid value for PlaylistType".into()),
+            -128 => Ok(Self::CloudLibrarySync),
+            _ => Err(format!("Invalid value for PlaylistType: {}", value)),
         }
     }
 }

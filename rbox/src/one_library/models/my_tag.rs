@@ -145,6 +145,15 @@ impl MyTag {
             .load(conn)
     }
 
+    /// Queries all records from the `myTag` table their associated `content_id` via `myTag_content`
+    pub fn by_content_id(conn: &mut SqliteConnection, cid: i32) -> QueryResult<Vec<Self>> {
+        myTag::table
+            .inner_join(myTag_content::table.on(myTag::id.eq(myTag_content::my_tag_id)))
+            .filter(myTag_content::content_id.eq(cid))
+            .select(Self::as_select())
+            .load(conn)
+    }
+
     /// Tries to query a record from the `myTag` table by its node path in the tree.
     ///
     /// Returns `None` if no unique node can be found for the given `path`.
@@ -333,7 +342,7 @@ impl TreeSeq for MyTag {
 ///
 /// # Examples
 /// ```rust
-/// use rbox::devlib_plus::models::NewMyTag;
+/// use rbox::one_library::models::NewMyTag;
 ///
 /// let new = NewMyTag::tag("Name").seq(2);
 /// println!("{:?}", new);

@@ -21,6 +21,7 @@ use super::key::Key;
 use super::label::Label;
 use super::my_tag::MyTagContent;
 use super::playlist::PlaylistContent;
+use super::property::Property;
 use super::recommend_like::RecommendedLike;
 use super::schema::{album, artist, color, content, genre, image, key, label};
 use super::{Date, DateString};
@@ -207,6 +208,7 @@ impl ModelDelete for Content {
     fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
         let mut result = diesel::delete(content::table.find(id)).execute(conn)?;
         result += Self::cascade_delete(conn, *id)?;
+        Self::update_property(conn)?;
         Ok(result)
     }
 
@@ -215,6 +217,7 @@ impl ModelDelete for Content {
             diesel::delete(content::table.filter(content::id.eq_any(&ids))).execute(conn)?;
         let ids: Vec<i32> = ids.iter().map(|id| *(*id)).collect();
         result += Self::cascade_deletes(conn, &ids)?;
+        Self::update_property(conn)?;
         Ok(result)
     }
 }
@@ -366,6 +369,11 @@ impl Content {
         // Remove all recommendedLike records referencing the contents
         result += RecommendedLike::delete_by_content_ids(conn, ids)?;
         Ok(result)
+    }
+
+    fn update_property(conn: &mut SqliteConnection) -> QueryResult<usize> {
+        let count: i64 = content::table.count().get_result(conn)?;
+        Property::set_number_of_contents_all(conn, count as i32)
     }
 }
 
@@ -763,7 +771,7 @@ impl From<Content> for ContentJoin {
 ///
 /// # Examples
 /// ```rust
-/// use rbox::devlib_plus::models::NewContent;
+/// use rbox::one_library::models::NewContent;
 ///
 /// let new = NewContent::new("Content/Artist/Title.mp3");
 /// println!("{:?}", new);
@@ -873,15 +881,19 @@ impl ModelInsert for NewContent {
     type Model = Content;
 
     fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
-        diesel::insert_into(content::table)
+        let result = diesel::insert_into(content::table)
             .values(self)
-            .get_result(conn)
+            .get_result(conn)?;
+        Content::update_property(conn)?;
+        Ok(result)
     }
 
     fn insert_all(conn: &mut SqliteConnection, items: Vec<Self>) -> QueryResult<Vec<Self::Model>> {
-        diesel::insert_into(content::table)
+        let results = diesel::insert_into(content::table)
             .values(items)
-            .get_results(conn)
+            .get_results(conn)?;
+        Content::update_property(conn)?;
+        Ok(results)
     }
 }
 
