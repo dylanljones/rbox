@@ -13,7 +13,6 @@ use super::djmd_menu_items::DjmdMenuItems;
 use super::schema::djmdCategory;
 use super::{Date, DateString};
 use crate::model_traits::Model;
-use crate::one_library::{Artist, Image};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 

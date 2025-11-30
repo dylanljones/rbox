@@ -13,7 +13,6 @@ use super::djmd_content::DjmdContent;
 use super::schema::contentActiveCensor;
 use super::{Date, DateString};
 use crate::model_traits::Model;
-use crate::one_library::{Artist, Image};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 

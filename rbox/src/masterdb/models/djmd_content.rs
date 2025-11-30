@@ -13,6 +13,7 @@ use pyo3::prelude::*;
 use std::path::PathBuf;
 use uuid::Uuid;
 
+use super::super::FileType;
 use super::agent_registry::AgentRegistry;
 use super::djmd_album::DjmdAlbum;
 use super::djmd_artist::DjmdArtist;
@@ -23,12 +24,7 @@ use super::djmd_key::DjmdKey;
 use super::djmd_label::DjmdLabel;
 use super::schema::djmdContent;
 use super::{Date, DateString, RandomIdGenerator};
-use crate::masterdb::{DjmdRecommendLike, FileType};
 use crate::model_traits::{Model, ModelInsert, ModelUpdate};
-use crate::one_library::{
-    Album, Artist, Color, Cue, Genre, HistoryContent, Image, Label, MyTagContent, PlaylistContent,
-    RecommendedLike,
-};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 use crate::NormalizePath;

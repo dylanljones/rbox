@@ -20,7 +20,6 @@ use super::{format_datetime, Date, DateString, RandomIdGenerator};
 use crate::model_traits::{
     Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, TreeSeq,
 };
-use crate::one_library::{Content, History, HistoryContent};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 

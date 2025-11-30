@@ -16,7 +16,6 @@ use super::djmd_artist::DjmdArtist;
 use super::schema::{djmdAlbum, djmdContent};
 use super::{Date, DateString, RandomIdGenerator};
 use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
-use crate::one_library::{Artist, Image};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 

@@ -10,20 +10,19 @@ use napi_derive::napi;
 use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
+use std::collections::{HashSet, VecDeque};
+use uuid::Uuid;
 
 use super::agent_registry::AgentRegistry;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdPlaylist, djmdSongPlaylist};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
-use crate::masterdb::{DjmdHistory, DjmdSongHistory};
 use crate::model_traits::{
     build_tree_list, Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, NodeRef,
     TreeNode, TreeSeq,
 };
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
-use std::collections::{HashSet, VecDeque};
-use uuid::Uuid;
 
 /// Represents the `djmdPlaylist` table in the Rekordbox database.
 ///

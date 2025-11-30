@@ -1,13 +1,6 @@
 // Author: Dylan Jones
 // Date:   2025-09-02
 
-use super::djmd_content::DjmdContent;
-use super::schema::djmdMixerParam;
-use super::{Date, DateString};
-use crate::masterdb::DjmdHistory;
-use crate::model_traits::Model;
-#[cfg(feature = "pyo3")]
-use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -15,6 +8,13 @@ use napi_derive::napi;
 use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
+
+use super::djmd_content::DjmdContent;
+use super::schema::djmdMixerParam;
+use super::{Date, DateString};
+use crate::model_traits::Model;
+#[cfg(feature = "pyo3")]
+use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
 /// Represents the `djmdMixerParam` table in the Rekordbox database.
 ///
