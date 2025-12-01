@@ -38,7 +38,7 @@ use super::util::options_json_path;
 use crate::error::{Error, Result};
 
 /// Represents the Rekordbox options, including paths for the database, analysis data, and settings.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RekordboxOptions {
     /// Path to the Rekordbox database.
     pub db_path: PathBuf,
