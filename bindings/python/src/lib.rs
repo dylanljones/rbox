@@ -4,6 +4,7 @@
 mod anlz;
 mod errors;
 mod masterdb;
+mod options;
 mod settings;
 mod traits;
 mod xml;
@@ -42,6 +43,9 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(options_json_path, m)?)?;
     m.add_function(wrap_pyfunction!(rekordbox_app_dir, m)?)?;
     m.add_function(wrap_pyfunction!(is_rekordbox_running, m)?)?;
+
+    // Rekordbox Options
+    m.add_class::<options::PyRekordboxOptions>()?;
 
     // Master-db
     m.add_class::<masterdb::PyMasterDb>()?;
@@ -182,7 +186,12 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
 
     // Errors
     m.add("Error", m.py().get_type::<errors::Error>())?;
-    m.add("DatabaseError", m.py().get_type::<errors::DatabaseError>())?;
+    m.add("OptionsError", m.py().get_type::<errors::OptionsError>())?;
+    m.add("MasterDbError", m.py().get_type::<errors::MasterDbError>())?;
+    m.add(
+        "OneLibraryError",
+        m.py().get_type::<errors::OneLibraryError>(),
+    )?;
     m.add("AnlzError", m.py().get_type::<errors::AnlzError>())?;
     m.add("XmlError", m.py().get_type::<errors::XmlError>())?;
     m.add("SettingError", m.py().get_type::<errors::SettingError>())?;

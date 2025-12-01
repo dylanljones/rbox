@@ -13,9 +13,23 @@ create_exception!(
 
 create_exception!(
     rbox,
-    DatabaseError,
+    OptionsError,
+    Error,
+    "Exception raised for errors that are related to the RekordboxOptions handler."
+);
+
+create_exception!(
+    rbox,
+    MasterDbError,
     Error,
     "Exception raised for errors that are related to the master.db database."
+);
+
+create_exception!(
+    rbox,
+    OneLibraryError,
+    Error,
+    "Exception raised for errors that are related to the OneLibrary database."
 );
 
 create_exception!(
