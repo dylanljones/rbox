@@ -6,43 +6,44 @@ use napi_derive::napi;
 
 use rbox::RekordboxOptions;
 
+#[derive(Clone)]
 #[napi(js_name = "RekordboxOptions")]
 pub struct JsRekordboxOptions {
-    opts: RekordboxOptions,
+    pub(crate) inner: RekordboxOptions,
 }
 
 #[napi]
 impl JsRekordboxOptions {
     #[napi(constructor)]
     pub fn new(db_path: String, analysis_root: String, settings_root: String) -> Result<Self> {
-        let opts = RekordboxOptions::new(db_path, analysis_root, settings_root)?;
-        Ok(JsRekordboxOptions { opts })
+        let inner = RekordboxOptions::new(db_path, analysis_root, settings_root)?;
+        Ok(JsRekordboxOptions { inner })
     }
 
     #[napi(factory)]
     pub fn load(path: String) -> Result<Self> {
-        let opts = RekordboxOptions::load(path)?;
-        Ok(JsRekordboxOptions { opts })
+        let inner = RekordboxOptions::load(path)?;
+        Ok(JsRekordboxOptions { inner })
     }
 
     #[napi(factory)]
     pub fn open() -> Result<Self> {
-        let opts = RekordboxOptions::open()?;
-        Ok(JsRekordboxOptions { opts })
+        let inner = RekordboxOptions::open()?;
+        Ok(JsRekordboxOptions { inner })
     }
 
     #[napi(getter)]
     pub fn db_path(&self) -> String {
-        self.opts.db_path.to_string_lossy().to_string()
+        self.inner.db_path.to_string_lossy().to_string()
     }
 
     #[napi(getter)]
     pub fn analysis_root(&self) -> String {
-        self.opts.analysis_root.to_string_lossy().to_string()
+        self.inner.analysis_root.to_string_lossy().to_string()
     }
 
     #[napi(getter)]
     pub fn settings_root(&self) -> String {
-        self.opts.settings_root.to_string_lossy().to_string()
+        self.inner.settings_root.to_string_lossy().to_string()
     }
 }

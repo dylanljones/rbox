@@ -44,9 +44,9 @@ export interface AgentRegistry {
 }
 
 /**
- * Represents the `album` table in the Rekordbox Device Library Plus database.
+ * Represents the `album` table in the Rekordbox One Library database.
  *
- * This struct maps to the `album` table in the Device Library Plus export database.
+ * This struct maps to the `album` table in the One Library export database.
  * It stores album-related data, allowing multiple tracks to be associated with the same album.
  * This table includes metadata such as album name, artist, and compilation status.
  *
@@ -73,9 +73,9 @@ export interface Album {
 }
 
 /**
- * Represents the `artist` table in the Rekordbox Device Library Plus database.
+ * Represents the `artist` table in the Rekordbox One Library database.
  *
- * This struct maps to the `artist` table in the Device Library Plus export database.
+ * This struct maps to the `artist` table in the One Library export database.
  * It stores artist-related data, allowing multiple tracks to be associated with the same artist.
  *
  * # Referenced by
@@ -92,9 +92,9 @@ export interface Artist {
 }
 
 /**
- * Represents the `category` table in the Rekordbox Device Library Plus database.
+ * Represents the `category` table in the Rekordbox One Library database.
  *
- * This struct maps to the `category` table in the Device Library Plus export database.
+ * This struct maps to the `category` table in the One Library export database.
  *
  * # References
  * * [`MenuItem`] via `menu_item_id` foreign key.
@@ -157,7 +157,7 @@ export interface CloudAgentRegistry {
 }
 
 /**
- * Represents the `color` table in the Rekordbox Device Library Plus database.
+ * Represents the `color` table in the Rekordbox One Library database.
  *
  *
  * # Referenced by
@@ -177,9 +177,9 @@ export interface Composer {
 }
 
 /**
- * Represents the `content` table in the Rekordbox Device Library Plus database.
+ * Represents the `content` table in the Rekordbox One Library database.
  *
- * This struct maps to the `content` table in the Device Library Plus export database.
+ * This struct maps to the `content` table in the One Library export database.
  * It contains metadata and attributes for each track in the collection, including file info,
  * artist, album, genre, and more.
  *
@@ -195,7 +195,7 @@ export interface Composer {
  * * [`Album`] via `album_id` foreign key.
  * * [`Genre`] via `genre_id` foreign key.
  * * [`Label`] via `label_id` foreign key.
- * * [`Kex`] via `key_id` foreign key.
+ * * [`Key`] via `key_id` foreign key.
  * * [`Color`] via `color_id` foreign key.
  * * [`Image`] via `image_id` foreign key.
  */
@@ -297,6 +297,9 @@ export interface Content {
  *
  * This struct maps to the `contentActiveCensor` table in the SQLite database used by Rekordbox.
  * It contains the active censor entries [`DjmdActiveCensor`] of a file as stringified JSON data.
+ *
+ * # References
+ * * [`DjmdContent`] via `content_id` foreign key.
  */
 export interface ContentActiveCensor {
   /** A unique identifier for the entry. */
@@ -332,6 +335,9 @@ export interface ContentActiveCensor {
  *
  * This struct maps to the `contentCue` table in the SQLite database used by Rekordbox.
  * It contains the cue entry [`DjmdCue`] of a file as stringified JSON data.
+ *
+ * # References
+ * * [`DjmdContent`] via `content_id` foreign key.
  */
 export interface ContentCue {
   /** A unique identifier for the entry. */
@@ -368,6 +374,9 @@ export interface ContentCue {
  * This struct maps to the `contentFile` table in the SQLite database used by Rekordbox.
  * It contains metadata and attributes of the additional file of contents. These include
  * the analysis and artwork files linked to a track
+ *
+ * # References
+ * * [`DjmdContent`] via `content_id` foreign key.
  */
 export interface ContentFile {
   /** A unique identifier for the entry. */
@@ -421,9 +430,9 @@ export interface ContentFile {
 }
 
 /**
- * Represents the `cue` table in the Rekordbox Device Library Plus database.
+ * Represents the `cue` table in the Rekordbox One Library database.
  *
- * This struct maps to the `cue` table in the Device Library Plus export database.
+ * This struct maps to the `cue` table in the One Library export database.
  * It stores information about cue points for tracks, including their timing, type, and
  * additional metadata.
  *
@@ -507,6 +516,9 @@ export interface Cue {
  * It contains information for actively censoring explicit content of tracks in the Rekordbox
  * collection. Active Censor items behave like two cue points, between which an effect is applied
  * to the audio of a track.
+ *
+ * # References
+ * * [`DjmdContent`] via `content_id` and `content_uuid` foreign keys.
  */
 export interface DjmdActiveCensor {
   /** A unique identifier for the entry. */
@@ -549,6 +561,12 @@ export interface DjmdActiveCensor {
  * This struct maps to the `djmdAlbum` table in the SQLite database used by Rekordbox.
  * It stores album-related data, allowing multiple tracks to be associated with the same album.
  * This table includes metadata such as album name, artist, and compilation status.
+ *
+ * # Referenced by
+ * * [`DjmdContent`] via `album_id` foreign key.
+ *
+ * # References
+ * * [`DjmdArtist`] via `album_artist_id` foreign key.
  */
 export interface DjmdAlbum {
   /** A unique identifier for the entry. */
@@ -588,6 +606,10 @@ export interface DjmdAlbum {
  *
  * This struct maps to the `djmdArtist` table in the SQLite database used by Rekordbox.
  * It stores artist-related data, allowing multiple tracks to be associated with the same artist.
+ *
+ * # Referenced by
+ * * [`DjmdContent`] via `artist_id` foreign key.
+ * * [`DjmdAlbum`] via `album_artist_id` foreign key.
  */
 export interface DjmdArtist {
   /** A unique identifier for the entry. */
@@ -621,6 +643,9 @@ export interface DjmdArtist {
  *
  * This struct maps to the `djmdCategory` table in the SQLite database used by Rekordbox.
  * It stores category-related data, which can be associated with menu items.
+ *
+ * # References
+ * * [`DjmdMenuItems`] via `menu_item_id` foreign key.
  */
 export interface DjmdCategory {
   /** A unique identifier for the entry. */
@@ -698,6 +723,9 @@ export interface DjmdCloudProperty {
  *
  * This struct maps to the `djmdColor` table in the SQLite database used by Rekordbox.
  * It stores color-related data, which can be associated with tracks and other entities.
+ *
+ * # Referenced by
+ * * [`DjmdContent`] via `color_id` foreign key.
  */
 export interface DjmdColor {
   /** A unique identifier for the color entry. */
@@ -734,6 +762,29 @@ export interface DjmdColor {
  * This struct maps to the `djmdContent` table in the SQLite database used by Rekordbox.
  * It contains metadata and attributes for each track in the collection, including file info,
  * artist, album, genre, and more.
+ *
+ * # Referenced by
+ * * [`ContentActiveCensor`] via `content_id` foreign key.
+ * * [`ContentCue`] via `content_id` foreign key.
+ * * [`ContentFile`] via `content_id` foreign key.
+ * * [`DjmdActiveCensor`] via `content_id` and `content_uuid` foreign keys.
+ * * [`DjmdSongHistory`] via `content_id` foreign key.
+ * * [`DjmdSongHotCueBanklist`] via `content_id` foreign key.
+ * * [`DjmdMixerParam`] via `content_id` foreign key.
+ * * [`DjmdSongMyTag`] via `content_id` foreign key.
+ * * [`DjmdSongPlaylist`] via `content_id` foreign key.
+ * * [`DjmdRecommendLike`] via `content_id1` and `content_id2` foreign keys.
+ * * [`DjmdSongRelatedTracks`] via `content_id` foreign key.
+ * * [`DjmdSongSampler`] via `content_id` foreign key.
+ * * [`DjmdSongTagList`] via `content_id` foreign key.
+ *
+ * # References
+ * * [`DjmdArtist`] via `artist_id`, `remixer_id`, `original_artist_id`, `composer_id` and `lyricist` foreign keys.
+ * * [`DjmdAlbum`] via `album_id` foreign key.
+ * * [`DjmdGenre`] via `genre_id` foreign key.
+ * * [`DjmdLabel`] via `label_id` foreign key.
+ * * [`DjmdKey`] via `key_id` foreign key.
+ * * [`DjmdColor`] via `color_id` foreign key.
  */
 export interface DjmdContent {
   /** A unique identifier for the entry. */
@@ -908,6 +959,12 @@ export interface DjmdContent {
  * filled out to assist with correct seeking. Despite the names, these values are not the frame
  * indices within the MPEG file, but instead use an alternative timing scheme that is typically
  * around 1/75th of a second (13.333ms) per frame, i.e. about half the granularity of normal frames.
+ *
+ * # References
+ * * [`DjmdContent`] via `content_id` and `content_uuid` foreign keys.
+ *
+ * # Referenced by
+ * * [`DjmdSongHotCueBanklist`] via `cue_id` foreign key.
  */
 export interface DjmdCue {
   /** A unique identifier for the entry. */
@@ -1021,6 +1078,9 @@ export interface DjmdDevice {
  *
  * This struct maps to the `djmdGenre` table in the SQLite database used by Rekordbox.
  * It stores genre-related data, allowing tracks to be categorized by genre.
+ *
+ * # Referenced by
+ * * [`DjmdContent`] via `genre_id` foreign key.
  */
 export interface DjmdGenre {
   /** A unique identifier for the entry. */
@@ -1053,6 +1113,13 @@ export interface DjmdGenre {
  * This struct maps to the `djmdHistory` table in the SQLite database used by Rekordbox.
  * It stores information about history entries, including metadata such as sequence, name,
  * attributes, and parent relationships.
+ *
+ * # Referenced by
+ * * [`DjmdHistory`] via `parent_id` foreign key.
+ * * [`DjmdSongHistory`] via `history_id` foreign key.
+ *
+ * # References
+ * * [`DjmdHistory`] via `parent_id` foreign key.
  */
 export interface DjmdHistory {
   /** A unique identifier for the entry. */
@@ -1093,6 +1160,14 @@ export interface DjmdHistory {
  * This struct maps to the `djmdHotCueBanklist` table in the SQLite database used by Rekordbox.
  * It stores information about hot cue bank lists, including metadata such as sequence, name,
  * image path, and parent relationships.
+ *
+ * # Referenced by
+ * * [`DjmdHotCueBanklist`] via `parent_id` foreign key.
+ * * [`DjmdSongHotCueBanklist`] via `hot_cue_banklist_id` and `hot_cue_banklist_uuid` foreign keys.
+ * * [`HotCueBanklistCue`] via `hot_cue_banklist_id` foreign key.
+ *
+ * # References
+ * * [`DjmdHotCueBanklist`] via `parent_id` foreign key.
  */
 export interface DjmdHotCueBanklist {
   /** A unique identifier for the entry. */
@@ -1132,6 +1207,9 @@ export interface DjmdHotCueBanklist {
  *
  * This struct maps to the `djmdKey` table in the SQLite database used by Rekordbox.
  * It stores information about musical keys, including their names and sequence order.
+ *
+ * # Referenced by
+ * * [`DjmdContent`] via `key_id` foreign key.
  */
 export interface DjmdKey {
   /** A unique identifier for the entry. */
@@ -1165,6 +1243,9 @@ export interface DjmdKey {
  *
  * This struct maps to the `djmdLabel` table in the SQLite database used by Rekordbox.
  * It stores information about labels, including their names and metadata.
+ *
+ * # Referenced by
+ * * [`DjmdContent`] via `label_id` foreign key.
  */
 export interface DjmdLabel {
   /** A unique identifier for the entry. */
@@ -1196,6 +1277,10 @@ export interface DjmdLabel {
  *
  * This struct maps to the `djmdMenuItems` table in the SQLite database used by Rekordbox.
  * It stores information about menu items, including their class, name, and metadata.
+ *
+ * # Referenced by
+ * * [`DjmdCategory`] via `menu_item_id` foreign key.
+ * * [`DjmdSort`] via `menu_item_id` foreign key.
  */
 export interface DjmdMenuItems {
   /** A unique identifier for the entry. */
@@ -1237,6 +1322,9 @@ export interface DjmdMenuItems {
  * The auto-gain value is the one shown in the grid edit panel. The peak value does not appear to
  * be displayed anywhere in the program, and is most likely used internally for
  * limiting and/or waveform scaling.
+ *
+ * # References
+ * * [`DjmdContent`] via `content_id` foreign key.
  */
 export interface DjmdMixerParam {
   /** A unique identifier for the entry. */
@@ -1261,13 +1349,29 @@ export interface DjmdMixerParam {
   updatedAt: Date
   /** The ID of the associated [`DjmdContent`]. */
   contentId: string
-  /** The upper 16 bits of a IEEE754 single-precision floating point number representing the gain. */
+  /**
+   * The upper 16 bits of a IEEE754 single-precision floating point number representing the gain.
+   *
+   * Use `get_gain_db` and `set_gain_db` to access and modify the gain in decibels (dB).
+   */
   gainHigh: number
-  /** The lower 16 bits of a IEEE754 single-precision floating point number representing the gain. */
+  /**
+   * The lower 16 bits of a IEEE754 single-precision floating point number representing the gain.
+   *
+   * Use `get_gain_db` and `set_gain_db` to access and modify the gain in decibels (dB).
+   */
   gainLow: number
-  /** The upper 16 bits of a IEEE754 single-precision floating point number representing the peak. */
+  /**
+   * The upper 16 bits of a IEEE754 single-precision floating point number representing the peak.
+   *
+   * Use `get_peak_db` and `set_peak_db` to access and modify the peak in decibels (dB).
+   */
   peakHigh: number
-  /** The lower 16 bits of a IEEE754 single-precision floating point number representing the peak. */
+  /**
+   * The lower 16 bits of a IEEE754 single-precision floating point number representing the peak.
+   *
+   * Use `get_peak_db` and `set_peak_db` to access and modify the peak in decibels (dB).
+   */
   peakLow: number
 }
 
@@ -1277,6 +1381,13 @@ export interface DjmdMixerParam {
  * This struct maps to the `djmdMyTag` table in the SQLite database used by Rekordbox.
  * It stores information about custom tags (MyTags) that can be associated with tracks,
  * including metadata such as sequence, name, attributes, and parent relationships.
+ *
+ * # Referenced by
+ * * [`DjmdMyTag`] via `parent_id` foreign key.
+ * * [`DjmdSongMyTag`] via `my_tag_id` foreign key.
+ *
+ * # References
+ * * [`DjmdMyTag`] via `parent_id` foreign key.
  */
 export interface DjmdMyTag {
   /** A unique identifier for the entry. */
@@ -1319,6 +1430,13 @@ export interface DjmdMyTag {
  * **Note**: This model does not implement `ModelDelete`, but provides slightly different
  * `delete` and `delete_all` methods that return the deleted playlist Ids instead of the number
  * of affected rows. This is required for the playlist XML handling.
+ *
+ * # Referenced by
+ * * [`DjmdPlaylist`] via `parent_id` foreign key.
+ * * [`DjmdSongPlaylist`] via `playlist_id` foreign key.
+ *
+ * # References
+ * * [`DjmdPlaylist`] via `parent_id` foreign key.
  */
 export interface DjmdPlaylist {
   /** A unique identifier for the entry. */
@@ -1395,6 +1513,9 @@ export interface DjmdProperty {
  * This struct maps to the `djmdRecommendLike` table in the SQLite database used by Rekordbox.
  * It stores information about recommended track relationships, including metadata such as
  * like rate, creation timestamps, and associated content IDs.
+ *
+ * # References
+ * * [`DjmdContent`] via `content_id1` and `content_id2` foreign keys.
  */
 export interface DjmdRecommendLike {
   /** A unique identifier for the entry. */
@@ -1435,6 +1556,13 @@ export interface DjmdRecommendLike {
  * This struct maps to the `djmdRelatedTracks` table in the SQLite database used by Rekordbox.
  * It stores information about related tracks, including metadata such as sequence, name,
  * attributes, and parent relationships.
+ *
+ * # Referenced by
+ * * [`DjmdRelatedTracks`] via `parent_id` foreign key.
+ * * [`DjmdSongRelatedTracks`] via `related_tracks_id` foreign key.
+ *
+ * # References
+ * * [`DjmdRelatedTracks`] via `parent_id` foreign key.
  */
 export interface DjmdRelatedTracks {
   /** A unique identifier for the entry. */
@@ -1475,6 +1603,13 @@ export interface DjmdRelatedTracks {
  * This struct maps to the `djmdSampler` table in the SQLite database used by Rekordbox.
  * It stores information about samplers, including metadata such as sequence, name,
  * attributes, and parent relationships.
+ *
+ * # Referenced by
+ * * [`DjmdSampler`] via `parent_id` foreign key.
+ * * [`DjmdSongSampler`] via `sampler_id` foreign key.
+ *
+ * # References
+ * * [`DjmdSampler`] via `parent_id` foreign key.
  */
 export interface DjmdSampler {
   /** A unique identifier for the entry. */
@@ -1513,6 +1648,10 @@ export interface DjmdSampler {
  * This struct maps to the `djmdSongHistory` table in the SQLite database used by Rekordbox.
  * It stores information about the relationship between songs and history entries, including
  * metadata such as track number and associated history or content IDs.
+ *
+ * # References
+ * * [`DjmdHistory`] via `history_id` foreign key.
+ * * [`DjmdContent`] via `content_id` foreign key.
  */
 export interface DjmdSongHistory {
   /** A unique identifier for the entry. */
@@ -1557,6 +1696,11 @@ export interface DjmdSongHistory {
  * filled out to assist with correct seeking. Despite the names, these values are not the frame
  * indices within the MPEG file, but instead use an alternative timing scheme that is typically
  * around 1/75th of a second (13.333ms) per frame, i.e. about half the granularity of normal frames.
+ *
+ * # References
+ * * [`DjmdHotCueBanklist`] via `hot_cue_banklist_id` and `hot_cue_banklist_uuid` foreign keys.
+ * * [`DjmdContent`] via `content_id` foreign key.
+ * * [`DjmdCue`] via `cue_id` foreign key.
  */
 export interface DjmdSongHotCueBanklist {
   /** A unique identifier for the entry. */
@@ -1636,6 +1780,10 @@ export interface DjmdSongHotCueBanklist {
  *
  * This struct maps to the `djmdSongMyTag` table in the SQLite database used by Rekordbox.
  * It links the `djmdMyTag` records to the associated `djmdContent` records.
+ *
+ * # References
+ * * [`DjmdMyTag`] via `my_tag_id` foreign key.
+ * * [`DjmdContent`] via `content_id` foreign key.
  */
 export interface DjmdSongMyTag {
   /** A unique identifier for the entry. */
@@ -1672,6 +1820,10 @@ export interface DjmdSongMyTag {
  * This struct maps to the `djmdSongPlaylist` table in the SQLite database used by Rekordbox.
  * It stores information about the relationship between songs and playlists, including
  * metadata such as track number and associated playlist or content IDs.
+ *
+ * # References
+ * * [`DjmdPlaylist`] via `playlist_id` foreign key.
+ * * [`DjmdContent`] via `content_id` foreign key.
  */
 export interface DjmdSongPlaylist {
   /** A unique identifier for the entry. */
@@ -1708,6 +1860,10 @@ export interface DjmdSongPlaylist {
  * This struct maps to the `djmdSongRelatedTracks` table in the SQLite database used by Rekordbox.
  * It stores information about the relationship between songs and related tracks, including
  * metadata such as update sequence numbers, timestamps, and associated content or related tracks IDs.
+ *
+ * # References
+ * * [`DjmdRelatedTracks`] via `related_tracks_id` foreign key.
+ * * [`DjmdContent`] via `content_id` foreign key.
  */
 export interface DjmdSongRelatedTracks {
   /** A unique identifier for the entry. */
@@ -1744,6 +1900,10 @@ export interface DjmdSongRelatedTracks {
  * This struct maps to the `djmdSongSampler` table in the SQLite database used by Rekordbox.
  * It stores information about the relationship between songs and samplers, including
  * metadata such as update sequence numbers, timestamps, and associated sampler or content IDs.
+ *
+ * # References
+ * * [`DjmdSampler`] via `sampler_id` foreign key.
+ * * [`DjmdContent`] via `content_id` foreign key.
  */
 export interface DjmdSongSampler {
   /** A unique identifier for the entry. */
@@ -1780,6 +1940,9 @@ export interface DjmdSongSampler {
  * This struct maps to the `djmdSongTagList` table in the SQLite database used by Rekordbox.
  * It stores information about the relationship between songs and tag lists, including
  * metadata such as update sequence numbers, timestamps, and associated content IDs.
+ *
+ * # References
+ * * [`DjmdContent`] via `content_id` foreign key.
  */
 export interface DjmdSongTagList {
   /** A unique identifier for the entry. */
@@ -1814,6 +1977,9 @@ export interface DjmdSongTagList {
  * This struct maps to the `djmdSort` table in the SQLite database used by Rekordbox.
  * It stores information about sorting options, including metadata such as sequence,
  * menu item associations, and disable status.
+ *
+ * # References
+ * * [`DjmdMenuItems`] via `menu_item_id` foreign key.
  */
 export interface DjmdSort {
   /** A unique identifier for the entry. */
@@ -1845,9 +2011,9 @@ export interface DjmdSort {
 }
 
 /**
- * Represents the `genre` table in the Rekordbox Device Library Plus database.
+ * Represents the `genre` table in the Rekordbox One Library database.
  *
- * This struct maps to the `genre` table in the Device Library Plus export database.
+ * This struct maps to the `genre` table in the One Library export database.
  * It stores genre-related data, allowing multiple tracks to be associated with the same genre.
  */
 export interface Genre {
@@ -1858,9 +2024,9 @@ export interface Genre {
 }
 
 /**
- * Represents the `history` table in the Rekordbox Device Library Plus database.
+ * Represents the `history` table in the Rekordbox One Library database.
  *
- * This struct maps to the `history` table in the Device Library Plus export database.
+ * This struct maps to the `history` table in the One Library export database.
  * It stores information about history entries, including metadata such as sequence, name,
  * attributes, and parent relationships.
  *
@@ -1885,9 +2051,9 @@ export interface History {
 }
 
 /**
- * Represents the `history_content` table in the Rekordbox Device Library Plus database.
+ * Represents the `history_content` table in the Rekordbox One Library database.
  *
- * This struct maps to the `history_content` table in the Device Library Plus export database.
+ * This struct maps to the `history_content` table in the One Library export database.
  * It stores information about the relationship between songs and history entries, including
  * metadata such as track number and associated history or content IDs.
  *
@@ -1905,9 +2071,9 @@ export interface HistoryContent {
 }
 
 /**
- * Represents the `hotCueBankList` table in the Rekordbox Device Library Plus database.
+ * Represents the `hotCueBankList` table in the Rekordbox One Library database.
  *
- * This struct maps to the `hotCueBankList` table in the Device Library Plus export database.
+ * This struct maps to the `hotCueBankList` table in the One Library export database.
  *
  * # References
  * * [`HotCueBankList`] via `parent_id` foreign key.
@@ -1934,6 +2100,9 @@ export interface HotCueBankList {
  * This struct maps to the `hotCueBanklistCue` table in the SQLite database used by Rekordbox.
  * It stores information about the relationship between hot cue bank lists and their associated cues,
  * including metadata such as update sequence numbers, timestamps, and cue data as JSON string.
+ *
+ * # References
+ * * [`DjmdHotCueBanklist`] via `hot_cue_banklist_id` foreign key.
  */
 export interface HotCueBanklistCue {
   /** A unique identifier for the entry. */
@@ -1965,9 +2134,9 @@ export interface HotCueBanklistCue {
 }
 
 /**
- * Represents the `hotCueBankList_cue` table in the Rekordbox Device Library Plus database.
+ * Represents the `hotCueBankList_cue` table in the Rekordbox One Library database.
  *
- * This struct maps to the `hotCueBankList_cue` table in the Device Library Plus export database.
+ * This struct maps to the `hotCueBankList_cue` table in the One Library export database.
  *
  * # References
  * * [`HotCueBankList`] via `hot_cue_bank_list_id` foreign key.
@@ -1983,9 +2152,9 @@ export interface HotCueBankListCue {
 }
 
 /**
- * Represents the `image` table in the Rekordbox Device Library Plus database.
+ * Represents the `image` table in the Rekordbox One Library database.
  *
- * This struct maps to the `image` table in the Device Library Plus export database.
+ * This struct maps to the `image` table in the One Library export database.
  * It stores the relative file paths of all images on the device.
  *
  * # Referenced by
@@ -2062,9 +2231,9 @@ export interface ImageFile {
 }
 
 /**
- * Represents the `key` table in the Rekordbox Device Library Plus database.
+ * Represents the `key` table in the Rekordbox One Library database.
  *
- * This struct maps to the `key` table in the Device Library Plus export database.
+ * This struct maps to the `key` table in the One Library export database.
  * It stores key-related data, allowing multiple tracks to be associated with the same key.
  *
  * # Referenced by
@@ -2078,9 +2247,9 @@ export interface Key {
 }
 
 /**
- * Represents the `label` table in the Rekordbox Device Library Plus database.
+ * Represents the `label` table in the Rekordbox One Library database.
  *
- * This struct maps to the `label` table in the Device Library Plus export database.
+ * This struct maps to the `label` table in the One Library export database.
  * It stores label-related data, allowing multiple tracks to be associated with the same label.
  *
  * # Referenced by
@@ -2100,9 +2269,9 @@ export interface Lyricist {
 }
 
 /**
- * Represents the `menuItem` table in the Rekordbox Device Library Plus database.
+ * Represents the `menuItem` table in the Rekordbox One Library database.
  *
- * This struct maps to the `menuItem` table in the Device Library Plus export database.
+ * This struct maps to the `menuItem` table in the One Library export database.
  * It stores genre-related data, allowing multiple tracks to be associated with the same genre.
  *
  * # Referenced by
@@ -2119,9 +2288,9 @@ export interface MenuItem {
 }
 
 /**
- * Represents the `myTag` table in the Rekordbox Device Library Plus database.
+ * Represents the `myTag` table in the Rekordbox One Library database.
  *
- * This struct maps to the `myTag` table in the Device Library Plus export database.
+ * This struct maps to the `myTag` table in the One Library export database.
  * It stores information about my-tags, including metadata such as sequence, name
  * attributes, and parent relationships.
  *
@@ -2146,9 +2315,9 @@ export interface MyTag {
 }
 
 /**
- * Represents the `myTag_content` table in the Rekordbox Device Library Plus database.
+ * Represents the `myTag_content` table in the Rekordbox One Library database.
  *
- * This struct maps to the `myTag_content` table in the Device Library Plus export database.
+ * This struct maps to the `myTag_content` table in the One Library export database.
  * It stores information about the relationship between songs and myTags.
  *
  * This struct also is insertable into the `myTag_content` table.
@@ -2171,7 +2340,7 @@ export interface MyTagContent {
  *
  * # Examples
  * ```rust
- * use rbox::devlib_plus::models::NewAlbum;
+ * use rbox::one_library::models::NewAlbum;
  *
  * let new = NewAlbum::new("Name").compilation(1);
  * println!("{:?}", new);
@@ -2197,7 +2366,7 @@ export interface NewAlbum {
  *
  * # Examples
  * ```rust
- * use rbox::devlib_plus::models::NewArtist;
+ * use rbox::one_library::models::NewArtist;
  *
  * let new = NewArtist::new("Name").name_for_search("Name");
  * println!("{:?}", new);
@@ -2217,9 +2386,9 @@ export interface NewArtist {
  *
  * # Examples
  * ```rust
- * use rbox::devlib_plus::models::NewCategory;
+ * use rbox::one_library::models::NewCategory;
  *
- * let new = NewCategory::new("Name".into()).is_visible(1);
+ * let new = NewCategory::new(0).is_visible(1);
  * println!("{:?}", new);
  * ```
  */
@@ -2245,7 +2414,7 @@ export interface NewColor {
  *
  * # Examples
  * ```rust
- * use rbox::devlib_plus::models::NewContent;
+ * use rbox::one_library::models::NewContent;
  *
  * let new = NewContent::new("Content/Artist/Title.mp3");
  * println!("{:?}", new);
@@ -2763,7 +2932,7 @@ export interface NewGenre {
  *
  * # Examples
  * ```rust
- * use rbox::devlib_plus::models::NewHistory;
+ * use rbox::one_library::models::NewHistory;
  *
  * let new = NewHistory::history("Name").seq(2);
  * println!("{:?}", new);
@@ -2813,7 +2982,7 @@ export interface NewMenuItem {
  *
  * # Examples
  * ```rust
- * use rbox::devlib_plus::models::NewMyTag;
+ * use rbox::one_library::models::NewMyTag;
  *
  * let new = NewMyTag::tag("Name").seq(2);
  * println!("{:?}", new);
@@ -2837,7 +3006,7 @@ export interface NewMyTag {
  *
  * # Examples
  * ```rust
- * use rbox::devlib_plus::models::NewPlaylist;
+ * use rbox::one_library::models::NewPlaylist;
  *
  * let new = NewPlaylist::playlist("Name").seq(2);
  * println!("{:?}", new);
@@ -2863,7 +3032,7 @@ export interface NewPlaylist {
  *
  * # Examples
  * ```rust
- * use rbox::devlib_plus::models::NewSort;
+ * use rbox::one_library::models::NewSort;
  *
  * let new = NewSort::new(1234).visible(1);
  * println!("{:?}", new);
@@ -2887,9 +3056,9 @@ export interface OriginalArtist {
 }
 
 /**
- * Represents the `playlist` table in the Rekordbox Device Library Plus database.
+ * Represents the `playlist` table in the Rekordbox One Library database.
  *
- * This struct maps to the `playlist` table in the Device Library Plus export database.
+ * This struct maps to the `playlist` table in the One Library export database.
  * It stores information about playlists, including metadata such as sequence, name, image path,
  * attributes, and parent relationships.
  *
@@ -2916,9 +3085,9 @@ export interface Playlist {
 }
 
 /**
- * Represents the `playlist_content` table in the Rekordbox Device Library Plus database.
+ * Represents the `playlist_content` table in the Rekordbox One Library database.
  *
- * This struct maps to the `playlist_content` table in the Device Library Plus export database.
+ * This struct maps to the `playlist_content` table in the One Library export database.
  * It stores information about the relationship between songs and playlists, including
  * metadata such as track number and associated playlist or content IDs.
  *
@@ -2938,9 +3107,9 @@ export interface PlaylistContent {
 }
 
 /**
- * Represents the `property` table in the Rekordbox Device Library Plus database.
+ * Represents the `property` table in the Rekordbox One Library database.
  *
- * This struct maps to the `property` table in the Device Library Plus export database.
+ * This struct maps to the `property` table in the One Library export database.
  * It stores information about the device(s) and the export library.
  */
 export interface Property {
@@ -2959,9 +3128,9 @@ export interface Property {
 }
 
 /**
- * Represents the `recommendedLike` table in the Rekordbox Device Library Plus database.
+ * Represents the `recommendedLike` table in the Rekordbox One Library database.
  *
- * This struct maps to the `recommendedLike` table in the Device Library Plus export database.
+ * This struct maps to the `recommendedLike` table in the One Library export database.
  * It stores information about recommended track relationships, including metadata such as
  * a rating, creation timestamps, and associated content IDs.
  *
@@ -3035,9 +3204,9 @@ export interface SettingFile {
 }
 
 /**
- * Represents the `sort` table in the Rekordbox Device Library Plus database.
+ * Represents the `sort` table in the Rekordbox One Library database.
  *
- * This struct maps to the `sort` table in the Device Library Plus export database.
+ * This struct maps to the `sort` table in the One Library export database.
  *
  * # References
  * * [`MenuItem`] via `menu_item_id` foreign key.
@@ -3062,7 +3231,7 @@ export interface Sort {
  * It stores information about UUID-to-ID mappings, including metadata such as table names,
  * target UUIDs, and current IDs.
  */
-export interface UuidIdMap {
+export interface UuidIDMap {
   /** A unique identifier for the entry. */
   id: string
   /** A unique universal identifier for the entry. */
@@ -3116,135 +3285,292 @@ export declare class Anlz {
 export type JsAnlz = Anlz
 
 export declare class MasterDb {
+  /** Open a Rekordbox database specified by path. */
   constructor(path: string)
+  /** Open the Rekordbox database specified by the `RekordboxOptions`. */
+  static fromOptions(options: JsRekordboxOptions): MasterDb
+  /** Open the default Rekordbox `master.db` database. */
   static open(): MasterDb
+  /** Sets the unsafe writes flag for the database. */
   setUnsafeWrites(unsafeWrites: boolean): void
+  /** Returns the path to the configured share directory. */
+  shareDirectory(): string | null
+  /** Returns the path to the configured playlist XML file. */
+  playlistXmlPath(): string | null
+  /** Retrieves all entries from the [`AgentRegistry`] table in the database. */
   getAgentRegistries(): Array<AgentRegistry>
+  /** Retrieves an `agentRegistry` entry by its unique identifier. */
   getAgentRegistryById(id: string): AgentRegistry | null
+  /** Retrieves the local update sequence number (USN) from the `agentRegistry` table. */
   getLocalUsn(): number
+  /** Retrieves all entries from the `cloudAgentRegistry` table in the database. */
   getCloudAgentRegistries(): Array<CloudAgentRegistry>
+  /** Retrieves a `cloudAgentRegistry` entry by its unique identifier. */
   getCloudAgentRegistryById(id: string): CloudAgentRegistry | null
+  /** Retrieves all entries from the `contentActiveCensor` table in the database. */
   getContentActiveCensors(): Array<ContentActiveCensor>
+  /** Retrieves a `contentActiveCensor` entry by its unique identifier. */
   getContentActiveCensorById(id: string): ContentActiveCensor | null
+  /** Retrieves all entries from the `contentCue` table in the database. */
   getContentCues(): Array<ContentCue>
+  /** Retrieves a `contentCue` entry by its unique identifier. */
   getContentCueById(id: string): ContentCue | null
+  /** Retrieves all entries from the `contentFile` table in the database. */
   getContentFiles(): Array<ContentFile>
+  /** Retrieves a `contentFile` entry by its unique identifier. */
   getContentFileById(id: string): ContentFile | null
+  /** Retrieves all entries from the `djmdActiveCensor` table in the database. */
   getActiveCensors(): Array<DjmdActiveCensor>
+  /** Retrieves a `djmdActiveCensor` entry by its unique identifier. */
   getActiveCensorById(id: string): DjmdActiveCensor | null
+  /** Retrieves all entries from the `djmdAlbum` table in the database. */
   getAlbums(): Array<DjmdAlbum>
+  /** Retrieves a `djmdAlbum` entry by its unique identifier. */
   getAlbumById(id: string): DjmdAlbum | null
+  /** Retrieves a `djmdAlbum` entry by its name. */
   getAlbumByName(name: string): DjmdAlbum | null
+  /** Inserts a new album into the `djmdAlbum` table in the database. */
+  insertAlbum(item: NewDjmdAlbum): DjmdAlbum
+  /** Creates a new album and inserts it into the `djmdAlbum` table in the database. */
   createAlbum(name: string, artistId?: string | undefined | null, imagePath?: string | undefined | null, compilation?: number | undefined | null): DjmdAlbum
+  /** Updates an existing `djmdAlbum` entry in the database. */
   updateAlbum(model: DjmdAlbum): DjmdAlbum
+  /** Deletes an album entry from the `djmdAlbum` table in the database. */
   deleteAlbum(id: string): void
+  /** Retrieves all entries from the `djmdArtist` table in the database. */
   getArtists(): Array<DjmdArtist>
+  /** Retrieves a `djmdArtist` entry by its unique identifier. */
   getArtistById(id: string): DjmdArtist | null
+  /** Retrieves a `djmdArtist` entry by its name. */
   getArtistByName(name: string): DjmdArtist | null
+  /** Inserts a new artist into the `djmdArtist` table in the database. */
+  insertArtist(item: NewDjmdArtist): DjmdArtist
+  /** Creates a new artist and inserts it into the `djmdArtist` table in the database. */
   createArtist(name: string): DjmdArtist
+  /** Updates an existing `djmdArtist` entry in the database. */
   updateArtist(model: DjmdArtist): DjmdArtist
+  /** Deletes an artist entry from the `djmdArtist` table in the database. */
   deleteArtist(id: string): void
+  /** Retrieves all entries from the `djmdCategory` table in the database. */
   getCategories(): Array<DjmdCategory>
+  /** Retrieves a `djmdCategory` entry by its unique identifier. */
   getCategoryById(id: string): DjmdCategory | null
+  /** Retrieves all entries from the `djmdColor` table in the database. */
   getColors(): Array<DjmdColor>
+  /** Retrieves a `djmdColor` entry by its unique identifier. */
   getColorById(id: string): DjmdColor | null
+  /** Retrieves all entries from the `djmdContent` table in the database. */
   getContents(): Array<DjmdContent>
+  /** Retrieves a `djmdContent` entry by its unique identifier. */
   getContentById(id: string): DjmdContent | null
+  /** Retrieves a `djmdContent` entry by its unique identifier. */
+  getContentsByIds(ids: Array<string>): Array<DjmdContent>
+  /** Retrieves a `djmdContent` entry by its folder path. */
   getContentByPath(id: string): DjmdContent | null
+  /** Returns the path to the directory containing the ANLZxxxx.xxx files for a given content ID. */
   getContentAnlzDir(id: string): string | null
+  /** Returns a struct containing the paths to ANLZxxxx.DAT, ANLZxxxx.EXT, and ANLZxxxx.EX2 files. */
   getContentAnlzPaths(id: string): AnlzPaths | null
+  /** Creates a new content entry and inserts it into the `djmdContent` table. */
   createContent(path: string): DjmdContent
+  /** Updates an existing `djmdContent` entry in the database. */
   updateContent(model: DjmdContent): number
+  /** Update the content album field. */
   updateContentAlbum(id: string, name: string): number
+  /** Update the content artist name. */
   updateContentArtist(id: string, name: string): number
+  /** Update the content remixer name. */
   updateContentRemixer(id: string, name: string): number
+  /** Update the content original artist name. */
   updateContentOriginalArtist(id: string, name: string): number
+  /** Update the content composer name. */
   updateContentComposer(id: string, name: string): number
+  /** Update the content genre name. */
   updateContentGenre(id: string, name: string): number
+  /** Update the content label name. */
   updateContentLabel(id: string, name: string): number
+  /** Update the content key name. */
   updateContentKey(id: string, name: string): number
+  /** Updates the file path of a content entry in the database. */
+  updateContentPath(contentId: string, path: string): number
+  /** Retrieves all entries from the `djmdCue` table. */
   getCues(): Array<DjmdCue>
+  /** Retrieves a `djmdCue` entry by its unique identifier. */
   getCueById(id: string): DjmdCue | null
+  /** Retrieves all entries from the `djmdDevice` table. */
   getDevices(): Array<DjmdDevice>
+  /** Retrieves a `djmdDevice` entry by its unique identifier. */
   getDeviceById(id: string): DjmdDevice | null
+  /** Retrieves all entries from the `djmdGenre` table in the database. */
   getGenres(): Array<DjmdGenre>
+  /** Retrieves a `djmdGenre` entry by its unique identifier. */
   getGenreById(id: string): DjmdGenre | null
+  /** Retrieves a `djmdGenre` entry by its name. */
   getGenreByName(name: string): DjmdGenre | null
+  /** Inserts a new genre into the `djmdGenre` table in the database. */
+  insertGenre(genre: NewDjmdGenre): DjmdGenre
+  /** Creates a new genre and inserts it into the `djmdGenre` table in the database. */
   createGenre(name: string): DjmdGenre
+  /** Updates an existing `djmdGenre` entry in the database. */
   updateGenre(model: DjmdGenre): DjmdGenre
+  /** Deletes a genre entry from the `djmdGenre` table in the database. */
   deleteGenre(id: string): void
+  /** Retrieves all entries from the `djmdHistory` table in the database. */
   getHistories(): Array<DjmdHistory>
+  /** Retrieves a `djmdHistory` entry by its unique identifier. */
   getHistoryById(id: string): DjmdHistory | null
+  /** Retrieves all song history entries for a given history ID, ordered by track number. */
   getHistorySongs(id: string): Array<DjmdSongHistory>
+  /** Retrieves all content entries referenced by the song history for a given history ID. */
   getHistoryContents(id: string): Array<DjmdContent>
+  /** Retrieves all entries from the `djmdHotCueBanklist` table in the database. */
   getHotCueBanklists(): Array<DjmdHotCueBanklist>
+  /** Retrieves a `djmdHotCueBanklist` entry by its unique identifier. */
   getHotCueBanklistChildren(id: string): Array<DjmdHotCueBanklist>
+  /** Retrieves all child `djmdHotCueBanklist` entries for a given parent ID, ordered by sequence. */
   getHotCueBanklistById(id: string): DjmdHotCueBanklist | null
+  /** Retrieves all `djmdSongHotCueBanklist` entries for a given hot cue banklist ID, ordered by track number. */
   getHotCueBanklistSongs(id: string): Array<DjmdSongHotCueBanklist>
+  /** Retrieves all `djmdContent` entries referenced by the song hot cue banklist for a given hot cue banklist ID. */
   getHotCueBanklistContents(id: string): Array<DjmdContent>
+  /** Retrieves all `hotCueBanklistCue` entries for a given hot cue banklist ID. */
   getHotCueBanklistCues(id: string): Array<HotCueBanklistCue>
+  /** Retrieves all entries from the `djmdKey` table in the database. */
   getKeys(): Array<DjmdKey>
+  /** Retrieves a `djmdKey` entry by its unique identifier. */
   getKeyById(id: string): DjmdKey | null
+  /** Retrieves a `djmdKey` entry by its scale name. */
   getKeyByName(name: string): DjmdKey | null
+  /** Inserts a new key into the `djmdKey` table in the database. */
+  insertKey(key: NewDjmdKey): DjmdKey
+  /** Creates a new key and inserts it into the `djmdKey` table in the database. */
   createKey(name: string): DjmdKey
+  /** Updates an existing `djmdKey` entry in the database. */
   updateKey(model: DjmdKey): DjmdKey
+  /** Deletes a key entry from the `djmdKey` table in the database. */
   deleteKey(id: string): void
+  /** Retrieves all entries from the `djmdLabel` table in the database. */
   getLabels(): Array<DjmdLabel>
+  /** Retrieves a `djmdLabel` entry by its unique identifier. */
   getLabelById(id: string): DjmdLabel | null
+  /** Retrieves a `djmdLabel` entry by its name. */
   getLabelByName(name: string): DjmdLabel | null
+  /** Creates a new label and inserts it into the `djmdLabel` table in the database. */
   createLabel(name: string): DjmdLabel
+  /** Updates an existing `djmdLabel` entry in the database. */
   updateLabel(model: DjmdLabel): DjmdLabel
+  /** Deletes a label entry from the `djmdLabel` table in the database. */
   deleteLabel(id: string): void
+  /** Retrieves all entries from the `djmdMenuItems` table in the database. */
   getMenuItems(): Array<DjmdMenuItems>
+  /** Retrieves a `djmdMenuItems` entry by its unique identifier. */
   getMenuItemById(id: string): DjmdMenuItems | null
+  /** Retrieves all entries from the `djmdMixerParam` table in the database. */
   getMixerParams(): Array<DjmdMixerParam>
+  /** Retrieves a `djmdMixerParam` entry by its unique identifier. */
   getMixerParamById(id: string): DjmdMixerParam | null
+  /** Retrieves all entries from the `djmdMyTag` table in the database. */
   getMyTags(): Array<DjmdMyTag>
+  /** Retrieves all child `djmdMyTag` entries for a given parent ID, ordered by sequence. */
   getMyTagChildren(id: string): Array<DjmdMyTag>
+  /** Retrieves a `djmdMyTag` entry by its unique identifier. */
   getMyTagById(id: string): DjmdMyTag | null
+  /** Retrieves all `djmdSongMyTag` entries for a given tag ID, ordered by track number. */
   getMyTagSongs(id: string): Array<DjmdSongMyTag>
+  /** Retrieves all `djmdContent` entries referenced by the songs for a given tag ID. */
   getMyTagContents(id: string): Array<DjmdContent>
+  /** Retrieves all entries from the `djmdPlaylist` table in the database. */
   getPlaylists(): Array<DjmdPlaylist>
+  /** Returns a sorted tree of playlists as tree nodes. */
   getPlaylistTree(): Array<DjmdPlaylistTreeNode>
+  /** Retrieves all child `djmdPlaylist` entries for a given parent ID, ordered by sequence. */
   getPlaylistChildren(id: string): Array<DjmdPlaylist>
+  /** Retrieves a `djmdPlaylist` entry by its unique identifier. */
   getPlaylistById(id: string): DjmdPlaylist | null
+  /** Retrieves a `djmdPlaylist` entry by its hierarchical path. */
   getPlaylistByPath(path: Array<string>): DjmdPlaylist | null
+  /** Retrieves all `djmdSongPlaylist` entries for a given playlist ID, ordered by track number. */
   getPlaylistSongs(id: string): Array<DjmdSongPlaylist>
+  /** Retrieves all `djmdContent` entries referenced by the songs for a given playlist ID. */
   getPlaylistContents(id: string): Array<DjmdContent>
+  /** Retrieves a `djmdSongPlaylist` entry by its unique identifier. */
   getPlaylistSongById(id: string): DjmdSongPlaylist | null
+  /** Creates a new playlist and inserts it into the `djmdPlaylist` table in the database. */
   createPlaylistNode(name: string, attribute: number, parentId?: string | undefined | null, seq?: number | undefined | null, imagePath?: string | undefined | null, smartList?: string | undefined | null): DjmdPlaylist
+  /** Creates a new regular playlist in the `djmdPlaylist` table. */
+  createPlaylist(name: string, parentId?: string | undefined | null, seq?: number | undefined | null, imagePath?: string | undefined | null, smartList?: string | undefined | null): DjmdPlaylist
+  /** Creates a new playlist folder in the `djmdPlaylist` table. */
+  createPlaylistFolder(name: string, parentId?: string | undefined | null, seq?: number | undefined | null): DjmdPlaylist
+  /** Renames an existing playlist. */
   renamePlaylist(id: string, name: string): DjmdPlaylist
+  /** Moves a playlist to a new parent folder or changes its sequence within the same parent. */
   movePlaylist(id: string, seq?: number | undefined | null, parentId?: string | undefined | null): DjmdPlaylist
+  /** Moves multiple playlists to a new parent folder or changes its sequence within the same parent. */
+  movePlaylists(ids: Array<string>, parentId: string, startSeq?: number | undefined | null): Array<DjmdPlaylist>
+  /** Deletes a playlist entry from the `djmdPlaylist` table in the database. */
   deletePlaylist(id: string): void
+  /** Inserts a new `djmdSongPlaylist` song into a playlist. */
+  insertPlaylistSong(item: NewDjmdSongPlaylist): DjmdSongPlaylist
+  /** Creates a new playlist song and inserts it into the `djmdSongPlaylist` table. */
   createPlaylistSong(playlistId: string, contentId: string, seq?: number | undefined | null): DjmdSongPlaylist
+  /** Moves a song within a playlist to a new sequence position. */
   movePlaylistSong(id: string, seq: number): DjmdSongPlaylist
+  /** Moves multiple songs within a playlist to a new sequence position. */
+  movePlaylistSongs(ids: Array<string>, startSeq: number): Array<DjmdSongPlaylist>
+  /** Deletes a song entry from a playlist. */
   deletePlaylistSong(id: string): void
+  /** Retrieves all entries from the `djmdProperty` table in the database. */
   getProperties(): Array<DjmdProperty>
+  /** Retrieves a `djmdProperty` entry by its unique identifier. */
   getPropertyById(id: string): DjmdProperty | null
+  /** Retrieves all entries from the `djmdCloudProperty` table in the database. */
   getCloudProperties(): Array<DjmdCloudProperty>
+  /** Retrieves a `djmdCloudProperty` entry by its unique identifier. */
   getCloudPropertyById(id: string): DjmdCloudProperty | null
+  /** Retrieves all entries from the `djmdRecommendLike` table in the database. */
   getRecommendLikes(): Array<DjmdRecommendLike>
+  /** Retrieves a `djmdRecommendLike` entry by its unique identifier. */
   getRecommendLikeById(id: string): DjmdRecommendLike | null
+  /** Retrieves all entries from the `djmdRelatedTracks` table in the database. */
   getRelatedTracks(): Array<DjmdRelatedTracks>
+  /** Retrieves all child `djmdRelatedTracks` entries for a given parent ID, ordered by sequence. */
   getRelatedTracksChildren(id: string): Array<DjmdRelatedTracks>
+  /** Retrieves a `djmdRelatedTracks` entry by its unique identifier. */
   getRelatedTracksById(id: string): DjmdRelatedTracks | null
+  /** Retrieves all `djmdSongRelatedTracks` entries for a given related tracks ID, ordered by track number. */
   getRelatedTracksSongs(id: string): Array<DjmdSongRelatedTracks>
+  /** Retrieves all `djmdContent` entries referenced by the songs for a given related tracks ID. */
   getRelatedTracksContents(id: string): Array<DjmdContent>
+  /** Retrieves all entries from the `djmdSampler` table in the database. */
   getSamplers(): Array<DjmdSampler>
+  /** Retrieves all child `djmdSampler` entries for a given parent ID, ordered by sequence. */
   getSamplerChildren(id: string): Array<DjmdSampler>
+  /** Retrieves a `djmdSampler` entry by its unique identifier. */
   getSamplerById(id: string): DjmdSampler | null
+  /** Retrieves all `djmdSongSampler` entries for a given sampler ID, ordered by track number. */
   getSamplerSongs(id: string): Array<DjmdSongSampler>
+  /** Retrieves all `djmdContent` entries referenced by the songs for a given sampler ID. */
   getSamplerContents(id: string): Array<DjmdContent>
+  /** Retrieves all entries from the `djmdSongTagList` table in the database. */
   getSongTagLists(): Array<DjmdSongTagList>
+  /** Retrieves a `djmdSongTagList` entry by its unique identifier. */
   getSongTagListById(id: string): DjmdSongTagList | null
+  /** Retrieves all entries from the `djmdSort` table in the database, ordered by sequence. */
   getSorts(): Array<DjmdSort>
+  /** Retrieves a `djmdSort` entry by its unique identifier. */
   getSortById(id: string): DjmdSort | null
+  /** Retrieves all entries from the `imageFile` table in the database. */
   getImageFiles(): Array<ImageFile>
+  /** Retrieves an `imageFile` entry by its unique identifier. */
   getImageFileById(id: string): ImageFile | null
+  /** Retrieves all entries from the `settingFile` table in the database. */
   getSettingFiles(): Array<SettingFile>
+  /** Retrieves a `settingFile` entry by its unique identifier. */
   getSettingFileById(id: string): SettingFile | null
-  getUuidIdMaps(): Array<UuidIdMap>
-  getUuidIdMapById(id: string): UuidIdMap | null
+  /** Retrieves all entries from the `uuidIDMap` table in the database. */
+  getUuidIdMaps(): Array<UuidIDMap>
+  /** Retrieves a `uuidIDMap` entry by its unique identifier. */
+  getUuidIdMapById(id: string): UuidIDMap | null
 }
 export type JsMasterDb = MasterDb
 
