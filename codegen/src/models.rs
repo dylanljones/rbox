@@ -33,6 +33,30 @@ pub struct VisibilityInfo {
     pub raw: String, // "pub", "pub(crate)", or "" (inherited)
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TypeInfo {
+    pub name: String,
+    pub children: Vec<TypeInfo>,
+    pub raw: String,
+}
+
+impl TypeInfo {
+    pub fn to_string(&self) -> String {
+        let mut out = self.name.clone();
+        if !self.children.is_empty() {
+            out.push_str("<");
+            for (i, child) in self.children.iter().enumerate() {
+                out.push_str(&child.to_string());
+                if i != self.children.len() - 1 {
+                    out.push_str(", ");
+                }
+            }
+            out.push_str(">");
+        }
+        out
+    }
+}
+
 impl VisibilityInfo {
     pub fn is_public(&self) -> bool {
         self.raw == "pub"
@@ -49,8 +73,8 @@ impl VisibilityInfo {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FunctionArg {
-    pub name: String,       // "self" or pattern name or "_"
-    pub ty: Option<String>, // None for receiver; Some("<type>") for typed arg
+    pub name: String,         // "self" or pattern name or "_"
+    pub ty: Option<TypeInfo>, // None for receiver; Some("<type>") for typed arg
     pub is_self: bool,
     pub attrs: Vec<AttrInfo>,
 }
@@ -59,7 +83,7 @@ pub struct FunctionArg {
 pub struct FieldInfo {
     pub name: Option<String>, // None for tuple fields
     pub vis: VisibilityInfo,
-    pub ty: String,
+    pub ty: TypeInfo,
     pub attrs: Vec<AttrInfo>,
     pub doc: Doc,
 }
@@ -84,7 +108,7 @@ pub struct FunctionInfo {
     pub doc: Doc,
     pub generics: GenericInfo,
     pub args: Vec<FunctionArg>,
-    pub ret: Option<String>, // None => no return type
+    pub ret: Option<TypeInfo>, // None => no return type
     pub is_async: bool,
     pub is_unsafe: bool,
     pub is_const: bool,
@@ -110,4 +134,28 @@ pub struct ModuleAst {
     pub functions: Vec<FunctionInfo>,
     pub structs: Vec<StructInfo>,
     pub impls: Vec<ImplInfo>,
+}
+
+impl ModuleAst {
+    pub fn find_struct(&self, name: &str) -> Option<&StructInfo> {
+        self.structs.iter().find(|s| s.name == name)
+    }
+
+    pub fn find_function(&self, name: &str) -> Option<&FunctionInfo> {
+        self.functions.iter().find(|f| f.name == name)
+    }
+
+    pub fn find_impl(&self, self_ty: &str) -> Vec<&ImplInfo> {
+        self.impls.iter().filter(|i| i.self_ty == self_ty).collect()
+    }
+
+    pub fn find_struct_methods(&self, self_ty: &str) -> Vec<&FunctionInfo> {
+        let mut methods = Vec::new();
+        for impl_block in self.find_impl(self_ty).iter() {
+            for method in impl_block.methods.iter() {
+                methods.push(method);
+            }
+        }
+        methods
+    }
 }

@@ -1,7 +1,7 @@
 // Author: Dylan Jones
 // Date:   2025-11-22
 
-mod models;
+pub mod models;
 mod parser;
 mod util;
 

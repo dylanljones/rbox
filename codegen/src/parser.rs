@@ -18,7 +18,7 @@ fn parse_function(f: &syn::ItemFn, is_method: bool) -> FunctionInfo {
         args: fn_args(&f.sig.inputs),
         ret: match &f.sig.output {
             syn::ReturnType::Default => None,
-            syn::ReturnType::Type(_, ty) => Some(type_to_str(ty)),
+            syn::ReturnType::Type(_, ty) => Some(parse_type(ty)),
         },
         is_async: f.sig.asyncness.is_some(),
         is_unsafe: f.sig.unsafety.is_some(),
@@ -40,7 +40,7 @@ fn parse_struct(s: &syn::ItemStruct) -> StructInfo {
             .map(|f| FieldInfo {
                 name: f.ident.as_ref().map(|i| i.to_string()),
                 vis: vis_info(&f.vis),
-                ty: type_to_str(&f.ty),
+                ty: parse_type(&f.ty),
                 attrs: attrs_info(&f.attrs),
                 doc: collect_doc(&f.attrs),
             })
@@ -52,7 +52,7 @@ fn parse_struct(s: &syn::ItemStruct) -> StructInfo {
             .map(|(i, f)| FieldInfo {
                 name: Some(i.to_string()), // tuple field index, for convenience
                 vis: vis_info(&f.vis),
-                ty: type_to_str(&f.ty),
+                ty: parse_type(&f.ty),
                 attrs: attrs_info(&f.attrs),
                 doc: collect_doc(&f.attrs),
             })
@@ -174,6 +174,58 @@ fn generics_info(g: &syn::Generics) -> GenericInfo {
     }
 }
 
+fn type_to_str(t: &syn::Type) -> String {
+    t.to_token_stream().to_string()
+}
+
+fn parse_type_str(s: String) -> TypeInfo {
+    let raw = s.clone();
+    if s.contains("<") {
+        // Split inner
+        let mut pieces = s.split("<");
+        // Collect all pieces except the first one, which is the type name
+        let name = pieces.next().unwrap().trim().to_string();
+        let inner = pieces.collect::<Vec<&str>>().join("<");
+        // Remove the last '>' from inner
+        let inner = inner.trim_end_matches('>').trim().to_string();
+        // Split by commas, but be careful of nested generics
+        let mut children = Vec::new();
+        let mut depth = 0;
+        let mut current = String::new();
+        for c in inner.chars() {
+            if c == '<' {
+                depth += 1;
+            } else if c == '>' {
+                depth -= 1;
+            } else if c == ',' && depth == 0 {
+                children.push(parse_type_str(current.trim().to_string()));
+                current.clear();
+                continue;
+            }
+            current.push(c);
+        }
+        if !current.is_empty() {
+            children.push(parse_type_str(current.trim().to_string()));
+        }
+        TypeInfo {
+            name,
+            children,
+            raw,
+        }
+    } else {
+        TypeInfo {
+            name: s.clone(),
+            children: vec![],
+            raw,
+        }
+    }
+}
+
+fn parse_type(t: &syn::Type) -> TypeInfo {
+    let s = type_to_str(t);
+    parse_type_str(s)
+}
+
 fn collect_doc(attrs: &[syn::Attribute]) -> Doc {
     let mut lines = Vec::new();
     for a in attrs {
@@ -217,7 +269,7 @@ fn fn_args(
             },
             syn::FnArg::Typed(p) => FunctionArg {
                 name: pat_to_name(&p.pat),
-                ty: Some(type_to_str(&p.ty)),
+                ty: Some(parse_type(&p.ty)),
                 is_self: false,
                 attrs: attrs_info(&p.attrs),
             },
@@ -231,8 +283,4 @@ fn pat_to_name(p: &syn::Pat) -> String {
         // be conservative; you can improve this to show actual patterns
         _ => "_".into(),
     }
-}
-
-fn type_to_str(t: &syn::Type) -> String {
-    t.to_token_stream().to_string()
 }
