@@ -1,6 +1,6 @@
 # This workflow will publish the rbox-derives to crates.io.
 
-name: Rust
+name: Rust-Derives
 
 on:
   # Triggers the workflow when a release is created
