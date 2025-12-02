@@ -108,7 +108,7 @@ impl Into<JsCueStatus> for CueStatus {
     }
 }
 
-#[napi(object, js_name = "Cue")]
+#[napi(object, js_name = "AnlzCue")]
 pub struct JsCue {
     pub hot_cue: u32,
     pub status: JsCueStatus,

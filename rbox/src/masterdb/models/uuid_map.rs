@@ -9,23 +9,24 @@ use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-use super::schema;
-use super::util::{Date, DateString};
+use super::schema::uuidIDMap;
+use super::{Date, DateString};
+use crate::model_traits::Model;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `UuidIDMap` table in the Rekordbox database.
+/// Represents the `uuidIDMap` table in the Rekordbox database.
 ///
-/// This struct maps to the `UuidIDMap` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `uuidIDMap` table in the SQLite database used by Rekordbox.
 /// It stores information about UUID-to-ID mappings, including metadata such as table names,
 /// target UUIDs, and current IDs.
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
-#[diesel(table_name = schema::uuidIDMap)]
+#[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
+#[diesel(table_name = uuidIDMap)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
-#[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "napi", napi(object, js_name = "UuidIDMap"))]
 pub struct UuidIDMap {
     /// A unique identifier for the entry.
     pub id: String,
@@ -52,10 +53,26 @@ pub struct UuidIDMap {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the table name associated with the mapping.
-    pub table_name: Option<String>,
-    /// An optional string representing the target UUID in the mapping.
-    pub target_uuid: Option<String>,
-    /// An optional string representing the current ID in the mapping.
-    pub current_id: Option<String>,
+    /// Table name associated with the mapping.
+    pub table_name: String,
+    /// The target UUID in the mapping.
+    pub target_uuid: String,
+    /// The current ID in the mapping.
+    pub current_id: String,
+}
+
+impl Model for UuidIDMap {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
 }

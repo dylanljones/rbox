@@ -77,7 +77,7 @@ impl IntoPy<PyExtendedBeatGrid> for ExtendedBeatGrid {
     }
 }
 
-#[pyclass(name = "Cue", unsendable, get_all, set_all)]
+#[pyclass(name = "AnlzCue", unsendable, get_all, set_all)]
 pub struct PyCue {
     pub hot_cue: u32,
     pub status: u16,

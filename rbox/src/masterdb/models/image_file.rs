@@ -9,18 +9,19 @@ use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-use super::schema;
-use super::util::{Date, DateString};
+use super::schema::imageFile;
+use super::{Date, DateString};
+use crate::model_traits::Model;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `ImageFile` table in the Rekordbox database.
+/// Represents the `imageFile` table in the Rekordbox database.
 ///
-/// This struct maps to the `ImageFile` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `imageFile` table in the SQLite database used by Rekordbox.
 /// It stores information about image files, including metadata such as file paths,
 /// hashes, and synchronization details.
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
-#[diesel(table_name = schema::imageFile)]
+#[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
+#[diesel(table_name = imageFile)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
@@ -84,4 +85,20 @@ pub struct ImageFile {
     pub rb_priority: Option<i32>,
     /// An optional integer indicating whether the file size is dirty.
     pub rb_file_size_dirty: Option<i32>,
+}
+
+impl Model for ImageFile {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
 }

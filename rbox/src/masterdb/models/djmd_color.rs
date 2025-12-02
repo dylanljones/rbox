@@ -9,17 +9,21 @@ use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-use super::schema;
-use super::util::{Date, DateString};
+use super::schema::djmdColor;
+use super::{Date, DateString};
+use crate::model_traits::Model;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `DjmdColor` table in the Rekordbox database.
+/// Represents the `djmdColor` table in the Rekordbox database.
 ///
-/// This struct maps to the `DjmdColor` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `djmdColor` table in the SQLite database used by Rekordbox.
 /// It stores color-related data, which can be associated with tracks and other entities.
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
-#[diesel(table_name = schema::djmdColor)]
+///
+/// # Referenced by
+/// * [`DjmdContent`] via `color_id` foreign key.
+#[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
+#[diesel(table_name = djmdColor)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
@@ -53,8 +57,24 @@ pub struct DjmdColor {
 
     /// An optional string representing the color code (e.g., hex value).
     pub color_code: Option<String>,
-    /// An optional integer representing the sort key for ordering colors.
-    pub sort_key: Option<i32>,
-    /// An optional string for comments or additional information about the color.
-    pub commnt: Option<String>,
+    /// The sort key for ordering colors.
+    pub sort_key: i32,
+    /// A comment (usually the name) associated with the color.
+    pub commnt: String,
+}
+
+impl Model for DjmdColor {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
 }

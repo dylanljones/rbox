@@ -13,8 +13,9 @@
 //!
 //! <br>
 //!
-//! This crate provides a comprehensive set of tools to interact with Rekordbox data, including:
+//! This crate provides a comprehensive set of tools to interact with Rekordbox data, including
 //! - [`MasterDb`] for managing the local Rekordbox database.
+//! - [`OneLibrary`] for managing One Library (Device Library Plus) SQLite databases.
 //! - [`Anlz`] for reading and writing ANLZ files.
 //! - [`RekordboxXml`] for parsing and manipulating Rekordbox XML files.
 //! - [`Setting`] for managing Rekordbox settings.
@@ -96,10 +97,10 @@
 // Compile-time feature validation
 #[cfg(all(
     any(feature = "bundled", feature = "bundled-vendored-openssl"),
-    not(any(feature = "master-db", feature = "devlib-plus"))
+    not(any(feature = "master-db", feature = "one-library"))
 ))]
 compile_error!(
-    "The 'bundled' or 'bundled-vendored-openssl' features require either 'master-db' or 'devlib-plus' to be enabled"
+    "The 'bundled' or 'bundled-vendored-openssl' features require either 'master-db' or 'one-library' to be enabled"
 );
 
 mod error;
@@ -110,10 +111,12 @@ pub mod util;
 
 #[cfg(feature = "anlz")]
 pub mod anlz;
-#[cfg(feature = "devlib-plus")]
-pub mod devlib_plus;
 #[cfg(feature = "master-db")]
 pub mod masterdb;
+#[cfg(any(feature = "master-db", feature = "one-library"))]
+pub mod model_traits;
+#[cfg(feature = "one-library")]
+pub mod one_library;
 #[cfg(feature = "settings")]
 pub mod settings;
 #[cfg(feature = "xml")]
@@ -128,6 +131,8 @@ pub use util::*;
 pub use anlz::Anlz;
 #[cfg(feature = "master-db")]
 pub use masterdb::MasterDb;
+#[cfg(feature = "one-library")]
+pub use one_library::OneLibrary;
 #[cfg(feature = "settings")]
 pub use settings::Setting;
 #[cfg(feature = "xml")]

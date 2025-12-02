@@ -10,28 +10,24 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::djmd_content::DjmdContent;
-use super::schema;
-use super::util::{Date, DateString};
+use super::schema::contentFile;
+use super::{Date, DateString};
+use crate::model_traits::Model;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `ContentFile` table in the Rekordbox database.
+/// Represents the `contentFile` table in the Rekordbox database.
 ///
-/// This struct maps to the `ContentFile` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `contentFile` table in the SQLite database used by Rekordbox.
 /// It contains metadata and attributes of the additional file of contents. These include
 /// the analysis and artwork files linked to a track
+///
+/// # References
+/// * [`DjmdContent`] via `content_id` foreign key.
 #[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Insertable,
-    AsChangeset,
-    Associations,
+    Debug, Clone, PartialEq, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
-#[diesel(table_name = schema::contentFile)]
+#[diesel(table_name = contentFile)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -64,16 +60,16 @@ pub struct ContentFile {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the id of the associated [`DjmdContent`].
-    pub content_id: Option<String>,
-    /// An optional string representing the file path.
-    pub path: Option<String>,
-    /// An optional string representing the file hash.
-    pub hash: Option<String>,
-    /// An optional integer representing the file size.
-    pub size: Option<i32>,
-    /// An optional string representing the local file path.
-    pub rb_local_path: Option<String>,
+    /// The id of the associated [`DjmdContent`].
+    pub content_id: String,
+    /// The relative file path.
+    pub path: String,
+    /// The file hash.
+    pub hash: String,
+    /// The file size.
+    pub size: i32,
+    /// The absolute file path.
+    pub rb_local_path: String,
     /// An optional string representing the in-sync file hash.
     pub rb_insync_hash: Option<String>,
     /// An optional integer representing the in-sync local update sequence number.
@@ -92,4 +88,20 @@ pub struct ContentFile {
     pub rb_priority: Option<i32>,
     /// An optional integer indicating whether the file size is dirty.
     pub rb_file_size_dirty: Option<i32>,
+}
+
+impl Model for ContentFile {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
 }

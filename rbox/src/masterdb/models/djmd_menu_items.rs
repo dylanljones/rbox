@@ -9,17 +9,22 @@ use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-use super::schema;
-use super::util::{Date, DateString};
+use super::schema::djmdMenuItems;
+use super::{Date, DateString};
+use crate::model_traits::Model;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `DjmdMenuItems` table in the Rekordbox database.
+/// Represents the `djmdMenuItems` table in the Rekordbox database.
 ///
-/// This struct maps to the `DjmdMenuItems` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `djmdMenuItems` table in the SQLite database used by Rekordbox.
 /// It stores information about menu items, including their class, name, and metadata.
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
-#[diesel(table_name = schema::djmdMenuItems)]
+///
+/// # Referenced by
+/// * [`DjmdCategory`] via `menu_item_id` foreign key.
+/// * [`DjmdSort`] via `menu_item_id` foreign key.
+#[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
+#[diesel(table_name = djmdMenuItems)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
@@ -51,8 +56,24 @@ pub struct DjmdMenuItems {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional integer representing the class of the menu item.
-    pub class: Option<i32>,
-    /// An optional string representing the name of the menu item.
-    pub name: Option<String>,
+    /// The class of the menu item.
+    pub class: i32,
+    /// The name of the menu item.
+    pub name: String,
+}
+
+impl Model for DjmdMenuItems {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
 }

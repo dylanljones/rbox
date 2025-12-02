@@ -20,6 +20,7 @@
 It supports the following Rekordbox files:
 
 - **Rekordbox database**: Query and update the Rekordbox v6/v7 master.db database through a type-safe ORM
+- **One Library**: Read and write Rekordbox One Library (Device Library Plus) export files
 - **XML database**: Read and write Rekordbox XML database files
 - **Analysis Files**: Read and write ANLZ files containing waveforms, beat grids, hot cues and more
 - **Settings Access**: Read and write My-Setting files
@@ -42,14 +43,14 @@ The library is organized into modular components that can be enabled individuall
 
 - `full` (default): Enables all component features
 - `master-db`: Access to the Rekordbox 6/7 master.db database (enables `anlz` feature)
-- `devlib-plus`: Access to the DeviceLibrary database
+- `one-library`: Access to the One Library (Device Library Plus) database
 - `anlz`: Support for ANLZ analysis files
 - `xml`: Support for Rekordbox XML database files
 - `settings`: Support for My-Setting files
 
 #### SQLCipher Features
 
-The `master-db` and `devlib-plus` features require SQLCipher for working with Rekordbox's
+The `master-db` and `one-library` features require SQLCipher for working with Rekordbox's
 encrypted database files. To make building easier, there are two features for choosing
 SQLCipher's installation:
 
@@ -61,7 +62,7 @@ SQLCipher's installation:
   Choose this if you already have OpenSSL installed and want to reduce compilation time.
 
 **Note**: The SQLCipher features (`bundled-vendored-openssl`, `bundled`) require either
-`master-db` or `devlib-plus` to be enabled.
+`master-db` or `one-library` to be enabled.
 
 #### Language Bindings
 
@@ -93,7 +94,7 @@ use rbox::prelude::*;
 
 fn main() -> anyhow::Result<()> {
     let mut db = MasterDb::open()?;
-    let contents = db.get_content()?;
+    let contents = db.get_contents()?;
     for content in contents {
         println!("{:?}", content);
     }
@@ -101,6 +102,28 @@ fn main() -> anyhow::Result<()> {
 }
 ```
 
+### One Library (Device Library Plus)
+
+For newer generation Pioneer DJ devices, Rekordbox exports a new library format to the USB storage
+device (or SD card), called ``One Library`` (formerly known as ``Device Library Plus``).
+As of 2025, this format is only supported by the [OPUS-QUAD], [OMNIS-DUO], [XDJ-AZ] and [CDJ-3000X] devices.
+The database schema is similar to the main Rekordbox database. It contains a selection of tables
+from the main database, with similar columns and data types.
+
+rbox can unlock the new Rekordbox `exportLibrary.db` One Library database and provides
+an easy interface for accessing the data stored in it:
+```rust
+use rbox::prelude::*;
+
+fn main() -> anyhow::Result<()> {
+    let mut db = OneLibrary::new("exportLibrary.db")?;
+    let contents = db.get_contents()?;
+    for content in contents {
+        println!("{:?}", content);
+    }
+    Ok(())
+}
+```
 
 ### Rekordbox XML
 
@@ -191,3 +214,8 @@ If rbox has helped you or saved you time, consider supporting its development - 
 [sqlcipher]: https://www.zetetic.net/sqlcipher/open-source/
 [LICENSE-MIT]: https://github.com/dylanljones/rbox/blob/main/LICENSE-MIT
 [LICENSE-APACHE]: https://github.com/dylanljones/rbox/blob/main/LICENSE-APACHE
+
+[OPUS-QUAD]: https://www.pioneerdj.com/en/product/all-in-one-system/opus-quad/black/overview/
+[OMNIS-DUO]: https://alphatheta.com/en/product/all-in-one-dj-system/omnis-duo/indigo/
+[XDJ-AZ]: https://alphatheta.com/en/product/all-in-one-dj-system/xdj-az/black/
+[CDJ-3000X]: https://alphatheta.com/en/product/player/cdj-3000x/black/

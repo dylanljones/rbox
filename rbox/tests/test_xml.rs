@@ -2,25 +2,26 @@
 // Date:   2025-05-08
 
 use rbox::xml::*;
+use tempfile::NamedTempFile;
 
 mod common;
 
 #[test]
 fn test_read_xml() -> anyhow::Result<()> {
-    let path = common::setup_rekordbox_xml_path()?;
-    let _xml = RekordboxXml::load(path);
+    let path = common::setup_rekordbox_xml_path();
+    let _xml = RekordboxXml::load(path.path());
     Ok(())
 }
 
 #[test]
 fn test_write_xml() -> anyhow::Result<()> {
-    let path = common::setup_rekordbox_xml_path()?;
-    let out = common::testdata_demo_dir()?.join("database-out.xml");
-    let xml = RekordboxXml::load(path);
+    let path = common::setup_rekordbox_xml_path();
+    let out = NamedTempFile::new_in(common::get_temp_root_dir())?;
+    let xml = RekordboxXml::load(path.path());
     // Write to input file
     xml.dump()?;
     // Write to new file
-    xml.dump_copy(out)?;
+    xml.dump_copy(out.path())?;
     Ok(())
 }
 
@@ -28,8 +29,8 @@ fn test_write_xml() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_tracks() -> anyhow::Result<()> {
-    let path = common::setup_rekordbox_xml_path()?;
-    let mut xml = RekordboxXml::load(path);
+    let path = common::setup_rekordbox_xml_path();
+    let mut xml = RekordboxXml::load(path.path());
 
     let tracks = xml.get_tracks();
     assert_eq!(tracks.len(), 6);
@@ -38,8 +39,8 @@ fn test_get_tracks() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_track() -> anyhow::Result<()> {
-    let path = common::setup_rekordbox_xml_path()?;
-    let mut xml = RekordboxXml::load(path);
+    let path = common::setup_rekordbox_xml_path();
+    let mut xml = RekordboxXml::load(path.path());
 
     let track1 = xml.get_track(0);
     assert!(track1.is_some());
@@ -51,8 +52,8 @@ fn test_get_track() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_track_by_id() -> anyhow::Result<()> {
-    let path = common::setup_rekordbox_xml_path()?;
-    let mut xml = RekordboxXml::load(path);
+    let path = common::setup_rekordbox_xml_path();
+    let mut xml = RekordboxXml::load(path.path());
 
     let track = xml.get_track_by_id("253529738");
     assert!(track.is_some());
@@ -65,8 +66,8 @@ fn test_get_track_by_id() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_track_location_decode() -> anyhow::Result<()> {
-    let path = common::setup_rekordbox_xml_path()?;
-    let mut xml = RekordboxXml::load(path);
+    let path = common::setup_rekordbox_xml_path();
+    let mut xml = RekordboxXml::load(path.path());
 
     let track = xml.get_track_by_id("253529738").unwrap();
     let location = &track.location;
@@ -78,10 +79,10 @@ fn test_get_track_location_decode() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_track_location_encode() -> anyhow::Result<()> {
-    let path = common::setup_rekordbox_xml_path()?;
-    let out = common::testdata_demo_dir()?.join("database-out.xml");
+    let path = common::setup_rekordbox_xml_path();
+    let out = NamedTempFile::new_in(common::get_temp_root_dir())?;
     let track_id = "253529738";
-    let mut xml = RekordboxXml::load(path);
+    let mut xml = RekordboxXml::load(path.path());
 
     let track = xml.get_track_by_id(&track_id).unwrap();
     let new_location = "C:/Music/PioneerDJ/Demo Tracks/Demo Track 2.mp3";
@@ -89,7 +90,7 @@ fn test_get_track_location_encode() -> anyhow::Result<()> {
 
     // Dump xml file and reload
     xml.dump_copy(&out)?;
-    let mut xml2 = RekordboxXml::load(&out);
+    let mut xml2 = RekordboxXml::load(out.path());
     let track = xml2.get_track_by_id(&track_id).unwrap();
     assert_eq!(track.location, new_location);
 
@@ -98,8 +99,8 @@ fn test_get_track_location_encode() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_track_by_location() -> anyhow::Result<()> {
-    let path = common::setup_rekordbox_xml_path()?;
-    let mut xml = RekordboxXml::load(path);
+    let path = common::setup_rekordbox_xml_path();
+    let mut xml = RekordboxXml::load(path.path());
 
     let loc = "C:/Music/PioneerDJ/Demo Tracks/Demo Track 1.mp3";
     let track = xml.get_track_by_location(loc);
@@ -114,8 +115,8 @@ fn test_get_track_by_location() -> anyhow::Result<()> {
 
 #[test]
 fn test_get_track_by_key() -> anyhow::Result<()> {
-    let path = common::setup_rekordbox_xml_path()?;
-    let mut xml = RekordboxXml::load(path);
+    let path = common::setup_rekordbox_xml_path();
+    let mut xml = RekordboxXml::load(path.path());
     let id = "253529738";
     let loc = "C:/Music/PioneerDJ/Demo Tracks/Demo Track 1.mp3";
 
@@ -130,8 +131,8 @@ fn test_get_track_by_key() -> anyhow::Result<()> {
 
 #[test]
 fn test_add_track() -> anyhow::Result<()> {
-    let path = common::setup_rekordbox_xml_path()?;
-    let mut xml = RekordboxXml::load(path);
+    let path = common::setup_rekordbox_xml_path();
+    let mut xml = RekordboxXml::load(path.path());
     let id = "1234567";
     let loc = "C:/Music/PioneerDJ/Demo Tracks/Demo Track.mp3";
 
@@ -152,8 +153,8 @@ fn test_add_track() -> anyhow::Result<()> {
 
 #[test]
 fn test_new_track() -> anyhow::Result<()> {
-    let path = common::setup_rekordbox_xml_path()?;
-    let mut xml = RekordboxXml::load(path);
+    let path = common::setup_rekordbox_xml_path();
+    let mut xml = RekordboxXml::load(path.path());
     let id = "1234567";
     let loc = "C:/Music/PioneerDJ/Demo Tracks/Demo Track.mp3";
 
@@ -173,8 +174,8 @@ fn test_new_track() -> anyhow::Result<()> {
 
 #[test]
 fn test_remove_track() -> anyhow::Result<()> {
-    let path = common::setup_rekordbox_xml_path()?;
-    let mut xml = RekordboxXml::load(path);
+    let path = common::setup_rekordbox_xml_path();
+    let mut xml = RekordboxXml::load(path.path());
     let id = "253529738";
 
     let tracks = xml.get_tracks();
@@ -301,9 +302,9 @@ fn test_clear_nodes_in_folder() -> anyhow::Result<()> {
 
 #[test]
 fn test_playlist_node_mutability() -> anyhow::Result<()> {
-    let path = common::setup_rekordbox_xml_path()?;
-    let out = common::testdata_demo_dir()?.join("database-out.xml");
-    let mut xml = RekordboxXml::load(path);
+    let out = NamedTempFile::new_in(common::testdata_dir())?;
+    let path = common::setup_rekordbox_xml_path();
+    let mut xml = RekordboxXml::load(path.path());
 
     let root = xml.get_playlist_root();
     let node = root.find_child("Test")?.unwrap();
@@ -313,7 +314,7 @@ fn test_playlist_node_mutability() -> anyhow::Result<()> {
 
     xml.dump_copy(&out)?;
 
-    let mut xml2 = RekordboxXml::load(&out);
+    let mut xml2 = RekordboxXml::load(&out.path());
     let root2 = xml2.get_playlist_root();
     let node2 = root2.find_child("Renamed")?;
     assert!(node2.is_some());
@@ -323,9 +324,9 @@ fn test_playlist_node_mutability() -> anyhow::Result<()> {
 
 #[test]
 fn test_folder_node_mutability() -> anyhow::Result<()> {
-    let path = common::setup_rekordbox_xml_path()?;
-    let out = common::testdata_demo_dir()?.join("database-out.xml");
-    let mut xml = RekordboxXml::load(path);
+    let out = NamedTempFile::new_in(common::testdata_dir())?;
+    let path = common::setup_rekordbox_xml_path();
+    let mut xml = RekordboxXml::load(path.path());
 
     let root = xml.get_playlist_root();
     let folder = root.new_folder("Folder")?;
@@ -333,7 +334,7 @@ fn test_folder_node_mutability() -> anyhow::Result<()> {
 
     xml.dump_copy(&out)?;
 
-    let mut xml2 = RekordboxXml::load(&out);
+    let mut xml2 = RekordboxXml::load(&out.path());
     let root2 = xml2.get_playlist_root();
     let folder2 = root2.find_child("Folder")?;
     assert!(folder2.is_some());

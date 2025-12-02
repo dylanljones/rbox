@@ -4,6 +4,7 @@
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use pyo3::prelude::*;
 use pyo3::types::{PyDateTime, PyDict, PyType};
+use rbox::util::{PyItemsIter, PyObjectIter, PyStrIter};
 use rbox::xml::{
     PlaylistNode, PlaylistNodeType, PlaylistTrack, PositionMark, RekordboxXml, Tempo, Track,
 };
@@ -11,7 +12,6 @@ use std::collections::HashMap;
 
 use super::errors::XmlError;
 use super::traits::{FromPy, IntoPy, MutableMapping};
-use crate::iter::{PyItemsIter, PyObjectIter, PyStrIter};
 
 #[derive(Debug, Clone)]
 #[pyclass(name = "Tempo", unsendable, get_all, set_all)]
@@ -32,7 +32,7 @@ impl MutableMapping for PyTempo {
         ]
     }
 
-    fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+    fn __getitem__(&self, py: Python, key: &str) -> PyResult<Py<PyAny>> {
         match key {
             "inizio" => Ok(self.inizio.clone().into_pyobject(py)?.into()),
             "bpm" => Ok(self.bpm.clone().into_pyobject(py)?.into()),
@@ -45,7 +45,7 @@ impl MutableMapping for PyTempo {
         }
     }
 
-    fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+    fn __setitem__(&mut self, py: Python, key: &str, value: Py<PyAny>) -> PyResult<()> {
         match key {
             "inizio" => self.inizio = value.extract::<f64>(py)?,
             "bpm" => self.bpm = value.extract::<f64>(py)?,
@@ -86,11 +86,11 @@ impl PyTempo {
         MutableMapping::__iter__(self, py)
     }
 
-    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<Py<PyAny>> {
         MutableMapping::__getitem__(self, py, key)
     }
 
-    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: Py<PyAny>) -> PyResult<()> {
         MutableMapping::__setitem__(self, py, key, value)
     }
 
@@ -106,11 +106,11 @@ impl PyTempo {
         MutableMapping::items(self, py)
     }
 
-    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+    pub fn get(&self, py: Python, key: &str, default: Py<PyAny>) -> PyResult<Py<PyAny>> {
         MutableMapping::get(self, py, key, default)
     }
 
-    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+    pub fn update(&mut self, py: Python, data: HashMap<String, Py<PyAny>>) -> PyResult<()> {
         MutableMapping::update(self, py, data)
     }
 
@@ -171,7 +171,7 @@ impl MutableMapping for PyPositionMark {
         ]
     }
 
-    fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+    fn __getitem__(&self, py: Python, key: &str) -> PyResult<Py<PyAny>> {
         match key {
             "name" => Ok(self.name.clone().into_pyobject(py)?.into()),
             "mark_type" => Ok(self.mark_type.clone().into_pyobject(py)?.into()),
@@ -185,7 +185,7 @@ impl MutableMapping for PyPositionMark {
         }
     }
 
-    fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+    fn __setitem__(&mut self, py: Python, key: &str, value: Py<PyAny>) -> PyResult<()> {
         match key {
             "name" => self.name = value.extract::<String>(py)?,
             "mark_type" => self.mark_type = value.extract::<u16>(py)?,
@@ -228,11 +228,11 @@ impl PyPositionMark {
         MutableMapping::__iter__(self, py)
     }
 
-    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<Py<PyAny>> {
         MutableMapping::__getitem__(self, py, key)
     }
 
-    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: Py<PyAny>) -> PyResult<()> {
         MutableMapping::__setitem__(self, py, key, value)
     }
 
@@ -248,11 +248,11 @@ impl PyPositionMark {
         MutableMapping::items(self, py)
     }
 
-    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+    pub fn get(&self, py: Python, key: &str, default: Py<PyAny>) -> PyResult<Py<PyAny>> {
         MutableMapping::get(self, py, key, default)
     }
 
-    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+    pub fn update(&mut self, py: Python, data: HashMap<String, Py<PyAny>>) -> PyResult<()> {
         MutableMapping::update(self, py, data)
     }
 
@@ -452,20 +452,20 @@ impl MutableMapping for PyTrack {
         ]
     }
 
-    fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
-        let datemodified: PyObject = if let Some(dt) = &self.datemodified {
+    fn __getitem__(&self, py: Python, key: &str) -> PyResult<Py<PyAny>> {
+        let datemodified: Py<PyAny> = if let Some(dt) = &self.datemodified {
             dt.clone_ref(py).into()
         } else {
             let val: Option<String> = None;
             val.into_pyobject(py)?.into()
         };
-        let dateadded: PyObject = if let Some(dt) = &self.dateadded {
+        let dateadded: Py<PyAny> = if let Some(dt) = &self.dateadded {
             dt.clone_ref(py).into()
         } else {
             let val: Option<String> = None;
             val.into_pyobject(py)?.into()
         };
-        let lastplayed: PyObject = if let Some(dt) = &self.lastplayed {
+        let lastplayed: Py<PyAny> = if let Some(dt) = &self.lastplayed {
             dt.clone_ref(py).into()
         } else {
             let val: Option<String> = None;
@@ -507,7 +507,7 @@ impl MutableMapping for PyTrack {
         }
     }
 
-    fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+    fn __setitem__(&mut self, py: Python, key: &str, value: Py<PyAny>) -> PyResult<()> {
         match key {
             "trackid" => self.trackid = value.extract::<String>(py)?,
             "name" => self.name = value.extract::<Option<String>>(py)?,
@@ -601,11 +601,11 @@ impl PyTrack {
         MutableMapping::__iter__(self, py)
     }
 
-    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+    pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<Py<PyAny>> {
         MutableMapping::__getitem__(self, py, key)
     }
 
-    pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+    pub fn __setitem__(&mut self, py: Python, key: &str, value: Py<PyAny>) -> PyResult<()> {
         MutableMapping::__setitem__(self, py, key, value)
     }
 
@@ -621,11 +621,11 @@ impl PyTrack {
         MutableMapping::items(self, py)
     }
 
-    pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+    pub fn get(&self, py: Python, key: &str, default: Py<PyAny>) -> PyResult<Py<PyAny>> {
         MutableMapping::get(self, py, key, default)
     }
 
-    pub fn update(&mut self, py: Python, data: HashMap<String, PyObject>) -> PyResult<()> {
+    pub fn update(&mut self, py: Python, data: HashMap<String, Py<PyAny>>) -> PyResult<()> {
         MutableMapping::update(self, py, data)
     }
 

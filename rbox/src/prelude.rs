@@ -5,6 +5,8 @@
 pub use super::anlz::{Anlz, AnlzTag};
 #[cfg(feature = "master-db")]
 pub use super::masterdb::MasterDb;
+#[cfg(feature = "one-library")]
+pub use super::one_library::OneLibrary;
 pub use super::options::RekordboxOptions;
 #[cfg(feature = "settings")]
 pub use super::settings::Setting;

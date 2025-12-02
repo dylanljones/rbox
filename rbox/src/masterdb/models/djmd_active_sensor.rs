@@ -10,29 +10,25 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::djmd_content::DjmdContent;
-use super::schema;
-use super::util::{Date, DateString};
+use super::schema::djmdActiveCensor;
+use super::{Date, DateString};
+use crate::model_traits::Model;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `DjmdActiveCensor` table in the Rekordbox database.
+/// Represents the `djmdActiveCensor` table in the Rekordbox database.
 ///
-/// This struct maps to the `DjmdActiveCensor` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `djmdActiveCensor` table in the SQLite database used by Rekordbox.
 /// It contains information for actively censoring explicit content of tracks in the Rekordbox
 /// collection. Active Censor items behave like two cue points, between which an effect is applied
 /// to the audio of a track.
+///
+/// # References
+/// * [`DjmdContent`] via `content_id` and `content_uuid` foreign keys.
 #[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Insertable,
-    AsChangeset,
-    Associations,
+    Debug, Clone, PartialEq, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
-#[diesel(table_name = schema::djmdActiveCensor)]
+#[diesel(table_name = djmdActiveCensor)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -65,8 +61,8 @@ pub struct DjmdActiveCensor {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the id of the associated [`DjmdContent`].
-    pub content_id: Option<String>,
+    /// The id of the associated [`DjmdContent`].
+    pub content_id: String,
     /// An optional integer representing the start time of the censor in milliseconds.
     pub in_msec: Option<i32>,
     /// An optional integer representing the end time of the censor in milliseconds.
@@ -77,4 +73,20 @@ pub struct DjmdActiveCensor {
     pub parameter_list: Option<String>,
     /// An optional string representing the uuid of the associated [`DjmdContent`].
     pub content_uuid: Option<String>,
+}
+
+impl Model for DjmdActiveCensor {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
 }

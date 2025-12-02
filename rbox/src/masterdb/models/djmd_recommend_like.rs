@@ -10,28 +10,24 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::djmd_content::DjmdContent;
-use super::schema;
-use super::util::{Date, DateString};
+use super::schema::djmdRecommendLike;
+use super::{Date, DateString};
+use crate::model_traits::Model;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `DjmdRecommendLike` table in the Rekordbox database.
+/// Represents the `djmdRecommendLike` table in the Rekordbox database.
 ///
-/// This struct maps to the `DjmdRecommendLike` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `djmdRecommendLike` table in the SQLite database used by Rekordbox.
 /// It stores information about recommended track relationships, including metadata such as
 /// like rate, creation timestamps, and associated content IDs.
+///
+/// # References
+/// * [`DjmdContent`] via `content_id1` and `content_id2` foreign keys.
 #[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Insertable,
-    AsChangeset,
-    Associations,
+    Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
-#[diesel(table_name = schema::djmdRecommendLike)]
+#[diesel(table_name = djmdRecommendLike)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdContent, foreign_key = content_id1))]
 // #[diesel(belongs_to(DjmdContent, foreign_key = content_id2))]
@@ -65,14 +61,30 @@ pub struct DjmdRecommendLike {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the ID of the first associated content in [`DjmdContent`].
-    pub content_id1: Option<String>,
-    /// An optional string representing the ID of the second associated content in [`DjmdContent`].
-    pub content_id2: Option<String>,
+    /// The ID of the first associated content in [`DjmdContent`].
+    pub content_id1: String,
+    /// The ID of the second associated content in [`DjmdContent`].
+    pub content_id2: String,
     /// An optional integer representing the like rate between the two associated contents.
     pub like_rate: Option<i32>,
     /// An optional integer representing the high part of the creation timestamp.
     pub data_created_h: Option<i32>,
     /// An optional integer representing the low part of the creation timestamp.
     pub data_created_l: Option<i32>,
+}
+
+impl Model for DjmdRecommendLike {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
 }

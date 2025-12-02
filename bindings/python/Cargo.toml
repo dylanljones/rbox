@@ -4,9 +4,12 @@ description = "Python library for interacting with the local and export data of 
 readme = "README.md"
 version.workspace = true
 authors.workspace = true
-edition.workspace = true
 license.workspace = true
+keywords.workspace = true
+categories.workspace = true
 repository.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 publish = false
 
 [lib]
@@ -25,4 +28,4 @@ chrono          = { workspace = true }
 [build-dependencies]
 # version_check = "0.9.5"
 # used where logic has to be version/distribution specific, e.g. pypy
-pyo3-build-config = { version = "0.25" }
+pyo3-build-config = { version = "0.27" }

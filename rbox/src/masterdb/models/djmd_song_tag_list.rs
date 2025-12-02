@@ -10,28 +10,24 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::djmd_content::DjmdContent;
-use super::schema;
-use super::util::{Date, DateString};
+use super::schema::djmdSongTagList;
+use super::{Date, DateString};
+use crate::model_traits::Model;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `DjmdSongTagList` table in the Rekordbox database.
+/// Represents the `djmdSongTagList` table in the Rekordbox database.
 ///
-/// This struct maps to the `DjmdSongTagList` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `djmdSongTagList` table in the SQLite database used by Rekordbox.
 /// It stores information about the relationship between songs and tag lists, including
 /// metadata such as update sequence numbers, timestamps, and associated content IDs.
+///
+/// # References
+/// * [`DjmdContent`] via `content_id` foreign key.
 #[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Insertable,
-    AsChangeset,
-    Associations,
+    Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
-#[diesel(table_name = schema::djmdSongTagList)]
+#[diesel(table_name = djmdSongTagList)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -64,8 +60,24 @@ pub struct DjmdSongTagList {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the ID of the associated content in [`DjmdContent`].
-    pub content_id: Option<String>,
-    /// An optional integer representing the track number in the tag list.
-    pub track_no: Option<i32>,
+    /// The ID of the associated content in [`DjmdContent`].
+    pub content_id: String,
+    /// The sequence/order number of the record (1-based index)
+    pub track_no: i32,
+}
+
+impl Model for DjmdSongTagList {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
 }

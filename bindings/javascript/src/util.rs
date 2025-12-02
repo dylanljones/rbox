@@ -6,20 +6,20 @@ use napi_derive::napi;
 use rbox;
 
 #[napi]
-fn get_rekordbox_app_dir_path() -> Result<String> {
+fn rekordbox_agent_app_dir() -> Result<String> {
+    let path = rbox::util::rekordbox_agent_app_dir()?;
+    Ok(path.to_str().unwrap().to_string())
+}
+
+#[napi]
+fn options_json_path() -> Result<String> {
+    let path = rbox::util::options_json_path()?;
+    Ok(path.to_str().unwrap().to_string())
+}
+
+#[napi]
+fn rekordbox_app_dir() -> Result<String> {
     let path = rbox::util::rekordbox_app_dir()?;
-    Ok(path.to_str().unwrap().to_string())
-}
-
-#[napi]
-fn get_rekordbox_share_path() -> Result<String> {
-    let path = rbox::util::get_rekordbox_share_path()?;
-    Ok(path.to_str().unwrap().to_string())
-}
-
-#[napi]
-fn get_master_db_path() -> Result<String> {
-    let path = rbox::util::get_master_db_path()?;
     Ok(path.to_str().unwrap().to_string())
 }
 

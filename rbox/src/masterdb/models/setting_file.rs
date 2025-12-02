@@ -9,18 +9,19 @@ use py_derives::PyMutableMapping;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-use super::schema;
-use super::util::{Date, DateString};
+use super::schema::settingFile;
+use super::{Date, DateString};
+use crate::model_traits::Model;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `SettingFile` table in the Rekordbox database.
+/// Represents the `settingFile` table in the Rekordbox database.
 ///
-/// This struct maps to the `SettingFile` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `settingFile` table in the SQLite database used by Rekordbox.
 /// It stores information about setting files, including metadata such as file paths,
 /// hashes, and synchronization details.
-#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable, Insertable, AsChangeset)]
-#[diesel(table_name = schema::settingFile)]
+#[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
+#[diesel(table_name = settingFile)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
@@ -52,12 +53,12 @@ pub struct SettingFile {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the file path of the setting file.
-    pub path: Option<String>,
-    /// An optional string representing the hash of the setting file.
-    pub hash: Option<String>,
-    /// An optional integer representing the size of the setting file.
-    pub size: Option<i32>,
+    /// The relative file path of the setting file.
+    pub path: String,
+    /// The hash of the setting file.
+    pub hash: String,
+    /// The size of the setting file.
+    pub size: i32,
     /// An optional string representing the local path of the setting file in Rekordbox.
     pub rb_local_path: Option<String>,
     /// An optional string representing the in-sync hash of the setting file.
@@ -68,4 +69,20 @@ pub struct SettingFile {
     pub rb_file_hash_dirty: Option<i32>,
     /// An optional integer indicating whether the file size is dirty.
     pub rb_file_size_dirty: Option<i32>,
+}
+
+impl Model for SettingFile {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
 }

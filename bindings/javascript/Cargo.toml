@@ -3,9 +3,12 @@ name = "rbox-js"
 description = "Javascript library for interacting with the local and export data of Pioneers Rekordbox DJ software"
 version.workspace = true
 authors.workspace = true
-edition.workspace = true
 license.workspace = true
+keywords.workspace = true
+categories.workspace = true
 repository.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 publish = false
 
 [lib]

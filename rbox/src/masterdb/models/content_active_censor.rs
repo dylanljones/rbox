@@ -10,27 +10,23 @@ use py_derives::PyMutableMapping;
 use pyo3::prelude::*;
 
 use super::djmd_content::DjmdContent;
-use super::schema;
-use super::util::{Date, DateString};
+use super::schema::contentActiveCensor;
+use super::{Date, DateString};
+use crate::model_traits::Model;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
-/// Represents the `ContentActiveCensor` table in the Rekordbox database.
+/// Represents the `contentActiveCensor` table in the Rekordbox database.
 ///
-/// This struct maps to the `ContentActiveCensor` table in the SQLite database used by Rekordbox.
+/// This struct maps to the `contentActiveCensor` table in the SQLite database used by Rekordbox.
 /// It contains the active censor entries [`DjmdActiveCensor`] of a file as stringified JSON data.
+///
+/// # References
+/// * [`DjmdContent`] via `content_id` foreign key.
 #[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Queryable,
-    Selectable,
-    Identifiable,
-    Insertable,
-    AsChangeset,
-    Associations,
+    Debug, Clone, PartialEq, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
-#[diesel(table_name = schema::contentActiveCensor)]
+#[diesel(table_name = contentActiveCensor)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -63,10 +59,26 @@ pub struct ContentActiveCensor {
     #[diesel(deserialize_as = DateString)]
     pub updated_at: Date,
 
-    /// An optional string representing the id of the associated [`DjmdContent`].
-    pub content_id: Option<String>,
-    /// An optional string representing the active censors.
-    pub active_censors: Option<String>,
-    /// An optional integer representing the count of active censors.
-    pub rb_activecensor_count: Option<i32>,
+    /// The id of the associated [`DjmdContent`].
+    pub content_id: String,
+    /// A string representing the active censors.
+    pub active_censors: String,
+    /// The count of active censors.
+    pub rb_activecensor_count: i32,
+}
+
+impl Model for ContentActiveCensor {
+    type Id = str;
+
+    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
+        Self::query().load(conn)
+    }
+
+    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
+        Self::query().find(id).first(conn).optional()
+    }
+
+    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
+        diesel::dsl::select(diesel::dsl::exists(Self::query().find(id))).get_result(conn)
+    }
 }

@@ -5,9 +5,11 @@
 **master-copy.db
 **database-copy.xml
 **database-out.xml
-**masterPlaylists6.xml
 **main.mjs
 .chglog
+.testdata/.tmp
+diesel.toml
+.tmp*
 
 ### -- Rust gitignore ------------------------------------------------------------------------- ###
 
