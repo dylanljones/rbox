@@ -166,3 +166,8 @@ If rbox has helped you or saved you time, consider supporting its development - 
 [sqlcipher]: https://www.zetetic.net/sqlcipher/open-source/
 [LICENSE-MIT]: https://github.com/dylanljones/rbox/blob/main/LICENSE-MIT
 [LICENSE-APACHE]: https://github.com/dylanljones/rbox/blob/main/LICENSE-APACHE
+
+[OPUS-QUAD]: https://www.pioneerdj.com/en/product/all-in-one-system/opus-quad/black/overview/
+[OMNIS-DUO]: https://alphatheta.com/en/product/all-in-one-dj-system/omnis-duo/indigo/
+[XDJ-AZ]: https://alphatheta.com/en/product/all-in-one-dj-system/xdj-az/black/
+[CDJ-3000X]: https://alphatheta.com/en/product/player/cdj-3000x/black/
