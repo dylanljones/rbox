@@ -4,8 +4,11 @@
 
 from ._rbox import (
     AnlzError,
-    DatabaseError,
     Error,
+    MasterDbError,
+    OneLibraryError,
+    OptionsError,
+    RekordboxOptions,
     SettingError,
     XmlError,
     is_rekordbox_running,
@@ -15,5 +18,6 @@ from ._rbox import (
 )
 from .anlz import Anlz, TagType
 from .masterdb import MasterDb
+from .one_library import OneLibrary
 from .rbxml import RekordboxXml
 from .settings import Setting

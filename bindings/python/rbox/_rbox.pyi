@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-# Author: Dylan Jones
-# Date:   2025-05-01
+# Auto-generated Rekordbox Python Stubs
 
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -13,7 +11,17 @@ class Error(Exception):
 
     ...
 
-class DatabaseError(Exception):
+class OptionsError(Exception):
+    """Exception raised for errors that are related to the master.db database."""
+
+    ...
+
+class MasterDbError(Exception):
+    """Exception raised for errors that are related to the master.db database."""
+
+    ...
+
+class OneLibraryError(Exception):
     """Exception raised for errors that are related to the master.db database."""
 
     ...
@@ -89,609 +97,39 @@ class _RustMutableMapping:
         """Convert the object to a dictionary."""
         ...
 
-# ---- Database models.py -----------------------------------------------------------------------------
-
-class Album(_RustMutableMapping):
-    """Represents the `album` table in the Rekordbox Device Library Plus database."""
-
-    id: int
-    """The unique identifier of the album."""
-    name: str
-    """The name of the album."""
-    artist_id: Optional[int]
-    """An optional foreign key referencing the album [`Artist`]."""
-    image_id: Optional[int]
-    """An optional foreign key referencing the album artwork [`Image`]."""
-    is_compilation: int
-    """A flag if the album is a compilation."""
-    name_for_search: Optional[str]
-    """An optional string used for searching the album."""
-
-class NewAlbum(_RustMutableMapping):
-    """Represents a new record insertale to the `album` table."""
-
-    name: str
-    """The name of the album."""
-    artist_id: Optional[int]
-    """An optional foreign key referencing the album artist [`Artist`]."""
-    image_id: Optional[int]
-    """An optional foreign key referencing the album artwork [`Image`]."""
-    is_compilation: int
-    """A flag if the album is a compilation."""
-    name_for_search: Optional[str]
-    """An optional string used for searching the album."""
-
-class Artist(_RustMutableMapping):
-    """Represents the `artist` table in the Rekordbox Device Library Plus database."""
-
-    id: int
-    """The unique identifier of the artist."""
-    name: str
-    """The name of the artist."""
-    name_for_search: Optional[str]
-    """An optional field for storing a search-optimized version of the artist name."""
-
-class Composer(_RustMutableMapping):
-    id: int
-    name: str
-    name_for_search: Optional[str]
-
-class Lyricist(_RustMutableMapping):
-    id: int
-    name: str
-    name_for_search: Optional[str]
-
-class NewArtist(_RustMutableMapping):
-    """Represents a new record insertale to the `artist` table."""
-
-    name: str
-    """The name of the artist."""
-    name_for_search: Optional[str]
-    """An optional field for storing a search-optimized version of the artist name."""
-
-class OriginalArtist(_RustMutableMapping):
-    id: int
-    name: str
-    name_for_search: Optional[str]
-
-class Remixer(_RustMutableMapping):
-    id: int
-    name: str
-    name_for_search: Optional[str]
-
-class Category(_RustMutableMapping):
-    """Represents the `category` table in the Rekordbox Device Library Plus database."""
-
-    id: int
-    """The unique identifier of the category."""
-    menu_item_id: int
-    """A foreign key referencing the [`MenuItem`]."""
-    seq: int
-    """The sequence/order of the category."""
-    is_visible: int
-    """A flag if the category is visible."""
-
-class NewCategory(_RustMutableMapping):
-    """Represents a new record insertale to the `category` table."""
-
-    menu_item_id: int
-    """A foreign key referencing the [`MenuItem`]."""
-    seq: int
-    """The sequence/order of the category."""
-    is_visible: int
-    """A flag if the category is visible."""
-
-class Color(_RustMutableMapping):
-    """Represents the `color` table in the Rekordbox Device Library Plus database."""
-
-    id: int
-    """The unique identifier of the color."""
-    name: str
-    """The name of the color"""
-
-class NewColor(_RustMutableMapping):
-    """Represents a new record insertale to the `color` table."""
-
-    name: str
-    """The name of the color"""
-
-class Content(_RustMutableMapping):
-    """Represents the `content` table in the Rekordbox Device Library Plus database."""
-
-    id: int
-    """The unique identifier of the content."""
-    title: Optional[str]
-    """The title of the track."""
-    title_for_search: Optional[str]
-    """An optional title used for searching."""
-    subtitle: Optional[str]
-    """The subtitle of the track"""
-    bpmx100: Optional[int]
-    """The beats per minute multiplied by 100."""
-    length: Optional[int]
-    """The length of the track in seconds."""
-    track_no: Optional[int]
-    """The track number of the track"""
-    disc_no: Optional[int]
-    """The disc number of the track"""
-    artist_id: Optional[int]
-    """Optional foreign key referencing the artist [`Artist`]."""
-    remixer_id: Optional[int]
-    """Optional foreign key referencing the remixer [`Artist`]."""
-    original_artist_id: Optional[int]
-    """Optional foreign key referencing the original artist [`Artist`]."""
-    composer_id: Optional[int]
-    """Optional foreign key referencing the composer [`Artist`]."""
-    lyricist_id: Optional[int]
-    """Optional foreign key referencing the lyricist [`Artist`]."""
-    album_id: Optional[int]
-    """Optional foreign key referencing the [`Album`]."""
-    genre_id: Optional[int]
-    """Optional foreign key referencing the [`Genre`]."""
-    label_id: Optional[int]
-    """Optional foreign key referencing the [`Label`]."""
-    key_id: Optional[int]
-    """Optional foreign key referencing the [`Key`]."""
-    color_id: Optional[int]
-    """Optional foreign key referencing the [`Color`]."""
-    image_id: Optional[int]
-    """Optional foreign key referencing the artwork [`Image`]."""
-    dj_comment: Optional[str]
-    """The ccomment of the track."""
-    rating: Optional[int]
-    """The rating of the track."""
-    release_year: Optional[int]
-    """The release year of the track."""
-    release_date: Optional[str]
-    """The release date of the track"""
-    date_created: datetime
-    """The date the record was created"""
-    date_added: datetime
-    """The date the record was added"""
-    path: str
-    """The relative file path of the track (usually `'/Contents/<Artist>/<Title>'`)"""
-    file_name: Optional[str]
-    """The file name of the track."""
-    file_size: Optional[int]
-    """The file size of the track"""
-    file_type: Optional[int]
-    """The file typo of the track"""
-    bitrate: Optional[int]
-    """The bitrate of the trackk"""
-    bit_depth: Optional[int]
-    """The bit depth of the track"""
-    sampling_rate: Optional[int]
-    """The sample rate of the track."""
-    isrc: Optional[str]
-    """The ISRC of the track"""
-    is_hot_cue_auto_load_on: Optional[int]
-    """A flag if hot-cue auto load is enabled"""
-    is_kuvo_deliver_status_on: Optional[int]
-    """A flag if kuvo delivery is enabled"""
-    kuvo_delivery_comment: Optional[str]
-    """A kuvo delivery comment"""
-    master_db_id: Optional[int]
-    """The masterdb ID"""
-    master_content_id: Optional[int]
-    """The ID of the contnent in the masterdb"""
-    analysis_data_file_path: Optional[str]
-    """The relative path to the analysis data"""
-    analysed_bits: Optional[int]
-    """The number of bits analysed (?)"""
-    content_link: Optional[int]
-    """The ID of the content in the content link database (seems to always be 788224)"""
-    has_modified: Optional[int]
-    """A flag if the content has been modified"""
-    cue_update_count: Optional[int]
-    """The number of updates to the associated cues"""
-    analysis_data_update_count: Optional[int]
-    """The number of updates to the analysis data"""
-    information_update_count: Optional[int]
-    """The number of updates to the content record"""
-
-class NewContent(_RustMutableMapping):
-    """Represents a new record insertale to the `content` table."""
-
-    date_created: datetime
-    """The date the record was created"""
-    date_added: datetime
-    """The date the record was added"""
-    path: str
-    """The relative file path of the track"""
-    title: Optional[str]
-    """The title of the track."""
-    title_for_search: Optional[str]
-    """An optional title used for searching."""
-    subtitle: Optional[str]
-    """The subtitle of the track"""
-    bpmx100: Optional[int]
-    """The beats per minute multiplied by 100."""
-    length: Optional[int]
-    """The length of the track in seconds."""
-    track_no: Optional[int]
-    """The track number of the track"""
-    disc_no: Optional[int]
-    """The disc number of the track"""
-    artist_id: Optional[int]
-    """Optional foreign key referencing the artist [`Artist`]."""
-    remixer_id: Optional[int]
-    """Optional foreign key referencing the remixer [`Artist`]."""
-    original_artist_id: Optional[int]
-    """Optional foreign key referencing the original artist [`Artist`]."""
-    composer_id: Optional[int]
-    """Optional foreign key referencing the composer [`Artist`]."""
-    lyricist_id: Optional[int]
-    """Optional foreign key referencing the lyricist [`Artist`]."""
-    album_id: Optional[int]
-    """Optional foreign key referencing the [`Album`]."""
-    genre_id: Optional[int]
-    """Optional foreign key referencing the [`Genre`]."""
-    label_id: Optional[int]
-    """Optional foreign key referencing the [`Label`]."""
-    key_id: Optional[int]
-    """Optional foreign key referencing the [`Key`]."""
-    color_id: Optional[int]
-    """Optional foreign key referencing the [`Color`]."""
-    image_id: Optional[int]
-    """Optional foreign key referencing the artwork [`Image`]."""
-    dj_comment: Optional[str]
-    """The ccomment of the track."""
-    rating: Optional[int]
-    """The rating of the track."""
-    release_year: Optional[int]
-    """The release year of the track."""
-    release_date: Optional[str]
-    """The release date of the track"""
-    file_name: Optional[str]
-    """The file name of the track."""
-    file_size: Optional[int]
-    """The file size of the track"""
-    file_type: Optional[int]
-    """The file typo of the track"""
-    bitrate: Optional[int]
-    """The bitrate of the trackk"""
-    bit_depth: Optional[int]
-    """The bit depth of the track"""
-    sampling_rate: Optional[int]
-    """The sample rate of the track."""
-    isrc: Optional[str]
-    """The ISRC of the track"""
-    is_hot_cue_auto_load_on: Optional[int]
-    """A flag if hot-cue auto load is enabled"""
-    is_kuvo_deliver_status_on: Optional[int]
-    """A flag if kuvo delivery is enabled"""
-    kuvo_delivery_comment: Optional[str]
-    """A kuvo delivery comment"""
-    master_db_id: Optional[int]
-    """The masterdb ID"""
-    master_content_id: Optional[int]
-    """The ID of the contnent in the masterdb"""
-    analysis_data_file_path: Optional[str]
-    """The relative path to the analysis data"""
-    analysed_bits: Optional[int]
-    """The number of bits analysed (?)"""
-    content_link: Optional[int]
-    """The ID of the content in the content link database (seems to always be 788224)"""
-    has_modified: Optional[int]
-    """A flag if the content has been modified"""
-    cue_update_count: Optional[int]
-    """The number of updates to the associated cues"""
-    analysis_data_update_count: Optional[int]
-    """The number of updates to the analysis data"""
-    information_update_count: Optional[int]
-    """The number of updates to the content record"""
-
-class Cue(_RustMutableMapping):
-    """Represents the `cue` table in the Rekordbox Device Library Plus database."""
-
-    id: int
-    """The unique identifier of the cue."""
-    content_id: int
-    """A foreign key referencing the [`Content`]."""
-    kind: Optional[int]
-    """The type of the cue."""
-    color_table_index: Optional[int]
-    """An optional integer representing the index of the color in the color table."""
-    cue_comment: Optional[str]
-    """A comment for the cue"""
-    is_active_loop: Optional[int]
-    """A flag whether the cue is part of an active loop."""
-    beat_loop_numerator: Optional[int]
-    """Unknown"""
-    beat_loop_denominator: Optional[int]
-    """Unknonw"""
-    in_usec: Optional[int]
-    """The cue's start time in microseconds."""
-    out_usec: Optional[int]
-    """The cue's end time in microseconds."""
-    in150_frame_per_sec: Optional[int]
-    """The cue's start frame."""
-    out150_frame_per_sec: Optional[int]
-    """The cue's end frame or -1 if not a loop."""
-    in_mpeg_frame_number: Optional[int]
-    """The cue's start MPEG frame or 0 if not a VBR/ABR MPEG file (see note)."""
-    out_mpeg_frame_number: Optional[int]
-    """The cue's end MPEG frame or 0 if not a loop or not a VBR/ABR MPEG file (see note)"""
-    in_mpeg_abs: Optional[int]
-    """The cue's start MPEG absolute frame or 0 if not a VBR/ABR MPEG file."""
-    out_mpeg_abs: Optional[int]
-    """The cue's end MPEG absolute frame or 0 if not a loop or not a VBR/ABR MPEG file"""
-    in_decoding_start_frame_position: Optional[int]
-    """The cue's start frame position in the decoding block."""
-    out_decoding_start_frame_position: Optional[int]
-    """The cue's end frame position in the decoding block."""
-    in_file_offset_in_block: Optional[int]
-    """The cue's start file offset in the decoding block."""
-    out_file_offset_in_block: Optional[int]
-    """The cue's end file offset in the decoding block."""
-    in_number_of_sample_in_block: Optional[int]
-    """The cue's start sample position in the decoding block."""
-    out_number_of_sample_in_block: Optional[int]
-    """The cue's end sample position in the decoding block."""
-
-class Genre(_RustMutableMapping):
-    """Represents the `genre` table in the Rekordbox Device Library Plus database."""
-
-    id: int
-    """The unique identifier of the genre."""
-    name: str
-    """The name of the genre."""
-
-class NewGenre(_RustMutableMapping):
-    """Represents a new record insertale to the `genre` table."""
-
-    name: str
-    """The name of the genre."""
-
-class History(_RustMutableMapping):
-    """Represents the `history` table in the Rekordbox Device Library Plus database."""
-
-    id: int
-    """A unique identifier for the entry."""
-    seq: int
-    """The sequence/order number of the history (1-based index)"""
-    name: str
-    """The name of the history."""
-    attribute: int
-    """The attribute of the tag, either history (`0`) or a folder (`1`)"""
-    parent_id: int
-    """The ID of the parent [`History`] or `0` for top-level record."""
-
-class HistoryContent(_RustMutableMapping):
-    """Represents the `history_content` table in the Rekordbox Device Library Plus database."""
-
-    history_id: int
-    """The ID of the associated [`History`]."""
-    content_id: int
-    """The ID of the associated [`Content`]."""
-    seq: int
-    """The sequence/order number of the history content (1-based index)"""
-
-class NewHistory(_RustMutableMapping):
-    """Represents a new record insertale to the `history` table."""
-
-    seq: int
-    """The sequence/order number of the history (1-based index)"""
-    name: str
-    """The name of the history."""
-    attribute: int
-    """The attribute of the tag, either history (`0`) or a folder (`1`)"""
-    parent_id: int
-    """The ID of the parent [`History`] or `0` for top-level record."""
-
-class HotCueBankList(_RustMutableMapping):
-    """Represents the `hotCueBankList` table in the Rekordbox Device Library Plus database."""
-
-    id: int
-    """The unique identifier of the hot cue bank list."""
-    seq: int
-    """The sequence/order number of the hot cue bank list (1-based index)."""
-    name: Optional[str]
-    """The name of the hot cue bank list."""
-    image_id: Optional[int]
-    """An optional foreign key referencing an [`Image`]."""
-    attribute: int
-    """The hot cue bank list type, either list (`0`) or a folder (`1`)."""
-    parent_id: Optional[int]
-    """The ID of the parent [`HotCueBankList`], `0` for top-level records."""
-
-class HotCueBankListCue(_RustMutableMapping):
-    """Represents the `hotCueBankList_cue` table in the Rekordbox Device Library Plus database."""
-
-    hot_cue_bank_list_id: int
-    """The unique identifier of the hot cue bank list."""
-    cue_id: int
-    """The unique identifier of the cue."""
-    seq: int
-    """The sequence/order number of the hot cue bank list cue (1-based index)."""
-
-class Image(_RustMutableMapping):
-    """Represents the `image` table in the Rekordbox Device Library Plus database."""
-
-    id: int
-    """The unique identifier of the image."""
-    path: str
-    """The relative file path of the image."""
-
-class NewImage(_RustMutableMapping):
-    """Represents a new record insertale to the `image` table."""
-
-    path: str
-    """The relative file path of the image."""
-
-class Key(_RustMutableMapping):
-    """Represents the `key` table in the Rekordbox Device Library Plus database."""
-
-    id: int
-    """The unique identifier of the key."""
-    name: str
-    """The name of the key."""
-
-class NewKey(_RustMutableMapping):
-    """Represents a new record insertale to the `key` table."""
-
-    name: str
-    """The name of the key."""
-
-class Label(_RustMutableMapping):
-    """Represents the `label` table in the Rekordbox Device Library Plus database."""
-
-    id: int
-    """The unique identifier of the label."""
-    name: str
-    """The name of the label."""
-
-class NewLabel(_RustMutableMapping):
-    """Represents a new record insertale to the `label` table."""
-
-    name: str
-    """The name of the label."""
-
-class MenuItem(_RustMutableMapping):
-    """Represents the `menuItem` table in the Rekordbox Device Library Plus database."""
-
-    id: int
-    """The unique identifier of the record."""
-    kind: int
-    """The kind of menu item (similar to `class` in the main DB)."""
-    name: str
-    """The name of the menu item."""
-
-class NewMenuItem(_RustMutableMapping):
-    """Represents a new record insertale to the `menuItem` table."""
-
-    kind: int
-    """The kind of menu item (similar to `class` in the main DB)."""
-    name: str
-    """The name of the menu item."""
-
-class MyTag(_RustMutableMapping):
-    """Represents the `myTag` table in the Rekordbox Device Library Plus database."""
-
-    id: int
-    """The unique identifier of the tag."""
-    seq: int
-    """The sequence/order number of the tag (1-based index)."""
-    name: str
-    """The name of the tag."""
-    attribute: int
-    """The tag type, either list (`0`) or a folder (`1`)."""
-    parent_id: int
-    """The ID of the parent [`MyTag`], `0` for top-level records."""
-
-class MyTagContent(_RustMutableMapping):
-    """Represents the `myTag_content` table in the Rekordbox Device Library Plus database."""
-
-    my_tag_id: int
-    """The ID of the associated [`MyTag`]."""
-    content_id: int
-    """The ID of the associated [`Content`]."""
-
-class NewMyTag(_RustMutableMapping):
-    """Represents a new record insertale to the `myTag` table."""
-
-    seq: int
-    """The sequence/order number of the tag (1-based index)."""
-    name: str
-    """The name of the tag."""
-    attribute: int
-    """The tag type, either list (`0`) or a folder (`1`)."""
-    parent_id: int
-    """The ID of the parent [`MyTag`], `0` for top-level records."""
-
-class NewPlaylist(_RustMutableMapping):
-    """Represents a new record insertale to the `playlist` table."""
-
-    seq: int
-    """The sequence/order number of the playlist (1-based index)."""
-    name: str
-    """The name of the playlist."""
-    image_id: Optional[int]
-    """Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image)."""
-    attribute: int
-    """The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`)."""
-    parent_id: int
-    """The ID of the parent [`Playlist`], `0` for top-level records."""
-
-class Playlist(_RustMutableMapping):
-    """Represents the `playlist` table in the Rekordbox Device Library Plus database."""
-
-    id: int
-    """The unique identifier of the playlist."""
-    seq: int
-    """The sequence/order number of the playlist (1-based index)."""
-    name: str
-    """The name of the playlist."""
-    image_id: Optional[int]
-    """Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image)."""
-    attribute: int
-    """The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`)."""
-    parent_id: int
-    """The ID of the parent [`Playlist`], `0` for top-level records."""
-
-class PlaylistContent(_RustMutableMapping):
-    """Represents the `playlist_content` table in the Rekordbox Device Library Plus database."""
-
-    playlist_id: int
-    """The ID of the associated [`Playlist`]."""
-    content_id: int
-    """The ID of the associated [`Content`]."""
-    seq: int
-    """The sequence/order number of the history content (1-based index)"""
-
-class Property(_RustMutableMapping):
-    """Represents the `property` table in the Rekordbox Device Library Plus database."""
-
-    device_name: str
-    """The name of the device ('' by default)"""
-    db_version: int
-    """The DB version (1000 by default)"""
-    number_of_contents: int
-    """The number of ['Content'] in the device"""
-    created_date: datetime
-    """The date of creation for the device"""
-    back_ground_color_type: int
-    """The background color type (0 by default)"""
-    my_tag_master_dbid: int
-    """The master.db database id of the tag data"""
-
-class RecommendedLike(_RustMutableMapping):
-    """Represents the `recommendedLike` table in the Rekordbox Device Library Plus database."""
-
-    content_id_1: int
-    """The ID of the first associated [`Content`]."""
-    content_id_2: int
-    """The ID of the second associated [`Content`]."""
-    rating: int
-    """The rating of the relationship, between 1-5."""
-    created_date: datetime
-    """The timestamp when the entry was created, serialized/deserialized as `Datetime<Utc>`."""
-
-class NewSort(_RustMutableMapping):
-    """Represents a new record insertale to the `sort` table."""
-
-    menu_item_id: int
-    """An optional foreign key referencing the [`MenuItem`]."""
-    seq: int
-    """The sequence/order number of the item (1-based index)"""
-    is_visible: int
-    """A flag if the item is visible in the menu"""
-    is_selected_as_sub_column: int
-    """A flag if the item is selected as a sub-column"""
-
-class Sort(_RustMutableMapping):
-    """Represents the `sort` table in the Rekordbox Device Library Plus database."""
-
-    id: int
-    """The unique identifier of the record."""
-    menu_item_id: int
-    """An optional foreign key referencing the [`MenuItem`]."""
-    seq: int
-    """The sequence/order number of the *visible* items (1-based index)"""
-    is_visible: int
-    """A flag if the item is visible in the menu"""
-    is_selected_as_sub_column: int
-    """A flag if the item is selected as a sub-column"""
+# ---- Options  -------------------------------------------------------------------------------------
+
+class RekordboxOptions:
+    def __init__(self, db_path: str, analysis_root: str, settings_root: str) -> "RekordboxOptions":
+        """Creates a new `RekordboxOptions` instance."""
+        ...
+
+    @classmethod
+    def load(cls, path: str) -> "RekordboxOptions":
+        """Loads Rekordbox options from a JSON file."""
+        ...
+
+    @classmethod
+    def open(cls) -> "RekordboxOptions":
+        """Opens the Rekordbox options file from the default location."""
+        ...
+
+    @property
+    def db_path(self) -> str:
+        """Returns the path to the Rekordbox database."""
+        ...
+
+    @property
+    def analysis_root(self) -> str:
+        """Returns the path to the analysis data directory."""
+        ...
+
+    @property
+    def settings_root(self) -> str:
+        """Returns the path to the settings directory."""
+        ...
+
+# ---- MasterDb  ------------------------------------------------------------------------------------
 
 class AgentRegistry(_RustMutableMapping):
     """Represents the `agentRegistry` table in the Rekordbox database."""
@@ -1433,6 +871,20 @@ class DjmdHistory(_RustMutableMapping):
     date_created: str
     """The creation date of the history."""
 
+class NewDjmdHistory(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdHistory` table."""
+
+    name: str
+    """The name of the history."""
+    attribute: int
+    """The attribute of the tag, either history (`0`) or a folder (`1`)"""
+    seq: Optional[int]
+    """The sequence/order number of the history (1-based index)"""
+    parent_id: Optional[str]
+    """The ID of the parent [`DjmdHistory`], `'root'` for top-level my-tag records."""
+    date_created: Optional[str]
+    """The creation date of the history."""
+
 class DjmdSongHistory(_RustMutableMapping):
     """Represents the `djmdSongHistory` table in the Rekordbox database."""
 
@@ -1462,20 +914,6 @@ class DjmdSongHistory(_RustMutableMapping):
     """The ID of the associated content entry in [`DjmdContent`]."""
     track_no: int
     """The track number in the history entry."""
-
-class NewDjmdHistory(_RustMutableMapping):
-    """Represents a new record insertale to the `djmdHistory` table."""
-
-    name: str
-    """The name of the history."""
-    attribute: int
-    """The attribute of the tag, either history (`0`) or a folder (`1`)"""
-    seq: Optional[int]
-    """The sequence/order number of the history (1-based index)"""
-    parent_id: Optional[str]
-    """The ID of the parent [`DjmdHistory`], `'root'` for top-level my-tag records."""
-    date_created: Optional[str]
-    """The creation date of the history."""
 
 class NewDjmdSongHistory(_RustMutableMapping):
     """Represents a new record insertale to the `djmdSongHistory` table."""
@@ -1779,6 +1217,18 @@ class DjmdMyTag(_RustMutableMapping):
     parent_id: str
     """The ID of the parent [`DjmdMyTag`], `'root'` for top-level my-tag records."""
 
+class NewDjmdMyTag(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdMyTag` table."""
+
+    name: str
+    """The name of the tag"""
+    seq: Optional[int]
+    """The sequence/order number of the tag (1-based index)"""
+    attribute: Optional[int]
+    """The attribute of the tag, either my-tag (`0`) or a section (`1`)"""
+    parent_id: Optional[str]
+    """The ID of the parent [`DjmdMyTag`]."""
+
 class DjmdSongMyTag(_RustMutableMapping):
     """Represents the `djmdSongMyTag` table in the Rekordbox database."""
 
@@ -1808,18 +1258,6 @@ class DjmdSongMyTag(_RustMutableMapping):
     """The ID of the associated [`DjmdContent`]."""
     track_no: int
     """The track number in the tag."""
-
-class NewDjmdMyTag(_RustMutableMapping):
-    """Represents a new record insertale to the `djmdMyTag` table."""
-
-    name: str
-    """The name of the tag"""
-    seq: Optional[int]
-    """The sequence/order number of the tag (1-based index)"""
-    attribute: Optional[int]
-    """The attribute of the tag, either my-tag (`0`) or a section (`1`)"""
-    parent_id: Optional[str]
-    """The ID of the parent [`DjmdMyTag`]."""
 
 class NewDjmdSongMyTag(_RustMutableMapping):
     """Represents a new record insertale to the `djmdSongMyTag` table."""
@@ -1867,6 +1305,22 @@ class DjmdPlaylist(_RustMutableMapping):
     smart_list: Optional[str]
     """An optional smart list configuration for the playlist (None if not a smart playlist)"""
 
+class NewDjmdPlaylist(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdPlaylist` table."""
+
+    name: str
+    """The name of the playlist."""
+    attribute: int
+    """The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`)."""
+    seq: Optional[int]
+    """The sequence/order number of the record (1-based index)"""
+    parent_id: Optional[str]
+    """The ID of the parent [`DjmdPlaylist`], `'root'` for top-level records (default)."""
+    image_path: Optional[str]
+    """An optional path to the image associated with the playlist."""
+    smart_list: Optional[str]
+    """An optional smart list configuration for the playlist (None if not a smart playlist)"""
+
 class DjmdSongPlaylist(_RustMutableMapping):
     """Represents the `djmdSongPlaylist` table in the Rekordbox database."""
 
@@ -1897,22 +1351,6 @@ class DjmdSongPlaylist(_RustMutableMapping):
     track_no: int
     """The track number in the playlist."""
 
-class NewDjmdPlaylist(_RustMutableMapping):
-    """Represents a new record insertale to the `djmdPlaylist` table."""
-
-    name: str
-    """The name of the playlist."""
-    attribute: int
-    """The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`)."""
-    seq: Optional[int]
-    """The sequence/order number of the record (1-based index)"""
-    parent_id: Optional[str]
-    """The ID of the parent [`DjmdPlaylist`], `'root'` for top-level records (default)."""
-    image_path: Optional[str]
-    """An optional path to the image associated with the playlist."""
-    smart_list: Optional[str]
-    """An optional smart list configuration for the playlist (None if not a smart playlist)"""
-
 class NewDjmdSongPlaylist(_RustMutableMapping):
     """Represents a new record insertale to the `djmdSongPlaylist` table."""
 
@@ -1922,6 +1360,34 @@ class NewDjmdSongPlaylist(_RustMutableMapping):
     """The ID of the associated content in [`DjmdContent`]."""
     track_no: Optional[int]
     """The track number in the playlist."""
+
+class DjmdProperty(_RustMutableMapping):
+    """Represents the `djmdProperty` table in the Rekordbox database."""
+
+    db_id: str
+    """A unique identifier for the database entry."""
+    db_version: str
+    """The version of the database."""
+    base_db_drive: str
+    """The base drive of the database."""
+    current_db_drive: str
+    """The current drive of the database."""
+    device_id: str
+    """The ID of the associated device in [`DjmdDevice`]."""
+    reserved1: Optional[str]
+    """An optional string for reserved data."""
+    reserved2: Optional[str]
+    """An optional string for reserved data."""
+    reserved3: Optional[str]
+    """An optional string for reserved data."""
+    reserved4: Optional[str]
+    """An optional string for reserved data."""
+    reserved5: Optional[str]
+    """An optional string for reserved data."""
+    created_at: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
+    updated_at: datetime
+    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
 
 class DjmdCloudProperty(_RustMutableMapping):
     """Represents the `djmdCloudProperty` table in the Rekordbox database."""
@@ -1956,34 +1422,6 @@ class DjmdCloudProperty(_RustMutableMapping):
     """An optional string for reserved data."""
     reserved5: Optional[str]
     """An optional string for reserved data."""
-
-class DjmdProperty(_RustMutableMapping):
-    """Represents the `djmdProperty` table in the Rekordbox database."""
-
-    db_id: str
-    """A unique identifier for the database entry."""
-    db_version: str
-    """The version of the database."""
-    base_db_drive: str
-    """The base drive of the database."""
-    current_db_drive: str
-    """The current drive of the database."""
-    device_id: str
-    """The ID of the associated device in [`DjmdDevice`]."""
-    reserved1: Optional[str]
-    """An optional string for reserved data."""
-    reserved2: Optional[str]
-    """An optional string for reserved data."""
-    reserved3: Optional[str]
-    """An optional string for reserved data."""
-    reserved4: Optional[str]
-    """An optional string for reserved data."""
-    reserved5: Optional[str]
-    """An optional string for reserved data."""
-    created_at: datetime
-    """The timestamp when the entry was created, serialized/deserialized as `DateString`."""
-    updated_at: datetime
-    """The timestamp when the entry was last updated, serialized/deserialized as `DateString`."""
 
 class DjmdRecommendLike(_RustMutableMapping):
     """Represents the `djmdRecommendLike` table in the Rekordbox database."""
@@ -2053,6 +1491,20 @@ class DjmdRelatedTracks(_RustMutableMapping):
     criteria: str
     """A JSON string containing the criteria for the related tracks."""
 
+class NewDjmdRelatedTracks(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdRelatedTracks` table."""
+
+    name: str
+    """The name of the related track."""
+    attribute: int
+    """The attribute of the related track, either list (`0`) or a folder (`1`)"""
+    seq: Optional[int]
+    """The sequence/order number of the record (1-based index)"""
+    parent_id: Optional[str]
+    """The ID of the parent [`DjmdRelatedTracks`], `'root'` for top-level records."""
+    criteria: Optional[str]
+    """A JSON string containing the criteria for the related tracks."""
+
 class DjmdSongRelatedTracks(_RustMutableMapping):
     """Represents the `djmdSongRelatedTracks` table in the Rekordbox database."""
 
@@ -2082,20 +1534,6 @@ class DjmdSongRelatedTracks(_RustMutableMapping):
     """The ID of the associated content entry in [`DjmdContent`]."""
     track_no: int
     """The track number in the related tracks entry."""
-
-class NewDjmdRelatedTracks(_RustMutableMapping):
-    """Represents a new record insertale to the `djmdRelatedTracks` table."""
-
-    name: str
-    """The name of the related track."""
-    attribute: int
-    """The attribute of the related track, either list (`0`) or a folder (`1`)"""
-    seq: Optional[int]
-    """The sequence/order number of the record (1-based index)"""
-    parent_id: Optional[str]
-    """The ID of the parent [`DjmdRelatedTracks`], `'root'` for top-level records."""
-    criteria: Optional[str]
-    """A JSON string containing the criteria for the related tracks."""
 
 class NewDjmdSongRelatedTracks(_RustMutableMapping):
     """Represents a new record insertale to the `djmdSongRelatedTracks` table."""
@@ -2139,6 +1577,18 @@ class DjmdSampler(_RustMutableMapping):
     parent_id: str
     """The ID of the parent [`DjmdSampler`], `'root'` for top-level records."""
 
+class NewDjmdSampler(_RustMutableMapping):
+    """Represents a new record insertale to the `djmdSampler` table."""
+
+    name: str
+    """The name of the sampler."""
+    attribute: int
+    """The attribute of the sampler, either list (`0`) or a folder (`1`)"""
+    seq: Optional[int]
+    """The sequence/order number of the record (1-based index)"""
+    parent_id: Optional[str]
+    """The ID of the parent [`DjmdSampler`], `'root'` for top-level records."""
+
 class DjmdSongSampler(_RustMutableMapping):
     """Represents the `djmdSongSampler` table in the Rekordbox database."""
 
@@ -2168,18 +1618,6 @@ class DjmdSongSampler(_RustMutableMapping):
     """The ID of the associated content in [`DjmdContent`]."""
     track_no: int
     """The sequence/order number of the record (1-based index)"""
-
-class NewDjmdSampler(_RustMutableMapping):
-    """Represents a new record insertale to the `djmdSampler` table."""
-
-    name: str
-    """The name of the sampler."""
-    attribute: int
-    """The attribute of the sampler, either list (`0`) or a folder (`1`)"""
-    seq: Optional[int]
-    """The sequence/order number of the record (1-based index)"""
-    parent_id: Optional[str]
-    """The ID of the parent [`DjmdSampler`], `'root'` for top-level records."""
 
 class NewDjmdSongSampler(_RustMutableMapping):
     """Represents a new record insertale to the `djmdSongSampler` table."""
@@ -2375,7 +1813,7 @@ class UuidIDMap(_RustMutableMapping):
     current_id: str
     """The current ID in the mapping."""
 
-class DjmdPlaylistTreeNode:
+class PyDjmdPlaylistTreeNode:
     id: str
     uuid: str
     rb_data_status: int
@@ -2392,75 +1830,103 @@ class DjmdPlaylistTreeNode:
     attribute: int
     parent_id: str
     smart_list: Optional[str]
-    children: list[DjmdPlaylistTreeNode]
-
-# ---- MasterDb ------------------------------------------------------------------------------------
+    children: List[PyDjmdPlaylistTreeNode]
 
 class PyMasterDb:
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str) -> "PyMasterDb":
         """Open a Rekordbox database specified by path."""
         ...
+
+    @classmethod
+    def from_options(cls, options: RekordboxOptions) -> "PyMasterDb":
+        """Open the Rekordbox database specified by the `RekordboxOptions`."""
+        ...
+
     @classmethod
     def open(cls) -> "PyMasterDb":
         """Open the default Rekordbox `master.db` database."""
         ...
+
     def set_unsafe_writes(self, unsafe_writes: bool) -> None:
         """Sets the unsafe writes flag for the database."""
         ...
+
     def share_directory(self) -> Optional[str]:
         """Returns the path to the configured share directory."""
         ...
+
     def playlist_xml_path(self) -> Optional[str]:
         """Returns the path to the configured playlist XML file."""
         ...
-    def get_agent_registries(self) -> list[AgentRegistry]:
+
+    def get_agent_registries(self) -> List[AgentRegistry]:
         """Retrieves all entries from the [`AgentRegistry`] table in the database."""
         ...
+
     def get_agent_registry_by_id(self, id: str) -> Optional[AgentRegistry]:
         """Retrieves an `agentRegistry` entry by its unique identifier."""
         ...
+
     def get_local_usn(self) -> int:
         """Retrieves the local update sequence number (USN) from the `agentRegistry` table."""
         ...
-    def get_cloud_agent_registries(self) -> list[CloudAgentRegistry]:
+
+    def get_cloud_agent_registries(self) -> List[CloudAgentRegistry]:
         """Retrieves all entries from the `cloudAgentRegistry` table in the database."""
         ...
+
     def get_cloud_agent_registry_by_id(self, id: str) -> Optional[CloudAgentRegistry]:
         """Retrieves a `cloudAgentRegistry` entry by its unique identifier."""
         ...
-    def get_content_active_censors(self) -> list[ContentActiveCensor]:
+
+    def get_content_active_censors(self) -> List[ContentActiveCensor]:
         """Retrieves all entries from the `contentActiveCensor` table in the database."""
         ...
+
     def get_content_active_censor_by_id(self, id: str) -> Optional[ContentActiveCensor]:
         """Retrieves a `contentActiveCensor` entry by its unique identifier."""
         ...
-    def get_content_cues(self) -> list[ContentCue]:
+
+    def get_content_cues(self) -> List[ContentCue]:
         """Retrieves all entries from the `contentCue` table in the database."""
         ...
+
     def get_content_cue_by_id(self, id: str) -> Optional[ContentCue]:
         """Retrieves a `contentCue` entry by its unique identifier."""
         ...
-    def get_content_files(self) -> list[ContentFile]:
+
+    def get_content_files(self) -> List[ContentFile]:
         """Retrieves all entries from the `contentFile` table in the database."""
         ...
+
     def get_content_file_by_id(self, id: str) -> Optional[ContentFile]:
         """Retrieves a `contentFile` entry by its unique identifier."""
         ...
-    def get_active_censors(self) -> list[DjmdActiveCensor]:
+
+    def get_active_censors(self) -> List[DjmdActiveCensor]:
         """Retrieves all entries from the `djmdActiveCensor` table in the database."""
         ...
+
     def get_active_censor_by_id(self, id: str) -> Optional[DjmdActiveCensor]:
         """Retrieves a `djmdActiveCensor` entry by its unique identifier."""
         ...
-    def get_albums(self) -> list[DjmdAlbum]:
+
+    def get_albums(self) -> List[DjmdAlbum]:
         """Retrieves all entries from the `djmdAlbum` table in the database."""
         ...
+
     def get_album_by_id(self, id: str) -> Optional[DjmdAlbum]:
         """Retrieves a `djmdAlbum` entry by its unique identifier."""
         ...
+
     def get_album_by_name(self, name: str) -> Optional[DjmdAlbum]:
         """Retrieves a `djmdAlbum` entry by its name."""
         ...
+
+    def insert_album(self, album: NewDjmdAlbum) -> DjmdAlbum:
+        """Inserts a new album into the `djmdAlbum` table in the database."""
+        ...
+
     def create_album(
         self,
         name: str,
@@ -2470,237 +1936,339 @@ class PyMasterDb:
     ) -> DjmdAlbum:
         """Creates a new album and inserts it into the `djmdAlbum` table in the database."""
         ...
+
     def update_album(self, item: DjmdAlbum) -> DjmdAlbum:
         """Updates an existing `djmdAlbum` entry in the database."""
         ...
+
     def delete_album(self, id: str) -> None:
         """Deletes an album entry from the `djmdAlbum` table in the database."""
         ...
-    def get_artists(self) -> list[DjmdArtist]:
+
+    def get_artists(self) -> List[DjmdArtist]:
         """Retrieves all entries from the `djmdArtist` table in the database."""
         ...
+
     def get_artist_by_id(self, id: str) -> Optional[DjmdArtist]:
         """Retrieves a `djmdArtist` entry by its unique identifier."""
         ...
+
     def get_artist_by_name(self, name: str) -> Optional[DjmdArtist]:
         """Retrieves a `djmdArtist` entry by its name."""
         ...
+
+    def insert_artist(self, artist: NewDjmdArtist) -> DjmdArtist:
+        """Inserts a new artist into the `djmdArtist` table in the database."""
+        ...
+
     def create_artist(self, name: str) -> DjmdArtist:
         """Creates a new artist and inserts it into the `djmdArtist` table in the database."""
         ...
+
     def update_artist(self, item: DjmdArtist) -> DjmdArtist:
         """Updates an existing `djmdArtist` entry in the database."""
         ...
+
     def delete_artist(self, id: str) -> None:
         """Deletes an artist entry from the `djmdArtist` table in the database."""
         ...
-    def get_categories(self) -> list[DjmdCategory]:
+
+    def get_categories(self) -> List[DjmdCategory]:
         """Retrieves all entries from the `djmdCategory` table in the database."""
         ...
+
     def get_category_by_id(self, id: str) -> Optional[DjmdCategory]:
         """Retrieves a `djmdCategory` entry by its unique identifier."""
         ...
-    def get_colors(self) -> list[DjmdColor]:
+
+    def get_colors(self) -> List[DjmdColor]:
         """Retrieves all entries from the `djmdColor` table in the database."""
         ...
+
     def get_color_by_id(self, id: str) -> Optional[DjmdColor]:
         """Retrieves a `djmdColor` entry by its unique identifier."""
         ...
-    def get_contents(self) -> list[DjmdContent]:
+
+    def get_contents(self) -> List[DjmdContent]:
         """Retrieves all entries from the `djmdContent` table in the database."""
         ...
+
     def get_content_by_id(self, id: str) -> Optional[DjmdContent]:
         """Retrieves a `djmdContent` entry by its unique identifier."""
         ...
+
+    def get_contents_by_ids(self, ids: List[str]) -> List[DjmdContent]:
+        """Retrieves a `djmdContent` entry by its unique identifier."""
+        ...
+
     def get_content_by_path(self, path: str) -> Optional[DjmdContent]:
         """Retrieves a `djmdContent` entry by its folder path."""
         ...
+
     def get_content_anlz_dir(self, id: str) -> Optional[str]:
         """Returns the path to the directory containing the ANLZxxxx.xxx files for a given content ID."""
         ...
-    def get_content_anlz_paths(self, id: str) -> dict:
+
+    def get_content_anlz_paths(self, id: str) -> Dict[str, str]:
         """Returns a struct containing the paths to ANLZxxxx.DAT, ANLZxxxx.EXT, and ANLZxxxx.EX2 files."""
         ...
+
     def create_content(self, path: str) -> DjmdContent:
         """Creates a new content entry and inserts it into the `djmdContent` table."""
         ...
+
     def update_content(self, item: DjmdContent) -> None:
         """Updates an existing `djmdContent` entry in the database."""
         ...
+
     def update_content_album(self, id: str, name: str) -> None:
         """Update the content album field."""
         ...
+
     def update_content_artist(self, id: str, name: str) -> None:
         """Update the content artist name."""
         ...
+
     def update_content_remixer(self, id: str, name: str) -> None:
         """Update the content remixer name."""
         ...
+
     def update_content_original_artist(self, id: str, name: str) -> None:
         """Update the content original artist name."""
         ...
+
     def update_content_composer(self, id: str, name: str) -> None:
         """Update the content composer name."""
         ...
+
     def update_content_genre(self, id: str, name: str) -> None:
         """Update the content genre name."""
         ...
+
     def update_content_label(self, id: str, name: str) -> None:
         """Update the content label name."""
         ...
+
     def update_content_key(self, id: str, name: str) -> None:
         """Update the content key name."""
         ...
+
     def update_content_path(self, content_id: str, path: str) -> int:
         """Updates the file path of a content entry in the database."""
         ...
-    def get_cues(self) -> list[DjmdCue]:
+
+    def get_cues(self) -> List[DjmdCue]:
         """Retrieves all entries from the `djmdCue` table."""
         ...
+
     def get_cue_by_id(self, id: str) -> Optional[DjmdCue]:
         """Retrieves a `djmdCue` entry by its unique identifier."""
         ...
-    def get_devices(self) -> list[DjmdDevice]:
+
+    def get_devices(self) -> List[DjmdDevice]:
         """Retrieves all entries from the `djmdDevice` table."""
         ...
+
     def get_device_by_id(self, id: str) -> Optional[DjmdDevice]:
         """Retrieves a `djmdDevice` entry by its unique identifier."""
         ...
-    def get_genres(self) -> list[DjmdGenre]:
+
+    def get_genres(self) -> List[DjmdGenre]:
         """Retrieves all entries from the `djmdGenre` table in the database."""
         ...
+
     def get_genre_by_id(self, id: str) -> Optional[DjmdGenre]:
         """Retrieves a `djmdGenre` entry by its unique identifier."""
         ...
+
     def get_genre_by_name(self, name: str) -> Optional[DjmdGenre]:
         """Retrieves a `djmdGenre` entry by its name."""
         ...
+
+    def insert_genre(self, genre: NewDjmdGenre) -> DjmdGenre:
+        """Inserts a new genre into the `djmdGenre` table in the database."""
+        ...
+
     def create_genre(self, name: str) -> DjmdGenre:
         """Creates a new genre and inserts it into the `djmdGenre` table in the database."""
         ...
+
     def update_genre(self, item: DjmdGenre) -> DjmdGenre:
         """Updates an existing `djmdGenre` entry in the database."""
         ...
+
     def delete_genre(self, id: str) -> None:
         """Deletes a genre entry from the `djmdGenre` table in the database."""
         ...
-    def get_histories(self) -> list[DjmdHistory]:
+
+    def get_histories(self) -> List[DjmdHistory]:
         """Retrieves all entries from the `djmdHistory` table in the database."""
         ...
+
     def get_history_by_id(self, id: str) -> Optional[DjmdHistory]:
         """Retrieves a `djmdHistory` entry by its unique identifier."""
         ...
-    def get_history_songs(self, id: str) -> list[DjmdSongHistory]:
+
+    def get_history_songs(self, id: str) -> List[DjmdSongHistory]:
         """Retrieves all song history entries for a given history ID, ordered by track number."""
         ...
-    def get_history_contents(self, id: str) -> list[DjmdContent]:
+
+    def get_history_contents(self, id: str) -> List[DjmdContent]:
         """Retrieves all content entries referenced by the song history for a given history ID."""
         ...
-    def get_hot_cue_banklists(self) -> list[DjmdHotCueBanklist]:
+
+    def get_hot_cue_banklists(self) -> List[DjmdHotCueBanklist]:
         """Retrieves all entries from the `djmdHotCueBanklist` table in the database."""
         ...
+
     def get_hot_cue_banklist_by_id(self, id: str) -> Optional[DjmdHotCueBanklist]:
         """Retrieves a `djmdHotCueBanklist` entry by its unique identifier."""
         ...
-    def get_hot_cue_banklist_children(self, parent_id: str) -> list[DjmdHotCueBanklist]:
+
+    def get_hot_cue_banklist_children(self, parent_id: str) -> List[DjmdHotCueBanklist]:
         """Retrieves all child `djmdHotCueBanklist` entries for a given parent ID, ordered by sequence."""
         ...
-    def get_hot_cue_banklist_songs(self, id: str) -> list[DjmdSongHotCueBanklist]:
+
+    def get_hot_cue_banklist_songs(self, id: str) -> List[DjmdSongHotCueBanklist]:
         """Retrieves all `djmdSongHotCueBanklist` entries for a given hot cue banklist ID, ordered by track number."""
         ...
-    def get_hot_cue_banklist_contents(self, id: str) -> list[DjmdContent]:
+
+    def get_hot_cue_banklist_contents(self, id: str) -> List[DjmdContent]:
         """Retrieves all `djmdContent` entries referenced by the song hot cue banklist for a given hot cue banklist ID."""
         ...
-    def get_hot_cue_banklist_cues(self, id: str) -> list[HotCueBanklistCue]:
+
+    def get_hot_cue_banklist_cues(self, id: str) -> List[HotCueBanklistCue]:
         """Retrieves all `hotCueBanklistCue` entries for a given hot cue banklist ID."""
         ...
-    def get_keys(self) -> list[DjmdKey]:
+
+    def get_keys(self) -> List[DjmdKey]:
         """Retrieves all entries from the `djmdKey` table in the database."""
         ...
+
     def get_key_by_id(self, id: str) -> Optional[DjmdKey]:
         """Retrieves a `djmdKey` entry by its unique identifier."""
         ...
+
     def get_key_by_name(self, name: str) -> Optional[DjmdKey]:
         """Retrieves a `djmdKey` entry by its scale name."""
         ...
+
+    def insert_key(self, key: NewDjmdKey) -> DjmdKey:
+        """Inserts a new key into the `djmdKey` table in the database."""
+        ...
+
     def create_key(self, name: str) -> DjmdKey:
         """Creates a new key and inserts it into the `djmdKey` table in the database."""
         ...
+
     def update_key(self, item: DjmdKey) -> DjmdKey:
         """Updates an existing `djmdKey` entry in the database."""
         ...
+
     def delete_key(self, id: str) -> None:
         """Deletes a key entry from the `djmdKey` table in the database."""
         ...
-    def get_labels(self) -> list[DjmdLabel]:
+
+    def get_labels(self) -> List[DjmdLabel]:
         """Retrieves all entries from the `djmdLabel` table in the database."""
         ...
+
     def get_label_by_id(self, id: str) -> Optional[DjmdLabel]:
         """Retrieves a `djmdLabel` entry by its unique identifier."""
         ...
+
     def get_label_by_name(self, name: str) -> Optional[DjmdLabel]:
         """Retrieves a `djmdLabel` entry by its name."""
         ...
+
+    def insert_label(self, label: NewDjmdLabel) -> DjmdLabel:
+        """Inserts a new label into the `djmdLabel` table in the database."""
+        ...
+
     def create_label(self, name: str) -> DjmdLabel:
         """Creates a new label and inserts it into the `djmdLabel` table in the database."""
         ...
+
     def update_label(self, item: DjmdLabel) -> DjmdLabel:
         """Updates an existing `djmdLabel` entry in the database."""
         ...
+
     def delete_label(self, id: str) -> None:
         """Deletes a label entry from the `djmdLabel` table in the database."""
         ...
-    def get_menu_items(self) -> list[DjmdMenuItems]:
+
+    def get_menu_items(self) -> List[DjmdMenuItems]:
         """Retrieves all entries from the `djmdMenuItems` table in the database."""
         ...
+
     def get_menu_item_by_id(self, id: str) -> Optional[DjmdMenuItems]:
         """Retrieves a `djmdMenuItems` entry by its unique identifier."""
         ...
-    def get_mixer_params(self) -> list[DjmdMixerParam]:
+
+    def get_mixer_params(self) -> List[DjmdMixerParam]:
         """Retrieves all entries from the `djmdMixerParam` table in the database."""
         ...
+
     def get_mixer_param_by_id(self, id: str) -> Optional[DjmdMixerParam]:
         """Retrieves a `djmdMixerParam` entry by its unique identifier."""
         ...
-    def get_my_tags(self) -> list[DjmdMyTag]:
+
+    def get_my_tags(self) -> List[DjmdMyTag]:
         """Retrieves all entries from the `djmdMyTag` table in the database."""
         ...
-    def get_my_tag_children(self, parent_id: str) -> list[DjmdMyTag]:
+
+    def get_my_tag_children(self, parent_id: str) -> List[DjmdMyTag]:
         """Retrieves all child `djmdMyTag` entries for a given parent ID, ordered by sequence."""
         ...
+
     def get_my_tag_by_id(self, id: str) -> Optional[DjmdMyTag]:
         """Retrieves a `djmdMyTag` entry by its unique identifier."""
         ...
-    def get_my_tag_songs(self, id: str) -> list[DjmdSongMyTag]:
+
+    def get_my_tag_songs(self, id: str) -> List[DjmdSongMyTag]:
         """Retrieves all `djmdSongMyTag` entries for a given tag ID, ordered by track number."""
         ...
-    def get_my_tag_contents(self, id: str) -> list[DjmdContent]:
+
+    def get_my_tag_contents(self, id: str) -> List[DjmdContent]:
         """Retrieves all `djmdContent` entries referenced by the songs for a given tag ID."""
         ...
-    def get_playlists(self) -> list[DjmdPlaylist]:
+
+    def get_playlists(self) -> List[DjmdPlaylist]:
         """Retrieves all entries from the `djmdPlaylist` table in the database."""
         ...
-    def get_playlist_tree(self) -> list[DjmdPlaylistTreeNode]:
+
+    def get_playlist_tree(self) -> List[PyDjmdPlaylistTreeNode]:
         """Returns a sorted tree of playlists as tree nodes."""
         ...
-    def get_playlist_children(self, parent_id: str) -> list[DjmdPlaylist]:
+
+    def get_playlist_children(self, parent_id: str) -> List[DjmdPlaylist]:
         """Retrieves all child `djmdPlaylist` entries for a given parent ID, ordered by sequence."""
         ...
+
     def get_playlist_by_id(self, id: str) -> Optional[DjmdPlaylist]:
         """Retrieves a `djmdPlaylist` entry by its unique identifier."""
         ...
-    def get_playlist_by_path(self, path: list[str]) -> Optional[DjmdPlaylist]:
+
+    def get_playlist_by_path(self, path: List[str]) -> Optional[DjmdPlaylist]:
         """Retrieves a `djmdPlaylist` entry by its hierarchical path."""
         ...
-    def get_playlist_songs(self, id: str) -> list[DjmdSongPlaylist]:
+
+    def get_playlist_songs(self, id: str) -> List[DjmdSongPlaylist]:
         """Retrieves all `djmdSongPlaylist` entries for a given playlist ID, ordered by track number."""
         ...
-    def get_playlist_contents(self, id: str) -> list[DjmdContent]:
+
+    def get_playlist_contents(self, id: str) -> List[DjmdContent]:
         """Retrieves all `djmdContent` entries referenced by the songs for a given playlist ID."""
         ...
+
     def get_playlist_song_by_id(self, id: str) -> Optional[DjmdSongPlaylist]:
         """Retrieves a `djmdSongPlaylist` entry by its unique identifier."""
         ...
+
+    def insert_playlist(self, playlist: NewDjmdPlaylist) -> DjmdPlaylist:
+        """Inserts a new playlist into the `djmdPlaylist` table in the database."""
+        ...
+
     def create_playlist_node(
         self,
         name: str,
@@ -2712,125 +2280,1349 @@ class PyMasterDb:
     ) -> DjmdPlaylist:
         """Creates a new playlist and inserts it into the `djmdPlaylist` table in the database."""
         ...
+
+    def create_playlist(
+        self,
+        name: str,
+        parent_id: Optional[str] = None,
+        seq: Optional[int] = None,
+        image_path: Optional[str] = None,
+        smart_list: Optional[str] = None,
+    ) -> DjmdPlaylist:
+        """Creates a new regular playlist in the `djmdPlaylist` table."""
+        ...
+
+    def create_playlist_folder(
+        self, name: str, parent_id: Optional[str] = None, seq: Optional[int] = None
+    ) -> DjmdPlaylist:
+        """Creates a new playlist folder in the `djmdPlaylist` table."""
+        ...
+
     def rename_playlist(self, id: str, name: str) -> DjmdPlaylist:
         """Renames an existing playlist."""
         ...
-    def move_playlist(
-        self, id: str, seq: Optional[int] = None, parent_id: Optional[str] = None
-    ) -> DjmdPlaylist:
+
+    def move_playlist(self, id: str, seq: Optional[int] = None, parent_id: Optional[str] = None) -> DjmdPlaylist:
         """Moves a playlist to a new parent folder or changes its sequence within the same parent."""
         ...
+
+    def move_playlists(self, ids: List[str], parent_id: str, start_seq: Optional[int] = None) -> List[DjmdPlaylist]:
+        """Moves multiple playlists to a new parent folder or changes its sequence within the same parent."""
+        ...
+
     def delete_playlist(self, id: str) -> None:
         """Deletes a playlist entry from the `djmdPlaylist` table in the database."""
         ...
-    def create_playlist_song(
-        self, playlist_id: str, content_id: str, seq: Optional[int] = None
-    ) -> DjmdSongPlaylist:
+
+    def insert_playlist_song(self, item: NewDjmdSongPlaylist) -> DjmdSongPlaylist:
+        """Inserts a new `djmdSongPlaylist` song into a playlist."""
+        ...
+
+    def create_playlist_song(self, playlist_id: str, content_id: str, seq: Optional[int] = None) -> DjmdSongPlaylist:
         """Creates a new playlist song and inserts it into the `djmdSongPlaylist` table."""
         ...
+
     def move_playlist_song(self, id: str, seq: int) -> DjmdSongPlaylist:
         """Moves a song within a playlist to a new sequence position."""
         ...
+
+    def move_playlist_songs(self, ids: List[str], start_seq: int) -> List[DjmdSongPlaylist]:
+        """Moves multiple songs within a playlist to a new sequence position."""
+        ...
+
     def delete_playlist_song(self, id: str) -> None:
         """Deletes a song entry from a playlist."""
         ...
-    def get_properties(self) -> list[DjmdProperty]:
+
+    def delete_playlist_songs(self, ids: List[str]) -> int:
+        """Deletes multiple songs from a playlist."""
+        ...
+
+    def get_properties(self) -> List[DjmdProperty]:
         """Retrieves all entries from the `djmdProperty` table in the database."""
         ...
+
     def get_property_by_id(self, id: str) -> Optional[DjmdProperty]:
         """Retrieves a `djmdProperty` entry by its unique identifier."""
         ...
-    def get_cloud_properties(self) -> list[DjmdCloudProperty]:
+
+    def get_cloud_properties(self) -> List[DjmdCloudProperty]:
         """Retrieves all entries from the `djmdCloudProperty` table in the database."""
         ...
+
     def get_cloud_property_by_id(self, id: str) -> Optional[DjmdCloudProperty]:
         """Retrieves a `djmdCloudProperty` entry by its unique identifier."""
         ...
-    def get_recommend_likes(self) -> list[DjmdRecommendLike]:
+
+    def get_recommend_likes(self) -> List[DjmdRecommendLike]:
         """Retrieves all entries from the `djmdRecommendLike` table in the database."""
         ...
+
     def get_recommend_like_by_id(self, id: str) -> Optional[DjmdRecommendLike]:
         """Retrieves a `djmdRecommendLike` entry by its unique identifier."""
         ...
-    def get_related_tracks(self) -> list[DjmdRelatedTracks]:
+
+    def get_related_tracks(self) -> List[DjmdRelatedTracks]:
         """Retrieves all entries from the `djmdRelatedTracks` table in the database."""
         ...
-    def get_related_tracks_children(self, parent_id: str) -> list[DjmdRelatedTracks]:
+
+    def get_related_tracks_children(self, parent_id: str) -> List[DjmdRelatedTracks]:
         """Retrieves all child `djmdRelatedTracks` entries for a given parent ID, ordered by sequence."""
         ...
+
     def get_related_tracks_by_id(self, id: str) -> Optional[DjmdRelatedTracks]:
         """Retrieves a `djmdRelatedTracks` entry by its unique identifier."""
         ...
-    def get_related_tracks_songs(self, id: str) -> list[DjmdSongRelatedTracks]:
+
+    def get_related_tracks_songs(self, id: str) -> List[DjmdSongRelatedTracks]:
         """Retrieves all `djmdSongRelatedTracks` entries for a given related tracks ID, ordered by track number."""
         ...
-    def get_related_tracks_contents(self, id: str) -> list[DjmdContent]:
+
+    def get_related_tracks_contents(self, id: str) -> List[DjmdContent]:
         """Retrieves all `djmdContent` entries referenced by the songs for a given related tracks ID."""
         ...
-    def get_samplers(self) -> list[DjmdSampler]:
+
+    def get_samplers(self) -> List[DjmdSampler]:
         """Retrieves all entries from the `djmdSampler` table in the database."""
         ...
-    def get_sampler_children(self, parent_id: str) -> list[DjmdSampler]:
+
+    def get_sampler_children(self, parent_id: str) -> List[DjmdSampler]:
         """Retrieves all child `djmdSampler` entries for a given parent ID, ordered by sequence."""
         ...
+
     def get_sampler_by_id(self, id: str) -> Optional[DjmdSampler]:
         """Retrieves a `djmdSampler` entry by its unique identifier."""
         ...
-    def get_sampler_songs(self, id: str) -> list[DjmdSongSampler]:
+
+    def get_sampler_songs(self, id: str) -> List[DjmdSongSampler]:
         """Retrieves all `djmdSongSampler` entries for a given sampler ID, ordered by track number."""
         ...
-    def get_sampler_contents(self, id: str) -> list[DjmdContent]:
+
+    def get_sampler_contents(self, id: str) -> List[DjmdContent]:
         """Retrieves all `djmdContent` entries referenced by the songs for a given sampler ID."""
         ...
-    def get_song_tag_lists(self) -> list[DjmdSongTagList]:
+
+    def get_song_tag_lists(self) -> List[DjmdSongTagList]:
         """Retrieves all entries from the `djmdSongTagList` table in the database."""
         ...
+
     def get_song_tag_list_by_id(self, id: str) -> Optional[DjmdSongTagList]:
         """Retrieves a `djmdSongTagList` entry by its unique identifier."""
         ...
-    def get_sorts(self) -> list[DjmdSort]:
+
+    def get_sorts(self) -> List[DjmdSort]:
         """Retrieves all entries from the `djmdSort` table in the database, ordered by sequence."""
         ...
+
     def get_sort_by_id(self, id: str) -> Optional[DjmdSort]:
         """Retrieves a `djmdSort` entry by its unique identifier."""
         ...
-    def get_image_files(self) -> list[ImageFile]:
+
+    def get_image_files(self) -> List[ImageFile]:
         """Retrieves all entries from the `imageFile` table in the database."""
         ...
+
     def get_image_file_by_id(self, id: str) -> Optional[ImageFile]:
         """Retrieves an `imageFile` entry by its unique identifier."""
         ...
-    def get_setting_files(self) -> list[SettingFile]:
+
+    def get_setting_files(self) -> List[SettingFile]:
         """Retrieves all entries from the `settingFile` table in the database."""
         ...
+
     def get_setting_file_by_id(self, id: str) -> Optional[SettingFile]:
         """Retrieves a `settingFile` entry by its unique identifier."""
         ...
-    def get_uuid_id_maps(self) -> list[UuidIDMap]:
+
+    def get_uuid_id_maps(self) -> List[UuidIDMap]:
         """Retrieves all entries from the `uuidIDMap` table in the database."""
         ...
+
     def get_uuid_id_map_by_id(self, id: str) -> Optional[UuidIDMap]:
         """Retrieves a `uuidIDMap` entry by its unique identifier."""
         ...
 
-# ---- ANLZ ----------------------------------------------------------------------------------------
+# ---- OneLibrary  ----------------------------------------------------------------------------------
 
-class Beat:
+class Album(_RustMutableMapping):
+    """Represents the `album` table in the Rekordbox One Library database."""
+
+    id: int
+    """The unique identifier of the album."""
+    name: str
+    """The name of the album."""
+    artist_id: Optional[int]
+    """An optional foreign key referencing the album [`Artist`]."""
+    image_id: Optional[int]
+    """An optional foreign key referencing the album artwork [`Image`]."""
+    is_compilation: int
+    """A flag if the album is a compilation."""
+    name_for_search: Optional[str]
+    """An optional string used for searching the album."""
+
+class NewAlbum(_RustMutableMapping):
+    """Represents a new record insertale to the `album` table."""
+
+    name: str
+    """The name of the album."""
+    artist_id: Optional[int]
+    """An optional foreign key referencing the album artist [`Artist`]."""
+    image_id: Optional[int]
+    """An optional foreign key referencing the album artwork [`Image`]."""
+    is_compilation: int
+    """A flag if the album is a compilation."""
+    name_for_search: Optional[str]
+    """An optional string used for searching the album."""
+
+class Artist(_RustMutableMapping):
+    """Represents the `artist` table in the Rekordbox One Library database."""
+
+    id: int
+    """The unique identifier of the artist."""
+    name: str
+    """The name of the artist."""
+    name_for_search: Optional[str]
+    """An optional field for storing a search-optimized version of the artist name."""
+
+class NewArtist(_RustMutableMapping):
+    """Represents a new record insertale to the `artist` table."""
+
+    name: str
+    """The name of the artist."""
+    name_for_search: Optional[str]
+    """An optional field for storing a search-optimized version of the artist name."""
+
+class Remixer(_RustMutableMapping):
+    id: int
+    name: str
+    name_for_search: Optional[str]
+
+class OriginalArtist(_RustMutableMapping):
+    id: int
+    name: str
+    name_for_search: Optional[str]
+
+class Composer(_RustMutableMapping):
+    id: int
+    name: str
+    name_for_search: Optional[str]
+
+class Lyricist(_RustMutableMapping):
+    id: int
+    name: str
+    name_for_search: Optional[str]
+
+class Category(_RustMutableMapping):
+    """Represents the `category` table in the Rekordbox One Library database."""
+
+    id: int
+    """The unique identifier of the category."""
+    menu_item_id: int
+    """A foreign key referencing the [`MenuItem`]."""
+    seq: int
+    """The sequence/order of the category."""
+    is_visible: int
+    """A flag if the category is visible."""
+
+class NewCategory(_RustMutableMapping):
+    """Represents a new record insertale to the `category` table."""
+
+    menu_item_id: int
+    """A foreign key referencing the [`MenuItem`]."""
+    seq: int
+    """The sequence/order of the category."""
+    is_visible: int
+    """A flag if the category is visible."""
+
+class Color(_RustMutableMapping):
+    """Represents the `color` table in the Rekordbox One Library database."""
+
+    id: int
+    """The unique identifier of the color."""
+    name: str
+    """The name of the color"""
+
+class NewColor(_RustMutableMapping):
+    """Represents a new record insertale to the `color` table."""
+
+    name: str
+    """The name of the color"""
+
+class Content(_RustMutableMapping):
+    """Represents the `content` table in the Rekordbox One Library database."""
+
+    id: int
+    """The unique identifier of the content."""
+    title: Optional[str]
+    """The title of the track."""
+    title_for_search: Optional[str]
+    """An optional title used for searching."""
+    subtitle: Optional[str]
+    """The subtitle of the track"""
+    bpmx100: Optional[int]
+    """The beats per minute multiplied by 100."""
+    length: Optional[int]
+    """The length of the track in seconds."""
+    track_no: Optional[int]
+    """The track number of the track"""
+    disc_no: Optional[int]
+    """The disc number of the track"""
+    artist_id: Optional[int]
+    """Optional foreign key referencing the artist [`Artist`]."""
+    remixer_id: Optional[int]
+    """Optional foreign key referencing the remixer [`Artist`]."""
+    original_artist_id: Optional[int]
+    """Optional foreign key referencing the original artist [`Artist`]."""
+    composer_id: Optional[int]
+    """Optional foreign key referencing the composer [`Artist`]."""
+    lyricist_id: Optional[int]
+    """Optional foreign key referencing the lyricist [`Artist`]."""
+    album_id: Optional[int]
+    """Optional foreign key referencing the [`Album`]."""
+    genre_id: Optional[int]
+    """Optional foreign key referencing the [`Genre`]."""
+    label_id: Optional[int]
+    """Optional foreign key referencing the [`Label`]."""
+    key_id: Optional[int]
+    """Optional foreign key referencing the [`Key`]."""
+    color_id: Optional[int]
+    """Optional foreign key referencing the [`Color`]."""
+    image_id: Optional[int]
+    """Optional foreign key referencing the artwork [`Image`]."""
+    dj_comment: Optional[str]
+    """The ccomment of the track."""
+    rating: Optional[int]
+    """The rating of the track."""
+    release_year: Optional[int]
+    """The release year of the track."""
+    release_date: Optional[str]
+    """The release date of the track"""
+    date_created: datetime
+    """The date the record was created"""
+    date_added: datetime
+    """The date the record was added"""
+    path: str
+    """The relative file path of the track (usually `'/Contents/<Artist>/<Title>'`)"""
+    file_name: Optional[str]
+    """The file name of the track."""
+    file_size: Optional[int]
+    """The file size of the track"""
+    file_type: Optional[int]
+    """The file typo of the track"""
+    bitrate: Optional[int]
+    """The bitrate of the trackk"""
+    bit_depth: Optional[int]
+    """The bit depth of the track"""
+    sampling_rate: Optional[int]
+    """The sample rate of the track."""
+    isrc: Optional[str]
+    """The ISRC of the track"""
+    is_hot_cue_auto_load_on: Optional[int]
+    """A flag if hot-cue auto load is enabled"""
+    is_kuvo_deliver_status_on: Optional[int]
+    """A flag if kuvo delivery is enabled"""
+    kuvo_delivery_comment: Optional[str]
+    """A kuvo delivery comment"""
+    master_db_id: Optional[int]
+    """The masterdb ID"""
+    master_content_id: Optional[int]
+    """The ID of the contnent in the masterdb"""
+    analysis_data_file_path: Optional[str]
+    """The relative path to the analysis data"""
+    analysed_bits: Optional[int]
+    """The number of bits analysed (?)"""
+    content_link: Optional[int]
+    """The ID of the content in the content link database (seems to always be 788224)"""
+    has_modified: Optional[int]
+    """A flag if the content has been modified"""
+    cue_update_count: Optional[int]
+    """The number of updates to the associated cues"""
+    analysis_data_update_count: Optional[int]
+    """The number of updates to the analysis data"""
+    information_update_count: Optional[int]
+    """The number of updates to the content record"""
+
+class NewContent(_RustMutableMapping):
+    """Represents a new record insertale to the `content` table."""
+
+    date_created: datetime
+    """The date the record was created"""
+    date_added: datetime
+    """The date the record was added"""
+    path: str
+    """The relative file path of the track"""
+    title: Optional[str]
+    """The title of the track."""
+    title_for_search: Optional[str]
+    """An optional title used for searching."""
+    subtitle: Optional[str]
+    """The subtitle of the track"""
+    bpmx100: Optional[int]
+    """The beats per minute multiplied by 100."""
+    length: Optional[int]
+    """The length of the track in seconds."""
+    track_no: Optional[int]
+    """The track number of the track"""
+    disc_no: Optional[int]
+    """The disc number of the track"""
+    artist_id: Optional[int]
+    """Optional foreign key referencing the artist [`Artist`]."""
+    remixer_id: Optional[int]
+    """Optional foreign key referencing the remixer [`Artist`]."""
+    original_artist_id: Optional[int]
+    """Optional foreign key referencing the original artist [`Artist`]."""
+    composer_id: Optional[int]
+    """Optional foreign key referencing the composer [`Artist`]."""
+    lyricist_id: Optional[int]
+    """Optional foreign key referencing the lyricist [`Artist`]."""
+    album_id: Optional[int]
+    """Optional foreign key referencing the [`Album`]."""
+    genre_id: Optional[int]
+    """Optional foreign key referencing the [`Genre`]."""
+    label_id: Optional[int]
+    """Optional foreign key referencing the [`Label`]."""
+    key_id: Optional[int]
+    """Optional foreign key referencing the [`Key`]."""
+    color_id: Optional[int]
+    """Optional foreign key referencing the [`Color`]."""
+    image_id: Optional[int]
+    """Optional foreign key referencing the artwork [`Image`]."""
+    dj_comment: Optional[str]
+    """The ccomment of the track."""
+    rating: Optional[int]
+    """The rating of the track."""
+    release_year: Optional[int]
+    """The release year of the track."""
+    release_date: Optional[str]
+    """The release date of the track"""
+    file_name: Optional[str]
+    """The file name of the track."""
+    file_size: Optional[int]
+    """The file size of the track"""
+    file_type: Optional[int]
+    """The file typo of the track"""
+    bitrate: Optional[int]
+    """The bitrate of the trackk"""
+    bit_depth: Optional[int]
+    """The bit depth of the track"""
+    sampling_rate: Optional[int]
+    """The sample rate of the track."""
+    isrc: Optional[str]
+    """The ISRC of the track"""
+    is_hot_cue_auto_load_on: Optional[int]
+    """A flag if hot-cue auto load is enabled"""
+    is_kuvo_deliver_status_on: Optional[int]
+    """A flag if kuvo delivery is enabled"""
+    kuvo_delivery_comment: Optional[str]
+    """A kuvo delivery comment"""
+    master_db_id: Optional[int]
+    """The masterdb ID"""
+    master_content_id: Optional[int]
+    """The ID of the contnent in the masterdb"""
+    analysis_data_file_path: Optional[str]
+    """The relative path to the analysis data"""
+    analysed_bits: Optional[int]
+    """The number of bits analysed (?)"""
+    content_link: Optional[int]
+    """The ID of the content in the content link database (seems to always be 788224)"""
+    has_modified: Optional[int]
+    """A flag if the content has been modified"""
+    cue_update_count: Optional[int]
+    """The number of updates to the associated cues"""
+    analysis_data_update_count: Optional[int]
+    """The number of updates to the analysis data"""
+    information_update_count: Optional[int]
+    """The number of updates to the content record"""
+
+class Cue(_RustMutableMapping):
+    """Represents the `cue` table in the Rekordbox One Library database."""
+
+    id: int
+    """The unique identifier of the cue."""
+    content_id: int
+    """A foreign key referencing the [`Content`]."""
+    kind: Optional[int]
+    """The type of the cue."""
+    color_table_index: Optional[int]
+    """An optional integer representing the index of the color in the color table."""
+    cue_comment: Optional[str]
+    """A comment for the cue"""
+    is_active_loop: Optional[int]
+    """A flag whether the cue is part of an active loop."""
+    beat_loop_numerator: Optional[int]
+    """Unknown"""
+    beat_loop_denominator: Optional[int]
+    """Unknonw"""
+    in_usec: Optional[int]
+    """The cue's start time in microseconds."""
+    out_usec: Optional[int]
+    """The cue's end time in microseconds."""
+    in150_frame_per_sec: Optional[int]
+    """The cue's start frame."""
+    out150_frame_per_sec: Optional[int]
+    """The cue's end frame or -1 if not a loop."""
+    in_mpeg_frame_number: Optional[int]
+    """The cue's start MPEG frame or 0 if not a VBR/ABR MPEG file (see note)."""
+    out_mpeg_frame_number: Optional[int]
+    """The cue's end MPEG frame or 0 if not a loop or not a VBR/ABR MPEG file (see note)"""
+    in_mpeg_abs: Optional[int]
+    """The cue's start MPEG absolute frame or 0 if not a VBR/ABR MPEG file."""
+    out_mpeg_abs: Optional[int]
+    """The cue's end MPEG absolute frame or 0 if not a loop or not a VBR/ABR MPEG file"""
+    in_decoding_start_frame_position: Optional[int]
+    """The cue's start frame position in the decoding block."""
+    out_decoding_start_frame_position: Optional[int]
+    """The cue's end frame position in the decoding block."""
+    in_file_offset_in_block: Optional[int]
+    """The cue's start file offset in the decoding block."""
+    out_file_offset_in_block: Optional[int]
+    """The cue's end file offset in the decoding block."""
+    in_number_of_sample_in_block: Optional[int]
+    """The cue's start sample position in the decoding block."""
+    out_number_of_sample_in_block: Optional[int]
+    """The cue's end sample position in the decoding block."""
+
+class Genre(_RustMutableMapping):
+    """Represents the `genre` table in the Rekordbox One Library database."""
+
+    id: int
+    """The unique identifier of the genre."""
+    name: str
+    """The name of the genre."""
+
+class NewGenre(_RustMutableMapping):
+    """Represents a new record insertale to the `genre` table."""
+
+    name: str
+    """The name of the genre."""
+
+class History(_RustMutableMapping):
+    """Represents the `history` table in the Rekordbox One Library database."""
+
+    id: int
+    """A unique identifier for the entry."""
+    seq: int
+    """The sequence/order number of the history (1-based index)"""
+    name: str
+    """The name of the history."""
+    attribute: int
+    """The attribute of the tag, either history (`0`) or a folder (`1`)"""
+    parent_id: int
+    """The ID of the parent [`History`] or `0` for top-level record."""
+
+class NewHistory(_RustMutableMapping):
+    """Represents a new record insertale to the `history` table."""
+
+    seq: int
+    """The sequence/order number of the history (1-based index)"""
+    name: str
+    """The name of the history."""
+    attribute: int
+    """The attribute of the tag, either history (`0`) or a folder (`1`)"""
+    parent_id: int
+    """The ID of the parent [`History`] or `0` for top-level record."""
+
+class HistoryContent(_RustMutableMapping):
+    """Represents the `history_content` table in the Rekordbox One Library database."""
+
+    history_id: int
+    """The ID of the associated [`History`]."""
+    content_id: int
+    """The ID of the associated [`Content`]."""
+    seq: int
+    """The sequence/order number of the history content (1-based index)"""
+
+class HotCueBankList(_RustMutableMapping):
+    """Represents the `hotCueBankList` table in the Rekordbox One Library database."""
+
+    id: int
+    """The unique identifier of the hot cue bank list."""
+    seq: int
+    """The sequence/order number of the hot cue bank list (1-based index)."""
+    name: Optional[str]
+    """The name of the hot cue bank list."""
+    image_id: Optional[int]
+    """An optional foreign key referencing an [`Image`]."""
+    attribute: int
+    """The hot cue bank list type, either list (`0`) or a folder (`1`)."""
+    parent_id: Optional[int]
+    """The ID of the parent [`HotCueBankList`], `0` for top-level records."""
+
+class HotCueBankListCue(_RustMutableMapping):
+    """Represents the `hotCueBankList_cue` table in the Rekordbox One Library database."""
+
+    hot_cue_bank_list_id: int
+    """The unique identifier of the hot cue bank list."""
+    cue_id: int
+    """The unique identifier of the cue."""
+    seq: int
+    """The sequence/order number of the hot cue bank list cue (1-based index)."""
+
+class Image(_RustMutableMapping):
+    """Represents the `image` table in the Rekordbox One Library database."""
+
+    id: int
+    """The unique identifier of the image."""
+    path: str
+    """The relative file path of the image."""
+
+class NewImage(_RustMutableMapping):
+    """Represents a new record insertale to the `image` table."""
+
+    path: str
+    """The relative file path of the image."""
+
+class Key(_RustMutableMapping):
+    """Represents the `key` table in the Rekordbox One Library database."""
+
+    id: int
+    """The unique identifier of the key."""
+    name: str
+    """The name of the key."""
+
+class NewKey(_RustMutableMapping):
+    """Represents a new record insertale to the `key` table."""
+
+    name: str
+    """The name of the key."""
+
+class Label(_RustMutableMapping):
+    """Represents the `label` table in the Rekordbox One Library database."""
+
+    id: int
+    """The unique identifier of the label."""
+    name: str
+    """The name of the label."""
+
+class NewLabel(_RustMutableMapping):
+    """Represents a new record insertale to the `label` table."""
+
+    name: str
+    """The name of the label."""
+
+class MenuItem(_RustMutableMapping):
+    """Represents the `menuItem` table in the Rekordbox One Library database."""
+
+    id: int
+    """The unique identifier of the record."""
+    kind: int
+    """The kind of menu item (similar to `class` in the main DB)."""
+    name: str
+    """The name of the menu item."""
+
+class NewMenuItem(_RustMutableMapping):
+    """Represents a new record insertale to the `menuItem` table."""
+
+    kind: int
+    """The kind of menu item (similar to `class` in the main DB)."""
+    name: str
+    """The name of the menu item."""
+
+class MyTag(_RustMutableMapping):
+    """Represents the `myTag` table in the Rekordbox One Library database."""
+
+    id: int
+    """The unique identifier of the tag."""
+    seq: int
+    """The sequence/order number of the tag (1-based index)."""
+    name: str
+    """The name of the tag."""
+    attribute: int
+    """The tag type, either list (`0`) or a folder (`1`)."""
+    parent_id: int
+    """The ID of the parent [`MyTag`], `0` for top-level records."""
+
+class NewMyTag(_RustMutableMapping):
+    """Represents a new record insertale to the `myTag` table."""
+
+    seq: int
+    """The sequence/order number of the tag (1-based index)."""
+    name: str
+    """The name of the tag."""
+    attribute: int
+    """The tag type, either list (`0`) or a folder (`1`)."""
+    parent_id: int
+    """The ID of the parent [`MyTag`], `0` for top-level records."""
+
+class MyTagContent(_RustMutableMapping):
+    """Represents the `myTag_content` table in the Rekordbox One Library database."""
+
+    my_tag_id: int
+    """The ID of the associated [`MyTag`]."""
+    content_id: int
+    """The ID of the associated [`Content`]."""
+
+class Playlist(_RustMutableMapping):
+    """Represents the `playlist` table in the Rekordbox One Library database."""
+
+    id: int
+    """The unique identifier of the playlist."""
+    seq: int
+    """The sequence/order number of the playlist (1-based index)."""
+    name: str
+    """The name of the playlist."""
+    image_id: Optional[int]
+    """Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image)."""
+    attribute: int
+    """The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`)."""
+    parent_id: int
+    """The ID of the parent [`Playlist`], `0` for top-level records."""
+
+class NewPlaylist(_RustMutableMapping):
+    """Represents a new record insertale to the `playlist` table."""
+
+    seq: int
+    """The sequence/order number of the playlist (1-based index)."""
+    name: str
+    """The name of the playlist."""
+    image_id: Optional[int]
+    """Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image)."""
+    attribute: int
+    """The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`)."""
+    parent_id: int
+    """The ID of the parent [`Playlist`], `0` for top-level records."""
+
+class PlaylistContent(_RustMutableMapping):
+    """Represents the `playlist_content` table in the Rekordbox One Library database."""
+
+    playlist_id: int
+    """The ID of the associated [`Playlist`]."""
+    content_id: int
+    """The ID of the associated [`Content`]."""
+    seq: int
+    """The sequence/order number of the history content (1-based index)"""
+
+class Property(_RustMutableMapping):
+    """Represents the `property` table in the Rekordbox One Library database."""
+
+    device_name: str
+    """The name of the device ('' by default)"""
+    db_version: int
+    """The DB version (1000 by default)"""
+    number_of_contents: int
+    """The number of ['Content'] in the device"""
+    created_date: datetime
+    """The date of creation for the device"""
+    back_ground_color_type: int
+    """The background color type (0 by default)"""
+    my_tag_master_dbid: int
+    """The master.db database id of the tag data"""
+
+class RecommendedLike(_RustMutableMapping):
+    """Represents the `recommendedLike` table in the Rekordbox One Library database."""
+
+    content_id_1: int
+    """The ID of the first associated [`Content`]."""
+    content_id_2: int
+    """The ID of the second associated [`Content`]."""
+    rating: int
+    """The rating of the relationship, between 1-5."""
+    created_date: datetime
+    """The timestamp when the entry was created, serialized/deserialized as `Datetime<Utc>`."""
+
+class Sort(_RustMutableMapping):
+    """Represents the `sort` table in the Rekordbox One Library database."""
+
+    id: int
+    """The unique identifier of the record."""
+    menu_item_id: int
+    """An optional foreign key referencing the [`MenuItem`]."""
+    seq: int
+    """The sequence/order number of the *visible* items (1-based index)"""
+    is_visible: int
+    """A flag if the item is visible in the menu"""
+    is_selected_as_sub_column: int
+    """A flag if the item is selected as a sub-column"""
+
+class NewSort(_RustMutableMapping):
+    """Represents a new record insertale to the `sort` table."""
+
+    menu_item_id: int
+    """An optional foreign key referencing the [`MenuItem`]."""
+    seq: int
+    """The sequence/order number of the item (1-based index)"""
+    is_visible: int
+    """A flag if the item is visible in the menu"""
+    is_selected_as_sub_column: int
+    """A flag if the item is selected as a sub-column"""
+
+class PyOneLibrary:
+    def __init__(self, path: str) -> "PyOneLibrary":
+        """Open a OneLibrary (Device Library Plus) database specified by path."""
+        ...
+
+    @classmethod
+    def create(cls, path: str, my_tag_master_dbid: int) -> "PyOneLibrary":
+        """Create a new OneLibrary (Device Library Plus) database."""
+        ...
+
+    @classmethod
+    def create_if_not_exists(cls, path: str, my_tag_master_dbid: int) -> "PyOneLibrary":
+        """Create a new OneLibrary database if it does not exist, otherwise return the existing one."""
+        ...
+
+    def get_albums(self) -> List[Album]:
+        """Queries all records from the `album` table."""
+        ...
+
+    def get_album_by_id(self, id: int) -> Optional[Album]:
+        """Queries a record from the `album` table by its primary key `id`."""
+        ...
+
+    def get_album_by_name(self, name: str) -> Optional[Album]:
+        """Queries a record from the `album` table by its `name`."""
+        ...
+
+    def insert_album(self, album: NewAlbum) -> Album:
+        """Inserts a new record into the `album` table."""
+        ...
+
+    def create_album(self, name: str, artist_id: Optional[int], image_id: Optional[int]) -> Album:
+        """Creates a new record and inserts it into the `album` table."""
+        ...
+
+    def update_album(self, album: Album) -> Album:
+        """Updates an existing record in the `album` table."""
+        ...
+
+    def delete_album(self, id: int) -> int:
+        """Deletes a record from the `album` table by its primary key `id`."""
+        ...
+
+    def get_artists(self) -> List[Artist]:
+        """Queries all records from the `artist` table."""
+        ...
+
+    def get_artist_by_id(self, id: int) -> Optional[Artist]:
+        """Queries a record from the `artist` table by its primary key `id`."""
+        ...
+
+    def get_artist_by_name(self, name: str) -> Optional[Artist]:
+        """Queries a record from the `artist` table by its `name`."""
+        ...
+
+    def insert_artist(self, artist: NewArtist) -> Artist:
+        """Inserts a new record into the `artist` table."""
+        ...
+
+    def create_artist(self, name: str) -> Artist:
+        """Creates a new record and inserts it into the `artist` table."""
+        ...
+
+    def update_artist(self, artist: Artist) -> Artist:
+        """Updates an existing record in the `artist` table."""
+        ...
+
+    def delete_artist(self, id: int) -> int:
+        """Deletes a record from the `artist` table by its primary key `id`."""
+        ...
+
+    def get_categories(self) -> List[Category]:
+        """Queries all records from the `category` table."""
+        ...
+
+    def get_category_by_id(self, id: int) -> Optional[Category]:
+        """Queries a record from the `category` table by its primary key `id`."""
+        ...
+
+    def insert_category(self, category: NewCategory) -> Category:
+        """Inserts a new record into the `category` table."""
+        ...
+
+    def create_category(self, menu_item_id: int, seq: Optional[int], is_visible: Optional[int]) -> Category:
+        """Creates a new record and inserts it into the `category` table."""
+        ...
+
+    def update_category(self, category: Category) -> Category:
+        """Updates an existing record in the `category` table."""
+        ...
+
+    def delete_category(self, id: int) -> int:
+        """Deletes a record from the `category` table by its primary key `id`."""
+        ...
+
+    def get_colors(self) -> List[Color]:
+        """Queries all records from the `color` table."""
+        ...
+
+    def get_color_by_id(self, id: int) -> Optional[Color]:
+        """Queries a record from the `color` table by its primary key `id`."""
+        ...
+
+    def insert_color(self, color: NewColor) -> Color:
+        """Inserts a new record into the `color` table."""
+        ...
+
+    def create_color(self, name: str) -> Color:
+        """Creates a new record and inserts it into the `color` table."""
+        ...
+
+    def update_color(self, color: Color) -> Color:
+        """Updates an existing record in the `color` table."""
+        ...
+
+    def delete_color(self, id: int) -> int:
+        """Deletes a record from the `color` table by its primary key `id`."""
+        ...
+
+    def get_contents(self) -> List[Content]:
+        """Queries all records from the `color` table."""
+        ...
+
+    def get_content_by_id(self, id: int) -> Optional[Content]:
+        """Queries a record from the `content` table by its primary key `id`."""
+        ...
+
+    def insert_content(self, content: NewContent) -> Content:
+        """Inserts a new record into the `content` table."""
+        ...
+
+    def create_content(self, path: str) -> Content:
+        """Creates a new record and inserts it into the `content` table."""
+        ...
+
+    def update_content(self, content: Content) -> Content:
+        """Updates an existing record in the `content` table."""
+        ...
+
+    def delete_content(self, id: int) -> int:
+        """Deletes a record from the `content` table by its primary key `id`."""
+        ...
+
+    def get_cues(self) -> List[Cue]:
+        """Queries all records from the `color` table."""
+        ...
+
+    def get_cue_by_id(self, id: int) -> Optional[Cue]:
+        """Queries a record from the `cue` table by its primary key `id`."""
+        ...
+
+    def update_cue(self, cue: Cue) -> Cue:
+        """Updates an existing record in the `cue` table."""
+        ...
+
+    def delete_cue(self, id: int) -> int:
+        """Deletes a record from the `cue` table by its primary key `id`."""
+        ...
+
+    def get_genres(self) -> List[Genre]:
+        """Queries all records from the `genre` table."""
+        ...
+
+    def get_genre_by_id(self, id: int) -> Optional[Genre]:
+        """Queries a record from the `genre` table by its primary key `id`."""
+        ...
+
+    def get_genre_by_name(self, name: str) -> Optional[Genre]:
+        """Queries a record from the `genre` table by its `name`."""
+        ...
+
+    def insert_genre(self, genre: NewGenre) -> Genre:
+        """Inserts a new record into the `genre` table."""
+        ...
+
+    def create_genre(self, name: str) -> Genre:
+        """Creates a new record and inserts it into the `genre` table."""
+        ...
+
+    def update_genre(self, genre: Genre) -> Genre:
+        """Updates an existing record in the `genre` table."""
+        ...
+
+    def delete_genre(self, id: int) -> int:
+        """Deletes a record from the `genre` table by its primary key `id`."""
+        ...
+
+    def get_histories(self) -> List[History]:
+        """Queries all records from the `history` table."""
+        ...
+
+    def get_history_children(self, id: int) -> List[History]:
+        """Queries all child records from the `history` table by parent `id`."""
+        ...
+
+    def get_history_contents(self, id: int) -> List[Content]:
+        """Queries all `content` records associated with a `history` record."""
+        ...
+
+    def get_history_by_id(self, id: int) -> Optional[History]:
+        """Queries a record from the `history` table by its primary key `id`."""
+        ...
+
+    def insert_history(self, history: NewHistory) -> History:
+        """Inserts a new record into the `history` table."""
+        ...
+
+    def create_history(self, name: str) -> History:
+        """Creates a new record and inserts it into the `history` table."""
+        ...
+
+    def delete_history(self, id: int) -> int:
+        """Deletes a record from the `history` table by its primary key `id`."""
+        ...
+
+    def create_history_content(self, history_id: int, content_id: int) -> HistoryContent:
+        """Creates a new record and inserts it into the `history_content` table."""
+        ...
+
+    def delete_history_content(self, history_id: int, content_id: int) -> int:
+        """Deletes a record from the `history_content` table by its primary key."""
+        ...
+
+    def get_hot_cue_bank_lists(self) -> List[HotCueBankList]:
+        """Queries all records from the `color` table."""
+        ...
+
+    def get_hot_cue_bank_list_by_id(self, id: int) -> Optional[HotCueBankList]:
+        """Queries a record from the `hot_cue_bank_list` table by its primary key `id`."""
+        ...
+
+    def get_images(self) -> List[Image]:
+        """Queries all records from the `image` table."""
+        ...
+
+    def get_image_by_id(self, id: int) -> Optional[Image]:
+        """Queries a record from the `image` table by its primary key `id`."""
+        ...
+
+    def get_image_by_path(self, path: str) -> Optional[Image]:
+        """Queries a record from the `image` table by its `path`."""
+        ...
+
+    def insert_image(self, image: NewImage) -> Image:
+        """Inserts a new record into the `image` table."""
+        ...
+
+    def create_image(self, path: str) -> Image:
+        """Creates a new record and inserts it into the `image` table."""
+        ...
+
+    def update_image(self, image: Image) -> Image:
+        """Updates an existing record in the `image` table."""
+        ...
+
+    def delete_image(self, id: int) -> int:
+        """Deletes a record from the `image` table by its primary key `id`."""
+        ...
+
+    def get_keys(self) -> List[Key]:
+        """Queries all records from the `key` table."""
+        ...
+
+    def get_key_by_id(self, id: int) -> Optional[Key]:
+        """Queries a record from the `key` table by its primary key `id`."""
+        ...
+
+    def get_key_by_name(self, name: str) -> Optional[Key]:
+        """Queries a record from the `key` table by its `name`."""
+        ...
+
+    def insert_key(self, key: NewKey) -> Key:
+        """Inserts a new record into the `key` table."""
+        ...
+
+    def create_key(self, name: str) -> Key:
+        """Creates a new record and inserts it into the `key` table."""
+        ...
+
+    def update_key(self, key: Key) -> Key:
+        """Updates an existing record in the `key` table."""
+        ...
+
+    def delete_key(self, id: int) -> int:
+        """Deletes a record from the `key` table by its primary key `id`."""
+        ...
+
+    def get_labels(self) -> List[Label]:
+        """Queries all records from the `label` table."""
+        ...
+
+    def get_label_by_id(self, id: int) -> Optional[Label]:
+        """Queries a record from the `label` table by its primary key `id`."""
+        ...
+
+    def get_label_by_name(self, name: str) -> Optional[Label]:
+        """Queries a record from the `label` table by its `name`."""
+        ...
+
+    def insert_label(self, label: NewLabel) -> Label:
+        """Inserts a new record into the `label` table."""
+        ...
+
+    def create_label(self, name: str) -> Label:
+        """Creates a new record and inserts it into the `label` table."""
+        ...
+
+    def update_label(self, label: Label) -> Label:
+        """Updates an existing record in the `label` table."""
+        ...
+
+    def delete_label(self, id: int) -> int:
+        """Deletes a record from the `label` table by its primary key `id`."""
+        ...
+
+    def get_menu_items(self) -> List[MenuItem]:
+        """Queries all records from the `menuItem` table."""
+        ...
+
+    def get_menu_item_by_id(self, id: int) -> Optional[MenuItem]:
+        """Queries a record from the `menuItem` table by its primary key `id`."""
+        ...
+
+    def get_menu_item_by_name(self, name: str) -> Optional[MenuItem]:
+        """Queries a record from the `menuItem` table by its `name`."""
+        ...
+
+    def insert_menu_item(self, menu_item: NewMenuItem) -> MenuItem:
+        """Inserts a new record into the `menuItem` table."""
+        ...
+
+    def create_menu_item(self, name: str, kind: int) -> MenuItem:
+        """Creates a new record and inserts it into the `menuItem` table."""
+        ...
+
+    def update_menu_item(self, menu_item: MenuItem) -> MenuItem:
+        """Updates an existing record in the `menuItem` table."""
+        ...
+
+    def delete_menu_item(self, id: int) -> int:
+        """Deletes a record from the `menuItem` table by its primary key `id`."""
+        ...
+
+    def get_my_tags(self) -> List[MyTag]:
+        """Queries all records from the `myTag` table."""
+        ...
+
+    def get_my_tag_children(self, id: int) -> List[MyTag]:
+        """Queries all child records from the `myTag` table by parent `id`."""
+        ...
+
+    def get_my_tag_contents(self, id: int) -> List[Content]:
+        """Queries all `content` records associated with a `myTag` record."""
+        ...
+
+    def get_my_tag_by_id(self, id: int) -> Optional[MyTag]:
+        """Queries a record from the `myTag` table by its primary key `id`."""
+        ...
+
+    def get_my_tag_by_content_id(self, cid: int) -> List[MyTag]:
+        """Queries all records from the `myTag` table their associated `content_id` via `myTag_content`"""
+        ...
+
+    def insert_my_tag(self, my_tag: NewMyTag) -> MyTag:
+        """Inserts a new record into the `myTag` table."""
+        ...
+
+    def create_my_tag(self, name: str, parent_id: Optional[int], seq: Optional[int]) -> MyTag:
+        """Creates a new tag record and inserts it into the `myTag` table."""
+        ...
+
+    def create_my_tag_folder(self, name: str, parent_id: Optional[int], seq: Optional[int]) -> MyTag:
+        """Creates a new my_tag folder record and inserts it into the `myTag` table."""
+        ...
+
+    def rename_my_tag(self, my_tag_id: int, name: str) -> int:
+        """Renames an existing my_tag record in the `myTag` table."""
+        ...
+
+    def move_my_tag(self, my_tag_id: int, parent_id: Optional[int], seq: Optional[int]) -> int:
+        """Moves a tag to a new parent folder or changes its sequence within the same parent."""
+        ...
+
+    def move_my_tags(self, my_tag_ids: List[int], parent_id: int, start_seq: Optional[int]) -> int:
+        """Moves multiple tags to a new parent folder or changes its sequence within the same parent."""
+        ...
+
+    def delete_my_tag(self, id: int) -> int:
+        """Deletes a record from the `myTag` table by its primary key `id`."""
+        ...
+
+    def delete_my_tags(self, ids: List[int]) -> int:
+        """Deletes multiple records from the `myTag` table by its primary keys `id`."""
+        ...
+
+    def delete_my_tag_content(self, my_tag_id: int, content_id: int) -> int:
+        """Deletes a record from the `myTag_content` table by its primary key."""
+        ...
+
+    def delete_my_tag_contents(self, ids: List[Tuple[int, int]]) -> int:
+        """Deletes a record from the `myTag_content` table by its primary key."""
+        ...
+
+    def get_playlists(self) -> List[Playlist]:
+        """Queries all records from the `playlist` table."""
+        ...
+
+    def get_playlist_children(self, id: int) -> List[Playlist]:
+        """Queries all child records from the `playlist` table by parent `id`."""
+        ...
+
+    def get_playlist_contents(self, id: int) -> List[Content]:
+        """Queries all `content` records associated with a `playlist` record."""
+        ...
+
+    def get_playlist_by_id(self, id: int) -> Optional[Playlist]:
+        """Queries a record from the `playlist` table by its primary key `id`."""
+        ...
+
+    def insert_playlist(self, playlist: NewPlaylist) -> Playlist:
+        """Inserts a new record into the `playlist` table."""
+        ...
+
+    def create_playlist(self, name: str, parent_id: Optional[int], seq: Optional[int]) -> Playlist:
+        """Creates a new playlist record and inserts it into the `playlist` table."""
+        ...
+
+    def create_playlist_folder(self, name: str, parent_id: Optional[int], seq: Optional[int]) -> Playlist:
+        """Creates a new playlist folder record and inserts it into the `playlist` table."""
+        ...
+
+    def rename_playlist(self, playlist_id: int, name: str) -> int:
+        """Renames an existing playlist record in the `playlist` table."""
+        ...
+
+    def move_playlist(self, playlist_id: int, parent_id: Optional[int], seq: Optional[int]) -> int:
+        """Moves a playlist to a new parent folder or changes its sequence within the same parent."""
+        ...
+
+    def move_playlists(self, playlist_ids: List[int], parent_id: int, start_seq: Optional[int]) -> int:
+        """Moves multiple playlists to a new parent folder or changes its sequence within the same parent."""
+        ...
+
+    def delete_playlist(self, id: int) -> int:
+        """Deletes a record from the `playlist` table by its primary key `id`."""
+        ...
+
+    def delete_playlists(self, ids: List[int]) -> int:
+        """Deletes multiple records from the `playlist` table by its primary keys `id`."""
+        ...
+
+    def create_playlist_content(self, playlist_id: int, content_id: int, seq: Optional[int]) -> PlaylistContent:
+        """Creates a new record and inserts it into the `playlist_content` table."""
+        ...
+
+    def move_playlist_content(self, playlist_id: int, content_id: int, seq: Optional[int]) -> int:
+        """Moves a playlist content to a new sequence number."""
+        ...
+
+    def move_playlist_contents(self, ids: List[Tuple[int, int]], start_seq: Optional[int]) -> int:
+        """Moves multiple playlist contents to a new sequence number."""
+        ...
+
+    def delete_playlist_content(self, playlist_id: int, content_id: int) -> int:
+        """Deletes a record from the `playlist_content` table by its primary key."""
+        ...
+
+    def delete_playlist_contents(self, ids: List[Tuple[int, int]]) -> int:
+        """Deletes a record from the `playlist_content` table by its primary key."""
+        ...
+
+    def get_properties(self) -> List[Property]:
+        """Queries all records from the `property` table."""
+        ...
+
+    def get_property_by_device(self, device_name: str) -> Optional[Property]:
+        """Queries a record from the `property` table by its primary key `device_name`."""
+        ...
+
+    def get_first_property(self) -> Optional[Property]:
+        """Queries a record from the `property` table by its primary key `device_name`."""
+        ...
+
+    def insert_property(self, property: Property) -> Property:
+        """Inserts a new record into the `property` table."""
+        ...
+
+    def create_property(self, device_name: str, my_tag_master_dbid: int) -> Property:
+        """Creates a new record and inserts it into the `property` table."""
+        ...
+
+    def update_property(self, property: Property) -> Property:
+        """Updates an existing record in the `property` table."""
+        ...
+
+    def delete_property(self, device_name: str) -> int:
+        """Deletes a record from the `property` table by its primary key `device_name`."""
+        ...
+
+    def get_recommend_likes(self) -> List[RecommendedLike]:
+        """Queries all records from the `recommendLike` table."""
+        ...
+
+    def get_recommend_like_by_id(self, content_id_1: int, content_id_2: int) -> Optional[RecommendedLike]:
+        """Queries a record from the `recommendLike` table by its primary key `id`."""
+        ...
+
+    def get_recommend_like_by_content_id(self, content_id: int) -> List[RecommendedLike]:
+        """Queries all records from the `recommendedLike` table that are linked to the given `content`."""
+        ...
+
+    def get_recommend_like_contents(self, content_id: int) -> List[int]:
+        """Get related `content` ids for a given `content`."""
+        ...
+
+    def insert_recommend_like(self, recommend_like: RecommendedLike) -> RecommendedLike:
+        """Inserts a new record into the `recommendLike` table."""
+        ...
+
+    def create_recommend_like(self, content_id_1: int, content_id_2: int, rating: Optional[int]) -> RecommendedLike:
+        """Creates a new record and inserts it into the `recommendLike` table."""
+        ...
+
+    def update_recommend_like(self, recommend_like: RecommendedLike) -> RecommendedLike:
+        """Updates an existing record in the `recommendLike` table."""
+        ...
+
+    def delete_recommend_like(self, content_id_1: int, content_id_2: int) -> int:
+        """Deletes a record from the `recommendLike` table by its primary key."""
+        ...
+
+    def delete_recommend_like_by_content(self, content_id: int) -> int:
+        """Deletes a record from the `recommendLike` table by its primary key."""
+        ...
+
+    def get_sorts(self) -> List[Sort]:
+        """Queries all records from the `sort` table."""
+        ...
+
+    def get_sort_by_id(self, id: int) -> Optional[Sort]:
+        """Queries a record from the `sort` table by its primary key `id`."""
+        ...
+
+    def insert_sort(self, sort: NewSort) -> Sort:
+        """Inserts a new record into the `sort` table."""
+        ...
+
+    def create_sort(self, menu_item_id: int, seq: Optional[int], is_visible: Optional[int]) -> Sort:
+        """Creates a new record and inserts it into the `sort` table."""
+        ...
+
+    def update_sort(self, sort: Sort) -> Sort:
+        """Updates an existing record in the `sort` table."""
+        ...
+
+    def delete_sort(self, id: int) -> int:
+        """Deletes a record from the `sort` table by its primary key `id`."""
+        ...
+
+# ---- ANLZ  ----------------------------------------------------------------------------------------
+
+class PyBeat:
     beat_number: int
     tempo: int
     time: int
 
-class ExtBeat:
+class PyExtBeat:
     beat_number: int
 
-class BeatGrid:
-    beats: List[Beat]
+class PyBeatGrid:
+    beats: List[PyBeat]
 
-class ExtendedBeatGrid:
-    bpm: List[Beat]
-    beats: List[ExtBeat]
+class PyExtendedBeatGrid:
+    bpm: List[PyBeat]
+    beats: List[PyExtBeat]
 
-class AnlzCue:
+class PyCue:
     hot_cue: int
     status: int
     order_first: int
@@ -2839,7 +3631,7 @@ class AnlzCue:
     time: int
     loop_time: int
 
-class ExtendedCue:
+class PyExtendedCue:
     hot_cue: int
     cue_type: int
     time: int
@@ -2853,60 +3645,60 @@ class ExtendedCue:
     hot_cue_color_green: int
     hot_cue_color_blue: int
 
-class CueList:
+class PyCueList:
     list_type: int
-    cues: List[AnlzCue]
+    cues: List[PyCue]
 
-class ExtendedCueList:
+class PyExtendedCueList:
     list_type: int
-    cues: List[ExtendedCue]
+    cues: List[PyExtendedCue]
 
-class TinyWaveformColumn:
+class PyTinyWaveformColumn:
     height: int
 
-class TinyWaveformPreview:
-    data: List[TinyWaveformColumn]
+class PyTinyWaveformPreview:
+    data: List[PyTinyWaveformColumn]
 
-class WaveformColumn:
+class PyWaveformColumn:
     height: int
     whiteness: int
 
-class WaveformPreview:
-    data: List[WaveformColumn]
+class PyWaveformPreview:
+    data: List[PyWaveformColumn]
 
-class WaveformDetail:
-    data: List[WaveformColumn]
+class PyWaveformDetail:
+    data: List[PyWaveformColumn]
 
-class WaveformColorPreviewColumn:
+class PyWaveformColorPreviewColumn:
     energy_bottom_half_freq: int
     energy_bottom_third_freq: int
     energy_mid_third_freq: int
     energy_top_third_freq: int
 
-class WaveformColorPreview:
-    data: List[WaveformColorPreviewColumn]
+class PyWaveformColorPreview:
+    data: List[PyWaveformColorPreviewColumn]
 
-class WaveformColorDetailColumn:
+class PyWaveformColorDetailColumn:
     red: int
     green: int
     blue: int
     height: int
 
-class WaveformColorDetail:
-    data: List[WaveformColorDetailColumn]
+class PyWaveformColorDetail:
+    data: List[PyWaveformColorDetailColumn]
 
-class Waveform3BandColumn:
+class PyWaveform3BandColumn:
     mid: int
     high: int
     low: int
 
-class Waveform3BandPreview:
-    data: List[Waveform3BandColumn]
+class PyWaveform3BandPreview:
+    data: List[PyWaveform3BandColumn]
 
-class Waveform3BandDetail:
-    data: List[Waveform3BandColumn]
+class PyWaveform3BandDetail:
+    data: List[PyWaveform3BandColumn]
 
-class Phrase:
+class PyPhrase:
     index: int
     beat: int
     kind: int
@@ -2920,145 +3712,40 @@ class Phrase:
     fill: int
     beat_fill: int
 
-class SongStructureData:
+class PySongStructureData:
     mood: int
     end_beat: int
     bank: int
-    phrases: List[Phrase]
+    phrases: List[PyPhrase]
 
 class PyAnlz:
-    def __init__(self, path: str) -> None: ...
+    def __init__(self, path: str) -> "PyAnlz": ...
     def dump_copy(self, path: str) -> None: ...
     def dump(self) -> None: ...
+    def contains(self, tag: str) -> bool: ...
     def get_tags(self) -> List[str]: ...
-    def contains(self, tag_type: str) -> bool: ...
-    def get_beat_grid(self) -> Optional[BeatGrid]: ...
-    def get_extended_beat_grid(self) -> Optional[ExtendedBeatGrid]: ...
-    def get_hot_cues(self) -> Optional[CueList]: ...
-    def get_memory_cues(self) -> Optional[CueList]: ...
-    def get_extended_hot_cues(self) -> Optional[ExtendedCueList]: ...
-    def get_extended_memory_cues(self) -> Optional[ExtendedCueList]: ...
+    def get_beat_grid(self) -> Optional[PyBeatGrid]: ...
+    def get_extended_beat_grid(self) -> Optional[PyExtendedBeatGrid]: ...
+    def get_hot_cues(self) -> Optional[PyCueList]: ...
+    def get_memory_cues(self) -> Optional[PyCueList]: ...
+    def get_extended_hot_cues(self) -> Optional[PyExtendedCueList]: ...
+    def get_extended_memory_cues(self) -> Optional[PyExtendedCueList]: ...
     def get_path(self) -> Optional[str]: ...
     def set_path(self, path: str) -> None: ...
     def get_vbr_data(self) -> Optional[List[int]]: ...
-    def get_tiny_waveform_preview(self) -> Optional[TinyWaveformPreview]: ...
-    def get_waveform_preview(self) -> Optional[WaveformPreview]: ...
-    def get_waveform_detail(self) -> Optional[WaveformDetail]: ...
-    def get_waveform_color_preview(self) -> Optional[WaveformColorPreview]: ...
-    def get_waveform_color_detail(self) -> Optional[WaveformColorDetail]: ...
-    def get_waveform_3band_preview(self) -> Optional[Waveform3BandPreview]: ...
-    def get_waveform_3band_detail(self) -> Optional[Waveform3BandDetail]: ...
-    def get_song_structure(self) -> Optional[SongStructureData]: ...
+    def get_tiny_waveform_preview(self) -> Optional[PyTinyWaveformPreview]: ...
+    def get_waveform_preview(self) -> Optional[PyWaveformPreview]: ...
+    def get_waveform_detail(self) -> Optional[PyWaveformDetail]: ...
+    def get_waveform_color_preview(self) -> Optional[PyWaveformColorPreview]: ...
+    def get_waveform_color_detail(self) -> Optional[PyWaveformColorDetail]: ...
+    def get_waveform_3band_preview(self) -> Optional[PyWaveform3BandPreview]: ...
+    def get_waveform_3band_detail(self) -> Optional[PyWaveform3BandDetail]: ...
+    def get_song_structure(self) -> Optional[PySongStructureData]: ...
 
-# ---- XML -----------------------------------------------------------------------------------------
-
-class Tempo(_RustMutableMapping):
-    inizio: float
-    bpm: float
-    metro: str
-    battito: int
-
-    def __init__(self, inizio: float, bpm: float, metro: str, battito: int) -> None: ...
-
-class PositionMark(_RustMutableMapping):
-    name: str
-    mark_type: int
-    num: int
-    start: float
-    end: Optional[float]
-
-    def __init__(
-        self, name: str, mark_type: int, num: int, start: float, end: Optional[float]
-    ) -> None: ...
-
-class PlaylistTrack:
-    key: str
-
-class Track(_RustMutableMapping):
-    trackid: str
-    location: str
-    tempos: List[Tempo]
-    position_marks: List[PositionMark]
-    name: Optional[str] = None
-    artist: Optional[str] = None
-    composer: Optional[str] = None
-    album: Optional[str] = None
-    grouping: Optional[str] = None
-    genre: Optional[str] = None
-    kind: Optional[str] = None
-    size: Optional[int] = None
-    totaltime: Optional[float] = None
-    discnumber: Optional[int] = None
-    tracknumber: Optional[int] = None
-    year: Optional[int] = None
-    averagebpm: Optional[float] = None
-    datemodified: Optional[datetime] = None
-    dateadded: Optional[datetime] = None
-    bitrate: Optional[int] = None
-    samplerate: Optional[float] = None
-    comments: Optional[str] = None
-    playcount: Optional[int] = None
-    lastplayed: Optional[datetime] = None
-    rating: Optional[int] = None
-    remixer: Optional[str] = None
-    tonality: Optional[str] = None
-    label: Optional[str] = None
-    mix: Optional[str] = None
-    color: Optional[str] = None
-
-    def __init__(self, track_id: str, location: str) -> None: ...
-
-class PlaylistNode:
-    name: str
-    node_type: int
-    key_type: Optional[int]
-    tracks: Optional[List[PlaylistTrack]]
-    nodes: Optional[List[PlaylistNode]]
-
-    def __init__(self, node_type: int) -> None: ...
-    @classmethod
-    def playlist(cls, name: str, key_type: int) -> "PlaylistNode": ...
-    @classmethod
-    def folder(cls, name: str) -> "PlaylistNode": ...
-    def add_node(self, node: "PlaylistNode") -> None: ...
-    def new_playlist(self, name: str, key_type: int) -> "PlaylistNode": ...
-    def new_folder(self, name: str) -> "PlaylistNode": ...
-    def remove_node(self, index: int) -> None: ...
-    def clear_nodes(self) -> None: ...
-    def get_child(self, index: int) -> "PlaylistNode": ...
-    def find_child(self, name: str) -> Optional["PlaylistNode"]: ...
-    def get_track(self, index: int) -> PlaylistTrack: ...
-    def new_track(self, track_key: str) -> None: ...
-    def add_track(self, track: PlaylistTrack) -> None: ...
-    def remove_track(self, track_key: str) -> None: ...
-    def clear_tracks(self) -> None: ...
-
-class PyRekordboxXml:
-    root_playlist: PlaylistNode
-    tracks: List[Track]
-
-    def __init__(self, path: str) -> None: ...
-    @classmethod
-    def load(cls, path: str) -> "PyRekordboxXml": ...
-    def to_string(self) -> str: ...
-    def dump_copy(self, path: str) -> None: ...
-    def dump(self) -> None: ...
-    # def get_tracks(self) -> List[Track]: ...
-    def get_track(self, index: int) -> Optional[Track]: ...
-    def get_track_by_id(self, track_id: str) -> Optional[Track]: ...
-    def get_track_by_location(self, location: str) -> Optional[Track]: ...
-    def get_track_by_key(self, key: str, key_type: int) -> Optional[Track]: ...
-    def add_track(self, track: Track) -> None: ...
-    def new_track(self, track_id: str, location: str) -> Track: ...
-    def update_track(self, track: Track) -> None: ...
-    def remove_track(self, track_id: str) -> None: ...
-    def clear_tracks(self) -> None: ...
-    # def get_playlist_root(self) -> PlaylistNode: ...
-
-# ---- Settings ------------------------------------------------------------------------------------
+# ---- Settings  ------------------------------------------------------------------------------------
 
 class PySetting:
-    def __init__(self, path: str) -> None: ...
+    def __init__(self, path: str) -> "PySetting": ...
     @classmethod
     def new_mysetting(cls, path: str) -> "PySetting": ...
     @classmethod
@@ -3163,3 +3850,106 @@ class PySetting:
     def set_key_display_format(self, key_display_format: str) -> None: ...
     def get_waveform_current_position(self) -> str: ...
     def set_waveform_current_position(self, waveform_current_position: str) -> None: ...
+
+# ---- XML  -----------------------------------------------------------------------------------------
+
+class Tempo(_RustMutableMapping):
+    inizio: float
+    bpm: float
+    metro: str
+    battito: int
+
+    def __init__(self, inizio: float, bpm: float, metro: str, battito: int) -> None: ...
+
+class PositionMark(_RustMutableMapping):
+    name: str
+    mark_type: int
+    num: int
+    start: float
+    end: Optional[float]
+
+    def __init__(self, name: str, mark_type: int, num: int, start: float, end: Optional[float]) -> None: ...
+
+class PlaylistTrack:
+    key: str
+
+class Track(_RustMutableMapping):
+    trackid: str
+    location: str
+    tempos: List[Tempo]
+    position_marks: List[PositionMark]
+    name: Optional[str] = None
+    artist: Optional[str] = None
+    composer: Optional[str] = None
+    album: Optional[str] = None
+    grouping: Optional[str] = None
+    genre: Optional[str] = None
+    kind: Optional[str] = None
+    size: Optional[int] = None
+    totaltime: Optional[float] = None
+    discnumber: Optional[int] = None
+    tracknumber: Optional[int] = None
+    year: Optional[int] = None
+    averagebpm: Optional[float] = None
+    datemodified: Optional[datetime] = None
+    dateadded: Optional[datetime] = None
+    bitrate: Optional[int] = None
+    samplerate: Optional[float] = None
+    comments: Optional[str] = None
+    playcount: Optional[int] = None
+    lastplayed: Optional[datetime] = None
+    rating: Optional[int] = None
+    remixer: Optional[str] = None
+    tonality: Optional[str] = None
+    label: Optional[str] = None
+    mix: Optional[str] = None
+    color: Optional[str] = None
+
+    def __init__(self, track_id: str, location: str) -> None: ...
+
+class PlaylistNode:
+    name: str
+    node_type: int
+    key_type: Optional[int]
+    tracks: Optional[List[PlaylistTrack]]
+    nodes: Optional[List[PlaylistNode]]
+
+    def __init__(self, node_type: int) -> None: ...
+    @classmethod
+    def playlist(cls, name: str, key_type: int) -> "PlaylistNode": ...
+    @classmethod
+    def folder(cls, name: str) -> "PlaylistNode": ...
+    def add_node(self, node: "PlaylistNode") -> None: ...
+    def new_playlist(self, name: str, key_type: int) -> "PlaylistNode": ...
+    def new_folder(self, name: str) -> "PlaylistNode": ...
+    def remove_node(self, index: int) -> None: ...
+    def clear_nodes(self) -> None: ...
+    def get_child(self, index: int) -> "PlaylistNode": ...
+    def find_child(self, name: str) -> Optional["PlaylistNode"]: ...
+    def get_track(self, index: int) -> PlaylistTrack: ...
+    def new_track(self, track_key: str) -> None: ...
+    def add_track(self, track: PlaylistTrack) -> None: ...
+    def remove_track(self, track_key: str) -> None: ...
+    def clear_tracks(self) -> None: ...
+
+class PyRekordboxXml:
+    root_playlist: PlaylistNode
+    tracks: List[Track]
+
+    def __init__(self, path: str) -> None: ...
+    @classmethod
+    def load(cls, path: str) -> "PyRekordboxXml": ...
+    def to_string(self) -> str: ...
+    def dump_copy(self, path: str) -> None: ...
+    def dump(self) -> None: ...
+    # def get_tracks(self) -> List[Track]: ...
+    def get_track(self, index: int) -> Optional[Track]: ...
+    def get_track_by_id(self, track_id: str) -> Optional[Track]: ...
+    def get_track_by_location(self, location: str) -> Optional[Track]: ...
+    def get_track_by_key(self, key: str, key_type: int) -> Optional[Track]: ...
+    def add_track(self, track: Track) -> None: ...
+    def new_track(self, track_id: str, location: str) -> Track: ...
+    def update_track(self, track: Track) -> None: ...
+    def remove_track(self, track_id: str) -> None: ...
+    def clear_tracks(self) -> None: ...
+    # def get_playlist_root(self) -> PlaylistNode: ...

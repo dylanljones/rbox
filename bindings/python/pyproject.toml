@@ -70,7 +70,7 @@ exclude = [
     ".ruff_cache",
     "docs/*",
 ]
-line-length = 100
+line-length = 120
 indent-width = 4
 
 [tool.ruff.lint]
@@ -94,6 +94,7 @@ ignore = [
     "D105", # Missing docstring in magic method
     "D106", # Missing docstring in public nested class
     "D107", # Missing docstring in __init__
+    "D400", # First line should end with a period
     "D401", # First line should be in imperative mood
     "D403", # First word of the first line should be capitalized
     "D404", # First word of the docstring should not be "This"

@@ -79,6 +79,16 @@ pub struct FunctionArg {
     pub attrs: Vec<AttrInfo>,
 }
 
+impl FunctionArg {
+    pub fn find_attrs(&self, s: &str) -> Vec<&AttrInfo> {
+        self.attrs.iter().filter(|a| a.raw.contains(s)).collect()
+    }
+
+    pub fn attrs_contains(&self, s: &str) -> bool {
+        self.attrs.iter().any(|a| a.raw.contains(s))
+    }
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FieldInfo {
     pub name: Option<String>, // None for tuple fields
@@ -86,6 +96,16 @@ pub struct FieldInfo {
     pub ty: TypeInfo,
     pub attrs: Vec<AttrInfo>,
     pub doc: Doc,
+}
+
+impl FieldInfo {
+    pub fn find_attrs(&self, s: &str) -> Vec<&AttrInfo> {
+        self.attrs.iter().filter(|a| a.raw.contains(s)).collect()
+    }
+
+    pub fn attrs_contains(&self, s: &str) -> bool {
+        self.attrs.iter().any(|a| a.raw.contains(s))
+    }
 }
 
 /// A Rust struct.
@@ -97,6 +117,16 @@ pub struct StructInfo {
     pub doc: Doc,
     pub generics: GenericInfo,
     pub fields: Vec<FieldInfo>, // works for both named and tuple structs
+}
+
+impl StructInfo {
+    pub fn find_attrs(&self, s: &str) -> Vec<&AttrInfo> {
+        self.attrs.iter().filter(|a| a.raw.contains(s)).collect()
+    }
+
+    pub fn attrs_contains(&self, s: &str) -> bool {
+        self.attrs.iter().any(|a| a.raw.contains(s))
+    }
 }
 
 /// A Rust function.
@@ -116,6 +146,16 @@ pub struct FunctionInfo {
     pub is_method: bool,     // true if from impl
 }
 
+impl FunctionInfo {
+    pub fn find_attrs(&self, s: &str) -> Vec<&AttrInfo> {
+        self.attrs.iter().filter(|a| a.raw.contains(s)).collect()
+    }
+
+    pub fn attrs_contains(&self, s: &str) -> bool {
+        self.attrs.iter().any(|a| a.raw.contains(s))
+    }
+}
+
 /// A Rust `impl` block.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ImplInfo {
@@ -126,6 +166,16 @@ pub struct ImplInfo {
     pub trait_path: Option<String>, // Some("TraitPath") for trait impls
     pub doc: Doc,
     pub methods: Vec<FunctionInfo>,
+}
+
+impl ImplInfo {
+    pub fn find_attrs(&self, s: &str) -> Vec<&AttrInfo> {
+        self.attrs.iter().filter(|a| a.raw.contains(s)).collect()
+    }
+
+    pub fn attrs_contains(&self, s: &str) -> bool {
+        self.attrs.iter().any(|a| a.raw.contains(s))
+    }
 }
 
 /// The AST of a Rust module.
