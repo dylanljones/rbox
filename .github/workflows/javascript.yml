@@ -174,7 +174,7 @@ jobs:
         run: ls -R artifacts/
 
       - name: Combine binaries
-        run: yarn universal
+        run: cd artifacts && yarn universal
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
