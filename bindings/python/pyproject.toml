@@ -7,17 +7,17 @@ description = "Python library for interacting with the local and export data of 
 authors = [
     {name = "Dylan Jones", email = "dylanljones@proton.me"},
 ]
-requires-python = '>=3.9'
+requires-python = '>=3.10'
 classifiers = [
     'Development Status :: 3 - Alpha',
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3 :: Only',
-    'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
     'Programming Language :: Python :: 3.13',
+    'Programming Language :: Python :: 3.14',
     'Programming Language :: Rust',
     'License :: OSI Approved :: MIT License',
     'License :: OSI Approved :: Apache Software License',

@@ -115,7 +115,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ "ubuntu-latest", "windows-latest", "macos-latest" ]
-        python-version: [ "3.9", "3.13" ]  # check oldest and latest supported version
+        python-version: [ "3.10", "3.14" ]  # check oldest and latest supported version
         other-os: [ true ]
     runs-on: ${{ matrix.os }}
     env:
