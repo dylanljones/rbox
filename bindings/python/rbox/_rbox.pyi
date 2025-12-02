@@ -3692,22 +3692,22 @@ class PyOneLibrary:
 
 # ---- ANLZ  ----------------------------------------------------------------------------------------
 
-class PyBeat:
+class Beat:
     beat_number: int
     tempo: int
     time: int
 
-class PyExtBeat:
+class ExtBeat:
     beat_number: int
 
-class PyBeatGrid:
-    beats: List[PyBeat]
+class BeatGrid:
+    beats: List[Beat]
 
-class PyExtendedBeatGrid:
-    bpm: List[PyBeat]
-    beats: List[PyExtBeat]
+class ExtendedBeatGrid:
+    bpm: List[Beat]
+    beats: List[ExtBeat]
 
-class PyCue:
+class AnlzCue:
     hot_cue: int
     status: int
     order_first: int
@@ -3716,7 +3716,7 @@ class PyCue:
     time: int
     loop_time: int
 
-class PyExtendedCue:
+class ExtendedCue:
     hot_cue: int
     cue_type: int
     time: int
@@ -3730,60 +3730,60 @@ class PyExtendedCue:
     hot_cue_color_green: int
     hot_cue_color_blue: int
 
-class PyCueList:
+class CueList:
     list_type: int
-    cues: List[PyCue]
+    cues: List[AnlzCue]
 
-class PyExtendedCueList:
+class ExtendedCueList:
     list_type: int
-    cues: List[PyExtendedCue]
+    cues: List[ExtendedCue]
 
-class PyTinyWaveformColumn:
+class TinyWaveformColumn:
     height: int
 
-class PyTinyWaveformPreview:
-    data: List[PyTinyWaveformColumn]
+class TinyWaveformPreview:
+    data: List[TinyWaveformColumn]
 
-class PyWaveformColumn:
+class WaveformColumn:
     height: int
     whiteness: int
 
-class PyWaveformPreview:
-    data: List[PyWaveformColumn]
+class WaveformPreview:
+    data: List[WaveformColumn]
 
-class PyWaveformDetail:
-    data: List[PyWaveformColumn]
+class WaveformDetail:
+    data: List[WaveformColumn]
 
-class PyWaveformColorPreviewColumn:
+class WaveformColorPreviewColumn:
     energy_bottom_half_freq: int
     energy_bottom_third_freq: int
     energy_mid_third_freq: int
     energy_top_third_freq: int
 
-class PyWaveformColorPreview:
-    data: List[PyWaveformColorPreviewColumn]
+class WaveformColorPreview:
+    data: List[WaveformColorPreviewColumn]
 
-class PyWaveformColorDetailColumn:
+class WaveformColorDetailColumn:
     red: int
     green: int
     blue: int
     height: int
 
-class PyWaveformColorDetail:
-    data: List[PyWaveformColorDetailColumn]
+class WaveformColorDetail:
+    data: List[WaveformColorDetailColumn]
 
-class PyWaveform3BandColumn:
+class Waveform3BandColumn:
     mid: int
     high: int
     low: int
 
-class PyWaveform3BandPreview:
-    data: List[PyWaveform3BandColumn]
+class Waveform3BandPreview:
+    data: List[Waveform3BandColumn]
 
-class PyWaveform3BandDetail:
-    data: List[PyWaveform3BandColumn]
+class Waveform3BandDetail:
+    data: List[Waveform3BandColumn]
 
-class PyPhrase:
+class Phrase:
     index: int
     beat: int
     kind: int
@@ -3797,11 +3797,11 @@ class PyPhrase:
     fill: int
     beat_fill: int
 
-class PySongStructureData:
+class SongStructureData:
     mood: int
     end_beat: int
     bank: int
-    phrases: List[PyPhrase]
+    phrases: List[Phrase]
 
 class PyAnlz:
     def __init__(self, path: str) -> "PyAnlz": ...
@@ -3809,23 +3809,23 @@ class PyAnlz:
     def dump(self) -> None: ...
     def contains(self, tag: str) -> bool: ...
     def get_tags(self) -> List[str]: ...
-    def get_beat_grid(self) -> Optional[PyBeatGrid]: ...
-    def get_extended_beat_grid(self) -> Optional[PyExtendedBeatGrid]: ...
-    def get_hot_cues(self) -> Optional[PyCueList]: ...
-    def get_memory_cues(self) -> Optional[PyCueList]: ...
-    def get_extended_hot_cues(self) -> Optional[PyExtendedCueList]: ...
-    def get_extended_memory_cues(self) -> Optional[PyExtendedCueList]: ...
+    def get_beat_grid(self) -> Optional[BeatGrid]: ...
+    def get_extended_beat_grid(self) -> Optional[ExtendedBeatGrid]: ...
+    def get_hot_cues(self) -> Optional[CueList]: ...
+    def get_memory_cues(self) -> Optional[CueList]: ...
+    def get_extended_hot_cues(self) -> Optional[ExtendedCueList]: ...
+    def get_extended_memory_cues(self) -> Optional[ExtendedCueList]: ...
     def get_path(self) -> Optional[str]: ...
     def set_path(self, path: str) -> None: ...
     def get_vbr_data(self) -> Optional[List[int]]: ...
-    def get_tiny_waveform_preview(self) -> Optional[PyTinyWaveformPreview]: ...
-    def get_waveform_preview(self) -> Optional[PyWaveformPreview]: ...
-    def get_waveform_detail(self) -> Optional[PyWaveformDetail]: ...
-    def get_waveform_color_preview(self) -> Optional[PyWaveformColorPreview]: ...
-    def get_waveform_color_detail(self) -> Optional[PyWaveformColorDetail]: ...
-    def get_waveform_3band_preview(self) -> Optional[PyWaveform3BandPreview]: ...
-    def get_waveform_3band_detail(self) -> Optional[PyWaveform3BandDetail]: ...
-    def get_song_structure(self) -> Optional[PySongStructureData]: ...
+    def get_tiny_waveform_preview(self) -> Optional[TinyWaveformPreview]: ...
+    def get_waveform_preview(self) -> Optional[WaveformPreview]: ...
+    def get_waveform_detail(self) -> Optional[WaveformDetail]: ...
+    def get_waveform_color_preview(self) -> Optional[WaveformColorPreview]: ...
+    def get_waveform_color_detail(self) -> Optional[WaveformColorDetail]: ...
+    def get_waveform_3band_preview(self) -> Optional[Waveform3BandPreview]: ...
+    def get_waveform_3band_detail(self) -> Optional[Waveform3BandDetail]: ...
+    def get_song_structure(self) -> Optional[SongStructureData]: ...
 
 # ---- Settings  ------------------------------------------------------------------------------------
 
