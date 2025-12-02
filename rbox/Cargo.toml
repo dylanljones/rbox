@@ -27,7 +27,7 @@ xml         = ["dep:quick-xml", "dep:lazy-regex"]
 bundled = ["libsqlite3-sys/bundled-sqlcipher"]
 bundled-vendored-openssl = ["libsqlite3-sys/bundled-sqlcipher-vendored-openssl"]
 # Features for the bindings
-pyo3 = ["dep:pyo3", "dep:py-derives"]
+pyo3 = ["dep:pyo3", "dep:rbox-derives"]
 napi = ["dep:napi", "dep:napi-derive"]
 
 [dependencies]
@@ -50,7 +50,7 @@ crc16             = { version = "0.4", optional = true }
 parse-display     = { version = "0.10", optional = true }
 # Binding dependencies
 pyo3              = { workspace = true, optional = true }
-py-derives        = { path = "../py-derives", version = "0.1.0", optional = true }
+rbox-derives      = { path = "../rbox-derives", version = "0.1.0", optional = true }
 napi              = { workspace = true, optional = true }
 napi-derive       = { workspace = true, optional = true }
 

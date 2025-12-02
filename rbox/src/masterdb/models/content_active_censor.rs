@@ -5,9 +5,9 @@ use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
 #[cfg(feature = "pyo3")]
-use py_derives::PyMutableMapping;
-#[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
+#[cfg(feature = "pyo3")]
+use rbox_derives::PyMutableMapping;
 
 use super::djmd_content::DjmdContent;
 use super::schema::contentActiveCensor;
