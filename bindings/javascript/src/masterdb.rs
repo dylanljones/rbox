@@ -4,7 +4,8 @@
 use chrono::{DateTime, Utc};
 use napi::Result;
 use napi_derive::napi;
-use rbox::masterdb::{models::*, MasterDb, PlaylistType};
+use rbox::enums::PlaylistType;
+use rbox::masterdb::{models::*, MasterDb};
 
 use super::anlz::JsAnlzPaths;
 use super::options::JsRekordboxOptions;
@@ -24,7 +25,7 @@ pub struct JsDjmdPlaylistTreeNode {
     pub seq: i32,
     pub name: String,
     pub image_path: Option<String>,
-    pub attribute: i32,
+    pub attribute: PlaylistType,
     pub parent_id: String,
     pub smart_list: Option<String>,
     pub children: Vec<JsDjmdPlaylistTreeNode>,

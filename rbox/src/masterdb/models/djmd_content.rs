@@ -13,7 +13,6 @@ use rbox_derives::PyMutableMapping;
 use std::path::PathBuf;
 use uuid::Uuid;
 
-use super::super::FileType;
 use super::agent_registry::AgentRegistry;
 use super::djmd_album::DjmdAlbum;
 use super::djmd_artist::DjmdArtist;
@@ -24,6 +23,7 @@ use super::djmd_key::DjmdKey;
 use super::djmd_label::DjmdLabel;
 use super::schema::djmdContent;
 use super::{Date, DateString, RandomIdGenerator};
+use crate::enums::{Analyzed, FileType};
 use crate::model_traits::{Model, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
@@ -126,7 +126,7 @@ pub struct DjmdContent {
     /// An optional string representing comments about the track.
     pub commnt: Option<String>,
     /// An optional integer representing the file type of the track.
-    pub file_type: Option<i32>,
+    pub file_type: FileType,
     /// An optional integer representing the rating of the track.
     pub rating: Option<i32>,
     /// An optional integer representing the release year of the track.
@@ -168,7 +168,7 @@ pub struct DjmdContent {
     /// An optional integer indicating whether quantization is disabled for the track.
     pub disable_quantize: Option<i32>,
     /// An optional integer indicating whether the track has been analyzed.
-    pub analysed: Option<i32>,
+    pub analysed: Analyzed,
     /// An optional string representing the release date of the track.
     pub release_date: Option<String>,
     /// An optional string representing the creation date of the track.
@@ -556,7 +556,7 @@ impl ModelInsert for NewDjmdContent {
             folder_path: Some(rb_path_str.to_string()),
             file_name_l: Some(file_name.clone()),
             file_name_s: Some("".to_string()),
-            file_type: Some(file_type as i32),
+            file_type,
             master_db_id: Some(db_id),
             master_song_id: Some(id),
             file_size: Some(file_size as i32),

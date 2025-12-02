@@ -17,6 +17,7 @@ use super::agent_registry::AgentRegistry;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdSampler, djmdSongSampler};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
+use crate::enums::SamplerType;
 use crate::model_traits::{
     Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, TreeSeq,
 };
@@ -76,7 +77,7 @@ pub struct DjmdSampler {
     /// The name of the sampler.
     pub name: String,
     /// The attribute of the sampler, either list (`0`) or a folder (`1`)
-    pub attribute: i32,
+    pub attribute: SamplerType,
     /// The ID of the parent [`DjmdSampler`], `'root'` for top-level records.
     pub parent_id: String,
 }
@@ -233,21 +234,25 @@ impl DjmdSampler {
     }
 
     /// Returns the playlist type (`attribute`) of a record in the `djmdSampler` table or `None` if not found.
-    pub fn get_attribute(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<i32>> {
+    pub fn get_attribute(
+        conn: &mut SqliteConnection,
+        id: &str,
+    ) -> QueryResult<Option<SamplerType>> {
         if id == "root" {
-            return Ok(Some(1));
+            return Ok(Some(SamplerType::Folder));
         }
-        djmdSampler::table
+        let value: Option<i32> = djmdSampler::table
             .find(id)
             .select(djmdSampler::attribute)
             .get_result(conn)
-            .optional()
+            .optional()?;
+        Ok(value.map(|v| SamplerType::try_from(v).unwrap()))
     }
 
     /// Returns `true` if the record in the `djmdSampler` table exists and is a sampler, `false` otherwise.
     pub fn is_sampler(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
         match Self::get_attribute(conn, id)? {
-            Some(attr) => Ok(attr == 0), // 0: playlist
+            Some(attr) => Ok(attr == SamplerType::List),
             None => Ok(false),
         }
     }
@@ -255,7 +260,7 @@ impl DjmdSampler {
     /// Returns `true` if the record in the `djmdSampler` table exists and is a folder, `false` otherwise.
     pub fn is_folder(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
         match Self::get_attribute(conn, id)? {
-            Some(attr) => Ok(attr == 1), // 1: folder
+            Some(attr) => Ok(attr == SamplerType::Folder), // 1: folder
             None => Ok(false),
         }
     }
@@ -446,7 +451,7 @@ pub struct NewDjmdSampler {
     /// The name of the sampler.
     pub name: String,
     /// The attribute of the sampler, either list (`0`) or a folder (`1`)
-    pub attribute: i32,
+    pub attribute: SamplerType,
     /// The sequence/order number of the record (1-based index)
     pub seq: Option<i32>,
     /// The ID of the parent [`DjmdSampler`], `'root'` for top-level records.
@@ -490,7 +495,7 @@ impl ModelInsert for NewDjmdSampler {
 
 impl NewDjmdSampler {
     /// Creates a new `NewDjmdSampler` with the required `name` and `attribute` field.
-    pub fn new<S: Into<String>>(name: S, attribute: i32) -> Self {
+    pub fn new<S: Into<String>>(name: S, attribute: SamplerType) -> Self {
         Self {
             name: name.into(),
             attribute,
@@ -502,7 +507,7 @@ impl NewDjmdSampler {
     pub fn sampler<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
-            attribute: 0,
+            attribute: SamplerType::List,
             ..Default::default()
         }
     }
@@ -511,7 +516,7 @@ impl NewDjmdSampler {
     pub fn folder<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
-            attribute: 1,
+            attribute: SamplerType::Folder,
             ..Default::default()
         }
     }

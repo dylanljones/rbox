@@ -12,6 +12,7 @@ use rbox_derives::PyMutableMapping;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdHotCueBanklist, djmdSongHotCueBanklist, hotCueBanklistCue};
 use super::{Date, DateString};
+use crate::enums::HotCueBanklistType;
 use crate::model_traits::Model;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
@@ -72,7 +73,7 @@ pub struct DjmdHotCueBanklist {
     /// An optional path to the image associated with the hot cue bank list.
     pub image_path: Option<String>,
     /// The attribute of the hot cue bank list, either list (`0`) or a folder (`1`)
-    pub attribute: i32,
+    pub attribute: HotCueBanklistType,
     /// The ID of the parent [`DjmdHotCueBanklist`], `'root'` for top-level records.
     pub parent_id: String,
 }

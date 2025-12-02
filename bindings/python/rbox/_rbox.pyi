@@ -1,5 +1,6 @@
 # Auto-generated Rekordbox Python Stubs
 
+import enum
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -128,6 +129,90 @@ class RekordboxOptions:
     def settings_root(self) -> str:
         """Returns the path to the settings directory."""
         ...
+
+# ---- Enums ----------------------------------------------------------------------------------------
+
+class FileType(enum.IntEnum):
+    MP3: FileType
+    MP3_2: FileType
+    MP4: FileType
+    ALAC: FileType
+    FLAC: FileType
+    M4A: FileType
+    WAV: FileType
+    AIFF: FileType
+
+    def __int__(self) -> int: ...
+    def __repr__(self) -> str: ...
+    def __eq__(self, other: int | FileType) -> bool: ...
+    def __ne__(self, other: int | FileType) -> bool: ...
+
+class Analyzed(enum.IntEnum):
+    NotAnalyzed: Analyzed
+    Standard: Analyzed
+    Advanced: Analyzed
+    Locked: Analyzed
+
+    def __int__(self) -> int: ...
+    def __repr__(self) -> str: ...
+    def __eq__(self, other: int | Analyzed) -> bool: ...
+    def __ne__(self, other: int | Analyzed) -> bool: ...
+
+class HistoryType(enum.IntEnum):
+    List: HistoryType
+    Folder: HistoryType
+
+    def __int__(self) -> int: ...
+    def __repr__(self) -> str: ...
+    def __eq__(self, other: int | HistoryType) -> bool: ...
+    def __ne__(self, other: int | HistoryType) -> bool: ...
+
+class HotCueBanklistType(enum.IntEnum):
+    List: HotCueBanklistType
+    Folder: HotCueBanklistType
+
+    def __int__(self) -> int: ...
+    def __repr__(self) -> str: ...
+    def __eq__(self, other: int | HotCueBanklistType) -> bool: ...
+    def __ne__(self, other: int | HotCueBanklistType) -> bool: ...
+
+class MyTagType(enum.IntEnum):
+    List: MyTagType
+    Folder: MyTagType
+
+    def __int__(self) -> int: ...
+    def __repr__(self) -> str: ...
+    def __eq__(self, other: int | MyTagType) -> bool: ...
+    def __ne__(self, other: int | MyTagType) -> bool: ...
+
+class PlaylistType(enum.IntEnum):
+    List: PlaylistType
+    Folder: PlaylistType
+    SmartList: PlaylistType
+    CloudLibrarySync: PlaylistType
+
+    def __int__(self) -> int: ...
+    def __repr__(self) -> str: ...
+    def __eq__(self, other: int | PlaylistType) -> bool: ...
+    def __ne__(self, other: int | PlaylistType) -> bool: ...
+
+class RelatedTracksType(enum.IntEnum):
+    List: RelatedTracksType
+    Folder: RelatedTracksType
+
+    def __int__(self) -> int: ...
+    def __repr__(self) -> str: ...
+    def __eq__(self, other: int | RelatedTracksType) -> bool: ...
+    def __ne__(self, other: int | RelatedTracksType) -> bool: ...
+
+class SamplerType(SamplerType.IntEnum):
+    List: RelatedTracksType
+    Folder: SamplerType
+
+    def __int__(self) -> int: ...
+    def __repr__(self) -> str: ...
+    def __eq__(self, other: int | SamplerType) -> bool: ...
+    def __ne__(self, other: int | SamplerType) -> bool: ...
 
 # ---- MasterDb  ------------------------------------------------------------------------------------
 
@@ -544,7 +629,7 @@ class DjmdContent(_RustMutableMapping):
     """An optional integer representing the bit depth of the track."""
     commnt: Optional[str]
     """An optional string representing comments about the track."""
-    file_type: Optional[int]
+    file_type: FileType
     """An optional integer representing the file type of the track."""
     rating: Optional[int]
     """An optional integer representing the rating of the track."""
@@ -586,7 +671,7 @@ class DjmdContent(_RustMutableMapping):
     """An optional integer representing the sample rate of the track."""
     disable_quantize: Optional[int]
     """An optional integer indicating whether quantization is disabled for the track."""
-    analysed: Optional[int]
+    analysed: Analyzed
     """An optional integer indicating whether the track has been analyzed."""
     release_date: Optional[str]
     """An optional string representing the release date of the track."""
@@ -864,7 +949,7 @@ class DjmdHistory(_RustMutableMapping):
     """The sequence/order number of the history (1-based index)"""
     name: str
     """The name of the history."""
-    attribute: int
+    attribute: HistoryType
     """The attribute of the tag, either history (`0`) or a folder (`1`)"""
     parent_id: str
     """The ID of the parent [`DjmdHistory`], `'root'` for top-level my-tag records."""
@@ -876,7 +961,7 @@ class NewDjmdHistory(_RustMutableMapping):
 
     name: str
     """The name of the history."""
-    attribute: int
+    attribute: HistoryType
     """The attribute of the tag, either history (`0`) or a folder (`1`)"""
     seq: Optional[int]
     """The sequence/order number of the history (1-based index)"""
@@ -954,7 +1039,7 @@ class DjmdHotCueBanklist(_RustMutableMapping):
     """The name of the hot cue bank list."""
     image_path: Optional[str]
     """An optional path to the image associated with the hot cue bank list."""
-    attribute: int
+    attribute: HotCueBanklistType
     """The attribute of the hot cue bank list, either list (`0`) or a folder (`1`)"""
     parent_id: str
     """The ID of the parent [`DjmdHotCueBanklist`], `'root'` for top-level records."""
@@ -1212,7 +1297,7 @@ class DjmdMyTag(_RustMutableMapping):
     """The sequence/order number of the tag (1-based index)"""
     name: str
     """The name of the tag"""
-    attribute: int
+    attribute: MyTagType
     """The attribute of the tag, either my-tag (`0`) or a folder (`1`)"""
     parent_id: str
     """The ID of the parent [`DjmdMyTag`], `'root'` for top-level my-tag records."""
@@ -1222,10 +1307,10 @@ class NewDjmdMyTag(_RustMutableMapping):
 
     name: str
     """The name of the tag"""
+    attribute: MyTagType
+    """The attribute of the tag, either my-tag (`0`) or a section (`1`)"""
     seq: Optional[int]
     """The sequence/order number of the tag (1-based index)"""
-    attribute: Optional[int]
-    """The attribute of the tag, either my-tag (`0`) or a section (`1`)"""
     parent_id: Optional[str]
     """The ID of the parent [`DjmdMyTag`]."""
 
@@ -1298,7 +1383,7 @@ class DjmdPlaylist(_RustMutableMapping):
     """The name of the playlist."""
     image_path: Optional[str]
     """An optional path to the image associated with the playlist."""
-    attribute: int
+    attribute: PlaylistType
     """The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`)."""
     parent_id: str
     """The ID of the parent [`DjmdPlaylist`], `'root'` for top-level records."""
@@ -1310,7 +1395,7 @@ class NewDjmdPlaylist(_RustMutableMapping):
 
     name: str
     """The name of the playlist."""
-    attribute: int
+    attribute: PlaylistType
     """The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`)."""
     seq: Optional[int]
     """The sequence/order number of the record (1-based index)"""
@@ -1484,7 +1569,7 @@ class DjmdRelatedTracks(_RustMutableMapping):
     """The sequence/order number of the record (1-based index)"""
     name: str
     """The name of the related track record."""
-    attribute: int
+    attribute: RelatedTracksType
     """The attribute of the related track, either list (`0`) or a folder (`1`)"""
     parent_id: str
     """The ID of the parent [`DjmdRelatedTracks`], `'root'` for top-level records."""
@@ -1496,7 +1581,7 @@ class NewDjmdRelatedTracks(_RustMutableMapping):
 
     name: str
     """The name of the related track."""
-    attribute: int
+    attribute: RelatedTracksType
     """The attribute of the related track, either list (`0`) or a folder (`1`)"""
     seq: Optional[int]
     """The sequence/order number of the record (1-based index)"""
@@ -1572,7 +1657,7 @@ class DjmdSampler(_RustMutableMapping):
     """The sequence/order number of the record (1-based index)"""
     name: str
     """The name of the sampler."""
-    attribute: int
+    attribute: SamplerType
     """The attribute of the sampler, either list (`0`) or a folder (`1`)"""
     parent_id: str
     """The ID of the parent [`DjmdSampler`], `'root'` for top-level records."""
@@ -1582,7 +1667,7 @@ class NewDjmdSampler(_RustMutableMapping):
 
     name: str
     """The name of the sampler."""
-    attribute: int
+    attribute: SamplerType
     """The attribute of the sampler, either list (`0`) or a folder (`1`)"""
     seq: Optional[int]
     """The sequence/order number of the record (1-based index)"""
@@ -1827,7 +1912,7 @@ class PyDjmdPlaylistTreeNode:
     seq: int
     name: str
     image_path: Optional[str]
-    attribute: int
+    attribute: PlaylistType
     parent_id: str
     smart_list: Optional[str]
     children: List[PyDjmdPlaylistTreeNode]
@@ -2607,8 +2692,8 @@ class Content(_RustMutableMapping):
     """The file name of the track."""
     file_size: Optional[int]
     """The file size of the track"""
-    file_type: Optional[int]
-    """The file typo of the track"""
+    file_type: FileType
+    """The file type of the track"""
     bitrate: Optional[int]
     """The bitrate of the trackk"""
     bit_depth: Optional[int]
@@ -2805,7 +2890,7 @@ class History(_RustMutableMapping):
     """The sequence/order number of the history (1-based index)"""
     name: str
     """The name of the history."""
-    attribute: int
+    attribute: HistoryType
     """The attribute of the tag, either history (`0`) or a folder (`1`)"""
     parent_id: int
     """The ID of the parent [`History`] or `0` for top-level record."""
@@ -2817,7 +2902,7 @@ class NewHistory(_RustMutableMapping):
     """The sequence/order number of the history (1-based index)"""
     name: str
     """The name of the history."""
-    attribute: int
+    attribute: HistoryType
     """The attribute of the tag, either history (`0`) or a folder (`1`)"""
     parent_id: int
     """The ID of the parent [`History`] or `0` for top-level record."""
@@ -2843,7 +2928,7 @@ class HotCueBankList(_RustMutableMapping):
     """The name of the hot cue bank list."""
     image_id: Optional[int]
     """An optional foreign key referencing an [`Image`]."""
-    attribute: int
+    attribute: HotCueBanklistType
     """The hot cue bank list type, either list (`0`) or a folder (`1`)."""
     parent_id: Optional[int]
     """The ID of the parent [`HotCueBankList`], `0` for top-level records."""
@@ -2927,7 +3012,7 @@ class MyTag(_RustMutableMapping):
     """The sequence/order number of the tag (1-based index)."""
     name: str
     """The name of the tag."""
-    attribute: int
+    attribute: MyTagType
     """The tag type, either list (`0`) or a folder (`1`)."""
     parent_id: int
     """The ID of the parent [`MyTag`], `0` for top-level records."""
@@ -2939,7 +3024,7 @@ class NewMyTag(_RustMutableMapping):
     """The sequence/order number of the tag (1-based index)."""
     name: str
     """The name of the tag."""
-    attribute: int
+    attribute: MyTagType
     """The tag type, either list (`0`) or a folder (`1`)."""
     parent_id: int
     """The ID of the parent [`MyTag`], `0` for top-level records."""
@@ -2963,7 +3048,7 @@ class Playlist(_RustMutableMapping):
     """The name of the playlist."""
     image_id: Optional[int]
     """Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image)."""
-    attribute: int
+    attribute: PlaylistType
     """The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`)."""
     parent_id: int
     """The ID of the parent [`Playlist`], `0` for top-level records."""
@@ -2977,7 +3062,7 @@ class NewPlaylist(_RustMutableMapping):
     """The name of the playlist."""
     image_id: Optional[int]
     """Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image)."""
-    attribute: int
+    attribute: PlaylistType
     """The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`)."""
     parent_id: int
     """The ID of the parent [`Playlist`], `0` for top-level records."""
@@ -3253,7 +3338,7 @@ class PyOneLibrary:
         """Inserts a new record into the `history` table."""
         ...
 
-    def create_history(self, name: str) -> History:
+    def create_history(self, name: str, attribute: HistoryType) -> History:
         """Creates a new record and inserts it into the `history` table."""
         ...
 

@@ -1,9 +1,9 @@
 // Author: Dylan Jones
 // Date:   2025-05-06
 
-use rbox::masterdb::{DjmdPlaylist, DjmdSongPlaylist, MasterDb, MasterPlaylistXml, PlaylistType};
-use rbox::model_traits::validate_seq_numbers;
-use rbox::model_traits::TreeSeq;
+use rbox::enums::PlaylistType;
+use rbox::masterdb::{DjmdPlaylist, DjmdSongPlaylist, MasterDb, MasterPlaylistXml};
+use rbox::model_traits::{validate_seq_numbers, TreeSeq};
 
 mod common;
 
@@ -820,7 +820,7 @@ fn test_create_playlist() -> anyhow::Result<()> {
     let old_usn = db.get_local_usn()?;
     // Insert
     let name = "Name".to_string();
-    let attr = PlaylistType::Playlist;
+    let attr = PlaylistType::List;
     let parent_id = "root".to_string();
     let seq = None;
 
@@ -861,7 +861,7 @@ fn test_create_playlist_seq() -> anyhow::Result<()> {
 
     // Insert root
     let name = "Name".to_string();
-    let attr = PlaylistType::Playlist;
+    let attr = PlaylistType::List;
     let parent_id = "root".to_string();
     let seq = 1;
 
@@ -929,7 +929,7 @@ fn test_create_playlist_folder() -> anyhow::Result<()> {
 
     let sub_item = db.create_playlist_node(
         sub_name.clone(),
-        PlaylistType::Playlist,
+        PlaylistType::List,
         sub_parent_id,
         None,
         None,

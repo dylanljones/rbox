@@ -5,6 +5,17 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput, Fields, Type};
 
+const ENUMS: [&str; 8] = [
+    "FileType",
+    "Analyzed",
+    "HistoryType",
+    "HotCueBanklistType",
+    "MyTagType",
+    "PlaylistType",
+    "RelatedTracksType",
+    "SamplerType",
+];
+
 #[proc_macro_derive(PyMutableMapping, attributes(py_name, repr_field))]
 pub fn derive_py_mutable_mapping(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -86,6 +97,10 @@ pub fn derive_py_mutable_mapping(input: TokenStream) -> TokenStream {
             quote! {
                 self.#field_name.clone_ref(py).into_py(py)
             }
+        } else if is_enum_type(field_type) {
+            quote! {
+                (self.#field_name as i32).into_pyobject(py)?.into()
+            }
         } else {
             quote! {
                 self.#field_name.clone().into_pyobject(py)?.into()
@@ -106,6 +121,13 @@ pub fn derive_py_mutable_mapping(input: TokenStream) -> TokenStream {
         let extraction = if is_py_datetime(field_type) {
             quote! {
                 value.extract::<Py<PyDateTime>>(py).unwrap()
+            }
+        } else if is_enum_type(field_type) {
+            quote! {
+                {
+                    let raw: i32 = value.extract(py)?;
+                    <#field_type as std::convert::TryFrom<i32>>::try_from(raw).unwrap()
+                }
             }
         } else {
             quote! {
@@ -232,6 +254,18 @@ fn is_option_type(ty: &Type) -> bool {
     if let Type::Path(type_path) = ty {
         if let Some(segment) = type_path.path.segments.last() {
             return segment.ident == "Option";
+        }
+    }
+    false
+}
+
+fn is_enum_type(ty: &Type) -> bool {
+    if let Type::Path(type_path) = ty {
+        let path_str = quote!(#type_path).to_string();
+        for enum_name in ENUMS {
+            if path_str.contains(enum_name) {
+                return true;
+            }
         }
     }
     false

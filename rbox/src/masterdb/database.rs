@@ -41,10 +41,10 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
 use super::conn::{create_connection_pool, DbPool};
-use super::enums::*;
 use super::models::*;
 use super::playlist_xml::MasterPlaylistXml;
 use crate::anlz::{find_anlz_files, Anlz, AnlzFiles, AnlzPaths};
+use crate::enums::*;
 use crate::error::{Error, Result};
 use crate::model_traits::{
     Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, NodeRef,
@@ -2821,7 +2821,7 @@ impl MasterDb {
             pl_xml.add(
                 result.id.clone(),
                 result.parent_id.clone(),
-                result.attribute,
+                result.attribute as i32,
                 result.updated_at.naive_utc(),
             );
             let _ = pl_xml.dump();
@@ -2876,7 +2876,7 @@ impl MasterDb {
     ) -> Result<DjmdPlaylist> {
         let item = NewDjmdPlaylist {
             name,
-            attribute: attribute as i32,
+            attribute,
             seq,
             parent_id,
             image_path,
@@ -2914,7 +2914,7 @@ impl MasterDb {
     ) -> Result<DjmdPlaylist> {
         self.create_playlist_node(
             name,
-            PlaylistType::Playlist,
+            PlaylistType::List,
             parent_id,
             seq,
             image_path,

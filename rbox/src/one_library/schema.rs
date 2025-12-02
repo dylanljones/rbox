@@ -97,7 +97,7 @@ diesel::table! {
         #[sql_name = "fileSize"]
         file_size -> Nullable<Integer>,
         #[sql_name = "fileType"]
-        file_type -> Nullable<Integer>,
+        file_type -> Integer,
         bitrate -> Nullable<Integer>,
         #[sql_name = "bitDepth"]
         bit_depth -> Nullable<Integer>,

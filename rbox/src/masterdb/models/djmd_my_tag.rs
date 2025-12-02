@@ -17,6 +17,7 @@ use super::agent_registry::AgentRegistry;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdMyTag, djmdSongMyTag};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
+use crate::enums::MyTagType;
 use crate::model_traits::{
     Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, TreeSeq,
 };
@@ -76,7 +77,7 @@ pub struct DjmdMyTag {
     /// The name of the tag
     pub name: String,
     /// The attribute of the tag, either my-tag (`0`) or a folder (`1`)
-    pub attribute: i32,
+    pub attribute: MyTagType,
     /// The ID of the parent [`DjmdMyTag`], `'root'` for top-level my-tag records.
     pub parent_id: String,
 }
@@ -234,21 +235,22 @@ impl DjmdMyTag {
     }
 
     /// Returns the playlist type (`attribute`) of a record in the `djmdMyTag` table or `None` if not found.
-    pub fn get_attribute(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<i32>> {
+    pub fn get_attribute(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<MyTagType>> {
         if id == "root" {
-            return Ok(Some(1));
+            return Ok(Some(MyTagType::Folder));
         }
-        djmdMyTag::table
+        let value: Option<i32> = djmdMyTag::table
             .find(id)
             .select(djmdMyTag::attribute)
             .get_result(conn)
-            .optional()
+            .optional()?;
+        Ok(value.map(|v| MyTagType::try_from(v).unwrap()))
     }
 
     /// Returns `true` if the record in the `djmdMyTag` table exists and is a my-tag, `false` otherwise.
     pub fn is_my_tag(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
         match Self::get_attribute(conn, id)? {
-            Some(attr) => Ok(attr == 0), // 0: playlist
+            Some(attr) => Ok(attr == MyTagType::List),
             None => Ok(false),
         }
     }
@@ -256,7 +258,7 @@ impl DjmdMyTag {
     /// Returns `true` if the record in the `djmdMyTag` table exists and is a section, `false` otherwise.
     pub fn is_section(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
         match Self::get_attribute(conn, id)? {
-            Some(attr) => Ok(attr == 1), // 1: folder
+            Some(attr) => Ok(attr == MyTagType::Folder),
             None => Ok(false),
         }
     }
@@ -442,7 +444,7 @@ impl TreeSeq for DjmdMyTag {
 /// ```rust
 /// use rbox::masterdb::models::NewDjmdMyTag;
 ///
-/// let new = NewDjmdMyTag::new("Name", 0).seq(1);
+/// let new = NewDjmdMyTag::my_tag("Name").seq(1);
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -452,10 +454,10 @@ impl TreeSeq for DjmdMyTag {
 pub struct NewDjmdMyTag {
     /// The name of the tag
     pub name: String,
+    /// The attribute of the tag, either my-tag (`0`) or a section (`1`)
+    pub attribute: MyTagType,
     /// The sequence/order number of the tag (1-based index)
     pub seq: Option<i32>,
-    /// The attribute of the tag, either my-tag (`0`) or a section (`1`)
-    pub attribute: Option<i32>,
     /// The ID of the parent [`DjmdMyTag`].
     pub parent_id: Option<String>,
 }
@@ -478,7 +480,7 @@ impl ModelInsert for NewDjmdMyTag {
             updated_at: now,
             name: self.name,
             seq: self.seq.unwrap_or(count + 1),
-            attribute: self.attribute.unwrap_or(0),
+            attribute: self.attribute,
             parent_id,
             ..Default::default()
         };
@@ -500,9 +502,28 @@ impl ModelInsert for NewDjmdMyTag {
 
 impl NewDjmdMyTag {
     /// Creates a new `NewDjmdMyTag` with the required `name` field.
-    pub fn new<S: Into<String>>(name: S) -> Self {
+    pub fn new<S: Into<String>>(name: S, attribute: MyTagType) -> Self {
         Self {
             name: name.into(),
+            attribute,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a new `NewDjmdMyTag` as a playlist.
+    pub fn my_tag<S: Into<String>>(name: S) -> Self {
+        Self {
+            name: name.into(),
+            attribute: MyTagType::List,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a new `NewDjmdMyTag` as a folder.
+    pub fn folder<S: Into<String>>(name: S) -> Self {
+        Self {
+            name: name.into(),
+            attribute: MyTagType::Folder,
             ..Default::default()
         }
     }

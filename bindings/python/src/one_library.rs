@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
 use pyo3::types::PyType;
+use rbox::enums::HistoryType;
 use rbox::one_library::{models::*, OneLibrary};
 
 use super::errors::OneLibraryError;
@@ -346,8 +347,11 @@ impl PyOneLibrary {
     }
 
     /// Creates a new record and inserts it into the `history` table.
-    pub fn create_history(&self, name: &str) -> PyResult<History> {
-        let res = self.inner.create_history(name).map_err(db_error)?;
+    pub fn create_history(&self, name: &str, attribute: HistoryType) -> PyResult<History> {
+        let res = self
+            .inner
+            .create_history(name, attribute)
+            .map_err(db_error)?;
         Ok(res)
     }
 

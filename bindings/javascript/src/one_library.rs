@@ -1,6 +1,6 @@
 use napi::Result;
 use napi_derive::napi;
-
+use rbox::enums::HistoryType;
 use rbox::one_library::{models::*, OneLibrary};
 
 #[napi(js_name = "OneLibrary")]
@@ -382,8 +382,8 @@ impl JsOneLibrary {
 
     /// Creates a new record and inserts it into the `history` table.
     #[napi]
-    pub fn create_history(&self, name: String) -> Result<History> {
-        let res = self.inner.create_history(name)?;
+    pub fn create_history(&self, name: String, attribute: HistoryType) -> Result<History> {
+        let res = self.inner.create_history(name, attribute)?;
         Ok(res)
     }
 

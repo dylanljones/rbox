@@ -17,6 +17,7 @@ use super::agent_registry::AgentRegistry;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdHistory, djmdSongHistory};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
+use crate::enums::HistoryType;
 use crate::model_traits::{
     Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, TreeSeq,
 };
@@ -74,7 +75,7 @@ pub struct DjmdHistory {
     /// The name of the history.
     pub name: String,
     /// The attribute of the tag, either history (`0`) or a folder (`1`)
-    pub attribute: i32,
+    pub attribute: HistoryType,
     /// The ID of the parent [`DjmdHistory`], `'root'` for top-level my-tag records.
     pub parent_id: String,
     /// The creation date of the history.
@@ -232,21 +233,25 @@ impl DjmdHistory {
     }
 
     /// Returns the playlist type (`attribute`) of a record in the `djmdHistory` table or `None` if not found.
-    pub fn get_attribute(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<i32>> {
+    pub fn get_attribute(
+        conn: &mut SqliteConnection,
+        id: &str,
+    ) -> QueryResult<Option<HistoryType>> {
         if id == "root" {
-            return Ok(Some(1));
+            return Ok(Some(HistoryType::Folder));
         }
-        djmdHistory::table
+        let value: Option<i32> = djmdHistory::table
             .find(id)
             .select(djmdHistory::attribute)
             .get_result(conn)
-            .optional()
+            .optional()?;
+        Ok(value.map(|v| HistoryType::try_from(v).unwrap()))
     }
 
     /// Returns `true` if the record in the `djmdHistory` table exists and is a history, `false` otherwise.
     pub fn is_history(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
         match Self::get_attribute(conn, id)? {
-            Some(attr) => Ok(attr == 0), // 0: playlist
+            Some(attr) => Ok(attr == HistoryType::List), // 0: playlist
             None => Ok(false),
         }
     }
@@ -254,7 +259,7 @@ impl DjmdHistory {
     /// Returns `true` if the record in the `djmdHistory` table exists and is a folder, `false` otherwise.
     pub fn is_folder(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
         match Self::get_attribute(conn, id)? {
-            Some(attr) => Ok(attr == 1), // 1: folder
+            Some(attr) => Ok(attr == HistoryType::Folder), // 1: folder
             None => Ok(false),
         }
     }
@@ -445,7 +450,7 @@ pub struct NewDjmdHistory {
     /// The name of the history.
     pub name: String,
     /// The attribute of the tag, either history (`0`) or a folder (`1`)
-    pub attribute: i32,
+    pub attribute: HistoryType,
     /// The sequence/order number of the history (1-based index)
     pub seq: Option<i32>,
     /// The ID of the parent [`DjmdHistory`], `'root'` for top-level my-tag records.
@@ -496,7 +501,7 @@ impl ModelInsert for NewDjmdHistory {
 
 impl NewDjmdHistory {
     /// Creates a new `NewDjmdHistory` with the required `name` and `attribute` field.
-    pub fn new<S: Into<String>>(name: S, attribute: i32) -> Self {
+    pub fn new<S: Into<String>>(name: S, attribute: HistoryType) -> Self {
         Self {
             name: name.into(),
             attribute,
@@ -508,7 +513,7 @@ impl NewDjmdHistory {
     pub fn history<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
-            attribute: 0,
+            attribute: HistoryType::List,
             ..Default::default()
         }
     }
@@ -517,7 +522,7 @@ impl NewDjmdHistory {
     pub fn folder<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
-            attribute: 1,
+            attribute: HistoryType::Folder,
             ..Default::default()
         }
     }

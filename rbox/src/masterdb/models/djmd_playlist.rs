@@ -17,6 +17,7 @@ use super::agent_registry::AgentRegistry;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdPlaylist, djmdSongPlaylist};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
+use crate::enums::PlaylistType;
 use crate::model_traits::{
     build_tree_list, Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, NodeRef,
     TreeNode, TreeSeq,
@@ -83,7 +84,7 @@ pub struct DjmdPlaylist {
     /// An optional path to the image associated with the playlist.
     pub image_path: Option<String>,
     /// The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`).
-    pub attribute: i32,
+    pub attribute: PlaylistType,
     /// The ID of the parent [`DjmdPlaylist`], `'root'` for top-level records.
     pub parent_id: String,
     /// An optional smart list configuration for the playlist (None if not a smart playlist)
@@ -297,21 +298,25 @@ impl DjmdPlaylist {
     }
 
     /// Returns the playlist type (`attribute`) of a record in the `djmdPlaylist` table or `None` if not found.
-    pub fn get_attribute(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<i32>> {
+    pub fn get_attribute(
+        conn: &mut SqliteConnection,
+        id: &str,
+    ) -> QueryResult<Option<PlaylistType>> {
         if id == "root" {
-            return Ok(Some(1));
+            return Ok(Some(PlaylistType::Folder));
         }
-        djmdPlaylist::table
+        let value: Option<i32> = djmdPlaylist::table
             .find(id)
             .select(djmdPlaylist::attribute)
             .get_result(conn)
-            .optional()
+            .optional()?;
+        Ok(value.map(|v| PlaylistType::try_from(v).unwrap()))
     }
 
     /// Returns `true` if the record in the `djmdPlaylist` table exists and is a playlist, `false` otherwise.
     pub fn is_playlist(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
         match Self::get_attribute(conn, id)? {
-            Some(attr) => Ok(attr == 0), // 0: playlist
+            Some(attr) => Ok(attr == PlaylistType::List),
             None => Ok(false),
         }
     }
@@ -319,7 +324,7 @@ impl DjmdPlaylist {
     /// Returns `true` if the record in the `djmdPlaylist` table exists and is a folder, `false` otherwise.
     pub fn is_folder(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
         match Self::get_attribute(conn, id)? {
-            Some(attr) => Ok(attr == 1), // 1: folder
+            Some(attr) => Ok(attr == PlaylistType::Folder),
             None => Ok(false),
         }
     }
@@ -579,7 +584,7 @@ pub struct NewDjmdPlaylist {
     /// The name of the playlist.
     pub name: String,
     /// The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`).
-    pub attribute: i32,
+    pub attribute: PlaylistType,
     /// The sequence/order number of the record (1-based index)
     pub seq: Option<i32>,
     /// The ID of the parent [`DjmdPlaylist`], `'root'` for top-level records (default).
@@ -629,7 +634,7 @@ impl ModelInsert for NewDjmdPlaylist {
 
 impl NewDjmdPlaylist {
     /// Creates a new `NewDjmdPlaylist` with the required `name` and `attribute` field.
-    pub fn new<S: Into<String>>(name: S, attribute: i32) -> Self {
+    pub fn new<S: Into<String>>(name: S, attribute: PlaylistType) -> Self {
         Self {
             name: name.into(),
             attribute,
@@ -641,7 +646,7 @@ impl NewDjmdPlaylist {
     pub fn playlist<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
-            attribute: 0,
+            attribute: PlaylistType::List,
             ..Default::default()
         }
     }
@@ -650,7 +655,7 @@ impl NewDjmdPlaylist {
     pub fn folder<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
-            attribute: 1,
+            attribute: PlaylistType::Folder,
             ..Default::default()
         }
     }
@@ -1102,7 +1107,7 @@ pub struct DjmdPlaylistTreeNode {
 
     pub seq: i32,
     pub name: String,
-    pub attribute: i32,
+    pub attribute: PlaylistType,
     pub parent_id: String,
     pub image_path: Option<String>,
     pub smart_list: Option<String>,
