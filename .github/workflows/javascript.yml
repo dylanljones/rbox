@@ -176,11 +176,14 @@ jobs:
       - name: Combine binaries
         run: yarn universal --output-dir ./artifacts
 
+      - name: List artifact contents
+        run: ls -R artifacts/
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: bindings-universal-apple-darwin
-          path: bindings/javascript/${{ env.APP_NAME }}.*.node
+          path: bindings/javascript/artifacts/${{ env.APP_NAME }}.*.node
           if-no-files-found: error
 
   publish:
