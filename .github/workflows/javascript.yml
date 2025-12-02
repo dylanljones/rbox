@@ -170,10 +170,8 @@ jobs:
           name: bindings-aarch64-apple-darwin
           path: bindings/javascript/artifacts
 
-      - name: Copy macOS binaries into place
-        run: |
-          cp artifacts/bindings-x86_64-apple-darwin/bindings/javascript/${APP_NAME}.darwin-x64.node .
-          cp artifacts/bindings-aarch64-apple-darwin/bindings/javascript/${APP_NAME}.darwin-arm64.node .
+      - name: List artifact contents
+        run: ls -R artifacts/
 
       - name: Combine binaries
         run: yarn universal
