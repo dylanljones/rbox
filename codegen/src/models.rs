@@ -53,7 +53,7 @@ impl TypeInfo {
             }
             out.push_str(">");
         }
-        out
+        out.replace("& ", "&")
     }
 }
 

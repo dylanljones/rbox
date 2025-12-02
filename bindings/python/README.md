@@ -21,6 +21,7 @@
 It supports the following Rekordbox files:
 
 - **Rekordbox database**: Query and update the Rekordbox v6/v7 master.db database through a type-safe ORM
+- **One Library**: Read and write Rekordbox One Library (Device Library Plus) export files
 - **XML database**: Read and write Rekordbox XML database files
 - **Analysis Files**: Read and write ANLZ files containing waveforms, beat grids, hot cues and more
 - **Settings Access**: Read and write My-Setting files
@@ -54,12 +55,30 @@ an easy interface for accessing and updating the data stored in it.
 ```python
 from rbox import MasterDb
 
-db = MasterDb()
-contents = db.get_content()
+db = MasterDb.open()
+contents = db.get_contents()
 for content in contents:
     print(content)
 ```
 
+### One Library (Device Library Plus)
+
+For newer generation Pioneer DJ devices, Rekordbox exports a new library format to the USB storage
+device (or SD card), called ``One Library`` (formerly known as ``Device Library Plus``).
+As of 2025, this format is only supported by the [OPUS-QUAD], [OMNIS-DUO], [XDJ-AZ] and [CDJ-3000X] devices.
+The database schema is similar to the main Rekordbox database. It contains a selection of tables
+from the main database, with similar columns and data types.
+
+rbox can unlock the new Rekordbox `exportLibrary.db` One Library database and provides
+an easy interface for accessing the data stored in it:
+```python
+from rbox import OneLibrary
+
+db = OneLibrary("exportLibrary.db")
+contents = db.get_contents()
+for content in contents:
+    print(content)
+```
 
 ### Rekordbox XML
 

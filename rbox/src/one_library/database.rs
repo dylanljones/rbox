@@ -54,7 +54,7 @@ pub struct OneLibrary {
 }
 
 impl OneLibrary {
-    /// Open a device library plus database specified by path.
+    /// Open a OneLibrary (Device Library Plus) database specified by path.
     ///
     /// The `path` must be a valid database file.
     pub fn new<P: AsRef<OsStr>>(path: P) -> Result<Self> {
@@ -68,14 +68,14 @@ impl OneLibrary {
         })
     }
 
-    /// Create a new device library plus database.
+    /// Create a new OneLibrary (Device Library Plus) database.
     pub fn create<P: AsRef<OsStr>>(path: P, my_tag_master_dbid: i32) -> Result<Self> {
         let path = Path::new(&path);
         create(path.to_str().unwrap(), my_tag_master_dbid)?;
         Self::new(path)
     }
 
-    /// Create a new device library plus database if it does not exist, otherwise return the existing one.
+    /// Create a new OneLibrary database if it does not exist, otherwise return the existing one.
     pub fn create_if_not_exists<P: AsRef<OsStr>>(path: P, my_tag_master_dbid: i32) -> Result<Self> {
         let path = Path::new(&path);
         if path.exists() {
@@ -699,7 +699,7 @@ impl OneLibrary {
 
     /// Moves a tag to a new parent folder or changes its sequence within the same parent.
     pub fn move_my_tag(
-        &mut self,
+        &self,
         my_tag_id: i32,
         parent_id: Option<&i32>,
         seq: Option<i32>,
@@ -710,7 +710,7 @@ impl OneLibrary {
 
     /// Moves multiple tags to a new parent folder or changes its sequence within the same parent.
     pub fn move_my_tags(
-        &mut self,
+        &self,
         my_tag_ids: Vec<&i32>,
         parent_id: i32,
         start_seq: Option<i32>,
@@ -814,7 +814,7 @@ impl OneLibrary {
 
     /// Moves a playlist to a new parent folder or changes its sequence within the same parent.
     pub fn move_playlist(
-        &mut self,
+        &self,
         playlist_id: i32,
         parent_id: Option<&i32>,
         seq: Option<i32>,
@@ -825,7 +825,7 @@ impl OneLibrary {
 
     /// Moves multiple playlists to a new parent folder or changes its sequence within the same parent.
     pub fn move_playlists(
-        &mut self,
+        &self,
         playlist_ids: Vec<&i32>,
         parent_id: i32,
         start_seq: Option<i32>,
@@ -866,7 +866,7 @@ impl OneLibrary {
 
     /// Moves a playlist content to a new sequence number.
     pub fn move_playlist_content(
-        &mut self,
+        &self,
         playlist_id: i32,
         content_id: i32,
         seq: Option<i32>,
@@ -881,7 +881,7 @@ impl OneLibrary {
 
     /// Moves multiple playlist contents to a new sequence number.
     pub fn move_playlist_contents(
-        &mut self,
+        &self,
         ids: Vec<&(i32, i32)>,
         start_seq: Option<i32>,
     ) -> Result<usize> {

@@ -4,6 +4,7 @@
 mod anlz;
 mod errors;
 mod masterdb;
+mod one_library;
 mod options;
 mod settings;
 mod traits;
@@ -107,6 +108,7 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<rbox::masterdb::models::UuidIDMap>()?;
 
     // Device Library Plus
+    m.add_class::<one_library::PyOneLibrary>()?;
     m.add_class::<rbox::one_library::models::Album>()?;
     m.add_class::<rbox::one_library::models::NewAlbum>()?;
     m.add_class::<rbox::one_library::models::Artist>()?;

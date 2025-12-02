@@ -3574,6 +3574,16 @@ export declare class MasterDb {
 }
 export type JsMasterDb = MasterDb
 
+export declare class OneLibrary {
+  /** Open a OneLibrary (Device Library Plus) database specified by path. */
+  constructor(path: string)
+  /** Open a OneLibrary (Device Library Plus) database specified by path. */
+  static create(path: string, myTagMasterDbid: number): OneLibrary
+  /** Create a new OneLibrary database if it does not exist, otherwise return the existing one. */
+  static createIfNotExists(path: string, myTagMasterDbid: number): OneLibrary
+}
+export type JsOneLibrary = OneLibrary
+
 export declare class PlaylistNode {
   constructor(name: string, nodeType: PlaylistNodeType, keyType?: PlaylistKeyType | undefined | null)
   static playlist(name: string, keyType: PlaylistKeyType): PlaylistNode
