@@ -31,6 +31,15 @@ It supports the following Rekordbox files:
 - **Analysis Files**: Read and write ANLZ files containing waveforms, beat grids, hot cues and more
 - **Settings Access**: Read and write My-Setting files
 
+| File               | Read | Update | Create |
+|:-------------------|:----:|-------:|-------:|
+| Rekordbox database |  ✓   |      ✓ |      ❌ |
+| One Library        |  ✓   |      ✓ |      ✓ |
+| XML database       |  ✓   |      ✓ |      ✓ |
+| Analysis Files     |  ✓   |      ✓ |      ❌ |
+| Settings Files     |  ✓   |      ✓ |      ✓ |
+
+
 #### Language support
 
 rbox is built with Rust for maximum performance and safety, with additional language bindings:
