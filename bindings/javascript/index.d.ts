@@ -3581,6 +3581,278 @@ export declare class OneLibrary {
   static create(path: string, myTagMasterDbid: number): OneLibrary
   /** Create a new OneLibrary database if it does not exist, otherwise return the existing one. */
   static createIfNotExists(path: string, myTagMasterDbid: number): OneLibrary
+  /** Queries all records from the `album` table. */
+  getAlbums(): Array<Album>
+  /** Queries a record from the `album` table by its primary key `id`. */
+  getAlbumById(id: number): Album | null
+  /** Queries a record from the `album` table by its `name`. */
+  getAlbumByName(name: string): Album | null
+  /** Inserts a new record into the `album` table. */
+  insertAlbum(album: NewAlbum): Album
+  /** Creates a new record and inserts it into the `album` table. */
+  createAlbum(name: string, artistId?: number | undefined | null, imageId?: number | undefined | null): Album
+  /** Updates an existing record in the `album` table. */
+  updateAlbum(album: Album): Album
+  /** Deletes a record from the `album` table by its primary key `id`. */
+  deleteAlbum(id: number): number
+  /** Queries all records from the `artist` table. */
+  getArtists(): Array<Artist>
+  /** Queries a record from the `artist` table by its primary key `id`. */
+  getArtistById(id: number): Artist | null
+  /** Queries a record from the `artist` table by its `name`. */
+  getArtistByName(name: string): Artist | null
+  /** Inserts a new record into the `artist` table. */
+  insertArtist(artist: NewArtist): Artist
+  /** Creates a new record and inserts it into the `artist` table. */
+  createArtist(name: string): Artist
+  /** Updates an existing record in the `artist` table. */
+  updateArtist(artist: Artist): Artist
+  /** Deletes a record from the `artist` table by its primary key `id`. */
+  deleteArtist(id: number): number
+  /** Queries all records from the `category` table. */
+  getCategories(): Array<Category>
+  /** Queries a record from the `category` table by its primary key `id`. */
+  getCategoryById(id: number): Category | null
+  /** Inserts a new record into the `category` table. */
+  insertCategory(category: NewCategory): Category
+  /** Creates a new record and inserts it into the `category` table. */
+  createCategory(menuItemId: number, seq?: number | undefined | null, isVisible?: number | undefined | null): Category
+  /** Updates an existing record in the `category` table. */
+  updateCategory(category: Category): Category
+  /** Deletes a record from the `category` table by its primary key `id`. */
+  deleteCategory(id: number): number
+  /** Queries all records from the `color` table. */
+  getColors(): Array<Color>
+  /** Queries a record from the `color` table by its primary key `id`. */
+  getColorById(id: number): Color | null
+  /** Inserts a new record into the `color` table. */
+  insertColor(color: NewColor): Color
+  /** Creates a new record and inserts it into the `color` table. */
+  createColor(name: string): Color
+  /** Updates an existing record in the `color` table. */
+  updateColor(color: Color): Color
+  /** Deletes a record from the `color` table by its primary key `id`. */
+  deleteColor(id: number): number
+  /** Queries all records from the `color` table. */
+  getContents(): Array<Content>
+  /** Queries a record from the `content` table by its primary key `id`. */
+  getContentById(id: number): Content | null
+  /** Inserts a new record into the `content` table. */
+  insertContent(content: NewContent): Content
+  /** Creates a new record and inserts it into the `content` table. */
+  createContent(path: string): Content
+  /** Updates an existing record in the `content` table. */
+  updateContent(content: Content): Content
+  /** Deletes a record from the `content` table by its primary key `id`. */
+  deleteContent(id: number): number
+  /** Queries all records from the `color` table. */
+  getCues(): Array<Cue>
+  /** Queries a record from the `cue` table by its primary key `id`. */
+  getCueById(id: number): Cue | null
+  /** Updates an existing record in the `cue` table. */
+  updateCue(cue: Cue): Cue
+  /** Deletes a record from the `cue` table by its primary key `id`. */
+  deleteCue(id: number): number
+  /** Queries all records from the `genre` table. */
+  getGenres(): Array<Genre>
+  /** Queries a record from the `genre` table by its primary key `id`. */
+  getGenreById(id: number): Genre | null
+  /** Queries a record from the `genre` table by its `name`. */
+  getGenreByName(name: string): Genre | null
+  /** Inserts a new record into the `genre` table. */
+  insertGenre(genre: NewGenre): Genre
+  /** Creates a new record and inserts it into the `genre` table. */
+  createGenre(name: string): Genre
+  /** Updates an existing record in the `genre` table. */
+  updateGenre(genre: Genre): Genre
+  /** Deletes a record from the `genre` table by its primary key `id`. */
+  deleteGenre(id: number): number
+  /** Queries all records from the `history` table. */
+  getHistories(): Array<History>
+  /** Queries all child records from the `history` table by parent `id`. */
+  getHistoryChildren(id: number): Array<History>
+  /** Queries all `content` records associated with a `history` record. */
+  getHistoryContents(id: number): Array<Content>
+  /** Queries a record from the `history` table by its primary key `id`. */
+  getHistoryById(id: number): History | null
+  /** Inserts a new record into the `history` table. */
+  insertHistory(history: NewHistory): History
+  /** Creates a new record and inserts it into the `history` table. */
+  createHistory(name: string): History
+  /** Deletes a record from the `history` table by its primary key `id`. */
+  deleteHistory(id: number): number
+  /** Creates a new record and inserts it into the `history_content` table. */
+  createHistoryContent(historyId: number, contentId: number): HistoryContent
+  /** Deletes a record from the `history_content` table by its primary key. */
+  deleteHistoryContent(historyId: number, contentId: number): number
+  /** Queries all records from the `color` table. */
+  getHotCueBankLists(): Array<HotCueBankList>
+  /** Queries a record from the `hot_cue_bank_list` table by its primary key `id`. */
+  getHotCueBankListById(id: number): HotCueBankList | null
+  /** Queries all records from the `image` table. */
+  getImages(): Array<Image>
+  /** Queries a record from the `image` table by its primary key `id`. */
+  getImageById(id: number): Image | null
+  /** Queries a record from the `image` table by its `path`. */
+  getImageByPath(path: string): Image | null
+  /** Inserts a new record into the `image` table. */
+  insertImage(image: NewImage): Image
+  /** Creates a new record and inserts it into the `image` table. */
+  createImage(path: string): Image
+  /** Updates an existing record in the `image` table. */
+  updateImage(image: Image): Image
+  /** Deletes a record from the `image` table by its primary key `id`. */
+  deleteImage(id: number): number
+  /** Queries all records from the `key` table. */
+  getKeys(): Array<Key>
+  /** Queries a record from the `key` table by its primary key `id`. */
+  getKeyById(id: number): Key | null
+  /** Queries a record from the `key` table by its `name`. */
+  getKeyByName(name: string): Key | null
+  /** Inserts a new record into the `key` table. */
+  insertKey(key: NewKey): Key
+  /** Creates a new record and inserts it into the `key` table. */
+  createKey(name: string): Key
+  /** Updates an existing record in the `key` table. */
+  updateKey(key: Key): Key
+  /** Deletes a record from the `key` table by its primary key `id`. */
+  deleteKey(id: number): number
+  /** Queries all records from the `label` table. */
+  getLabels(): Array<Label>
+  /** Queries a record from the `label` table by its primary key `id`. */
+  getLabelById(id: number): Label | null
+  /** Queries a record from the `label` table by its `name`. */
+  getLabelByName(name: string): Label | null
+  /** Inserts a new record into the `label` table. */
+  insertLabel(label: NewLabel): Label
+  /** Creates a new record and inserts it into the `label` table. */
+  createLabel(name: string): Label
+  /** Updates an existing record in the `label` table. */
+  updateLabel(label: Label): Label
+  /** Deletes a record from the `label` table by its primary key `id`. */
+  deleteLabel(id: number): number
+  /** Queries all records from the `menuItem` table. */
+  getMenuItems(): Array<MenuItem>
+  /** Queries a record from the `menuItem` table by its primary key `id`. */
+  getMenuItemById(id: number): MenuItem | null
+  /** Queries a record from the `menuItem` table by its `name`. */
+  getMenuItemByName(name: string): MenuItem | null
+  /** Inserts a new record into the `menuItem` table. */
+  insertMenuItem(menuItem: NewMenuItem): MenuItem
+  /** Creates a new record and inserts it into the `menuItem` table. */
+  createMenuItem(name: string, kind: number): MenuItem
+  /** Updates an existing record in the `menuItem` table. */
+  updateMenuItem(menuItem: MenuItem): MenuItem
+  /** Deletes a record from the `menuItem` table by its primary key `id`. */
+  deleteMenuItem(id: number): number
+  /** Queries all records from the `myTag` table. */
+  getMyTags(): Array<MyTag>
+  /** Queries all child records from the `myTag` table by parent `id`. */
+  getMyTagChildren(id: number): Array<MyTag>
+  /** Queries all `content` records associated with a `myTag` record. */
+  getMyTagContents(id: number): Array<Content>
+  /** Queries a record from the `myTag` table by its primary key `id`. */
+  getMyTagById(id: number): MyTag | null
+  /** Queries all records from the `myTag` table their associated `content_id` via `myTag_content` */
+  getMyTagByContentId(cid: number): Array<MyTag>
+  /** Inserts a new record into the `myTag` table. */
+  insertMyTag(myTag: NewMyTag): MyTag
+  /** Creates a new tag record and inserts it into the `myTag` table. */
+  createMyTag(name: string, parentId?: number | undefined | null, seq?: number | undefined | null): MyTag
+  /** Creates a new my_tag folder record and inserts it into the `myTag` table. */
+  createMyTagFolder(name: string, parentId?: number | undefined | null, seq?: number | undefined | null): MyTag
+  /** Renames an existing my_tag record in the `myTag` table. */
+  renameMyTag(myTagId: number, name: string): number
+  /** Moves a tag to a new parent folder or changes its sequence within the same parent. */
+  moveMyTag(myTagId: number, parentId?: number | undefined | null, seq?: number | undefined | null): number
+  /** Moves multiple tags to a new parent folder or changes its sequence within the same parent. */
+  moveMyTags(myTagIds: Array<number>, parentId: number, startSeq?: number | undefined | null): number
+  /** Deletes a record from the `myTag` table by its primary key `id`. */
+  deleteMyTag(id: number): number
+  /** Deletes multiple records from the `myTag` table by its primary keys `id`. */
+  deleteMyTags(ids: Array<number>): number
+  /** Deletes a record from the `myTag_content` table by its primary key. */
+  deleteMyTagContent(myTagId: number, contentId: number): number
+  /** Deletes a record from the `myTag_content` table by its primary key. */
+  deleteMyTagContents(ids: Array<[number, number]>): number
+  /** Queries all records from the `playlist` table. */
+  getPlaylists(): Array<Playlist>
+  /** Queries all child records from the `playlist` table by parent `id`. */
+  getPlaylistChildren(id: number): Array<Playlist>
+  /** Queries all `content` records associated with a `playlist` record. */
+  getPlaylistContents(id: number): Array<Content>
+  /** Queries a record from the `playlist` table by its primary key `id`. */
+  getPlaylistById(id: number): Playlist | null
+  /** Inserts a new record into the `playlist` table. */
+  insertPlaylist(playlist: NewPlaylist): Playlist
+  /** Creates a new playlist record and inserts it into the `playlist` table. */
+  createPlaylist(name: string, parentId?: number | undefined | null, seq?: number | undefined | null): Playlist
+  /** Creates a new playlist folder record and inserts it into the `playlist` table. */
+  createPlaylistFolder(name: string, parentId?: number | undefined | null, seq?: number | undefined | null): Playlist
+  /** Renames an existing playlist record in the `playlist` table. */
+  renamePlaylist(playlistId: number, name: string): number
+  /** Moves a playlist to a new parent folder or changes its sequence within the same parent. */
+  movePlaylist(playlistId: number, parentId?: number | undefined | null, seq?: number | undefined | null): number
+  /** Moves multiple playlists to a new parent folder or changes its sequence within the same parent. */
+  movePlaylists(playlistIds: Array<number>, parentId: number, startSeq?: number | undefined | null): number
+  /** Deletes a record from the `playlist` table by its primary key `id`. */
+  deletePlaylist(id: number): number
+  /** Deletes multiple records from the `playlist` table by its primary keys `id`. */
+  deletePlaylists(ids: Array<number>): number
+  /** Creates a new record and inserts it into the `playlist_content` table. */
+  createPlaylistContent(playlistId: number, contentId: number, seq?: number | undefined | null): PlaylistContent
+  /** Moves a playlist content to a new sequence number. */
+  movePlaylistContent(playlistId: number, contentId: number, seq?: number | undefined | null): number
+  /** Moves multiple playlist contents to a new sequence number. */
+  movePlaylistContents(ids: Array<[number, number]>, startSeq?: number | undefined | null): number
+  /** Deletes a record from the `playlist_content` table by its primary key. */
+  deletePlaylistContent(playlistId: number, contentId: number): number
+  /** Deletes a record from the `playlist_content` table by its primary key. */
+  deletePlaylistContents(ids: Array<[number, number]>): number
+  /** Queries all records from the `property` table. */
+  getProperties(): Array<Property>
+  /** Queries a record from the `property` table by its primary key `device_name`. */
+  getPropertyByDevice(deviceName: string): Property | null
+  /** Queries a record from the `property` table by its primary key `device_name`. */
+  getFirstProperty(): Property | null
+  /** Inserts a new record into the `property` table. */
+  insertProperty(property: Property): Property
+  /** Creates a new record and inserts it into the `property` table. */
+  createProperty(deviceName: string, myTagMasterDbid: number): Property
+  /** Updates an existing record in the `property` table. */
+  updateProperty(property: Property): Property
+  /** Deletes a record from the `property` table by its primary key `device_name`. */
+  deleteProperty(deviceName: string): number
+  /** Queries all records from the `recommendLike` table. */
+  getRecommendLikes(): Array<RecommendedLike>
+  /** Queries a record from the `recommendLike` table by its primary key `id`. */
+  getRecommendLikeById(contentId1: number, contentId2: number): RecommendedLike | null
+  /** Queries all records from the `recommendedLike` table that are linked to the given `content`. */
+  getRecommendLikeByContentId(contentId: number): Array<RecommendedLike>
+  /** Get related `content` ids for a given `content`. */
+  getRecommendLikeContents(contentId: number): Array<number>
+  /** Inserts a new record into the `recommendLike` table. */
+  insertRecommendLike(recommendLike: RecommendedLike): RecommendedLike
+  /** Creates a new record and inserts it into the `recommendLike` table. */
+  createRecommendLike(contentId1: number, contentId2: number, rating?: number | undefined | null): RecommendedLike
+  /** Updates an existing record in the `recommendLike` table. */
+  updateRecommendLike(recommendLike: RecommendedLike): RecommendedLike
+  /** Deletes a record from the `recommendLike` table by its primary key. */
+  deleteRecommendLike(contentId1: number, contentId2: number): number
+  /** Deletes a record from the `recommendLike` table by its primary key. */
+  deleteRecommendLikeByContent(contentId: number): number
+  /** Queries all records from the `sort` table. */
+  getSorts(): Array<Sort>
+  /** Queries a record from the `sort` table by its primary key `id`. */
+  getSortById(id: number): Sort | null
+  /** Inserts a new record into the `sort` table. */
+  insertSort(sort: NewSort): Sort
+  /** Creates a new record and inserts it into the `sort` table. */
+  createSort(menuItemId: number, seq?: number | undefined | null, isVisible?: number | undefined | null): Sort
+  /** Updates an existing record in the `sort` table. */
+  updateSort(sort: Sort): Sort
+  /** Deletes a record from the `sort` table by its primary key `id`. */
+  deleteSort(id: number): number
 }
 export type JsOneLibrary = OneLibrary
 
