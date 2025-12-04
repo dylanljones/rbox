@@ -102,11 +102,8 @@ jobs:
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Build
-        run: cargo build --features bundled
-
       - name: Run tests
-        run: cargo test --lib --bins --tests
+        run: cargo test --lib --bins --tests --features bundled
 
   # -- Python tests --------------------------------------------------------------------------------
 
