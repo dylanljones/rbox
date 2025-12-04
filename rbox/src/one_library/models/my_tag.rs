@@ -13,6 +13,7 @@ use std::collections::{HashSet, VecDeque};
 
 use super::content::Content;
 use super::schema::{content, myTag, myTag_content};
+use crate::enums::MyTagType;
 use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelTree, TreeSeq};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
@@ -45,7 +46,7 @@ pub struct MyTag {
     /// The name of the tag.
     pub name: String,
     /// The tag type, either list (`0`) or a folder (`1`).
-    pub attribute: i32,
+    pub attribute: MyTagType,
     /// The ID of the parent [`MyTag`], `0` for top-level records.
     pub parent_id: i32,
 }
@@ -187,21 +188,22 @@ impl MyTag {
     }
 
     /// Returns the myTag type (`attribute`) of a record in the `myTag` table or `None` if not found.
-    pub fn get_attribute(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<i32>> {
+    pub fn get_attribute(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<MyTagType>> {
         if id == 0 {
-            return Ok(Some(1));
+            return Ok(Some(MyTagType::Folder));
         }
-        myTag::table
+        let value: Option<i32> = myTag::table
             .find(id)
             .select(myTag::attribute)
             .get_result(conn)
-            .optional()
+            .optional()?;
+        Ok(value.map(|v| MyTagType::try_from(v).unwrap()))
     }
 
     /// Returns `true` if the record in the `myTag` table exists and is a myTag, `false` otherwise.
     pub fn is_tag(conn: &mut SqliteConnection, id: i32) -> QueryResult<bool> {
         match Self::get_attribute(conn, id)? {
-            Some(attr) => Ok(attr == 0), // 0: myTag
+            Some(attr) => Ok(attr == MyTagType::List),
             None => Ok(false),
         }
     }
@@ -209,7 +211,7 @@ impl MyTag {
     /// Returns `true` if the record in the `myTag` table exists and is a folder, `false` otherwise.
     pub fn is_folder(conn: &mut SqliteConnection, id: i32) -> QueryResult<bool> {
         match Self::get_attribute(conn, id)? {
-            Some(attr) => Ok(attr == 1), // 1: folder
+            Some(attr) => Ok(attr == MyTagType::Folder),
             None => Ok(false),
         }
     }
@@ -359,7 +361,7 @@ pub struct NewMyTag {
     /// The name of the tag.
     pub name: String,
     /// The tag type, either list (`0`) or a folder (`1`).
-    pub attribute: i32,
+    pub attribute: MyTagType,
     /// The ID of the parent [`MyTag`], `0` for top-level records.
     pub parent_id: i32,
 }
@@ -379,9 +381,10 @@ impl ModelInsert for NewMyTag {
 
 impl NewMyTag {
     /// Creates a new myTag record with the required fields.
-    pub fn new<S: Into<String>>(name: S) -> Self {
+    pub fn new<S: Into<String>>(name: S, attribute: MyTagType) -> Self {
         Self {
             name: name.into(),
+            attribute,
             ..Default::default()
         }
     }
@@ -390,7 +393,7 @@ impl NewMyTag {
     pub fn tag<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
-            attribute: 0,
+            attribute: MyTagType::List,
             ..Default::default()
         }
     }
@@ -399,7 +402,7 @@ impl NewMyTag {
     pub fn folder<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
-            attribute: 1,
+            attribute: MyTagType::Folder,
             ..Default::default()
         }
     }

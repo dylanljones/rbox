@@ -301,7 +301,7 @@ diesel::table! {
         #[sql_name = "Commnt"]
         commnt -> Nullable<Text>,
         #[sql_name = "FileType"]
-        file_type -> Nullable<Integer>,
+        file_type -> Integer,
         #[sql_name = "Rating"]
         rating -> Nullable<Integer>,
         #[sql_name = "ReleaseYear"]
@@ -343,7 +343,7 @@ diesel::table! {
         #[sql_name = "DisableQuantize"]
         disable_quantize -> Nullable<Integer>,
         #[sql_name = "Analysed"]
-        analysed -> Nullable<Integer>,
+        analysed -> Integer,
         #[sql_name = "ReleaseDate"]
         release_date -> Nullable<Text>,
         #[sql_name = "DateCreated"]

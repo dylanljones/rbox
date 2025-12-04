@@ -72,6 +72,13 @@ export interface Album {
   nameForSearch?: string
 }
 
+export declare const enum Analyzed {
+  NotAnalyzed = 0,
+  Standard = 105,
+  Advanced = 121,
+  Locked = 233
+}
+
 /**
  * Represents the `artist` table in the Rekordbox One Library database.
  *
@@ -256,8 +263,8 @@ export interface Content {
   fileName?: string
   /** The file size of the track */
   fileSize?: number
-  /** The file typo of the track */
-  fileType?: number
+  /** The file type of the track */
+  fileType: FileType
   /** The bitrate of the trackk */
   bitrate?: number
   /** The bit depth of the track */
@@ -834,7 +841,7 @@ export interface DjmdContent {
   /** An optional string representing comments about the track. */
   commnt?: string
   /** An optional integer representing the file type of the track. */
-  fileType?: number
+  fileType: FileType
   /** An optional integer representing the rating of the track. */
   rating?: number
   /** An optional integer representing the release year of the track. */
@@ -876,7 +883,7 @@ export interface DjmdContent {
   /** An optional integer indicating whether quantization is disabled for the track. */
   disableQuantize?: number
   /** An optional integer indicating whether the track has been analyzed. */
-  analysed?: number
+  analysed: Analyzed
   /** An optional string representing the release date of the track. */
   releaseDate?: string
   /** An optional string representing the creation date of the track. */
@@ -1147,7 +1154,7 @@ export interface DjmdHistory {
   /** The name of the history. */
   name: string
   /** The attribute of the tag, either history (`0`) or a folder (`1`) */
-  attribute: number
+  attribute: HistoryType
   /** The ID of the parent [`DjmdHistory`], `'root'` for top-level my-tag records. */
   parentId: string
   /** The creation date of the history. */
@@ -1197,7 +1204,7 @@ export interface DjmdHotCueBanklist {
   /** An optional path to the image associated with the hot cue bank list. */
   imagePath?: string
   /** The attribute of the hot cue bank list, either list (`0`) or a folder (`1`) */
-  attribute: number
+  attribute: HotCueBanklistType
   /** The ID of the parent [`DjmdHotCueBanklist`], `'root'` for top-level records. */
   parentId: string
 }
@@ -1415,7 +1422,7 @@ export interface DjmdMyTag {
   /** The name of the tag */
   name: string
   /** The attribute of the tag, either my-tag (`0`) or a folder (`1`) */
-  attribute: number
+  attribute: MyTagType
   /** The ID of the parent [`DjmdMyTag`], `'root'` for top-level my-tag records. */
   parentId: string
 }
@@ -1466,7 +1473,7 @@ export interface DjmdPlaylist {
   /** An optional path to the image associated with the playlist. */
   imagePath?: string
   /** The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`). */
-  attribute: number
+  attribute: PlaylistType
   /** The ID of the parent [`DjmdPlaylist`], `'root'` for top-level records. */
   parentId: string
   /** An optional smart list configuration for the playlist (None if not a smart playlist) */
@@ -1590,7 +1597,7 @@ export interface DjmdRelatedTracks {
   /** The name of the related track record. */
   name: string
   /** The attribute of the related track, either list (`0`) or a folder (`1`) */
-  attribute: number
+  attribute: RelatedTracksType
   /** The ID of the parent [`DjmdRelatedTracks`], `'root'` for top-level records. */
   parentId: string
   /** A JSON string containing the criteria for the related tracks. */
@@ -1637,7 +1644,7 @@ export interface DjmdSampler {
   /** The name of the sampler. */
   name: string
   /** The attribute of the sampler, either list (`0`) or a folder (`1`) */
-  attribute: number
+  attribute: SamplerType
   /** The ID of the parent [`DjmdSampler`], `'root'` for top-level records. */
   parentId: string
 }
@@ -2010,6 +2017,17 @@ export interface DjmdSort {
   disable: number
 }
 
+export declare const enum FileType {
+  MP3 = 0,
+  MP3_2 = 1,
+  MP4 = 3,
+  ALAC = 4,
+  FLAC = 5,
+  M4A = 6,
+  WAV = 11,
+  AIFF = 12
+}
+
 /**
  * Represents the `genre` table in the Rekordbox One Library database.
  *
@@ -2045,7 +2063,7 @@ export interface History {
   /** The name of the history. */
   name: string
   /** The attribute of the tag, either history (`0`) or a folder (`1`) */
-  attribute: number
+  attribute: HistoryType
   /** The ID of the parent [`History`] or `0` for top-level record. */
   parentId: number
 }
@@ -2070,6 +2088,11 @@ export interface HistoryContent {
   seq: number
 }
 
+export declare const enum HistoryType {
+  List = 0,
+  Folder = 1
+}
+
 /**
  * Represents the `hotCueBankList` table in the Rekordbox One Library database.
  *
@@ -2089,7 +2112,7 @@ export interface HotCueBankList {
   /** An optional foreign key referencing an [`Image`]. */
   imageId?: number
   /** The hot cue bank list type, either list (`0`) or a folder (`1`). */
-  attribute: number
+  attribute: HotCueBanklistType
   /** The ID of the parent [`HotCueBankList`], `0` for top-level records. */
   parentId?: number
 }
@@ -2149,6 +2172,11 @@ export interface HotCueBankListCue {
   cueId: number
   /** The sequence/order number of the hot cue bank list cue (1-based index). */
   seq: number
+}
+
+export declare const enum HotCueBanklistType {
+  List = 0,
+  Folder = 1
 }
 
 /**
@@ -2309,7 +2337,7 @@ export interface MyTag {
   /** The name of the tag. */
   name: string
   /** The tag type, either list (`0`) or a folder (`1`). */
-  attribute: number
+  attribute: MyTagType
   /** The ID of the parent [`MyTag`], `0` for top-level records. */
   parentId: number
 }
@@ -2331,6 +2359,11 @@ export interface MyTagContent {
   myTagId: number
   /** The ID of the associated [`Content`]. */
   contentId: number
+}
+
+export declare const enum MyTagType {
+  List = 0,
+  Folder = 1
 }
 
 /**
@@ -2662,7 +2695,7 @@ export interface NewDjmdHistory {
   /** The name of the history. */
   name: string
   /** The attribute of the tag, either history (`0`) or a folder (`1`) */
-  attribute: number
+  attribute: HistoryType
   /** The sequence/order number of the history (1-based index) */
   seq?: number
   /** The ID of the parent [`DjmdHistory`], `'root'` for top-level my-tag records. */
@@ -2716,17 +2749,17 @@ export interface NewDjmdLabel {
  * ```rust
  * use rbox::masterdb::models::NewDjmdMyTag;
  *
- * let new = NewDjmdMyTag::new("Name", 0).seq(1);
+ * let new = NewDjmdMyTag::my_tag("Name").seq(1);
  * println!("{:?}", new);
  * ```
  */
 export interface NewDjmdMyTag {
   /** The name of the tag */
   name: string
+  /** The attribute of the tag, either my-tag (`0`) or a section (`1`) */
+  attribute: MyTagType
   /** The sequence/order number of the tag (1-based index) */
   seq?: number
-  /** The attribute of the tag, either my-tag (`0`) or a section (`1`) */
-  attribute?: number
   /** The ID of the parent [`DjmdMyTag`]. */
   parentId?: string
 }
@@ -2748,7 +2781,7 @@ export interface NewDjmdPlaylist {
   /** The name of the playlist. */
   name: string
   /** The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`). */
-  attribute: number
+  attribute: PlaylistType
   /** The sequence/order number of the record (1-based index) */
   seq?: number
   /** The ID of the parent [`DjmdPlaylist`], `'root'` for top-level records (default). */
@@ -2768,7 +2801,7 @@ export interface NewDjmdPlaylist {
  * ```rust
  * use rbox::masterdb::models::NewDjmdRelatedTracks;
  *
- * let new = NewDjmdRelatedTracks::new("Name", 0).seq(1);
+ * let new = NewDjmdRelatedTracks::related_tracks("Name", 0).seq(1);
  * println!("{:?}", new);
  * ```
  */
@@ -2776,7 +2809,7 @@ export interface NewDjmdRelatedTracks {
   /** The name of the related track. */
   name: string
   /** The attribute of the related track, either list (`0`) or a folder (`1`) */
-  attribute: number
+  attribute: RelatedTracksType
   /** The sequence/order number of the record (1-based index) */
   seq?: number
   /** The ID of the parent [`DjmdRelatedTracks`], `'root'` for top-level records. */
@@ -2802,7 +2835,7 @@ export interface NewDjmdSampler {
   /** The name of the sampler. */
   name: string
   /** The attribute of the sampler, either list (`0`) or a folder (`1`) */
-  attribute: number
+  attribute: SamplerType
   /** The sequence/order number of the record (1-based index) */
   seq?: number
   /** The ID of the parent [`DjmdSampler`], `'root'` for top-level records. */
@@ -2944,7 +2977,7 @@ export interface NewHistory {
   /** The name of the history. */
   name: string
   /** The attribute of the tag, either history (`0`) or a folder (`1`) */
-  attribute: number
+  attribute: HistoryType
   /** The ID of the parent [`History`] or `0` for top-level record. */
   parentId: number
 }
@@ -2994,7 +3027,7 @@ export interface NewMyTag {
   /** The name of the tag. */
   name: string
   /** The tag type, either list (`0`) or a folder (`1`). */
-  attribute: number
+  attribute: MyTagType
   /** The ID of the parent [`MyTag`], `0` for top-level records. */
   parentId: number
 }
@@ -3020,7 +3053,7 @@ export interface NewPlaylist {
   /** Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image). */
   imageId?: number
   /** The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`). */
-  attribute: number
+  attribute: PlaylistType
   /** The ID of the parent [`Playlist`], `0` for top-level records. */
   parentId: number
 }
@@ -3079,7 +3112,7 @@ export interface Playlist {
   /** Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image). */
   imageId?: number
   /** The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`). */
-  attribute: number
+  attribute: PlaylistType
   /** The ID of the parent [`Playlist`], `0` for top-level records. */
   parentId: number
 }
@@ -3104,6 +3137,13 @@ export interface PlaylistContent {
   contentId: number
   /** The sequence/order number of the history content (1-based index) */
   seq: number
+}
+
+export declare const enum PlaylistType {
+  List = 0,
+  Folder = 1,
+  SmartList = 4,
+  CloudLibrarySync = -128
 }
 
 /**
@@ -3151,10 +3191,20 @@ export interface RecommendedLike {
   createdDate: Date
 }
 
+export declare const enum RelatedTracksType {
+  List = 0,
+  Folder = 1
+}
+
 export interface Remixer {
   id: number
   name: string
   nameForSearch?: string
+}
+
+export declare const enum SamplerType {
+  List = 0,
+  Folder = 1
 }
 
 /**
@@ -3678,7 +3728,7 @@ export declare class OneLibrary {
   /** Inserts a new record into the `history` table. */
   insertHistory(history: NewHistory): History
   /** Creates a new record and inserts it into the `history` table. */
-  createHistory(name: string): History
+  createHistory(name: string, attribute: HistoryType): History
   /** Deletes a record from the `history` table by its primary key `id`. */
   deleteHistory(id: number): number
   /** Creates a new record and inserts it into the `history_content` table. */
@@ -4145,7 +4195,7 @@ export interface DjmdPlaylistTreeNode {
   seq: number
   name: string
   imagePath?: string
-  attribute: number
+  attribute: PlaylistType
   parentId: string
   smartList?: string
   children: Array<DjmdPlaylistTreeNode>

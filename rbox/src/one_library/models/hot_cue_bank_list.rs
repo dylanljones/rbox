@@ -10,6 +10,7 @@ use pyo3::prelude::*;
 use rbox_derives::PyMutableMapping;
 
 use super::schema::{hotCueBankList, hotCueBankList_cue};
+use crate::enums::HotCueBanklistType;
 use crate::model_traits::Model;
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
@@ -38,7 +39,7 @@ pub struct HotCueBankList {
     /// An optional foreign key referencing an [`Image`].
     pub image_id: Option<i32>,
     /// The hot cue bank list type, either list (`0`) or a folder (`1`).
-    pub attribute: i32,
+    pub attribute: HotCueBanklistType,
     /// The ID of the parent [`HotCueBankList`], `0` for top-level records.
     pub parent_id: Option<i32>,
 }

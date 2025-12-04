@@ -48,6 +48,16 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     // Rekordbox Options
     m.add_class::<options::PyRekordboxOptions>()?;
 
+    // Database enums
+    m.add_class::<rbox::enums::FileType>()?;
+    m.add_class::<rbox::enums::Analyzed>()?;
+    m.add_class::<rbox::enums::HistoryType>()?;
+    m.add_class::<rbox::enums::HotCueBanklistType>()?;
+    m.add_class::<rbox::enums::MyTagType>()?;
+    m.add_class::<rbox::enums::PlaylistType>()?;
+    m.add_class::<rbox::enums::RelatedTracksType>()?;
+    m.add_class::<rbox::enums::SamplerType>()?;
+
     // Master-db
     m.add_class::<masterdb::PyMasterDb>()?;
     m.add_class::<rbox::masterdb::models::AgentRegistry>()?;

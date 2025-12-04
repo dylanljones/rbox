@@ -15,6 +15,7 @@ use std::rc::Rc;
 
 use super::content::Content;
 use super::schema::{content, playlist, playlist_content};
+use crate::enums::PlaylistType;
 use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelList, ModelTree, TreeSeq};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
@@ -51,7 +52,7 @@ pub struct Playlist {
     /// Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image).
     pub image_id: Option<i32>,
     /// The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`).
-    pub attribute: i32,
+    pub attribute: PlaylistType,
     /// The ID of the parent [`Playlist`], `0` for top-level records.
     pub parent_id: i32,
 }
@@ -191,21 +192,25 @@ impl Playlist {
     }
 
     /// Returns the playlist type (`attribute`) of a record in the `playlist` table or `None` if not found.
-    pub fn get_attribute(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<i32>> {
+    pub fn get_attribute(
+        conn: &mut SqliteConnection,
+        id: i32,
+    ) -> QueryResult<Option<PlaylistType>> {
         if id == 0 {
-            return Ok(Some(1));
+            return Ok(Some(PlaylistType::Folder));
         }
-        playlist::table
+        let value: Option<i32> = playlist::table
             .find(id)
             .select(playlist::attribute)
             .get_result(conn)
-            .optional()
+            .optional()?;
+        Ok(value.map(|v| PlaylistType::try_from(v).unwrap()))
     }
 
     /// Returns `true` if the record in the `playlist` table exists and is a playlist, `false` otherwise.
     pub fn is_playlist(conn: &mut SqliteConnection, id: i32) -> QueryResult<bool> {
         match Self::get_attribute(conn, id)? {
-            Some(attr) => Ok(attr == 0), // 0: playlist
+            Some(attr) => Ok(attr == PlaylistType::List),
             None => Ok(false),
         }
     }
@@ -213,7 +218,7 @@ impl Playlist {
     /// Returns `true` if the record in the `playlist` table exists and is a folder, `false` otherwise.
     pub fn is_folder(conn: &mut SqliteConnection, id: i32) -> QueryResult<bool> {
         match Self::get_attribute(conn, id)? {
-            Some(attr) => Ok(attr == 1), // 1: folder
+            Some(attr) => Ok(attr == PlaylistType::Folder),
             None => Ok(false),
         }
     }
@@ -365,7 +370,7 @@ pub struct NewPlaylist {
     /// Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image).
     pub image_id: Option<i32>,
     /// The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`).
-    pub attribute: i32,
+    pub attribute: PlaylistType,
     /// The ID of the parent [`Playlist`], `0` for top-level records.
     pub parent_id: i32,
 }
@@ -385,9 +390,14 @@ impl ModelInsert for NewPlaylist {
 
 impl NewPlaylist {
     /// Creates a new playlist record with the required fields.
-    pub fn new<S: Into<String>>(name: S) -> Self {
+    pub fn new<S: Into<String>>(name: S, attribute: PlaylistType) -> Self {
+        if !(attribute == PlaylistType::List || attribute == PlaylistType::Folder) {
+            panic!("Invalid playlist type: {:?}", attribute);
+        }
+
         Self {
             name: name.into(),
+            attribute,
             ..Default::default()
         }
     }
@@ -396,7 +406,7 @@ impl NewPlaylist {
     pub fn playlist<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
-            attribute: 0,
+            attribute: PlaylistType::List,
             ..Default::default()
         }
     }
@@ -405,7 +415,7 @@ impl NewPlaylist {
     pub fn folder<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
-            attribute: 1,
+            attribute: PlaylistType::Folder,
             ..Default::default()
         }
     }
@@ -754,7 +764,7 @@ pub struct PlaylistTreeNode {
     pub seq: i32,
     pub name: String,
     pub image_id: Option<i32>,
-    pub attribute: i32,
+    pub attribute: PlaylistType,
     pub parent_id: i32,
     pub children: Vec<PlaylistTreeNodeRef>,
 }

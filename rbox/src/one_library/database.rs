@@ -25,13 +25,13 @@
 //! ```
 //!
 
-use std::ffi::OsStr;
-use std::path::Path;
-
 use super::conn::{create_connection_pool, establish_connection, run_migrations, DbPool};
 use super::models::*;
+use crate::enums::HistoryType;
 use crate::error::{Error, Result};
 use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate};
+use std::ffi::OsStr;
+use std::path::Path;
 
 /// Create a new device library plus database at the specified path and initialize it with default data.
 fn create(url: &str, my_tag_master_dbid: i32) -> Result<()> {
@@ -406,8 +406,12 @@ impl OneLibrary {
     }
 
     /// Creates a new record and inserts it into the `history` table.
-    pub fn create_history<S: Into<String>>(&self, name: S) -> Result<History> {
-        let history = NewHistory::new(name);
+    pub fn create_history<S: Into<String>>(
+        &self,
+        name: S,
+        attribute: HistoryType,
+    ) -> Result<History> {
+        let history = NewHistory::new(name, attribute);
         self.insert_history(history)
     }
 

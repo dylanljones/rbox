@@ -111,6 +111,8 @@ pub mod util;
 
 #[cfg(feature = "anlz")]
 pub mod anlz;
+#[cfg(any(feature = "master-db", feature = "one-library"))]
+pub mod enums;
 #[cfg(feature = "master-db")]
 pub mod masterdb;
 #[cfg(any(feature = "master-db", feature = "one-library"))]

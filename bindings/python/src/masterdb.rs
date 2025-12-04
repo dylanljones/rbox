@@ -4,7 +4,8 @@
 use chrono::{DateTime, Utc};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyString, PyType};
-use rbox::masterdb::{enums::PlaylistType, models::*, MasterDb};
+use rbox::enums::PlaylistType;
+use rbox::masterdb::{models::*, MasterDb};
 
 use super::errors::MasterDbError;
 use super::options::PyRekordboxOptions;
@@ -31,7 +32,7 @@ pub struct PyDjmdPlaylistTreeNode {
     pub seq: i32,
     pub name: String,
     pub image_path: Option<String>,
-    pub attribute: i32,
+    pub attribute: PlaylistType,
     pub parent_id: String,
     pub smart_list: Option<String>,
     pub children: Vec<PyDjmdPlaylistTreeNode>,

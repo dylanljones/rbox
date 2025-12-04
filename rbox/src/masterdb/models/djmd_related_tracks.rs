@@ -17,6 +17,7 @@ use super::agent_registry::AgentRegistry;
 use super::djmd_content::DjmdContent;
 use super::schema::{djmdContent, djmdRelatedTracks, djmdSongRelatedTracks};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
+use crate::enums::RelatedTracksType;
 use crate::model_traits::{
     Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, TreeSeq,
 };
@@ -76,7 +77,7 @@ pub struct DjmdRelatedTracks {
     /// The name of the related track record.
     pub name: String,
     /// The attribute of the related track, either list (`0`) or a folder (`1`)
-    pub attribute: i32,
+    pub attribute: RelatedTracksType,
     /// The ID of the parent [`DjmdRelatedTracks`], `'root'` for top-level records.
     pub parent_id: String,
     /// A JSON string containing the criteria for the related tracks.
@@ -247,21 +248,25 @@ impl DjmdRelatedTracks {
     }
 
     /// Returns the type (`attribute`) of a record in the `djmdRelatedTracks` table or `None` if not found.
-    pub fn get_attribute(conn: &mut SqliteConnection, id: &str) -> QueryResult<Option<i32>> {
+    pub fn get_attribute(
+        conn: &mut SqliteConnection,
+        id: &str,
+    ) -> QueryResult<Option<RelatedTracksType>> {
         if id == "root" {
-            return Ok(Some(1));
+            return Ok(Some(RelatedTracksType::Folder));
         }
-        djmdRelatedTracks::table
+        let value: Option<i32> = djmdRelatedTracks::table
             .find(id)
             .select(djmdRelatedTracks::attribute)
             .get_result(conn)
-            .optional()
+            .optional()?;
+        Ok(value.map(|v| RelatedTracksType::try_from(v).unwrap()))
     }
 
     /// Returns `true` if the record in the `djmdRelatedTracks` table exists and is a list, `false` otherwise.
     pub fn is_related_tracks(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
         match Self::get_attribute(conn, id)? {
-            Some(attr) => Ok(attr == 0), // 0: playlist
+            Some(attr) => Ok(attr == RelatedTracksType::List),
             None => Ok(false),
         }
     }
@@ -269,7 +274,7 @@ impl DjmdRelatedTracks {
     /// Returns `true` if the record in the `djmdRelatedTracks` table exists and is a section, `false` otherwise.
     pub fn is_folder(conn: &mut SqliteConnection, id: &str) -> QueryResult<bool> {
         match Self::get_attribute(conn, id)? {
-            Some(attr) => Ok(attr == 1), // 1: folder
+            Some(attr) => Ok(attr == RelatedTracksType::Folder),
             None => Ok(false),
         }
     }
@@ -455,7 +460,7 @@ impl TreeSeq for DjmdRelatedTracks {
 /// ```rust
 /// use rbox::masterdb::models::NewDjmdRelatedTracks;
 ///
-/// let new = NewDjmdRelatedTracks::new("Name", 0).seq(1);
+/// let new = NewDjmdRelatedTracks::related_tracks("Name", 0).seq(1);
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -466,7 +471,7 @@ pub struct NewDjmdRelatedTracks {
     /// The name of the related track.
     pub name: String,
     /// The attribute of the related track, either list (`0`) or a folder (`1`)
-    pub attribute: i32,
+    pub attribute: RelatedTracksType,
     /// The sequence/order number of the record (1-based index)
     pub seq: Option<i32>,
     /// The ID of the parent [`DjmdRelatedTracks`], `'root'` for top-level records.
@@ -516,7 +521,7 @@ impl ModelInsert for NewDjmdRelatedTracks {
 
 impl NewDjmdRelatedTracks {
     /// Creates a new `NewDjmdRelatedTracks` with the required `name` and `attribute` field.
-    pub fn new<S: Into<String>>(name: S, attribute: i32) -> Self {
+    pub fn new<S: Into<String>>(name: S, attribute: RelatedTracksType) -> Self {
         Self {
             name: name.into(),
             attribute,
@@ -528,7 +533,7 @@ impl NewDjmdRelatedTracks {
     pub fn related_tracks<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
-            attribute: 0,
+            attribute: RelatedTracksType::List,
             ..Default::default()
         }
     }
@@ -537,7 +542,7 @@ impl NewDjmdRelatedTracks {
     pub fn folder<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
-            attribute: 1,
+            attribute: RelatedTracksType::Folder,
             ..Default::default()
         }
     }
