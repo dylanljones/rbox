@@ -89,6 +89,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set Windows OpenSSL env
+        if: runner.os == 'Windows'
+        run: echo "OPENSSL_DIR=C:\Program Files\OpenSSL" >> $env:GITHUB_ENV
+
       - name: Set Perl environment variables
         if: runner.os == 'Windows'
         run: |
@@ -99,7 +103,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Build
-        run: cargo build
+        run: cargo build --features bundled
 
       - name: Run tests
         run: cargo test --lib --bins --tests
