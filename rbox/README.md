@@ -34,10 +34,7 @@ cargo add rbox
 ```
 or add the following line to your Cargo.toml:
 ```toml
-[dependencies]
-# `bundled-vendored-openssl` will automatically compile and link in
-# an up to date version of SQLCipher with a vendored version of OpenSSL.
-rbox = { version = "0.1.5", features = ["bundled-vendored-openssl"] }
+rbox = "0.1.5"
 ```
 
 ### Features
@@ -59,7 +56,7 @@ To make building easier, there are two optional features for choosing SQLCipher'
 
 - `bundled`: Uses a bundled version of SQLCipher.
   This searches for and links against a system-installed crypto library to provide the crypto implementation.
-- `bundled-vendored-openssl`: Uses `bundled` with a vendored version of OpenSSL.
+- `bundled-vendored-openssl` (default): Uses `bundled` with a vendored version of OpenSSL.
   This is the most portable option and requires no system dependencies but increases compilation time.
   On Windows, a Perl installation such as [Strawberry Perl](https://strawberryperl.com/) is required
   to build OpenSSL.

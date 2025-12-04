@@ -15,7 +15,7 @@ rust-version.workspace = true
 name = "rbox"
 
 [features]
-default = ["full"]
+default = ["full", "bundled-vendored-openssl"]
 # Component features
 full        = ["master-db", "one-library", "anlz", "xml", "settings"]
 master-db   = ["anlz", "dep:diesel", "dep:libsqlite3-sys", "dep:quick-xml", "dep:rand", "dep:uuid", "dep:dunce", "diesel/128-column-tables"]
