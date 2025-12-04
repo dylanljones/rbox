@@ -61,6 +61,8 @@ To make building easier, there are two optional features for choosing SQLCipher'
   This searches for and links against a system-installed crypto library to provide the crypto implementation.
 - `bundled-vendored-openssl`: Uses `bundled` with a vendored version of OpenSSL.
   This is the most portable option and requires no system dependencies but increases compilation time.
+  On Windows, a Perl installation such as [Strawberry Perl](https://strawberryperl.com/) is required
+  to build OpenSSL.
 
 #### Language Bindings
 
