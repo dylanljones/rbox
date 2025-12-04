@@ -33,8 +33,11 @@ rbox is available on Cargo. Run the following Cargo command in your project dire
 cargo add rbox
 ```
 or add the following line to your Cargo.toml:
-```shell
-rbox = "0.1.5"
+```toml
+[dependencies]
+# `bundled-vendored-openssl` will automatically compile and link in
+# an up to date version of SQLCipher with a vendored version of OpenSSL.
+rbox = { version = "0.1.5", features = ["bundled-vendored-openssl"] }
 ```
 
 ### Features
@@ -51,18 +54,13 @@ The library is organized into modular components that can be enabled individuall
 #### SQLCipher Features
 
 The `master-db` and `one-library` features require SQLCipher for working with Rekordbox's
-encrypted database files. To make building easier, there are two features for choosing
-SQLCipher's installation:
+encrypted database files.
+To make building easier, there are two optional features for choosing SQLCipher's installation:
 
-- `bundled-vendored-openssl` (default):
-  Builds and statically links both SQLCipher and OpenSSL.
-  This is the most portable option and requires no system dependencies,
-  but increases compilation time.
-- `bundled`: Builds and statically links SQLCipher, but uses the system's OpenSSL installation.
-  Choose this if you already have OpenSSL installed and want to reduce compilation time.
-
-**Note**: The SQLCipher features (`bundled-vendored-openssl`, `bundled`) require either
-`master-db` or `one-library` to be enabled.
+- `bundled`: Uses a bundled version of SQLCipher.
+  This searches for and links against a system-installed crypto library to provide the crypto implementation.
+- `bundled-vendored-openssl`: Uses `bundled` with a vendored version of OpenSSL.
+  This is the most portable option and requires no system dependencies but increases compilation time.
 
 #### Language Bindings
 
