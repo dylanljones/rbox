@@ -1,5 +1,5 @@
-// Author: Dylan Jones
-// Date:   2025-11-16
+// Copyright (C) 2026 Dylan Jones
+// SPDX-License-Identifier: GPL-3.0-only
 
 //! # Rekordbox One Library (Device Library Plus) Database Handler
 //!

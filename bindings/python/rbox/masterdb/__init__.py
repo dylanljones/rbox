@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# Author: Dylan Jones
-# Date:   2025-05-01
+# Copyright (C) 2026 Dylan Jones
+# SPDX-License-Identifier: GPL-3.0-only
 
 from .._rbox import PyMasterDb as MasterDb
 from .models import *

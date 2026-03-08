@@ -1,5 +1,5 @@
-// Author: Dylan Jones
-// Date:   2025-11-11
+// Copyright (C) 2026 Dylan Jones
+// SPDX-License-Identifier: GPL-3.0-only
 
 pub mod anlz;
 pub mod options;

@@ -1,5 +1,5 @@
-// Author: Dylan Jones
-// Date:   2025-11-01
+// Copyright (C) 2026 Dylan Jones
+// SPDX-License-Identifier: GPL-3.0-only
 
 // Run via `cargo run --color=always --example locate --profile dev`
 

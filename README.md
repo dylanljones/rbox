@@ -105,11 +105,14 @@ please use [GitHub Discussions][discussions] instead of opening an issue.
 
 ## License
 
-Licensed under either of [Apache License, Version 2.0][LICENSE-APACHE] or [MIT license][LICENSE-MIT] at your option.
+This project is licensed under the
+[GNU General Public License, version 3.0][LICENSE].
+
+Earlier releases may have been available under different terms.
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in this crate by you, as defined in the Apache-2.0 license, shall
-be dual licensed as above, without any additional terms or conditions.
+for inclusion in this project by you shall be licensed under the same terms as
+this project, without any additional terms or conditions.
 
 
 ## FAQ
@@ -170,6 +173,5 @@ If rbox has helped you or saved you time, consider supporting its development - 
 [pulls]: https://github.com/dylanljones/rbox/pulls
 [discussions]: https://github.com/dylanljones/rbox/discussions
 [CONTRIBUTING]: https://github.com/dylanljones/rbox/blob/main/CONTRIBUTING.md
-[LICENSE-MIT]: https://github.com/dylanljones/rbox/blob/main/LICENSE-MIT
-[LICENSE-APACHE]: https://github.com/dylanljones/rbox/blob/main/LICENSE-APACHE
+[LICENSE]: https://github.com/dylanljones/rbox/blob/main/LICENSE
 [CHANGELOG]: https://github.com/dylanljones/rbox/blob/main/CHANGELOG.md

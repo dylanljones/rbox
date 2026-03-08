@@ -1,5 +1,5 @@
-// Author: Dylan Jones
-// Date:   2025-08-16
+// Copyright (C) 2026 Dylan Jones
+// SPDX-License-Identifier: GPL-3.0-only
 
 //! Rekordbox One Library database schemas
 

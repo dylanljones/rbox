@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# Author: Dylan Jones
-# Date:   2025-05-07
+# Copyright (C) 2026 Dylan Jones
+# SPDX-License-Identifier: GPL-3.0-only
 
 import shutil
 from pathlib import Path

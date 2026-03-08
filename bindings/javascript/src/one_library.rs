@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Dylan Jones
+// SPDX-License-Identifier: GPL-3.0-only
+
 use napi::Result;
 use napi_derive::napi;
 use rbox::enums::HistoryType;

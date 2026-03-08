@@ -1,5 +1,5 @@
-// Author: Dylan Jones
-// Date:   2025-11-12
+// Copyright (C) 2026 Dylan Jones
+// SPDX-License-Identifier: GPL-3.0-only
 
 #[path = "../../tests/common/mod.rs"]
 mod common;
