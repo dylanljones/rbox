@@ -1,5 +1,5 @@
-// Author: Dylan Jones
-// Date:   2025-08-12
+// Copyright (C) 2026 Dylan Jones
+// SPDX-License-Identifier: GPL-3.0-only
 
 use serde::de::Error as DError;
 use serde::ser::Error as SError;

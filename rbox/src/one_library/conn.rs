@@ -1,5 +1,5 @@
-// Author: Dylan Jones
-// Date:   2025-11-06
+// Copyright (C) 2026 Dylan Jones
+// SPDX-License-Identifier: GPL-3.0-only
 
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager, CustomizeConnection, Pool};

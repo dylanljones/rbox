@@ -1,5 +1,5 @@
-// Author: Dylan Jones
-// Date:   2025-10-28
+// Copyright (C) 2026 Dylan Jones
+// SPDX-License-Identifier: GPL-3.0-only
 
 use proc_macro::TokenStream;
 use quote::quote;

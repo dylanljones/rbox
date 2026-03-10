@@ -1,5 +1,5 @@
-// Author: Dylan Jones
-// Date:   2025-05-15
+// Copyright (C) 2026 Dylan Jones
+// SPDX-License-Identifier: GPL-3.0-only
 
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use pyo3::prelude::*;

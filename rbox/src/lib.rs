@@ -1,5 +1,5 @@
-// Author: Dylan Jones
-// Date:   2025-05-01
+// Copyright (C) 2026 Dylan Jones
+// SPDX-License-Identifier: GPL-3.0-only
 
 //! [![github]](https://github.com/dylanljones/rbox)&ensp;[![crates-io]](https://crates.io/crates/rbox)&ensp;[![docs-rs]](https://docs.rs/rbox)
 //!
