@@ -84,8 +84,6 @@ jobs:
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
-        env:
-          OPENSSL_SRC_CONFIGURE_ARGS: "no-asm"
         with:
           working-directory: ${{ env.working-directory }}
           target: ${{ matrix.platform.target }}
@@ -93,6 +91,8 @@ jobs:
           sccache: 'true'
           manylinux: auto
           before-script-linux: |
+            export OPENSSL_SRC_CONFIGURE_ARGS="no-asm"
+
             # If we're running on rhel centos, install needed packages.
             if command -v yum &> /dev/null; then
                 yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic
@@ -123,7 +123,7 @@ jobs:
             target: x64
           # - runner: windows-latest
           #   target: x86
-    # needs: test
+    needs: linux
     defaults:
       run:
         working-directory: ${{ env.working-directory }}
@@ -169,7 +169,7 @@ jobs:
             target: x86_64
           - runner: macos-14
             target: aarch64
-    # needs: test
+    needs: linux
     defaults:
       run:
         working-directory: ${{ env.working-directory }}
