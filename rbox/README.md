@@ -34,7 +34,7 @@ cargo add rbox
 ```
 or add the following line to your Cargo.toml:
 ```toml
-rbox = "0.1.5"
+rbox = "0.1.6"
 ```
 
 ### Features
