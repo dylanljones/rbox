@@ -20,9 +20,7 @@
   "types": "index.d.ts",
   "napi": {
     "binaryName": "rbox-js",
-    "package": {
-      "name": "@dylanljones/rbox-js"
-    },
+    "packageName": "@dylanljones/rbox-js",
     "targets": [
       "x86_64-pc-windows-msvc",
       "x86_64-unknown-linux-gnu",
