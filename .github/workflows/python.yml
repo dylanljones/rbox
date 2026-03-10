@@ -84,6 +84,8 @@ jobs:
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
+        env:
+          OPENSSL_NO_ASM: "1"
         with:
           working-directory: ${{ env.working-directory }}
           target: ${{ matrix.platform.target }}
