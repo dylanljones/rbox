@@ -249,8 +249,8 @@ diesel_int_enum!(PlaylistType);
 #[cfg_attr(feature = "napi", napi)]
 pub enum RelatedTracksType {
     #[default]
-    List = 0,
-    Folder = 1,
+    List = 11,
+    Folder = 10,
 }
 
 impl TryFrom<i32> for RelatedTracksType {
@@ -258,8 +258,8 @@ impl TryFrom<i32> for RelatedTracksType {
 
     fn try_from(value: i32) -> std::result::Result<Self, Self::Error> {
         match value {
-            0 => Ok(Self::List),
-            1 => Ok(Self::Folder),
+            11 => Ok(Self::List),
+            10 => Ok(Self::Folder),
             _ => Err(format!("Invalid value for RelatedTracksType: {}", value)),
         }
     }
@@ -275,8 +275,10 @@ diesel_int_enum!(RelatedTracksType);
 #[cfg_attr(feature = "napi", napi)]
 pub enum SamplerType {
     #[default]
-    List = 0,
-    Folder = 1,
+    List = 2,
+    Folder = 3,
+    All = 5,
+    Capture = 6,
 }
 
 impl TryFrom<i32> for SamplerType {
@@ -284,8 +286,10 @@ impl TryFrom<i32> for SamplerType {
 
     fn try_from(value: i32) -> std::result::Result<Self, Self::Error> {
         match value {
-            0 => Ok(Self::List),
-            1 => Ok(Self::Folder),
+            2 => Ok(Self::List),
+            3 => Ok(Self::Folder),
+            5 => Ok(Self::All),
+            6 => Ok(Self::Capture),
             _ => Err(format!("Invalid value for SamplerType: {}", value)),
         }
     }

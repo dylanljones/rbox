@@ -3199,8 +3199,8 @@ export interface RecommendedLike {
 }
 
 export declare const enum RelatedTracksType {
-  List = 0,
-  Folder = 1
+  List = 11,
+  Folder = 10
 }
 
 export interface Remixer {
@@ -3210,8 +3210,10 @@ export interface Remixer {
 }
 
 export declare const enum SamplerType {
-  List = 0,
-  Folder = 1
+  List = 2,
+  Folder = 3,
+  All = 5,
+  Capture = 6
 }
 
 /**
