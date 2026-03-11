@@ -1501,3 +1501,31 @@ pub fn test_move_all_playlist_songs() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+// -- Related tracks ------------------------------------------------------------------------------
+
+#[test]
+fn test_get_related_tracks() -> anyhow::Result<()> {
+    let db_path = common::setup_master_db_path(6);
+    let mut db = MasterDb::new(db_path.path())?;
+    let _items = db.get_related_tracks()?;
+
+    let db_path = common::setup_master_db_path(7);
+    let mut db = MasterDb::new(db_path.path())?;
+    let _items = db.get_related_tracks()?;
+    Ok(())
+}
+
+// -- Sampler -------------------------------------------------------------------------------------
+
+#[test]
+fn test_get_sampler() -> anyhow::Result<()> {
+    let db_path = common::setup_master_db_path(6);
+    let mut db = MasterDb::new(db_path.path())?;
+    let _items = db.get_samplers()?;
+
+    let db_path = common::setup_master_db_path(7);
+    let mut db = MasterDb::new(db_path.path())?;
+    let _items = db.get_samplers()?;
+    Ok(())
+}
