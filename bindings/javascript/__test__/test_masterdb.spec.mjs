@@ -21,3 +21,10 @@ test("Get USN", async (t) => {
     const usn = db.getLocalUsn();
     t.is(usn > 0, true);
 })
+
+test("Get contents", async (t) => {
+    prepareTestDb();
+    const db = new MasterDb(DEMO_DB);
+    const tracks = db.getContents();
+    t.is(tracks.length > 0, true);
+});

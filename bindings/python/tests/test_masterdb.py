@@ -80,3 +80,11 @@ def test_update_album(db):
     updated = db.get_album_by_id(id_)
     assert updated is not None
     assert updated.name == new_name
+
+
+# -- Contents -------------------------------------------------------------------------------------
+
+
+def test_get_contents(db):
+    tracks = db.get_contents()
+    assert len(tracks) > 0
