@@ -65,5 +65,7 @@ name = "main"
 harness = false
 
 [package.metadata.docs.rs]
-features = ["full"]
 no-default-features = true
+features = ["full"]
+cargo-args = ["-j1"]
+rustdoc-args = ["--cfg", "docsrs", "--no-deps"]
