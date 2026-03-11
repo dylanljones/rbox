@@ -40,6 +40,11 @@ It supports the following Rekordbox files:
 | Settings Files     |  ✓   |      ✓ |      ✓ |
 
 
+> [!TIP]
+> This project is still being actively developed and is in early stages, so expect some rough edges and missing features.
+> If you are looking for a more mature and battle-tested library, check the original [pyrekordbox] Python library.
+
+
 #### Language support
 
 rbox is built with Rust for maximum performance and safety, with additional language bindings:
