@@ -144,6 +144,7 @@ class FileType(enum.IntEnum):
     M4A: FileType
     WAV: FileType
     AIFF: FileType
+    StreamApple: FileType
 
     def __int__(self) -> int: ...
     def __repr__(self) -> str: ...

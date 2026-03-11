@@ -64,7 +64,7 @@ pub enum FileType {
     M4A = 6,
     WAV = 11,
     AIFF = 12,
-    STREAM_APPLE = 26,
+    StreamApple = 26,
 }
 
 impl TryFrom<i32> for FileType {
@@ -80,7 +80,7 @@ impl TryFrom<i32> for FileType {
             6 => Ok(Self::M4A),
             11 => Ok(Self::WAV),
             12 => Ok(Self::AIFF),
-            20 => Ok(Self::STREAM_APPLE),
+            20 => Ok(Self::StreamApple),
             _ => Err("Invalid value for FileType".into()),
         }
     }
