@@ -632,7 +632,7 @@ class DjmdContent(_RustMutableMapping):
     """An optional integer representing the bit depth of the track."""
     commnt: Optional[str]
     """An optional string representing comments about the track."""
-    file_type: FileType
+    file_type: int
     """An optional integer representing the file type of the track."""
     rating: Optional[int]
     """An optional integer representing the rating of the track."""
@@ -2695,7 +2695,7 @@ class Content(_RustMutableMapping):
     """The file name of the track."""
     file_size: Optional[int]
     """The file size of the track"""
-    file_type: FileType
+    file_type: int
     """The file type of the track"""
     bitrate: Optional[int]
     """The bitrate of the trackk"""

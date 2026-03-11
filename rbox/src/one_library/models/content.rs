@@ -25,7 +25,7 @@ use super::property::Property;
 use super::recommend_like::RecommendedLike;
 use super::schema::{album, artist, color, content, genre, image, key, label};
 use super::{Date, DateString};
-use crate::enums::FileType;
+// use crate::enums::FileType;
 use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
@@ -146,7 +146,7 @@ pub struct Content {
     /// The file size of the track
     pub file_size: Option<i32>,
     /// The file type of the track
-    pub file_type: FileType,
+    pub file_type: i32,
     /// The bitrate of the trackk
     pub bitrate: Option<i32>,
     /// The bit depth of the track
@@ -438,7 +438,7 @@ pub struct ContentJoin {
     /// The file size of the track
     pub file_size: Option<i32>,
     /// The file type of the track
-    pub file_type: FileType,
+    pub file_type: i32,
     /// The bitrate of the trackk
     pub bitrate: Option<i32>,
     /// The bit depth of the track

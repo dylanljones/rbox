@@ -42,10 +42,16 @@ macro_rules! diesel_int_enum {
     };
 }
 
+/// Known file type constants for Rekordbox tracks.
+///
+/// The field itself is stored as a plain `i32` to allow unknown values.
+/// Use these constants for comparison with known types.
+///
+// #[derive(Debug, Copy, Clone, PartialEq, Eq, Default, FromSqlRow, AsExpression)]
+// #[diesel(sql_type = Integer)]
 #[cfg(any(feature = "master-db", feature = "one-library"))]
 #[repr(i32)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Default, FromSqlRow, AsExpression)]
-#[diesel(sql_type = Integer)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "pyo3", pyclass(eq, eq_int))]
 #[cfg_attr(feature = "napi", napi)]
 pub enum FileType {
@@ -93,7 +99,7 @@ impl FileType {
     }
 }
 
-diesel_int_enum!(FileType);
+// diesel_int_enum!(FileType);
 
 #[cfg(any(feature = "master-db"))]
 #[repr(i32)]

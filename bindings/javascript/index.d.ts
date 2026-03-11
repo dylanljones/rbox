@@ -264,7 +264,7 @@ export interface Content {
   /** The file size of the track */
   fileSize?: number
   /** The file type of the track */
-  fileType: FileType
+  fileType: number
   /** The bitrate of the trackk */
   bitrate?: number
   /** The bit depth of the track */
@@ -841,7 +841,7 @@ export interface DjmdContent {
   /** An optional string representing comments about the track. */
   commnt?: string
   /** An optional integer representing the file type of the track. */
-  fileType: FileType
+  fileType: number
   /** An optional integer representing the rating of the track. */
   rating?: number
   /** An optional integer representing the release year of the track. */
@@ -2017,6 +2017,12 @@ export interface DjmdSort {
   disable: number
 }
 
+/**
+ * Known file type constants for Rekordbox tracks.
+ *
+ * The field itself is stored as a plain `i32` to allow unknown values.
+ * Use these constants for comparison with known types.
+ */
 export declare const enum FileType {
   MP3 = 0,
   MP3_2 = 1,

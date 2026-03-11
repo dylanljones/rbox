@@ -126,7 +126,7 @@ pub struct DjmdContent {
     /// An optional string representing comments about the track.
     pub commnt: Option<String>,
     /// An optional integer representing the file type of the track.
-    pub file_type: FileType,
+    pub file_type: i32,
     /// An optional integer representing the rating of the track.
     pub rating: Option<i32>,
     /// An optional integer representing the release year of the track.
@@ -556,7 +556,7 @@ impl ModelInsert for NewDjmdContent {
             folder_path: Some(rb_path_str.to_string()),
             file_name_l: Some(file_name.clone()),
             file_name_s: Some("".to_string()),
-            file_type,
+            file_type: file_type as i32,
             master_db_id: Some(db_id),
             master_song_id: Some(id),
             file_size: Some(file_size as i32),
