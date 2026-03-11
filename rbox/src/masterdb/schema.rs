@@ -343,7 +343,7 @@ diesel::table! {
         #[sql_name = "DisableQuantize"]
         disable_quantize -> Nullable<Integer>,
         #[sql_name = "Analysed"]
-        analysed -> Integer,
+        analysed -> Nullable<Integer>,
         #[sql_name = "ReleaseDate"]
         release_date -> Nullable<Text>,
         #[sql_name = "DateCreated"]

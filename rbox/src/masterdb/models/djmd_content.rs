@@ -168,7 +168,7 @@ pub struct DjmdContent {
     /// An optional integer indicating whether quantization is disabled for the track.
     pub disable_quantize: Option<i32>,
     /// An optional integer indicating whether the track has been analyzed.
-    pub analysed: Analyzed,
+    pub analysed: Option<i32>,
     /// An optional string representing the release date of the track.
     pub release_date: Option<String>,
     /// An optional string representing the creation date of the track.
@@ -596,6 +596,7 @@ impl ModelInsert for NewDjmdContent {
             tag: self.tag,
             lyricist: self.lyricist,
             isrc: self.isrc,
+            analysed: Some(Analyzed::NotAnalyzed as i32),
             ..Default::default()
         };
         diesel::insert_into(djmdContent::table)

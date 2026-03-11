@@ -675,7 +675,7 @@ class DjmdContent(_RustMutableMapping):
     """An optional integer representing the sample rate of the track."""
     disable_quantize: Optional[int]
     """An optional integer indicating whether quantization is disabled for the track."""
-    analysed: Analyzed
+    analysed: Optional[int]
     """An optional integer indicating whether the track has been analyzed."""
     release_date: Optional[str]
     """An optional string representing the release date of the track."""

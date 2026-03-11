@@ -883,7 +883,7 @@ export interface DjmdContent {
   /** An optional integer indicating whether quantization is disabled for the track. */
   disableQuantize?: number
   /** An optional integer indicating whether the track has been analyzed. */
-  analysed: Analyzed
+  analysed?: number
   /** An optional string representing the release date of the track. */
   releaseDate?: string
   /** An optional string representing the creation date of the track. */

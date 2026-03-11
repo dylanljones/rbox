@@ -5,8 +5,8 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput, Fields, Type};
 
-const ENUMS: [&str; 7] = [
-    "Analyzed",
+const ENUMS: [&str; 6] = [
+    // "Analyzed",
     "HistoryType",
     "HotCueBanklistType",
     "MyTagType",
