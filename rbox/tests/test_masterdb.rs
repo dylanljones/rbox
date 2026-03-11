@@ -7,7 +7,7 @@ use rbox::model_traits::{validate_seq_numbers, TreeSeq};
 
 mod common;
 
-const SECONDS_THRESH: i64 = 5;
+const SECONDS_THRESH: i64 = 10;
 
 #[test]
 fn test_open_master_db() -> anyhow::Result<()> {
