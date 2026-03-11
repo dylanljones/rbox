@@ -2031,7 +2031,8 @@ export declare const enum FileType {
   FLAC = 5,
   M4A = 6,
   WAV = 11,
-  AIFF = 12
+  AIFF = 12,
+  StreamApple = 26
 }
 
 /**
