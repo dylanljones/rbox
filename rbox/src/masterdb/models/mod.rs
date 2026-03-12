@@ -43,7 +43,7 @@ use diesel::serialize::{IsNull, Output, Result as SResult, ToSql};
 use diesel::sql_types::Text;
 use diesel::{AsExpression, FromSqlRow};
 use rand::rngs::ThreadRng;
-use rand::RngCore;
+use rand::Rng;
 
 use super::schema;
 use crate::error::{Error, Result};
