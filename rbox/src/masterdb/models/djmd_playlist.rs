@@ -306,6 +306,25 @@ impl DjmdPlaylist {
             .load(conn)
     }
 
+    /// Loads the `djmdContent` rows whose IDs are produced by a smart-list query.
+    ///
+    /// Smart playlists have no explicit [`DjmdSongPlaylist`] entries; their contents are
+    /// evaluated dynamically from the stored conditions. `sql` is expected to select the
+    /// matching content IDs aliased as `id` (see [`crate::SmartList::build_content_id_sql`]).
+    pub fn get_smart_contents(
+        conn: &mut SqliteConnection,
+        sql: &str,
+    ) -> QueryResult<Vec<DjmdContent>> {
+        let rows: Vec<SmartContentId> = diesel::sql_query(sql).load(conn)?;
+        let ids: Vec<String> = rows.into_iter().map(|row| row.id).collect();
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        DjmdContent::query()
+            .filter(djmdContent::id.eq_any(&ids))
+            .load(conn)
+    }
+
     /// Returns the playlist type (`attribute`) of a record in the `djmdPlaylist` table or `None` if not found.
     pub fn get_attribute(
         conn: &mut SqliteConnection,
