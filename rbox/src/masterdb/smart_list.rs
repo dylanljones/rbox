@@ -367,14 +367,17 @@ impl SmartList {
         self.add_condition(condition);
     }
 
-    pub fn build_sql(&self) -> Result<String> {
-        let mut sql = "SELECT * FROM djmdContent".to_string();
+    fn build_query(&self, select: &str) -> Result<String> {
+        let mut sql = format!("SELECT {} FROM djmdContent", select);
         let (joins, filters) = build_clauses(&self.conditions)?;
 
-        // Add joins
-        let unique_joins: HashSet<String> = joins.into_iter().collect();
-        for join in unique_joins {
-            sql.push_str(&format!(" LEFT JOIN {}", join));
+        // Add joins, de-duplicating while preserving insertion order. Order matters for
+        // multi-hop joins (e.g. album artist joins `djmdAlbum` first, then `djmdArtist`).
+        let mut seen_joins: HashSet<String> = HashSet::new();
+        for join in joins {
+            if seen_joins.insert(join.clone()) {
+                sql.push_str(&format!(" LEFT JOIN {}", join));
+            }
         }
 
         // Add filters
@@ -395,10 +398,35 @@ impl SmartList {
         }
         Ok(sql)
     }
+
+    pub fn build_sql(&self) -> Result<String> {
+        self.build_query("*")
+    }
+
+    /// Build a SQL query selecting the IDs of the matching `djmdContent` rows.
+    ///
+    /// The ID column is aliased as `id` so the result can be loaded into a
+    /// `QueryableByName` helper struct. The IDs are then used to fetch the actual
+    /// [`crate::DjmdContent`] rows, which makes smart playlists behave like regular
+    /// playlists when querying their contents.
+    pub fn build_content_id_sql(&self) -> Result<String> {
+        self.build_query("DISTINCT djmdContent.ID AS id")
+    }
+}
+
+fn escape(value: &str) -> String {
+    value.replace('\'', "''")
+}
+
+fn unsupported_operator(condition: &Condition) -> Error {
+    Error::Error(format!(
+        "Unsupported operator {:?} for property {:?}",
+        condition.operator, condition.property
+    ))
 }
 
 fn build_string_filter(column: &str, condition: &Condition) -> Result<String> {
-    let value = condition.left.replace("'", "''"); // Escape single quotes
+    let value = escape(&condition.left);
     match condition.operator {
         Operator::Equal => Ok(format!("{} = '{}'", column, value)),
         Operator::NotEqual => Ok(format!("{} != '{}'", column, value)),
@@ -406,38 +434,110 @@ fn build_string_filter(column: &str, condition: &Condition) -> Result<String> {
         Operator::NotContains => Ok(format!("{} NOT LIKE '%{}%'", column, value)),
         Operator::StartsWith => Ok(format!("{} LIKE '{}%'", column, value)),
         Operator::EndsWith => Ok(format!("{} LIKE '%{}'", column, value)),
-        _ => Err(Error::Error(format!(
-            "Unsupported operator {:?} for {}",
-            condition.operator, column
-        ))),
+        _ => Err(unsupported_operator(condition)),
     }
 }
 
 fn build_number_filter(column: &str, condition: &Condition) -> Result<String> {
+    let left = escape(&condition.left);
+    let right = escape(&condition.right);
     match condition.operator {
-        Operator::Equal => Ok(format!("{} = '{}'", column, condition.left)),
-        Operator::NotEqual => Ok(format!("{} != '{}'", column, condition.left)),
-        Operator::Greater => Ok(format!("{} > '{}'", column, condition.left)),
-        Operator::Less => Ok(format!("{} < '{}'", column, condition.left)),
+        Operator::Equal => Ok(format!("{} = '{}'", column, left)),
+        Operator::NotEqual => Ok(format!("{} != '{}'", column, left)),
+        Operator::Greater => Ok(format!("{} > '{}'", column, left)),
+        Operator::Less => Ok(format!("{} < '{}'", column, left)),
         Operator::InRange => Ok(format!(
-            "{} > '{}' AND {} < {}",
-            column, condition.left, column, condition.right
+            "{} >= '{}' AND {} <= '{}'",
+            column, left, column, right
         )),
-        _ => Err(Error::Error(format!(
-            "Unsupported operator {:?} for {:?}",
-            condition.operator, condition.property
-        ))),
+        _ => Err(unsupported_operator(condition)),
     }
 }
 
-fn build_grouping_filter(condition: &Condition) -> Result<String> {
+fn build_grouping_filter(column: &str, condition: &Condition) -> Result<String> {
+    let value = escape(&condition.left);
     match condition.operator {
-        Operator::Equal => Ok(format!("ColorID = '{}'", condition.left)),
-        Operator::NotEqual => Ok(format!("ColorID != '{}'", condition.left)),
-        _ => Err(Error::Error(format!(
-            "Unsupported operator {:?} for {:?}",
-            condition.operator, condition.property
-        ))),
+        Operator::Equal => Ok(format!("{} = '{}'", column, value)),
+        Operator::NotEqual => Ok(format!("{} != '{}'", column, value)),
+        _ => Err(unsupported_operator(condition)),
+    }
+}
+
+/// Comparisons are done on the `YYYY-MM-DD` prefix of the column so that both pure date
+/// columns (e.g. `StockDate`) and datetime columns (e.g. `created_at`) behave the same. The
+/// `InLast`/`NotInLast` operators compare against a threshold relative to the current date.
+fn build_date_filter(column: &str, condition: &Condition) -> Result<String> {
+    let date_col = format!("substr({}, 1, 10)", column);
+    let left = escape(&condition.left);
+    let right = escape(&condition.right);
+    match condition.operator {
+        Operator::Equal => Ok(format!("{} = '{}'", date_col, left)),
+        Operator::NotEqual => Ok(format!("{} != '{}'", date_col, left)),
+        Operator::Greater => Ok(format!("{} > '{}'", date_col, left)),
+        Operator::Less => Ok(format!("{} < '{}'", date_col, left)),
+        Operator::InRange => Ok(format!(
+            "{} >= '{}' AND {} <= '{}'",
+            date_col, left, date_col, right
+        )),
+        Operator::InLast => Ok(format!(
+            "{} >= date('now', '{}')",
+            date_col,
+            date_modifier(condition)?
+        )),
+        Operator::NotInLast => Ok(format!(
+            "{} < date('now', '{}')",
+            date_col,
+            date_modifier(condition)?
+        )),
+        _ => Err(unsupported_operator(condition)),
+    }
+}
+
+/// Builds a SQLite date modifier (e.g. `-7 days`) for an `InLast`/`NotInLast` condition.
+fn date_modifier(condition: &Condition) -> Result<String> {
+    let amount: i64 = condition.left.trim().parse().map_err(|_| {
+        Error::Error(format!(
+            "Invalid numeric value {:?} for property {:?}",
+            condition.left, condition.property
+        ))
+    })?;
+    let modifier = match condition.unit.trim().to_lowercase().as_str() {
+        "day" | "days" => format!("-{} days", amount),
+        "week" | "weeks" => format!("-{} days", amount * 7),
+        "month" | "months" => format!("-{} months", amount),
+        "year" | "years" => format!("-{} years", amount),
+        // Fall back to days for unknown units so the query still returns results.
+        _ => format!("-{} days", amount),
+    };
+    Ok(modifier)
+}
+
+/// My tags are stored in the many-to-many `djmdSongMyTag` table and referenced by tag ID.
+/// Rekordbox encodes the ID as a signed 32-bit value, so negative values are normalised back
+/// to their unsigned form before matching.
+fn build_mytag_filter(condition: &Condition) -> Result<String> {
+    let tag_id = normalize_mytag_id(&condition.left);
+    let subquery = format!(
+        "SELECT djmdSongMyTag.ContentID FROM djmdSongMyTag WHERE djmdSongMyTag.MyTagID = '{}'",
+        escape(&tag_id)
+    );
+    match condition.operator {
+        // "has tag" variants
+        Operator::Equal | Operator::Contains | Operator::StartsWith | Operator::EndsWith => {
+            Ok(format!("djmdContent.ID IN ({})", subquery))
+        }
+        // "does not have tag" variants
+        Operator::NotEqual | Operator::NotContains => {
+            Ok(format!("djmdContent.ID NOT IN ({})", subquery))
+        }
+        _ => Err(unsupported_operator(condition)),
+    }
+}
+
+fn normalize_mytag_id(value: &str) -> String {
+    match value.trim().parse::<i64>() {
+        Ok(num) if num < 0 => right_bitshift(num).to_string(),
+        _ => value.trim().to_string(),
     }
 }
 
@@ -448,84 +548,95 @@ fn build_clauses(conditions: &Vec<Condition>) -> Result<(Vec<String>, Vec<String
         println!("{:#?}", condition);
         match condition.property {
             Property::Artist => {
-                joins.push("djmdArtist ON djmdContent.ArtistID = djmdArtist.ID".into());
-                filters.push(build_string_filter("djmdArtist.Name", condition)?);
+                joins.push("djmdArtist AS sl_artist ON djmdContent.ArtistID = sl_artist.ID".into());
+                filters.push(build_string_filter("sl_artist.Name", condition)?);
             }
             Property::Album => {
-                joins.push("djmdAlbum ON djmdContent.AlbumID = djmdAlbum.ID".into());
-                filters.push(build_string_filter("djmdAlbum.Name", condition)?);
+                joins.push("djmdAlbum AS sl_album ON djmdContent.AlbumID = sl_album.ID".into());
+                filters.push(build_string_filter("sl_album.Name", condition)?);
             }
             Property::AlbumArtist => {
-                todo!()
+                joins.push(
+                    "djmdAlbum AS sl_aa_album ON djmdContent.AlbumID = sl_aa_album.ID".into(),
+                );
+                joins.push(
+                    "djmdArtist AS sl_album_artist ON sl_aa_album.AlbumArtistID = sl_album_artist.ID"
+                        .into(),
+                );
+                filters.push(build_string_filter("sl_album_artist.Name", condition)?);
             }
             Property::OriginalArtist => {
-                joins.push("djmdArtist ON djmdContent.OrgArtistID = djmdArtist.ID".into());
-                filters.push(build_string_filter("djmdArtist.Name", condition)?);
+                joins.push(
+                    "djmdArtist AS sl_org_artist ON djmdContent.OrgArtistID = sl_org_artist.ID"
+                        .into(),
+                );
+                filters.push(build_string_filter("sl_org_artist.Name", condition)?);
             }
             Property::BPM => {
-                filters.push(build_string_filter("djmdArtist.Name", condition)?);
+                filters.push(build_number_filter("djmdContent.BPM", condition)?);
             }
             Property::Grouping => {
-                filters.push(build_grouping_filter(condition)?);
+                filters.push(build_grouping_filter("djmdContent.ColorID", condition)?);
             }
             Property::Comments => {
-                filters.push(build_string_filter("Commnt", condition)?);
+                filters.push(build_string_filter("djmdContent.Commnt", condition)?);
             }
             Property::Producer => {
-                joins.push("djmdArtist ON djmdContent.ComposerID = djmdAlbum.ID".into());
-                filters.push(build_string_filter("djmdArtist.Name", condition)?);
+                joins.push(
+                    "djmdArtist AS sl_composer ON djmdContent.ComposerID = sl_composer.ID".into(),
+                );
+                filters.push(build_string_filter("sl_composer.Name", condition)?);
             }
             Property::StockDate => {
-                todo!()
+                filters.push(build_date_filter("djmdContent.StockDate", condition)?);
             }
             Property::DateCreated => {
-                todo!()
+                filters.push(build_date_filter("djmdContent.created_at", condition)?);
             }
             Property::Counter => {
-                filters.push(build_number_filter("DJPlayCount", condition)?);
+                filters.push(build_number_filter("djmdContent.DJPlayCount", condition)?);
             }
             Property::Filename => {
-                filters.push(build_string_filter("FileNameL", condition)?);
+                filters.push(build_string_filter("djmdContent.FileNameL", condition)?);
             }
             Property::Genre => {
-                joins.push("djmdGenre ON djmdContent.GenreID = djmdGenre.ID".into());
-                filters.push(build_string_filter("djmdGenre.Name", condition)?);
+                joins.push("djmdGenre AS sl_genre ON djmdContent.GenreID = sl_genre.ID".into());
+                filters.push(build_string_filter("sl_genre.Name", condition)?);
             }
             Property::Key => {
-                joins.push("djmdKey ON djmdContent.KeyID = djmdKey.ID".into());
-                filters.push(build_string_filter("djmdKey.ScaleName", condition)?);
+                joins.push("djmdKey AS sl_key ON djmdContent.KeyID = sl_key.ID".into());
+                filters.push(build_string_filter("sl_key.ScaleName", condition)?);
             }
             Property::Label => {
-                joins.push("djmdLabel ON djmdContent.LabelID = djmdLabel.ID".into());
-                filters.push(build_string_filter("djmdLabel.Name", condition)?);
+                joins.push("djmdLabel AS sl_label ON djmdContent.LabelID = sl_label.ID".into());
+                filters.push(build_string_filter("sl_label.Name", condition)?);
             }
             Property::MixName => {
-                // MixName is not a direct property in djmdContent, so we skip it
-                return Err(Error::Error(
-                    "MixName is not supported in smart lists".into(),
-                ));
+                // `mixName` has no known column mapping in the Rekordbox database.
             }
             Property::MyTag => {
-                todo!()
+                filters.push(build_mytag_filter(condition)?);
             }
             Property::Rating => {
-                filters.push(build_number_filter("Rating", condition)?);
+                filters.push(build_number_filter("djmdContent.Rating", condition)?);
             }
             Property::DateReleased => {
-                todo!()
+                filters.push(build_date_filter("djmdContent.ReleaseDate", condition)?);
             }
             Property::Remixer => {
-                joins.push("djmdArtist ON djmdContent.RemixerID = djmdArtist.ID".into());
-                filters.push(build_string_filter("djmdArtist.Name", condition)?);
+                joins.push(
+                    "djmdArtist AS sl_remixer ON djmdContent.RemixerID = sl_remixer.ID".into(),
+                );
+                filters.push(build_string_filter("sl_remixer.Name", condition)?);
             }
             Property::Duration => {
-                filters.push(build_number_filter("Length", condition)?);
+                filters.push(build_number_filter("djmdContent.Length", condition)?);
             }
             Property::Name => {
-                filters.push(build_string_filter("Title", condition)?);
+                filters.push(build_string_filter("djmdContent.Title", condition)?);
             }
             Property::Year => {
-                filters.push(build_number_filter("ReleaseYear", condition)?);
+                filters.push(build_number_filter("djmdContent.ReleaseYear", condition)?);
             }
         }
     }

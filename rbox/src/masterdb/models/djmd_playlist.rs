@@ -91,6 +91,15 @@ pub struct DjmdPlaylist {
     pub smart_list: Option<String>,
 }
 
+/// Helper for loading the content IDs returned by a smart-list query via `sql_query`.
+///
+/// The smart-list SQL selects `djmdContent.ID AS id`, which is loaded into this struct.
+#[derive(QueryableByName)]
+struct SmartContentId {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    id: String,
+}
+
 impl Model for DjmdPlaylist {
     type Id = str;
 
