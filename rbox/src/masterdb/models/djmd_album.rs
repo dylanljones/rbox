@@ -258,8 +258,17 @@ impl NewDjmdAlbum {
     }
 
     /// Inserts the new album or returns an existing record if an album with the same name already exists.
+    /// When an album artist is supplied, the artist must match as well.
+    /// Without an artist, retains the name-only lookup behavior.
     pub fn insert_if_not_exists(self, conn: &mut SqliteConnection) -> QueryResult<DjmdAlbum> {
-        match DjmdAlbum::find_by_name(conn, &self.name)? {
+        let mut query = DjmdAlbum::query()
+            .filter(djmdAlbum::name.eq(&self.name))
+            .into_boxed();
+        if let Some(artist_id) = &self.album_artist_id {
+            query = query.filter(djmdAlbum::album_artist_id.eq(artist_id));
+        }
+        let existing = query.first(conn).optional()?;
+        match existing {
             Some(e) => Ok(e),
             None => self.insert(conn),
         }

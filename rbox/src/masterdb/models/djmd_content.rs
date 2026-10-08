@@ -528,17 +528,31 @@ impl ModelInsert for NewDjmdContent {
             return Err(e);
         }
 
-        let id = Self::Model::generate_id(conn)?;
-        let file_id = Self::Model::generate_file_id(conn)?;
-        let uuid = Uuid::new_v4().to_string();
-        let usn = AgentRegistry::increment_local_usn(conn)?;
-        let now = Utc::now();
-        // get file meta
-        let meta = std::fs::metadata(&rb_path).expect("Failed to get file metadata");
+        // Validate input and read metadata before changing the local registry.
+        let invalid_input = |message: String| {
+            Error::SerializationError(Box::new(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                message,
+            )))
+        };
+        let ext = path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .ok_or_else(|| {
+                invalid_input(format!(
+                    "Missing or invalid file extension: {}",
+                    rb_path_str
+                ))
+            })?;
+        let file_type = FileType::try_from_extension(ext).map_err(invalid_input)?;
+        let file_name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .ok_or_else(|| invalid_input(format!("Invalid file name: {}", rb_path_str)))?
+            .to_string();
+        let meta =
+            std::fs::metadata(&rb_path).map_err(|err| Error::SerializationError(Box::new(err)))?;
         let file_size: u64 = meta.len();
-        let ext: &str = path.extension().unwrap().to_str().unwrap();
-        let file_type = FileType::try_from_extension(ext).expect("Failed to get file type");
-        let file_name = path.file_name().unwrap().to_str().unwrap().to_string();
         let db_id = DjmdDevice::master_db_id(conn)?;
         // TODO: No clue what content link should be, for now we just choose the last value used
         let content_link = djmdContent::table
@@ -546,6 +560,12 @@ impl ModelInsert for NewDjmdContent {
             .order(djmdContent::rb_local_usn.desc())
             .limit(1)
             .first(conn)?;
+
+        let id = Self::Model::generate_id(conn)?;
+        let file_id = Self::Model::generate_file_id(conn)?;
+        let uuid = Uuid::new_v4().to_string();
+        let usn = AgentRegistry::increment_local_usn(conn)?;
+        let now = Utc::now();
 
         let item = Self::Model {
             id: id.clone(),

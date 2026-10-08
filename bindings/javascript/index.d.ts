@@ -2024,14 +2024,16 @@ export interface DjmdSort {
  * Use these constants for comparison with known types.
  */
 export declare const enum FileType {
-  MP3 = 0,
-  MP3_2 = 1,
+  /** Content that rekordbox could not read; this is a known on-disk code. */
+  INVALID = 0,
+  MP3 = 1,
   MP4 = 3,
-  ALAC = 4,
+  M4A = 4,
   FLAC = 5,
-  M4A = 6,
+  ALAC = 6,
   WAV = 11,
   AIFF = 12,
+  VIDEO = 16,
   StreamApple = 26
 }
 

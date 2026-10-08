@@ -136,8 +136,8 @@ class RekordboxOptions:
 # ---- Enums ----------------------------------------------------------------------------------------
 
 class FileType(enum.IntEnum):
+    INVALID: FileType
     MP3: FileType
-    MP3_2: FileType
     MP4: FileType
     ALAC: FileType
     FLAC: FileType
@@ -145,6 +145,9 @@ class FileType(enum.IntEnum):
     WAV: FileType
     AIFF: FileType
     StreamApple: FileType
+    VIDEO: FileType
+    AAC: FileType
+    AIF: FileType
 
     def __int__(self) -> int: ...
     def __repr__(self) -> str: ...

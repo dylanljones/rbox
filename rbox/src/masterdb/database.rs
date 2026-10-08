@@ -1287,7 +1287,10 @@ impl MasterDb {
     ) -> Result<DjmdContent> {
         self.assert_write_mode()?;
         let mut conn = self.pool.get()?;
-        let path = Path::new(&path).as_os_str().to_str().unwrap().to_string();
+        let path = Path::new(&path)
+            .to_str()
+            .ok_or_else(|| Error::Database("Content path is not valid UTF-8".into()))?
+            .to_string();
         let item = NewDjmdContent::new(path);
         Ok(item.insert(&mut conn)?)
     }
