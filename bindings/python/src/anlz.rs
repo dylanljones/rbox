@@ -59,6 +59,7 @@ impl IntoPy<PyBeatGrid> for BeatGrid {
 pub struct PyExtendedBeatGrid {
     pub bpm: Vec<Py<PyBeat>>,
     pub beats: Vec<Py<PyExtBeat>>,
+    pub version: u32,
 }
 
 impl IntoPy<PyExtendedBeatGrid> for ExtendedBeatGrid {
@@ -72,7 +73,11 @@ impl IntoPy<PyExtendedBeatGrid> for ExtendedBeatGrid {
             beats.push(Py::new(py, item.clone().into_py(py)?)?)
         }
 
-        let model = PyExtendedBeatGrid { bpm, beats };
+        let model = PyExtendedBeatGrid {
+            version: self.version,
+            bpm,
+            beats,
+        };
         Ok(model)
     }
 }
@@ -126,7 +131,7 @@ impl IntoPy<PyExtendedCue> for ExtendedCue {
             cue_type: self.cue_type.into(),
             time: self.time,
             loop_time: self.loop_time,
-            color: self.color,
+            color: self.color.into(),
             loop_numerator: self.loop_numerator,
             loop_denominator: self.loop_denominator,
             comment: self.comment.to_string(),
@@ -182,11 +187,13 @@ impl IntoPy<PyExtendedCueList> for ExtendedCueList {
 #[pyclass(name = "TinyWaveformColumn", unsendable, get_all, set_all)]
 pub struct PyTinyWaveformColumn {
     pub height: u8,
+    pub unused: u8,
 }
 
 impl IntoPy<PyTinyWaveformColumn> for TinyWaveformColumn {
     fn into_py(self, _py: Python) -> PyResult<PyTinyWaveformColumn> {
         let model = PyTinyWaveformColumn {
+            unused: self.unused(),
             height: self.height(),
         };
         Ok(model)
@@ -299,11 +306,17 @@ pub struct PyWaveformColorDetailColumn {
     pub green: u8,
     pub blue: u8,
     pub height: u8,
+    pub low_bits: u8,
+    pub fine_height_substep: u8,
+    pub full_height: u8,
 }
 
 impl IntoPy<PyWaveformColorDetailColumn> for WaveformColorDetailColumn {
     fn into_py(self, _py: Python) -> PyResult<PyWaveformColorDetailColumn> {
         let model = PyWaveformColorDetailColumn {
+            low_bits: self.low_bits(),
+            fine_height_substep: self.fine_height_substep(),
+            full_height: self.full_height(),
             red: self.red(),
             green: self.green(),
             blue: self.blue(),
@@ -446,6 +459,41 @@ pub struct PyAnlz {
 
 #[pymethods]
 impl PyAnlz {
+    pub fn get_vbr(&mut self, py: Python) -> PyResult<Option<PyVBR>> {
+        self.anlz
+            .get_vbr()
+            .cloned()
+            .map(|value| value.into_py(py))
+            .transpose()
+    }
+
+    pub fn get_seek_index(&mut self, py: Python) -> PyResult<Option<PySeekIndex>> {
+        self.anlz
+            .get_seek_index()
+            .cloned()
+            .map(|value| value.into_py(py))
+            .transpose()
+    }
+
+    pub fn get_waveform_3band_calibration(
+        &mut self,
+        py: Python,
+    ) -> PyResult<Option<PyWaveform3BandCalibration>> {
+        self.anlz
+            .get_waveform_3band_calibration()
+            .cloned()
+            .map(|value| value.into_py(py))
+            .transpose()
+    }
+
+    pub fn get_vocal_detection(&mut self, py: Python) -> PyResult<Option<PyVocalDetection>> {
+        self.anlz
+            .get_vocal_detection()
+            .cloned()
+            .map(|value| value.into_py(py))
+            .transpose()
+    }
+
     #[new]
     pub fn new(path: &str) -> PyResult<Self> {
         let anlz = Anlz::load(path).map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?;
@@ -625,5 +673,94 @@ impl PyAnlz {
             return Ok(Some(data.clone().into_py(py)?));
         }
         Ok(None)
+    }
+}
+
+#[pyclass(name = "VBR", unsendable, get_all, set_all)]
+pub struct PyVBR {
+    pub u1: u32,
+    pub index: Vec<u32>,
+    pub u2: u32,
+}
+
+impl IntoPy<PyVBR> for VBR {
+    fn into_py(self, _py: Python) -> PyResult<PyVBR> {
+        Ok(PyVBR {
+            u1: self.u1,
+            index: self.index.to_vec(),
+            u2: self.u2,
+        })
+    }
+}
+
+#[pyclass(name = "SeekPoint", unsendable, get_all, set_all)]
+pub struct PySeekPoint {
+    pub sample: u64,
+    pub offset: u64,
+    pub frame_samples: u32,
+}
+
+impl IntoPy<PySeekPoint> for SeekPoint {
+    fn into_py(self, _py: Python) -> PyResult<PySeekPoint> {
+        Ok(PySeekPoint {
+            sample: self.sample,
+            offset: self.offset,
+            frame_samples: self.frame_samples,
+        })
+    }
+}
+
+#[pyclass(name = "SeekIndex", unsendable, get_all, set_all)]
+pub struct PySeekIndex {
+    pub u1: u32,
+    pub total_samples: u64,
+    pub entries: Vec<Py<PySeekPoint>>,
+}
+
+impl IntoPy<PySeekIndex> for SeekIndex {
+    fn into_py(self, py: Python) -> PyResult<PySeekIndex> {
+        Ok(PySeekIndex {
+            u1: self.u1,
+            total_samples: self.total_samples,
+            entries: self
+                .entries
+                .into_iter()
+                .map(|item| Py::new(py, item.into_py(py)?))
+                .collect::<PyResult<Vec<_>>>()?,
+        })
+    }
+}
+
+#[pyclass(name = "Waveform3BandCalibration", unsendable, get_all, set_all)]
+pub struct PyWaveform3BandCalibration {
+    pub low_gain: u16,
+    pub mid_gain: u16,
+    pub high_gain: u16,
+}
+
+impl IntoPy<PyWaveform3BandCalibration> for Waveform3BandCalibration {
+    fn into_py(self, _py: Python) -> PyResult<PyWaveform3BandCalibration> {
+        Ok(PyWaveform3BandCalibration {
+            low_gain: self.low_gain,
+            mid_gain: self.mid_gain,
+            high_gain: self.high_gain,
+        })
+    }
+}
+
+#[pyclass(name = "VocalDetection", unsendable, get_all, set_all)]
+pub struct PyVocalDetection {
+    pub u1: u32,
+    pub u2: u32,
+    pub confidence: Vec<u8>,
+}
+
+impl IntoPy<PyVocalDetection> for VocalDetection {
+    fn into_py(self, _py: Python) -> PyResult<PyVocalDetection> {
+        Ok(PyVocalDetection {
+            u1: self.u1,
+            u2: self.u2,
+            confidence: self.confidence,
+        })
     }
 }

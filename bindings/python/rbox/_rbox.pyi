@@ -3708,6 +3708,7 @@ class BeatGrid:
     beats: List[Beat]
 
 class ExtendedBeatGrid:
+    version: int
     bpm: List[Beat]
     beats: List[ExtBeat]
 
@@ -3743,6 +3744,7 @@ class ExtendedCueList:
     cues: List[ExtendedCue]
 
 class TinyWaveformColumn:
+    unused: int
     height: int
 
 class TinyWaveformPreview:
@@ -3768,6 +3770,9 @@ class WaveformColorPreview:
     data: List[WaveformColorPreviewColumn]
 
 class WaveformColorDetailColumn:
+    low_bits: int
+    fine_height_substep: int
+    full_height: int
     red: int
     green: int
     blue: int
@@ -3807,7 +3812,36 @@ class SongStructureData:
     bank: int
     phrases: List[Phrase]
 
+class VBR:
+    u1: int
+    index: List[int]
+    u2: int
+
+class SeekPoint:
+    sample: int
+    offset: int
+    frame_samples: int
+
+class SeekIndex:
+    u1: int
+    total_samples: int
+    entries: List[SeekPoint]
+
+class Waveform3BandCalibration:
+    low_gain: int
+    mid_gain: int
+    high_gain: int
+
+class VocalDetection:
+    u1: int
+    u2: int
+    confidence: List[int]
+
 class PyAnlz:
+    def get_vbr(self) -> Optional[VBR]: ...
+    def get_seek_index(self) -> Optional[SeekIndex]: ...
+    def get_waveform_3band_calibration(self) -> Optional[Waveform3BandCalibration]: ...
+    def get_vocal_detection(self) -> Optional[VocalDetection]: ...
     def __init__(self, path: str) -> "PyAnlz": ...
     def dump_copy(self, path: str) -> None: ...
     def dump(self) -> None: ...

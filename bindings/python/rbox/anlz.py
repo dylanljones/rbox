@@ -8,13 +8,17 @@ from pathlib import Path
 from typing import List, Optional, Union
 
 from ._rbox import (
+    VBR,
     BeatGrid,
     CueList,
     ExtendedBeatGrid,
     ExtendedCueList,
     PyAnlz as _PyAnlz,
+    SeekIndex,
     SongStructureData,
     TinyWaveformPreview,
+    VocalDetection,
+    Waveform3BandCalibration,
     Waveform3BandDetail,
     Waveform3BandPreview,
     WaveformColorDetail,
@@ -33,6 +37,9 @@ class TagType(Enum):
     ExtendedCueList = "ExtendedCueList"
     Path = "Path"
     VBR = "VBR"
+    SeekIndex = "SeekIndex"
+    VocalDetection = "VocalDetection"
+    Waveform3BandCalibration = "Waveform3BandCalibration"
     WaveformPreview = "WaveformPreview"
     TinyWaveformPreview = "TinyWaveformPreview"
     WaveformDetail = "WaveformDetail"
@@ -151,3 +158,15 @@ class Anlz:
 
     def get_song_structure(self) -> Optional[SongStructureData]:
         return self._anlz.get_song_structure()
+
+    def get_vbr(self) -> Optional[VBR]:
+        return self._anlz.get_vbr()
+
+    def get_seek_index(self) -> Optional[SeekIndex]:
+        return self._anlz.get_seek_index()
+
+    def get_waveform_3band_calibration(self) -> Optional[Waveform3BandCalibration]:
+        return self._anlz.get_waveform_3band_calibration()
+
+    def get_vocal_detection(self) -> Optional[VocalDetection]:
+        return self._anlz.get_vocal_detection()

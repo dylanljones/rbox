@@ -9,6 +9,7 @@ use modular_bitfield::prelude::*;
 use std::ffi::OsStr;
 
 use super::xor::XorStream;
+use super::AnlzString;
 use crate::error::{Error, Result};
 
 /// The tag of section.
@@ -26,9 +27,6 @@ pub enum AnlzTag {
     #[brw(magic = b"PQT2")]
     ExtendedBeatGrid,
     /// Either memory points and loops or hotcues and hot loops of the track.
-    ///
-    /// *Note:* Since the release of the Nexus 2 series, there also exists the `ExtendedCueList`
-    /// section which can carry additional information.
     #[brw(magic = b"PCOB")]
     CueList,
     /// Extended version of the `CueList` section (since Nexus 2 series).
@@ -46,6 +44,9 @@ pub enum AnlzTag {
     /// Seek information for variable bitrate files.
     #[brw(magic = b"PVBR")]
     VBR,
+    /// Frame seek index for FLAC tracks.
+    #[brw(magic = b"PVB2")]
+    SeekIndex,
     /// Fixed-width monochrome preview of the track waveform.
     #[brw(magic = b"PWAV")]
     WaveformPreview,
@@ -78,18 +79,19 @@ pub enum AnlzTag {
     /// Used in `.2EX` files.
     #[brw(magic = b"PWV7")]
     Waveform3BandDetail,
-    /*
-    /// Unknown Waveform data
+    /// Calibration data accompanying the three-band waveforms.
     ///
     /// Used in `.2EX` files.
     #[brw(magic = b"PWVC")]
-    WaveformUnknown,
-    */
+    Waveform3BandCalibration,
     /// Describes the structure of a sond (Intro, Chrous, Verse, etc.).
     ///
     /// Used in `.EXT` files.
     #[brw(magic = b"PSSI")]
     SongStructure,
+    /// Vocal-detection confidence data.
+    #[brw(magic = b"PVDI")]
+    VocalDetection,
     /// Unknown Kind.
     ///
     /// This allows handling files that contain unknown section types and allows to access later
@@ -110,6 +112,7 @@ impl AnlzTag {
             AnlzTag::Cue => "Cue".to_string(),
             AnlzTag::Path => "Path".to_string(),
             AnlzTag::VBR => "VBR".to_string(),
+            AnlzTag::SeekIndex => "SeekIndex".to_string(),
             AnlzTag::WaveformPreview => "WaveformPreview".to_string(),
             AnlzTag::TinyWaveformPreview => "TinyWaveformPreview".to_string(),
             AnlzTag::WaveformDetail => "WaveformDetail".to_string(),
@@ -117,7 +120,9 @@ impl AnlzTag {
             AnlzTag::WaveformColorDetail => "WaveformColorDetail".to_string(),
             AnlzTag::Waveform3BandPreview => "Waveform3BandPreview".to_string(),
             AnlzTag::Waveform3BandDetail => "Waveform3BandDetail".to_string(),
+            AnlzTag::Waveform3BandCalibration => "Waveform3BandCalibration".to_string(),
             AnlzTag::SongStructure => "SongStructure".to_string(),
+            AnlzTag::VocalDetection => "VocalDetection".to_string(),
             _ => format!("Unknown({:?})", self),
         }
     }
@@ -135,6 +140,7 @@ impl From<String> for AnlzTag {
             "Cue" => AnlzTag::Cue,
             "Path" => AnlzTag::Path,
             "VBR" => AnlzTag::VBR,
+            "SeekIndex" => AnlzTag::SeekIndex,
             "WaveformPreview" => AnlzTag::WaveformPreview,
             "TinyWaveformPreview" => AnlzTag::TinyWaveformPreview,
             "WaveformDetail" => AnlzTag::WaveformDetail,
@@ -142,6 +148,9 @@ impl From<String> for AnlzTag {
             "WaveformColorDetail" => AnlzTag::WaveformColorDetail,
             "Waveform3BandPreview" => AnlzTag::Waveform3BandPreview,
             "Waveform3BandDetail" => AnlzTag::Waveform3BandDetail,
+            "Waveform3BandCalibration" => AnlzTag::Waveform3BandCalibration,
+            "SongStructure" => AnlzTag::SongStructure,
+            "VocalDetection" => AnlzTag::VocalDetection,
             _ => panic!("Unknown tag type: {}", tag),
         }
     }
@@ -202,6 +211,7 @@ pub struct BeatGrid {
     #[bw(calc = 24)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Unknown field: Seems to always be `0`.
     #[br(temp)]
@@ -224,7 +234,7 @@ pub struct BeatGrid {
 
 impl SizedSection for BeatGrid {
     fn size(&self) -> u32 {
-        self.total_size
+        24 + self.beats.len() as u32 * 8
     }
 }
 
@@ -252,17 +262,15 @@ pub struct ExtendedBeatGrid {
     #[bw(calc = 56)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Padding: 4bytes.
     #[br(temp)]
     #[br(assert(pad1 == 0))]
     #[bw(calc = 0)]
     pad1: u32,
-    /// Unknown field: Seems to always be `0x01000002`.
-    #[br(temp)]
-    #[br(assert(u1 == 0x01000002))]
-    #[bw(calc = 0x01000002)]
-    u1: u32,
+    /// Observed version values include `0x01000002` and `0x02000002`.
+    pub version: u32,
     /// Padding: 4bytes.
     #[br(temp)]
     #[br(assert(pad2 == 0))]
@@ -270,6 +278,7 @@ pub struct ExtendedBeatGrid {
     pad2: u32,
     /// Two 'normal' beats for BPM
     #[br(count = 2)]
+    #[bw(assert(bpm.len() == 2))]
     pub bpm: Vec<Beat>,
     /// Number of beats
     #[br(temp)]
@@ -294,7 +303,7 @@ pub struct ExtendedBeatGrid {
 
 impl SizedSection for ExtendedBeatGrid {
     fn size(&self) -> u32 {
-        self.total_size
+        56 + self.beats.len() as u32 * 2
     }
 }
 
@@ -366,6 +375,7 @@ impl Into<u16> for CueStatus {
 #[brw(big)]
 pub struct Cue {
     /// Cue entry header.
+    #[br(assert(header.tag == AnlzTag::Cue && header.total_size == 56))]
     header: Header,
     /// Hot cue number.
     pub hot_cue: u32,
@@ -408,12 +418,73 @@ pub struct Cue {
     u7: u32,
 }
 
-/// A extended memory or hot cue (or loop).
+/// Indexed memory-cue colors. Unrecognized values are retained.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum ColorIndex {
+    #[brw(magic = 0u8)]
+    None,
+    #[brw(magic = 1u8)]
+    Pink,
+    #[brw(magic = 2u8)]
+    Red,
+    #[brw(magic = 3u8)]
+    Orange,
+    #[brw(magic = 4u8)]
+    Yellow,
+    #[brw(magic = 5u8)]
+    Green,
+    #[brw(magic = 6u8)]
+    Aqua,
+    #[brw(magic = 7u8)]
+    Blue,
+    #[brw(magic = 8u8)]
+    Purple,
+    Other(u8),
+}
+
+impl From<u8> for ColorIndex {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => Self::None,
+            1 => Self::Pink,
+            2 => Self::Red,
+            3 => Self::Orange,
+            4 => Self::Yellow,
+            5 => Self::Green,
+            6 => Self::Aqua,
+            7 => Self::Blue,
+            8 => Self::Purple,
+            value => Self::Other(value),
+        }
+    }
+}
+
+impl From<ColorIndex> for u8 {
+    fn from(value: ColorIndex) -> Self {
+        match value {
+            ColorIndex::None => 0,
+            ColorIndex::Pink => 1,
+            ColorIndex::Red => 2,
+            ColorIndex::Orange => 3,
+            ColorIndex::Yellow => 4,
+            ColorIndex::Green => 5,
+            ColorIndex::Aqua => 6,
+            ColorIndex::Blue => 7,
+            ColorIndex::Purple => 8,
+            ColorIndex::Other(value) => value,
+        }
+    }
+}
+
+/// An extended memory or hot cue (or loop).
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(big)]
 pub struct ExtendedCue {
     /// Cue entry header.
+    #[br(assert(header.tag == AnlzTag::ExtendedCue && header.total_size >= 48))]
+    #[bw(map = |header: &Header| { let mut h = header.clone(); h.total_size = self.size(); h })]
     header: Header,
     /// Hot cue number.
     pub hot_cue: u32,
@@ -436,7 +507,7 @@ pub struct ExtendedCue {
     /// Color assigned to this cue.
     ///
     /// Only used by memory cues, hot cues use a different value (see below).
-    pub color: u8,
+    pub color: ColorIndex,
     /// Unknown field.
     u3: u8,
     /// Unknown field.
@@ -447,13 +518,9 @@ pub struct ExtendedCue {
     pub loop_numerator: u16,
     /// Represents the loop size denominator (if this is a quantized loop).
     pub loop_denominator: u16,
-    /// Length of the comment string in bytes.
-    #[br(temp)]
-    #[bw(calc = (comment.len() as u32 + 1) * 2)]
-    len_comment: u32,
-    /// An UTF-16BE encoded string, followed by a trailing  `0x0000`.
-    #[br(assert((comment.len() as u32 + 1) * 2 == len_comment))]
-    pub comment: NullWideString,
+    /// A byte-length-prefixed UTF-16BE comment, retaining its original padding.
+    #[br(args(header.total_size - 48), parse_with = AnlzString::read_bounded)]
+    pub comment: AnlzString,
     /// Rekordbox hotcue color index.
     pub hot_cue_color_index: u8,
     /// Rekordbot hot cue color RGB value.
@@ -462,16 +529,15 @@ pub struct ExtendedCue {
     /// used to illuminate the RGB LEDs in a player that has loaded the cue. If not color is
     /// associated with this hot cue, the value is `(0, 0, 0)`.
     pub hot_cue_color_rgb: (u8, u8, u8),
-    /// Unknown field.
-    u6: u32,
-    /// Unknown field.
-    u7: u32,
-    /// Unknown field.
-    u8: u32,
-    /// Unknown field.
-    u9: u32,
-    /// Unknown field.
-    u10: u32,
+    /// Preserve the variable-length remainder of this cue entry.
+    #[br(count = header.total_size - 48 - comment.payload_byte_len())]
+    pub trailing_data: Vec<u8>,
+}
+
+impl ExtendedCue {
+    fn size(&self) -> u32 {
+        48 + self.comment.payload_byte_len() + self.trailing_data.len() as u32
+    }
 }
 
 /// List of cue points or loops.
@@ -487,6 +553,7 @@ pub struct CueList {
     #[bw(calc = 24)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// The types of cues (memory or hot) that this list contains.
     pub list_type: CueListType,
@@ -499,11 +566,8 @@ pub struct CueList {
     #[br(temp)]
     #[bw(calc = cues.len() as u16)]
     len_cues: u16,
-    /// Unknown field: Seems to always be `0xFFFFFFFF`
-    #[br(temp)]
-    #[br(assert(u2 == 0xFFFFFFFF))]
-    #[bw(calc = 0xFFFFFFFF)]
-    u2: u32,
+    /// Number of memory cues, or -1 when unspecified.
+    pub memory_count: i32,
     /// Cues
     #[br(count = usize::from(len_cues))]
     pub cues: Vec<Cue>,
@@ -511,7 +575,7 @@ pub struct CueList {
 
 impl SizedSection for CueList {
     fn size(&self) -> u32 {
-        self.total_size
+        24 + self.cues.len() as u32 * 56
     }
 }
 
@@ -530,6 +594,7 @@ pub struct ExtendedCueList {
     #[bw(calc = 20)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// The types of cues (memory or hot) that this list contains.
     pub list_type: CueListType,
@@ -549,7 +614,7 @@ pub struct ExtendedCueList {
 
 impl SizedSection for ExtendedCueList {
     fn size(&self) -> u32 {
-        self.total_size
+        20 + self.cues.iter().map(ExtendedCue::size).sum::<u32>()
     }
 }
 
@@ -568,6 +633,7 @@ pub struct Path {
     #[bw(calc = 16)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Length of the path field in bytes.
     #[br(temp)]
@@ -582,7 +648,7 @@ pub struct Path {
 
 impl SizedSection for Path {
     fn size(&self) -> u32 {
-        self.total_size
+        16 + (self.path.len() as u32 + 1) * 2
     }
 }
 
@@ -599,7 +665,7 @@ impl Path {
 
     pub fn set<P: AsRef<std::path::Path> + AsRef<OsStr>>(&mut self, path: P) {
         let p = std::path::Path::new(&path);
-        let string = NullWideString::from(p.as_os_str().to_str().unwrap());
+        let string = NullWideString::from(p.to_string_lossy().replace('\\', "/"));
         self.path = string.clone();
         self.total_size = ((string.len() as u32) + 1) * 2 + 16;
     }
@@ -607,31 +673,75 @@ impl Path {
 
 // -- VBR Tag -------------------------------------------------------------------------------------
 
-/// Variable bitrate tag (PVBR) containing seek information.
+/// Variable bitrate seek index (PVBR), used in `.DAT` files.
 ///
-/// Identifier: PVBR
-/// Used in `.DAT` files.
+/// The index contains exactly 400 big-endian values. The surrounding fields
+/// are retained because their meaning is not fully understood.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[brw(big)]
 pub struct VBR {
-    /// Length of the header data (including `kind`, `size` and `total_size`).
-    #[br(assert(header_size == 16))]
+    #[br(temp, assert(header_size == 16))]
+    #[bw(calc = 16u32)]
     header_size: u32,
-    /// Length of the section (including the header).
+    #[br(temp, assert(total_size == 1620))]
+    #[bw(calc = 1620u32)]
     total_size: u32,
-    /// Unknown field (apparently always `0`)
-    #[br(temp)]
-    #[br(assert(unknown == 0))]
-    #[bw(calc = 0)]
-    unknown: u32,
-    /// Unknown data.
-    #[br(count = total_size - header_size)]
-    pub data: Vec<u8>,
+    /// Unknown header value.
+    pub u1: u32,
+    /// Seek-index values in file order.
+    pub index: [u32; 400],
+    /// Unknown value following the index.
+    pub u2: u32,
 }
 
 impl SizedSection for VBR {
     fn size(&self) -> u32 {
-        self.total_size
+        1620
+    }
+}
+
+/// A frame entry in a PVB2 seek index.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[brw(big)]
+pub struct SeekPoint {
+    /// Sample position at which the encoded audio frame starts.
+    pub sample: u64,
+    /// Byte offset of the encoded audio frame in the audio file.
+    pub offset: u64,
+    /// Number of samples in the frame.
+    pub frame_samples: u32,
+}
+
+/// Frame seek index for FLAC tracks (PVB2).
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[brw(big)]
+pub struct SeekIndex {
+    #[br(temp, assert(header_size == 32))]
+    #[bw(calc = 32u32)]
+    header_size: u32,
+    #[br(temp, assert(total_size >= header_size))]
+    #[bw(calc = 32u32 + entries.len() as u32 * 20)]
+    total_size: u32,
+    /// Unknown header value.
+    pub u1: u32,
+    /// Total number of audio samples.
+    pub total_samples: u64,
+    #[br(temp, assert(u64::from(entry_count) * 20 == u64::from(total_size - header_size)))]
+    #[bw(calc = entries.len() as u32)]
+    entry_count: u32,
+    #[br(temp, assert(len_entry_bytes == 20))]
+    #[bw(calc = 20u32)]
+    len_entry_bytes: u32,
+    #[br(count = entry_count)]
+    pub entries: Vec<SeekPoint>,
+}
+
+impl SizedSection for SeekIndex {
+    fn size(&self) -> u32 {
+        32 + self.entries.len() as u32 * 20
     }
 }
 
@@ -643,10 +753,10 @@ impl SizedSection for VBR {
 #[br(big, map = Self::from_bytes)]
 #[bw(big, map = |x: &TinyWaveformColumn| x.into_bytes())]
 pub struct TinyWaveformColumn {
-    #[allow(dead_code)]
-    unused: B4,
-    /// Height of the Column in pixels.
+    /// Height of the column in pixels (0..=15).
     pub height: B4,
+    /// Unused upper nibble, preserved verbatim.
+    pub unused: B4,
 }
 
 impl Default for TinyWaveformColumn {
@@ -657,7 +767,7 @@ impl Default for TinyWaveformColumn {
 
 /// Smaller version of the fixed-width monochrome preview of the track waveform.
 ///
-/// Identifier: PWAV
+/// Identifier: PWV2
 /// Used in `.DAT` files.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -668,6 +778,7 @@ pub struct TinyWaveformPreview {
     #[bw(calc = 20)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Unknown field.
     #[br(temp)]
@@ -686,7 +797,7 @@ pub struct TinyWaveformPreview {
 
 impl SizedSection for TinyWaveformPreview {
     fn size(&self) -> u32 {
-        self.total_size
+        20 + self.data.len() as u32
     }
 }
 
@@ -706,7 +817,7 @@ pub struct WaveformColumn {
 
 /// Fixed-width monochrome preview of the track waveform.
 ///
-/// Identifier: PWV2
+/// Identifier: PWAV
 /// Used in `.DAT` files.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -717,6 +828,7 @@ pub struct WaveformPreview {
     #[bw(calc = 20)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Unknown field.
     #[br(temp)]
@@ -735,7 +847,7 @@ pub struct WaveformPreview {
 
 impl SizedSection for WaveformPreview {
     fn size(&self) -> u32 {
-        self.total_size
+        20 + self.data.len() as u32
     }
 }
 
@@ -752,6 +864,7 @@ pub struct WaveformDetail {
     #[bw(calc = 24)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Size of a single entry, always 1.
     #[br(temp)]
@@ -778,7 +891,7 @@ pub struct WaveformDetail {
 
 impl SizedSection for WaveformDetail {
     fn size(&self) -> u32 {
-        self.total_size
+        24 + self.data.len() as u32
     }
 }
 
@@ -816,6 +929,7 @@ pub struct WaveformColorPreview {
     #[bw(calc = 24)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Size of a single entry, always 6.
     #[br(temp)]
@@ -842,7 +956,7 @@ pub struct WaveformColorPreview {
 
 impl SizedSection for WaveformColorPreview {
     fn size(&self) -> u32 {
-        self.total_size
+        24 + self.data.len() as u32 * 6
     }
 }
 
@@ -851,20 +965,34 @@ impl SizedSection for WaveformColorPreview {
 /// Single Column value in a Waveform Color Detail section.
 #[bitfield]
 #[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
-#[br(map = Self::from_bytes)]
-#[bw(big, map = |x: &WaveformColorDetailColumn| x.into_bytes())]
+#[br(big, map = |value: u16| Self::from_bytes(value.to_le_bytes()))]
+#[bw(big, map = |x: &WaveformColorDetailColumn| u16::from_le_bytes(x.into_bytes()))]
 pub struct WaveformColorDetailColumn {
-    /// Red color component.
-    pub red: B3,
-    /// Green color component.
-    pub green: B3,
-    /// Blue color component.
-    pub blue: B3,
+    /// Fine-height bits in their original on-disk order.
+    pub low_bits: B2,
     /// Height of the column.
     pub height: B5,
-    /// Unknown field
-    #[allow(dead_code)]
-    unknown: B2,
+    /// Blue color component.
+    pub blue: B3,
+    /// Green color component.
+    pub green: B3,
+    /// Red color component.
+    pub red: B3,
+}
+
+impl WaveformColorDetailColumn {
+    /// Fine-height substep using the significance ordering reported by rekordcrate.
+    ///
+    /// The two low wire bits are reversed before combining with the coarse height.
+    pub fn fine_height_substep(&self) -> u8 {
+        let bits = self.low_bits();
+        ((bits & 1) << 1) | ((bits >> 1) & 1)
+    }
+
+    /// Seven-bit height combining the coarse height and fine substep.
+    pub fn full_height(&self) -> u8 {
+        (self.height() << 2) | self.fine_height_substep()
+    }
 }
 
 /// Variable-width large colored version of the track waveform.
@@ -880,6 +1008,7 @@ pub struct WaveformColorDetail {
     #[bw(calc = 24)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Size of a single entry, always 2.
     #[br(temp)]
@@ -892,9 +1021,6 @@ pub struct WaveformColorDetail {
     #[br(assert((len_entry_bytes * len_entries) == total_size - header_size))]
     len_entries: u32,
     /// Unknown field (apparently always `0x00960305`)
-    #[br(temp)]
-    #[br(assert(unknown == 0x00960305))]
-    #[bw(calc = 0x00960305)]
     unknown: u32,
     /// Waveform detail column data.
     #[br(count = len_entries)]
@@ -903,7 +1029,7 @@ pub struct WaveformColorDetail {
 
 impl SizedSection for WaveformColorDetail {
     fn size(&self) -> u32 {
-        self.total_size
+        24 + self.data.len() as u32 * 2
     }
 }
 
@@ -915,12 +1041,12 @@ impl SizedSection for WaveformColorDetail {
 #[br(map = Self::from_bytes)]
 #[bw(big, map = |x: &Waveform3BandColumn| x.into_bytes())]
 pub struct Waveform3BandColumn {
-    /// Mid-range component (amber).
-    pub mid: B8,
-    /// High frequencies (white).
-    pub high: B8,
-    /// Low frequencies (dark blue).
+    /// Low frequencies (dark blue), first byte on disk.
     pub low: B8,
+    /// Mid-range component (amber), second byte on disk.
+    pub mid: B8,
+    /// High frequencies (white), third byte on disk.
+    pub high: B8,
 }
 
 /// Fixed-width three-band preview of the track waveform.
@@ -936,6 +1062,7 @@ pub struct Waveform3BandPreview {
     #[bw(calc = 20)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Size of a single entry, always 3.
     #[br(temp)]
@@ -954,7 +1081,7 @@ pub struct Waveform3BandPreview {
 
 impl SizedSection for Waveform3BandPreview {
     fn size(&self) -> u32 {
-        self.total_size
+        20 + self.data.len() as u32 * 3
     }
 }
 
@@ -971,6 +1098,7 @@ pub struct Waveform3BandDetail {
     #[bw(calc = 24)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Size of a single entry, always 2.
     #[br(temp)]
@@ -983,9 +1111,6 @@ pub struct Waveform3BandDetail {
     #[br(assert((len_entry_bytes * len_entries) == total_size - header_size))]
     len_entries: u32,
     /// Unknown field (apparently always `0x00960000`)
-    #[br(temp)]
-    #[br(assert(unknown == 0x00960000))]
-    #[bw(calc = 0x00960000)]
     unknown: u32,
     /// Waveform detail column data.
     #[br(count = len_entries)]
@@ -994,7 +1119,45 @@ pub struct Waveform3BandDetail {
 
 impl SizedSection for Waveform3BandDetail {
     fn size(&self) -> u32 {
-        self.total_size
+        24 + self.data.len() as u32 * 3
+    }
+}
+
+// -- Waveform 3-Band Calibration Tag ----------------------------------------------------------------
+
+/// Calibration data accompanying the three-band waveforms.
+///
+/// The three raw gain values apply to the low, mid, and high bands respectively.
+/// The numeric scaling is not specified.
+///
+/// Identifier: PWVC
+/// Used in `.2EX` files.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[brw(big)]
+pub struct Waveform3BandCalibration {
+    #[br(temp, assert(header_size == 14))]
+    #[bw(calc = 14u32)]
+    header_size: u32,
+    #[br(temp, assert(total_size == 20))]
+    #[bw(calc = 20u32)]
+    total_size: u32,
+    /// Reserved header value, observed as zero.
+    #[br(temp)]
+    #[br(assert(unknown == 0))]
+    #[bw(calc = 0)]
+    unknown: u16,
+    /// Gain of the low (blue) band.
+    pub low_gain: u16,
+    /// Gain of the mid (yellow) band.
+    pub mid_gain: u16,
+    /// Gain of the high (white) band.
+    pub high_gain: u16,
+}
+
+impl SizedSection for Waveform3BandCalibration {
+    fn size(&self) -> u32 {
+        20
     }
 }
 
@@ -1151,30 +1314,26 @@ pub struct SongStructureData {
 }
 
 impl SongStructureData {
+    /// The key data used for the XOR encryption of the [`SongStructureData`] section.
+    /// Equivalent seed: each byte of ASCII "Kanzen-niRikaishita" plus 0x80.
+    /// Exported version 1 tags start the mask at index ``version % len(XOR_MASK)``.
     const KEY_DATA: [u8; 19] = [
         0xCB, 0xE1, 0xEE, 0xFA, 0xE5, 0xEE, 0xAD, 0xEE, 0xE9, 0xD2, 0xE9, 0xEB, 0xE1, 0xE9, 0xF3,
         0xE8, 0xE9, 0xF4, 0xE1,
     ];
 
-    /// Returns an iterator over the key bytes (RB6+).
-    fn get_key(len_entries: u16) -> impl Iterator<Item = u8> {
-        Self::KEY_DATA.into_iter().map(move |x: u8| -> u8 {
-            let value = u16::from(x) + len_entries;
-            (value % 256) as u8
-        })
+    /// The export mask starts at version % 19 and adds the entry count modulo 256.
+    fn get_key(len_entries: u16, version: u16) -> impl Iterator<Item = u8> {
+        Self::KEY_DATA
+            .into_iter()
+            .cycle()
+            .skip(usize::from(version) % Self::KEY_DATA.len())
+            .take(Self::KEY_DATA.len())
+            .map(move |byte| byte.wrapping_add(len_entries as u8))
     }
 
-    /// Returns `true` if the [`SongStructureData`] is encrypted.
-    ///
-    /// The method tries to decrypt the `raw_mood` field and checking if the result is valid.
-    fn check_if_encrypted(raw_mood: [u8; 2], len_entries: u16) -> bool {
-        let buffer: Vec<u8> = raw_mood
-            .iter()
-            .zip(Self::get_key(len_entries).take(2))
-            .map(|(byte, key)| byte ^ key)
-            .collect();
-        let mut reader = binrw::io::Cursor::new(buffer);
-        Mood::read(&mut reader).is_ok()
+    fn check_if_encrypted(raw_mood: [u8; 2]) -> bool {
+        !(1..=3).contains(&u16::from_be_bytes(raw_mood))
     }
 
     /// Read a [`SongStructureData`] section that may be encrypted, depending on the `is_encrypted`
@@ -1182,10 +1341,10 @@ impl SongStructureData {
     fn read_encrypted<R: Read + Seek>(
         reader: &mut R,
         endian: Endian,
-        (is_encrypted, len_entries): (bool, u16),
+        (is_encrypted, len_entries, version): (bool, u16, u16),
     ) -> BinResult<Self> {
         if is_encrypted {
-            let key: Vec<u8> = Self::get_key(len_entries).collect();
+            let key: Vec<u8> = Self::get_key(len_entries, version).collect();
             let mut xor_reader = XorStream::with_key(reader, key);
             Self::read_options(&mut xor_reader, endian, (len_entries,))
         } else {
@@ -1199,10 +1358,10 @@ impl SongStructureData {
         &self,
         writer: &mut W,
         endian: Endian,
-        (is_encrypted, len_entries): (bool, u16),
+        (is_encrypted, len_entries, version): (bool, u16, u16),
     ) -> BinResult<()> {
         if is_encrypted {
-            let key: Vec<u8> = Self::get_key(len_entries).collect();
+            let key: Vec<u8> = Self::get_key(len_entries, version).collect();
             let mut xor_writer = XorStream::with_key(writer, key);
             self.write_options(&mut xor_writer, endian, ())
         } else {
@@ -1224,32 +1383,71 @@ pub struct SongStructure {
     #[bw(calc = 32)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
+    /// Song structure format version (0 or 1 in known files).
+    pub version: u16,
     /// Size of a single entry, always 24.
     #[br(temp)]
     #[br(assert(len_entry_bytes == 24))]
-    #[bw(calc = 24u32)]
-    len_entry_bytes: u32,
+    #[bw(calc = 24u16)]
+    len_entry_bytes: u16,
     /// Number of entries in this section.
     #[br(temp)]
-    #[br(assert((len_entry_bytes * (len_entries as u32)) == total_size - header_size))]
+    #[br(assert((u32::from(len_entry_bytes) * u32::from(len_entries)) == total_size - header_size))]
     #[bw(calc = data.phrases.len() as u16)]
     len_entries: u16,
     /// Indicates if the remaining parts of the song structure section are encrypted.
     ///
     /// This is a virtual field and not actually present in the file.
-    #[br(restore_position, map = |raw_mood: [u8; 2]| SongStructureData::check_if_encrypted(raw_mood, len_entries))]
+    #[br(restore_position, map = |raw_mood: [u8; 2]| SongStructureData::check_if_encrypted(raw_mood))]
     #[bw(ignore)]
     pub is_encrypted: bool,
     /// Song structure data.
-    #[br(args(is_encrypted, len_entries), parse_with = SongStructureData::read_encrypted)]
-    #[bw(args(*is_encrypted, len_entries), write_with = SongStructureData::write_encrypted)]
+    #[br(args(is_encrypted, len_entries, version), parse_with = SongStructureData::read_encrypted)]
+    #[bw(args(*is_encrypted, len_entries, *version), write_with = SongStructureData::write_encrypted)]
     pub data: SongStructureData,
 }
 
 impl SizedSection for SongStructure {
     fn size(&self) -> u32 {
-        self.total_size
+        32 + self.data.phrases.len() as u32 * 24
+    }
+}
+
+// -- Vocal Detection ------------------------------------------------------------------------------
+
+/// Vocal-detection confidence data.
+///
+/// Confidence values are stored as bytes, with a variable number of entries.
+/// No time scale or normalization is imposed on these raw values.
+///
+/// Identifier: PVDI
+/// Used in `.EXT` files.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[brw(big)]
+pub struct VocalDetection {
+    #[br(temp, assert(header_size == 24))]
+    #[bw(calc = 24u32)]
+    header_size: u32,
+    #[br(temp, assert(total_size >= header_size))]
+    #[bw(calc = 24u32 + confidence.len() as u32)]
+    total_size: u32,
+    /// Unknown header value (observed: 0x400).
+    pub u1: u32,
+    /// Unknown header value (observed: 0x56220001).
+    pub u2: u32,
+    #[br(temp, assert(len_confidence == total_size - header_size))]
+    #[bw(calc = confidence.len() as u32)]
+    len_confidence: u32,
+    #[br(count = len_confidence)]
+    pub confidence: Vec<u8>,
+}
+
+impl SizedSection for VocalDetection {
+    fn size(&self) -> u32 {
+        24 + self.confidence.len() as u32
     }
 }
 
@@ -1260,8 +1458,10 @@ impl SizedSection for SongStructure {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Unknown {
     /// Length of the header data (including `kind`, `size` and `total_size`).
+    #[br(assert(header_size >= 12))]
     header_size: u32,
     /// Length of the section (including the header).
+    #[br(assert(total_size >= header_size))]
     total_size: u32,
     /// Unknown header data.
     #[br(count = header_size - 12)]
@@ -1302,6 +1502,12 @@ pub enum Content {
     /// Seek information for variable bitrate files (probably).
     #[br(pre_assert(tag == AnlzTag::VBR))]
     VBR(VBR),
+    #[br(pre_assert(tag == AnlzTag::Waveform3BandCalibration))]
+    Waveform3BandCalibration(Waveform3BandCalibration),
+    #[br(pre_assert(tag == AnlzTag::SeekIndex))]
+    SeekIndex(SeekIndex),
+    #[br(pre_assert(tag == AnlzTag::VocalDetection))]
+    VocalDetection(VocalDetection),
     /// Fixed-width monochrome preview of the track waveform.
     #[br(pre_assert(tag == AnlzTag::WaveformPreview))]
     WaveformPreview(WaveformPreview),
@@ -1343,6 +1549,9 @@ impl SizedSection for Content {
             Content::ExtendedCueList(ref x) => x.size(),
             Content::Path(ref x) => x.size(),
             Content::VBR(ref x) => x.size(),
+            Content::Waveform3BandCalibration(ref x) => x.size(),
+            Content::SeekIndex(ref x) => x.size(),
+            Content::VocalDetection(ref x) => x.size(),
             Content::WaveformPreview(ref x) => x.size(),
             Content::TinyWaveformPreview(ref x) => x.size(),
             Content::WaveformDetail(ref x) => x.size(),
@@ -1373,7 +1582,8 @@ pub struct Section {
 #[brw(big)]
 pub struct AnlzData {
     /// The file header.
-    #[br(assert(header.tag == AnlzTag::File))]
+    #[br(assert(header.tag == AnlzTag::File && header.size >= 12 && header.total_size >= header.size))]
+    #[bw(map = |header: &Header| { let mut h = header.clone(); h.size = 12 + header_data.len() as u32; h.total_size = h.size + sections.iter().map(|s| s.content.size()).sum::<u32>(); h })]
     pub header: Header,
     /// The header data.
     #[br(count = header.remaining_size())]
@@ -1401,6 +1611,7 @@ impl AnlzData {
     }
 
     pub fn update_total_size(&mut self) {
+        self.header.size = 12 + self.header_data.len() as u32;
         let mut total = self.header.size;
         for section in self.sections.iter_mut() {
             total += section.content.size();
@@ -1413,30 +1624,30 @@ impl AnlzData {
 
 /// Rekordbox ANLZ file handler.
 pub struct Anlz {
-    /// Path to the XML file
+    /// Path to the ANLZ file
     path: std::path::PathBuf,
-    /// XML document
+    /// Parsed ANLZ data
     pub data: AnlzData,
 }
 
 impl Anlz {
-    /// Read a Rekordbox masterPlaylist6 XML file.
+    /// Read a Rekordbox ANLZ file.
     pub fn load<P: AsRef<std::path::Path> + AsRef<OsStr>>(path: P) -> Result<Self> {
         let p = std::path::Path::new(&path).to_path_buf();
-        let mut file = std::fs::File::open(&p).expect("File not found");
-        let data = AnlzData::read(&mut file).expect("Can't read ANLZ");
+        let mut file = std::fs::File::open(&p)?;
+        let data = AnlzData::read(&mut file)?;
         Ok(Anlz { path: p, data })
     }
 
-    /// Write the XML document to a file.
+    /// Write the ANLZ data to a file.
     pub fn dump_copy<P: AsRef<std::path::Path>>(&mut self, path: P) -> Result<()> {
         self.data.update_total_size();
-        let mut file = std::fs::File::create(path).expect("Failed to create file");
+        let mut file = std::fs::File::create(path)?;
         self.data.write(&mut file)?;
         Ok(())
     }
 
-    /// Write the XML document to the original file.
+    /// Write the ANLZ data to the original file.
     pub fn dump(&mut self) -> Result<()> {
         let path = &self.path.clone();
         self.dump_copy(path)?;
@@ -1525,7 +1736,7 @@ impl Anlz {
         None
     }
 
-    /// Return the extended hot cue list entries (PCOB) if present
+    /// Return the extended hot cue list entries (PCO2) if present
     pub fn get_extended_hot_cues(&mut self) -> Option<&mut ExtendedCueList> {
         let sections = self.find_sections_by_tag(AnlzTag::ExtendedCueList);
         for section in sections {
@@ -1539,7 +1750,7 @@ impl Anlz {
         None
     }
 
-    /// Return the extended memory cue list entries (PCOB) if present
+    /// Return the extended memory cue list entries (PCO2) if present
     pub fn get_extended_memory_cues(&mut self) -> Option<&mut ExtendedCueList> {
         let sections = self.find_sections_by_tag(AnlzTag::ExtendedCueList);
         for section in sections {
@@ -1589,18 +1800,47 @@ impl Anlz {
         Ok(())
     }
 
-    /// Returns the (unknown) VBR data (PVBR) if present
+    /// Returns the PVBR section, if present.
+    pub fn get_vbr(&mut self) -> Option<&mut VBR> {
+        let section = self.find_section_by_tag(AnlzTag::VBR)?;
+        if let Content::VBR(content) = &mut section.content {
+            Some(content)
+        } else {
+            None
+        }
+    }
+
+    /// Returns the PVB2 section, if present.
+    pub fn get_seek_index(&mut self) -> Option<&mut SeekIndex> {
+        let section = self.find_section_by_tag(AnlzTag::SeekIndex)?;
+        if let Content::SeekIndex(content) = &mut section.content {
+            Some(content)
+        } else {
+            None
+        }
+    }
+
+    /// Returns the PVBR payload bytes (400 index values followed by u2).
+    ///
+    /// Retained for compatibility; use [`Self::get_vbr`] for typed access.
     pub fn get_vbr_data(&mut self) -> Option<Vec<u8>> {
         let section = self.find_section_by_tag(AnlzTag::VBR);
         if let Some(section) = section {
             if let Content::VBR(content) = &section.content {
-                return Some(content.data.clone());
+                return Some(
+                    content
+                        .index
+                        .iter()
+                        .chain(std::iter::once(&content.u2))
+                        .flat_map(|value| value.to_be_bytes())
+                        .collect(),
+                );
             }
         }
         None
     }
 
-    /// Returns the tiny waveform columns (PWAV) if present
+    /// Returns the tiny waveform columns (PWV2) if present
     pub fn get_tiny_waveform_preview(&mut self) -> Option<&mut TinyWaveformPreview> {
         let section = self.find_section_by_tag(AnlzTag::TinyWaveformPreview);
         if let Some(section) = section {
@@ -1611,7 +1851,7 @@ impl Anlz {
         None
     }
 
-    /// Returns the fixed-width monochrome waveform preview columns (PWV2) if present
+    /// Returns the fixed-width monochrome waveform preview columns (PWAV) if present
     pub fn get_waveform_preview(&mut self) -> Option<&mut WaveformPreview> {
         let section = self.find_section_by_tag(AnlzTag::WaveformPreview);
         if let Some(section) = section {
@@ -1677,6 +1917,16 @@ impl Anlz {
         None
     }
 
+    /// Returns the PWVC section, if present.
+    pub fn get_waveform_3band_calibration(&mut self) -> Option<&mut Waveform3BandCalibration> {
+        let section = self.find_section_by_tag(AnlzTag::Waveform3BandCalibration)?;
+        if let Content::Waveform3BandCalibration(content) = &mut section.content {
+            Some(content)
+        } else {
+            None
+        }
+    }
+
     /// Returns the song structure data (PSSI) if present
     pub fn get_song_structure(&mut self) -> Option<SongStructureData> {
         let section = self.find_section_by_tag(AnlzTag::SongStructure);
@@ -1687,6 +1937,16 @@ impl Anlz {
             }
         }
         None
+    }
+
+    /// Returns the PVDI section, if present.
+    pub fn get_vocal_detection(&mut self) -> Option<&mut VocalDetection> {
+        let section = self.find_section_by_tag(AnlzTag::VocalDetection)?;
+        if let Content::VocalDetection(content) = &mut section.content {
+            Some(content)
+        } else {
+            None
+        }
     }
 }
 

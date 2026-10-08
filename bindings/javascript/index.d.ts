@@ -3319,6 +3319,10 @@ export interface UuidIDMap {
   currentId: string
 }
 export declare class Anlz {
+  getVbr(): JsVBR | null
+  getSeekIndex(): JsSeekIndex | null
+  getWaveform3BandCalibration(): JsWaveform3BandCalibration | null
+  getVocalDetection(): JsVocalDetection | null
   constructor(path: string)
   dumpCopy(path: string): void
   dump(): void
@@ -4222,6 +4226,7 @@ export interface ExtBeat {
 export interface ExtendedBeatGrid {
   bpm: Array<Beat>
   beats: Array<ExtBeat>
+  version: number
 }
 
 export interface ExtendedCue {
@@ -4474,6 +4479,18 @@ export declare function rekordboxAgentAppDir(): string
 
 export declare function rekordboxAppDir(): string
 
+export interface SeekIndex {
+  u1: number
+  totalSamples: bigint
+  entries: Array<SeekPoint>
+}
+
+export interface SeekPoint {
+  sample: bigint
+  offset: bigint
+  frameSamples: number
+}
+
 export declare const enum SlipFlashing {
   Off = 'Off',
   On = 'On'
@@ -4524,6 +4541,7 @@ export declare const enum TimeMode {
 
 export interface TinyWaveformColumn {
   height: number
+  unused: number
 }
 
 export interface TinyWaveformPreview {
@@ -4563,15 +4581,33 @@ export interface Track {
   positionMarks?: Array<PositionMark>
 }
 
+export interface VBR {
+  u1: number
+  index: Array<number>
+  u2: number
+}
+
 export declare const enum VinylSpeedAdjust {
   TouchRelease = 'TouchRelease',
   Touch = 'Touch',
   Release = 'Release'
 }
 
+export interface VocalDetection {
+  u1: number
+  u2: number
+  confidence: Array<number>
+}
+
 export declare const enum Waveform {
   Waveform = 'Waveform',
   PhaseMeter = 'PhaseMeter'
+}
+
+export interface Waveform3BandCalibration {
+  lowGain: number
+  midGain: number
+  highGain: number
 }
 
 export interface Waveform3BandColumn {
@@ -4603,6 +4639,9 @@ export interface WaveformColorDetailColumn {
   green: number
   blue: number
   height: number
+  lowBits: number
+  fineHeightSubstep: number
+  fullHeight: number
 }
 
 export interface WaveformColorPreview {
