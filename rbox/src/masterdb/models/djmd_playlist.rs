@@ -91,6 +91,15 @@ pub struct DjmdPlaylist {
     pub smart_list: Option<String>,
 }
 
+/// Helper for loading the content IDs returned by a smart-list query via `sql_query`.
+///
+/// The smart-list SQL selects `djmdContent.ID AS id`, which is loaded into this struct.
+#[derive(QueryableByName)]
+struct SmartContentId {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    id: String,
+}
+
 impl Model for DjmdPlaylist {
     type Id = str;
 
@@ -294,6 +303,25 @@ impl DjmdPlaylist {
             .filter(djmdSongPlaylist::playlist_id.eq(&id))
             .order(djmdSongPlaylist::track_no)
             .select(DjmdContent::as_select())
+            .load(conn)
+    }
+
+    /// Loads the `djmdContent` rows whose IDs are produced by a smart-list query.
+    ///
+    /// Smart playlists have no explicit [`DjmdSongPlaylist`] entries; their contents are
+    /// evaluated dynamically from the stored conditions. `sql` is expected to select the
+    /// matching content IDs aliased as `id` (see [`crate::SmartList::build_content_id_sql`]).
+    pub fn get_smart_contents(
+        conn: &mut SqliteConnection,
+        sql: &str,
+    ) -> QueryResult<Vec<DjmdContent>> {
+        let rows: Vec<SmartContentId> = diesel::sql_query(sql).load(conn)?;
+        let ids: Vec<String> = rows.into_iter().map(|row| row.id).collect();
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        DjmdContent::query()
+            .filter(djmdContent::id.eq_any(&ids))
             .load(conn)
     }
 

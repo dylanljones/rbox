@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use rbox::enums::PlaylistType;
-use rbox::masterdb::{DjmdPlaylist, DjmdSongPlaylist, MasterDb, MasterPlaylistXml};
+use rbox::masterdb::{
+    DjmdPlaylist, DjmdSongPlaylist, LogicalOperator, MasterDb, MasterPlaylistXml, Operator,
+    Property, SmartList,
+};
 use rbox::model_traits::{validate_seq_numbers, TreeSeq};
 
 mod common;
@@ -1527,5 +1530,208 @@ fn test_get_sampler() -> anyhow::Result<()> {
     let db_path = common::setup_master_db_path(7);
     let mut db = MasterDb::new(db_path.path())?;
     let _items = db.get_samplers()?;
+    Ok(())
+}
+
+// -- Smart playlists ------------------------------------------------------------------------------
+
+#[test]
+fn test_get_smart_playlist_contents() -> anyhow::Result<()> {
+    let tmp_dir = common::setup_master_db_dir_path(6);
+    let mut db = MasterDb::new(tmp_dir.path().join("rekordbox").join("master.db"))?;
+    // Operates on a disposable copy, so allow writes regardless of whether Rekordbox is running.
+    db.set_unsafe_writes(true);
+
+    let all_contents = db.get_contents()?;
+    let with_title = all_contents.iter().filter(|c| c.title.is_some()).count();
+    assert!(with_title > 0, "fixture should contain titled tracks");
+
+    // Smart playlist matching every track that has a title (`Name contains ""`).
+    let mut smart = SmartList::new("0", LogicalOperator::All);
+    smart.new_condition(
+        Property::Name,
+        Operator::Contains,
+        "".to_string(),
+        None,
+        None,
+    );
+    let pl = db.create_playlist_node(
+        "Smart All".to_string(),
+        PlaylistType::SmartList,
+        None,
+        None,
+        None,
+        Some(smart.to_string()?),
+    )?;
+    assert_eq!(pl.attribute, PlaylistType::SmartList);
+
+    // `get_playlist_contents` evaluates the smart list instead of returning an empty vec.
+    let contents = db.get_playlist_contents(&pl.id)?;
+    assert_eq!(contents.len(), with_title);
+
+    Ok(())
+}
+
+#[test]
+fn test_get_smart_playlist_contents_filtered() -> anyhow::Result<()> {
+    let tmp_dir = common::setup_master_db_dir_path(6);
+    let mut db = MasterDb::new(tmp_dir.path().join("rekordbox").join("master.db"))?;
+    db.set_unsafe_writes(true);
+
+    // Pick an existing track and build a smart list matching it by exact title.
+    let sample = db
+        .get_contents()?
+        .into_iter()
+        .find(|c| c.title.is_some())
+        .expect("fixture should contain a titled track");
+    let title = sample.title.clone().unwrap();
+
+    let mut smart = SmartList::new("0", LogicalOperator::All);
+    smart.new_condition(Property::Name, Operator::Equal, title.clone(), None, None);
+    let pl = db.create_playlist_node(
+        "Smart One".to_string(),
+        PlaylistType::SmartList,
+        None,
+        None,
+        None,
+        Some(smart.to_string()?),
+    )?;
+
+    let contents = db.get_playlist_contents(&pl.id)?;
+    assert!(
+        contents.iter().any(|c| c.id == sample.id),
+        "smart playlist should return the matching track"
+    );
+    assert!(
+        contents
+            .iter()
+            .all(|c| c.title.as_deref() == Some(title.as_str())),
+        "all returned tracks should match the smart-list condition"
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_get_regular_playlist_contents_unaffected() -> anyhow::Result<()> {
+    let tmp_dir = common::setup_master_db_dir_path(6);
+    let mut db = MasterDb::new(tmp_dir.path().join("rekordbox").join("master.db"))?;
+    db.set_unsafe_writes(true);
+
+    // A regular (non-smart) playlist still goes through the normal song-playlist lookup
+    // and is empty until songs are added.
+    let pl = db.create_playlist("Regular".to_string(), None, None, None, None)?;
+    let contents = db.get_playlist_contents(&pl.id)?;
+    assert_eq!(contents.len(), 0);
+
+    Ok(())
+}
+
+#[test]
+fn test_get_smart_playlist_contents_all_property_types_execute() -> anyhow::Result<()> {
+    let tmp_dir = common::setup_master_db_dir_path(6);
+    let mut db = MasterDb::new(tmp_dir.path().join("rekordbox").join("master.db"))?;
+    db.set_unsafe_writes(true);
+
+    let total = db.get_contents()?.len();
+
+    // One representative condition per property/operator combination Rekordbox can produce.
+    // The point is to prove every generated query is valid SQL and returns without error,
+    // so any smart list configuration yields its tracks instead of an empty list.
+    let cases: Vec<(Property, Operator, &str, Option<&str>)> = vec![
+        (Property::Artist, Operator::Contains, "a", None),
+        (Property::Album, Operator::Contains, "a", None),
+        (Property::AlbumArtist, Operator::Contains, "a", None),
+        (Property::OriginalArtist, Operator::Contains, "a", None),
+        (Property::BPM, Operator::Greater, "120", None),
+        (Property::Grouping, Operator::Equal, "1", None),
+        (Property::Comments, Operator::Contains, "a", None),
+        (Property::Producer, Operator::Contains, "a", None),
+        (Property::StockDate, Operator::Less, "2030-01-01", None),
+        (Property::DateCreated, Operator::InLast, "365", Some("day")),
+        (Property::Counter, Operator::Greater, "0", None),
+        (Property::Filename, Operator::Contains, "a", None),
+        (Property::Genre, Operator::Contains, "a", None),
+        (Property::Key, Operator::Contains, "a", None),
+        (Property::Label, Operator::Contains, "a", None),
+        (Property::MixName, Operator::Contains, "a", None),
+        (Property::MyTag, Operator::Contains, "1", None),
+        (Property::Rating, Operator::Greater, "0", None),
+        (Property::DateReleased, Operator::Less, "2030-01-01", None),
+        (Property::Remixer, Operator::Contains, "a", None),
+        (Property::Duration, Operator::Less, "100000", None),
+        (Property::Name, Operator::Contains, "a", None),
+        (Property::Year, Operator::Greater, "0", None),
+    ];
+
+    for (i, (property, operator, left, unit)) in cases.into_iter().enumerate() {
+        let mut smart = SmartList::new("0", LogicalOperator::All);
+        smart.new_condition(
+            property.clone(),
+            operator,
+            left.to_string(),
+            None,
+            unit.map(|u| u.to_string()),
+        );
+        let pl = db.create_playlist_node(
+            format!("Smart {i}"),
+            PlaylistType::SmartList,
+            None,
+            None,
+            None,
+            Some(smart.to_string()?),
+        )?;
+
+        let contents = db
+            .get_playlist_contents(&pl.id)
+            .unwrap_or_else(|e| panic!("contents failed for {property:?}: {e}"));
+        assert!(
+            contents.len() <= total,
+            "{property:?} returned too many rows"
+        );
+    }
+
+    // A combined multi-condition smart list (several artist roles + a date) must also work.
+    let mut smart = SmartList::new("0", LogicalOperator::Any);
+    smart.new_condition(Property::Artist, Operator::Contains, "a".into(), None, None);
+    smart.new_condition(
+        Property::Remixer,
+        Operator::Contains,
+        "b".into(),
+        None,
+        None,
+    );
+    smart.new_condition(
+        Property::Producer,
+        Operator::Contains,
+        "c".into(),
+        None,
+        None,
+    );
+    smart.new_condition(
+        Property::AlbumArtist,
+        Operator::Contains,
+        "d".into(),
+        None,
+        None,
+    );
+    smart.new_condition(
+        Property::DateCreated,
+        Operator::InLast,
+        "30".into(),
+        None,
+        Some("day".into()),
+    );
+    let pl = db.create_playlist_node(
+        "Smart Combined".to_string(),
+        PlaylistType::SmartList,
+        None,
+        None,
+        None,
+        Some(smart.to_string()?),
+    )?;
+    let contents = db.get_playlist_contents(&pl.id)?;
+    assert!(contents.len() <= total);
+
     Ok(())
 }

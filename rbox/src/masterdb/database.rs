@@ -43,6 +43,7 @@ use std::path::{Path, PathBuf};
 use super::conn::{create_connection_pool, DbPool};
 use super::models::*;
 use super::playlist_xml::MasterPlaylistXml;
+use super::smart_list::SmartList;
 use crate::anlz::{find_anlz_files, Anlz, AnlzFiles, AnlzPaths};
 use crate::enums::*;
 use crate::error::{Error, Result};
@@ -2763,6 +2764,18 @@ impl MasterDb {
     /// ```
     pub fn get_playlist_contents(&mut self, id: &str) -> Result<Vec<DjmdContent>> {
         let mut conn = self.pool.get()?;
+
+        if let Some(playlist) = DjmdPlaylist::find(&mut conn, id)? {
+            if playlist.attribute == PlaylistType::SmartList {
+                let xml = match &playlist.smart_list {
+                    Some(xml) if !xml.trim().is_empty() => xml,
+                    _ => return Ok(Vec::new()),
+                };
+                let sql = SmartList::parse(xml)?.build_content_id_sql()?;
+                return Ok(DjmdPlaylist::get_smart_contents(&mut conn, &sql)?);
+            }
+        }
+
         Ok(DjmdPlaylist::get_contents(&mut conn, id)?)
     }
 
