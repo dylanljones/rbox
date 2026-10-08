@@ -9,6 +9,7 @@ use modular_bitfield::prelude::*;
 use std::ffi::OsStr;
 
 use super::xor::XorStream;
+use super::AnlzString;
 use crate::error::{Error, Result};
 
 /// The tag of section.
@@ -111,9 +112,7 @@ impl AnlzTag {
             AnlzTag::Cue => "Cue".to_string(),
             AnlzTag::Path => "Path".to_string(),
             AnlzTag::VBR => "VBR".to_string(),
-            AnlzTag::Waveform3BandCalibration => "Waveform3BandCalibration".to_string(),
             AnlzTag::SeekIndex => "SeekIndex".to_string(),
-            AnlzTag::VocalDetection => "VocalDetection".to_string(),
             AnlzTag::WaveformPreview => "WaveformPreview".to_string(),
             AnlzTag::TinyWaveformPreview => "TinyWaveformPreview".to_string(),
             AnlzTag::WaveformDetail => "WaveformDetail".to_string(),
@@ -121,7 +120,9 @@ impl AnlzTag {
             AnlzTag::WaveformColorDetail => "WaveformColorDetail".to_string(),
             AnlzTag::Waveform3BandPreview => "Waveform3BandPreview".to_string(),
             AnlzTag::Waveform3BandDetail => "Waveform3BandDetail".to_string(),
+            AnlzTag::Waveform3BandCalibration => "Waveform3BandCalibration".to_string(),
             AnlzTag::SongStructure => "SongStructure".to_string(),
+            AnlzTag::VocalDetection => "VocalDetection".to_string(),
             _ => format!("Unknown({:?})", self),
         }
     }
@@ -139,9 +140,7 @@ impl From<String> for AnlzTag {
             "Cue" => AnlzTag::Cue,
             "Path" => AnlzTag::Path,
             "VBR" => AnlzTag::VBR,
-            "Waveform3BandCalibration" => AnlzTag::Waveform3BandCalibration,
             "SeekIndex" => AnlzTag::SeekIndex,
-            "VocalDetection" => AnlzTag::VocalDetection,
             "WaveformPreview" => AnlzTag::WaveformPreview,
             "TinyWaveformPreview" => AnlzTag::TinyWaveformPreview,
             "WaveformDetail" => AnlzTag::WaveformDetail,
@@ -149,7 +148,9 @@ impl From<String> for AnlzTag {
             "WaveformColorDetail" => AnlzTag::WaveformColorDetail,
             "Waveform3BandPreview" => AnlzTag::Waveform3BandPreview,
             "Waveform3BandDetail" => AnlzTag::Waveform3BandDetail,
+            "Waveform3BandCalibration" => AnlzTag::Waveform3BandCalibration,
             "SongStructure" => AnlzTag::SongStructure,
+            "VocalDetection" => AnlzTag::VocalDetection,
             _ => panic!("Unknown tag type: {}", tag),
         }
     }
@@ -417,13 +418,72 @@ pub struct Cue {
     u7: u32,
 }
 
-/// A extended memory or hot cue (or loop).
+/// Indexed memory-cue colors. Unrecognized values are retained.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum ColorIndex {
+    #[brw(magic = 0u8)]
+    None,
+    #[brw(magic = 1u8)]
+    Pink,
+    #[brw(magic = 2u8)]
+    Red,
+    #[brw(magic = 3u8)]
+    Orange,
+    #[brw(magic = 4u8)]
+    Yellow,
+    #[brw(magic = 5u8)]
+    Green,
+    #[brw(magic = 6u8)]
+    Aqua,
+    #[brw(magic = 7u8)]
+    Blue,
+    #[brw(magic = 8u8)]
+    Purple,
+    Other(u8),
+}
+
+impl From<u8> for ColorIndex {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => Self::None,
+            1 => Self::Pink,
+            2 => Self::Red,
+            3 => Self::Orange,
+            4 => Self::Yellow,
+            5 => Self::Green,
+            6 => Self::Aqua,
+            7 => Self::Blue,
+            8 => Self::Purple,
+            value => Self::Other(value),
+        }
+    }
+}
+
+impl From<ColorIndex> for u8 {
+    fn from(value: ColorIndex) -> Self {
+        match value {
+            ColorIndex::None => 0,
+            ColorIndex::Pink => 1,
+            ColorIndex::Red => 2,
+            ColorIndex::Orange => 3,
+            ColorIndex::Yellow => 4,
+            ColorIndex::Green => 5,
+            ColorIndex::Aqua => 6,
+            ColorIndex::Blue => 7,
+            ColorIndex::Purple => 8,
+            ColorIndex::Other(value) => value,
+        }
+    }
+}
+
+/// An extended memory or hot cue (or loop).
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(big)]
 pub struct ExtendedCue {
     /// Cue entry header.
-    #[br(assert(header.tag == AnlzTag::ExtendedCue))]
+    #[br(assert(header.tag == AnlzTag::ExtendedCue && header.total_size >= 48))]
     #[bw(map = |header: &Header| { let mut h = header.clone(); h.total_size = self.size(); h })]
     header: Header,
     /// Hot cue number.
@@ -447,7 +507,7 @@ pub struct ExtendedCue {
     /// Color assigned to this cue.
     ///
     /// Only used by memory cues, hot cues use a different value (see below).
-    pub color: u8,
+    pub color: ColorIndex,
     /// Unknown field.
     u3: u8,
     /// Unknown field.
@@ -458,22 +518,9 @@ pub struct ExtendedCue {
     pub loop_numerator: u16,
     /// Represents the loop size denominator (if this is a quantized loop).
     pub loop_denominator: u16,
-    /// Length of the comment string in bytes.
-    #[br(assert(len_comment % 2 == 0 && header.total_size >= 48
-        && len_comment <= header.total_size - 48))]
-    #[bw(map = |_: &u32| self.comment_size())]
-    len_comment: u32,
-    #[br(temp, count = len_comment / 2)]
-    #[bw(ignore)]
-    comment_units: Vec<u16>,
-    /// Preserve absent, unterminated, and padded comment representations.
-    #[br(calc = comment_units.iter().rev().take_while(|unit| **unit == 0).count() as u32)]
-    #[bw(ignore)]
-    comment_padding: u32,
-    /// A length-delimited UTF-16BE comment, optionally absent.
-    #[br(calc = NullWideString(comment_units[..comment_units.len() - comment_padding as usize].to_vec()))]
-    #[bw(args(self.comment_size()), write_with = Self::write_comment)]
-    pub comment: NullWideString,
+    /// A byte-length-prefixed UTF-16BE comment, retaining its original padding.
+    #[br(args(header.total_size - 48), parse_with = AnlzString::read_bounded)]
+    pub comment: AnlzString,
     /// Rekordbox hotcue color index.
     pub hot_cue_color_index: u8,
     /// Rekordbot hot cue color RGB value.
@@ -483,39 +530,13 @@ pub struct ExtendedCue {
     /// associated with this hot cue, the value is `(0, 0, 0)`.
     pub hot_cue_color_rgb: (u8, u8, u8),
     /// Preserve the variable-length remainder of this cue entry.
-    #[br(count = header.total_size - 48 - len_comment)]
-    trailing_data: Vec<u8>,
+    #[br(count = header.total_size - 48 - comment.payload_byte_len())]
+    pub trailing_data: Vec<u8>,
 }
 
 impl ExtendedCue {
-    fn comment_size(&self) -> u32 {
-        if self.len_comment == 0 && self.comment.is_empty() {
-            0
-        } else {
-            let padding = if self.len_comment == 0 {
-                1
-            } else {
-                self.comment_padding
-            };
-            (self.comment.len() as u32 + padding) * 2
-        }
-    }
-
     fn size(&self) -> u32 {
-        48 + self.comment_size() + self.trailing_data.len() as u32
-    }
-
-    fn write_comment<W: Write + Seek>(
-        comment: &NullWideString,
-        writer: &mut W,
-        endian: Endian,
-        (len,): (u32,),
-    ) -> BinResult<()> {
-        comment.0.write_options(writer, endian, ())?;
-        for _ in comment.len()..len as usize / 2 {
-            0u16.write_options(writer, endian, ())?;
-        }
-        Ok(())
+        48 + self.comment.payload_byte_len() + self.trailing_data.len() as u32
     }
 }
 
@@ -732,10 +753,10 @@ impl SizedSection for SeekIndex {
 #[br(big, map = Self::from_bytes)]
 #[bw(big, map = |x: &TinyWaveformColumn| x.into_bytes())]
 pub struct TinyWaveformColumn {
-    /// Height of the column in pixels.
-    pub height: B5,
-    /// Shade of white.
-    pub whiteness: B3,
+    /// Height of the column in pixels (0..=15).
+    pub height: B4,
+    /// Unused upper nibble, preserved verbatim.
+    pub unused: B4,
 }
 
 impl Default for TinyWaveformColumn {
@@ -947,9 +968,8 @@ impl SizedSection for WaveformColorPreview {
 #[br(big, map = |value: u16| Self::from_bytes(value.to_le_bytes()))]
 #[bw(big, map = |x: &WaveformColorDetailColumn| u16::from_le_bytes(x.into_bytes()))]
 pub struct WaveformColorDetailColumn {
-    /// Reserved low bits.
-    #[allow(dead_code)]
-    unknown: B2,
+    /// Fine-height bits in their original on-disk order.
+    pub low_bits: B2,
     /// Height of the column.
     pub height: B5,
     /// Blue color component.
@@ -958,6 +978,21 @@ pub struct WaveformColorDetailColumn {
     pub green: B3,
     /// Red color component.
     pub red: B3,
+}
+
+impl WaveformColorDetailColumn {
+    /// Fine-height substep using the significance ordering reported by rekordcrate.
+    ///
+    /// The two low wire bits are reversed before combining with the coarse height.
+    pub fn fine_height_substep(&self) -> u8 {
+        let bits = self.low_bits();
+        ((bits & 1) << 1) | ((bits >> 1) & 1)
+    }
+
+    /// Seven-bit height combining the coarse height and fine substep.
+    pub fn full_height(&self) -> u8 {
+        (self.height() << 2) | self.fine_height_substep()
+    }
 }
 
 /// Variable-width large colored version of the track waveform.
@@ -986,9 +1021,6 @@ pub struct WaveformColorDetail {
     #[br(assert((len_entry_bytes * len_entries) == total_size - header_size))]
     len_entries: u32,
     /// Unknown field (apparently always `0x00960305`)
-    #[br(temp)]
-    #[br(assert(unknown == 0x00960305))]
-    #[bw(calc = 0x00960305)]
     unknown: u32,
     /// Waveform detail column data.
     #[br(count = len_entries)]
@@ -1009,12 +1041,12 @@ impl SizedSection for WaveformColorDetail {
 #[br(map = Self::from_bytes)]
 #[bw(big, map = |x: &Waveform3BandColumn| x.into_bytes())]
 pub struct Waveform3BandColumn {
-    /// Mid-range component (amber).
-    pub mid: B8,
-    /// High frequencies (white).
-    pub high: B8,
-    /// Low frequencies (dark blue).
+    /// Low frequencies (dark blue), first byte on disk.
     pub low: B8,
+    /// Mid-range component (amber), second byte on disk.
+    pub mid: B8,
+    /// High frequencies (white), third byte on disk.
+    pub high: B8,
 }
 
 /// Fixed-width three-band preview of the track waveform.
@@ -1079,9 +1111,6 @@ pub struct Waveform3BandDetail {
     #[br(assert((len_entry_bytes * len_entries) == total_size - header_size))]
     len_entries: u32,
     /// Unknown field (apparently always `0x00960000`)
-    #[br(temp)]
-    #[br(assert(unknown == 0x00960000))]
-    #[bw(calc = 0x00960000)]
     unknown: u32,
     /// Waveform detail column data.
     #[br(count = len_entries)]
@@ -1098,8 +1127,8 @@ impl SizedSection for Waveform3BandDetail {
 
 /// Calibration data accompanying the three-band waveforms.
 ///
-/// The exact meaning and scaling of the three values
-/// are not yet specified; they are exposed in their on-disk order.
+/// The three raw gain values apply to the low, mid, and high bands respectively.
+/// The numeric scaling is not specified.
 ///
 /// Identifier: PWVC
 /// Used in `.2EX` files.
@@ -1113,8 +1142,17 @@ pub struct Waveform3BandCalibration {
     #[br(temp, assert(total_size == 20))]
     #[bw(calc = 20u32)]
     total_size: u32,
-    pub unknown: u16,
-    pub data: [u16; 3],
+    /// Reserved header value, observed as zero.
+    #[br(temp)]
+    #[br(assert(unknown == 0))]
+    #[bw(calc = 0)]
+    unknown: u16,
+    /// Gain of the low (blue) band.
+    pub low_gain: u16,
+    /// Gain of the mid (yellow) band.
+    pub mid_gain: u16,
+    /// Gain of the high (white) band.
+    pub high_gain: u16,
 }
 
 impl SizedSection for Waveform3BandCalibration {

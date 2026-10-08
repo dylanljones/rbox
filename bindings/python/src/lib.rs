@@ -161,6 +161,11 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<rbox::one_library::models::Sort>()?;
 
     // Anlz
+    m.add_class::<anlz::PyVBR>()?;
+    m.add_class::<anlz::PySeekPoint>()?;
+    m.add_class::<anlz::PySeekIndex>()?;
+    m.add_class::<anlz::PyWaveform3BandCalibration>()?;
+    m.add_class::<anlz::PyVocalDetection>()?;
     m.add_class::<anlz::PyAnlz>()?;
     m.add_class::<anlz::PyBeat>()?;
     m.add_class::<anlz::PyExtBeat>()?;

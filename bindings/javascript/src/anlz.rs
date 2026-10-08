@@ -52,11 +52,13 @@ impl Into<JsBeatGrid> for BeatGrid {
 pub struct JsExtendedBeatGrid {
     pub bpm: Vec<JsBeat>,
     pub beats: Vec<JsExtBeat>,
+    pub version: u32,
 }
 
 impl Into<JsExtendedBeatGrid> for ExtendedBeatGrid {
     fn into(self) -> JsExtendedBeatGrid {
         JsExtendedBeatGrid {
+            version: self.version,
             bpm: self.bpm.iter().map(|item| item.clone().into()).collect(),
             beats: self.beats.iter().map(|item| item.clone().into()).collect(),
         }
@@ -156,7 +158,7 @@ impl Into<JsExtendedCue> for ExtendedCue {
             cue_type: self.cue_type.into(),
             time: self.time,
             loop_time: self.loop_time,
-            color: self.color,
+            color: self.color.into(),
             loop_numerator: self.loop_numerator,
             loop_denominator: self.loop_denominator,
             comment: self.comment.to_string(),
@@ -201,11 +203,13 @@ impl Into<JsExtendedCueList> for ExtendedCueList {
 #[napi(object, js_name = "TinyWaveformColumn")]
 pub struct JsTinyWaveformColumn {
     pub height: u8,
+    pub unused: u8,
 }
 
 impl Into<JsTinyWaveformColumn> for TinyWaveformColumn {
     fn into(self) -> JsTinyWaveformColumn {
         JsTinyWaveformColumn {
+            unused: self.unused(),
             height: self.height(),
         }
     }
@@ -303,11 +307,17 @@ pub struct JsWaveformColorDetailColumn {
     pub green: u8,
     pub blue: u8,
     pub height: u8,
+    pub low_bits: u8,
+    pub fine_height_substep: u8,
+    pub full_height: u8,
 }
 
 impl Into<JsWaveformColorDetailColumn> for WaveformColorDetailColumn {
     fn into(self) -> JsWaveformColorDetailColumn {
         JsWaveformColorDetailColumn {
+            low_bits: self.low_bits(),
+            fine_height_substep: self.fine_height_substep(),
+            full_height: self.full_height(),
             red: self.red(),
             green: self.green(),
             blue: self.blue(),
@@ -483,6 +493,29 @@ pub struct JsAnlz {
 
 #[napi]
 impl JsAnlz {
+    #[napi]
+    pub fn get_vbr(&mut self) -> Option<JsVBR> {
+        self.anlz.get_vbr().cloned().map(Into::into)
+    }
+
+    #[napi]
+    pub fn get_seek_index(&mut self) -> Option<JsSeekIndex> {
+        self.anlz.get_seek_index().cloned().map(Into::into)
+    }
+
+    #[napi]
+    pub fn get_waveform_3band_calibration(&mut self) -> Option<JsWaveform3BandCalibration> {
+        self.anlz
+            .get_waveform_3band_calibration()
+            .cloned()
+            .map(Into::into)
+    }
+
+    #[napi]
+    pub fn get_vocal_detection(&mut self) -> Option<JsVocalDetection> {
+        self.anlz.get_vocal_detection().cloned().map(Into::into)
+    }
+
     #[napi(constructor)]
     pub fn new(path: String) -> Result<Self> {
         let anlz = Anlz::load(path)?;
@@ -663,6 +696,91 @@ impl From<AnlzPaths> for JsAnlzPaths {
             dat: model.dat.as_os_str().to_str().unwrap().to_string(),
             ext: model.ext.as_ref().map(|s| s.to_str().unwrap().to_string()),
             ex2: model.ex2.as_ref().map(|s| s.to_str().unwrap().to_string()),
+        }
+    }
+}
+
+#[napi(object, js_name = "VBR")]
+pub struct JsVBR {
+    pub u1: u32,
+    pub index: Vec<u32>,
+    pub u2: u32,
+}
+
+impl From<VBR> for JsVBR {
+    fn from(value: VBR) -> Self {
+        Self {
+            u1: value.u1,
+            index: value.index.to_vec(),
+            u2: value.u2,
+        }
+    }
+}
+
+#[napi(object, js_name = "SeekPoint")]
+pub struct JsSeekPoint {
+    pub sample: napi::bindgen_prelude::BigInt,
+    pub offset: napi::bindgen_prelude::BigInt,
+    pub frame_samples: u32,
+}
+
+impl From<SeekPoint> for JsSeekPoint {
+    fn from(value: SeekPoint) -> Self {
+        Self {
+            sample: value.sample.into(),
+            offset: value.offset.into(),
+            frame_samples: value.frame_samples,
+        }
+    }
+}
+
+#[napi(object, js_name = "SeekIndex")]
+pub struct JsSeekIndex {
+    pub u1: u32,
+    pub total_samples: napi::bindgen_prelude::BigInt,
+    pub entries: Vec<JsSeekPoint>,
+}
+
+impl From<SeekIndex> for JsSeekIndex {
+    fn from(value: SeekIndex) -> Self {
+        Self {
+            u1: value.u1,
+            total_samples: value.total_samples.into(),
+            entries: value.entries.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[napi(object, js_name = "Waveform3BandCalibration")]
+pub struct JsWaveform3BandCalibration {
+    pub low_gain: u16,
+    pub mid_gain: u16,
+    pub high_gain: u16,
+}
+
+impl From<Waveform3BandCalibration> for JsWaveform3BandCalibration {
+    fn from(value: Waveform3BandCalibration) -> Self {
+        Self {
+            low_gain: value.low_gain,
+            mid_gain: value.mid_gain,
+            high_gain: value.high_gain,
+        }
+    }
+}
+
+#[napi(object, js_name = "VocalDetection")]
+pub struct JsVocalDetection {
+    pub u1: u32,
+    pub u2: u32,
+    pub confidence: Vec<u8>,
+}
+
+impl From<VocalDetection> for JsVocalDetection {
+    fn from(value: VocalDetection) -> Self {
+        Self {
+            u1: value.u1,
+            u2: value.u2,
+            confidence: value.confidence,
         }
     }
 }
