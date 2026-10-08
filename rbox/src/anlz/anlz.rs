@@ -43,6 +43,9 @@ pub enum AnlzTag {
     /// Seek information for variable bitrate files.
     #[brw(magic = b"PVBR")]
     VBR,
+    /// Frame seek index for FLAC tracks.
+    #[brw(magic = b"PVB2")]
+    SeekIndex,
     /// Fixed-width monochrome preview of the track waveform.
     #[brw(magic = b"PWAV")]
     WaveformPreview,
@@ -75,18 +78,19 @@ pub enum AnlzTag {
     /// Used in `.2EX` files.
     #[brw(magic = b"PWV7")]
     Waveform3BandDetail,
-    /*
-    /// Unknown Waveform data
+    /// Calibration data accompanying the three-band waveforms.
     ///
     /// Used in `.2EX` files.
     #[brw(magic = b"PWVC")]
-    WaveformUnknown,
-    */
+    Waveform3BandCalibration,
     /// Describes the structure of a sond (Intro, Chrous, Verse, etc.).
     ///
     /// Used in `.EXT` files.
     #[brw(magic = b"PSSI")]
     SongStructure,
+    /// Vocal-detection confidence data.
+    #[brw(magic = b"PVDI")]
+    VocalDetection,
     /// Unknown Kind.
     ///
     /// This allows handling files that contain unknown section types and allows to access later
@@ -107,6 +111,9 @@ impl AnlzTag {
             AnlzTag::Cue => "Cue".to_string(),
             AnlzTag::Path => "Path".to_string(),
             AnlzTag::VBR => "VBR".to_string(),
+            AnlzTag::Waveform3BandCalibration => "Waveform3BandCalibration".to_string(),
+            AnlzTag::SeekIndex => "SeekIndex".to_string(),
+            AnlzTag::VocalDetection => "VocalDetection".to_string(),
             AnlzTag::WaveformPreview => "WaveformPreview".to_string(),
             AnlzTag::TinyWaveformPreview => "TinyWaveformPreview".to_string(),
             AnlzTag::WaveformDetail => "WaveformDetail".to_string(),
@@ -132,6 +139,9 @@ impl From<String> for AnlzTag {
             "Cue" => AnlzTag::Cue,
             "Path" => AnlzTag::Path,
             "VBR" => AnlzTag::VBR,
+            "Waveform3BandCalibration" => AnlzTag::Waveform3BandCalibration,
+            "SeekIndex" => AnlzTag::SeekIndex,
+            "VocalDetection" => AnlzTag::VocalDetection,
             "WaveformPreview" => AnlzTag::WaveformPreview,
             "TinyWaveformPreview" => AnlzTag::TinyWaveformPreview,
             "WaveformDetail" => AnlzTag::WaveformDetail,
@@ -642,32 +652,75 @@ impl Path {
 
 // -- VBR Tag -------------------------------------------------------------------------------------
 
-/// Variable bitrate tag (PVBR) containing seek information.
+/// Variable bitrate seek index (PVBR), used in `.DAT` files.
 ///
-/// Identifier: PVBR
-/// Used in `.DAT` files.
+/// The index contains exactly 400 big-endian values. The surrounding fields
+/// are retained because their meaning is not fully understood.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[brw(big)]
 pub struct VBR {
-    /// Length of the header data (including `kind`, `size` and `total_size`).
-    #[br(assert(header_size == 16))]
+    #[br(temp, assert(header_size == 16))]
+    #[bw(calc = 16u32)]
     header_size: u32,
-    /// Length of the section (including the header).
-    #[bw(map = |_: &u32| self.size())]
+    #[br(temp, assert(total_size == 1620))]
+    #[bw(calc = 1620u32)]
     total_size: u32,
-    /// Unknown field (apparently always `0`)
-    #[br(temp)]
-    #[br(assert(unknown == 0))]
-    #[bw(calc = 0)]
-    unknown: u32,
-    /// Unknown data.
-    #[br(count = total_size - header_size)]
-    pub data: Vec<u8>,
+    /// Unknown header value.
+    pub u1: u32,
+    /// Seek-index values in file order.
+    pub index: [u32; 400],
+    /// Unknown value following the index.
+    pub u2: u32,
 }
 
 impl SizedSection for VBR {
     fn size(&self) -> u32 {
-        16 + self.data.len() as u32
+        1620
+    }
+}
+
+/// A frame entry in a PVB2 seek index.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[brw(big)]
+pub struct SeekPoint {
+    /// Sample position at which the encoded audio frame starts.
+    pub sample: u64,
+    /// Byte offset of the encoded audio frame in the audio file.
+    pub offset: u64,
+    /// Number of samples in the frame.
+    pub frame_samples: u32,
+}
+
+/// Frame seek index for FLAC tracks (PVB2).
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[brw(big)]
+pub struct SeekIndex {
+    #[br(temp, assert(header_size == 32))]
+    #[bw(calc = 32u32)]
+    header_size: u32,
+    #[br(temp, assert(total_size >= header_size))]
+    #[bw(calc = 32u32 + entries.len() as u32 * 20)]
+    total_size: u32,
+    /// Unknown header value.
+    pub u1: u32,
+    /// Total number of audio samples.
+    pub total_samples: u64,
+    #[br(temp, assert(u64::from(entry_count) * 20 == u64::from(total_size - header_size)))]
+    #[bw(calc = entries.len() as u32)]
+    entry_count: u32,
+    #[br(temp, assert(len_entry_bytes == 20))]
+    #[bw(calc = 20u32)]
+    len_entry_bytes: u32,
+    #[br(count = entry_count)]
+    pub entries: Vec<SeekPoint>,
+}
+
+impl SizedSection for SeekIndex {
+    fn size(&self) -> u32 {
+        32 + self.entries.len() as u32 * 20
     }
 }
 
@@ -1041,6 +1094,35 @@ impl SizedSection for Waveform3BandDetail {
     }
 }
 
+// -- Waveform 3-Band Calibration Tag ----------------------------------------------------------------
+
+/// Calibration data accompanying the three-band waveforms.
+///
+/// The exact meaning and scaling of the three values
+/// are not yet specified; they are exposed in their on-disk order.
+///
+/// Identifier: PWVC
+/// Used in `.2EX` files.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[brw(big)]
+pub struct Waveform3BandCalibration {
+    #[br(temp, assert(header_size == 14))]
+    #[bw(calc = 14u32)]
+    header_size: u32,
+    #[br(temp, assert(total_size == 20))]
+    #[bw(calc = 20u32)]
+    total_size: u32,
+    pub unknown: u16,
+    pub data: [u16; 3],
+}
+
+impl SizedSection for Waveform3BandCalibration {
+    fn size(&self) -> u32 {
+        20
+    }
+}
+
 // -- Song Structure Tag --------------------------------------------------------------------------
 
 /// Music classification that is used for Lightnight mode and based on rhythm, tempo kick drum and
@@ -1295,6 +1377,42 @@ impl SizedSection for SongStructure {
     }
 }
 
+// -- Vocal Detection ------------------------------------------------------------------------------
+
+/// Vocal-detection confidence data.
+///
+/// Confidence values are stored as bytes, with a variable number of entries.
+/// No time scale or normalization is imposed on these raw values.
+///
+/// Identifier: PVDI
+/// Used in `.EXT` files.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[brw(big)]
+pub struct VocalDetection {
+    #[br(temp, assert(header_size == 24))]
+    #[bw(calc = 24u32)]
+    header_size: u32,
+    #[br(temp, assert(total_size >= header_size))]
+    #[bw(calc = 24u32 + confidence.len() as u32)]
+    total_size: u32,
+    /// Unknown header value (observed: 0x400).
+    pub u1: u32,
+    /// Unknown header value (observed: 0x56220001).
+    pub u2: u32,
+    #[br(temp, assert(len_confidence == total_size - header_size))]
+    #[bw(calc = confidence.len() as u32)]
+    len_confidence: u32,
+    #[br(count = len_confidence)]
+    pub confidence: Vec<u8>,
+}
+
+impl SizedSection for VocalDetection {
+    fn size(&self) -> u32 {
+        24 + self.confidence.len() as u32
+    }
+}
+
 // -- Unknown -------------------------------------------------------------------------------------
 
 /// Unknown content.
@@ -1346,6 +1464,12 @@ pub enum Content {
     /// Seek information for variable bitrate files (probably).
     #[br(pre_assert(tag == AnlzTag::VBR))]
     VBR(VBR),
+    #[br(pre_assert(tag == AnlzTag::Waveform3BandCalibration))]
+    Waveform3BandCalibration(Waveform3BandCalibration),
+    #[br(pre_assert(tag == AnlzTag::SeekIndex))]
+    SeekIndex(SeekIndex),
+    #[br(pre_assert(tag == AnlzTag::VocalDetection))]
+    VocalDetection(VocalDetection),
     /// Fixed-width monochrome preview of the track waveform.
     #[br(pre_assert(tag == AnlzTag::WaveformPreview))]
     WaveformPreview(WaveformPreview),
@@ -1387,6 +1511,9 @@ impl SizedSection for Content {
             Content::ExtendedCueList(ref x) => x.size(),
             Content::Path(ref x) => x.size(),
             Content::VBR(ref x) => x.size(),
+            Content::Waveform3BandCalibration(ref x) => x.size(),
+            Content::SeekIndex(ref x) => x.size(),
+            Content::VocalDetection(ref x) => x.size(),
             Content::WaveformPreview(ref x) => x.size(),
             Content::TinyWaveformPreview(ref x) => x.size(),
             Content::WaveformDetail(ref x) => x.size(),
@@ -1635,12 +1762,41 @@ impl Anlz {
         Ok(())
     }
 
-    /// Returns the (unknown) VBR data (PVBR) if present
+    /// Returns the PVBR section, if present.
+    pub fn get_vbr(&mut self) -> Option<&mut VBR> {
+        let section = self.find_section_by_tag(AnlzTag::VBR)?;
+        if let Content::VBR(content) = &mut section.content {
+            Some(content)
+        } else {
+            None
+        }
+    }
+
+    /// Returns the PVB2 section, if present.
+    pub fn get_seek_index(&mut self) -> Option<&mut SeekIndex> {
+        let section = self.find_section_by_tag(AnlzTag::SeekIndex)?;
+        if let Content::SeekIndex(content) = &mut section.content {
+            Some(content)
+        } else {
+            None
+        }
+    }
+
+    /// Returns the PVBR payload bytes (400 index values followed by u2).
+    ///
+    /// Retained for compatibility; use [`Self::get_vbr`] for typed access.
     pub fn get_vbr_data(&mut self) -> Option<Vec<u8>> {
         let section = self.find_section_by_tag(AnlzTag::VBR);
         if let Some(section) = section {
             if let Content::VBR(content) = &section.content {
-                return Some(content.data.clone());
+                return Some(
+                    content
+                        .index
+                        .iter()
+                        .chain(std::iter::once(&content.u2))
+                        .flat_map(|value| value.to_be_bytes())
+                        .collect(),
+                );
             }
         }
         None
@@ -1723,6 +1879,16 @@ impl Anlz {
         None
     }
 
+    /// Returns the PWVC section, if present.
+    pub fn get_waveform_3band_calibration(&mut self) -> Option<&mut Waveform3BandCalibration> {
+        let section = self.find_section_by_tag(AnlzTag::Waveform3BandCalibration)?;
+        if let Content::Waveform3BandCalibration(content) = &mut section.content {
+            Some(content)
+        } else {
+            None
+        }
+    }
+
     /// Returns the song structure data (PSSI) if present
     pub fn get_song_structure(&mut self) -> Option<SongStructureData> {
         let section = self.find_section_by_tag(AnlzTag::SongStructure);
@@ -1733,6 +1899,16 @@ impl Anlz {
             }
         }
         None
+    }
+
+    /// Returns the PVDI section, if present.
+    pub fn get_vocal_detection(&mut self) -> Option<&mut VocalDetection> {
+        let section = self.find_section_by_tag(AnlzTag::VocalDetection)?;
+        if let Content::VocalDetection(content) = &mut section.content {
+            Some(content)
+        } else {
+            None
+        }
     }
 }
 

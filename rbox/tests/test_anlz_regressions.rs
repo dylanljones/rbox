@@ -100,7 +100,12 @@ fn resized_sections_and_comments_have_consistent_lengths() {
                 Content::Path(p) => {
                     p.path = NullWideString::from("/Music/\u{1f3b5}.flac");
                 }
-                Content::VBR(v) => v.data.push(0),
+                Content::VBR(v) => v.index[0] = v.index[0].wrapping_add(1),
+                Content::VocalDetection(v) => v.confidence.push(1),
+                Content::SeekIndex(s) => {
+                    s.entries.pop();
+                }
+                Content::Waveform3BandCalibration(w) => w.data[0] = w.data[0].wrapping_add(1),
                 Content::TinyWaveformPreview(w) => {
                     w.data.pop();
                 }
@@ -306,5 +311,191 @@ fn extended_cues_preserve_comment_padding_and_variable_trailers() {
                 panic!("Expected extended cues");
             }
         }
+    }
+}
+
+fn raw_tag(magic: &[u8; 4], header_size: u32, body: &[u8]) -> Vec<u8> {
+    let mut bytes = magic.to_vec();
+    bytes.extend(header_size.to_be_bytes());
+    bytes.extend((12 + body.len() as u32).to_be_bytes());
+    bytes.extend(body);
+    bytes
+}
+
+fn raw_file(tags: &[Vec<u8>]) -> Vec<u8> {
+    let mut bytes = b"PMAI".to_vec();
+    bytes.extend(28u32.to_be_bytes());
+    bytes.extend((28 + tags.iter().map(Vec::len).sum::<usize>() as u32).to_be_bytes());
+    bytes.extend([0; 16]);
+    for tag in tags {
+        bytes.extend(tag);
+    }
+    bytes
+}
+
+fn pvdi(confidence: &[u8]) -> Vec<u8> {
+    let mut body = Vec::new();
+    for value in [0x400_u32, 0x56220001, confidence.len() as u32] {
+        body.extend(value.to_be_bytes());
+    }
+    body.extend(confidence);
+    raw_tag(b"PVDI", 24, &body)
+}
+
+fn pvb2(entries: &[(u64, u64, u32)]) -> Vec<u8> {
+    let mut body = 7u32.to_be_bytes().to_vec();
+    body.extend((u64::from(u32::MAX) + 1025).to_be_bytes());
+    body.extend((entries.len() as u32).to_be_bytes());
+    body.extend(20u32.to_be_bytes());
+    for (sample, offset, samples) in entries {
+        body.extend(sample.to_be_bytes());
+        body.extend(offset.to_be_bytes());
+        body.extend(samples.to_be_bytes());
+    }
+    raw_tag(b"PVB2", 32, &body)
+}
+
+#[test]
+fn vocal_detection_and_seek_index_decode_and_resize() {
+    for len in [0, 20, 3731] {
+        let confidence: Vec<_> = (0..len).map(|i| (i % 256) as u8).collect();
+        let raw = pvdi(&confidence);
+        let mut section = Section::read_be(&mut Cursor::new(&raw)).unwrap();
+        let mut encoded = Cursor::new(Vec::new());
+        section.write_be(&mut encoded).unwrap();
+        assert_eq!(encoded.into_inner(), raw);
+        if let Content::VocalDetection(data) = &mut section.content {
+            assert_eq!(data.confidence, confidence);
+            assert_eq!((data.u1, data.u2), (0x400, 0x56220001));
+            data.confidence.extend([1, 2, 255]);
+        } else {
+            panic!("Expected vocal detection");
+        }
+        let mut encoded = Cursor::new(Vec::new());
+        section.write_be(&mut encoded).unwrap();
+        let mut expected = confidence;
+        expected.extend([1, 2, 255]);
+        assert_eq!(encoded.into_inner(), pvdi(&expected));
+    }
+
+    let large = (u64::from(u32::MAX) + 2, (1u64 << 33) + 2, 1024);
+    for entries in [vec![], vec![(0, 128, 4096), (4096, 8192, 4608), large]] {
+        let raw = pvb2(&entries);
+        let mut section = Section::read_be(&mut Cursor::new(&raw)).unwrap();
+        let mut encoded = Cursor::new(Vec::new());
+        section.write_be(&mut encoded).unwrap();
+        assert_eq!(encoded.into_inner(), raw);
+        if let Content::SeekIndex(data) = &mut section.content {
+            assert_eq!(data.u1, 7);
+            assert_eq!(data.total_samples, u64::from(u32::MAX) + 1025);
+            let actual: Vec<_> = data
+                .entries
+                .iter()
+                .map(|e| (e.sample, e.offset, e.frame_samples))
+                .collect();
+            assert_eq!(actual, entries);
+            data.entries.push(rbox::anlz::anlz::SeekPoint {
+                sample: large.0,
+                offset: large.1,
+                frame_samples: large.2,
+            });
+        } else {
+            panic!("Expected seek index");
+        }
+        let mut encoded = Cursor::new(Vec::new());
+        section.write_be(&mut encoded).unwrap();
+        let mut expected = entries;
+        expected.push(large);
+        assert_eq!(encoded.into_inner(), pvb2(&expected));
+    }
+}
+
+#[test]
+fn new_tag_getters_and_structured_vbr_preserve_values() {
+    let mut vbr_body = 0x12345678_u32.to_be_bytes().to_vec();
+    let index: Vec<_> = (0..400u32).map(|i| 0x01020300 + i).collect();
+    for value in &index {
+        vbr_body.extend(value.to_be_bytes());
+    }
+    vbr_body.extend(0x87654321_u32.to_be_bytes());
+    let vbr = raw_tag(b"PVBR", 16, &vbr_body);
+    let calibration = raw_tag(b"PWVC", 14, &[0x12, 0x34, 0, 1, 1, 0, 0xff, 0xff]);
+    let tags = vec![vbr.clone(), pvdi(&[0, 1, 255]), pvb2(&[]), calibration];
+    let bytes = raw_file(&tags);
+    let data = AnlzData::read(&mut Cursor::new(&bytes)).unwrap();
+    assert_eq!(encode(&data), bytes);
+    let tmp = common::create_temp_dir();
+    let path = tmp.path().join("ANLZ0000.DAT");
+    std::fs::write(&path, &bytes).unwrap();
+    let mut file = Anlz::load(path).unwrap();
+    let v = file.get_vbr().unwrap();
+    assert_eq!(v.index.as_slice(), index);
+    assert_eq!((v.u1, v.u2), (0x12345678, 0x87654321));
+    v.index[0] = 42;
+    let mut expected_raw = vbr[16..].to_vec();
+    expected_raw[..4].copy_from_slice(&42u32.to_be_bytes());
+    assert_eq!(file.get_vbr_data().unwrap(), expected_raw);
+    file.get_vocal_detection().unwrap().confidence.push(42);
+    file.get_seek_index()
+        .unwrap()
+        .entries
+        .push(rbox::anlz::anlz::SeekPoint {
+            sample: 1u64 << 40,
+            offset: 1u64 << 48,
+            frame_samples: 4096,
+        });
+    let c = file.get_waveform_3band_calibration().unwrap();
+    assert_eq!(c.unknown, 0x1234);
+    assert_eq!(c.data, [1, 256, 65535]);
+    c.data[1] = 512;
+    for tag in [
+        AnlzTag::VocalDetection,
+        AnlzTag::SeekIndex,
+        AnlzTag::Waveform3BandCalibration,
+    ] {
+        assert!(file.contains(tag.clone()));
+        assert_eq!(AnlzTag::from(tag.to_string()), tag);
+    }
+    let output = tmp.path().join("OUT.DAT");
+    file.dump_copy(&output).unwrap();
+    check_lengths(&std::fs::read(&output).unwrap());
+    let mut copy = Anlz::load(output).unwrap();
+    assert_eq!(copy.get_vbr().unwrap().index[0], 42);
+    assert_eq!(
+        copy.get_vocal_detection().unwrap().confidence,
+        [0, 1, 255, 42]
+    );
+    assert_eq!(copy.get_seek_index().unwrap().entries[0].offset, 1u64 << 48);
+    assert_eq!(
+        copy.get_waveform_3band_calibration().unwrap().data,
+        [1, 512, 65535]
+    );
+}
+
+#[test]
+fn new_tags_reject_inconsistent_lengths() {
+    let valid = [
+        pvdi(&[1, 2, 3]),
+        pvb2(&[(0, 128, 4096)]),
+        raw_tag(b"PWVC", 14, &[0; 8]),
+        raw_tag(b"PVBR", 16, &[0; 1608]),
+    ];
+    for bytes in valid {
+        for field in [4, 8] {
+            let mut bad = bytes.clone();
+            bad[field..field + 4].copy_from_slice(&1u32.to_be_bytes());
+            assert!(Section::read_be(&mut Cursor::new(bad)).is_err());
+        }
+        let mut truncated = bytes;
+        truncated.pop();
+        assert!(Section::read_be(&mut Cursor::new(truncated)).is_err());
+    }
+    let mut confidence = pvdi(&[1, 2, 3]);
+    confidence[20..24].copy_from_slice(&4u32.to_be_bytes());
+    assert!(Section::read_be(&mut Cursor::new(confidence)).is_err());
+    for (offset, value) in [(24, u32::MAX), (28, 19)] {
+        let mut seek = pvb2(&[(0, 128, 4096)]);
+        seek[offset..offset + 4].copy_from_slice(&value.to_be_bytes());
+        assert!(Section::read_be(&mut Cursor::new(seek)).is_err());
     }
 }
