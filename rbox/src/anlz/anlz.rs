@@ -26,9 +26,6 @@ pub enum AnlzTag {
     #[brw(magic = b"PQT2")]
     ExtendedBeatGrid,
     /// Either memory points and loops or hotcues and hot loops of the track.
-    ///
-    /// *Note:* Since the release of the Nexus 2 series, there also exists the `ExtendedCueList`
-    /// section which can carry additional information.
     #[brw(magic = b"PCOB")]
     CueList,
     /// Extended version of the `CueList` section (since Nexus 2 series).
@@ -142,6 +139,7 @@ impl From<String> for AnlzTag {
             "WaveformColorDetail" => AnlzTag::WaveformColorDetail,
             "Waveform3BandPreview" => AnlzTag::Waveform3BandPreview,
             "Waveform3BandDetail" => AnlzTag::Waveform3BandDetail,
+            "SongStructure" => AnlzTag::SongStructure,
             _ => panic!("Unknown tag type: {}", tag),
         }
     }
@@ -202,6 +200,7 @@ pub struct BeatGrid {
     #[bw(calc = 24)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Unknown field: Seems to always be `0`.
     #[br(temp)]
@@ -224,7 +223,7 @@ pub struct BeatGrid {
 
 impl SizedSection for BeatGrid {
     fn size(&self) -> u32 {
-        self.total_size
+        24 + self.beats.len() as u32 * 8
     }
 }
 
@@ -252,17 +251,15 @@ pub struct ExtendedBeatGrid {
     #[bw(calc = 56)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Padding: 4bytes.
     #[br(temp)]
     #[br(assert(pad1 == 0))]
     #[bw(calc = 0)]
     pad1: u32,
-    /// Unknown field: Seems to always be `0x01000002`.
-    #[br(temp)]
-    #[br(assert(u1 == 0x01000002))]
-    #[bw(calc = 0x01000002)]
-    u1: u32,
+    /// Observed version values include `0x01000002` and `0x02000002`.
+    pub version: u32,
     /// Padding: 4bytes.
     #[br(temp)]
     #[br(assert(pad2 == 0))]
@@ -270,6 +267,7 @@ pub struct ExtendedBeatGrid {
     pad2: u32,
     /// Two 'normal' beats for BPM
     #[br(count = 2)]
+    #[bw(assert(bpm.len() == 2))]
     pub bpm: Vec<Beat>,
     /// Number of beats
     #[br(temp)]
@@ -294,7 +292,7 @@ pub struct ExtendedBeatGrid {
 
 impl SizedSection for ExtendedBeatGrid {
     fn size(&self) -> u32 {
-        self.total_size
+        56 + self.beats.len() as u32 * 2
     }
 }
 
@@ -366,6 +364,7 @@ impl Into<u16> for CueStatus {
 #[brw(big)]
 pub struct Cue {
     /// Cue entry header.
+    #[br(assert(header.tag == AnlzTag::Cue && header.total_size == 56))]
     header: Header,
     /// Hot cue number.
     pub hot_cue: u32,
@@ -414,6 +413,8 @@ pub struct Cue {
 #[brw(big)]
 pub struct ExtendedCue {
     /// Cue entry header.
+    #[br(assert(header.tag == AnlzTag::ExtendedCue))]
+    #[bw(map = |header: &Header| { let mut h = header.clone(); h.total_size = self.size(); h })]
     header: Header,
     /// Hot cue number.
     pub hot_cue: u32,
@@ -448,11 +449,20 @@ pub struct ExtendedCue {
     /// Represents the loop size denominator (if this is a quantized loop).
     pub loop_denominator: u16,
     /// Length of the comment string in bytes.
-    #[br(temp)]
-    #[bw(calc = (comment.len() as u32 + 1) * 2)]
+    #[br(assert(len_comment % 2 == 0 && header.total_size >= 48
+        && len_comment <= header.total_size - 48))]
+    #[bw(map = |_: &u32| self.comment_size())]
     len_comment: u32,
-    /// An UTF-16BE encoded string, followed by a trailing  `0x0000`.
-    #[br(assert((comment.len() as u32 + 1) * 2 == len_comment))]
+    #[br(temp, count = len_comment / 2)]
+    #[bw(ignore)]
+    comment_units: Vec<u16>,
+    /// Preserve absent, unterminated, and padded comment representations.
+    #[br(calc = comment_units.iter().rev().take_while(|unit| **unit == 0).count() as u32)]
+    #[bw(ignore)]
+    comment_padding: u32,
+    /// A length-delimited UTF-16BE comment, optionally absent.
+    #[br(calc = NullWideString(comment_units[..comment_units.len() - comment_padding as usize].to_vec()))]
+    #[bw(args(self.comment_size()), write_with = Self::write_comment)]
     pub comment: NullWideString,
     /// Rekordbox hotcue color index.
     pub hot_cue_color_index: u8,
@@ -462,16 +472,41 @@ pub struct ExtendedCue {
     /// used to illuminate the RGB LEDs in a player that has loaded the cue. If not color is
     /// associated with this hot cue, the value is `(0, 0, 0)`.
     pub hot_cue_color_rgb: (u8, u8, u8),
-    /// Unknown field.
-    u6: u32,
-    /// Unknown field.
-    u7: u32,
-    /// Unknown field.
-    u8: u32,
-    /// Unknown field.
-    u9: u32,
-    /// Unknown field.
-    u10: u32,
+    /// Preserve the variable-length remainder of this cue entry.
+    #[br(count = header.total_size - 48 - len_comment)]
+    trailing_data: Vec<u8>,
+}
+
+impl ExtendedCue {
+    fn comment_size(&self) -> u32 {
+        if self.len_comment == 0 && self.comment.is_empty() {
+            0
+        } else {
+            let padding = if self.len_comment == 0 {
+                1
+            } else {
+                self.comment_padding
+            };
+            (self.comment.len() as u32 + padding) * 2
+        }
+    }
+
+    fn size(&self) -> u32 {
+        48 + self.comment_size() + self.trailing_data.len() as u32
+    }
+
+    fn write_comment<W: Write + Seek>(
+        comment: &NullWideString,
+        writer: &mut W,
+        endian: Endian,
+        (len,): (u32,),
+    ) -> BinResult<()> {
+        comment.0.write_options(writer, endian, ())?;
+        for _ in comment.len()..len as usize / 2 {
+            0u16.write_options(writer, endian, ())?;
+        }
+        Ok(())
+    }
 }
 
 /// List of cue points or loops.
@@ -487,6 +522,7 @@ pub struct CueList {
     #[bw(calc = 24)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// The types of cues (memory or hot) that this list contains.
     pub list_type: CueListType,
@@ -499,11 +535,8 @@ pub struct CueList {
     #[br(temp)]
     #[bw(calc = cues.len() as u16)]
     len_cues: u16,
-    /// Unknown field: Seems to always be `0xFFFFFFFF`
-    #[br(temp)]
-    #[br(assert(u2 == 0xFFFFFFFF))]
-    #[bw(calc = 0xFFFFFFFF)]
-    u2: u32,
+    /// Number of memory cues, or -1 when unspecified.
+    pub memory_count: i32,
     /// Cues
     #[br(count = usize::from(len_cues))]
     pub cues: Vec<Cue>,
@@ -511,7 +544,7 @@ pub struct CueList {
 
 impl SizedSection for CueList {
     fn size(&self) -> u32 {
-        self.total_size
+        24 + self.cues.len() as u32 * 56
     }
 }
 
@@ -530,6 +563,7 @@ pub struct ExtendedCueList {
     #[bw(calc = 20)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// The types of cues (memory or hot) that this list contains.
     pub list_type: CueListType,
@@ -549,7 +583,7 @@ pub struct ExtendedCueList {
 
 impl SizedSection for ExtendedCueList {
     fn size(&self) -> u32 {
-        self.total_size
+        20 + self.cues.iter().map(ExtendedCue::size).sum::<u32>()
     }
 }
 
@@ -568,6 +602,7 @@ pub struct Path {
     #[bw(calc = 16)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Length of the path field in bytes.
     #[br(temp)]
@@ -582,7 +617,7 @@ pub struct Path {
 
 impl SizedSection for Path {
     fn size(&self) -> u32 {
-        self.total_size
+        16 + (self.path.len() as u32 + 1) * 2
     }
 }
 
@@ -599,7 +634,7 @@ impl Path {
 
     pub fn set<P: AsRef<std::path::Path> + AsRef<OsStr>>(&mut self, path: P) {
         let p = std::path::Path::new(&path);
-        let string = NullWideString::from(p.as_os_str().to_str().unwrap());
+        let string = NullWideString::from(p.to_string_lossy().replace('\\', "/"));
         self.path = string.clone();
         self.total_size = ((string.len() as u32) + 1) * 2 + 16;
     }
@@ -618,6 +653,7 @@ pub struct VBR {
     #[br(assert(header_size == 16))]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Unknown field (apparently always `0`)
     #[br(temp)]
@@ -631,7 +667,7 @@ pub struct VBR {
 
 impl SizedSection for VBR {
     fn size(&self) -> u32 {
-        self.total_size
+        16 + self.data.len() as u32
     }
 }
 
@@ -643,10 +679,10 @@ impl SizedSection for VBR {
 #[br(big, map = Self::from_bytes)]
 #[bw(big, map = |x: &TinyWaveformColumn| x.into_bytes())]
 pub struct TinyWaveformColumn {
-    #[allow(dead_code)]
-    unused: B4,
-    /// Height of the Column in pixels.
-    pub height: B4,
+    /// Height of the column in pixels.
+    pub height: B5,
+    /// Shade of white.
+    pub whiteness: B3,
 }
 
 impl Default for TinyWaveformColumn {
@@ -657,7 +693,7 @@ impl Default for TinyWaveformColumn {
 
 /// Smaller version of the fixed-width monochrome preview of the track waveform.
 ///
-/// Identifier: PWAV
+/// Identifier: PWV2
 /// Used in `.DAT` files.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -668,6 +704,7 @@ pub struct TinyWaveformPreview {
     #[bw(calc = 20)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Unknown field.
     #[br(temp)]
@@ -686,7 +723,7 @@ pub struct TinyWaveformPreview {
 
 impl SizedSection for TinyWaveformPreview {
     fn size(&self) -> u32 {
-        self.total_size
+        20 + self.data.len() as u32
     }
 }
 
@@ -706,7 +743,7 @@ pub struct WaveformColumn {
 
 /// Fixed-width monochrome preview of the track waveform.
 ///
-/// Identifier: PWV2
+/// Identifier: PWAV
 /// Used in `.DAT` files.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -717,6 +754,7 @@ pub struct WaveformPreview {
     #[bw(calc = 20)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Unknown field.
     #[br(temp)]
@@ -735,7 +773,7 @@ pub struct WaveformPreview {
 
 impl SizedSection for WaveformPreview {
     fn size(&self) -> u32 {
-        self.total_size
+        20 + self.data.len() as u32
     }
 }
 
@@ -752,6 +790,7 @@ pub struct WaveformDetail {
     #[bw(calc = 24)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Size of a single entry, always 1.
     #[br(temp)]
@@ -778,7 +817,7 @@ pub struct WaveformDetail {
 
 impl SizedSection for WaveformDetail {
     fn size(&self) -> u32 {
-        self.total_size
+        24 + self.data.len() as u32
     }
 }
 
@@ -816,6 +855,7 @@ pub struct WaveformColorPreview {
     #[bw(calc = 24)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Size of a single entry, always 6.
     #[br(temp)]
@@ -842,7 +882,7 @@ pub struct WaveformColorPreview {
 
 impl SizedSection for WaveformColorPreview {
     fn size(&self) -> u32 {
-        self.total_size
+        24 + self.data.len() as u32 * 6
     }
 }
 
@@ -851,20 +891,20 @@ impl SizedSection for WaveformColorPreview {
 /// Single Column value in a Waveform Color Detail section.
 #[bitfield]
 #[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
-#[br(map = Self::from_bytes)]
-#[bw(big, map = |x: &WaveformColorDetailColumn| x.into_bytes())]
+#[br(big, map = |value: u16| Self::from_bytes(value.to_le_bytes()))]
+#[bw(big, map = |x: &WaveformColorDetailColumn| u16::from_le_bytes(x.into_bytes()))]
 pub struct WaveformColorDetailColumn {
-    /// Red color component.
-    pub red: B3,
-    /// Green color component.
-    pub green: B3,
-    /// Blue color component.
-    pub blue: B3,
-    /// Height of the column.
-    pub height: B5,
-    /// Unknown field
+    /// Reserved low bits.
     #[allow(dead_code)]
     unknown: B2,
+    /// Height of the column.
+    pub height: B5,
+    /// Blue color component.
+    pub blue: B3,
+    /// Green color component.
+    pub green: B3,
+    /// Red color component.
+    pub red: B3,
 }
 
 /// Variable-width large colored version of the track waveform.
@@ -880,6 +920,7 @@ pub struct WaveformColorDetail {
     #[bw(calc = 24)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Size of a single entry, always 2.
     #[br(temp)]
@@ -903,7 +944,7 @@ pub struct WaveformColorDetail {
 
 impl SizedSection for WaveformColorDetail {
     fn size(&self) -> u32 {
-        self.total_size
+        24 + self.data.len() as u32 * 2
     }
 }
 
@@ -936,6 +977,7 @@ pub struct Waveform3BandPreview {
     #[bw(calc = 20)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Size of a single entry, always 3.
     #[br(temp)]
@@ -954,7 +996,7 @@ pub struct Waveform3BandPreview {
 
 impl SizedSection for Waveform3BandPreview {
     fn size(&self) -> u32 {
-        self.total_size
+        20 + self.data.len() as u32 * 3
     }
 }
 
@@ -971,6 +1013,7 @@ pub struct Waveform3BandDetail {
     #[bw(calc = 24)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
     /// Size of a single entry, always 2.
     #[br(temp)]
@@ -994,7 +1037,7 @@ pub struct Waveform3BandDetail {
 
 impl SizedSection for Waveform3BandDetail {
     fn size(&self) -> u32 {
-        self.total_size
+        24 + self.data.len() as u32 * 3
     }
 }
 
@@ -1151,30 +1194,26 @@ pub struct SongStructureData {
 }
 
 impl SongStructureData {
+    /// The key data used for the XOR encryption of the [`SongStructureData`] section.
+    /// Equivalent seed: each byte of ASCII "Kanzen-niRikaishita" plus 0x80.
+    /// Exported version 1 tags start the mask at index ``version % len(XOR_MASK)``.
     const KEY_DATA: [u8; 19] = [
         0xCB, 0xE1, 0xEE, 0xFA, 0xE5, 0xEE, 0xAD, 0xEE, 0xE9, 0xD2, 0xE9, 0xEB, 0xE1, 0xE9, 0xF3,
         0xE8, 0xE9, 0xF4, 0xE1,
     ];
 
-    /// Returns an iterator over the key bytes (RB6+).
-    fn get_key(len_entries: u16) -> impl Iterator<Item = u8> {
-        Self::KEY_DATA.into_iter().map(move |x: u8| -> u8 {
-            let value = u16::from(x) + len_entries;
-            (value % 256) as u8
-        })
+    /// The export mask starts at version % 19 and adds the entry count modulo 256.
+    fn get_key(len_entries: u16, version: u16) -> impl Iterator<Item = u8> {
+        Self::KEY_DATA
+            .into_iter()
+            .cycle()
+            .skip(usize::from(version) % Self::KEY_DATA.len())
+            .take(Self::KEY_DATA.len())
+            .map(move |byte| byte.wrapping_add(len_entries as u8))
     }
 
-    /// Returns `true` if the [`SongStructureData`] is encrypted.
-    ///
-    /// The method tries to decrypt the `raw_mood` field and checking if the result is valid.
-    fn check_if_encrypted(raw_mood: [u8; 2], len_entries: u16) -> bool {
-        let buffer: Vec<u8> = raw_mood
-            .iter()
-            .zip(Self::get_key(len_entries).take(2))
-            .map(|(byte, key)| byte ^ key)
-            .collect();
-        let mut reader = binrw::io::Cursor::new(buffer);
-        Mood::read(&mut reader).is_ok()
+    fn check_if_encrypted(raw_mood: [u8; 2]) -> bool {
+        !(1..=3).contains(&u16::from_be_bytes(raw_mood))
     }
 
     /// Read a [`SongStructureData`] section that may be encrypted, depending on the `is_encrypted`
@@ -1182,10 +1221,10 @@ impl SongStructureData {
     fn read_encrypted<R: Read + Seek>(
         reader: &mut R,
         endian: Endian,
-        (is_encrypted, len_entries): (bool, u16),
+        (is_encrypted, len_entries, version): (bool, u16, u16),
     ) -> BinResult<Self> {
         if is_encrypted {
-            let key: Vec<u8> = Self::get_key(len_entries).collect();
+            let key: Vec<u8> = Self::get_key(len_entries, version).collect();
             let mut xor_reader = XorStream::with_key(reader, key);
             Self::read_options(&mut xor_reader, endian, (len_entries,))
         } else {
@@ -1199,10 +1238,10 @@ impl SongStructureData {
         &self,
         writer: &mut W,
         endian: Endian,
-        (is_encrypted, len_entries): (bool, u16),
+        (is_encrypted, len_entries, version): (bool, u16, u16),
     ) -> BinResult<()> {
         if is_encrypted {
-            let key: Vec<u8> = Self::get_key(len_entries).collect();
+            let key: Vec<u8> = Self::get_key(len_entries, version).collect();
             let mut xor_writer = XorStream::with_key(writer, key);
             self.write_options(&mut xor_writer, endian, ())
         } else {
@@ -1224,32 +1263,35 @@ pub struct SongStructure {
     #[bw(calc = 32)]
     header_size: u32,
     /// Length of the section (including the header).
+    #[bw(map = |_: &u32| self.size())]
     total_size: u32,
+    /// Song structure format version (0 or 1 in known files).
+    pub version: u16,
     /// Size of a single entry, always 24.
     #[br(temp)]
     #[br(assert(len_entry_bytes == 24))]
-    #[bw(calc = 24u32)]
-    len_entry_bytes: u32,
+    #[bw(calc = 24u16)]
+    len_entry_bytes: u16,
     /// Number of entries in this section.
     #[br(temp)]
-    #[br(assert((len_entry_bytes * (len_entries as u32)) == total_size - header_size))]
+    #[br(assert((u32::from(len_entry_bytes) * u32::from(len_entries)) == total_size - header_size))]
     #[bw(calc = data.phrases.len() as u16)]
     len_entries: u16,
     /// Indicates if the remaining parts of the song structure section are encrypted.
     ///
     /// This is a virtual field and not actually present in the file.
-    #[br(restore_position, map = |raw_mood: [u8; 2]| SongStructureData::check_if_encrypted(raw_mood, len_entries))]
+    #[br(restore_position, map = |raw_mood: [u8; 2]| SongStructureData::check_if_encrypted(raw_mood))]
     #[bw(ignore)]
     pub is_encrypted: bool,
     /// Song structure data.
-    #[br(args(is_encrypted, len_entries), parse_with = SongStructureData::read_encrypted)]
-    #[bw(args(*is_encrypted, len_entries), write_with = SongStructureData::write_encrypted)]
+    #[br(args(is_encrypted, len_entries, version), parse_with = SongStructureData::read_encrypted)]
+    #[bw(args(*is_encrypted, len_entries, *version), write_with = SongStructureData::write_encrypted)]
     pub data: SongStructureData,
 }
 
 impl SizedSection for SongStructure {
     fn size(&self) -> u32 {
-        self.total_size
+        32 + self.data.phrases.len() as u32 * 24
     }
 }
 
@@ -1260,8 +1302,10 @@ impl SizedSection for SongStructure {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Unknown {
     /// Length of the header data (including `kind`, `size` and `total_size`).
+    #[br(assert(header_size >= 12))]
     header_size: u32,
     /// Length of the section (including the header).
+    #[br(assert(total_size >= header_size))]
     total_size: u32,
     /// Unknown header data.
     #[br(count = header_size - 12)]
@@ -1373,7 +1417,8 @@ pub struct Section {
 #[brw(big)]
 pub struct AnlzData {
     /// The file header.
-    #[br(assert(header.tag == AnlzTag::File))]
+    #[br(assert(header.tag == AnlzTag::File && header.size >= 12 && header.total_size >= header.size))]
+    #[bw(map = |header: &Header| { let mut h = header.clone(); h.size = 12 + header_data.len() as u32; h.total_size = h.size + sections.iter().map(|s| s.content.size()).sum::<u32>(); h })]
     pub header: Header,
     /// The header data.
     #[br(count = header.remaining_size())]
@@ -1401,6 +1446,7 @@ impl AnlzData {
     }
 
     pub fn update_total_size(&mut self) {
+        self.header.size = 12 + self.header_data.len() as u32;
         let mut total = self.header.size;
         for section in self.sections.iter_mut() {
             total += section.content.size();
@@ -1413,30 +1459,30 @@ impl AnlzData {
 
 /// Rekordbox ANLZ file handler.
 pub struct Anlz {
-    /// Path to the XML file
+    /// Path to the ANLZ file
     path: std::path::PathBuf,
-    /// XML document
+    /// Parsed ANLZ data
     pub data: AnlzData,
 }
 
 impl Anlz {
-    /// Read a Rekordbox masterPlaylist6 XML file.
+    /// Read a Rekordbox ANLZ file.
     pub fn load<P: AsRef<std::path::Path> + AsRef<OsStr>>(path: P) -> Result<Self> {
         let p = std::path::Path::new(&path).to_path_buf();
-        let mut file = std::fs::File::open(&p).expect("File not found");
-        let data = AnlzData::read(&mut file).expect("Can't read ANLZ");
+        let mut file = std::fs::File::open(&p)?;
+        let data = AnlzData::read(&mut file)?;
         Ok(Anlz { path: p, data })
     }
 
-    /// Write the XML document to a file.
+    /// Write the ANLZ data to a file.
     pub fn dump_copy<P: AsRef<std::path::Path>>(&mut self, path: P) -> Result<()> {
         self.data.update_total_size();
-        let mut file = std::fs::File::create(path).expect("Failed to create file");
+        let mut file = std::fs::File::create(path)?;
         self.data.write(&mut file)?;
         Ok(())
     }
 
-    /// Write the XML document to the original file.
+    /// Write the ANLZ data to the original file.
     pub fn dump(&mut self) -> Result<()> {
         let path = &self.path.clone();
         self.dump_copy(path)?;
@@ -1525,7 +1571,7 @@ impl Anlz {
         None
     }
 
-    /// Return the extended hot cue list entries (PCOB) if present
+    /// Return the extended hot cue list entries (PCO2) if present
     pub fn get_extended_hot_cues(&mut self) -> Option<&mut ExtendedCueList> {
         let sections = self.find_sections_by_tag(AnlzTag::ExtendedCueList);
         for section in sections {
@@ -1539,7 +1585,7 @@ impl Anlz {
         None
     }
 
-    /// Return the extended memory cue list entries (PCOB) if present
+    /// Return the extended memory cue list entries (PCO2) if present
     pub fn get_extended_memory_cues(&mut self) -> Option<&mut ExtendedCueList> {
         let sections = self.find_sections_by_tag(AnlzTag::ExtendedCueList);
         for section in sections {
@@ -1600,7 +1646,7 @@ impl Anlz {
         None
     }
 
-    /// Returns the tiny waveform columns (PWAV) if present
+    /// Returns the tiny waveform columns (PWV2) if present
     pub fn get_tiny_waveform_preview(&mut self) -> Option<&mut TinyWaveformPreview> {
         let section = self.find_section_by_tag(AnlzTag::TinyWaveformPreview);
         if let Some(section) = section {
@@ -1611,7 +1657,7 @@ impl Anlz {
         None
     }
 
-    /// Returns the fixed-width monochrome waveform preview columns (PWV2) if present
+    /// Returns the fixed-width monochrome waveform preview columns (PWAV) if present
     pub fn get_waveform_preview(&mut self) -> Option<&mut WaveformPreview> {
         let section = self.find_section_by_tag(AnlzTag::WaveformPreview);
         if let Some(section) = section {
