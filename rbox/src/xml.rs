@@ -861,7 +861,7 @@ pub struct Playlists {
 
 /// The root element of the Rekordbox XML file.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-#[serde(rename = "MASTER_PLAYLIST")]
+#[serde(rename = "DJ_PLAYLISTS")]
 pub struct Document {
     /// Version of the XML format for share the playlists.
     #[serde(rename = "@Version")]
