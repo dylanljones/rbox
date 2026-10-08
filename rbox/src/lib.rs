@@ -121,6 +121,7 @@ pub mod model_traits;
 pub mod one_library;
 #[cfg(feature = "settings")]
 pub mod settings;
+pub mod share;
 #[cfg(feature = "xml")]
 pub mod xml;
 
