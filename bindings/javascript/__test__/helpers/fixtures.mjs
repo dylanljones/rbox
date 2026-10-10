@@ -25,17 +25,25 @@ export function temporaryPath(t, name) {
 }
 
 // Register with afterEach.always so this also runs when setup or a test fails.
-export function cleanupFixtures(t) {
+export async function cleanupFixtures(t) {
     delete t.context.db
     const directory = t.context.directory
     if (!directory) return
     try {
-        fs.rmSync(directory, { recursive: true, force: true })
+        // Async retries let native finalizers and Windows file operations progress.
+        await fs.promises.rm(directory, {
+            recursive: true,
+            force: true,
+            maxRetries: 3,
+            retryDelay: 100,
+        })
         delete t.context.directory
     } catch (error) {
-        // Releasing the JS reference does not synchronously close native pools.
+        // Native pools and lazy ANLZ readers can outlive their JS references.
+        // Windows may report their pending deletions as a nonempty directory.
         // Keep the path so another cleanup attempt can retry after GC.
-        if (!['EBUSY', 'EPERM', 'EACCES'].includes(error.code)) throw error
+        const pendingDeletion = process.platform === 'win32' && error.code === 'ENOTEMPTY'
+        if (!pendingDeletion && !['EBUSY', 'EPERM', 'EACCES'].includes(error.code)) throw error
     }
 }
 
