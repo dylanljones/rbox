@@ -21,10 +21,10 @@ use super::djmd_device::DjmdDevice;
 use super::djmd_genre::DjmdGenre;
 use super::djmd_key::DjmdKey;
 use super::djmd_label::DjmdLabel;
-use super::schema::djmdContent;
+use super::schema::{djmdAlbum, djmdArtist, djmdColor, djmdContent, djmdGenre, djmdKey, djmdLabel};
 use super::{Date, DateString, RandomIdGenerator};
 use crate::enums::{Analyzed, FileType};
-use crate::model_traits::{Model, ModelInsert, ModelUpdate};
+use crate::model_traits::{load_related, Model, ModelInsert, ModelRelations, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 use crate::PathExt;
@@ -235,6 +235,162 @@ pub struct DjmdContent {
     pub src_album_name: Option<String>,
     /// An optional integer representing the source length in milliseconds.
     pub src_length: Option<i32>,
+}
+
+/// Track snapshot with all supported direct metadata relationships resolved.
+///
+/// Field access performs no queries, and editing this view does not persist changes.
+/// Related records are plain rows without recursive expansion. `None` means an
+/// absent foreign key or a missing target; the content row retains the original key.
+#[derive(Debug, Clone, PartialEq)]
+pub struct DjmdContentView {
+    /// Original content row, including its foreign keys.
+    pub content: DjmdContent,
+    /// Main artist.
+    pub artist: Option<DjmdArtist>,
+    /// Artist credited as remixer.
+    pub remixer: Option<DjmdArtist>,
+    /// Artist credited as original artist.
+    pub original_artist: Option<DjmdArtist>,
+    /// Artist credited as composer.
+    pub composer: Option<DjmdArtist>,
+    /// Associated album.
+    pub album: Option<DjmdAlbum>,
+    /// Associated genre.
+    pub genre: Option<DjmdGenre>,
+    /// Associated label.
+    pub label: Option<DjmdLabel>,
+    /// Associated key.
+    pub key: Option<DjmdKey>,
+    /// Associated color.
+    pub color: Option<DjmdColor>,
+}
+
+impl ModelRelations for DjmdContent {
+    type Resolved = DjmdContentView;
+
+    fn resolve_many(
+        conn: &mut SqliteConnection,
+        models: Vec<Self>,
+    ) -> QueryResult<Vec<Self::Resolved>> {
+        if models.is_empty() {
+            return Ok(Vec::new());
+        }
+        conn.transaction(|conn| {
+            let artists = load_related(
+                conn,
+                models.iter().flat_map(|row| {
+                    [
+                        row.artist_id.clone(),
+                        row.remixer_id.clone(),
+                        row.org_artist_id.clone(),
+                        row.composer_id.clone(),
+                    ]
+                    .into_iter()
+                    .flatten()
+                }),
+                |conn, ids| {
+                    DjmdArtist::query()
+                        .filter(djmdArtist::id.eq_any(ids))
+                        .load(conn)
+                },
+                |row| row.id.clone(),
+            )?;
+            let albums = load_related(
+                conn,
+                models.iter().filter_map(|row| row.album_id.clone()),
+                |conn, ids| {
+                    DjmdAlbum::query()
+                        .filter(djmdAlbum::id.eq_any(ids))
+                        .load(conn)
+                },
+                |row| row.id.clone(),
+            )?;
+            let genres = load_related(
+                conn,
+                models.iter().filter_map(|row| row.genre_id.clone()),
+                |conn, ids| {
+                    DjmdGenre::query()
+                        .filter(djmdGenre::id.eq_any(ids))
+                        .load(conn)
+                },
+                |row| row.id.clone(),
+            )?;
+            let labels = load_related(
+                conn,
+                models.iter().filter_map(|row| row.label_id.clone()),
+                |conn, ids| {
+                    DjmdLabel::query()
+                        .filter(djmdLabel::id.eq_any(ids))
+                        .load(conn)
+                },
+                |row| row.id.clone(),
+            )?;
+            let keys = load_related(
+                conn,
+                models.iter().filter_map(|row| row.key_id.clone()),
+                |conn, ids| DjmdKey::query().filter(djmdKey::id.eq_any(ids)).load(conn),
+                |row| row.id.clone(),
+            )?;
+            let colors = load_related(
+                conn,
+                models.iter().filter_map(|row| row.color_id.clone()),
+                |conn, ids| {
+                    DjmdColor::query()
+                        .filter(djmdColor::id.eq_any(ids))
+                        .load(conn)
+                },
+                |row| row.id.clone(),
+            )?;
+            Ok(models
+                .into_iter()
+                .map(|content| DjmdContentView {
+                    artist: content
+                        .artist_id
+                        .as_ref()
+                        .and_then(|id| artists.get(id))
+                        .cloned(),
+                    remixer: content
+                        .remixer_id
+                        .as_ref()
+                        .and_then(|id| artists.get(id))
+                        .cloned(),
+                    original_artist: content
+                        .org_artist_id
+                        .as_ref()
+                        .and_then(|id| artists.get(id))
+                        .cloned(),
+                    composer: content
+                        .composer_id
+                        .as_ref()
+                        .and_then(|id| artists.get(id))
+                        .cloned(),
+                    album: content
+                        .album_id
+                        .as_ref()
+                        .and_then(|id| albums.get(id))
+                        .cloned(),
+                    genre: content
+                        .genre_id
+                        .as_ref()
+                        .and_then(|id| genres.get(id))
+                        .cloned(),
+                    label: content
+                        .label_id
+                        .as_ref()
+                        .and_then(|id| labels.get(id))
+                        .cloned(),
+                    key: content.key_id.as_ref().and_then(|id| keys.get(id)).cloned(),
+                    color: content
+                        .color_id
+                        .as_ref()
+                        .and_then(|id| colors.get(id))
+                        .cloned(),
+                    content,
+                })
+                .collect())
+        })
+    }
 }
 
 impl Model for DjmdContent {

@@ -27,11 +27,11 @@ mod sort;
 
 use super::schema;
 
-pub use album::{Album, AlbumJoin, NewAlbum};
+pub use album::{Album, AlbumView, NewAlbum};
 pub use artist::{Artist, Composer, Lyricist, NewArtist, OriginalArtist, Remixer};
-pub use category::{Category, CategoryJoin, NewCategory};
+pub use category::{Category, CategoryView, NewCategory};
 pub use color::{Color, NewColor};
-pub use content::{Content, ContentJoin, NewContent};
+pub use content::{Content, ContentView, NewContent};
 pub use cue::Cue;
 pub use genre::{Genre, NewGenre};
 pub use history::{History, HistoryContent, NewHistory};

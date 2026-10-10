@@ -14,11 +14,11 @@ use super::image::Image;
 use super::schema::{album, artist, content, image};
 #[cfg(feature = "master-db")]
 use crate::masterdb::models::DjmdAlbum;
-use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
+use crate::model_traits::{
+    load_related, Model, ModelDelete, ModelInsert, ModelRelations, ModelUpdate,
+};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
-
-type JoinTuple = (Album, Option<Artist>, Option<Image>);
 
 /// Represents the `album` table in the Rekordbox One Library database.
 ///
@@ -54,6 +54,64 @@ pub struct Album {
     pub is_compilation: i32,
     /// An optional string used for searching the album.
     pub name_for_search: Option<String>,
+}
+
+/// Album snapshot with all direct metadata relationships resolved.
+///
+/// Field access performs no queries, and editing this view does not persist changes.
+/// Related rows are not expanded recursively. Missing targets remain `None`;
+/// the original row retains its foreign keys.
+#[derive(Debug, Clone, PartialEq)]
+pub struct AlbumView {
+    /// Original album row, including its foreign keys.
+    pub album: Album,
+    /// Resolved artist.
+    pub artist: Option<Artist>,
+    /// Resolved image.
+    pub image: Option<Image>,
+}
+
+impl ModelRelations for Album {
+    type Resolved = AlbumView;
+
+    fn resolve_many(
+        conn: &mut SqliteConnection,
+        models: Vec<Self>,
+    ) -> QueryResult<Vec<Self::Resolved>> {
+        if models.is_empty() {
+            return Ok(Vec::new());
+        }
+        conn.transaction(|conn| {
+            let artists = load_related(
+                conn,
+                models.iter().filter_map(|row| row.artist_id),
+                |conn, ids| Artist::query().filter(artist::id.eq_any(ids)).load(conn),
+                |row| row.id,
+            )?;
+            let images = load_related(
+                conn,
+                models.iter().filter_map(|row| row.image_id),
+                |conn, ids| Image::query().filter(image::id.eq_any(ids)).load(conn),
+                |row| row.id,
+            )?;
+            Ok(models
+                .into_iter()
+                .map(|album| AlbumView {
+                    artist: album
+                        .artist_id
+                        .as_ref()
+                        .and_then(|id| artists.get(id))
+                        .cloned(),
+                    image: album
+                        .image_id
+                        .as_ref()
+                        .and_then(|id| images.get(id))
+                        .cloned(),
+                    album,
+                })
+                .collect())
+        })
+    }
 }
 
 impl Model for Album {
@@ -114,102 +172,6 @@ impl Album {
     pub fn name_exists(conn: &mut SqliteConnection, name: &str) -> QueryResult<bool> {
         let query = Self::query().filter(album::name.eq(name));
         diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
-    }
-}
-
-/// Represents a complete album with its associated artist and image.
-#[derive(Debug, Clone, PartialEq)]
-pub struct AlbumJoin {
-    /// The unique identifier of the album.
-    pub id: i32,
-    /// The name of the album.
-    pub name: String,
-    /// An optional foreign key referencing the album artist [`Artist`].
-    pub artist_id: Option<i32>,
-    /// An optional foreign key referencing the album artwork [`Image`].
-    pub image_id: Option<i32>,
-    /// A flag if the album is a compilation.
-    pub is_compilation: i32,
-    /// An optional string used for searching the album.
-    pub name_for_search: Option<String>,
-
-    /// The associated [`Artist`]
-    pub artist: Option<Artist>,
-    /// The associated [`Image`]
-    pub image: Option<Image>,
-}
-
-impl Model for AlbumJoin {
-    type Id = i32;
-
-    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
-        let results: Vec<JoinTuple> = album::table
-            .left_outer_join(artist::table)
-            .left_outer_join(image::table)
-            .load(conn)?;
-        Ok(results.into_iter().map(Self::from_join).collect())
-    }
-
-    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
-        let result: Option<JoinTuple> = album::table
-            .find(id)
-            .left_outer_join(artist::table)
-            .left_outer_join(image::table)
-            .first(conn)
-            .optional()?;
-        Ok(result.map(Self::from_join))
-    }
-
-    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
-        diesel::dsl::select(diesel::dsl::exists(Album::query().find(id))).get_result(conn)
-    }
-}
-
-impl AlbumJoin {
-    fn from_join(tuple: JoinTuple) -> Self {
-        let mut result = Self::from(tuple.0);
-        result.artist = tuple.1;
-        result.image = tuple.2;
-        result
-    }
-
-    /// Queries a record from the `album` table with joined associations by its `name`.
-    pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
-        let result: Option<JoinTuple> = album::table
-            .filter(album::name.eq(name))
-            .left_outer_join(artist::table)
-            .left_outer_join(image::table)
-            .first(conn)
-            .optional()?;
-        Ok(result.map(Self::from_join))
-    }
-}
-
-impl Into<Album> for AlbumJoin {
-    fn into(self) -> Album {
-        Album {
-            id: self.id,
-            name: self.name,
-            artist_id: self.artist_id,
-            image_id: self.image_id,
-            is_compilation: self.is_compilation,
-            name_for_search: self.name_for_search,
-        }
-    }
-}
-
-impl From<Album> for AlbumJoin {
-    fn from(raw: Album) -> Self {
-        AlbumJoin {
-            id: raw.id,
-            name: raw.name,
-            artist_id: raw.artist_id,
-            image_id: raw.image_id,
-            is_compilation: raw.is_compilation,
-            name_for_search: raw.name_for_search,
-            artist: None,
-            image: None,
-        }
     }
 }
 

@@ -12,12 +12,11 @@ use rbox_derives::PyMutableMapping;
 use super::menu_item::MenuItem;
 use super::schema::{category, menuItem};
 use crate::model_traits::{
-    ordering_error, Model, ModelDelete, ModelInsert, ModelUpdate, SequenceStore, SequenceVisible,
+    load_related, ordering_error, Model, ModelDelete, ModelInsert, ModelRelations, ModelUpdate,
+    SequenceStore, SequenceVisible,
 };
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
-
-type JoinTuple = (Category, Option<MenuItem>);
 
 /// Represents the `category` table in the Rekordbox One Library database.
 ///
@@ -42,6 +41,51 @@ pub struct Category {
     pub seq: i32,
     /// A flag if the category is visible.
     pub is_visible: i32,
+}
+
+/// Category snapshot with all direct metadata relationships resolved.
+///
+/// Field access performs no queries, and editing this view does not persist changes.
+/// Related rows are not expanded recursively. Missing targets remain `None`;
+/// the original row retains its foreign keys.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CategoryView {
+    /// Original category row, including its foreign keys.
+    pub category: Category,
+    /// Resolved menu item.
+    pub menu_item: Option<MenuItem>,
+}
+
+impl ModelRelations for Category {
+    type Resolved = CategoryView;
+
+    fn resolve_many(
+        conn: &mut SqliteConnection,
+        models: Vec<Self>,
+    ) -> QueryResult<Vec<Self::Resolved>> {
+        if models.is_empty() {
+            return Ok(Vec::new());
+        }
+        conn.transaction(|conn| {
+            let menu_items = load_related(
+                conn,
+                models.iter().map(|row| row.menu_item_id),
+                |conn, ids| {
+                    MenuItem::query()
+                        .filter(menuItem::id.eq_any(ids))
+                        .load(conn)
+                },
+                |row| row.id,
+            )?;
+            Ok(models
+                .into_iter()
+                .map(|category| CategoryView {
+                    menu_item: menu_items.get(&category.menu_item_id).cloned(),
+                    category,
+                })
+                .collect())
+        })
+    }
 }
 
 impl Model for Category {
@@ -180,77 +224,6 @@ impl SequenceStore for Category {
     }
 }
 impl SequenceVisible for Category {}
-
-/// Represents a complete category with its associated menu item.
-#[derive(Debug, Clone, PartialEq)]
-pub struct CategoryJoin {
-    /// The unique identifier of the category.
-    pub id: i32,
-    /// A foreign key referencing the [`MenuItem`].
-    pub menu_item_id: i32,
-    /// The sequence/order of the category.
-    pub seq: i32,
-    /// A flag if the category is visible.
-    pub is_visible: i32,
-
-    /// The associated [`MenuItem`]
-    pub menu_item: Option<MenuItem>,
-}
-
-impl Model for CategoryJoin {
-    type Id = i32;
-
-    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
-        let results: Vec<JoinTuple> = category::table
-            .left_outer_join(menuItem::table)
-            .load(conn)?;
-        Ok(results.into_iter().map(Self::from_join).collect())
-    }
-
-    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
-        let result: Option<JoinTuple> = category::table
-            .find(id)
-            .left_outer_join(menuItem::table)
-            .first(conn)
-            .optional()?;
-        Ok(result.map(Self::from_join))
-    }
-
-    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
-        Category::id_exists(conn, id)
-    }
-}
-
-impl CategoryJoin {
-    fn from_join(tuple: JoinTuple) -> Self {
-        let mut result = Self::from(tuple.0);
-        result.menu_item = tuple.1;
-        result
-    }
-}
-
-impl Into<Category> for CategoryJoin {
-    fn into(self) -> Category {
-        Category {
-            id: self.id,
-            menu_item_id: self.menu_item_id,
-            seq: self.seq,
-            is_visible: self.is_visible,
-        }
-    }
-}
-
-impl From<Category> for CategoryJoin {
-    fn from(raw: Category) -> Self {
-        CategoryJoin {
-            id: raw.id,
-            menu_item_id: raw.menu_item_id,
-            seq: raw.seq,
-            is_visible: raw.is_visible,
-            menu_item: None,
-        }
-    }
-}
 
 /// Represents a new record insertale to the `category` table.
 ///

@@ -12,6 +12,343 @@ mod common;
 
 const SECONDS_THRESH: i64 = 10;
 
+fn assert_no_content_relations(view: &rbox::masterdb::DjmdContentView) {
+    assert!(view.artist.is_none());
+    assert!(view.remixer.is_none());
+    assert!(view.original_artist.is_none());
+    assert!(view.composer.is_none());
+    assert!(view.album.is_none());
+    assert!(view.genre.is_none());
+    assert!(view.label.is_none());
+    assert!(view.key.is_none());
+    assert!(view.color.is_none());
+}
+
+// -- Resolved album relationships --------------------------------------------------------------
+
+#[rstest::rstest]
+#[case(6)]
+#[case(7)]
+fn test_album_relationships(#[case] version: usize) -> anyhow::Result<()> {
+    use rbox::masterdb::*;
+    use rbox::model_traits::{Model, ModelInsert, ModelRelations};
+    let fixture = common::setup_master_db_path(version);
+    let mut db = MasterDb::new(fixture.path())?;
+    let mut conn = db.pool.get()?;
+    let artist = NewDjmdArtist::new("album artist").insert(&mut conn)?;
+
+    let mut new = NewDjmdAlbum::new("resolved album");
+    new.album_artist_id = Some(artist.id.clone());
+
+    let album = new.insert(&mut conn)?;
+    let expected = DjmdAlbumView {
+        album: album.clone(),
+        artist: Some(artist.clone()),
+    };
+    assert_eq!(album.clone().resolve(&mut conn)?, expected);
+    let mut absent = album.clone();
+    absent.album_artist_id = None;
+
+    let absent_view = DjmdAlbumView {
+        album: absent.clone(),
+        artist: None,
+    };
+    assert_eq!(absent.clone().resolve(&mut conn)?, absent_view);
+    let mut dangling = absent.clone();
+    dangling.album_artist_id = Some("missing-artist".to_owned());
+
+    let dangling_view = DjmdAlbumView {
+        album: dangling.clone(),
+        artist: None,
+    };
+    assert_eq!(dangling.clone().resolve(&mut conn)?, dangling_view);
+
+    let inputs = vec![dangling, album.clone(), absent, album.clone()];
+    assert_eq!(
+        DjmdAlbum::resolve_many(&mut conn, inputs)?,
+        vec![
+            dangling_view,
+            expected.clone(),
+            absent_view,
+            expected.clone()
+        ]
+    );
+    assert_eq!(DjmdAlbum::find(&mut conn, &album.id)?, Some(album.clone()));
+    assert_eq!(db.get_album_by_id(&album.id)?, Some(album.clone()));
+    assert_eq!(db.get_album_with_relations(&album.id)?, Some(expected));
+    assert!(db.get_album_with_relations("missing-album")?.is_none());
+    let raw = db.get_albums()?;
+    let views = db.get_albums_with_relations()?;
+    assert_eq!(
+        views.iter().map(|v| v.album.clone()).collect::<Vec<_>>(),
+        raw
+    );
+    assert_eq!(views, DjmdAlbum::resolve_many(&mut conn, raw)?);
+    Ok(())
+}
+
+#[rstest::rstest]
+#[case(6)]
+#[case(7)]
+fn test_album_relationship_batches(#[case] version: usize) -> anyhow::Result<()> {
+    use diesel::connection::InstrumentationEvent;
+    use diesel::{Connection, RunQueryDsl};
+    use rbox::masterdb::*;
+    use rbox::model_traits::{ModelInsert, ModelRelations};
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    };
+    let fixture = common::setup_master_db_path(version);
+    let db = MasterDb::new(fixture.path())?;
+    let mut conn = db.pool.get()?;
+    let album = NewDjmdAlbum::new("batch album").insert(&mut conn)?;
+    let mut rows = Vec::new();
+    for index in 0..501 {
+        let artist = NewDjmdArtist::new(format!("album artist {index}")).insert(&mut conn)?;
+
+        let mut row = album.clone();
+        row.album_artist_id = Some(artist.id);
+
+        rows.push(row);
+    }
+    let queries = Arc::new(AtomicUsize::new(0));
+    let observed = queries.clone();
+    conn.set_instrumentation(move |event: InstrumentationEvent<'_>| {
+        if let InstrumentationEvent::StartQuery { query, .. } = event {
+            if query.to_string().trim_start().starts_with("SELECT") {
+                observed.fetch_add(1, Ordering::Relaxed);
+            }
+        }
+    });
+    assert!(DjmdAlbum::resolve_many(&mut conn, vec![])?.is_empty());
+    let empty = album.resolve(&mut conn)?;
+    assert!(empty.artist.is_none());
+
+    assert_eq!(queries.swap(0, Ordering::Relaxed), 0);
+    let repeated = DjmdAlbum::resolve_many(&mut conn, vec![rows[0].clone(); 501])?;
+    assert_eq!(repeated.len(), 501);
+    assert!(repeated.windows(2).all(|pair| pair[0] == pair[1]));
+    assert_eq!(queries.swap(0, Ordering::Relaxed), 1);
+    for size in [1, 500, 501] {
+        let views = DjmdAlbum::resolve_many(&mut conn, rows[..size].to_vec())?;
+        assert_eq!(views.len(), size);
+        for (view, row) in views.iter().zip(&rows) {
+            assert_eq!(&view.album, row);
+            assert_eq!(
+                view.artist.as_ref().map(|a| &a.id),
+                row.album_artist_id.as_ref()
+            );
+        }
+        assert_eq!(
+            queries.swap(0, Ordering::Relaxed),
+            if size > 500 { 2 } else { 1 }
+        );
+    }
+
+    diesel::sql_query("ALTER TABLE djmdArtist RENAME TO relationship_test_artist")
+        .execute(&mut conn)?;
+    assert!(rows.remove(0).resolve(&mut conn).is_err());
+    Ok(())
+}
+
+// -- Resolved track relationships --------------------------------------------------------------
+
+#[rstest::rstest]
+#[case(6)]
+#[case(7)]
+fn test_content_relationships(#[case] version: usize) -> anyhow::Result<()> {
+    use rbox::masterdb::*;
+    use rbox::model_traits::{Model, ModelInsert, ModelRelations};
+
+    let fixture = common::setup_master_db_path(version);
+    let mut db = MasterDb::new(fixture.path())?;
+    let mut conn = db.pool.get()?;
+    let original = DjmdContent::all(&mut conn)?
+        .into_iter()
+        .next()
+        .expect("fixture track");
+    let mut track = original.clone();
+    let artist = NewDjmdArtist::new("relation artist").insert(&mut conn)?;
+    track.artist_id = Some(artist.id.clone());
+    let remixer = NewDjmdArtist::new("relation remixer").insert(&mut conn)?;
+    track.remixer_id = Some(remixer.id.clone());
+    let original_artist = NewDjmdArtist::new("relation original_artist").insert(&mut conn)?;
+    track.org_artist_id = Some(original_artist.id.clone());
+    let composer = NewDjmdArtist::new("relation composer").insert(&mut conn)?;
+    track.composer_id = Some(composer.id.clone());
+    let album = NewDjmdAlbum::new("relationship album").insert(&mut conn)?;
+    track.album_id = Some(album.id.clone());
+    let genre = NewDjmdGenre::new("relationship genre").insert(&mut conn)?;
+    track.genre_id = Some(genre.id.clone());
+    let label = NewDjmdLabel::new("relationship label").insert(&mut conn)?;
+    track.label_id = Some(label.id.clone());
+    let key = NewDjmdKey::new("relationship key").insert(&mut conn)?;
+    track.key_id = Some(key.id.clone());
+    let color = DjmdColor::all(&mut conn)?
+        .into_iter()
+        .next()
+        .expect("fixture color");
+    track.color_id = Some(color.id.clone());
+    let view = track.clone().resolve(&mut conn)?;
+    assert_eq!(view.content, track);
+    assert_eq!(view.artist, Some(artist.clone()));
+    assert_eq!(view.remixer, Some(remixer.clone()));
+    assert_eq!(view.original_artist, Some(original_artist.clone()));
+    assert_eq!(view.composer, Some(composer.clone()));
+    assert_eq!(view.album, Some(album));
+    assert_eq!(view.genre, Some(genre));
+    assert_eq!(view.label, Some(label));
+    assert_eq!(view.key, Some(key));
+    assert_eq!(view.color, Some(color));
+    let mut shared = track.clone();
+    shared.artist_id = Some(artist.id.clone());
+    shared.remixer_id = Some(artist.id.clone());
+    shared.org_artist_id = Some(artist.id.clone());
+    shared.composer_id = Some(artist.id.clone());
+    let shared = shared.resolve(&mut conn)?;
+    assert_eq!(shared.artist, Some(artist.clone()));
+    assert_eq!(shared.remixer, Some(artist.clone()));
+    assert_eq!(shared.original_artist, Some(artist.clone()));
+    assert_eq!(shared.composer, Some(artist.clone()));
+    let mut absent = track.clone();
+    absent.artist_id = None;
+    absent.remixer_id = None;
+    absent.org_artist_id = None;
+    absent.composer_id = None;
+    absent.album_id = None;
+    absent.genre_id = None;
+    absent.label_id = None;
+    absent.key_id = None;
+    absent.color_id = None;
+    assert_no_content_relations(&absent.clone().resolve(&mut conn)?);
+    let mut dangling = absent.clone();
+    dangling.artist_id = Some("missing-relation".to_owned());
+    dangling.remixer_id = Some("missing-relation".to_owned());
+    dangling.org_artist_id = Some("missing-relation".to_owned());
+    dangling.composer_id = Some("missing-relation".to_owned());
+    dangling.album_id = Some("missing-relation".to_owned());
+    dangling.genre_id = Some("missing-relation".to_owned());
+    dangling.label_id = Some("missing-relation".to_owned());
+    dangling.key_id = Some("missing-relation".to_owned());
+    dangling.color_id = Some("missing-relation".to_owned());
+    let dangling_view = dangling.clone().resolve(&mut conn)?;
+    assert_no_content_relations(&dangling_view);
+    assert_eq!(dangling_view.content, dangling);
+    let inputs = vec![dangling, track.clone(), absent, track];
+    let expected = inputs
+        .iter()
+        .cloned()
+        .map(|row| row.resolve(&mut conn))
+        .collect::<Result<Vec<_>, _>>()?;
+    assert_eq!(DjmdContent::resolve_many(&mut conn, inputs)?, expected);
+
+    // Loading supplied snapshots must not update or reload the stored track.
+    assert_eq!(
+        DjmdContent::find(&mut conn, &original.id)?.unwrap(),
+        original
+    );
+    drop(conn);
+    assert_eq!(db.get_content_by_id(&original.id)?.unwrap(), original);
+    let resolved = db.get_content_with_relations(&original.id)?.unwrap();
+    let mut conn = db.pool.get()?;
+    assert_eq!(resolved, original.resolve(&mut conn)?);
+    drop(conn);
+    assert!(db.get_content_with_relations("missing-content")?.is_none());
+    let raw = db.get_contents()?;
+    let views = db.get_contents_with_relations()?;
+    assert_eq!(
+        views.iter().map(|v| v.content.clone()).collect::<Vec<_>>(),
+        raw
+    );
+    let mut conn = db.pool.get()?;
+    assert_eq!(views, DjmdContent::resolve_many(&mut conn, raw)?);
+    Ok(())
+}
+
+#[rstest::rstest]
+#[case(6)]
+#[case(7)]
+fn test_content_relationship_batches(#[case] version: usize) -> anyhow::Result<()> {
+    use diesel::connection::InstrumentationEvent;
+    use diesel::{Connection, RunQueryDsl};
+    use rbox::masterdb::*;
+    use rbox::model_traits::{Model, ModelInsert, ModelRelations};
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    };
+
+    let fixture = common::setup_master_db_path(version);
+    let db = MasterDb::new(fixture.path())?;
+    let mut conn = db.pool.get()?;
+    let mut track = DjmdContent::all(&mut conn)?
+        .into_iter()
+        .next()
+        .expect("fixture track");
+    track.artist_id = None;
+    track.remixer_id = None;
+    track.org_artist_id = None;
+    track.composer_id = None;
+    track.album_id = None;
+    track.genre_id = None;
+    track.label_id = None;
+    track.key_id = None;
+    track.color_id = None;
+    let mut rows = Vec::new();
+    for index in 0..501 {
+        let artist = NewDjmdArtist::new(format!("batch artist {index}")).insert(&mut conn)?;
+        let mut row = track.clone();
+        row.artist_id = Some(artist.id.clone());
+        row.remixer_id = Some(artist.id.clone());
+        row.org_artist_id = Some(artist.id.clone());
+        row.composer_id = Some(artist.id.clone());
+        rows.push(row);
+    }
+    let queries = Arc::new(AtomicUsize::new(0));
+    let observed = queries.clone();
+    conn.set_instrumentation(move |event: InstrumentationEvent<'_>| {
+        if let InstrumentationEvent::StartQuery { query, .. } = event {
+            if query.to_string().trim_start().starts_with("SELECT") {
+                observed.fetch_add(1, Ordering::Relaxed);
+            }
+        }
+    });
+    assert!(DjmdContent::resolve_many(&mut conn, vec![])?.is_empty());
+    assert_eq!(queries.load(Ordering::Relaxed), 0);
+    assert_no_content_relations(&track.resolve(&mut conn)?);
+    assert_eq!(queries.load(Ordering::Relaxed), 0);
+    let repeated = DjmdContent::resolve_many(&mut conn, vec![rows[0].clone(); 501])?;
+    assert_eq!(queries.swap(0, Ordering::Relaxed), 1);
+    assert_eq!(repeated.len(), 501);
+    for size in [1, 500, 501] {
+        let views = DjmdContent::resolve_many(&mut conn, rows[..size].to_vec())?;
+        assert_eq!(views.len(), size);
+        for (view, row) in views.iter().zip(&rows) {
+            assert_eq!(&view.content, row);
+            assert_eq!(view.artist.as_ref().map(|a| &a.id), row.artist_id.as_ref());
+            assert_eq!(view.remixer.as_ref().map(|a| &a.id), row.artist_id.as_ref());
+            assert_eq!(
+                view.original_artist.as_ref().map(|a| &a.id),
+                row.artist_id.as_ref()
+            );
+            assert_eq!(
+                view.composer.as_ref().map(|a| &a.id),
+                row.artist_id.as_ref()
+            );
+        }
+        assert_eq!(
+            queries.swap(0, Ordering::Relaxed),
+            if size > 500 { 2 } else { 1 }
+        );
+    }
+    // A failed lookup is an error, not an absent relationship.
+    diesel::sql_query("ALTER TABLE djmdArtist RENAME TO relationship_test_artist")
+        .execute(&mut conn)?;
+    assert!(rows.remove(0).resolve(&mut conn).is_err());
+    Ok(())
+}
+
 #[test]
 fn test_open_master_db() -> anyhow::Result<()> {
     let db_path = common::setup_master_db_path(6);

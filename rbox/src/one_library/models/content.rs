@@ -26,24 +26,11 @@ use super::recommend_like::RecommendedLike;
 use super::schema::{album, artist, color, content, genre, image, key, label};
 use super::{Date, DateString};
 // use crate::enums::FileType;
-use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
+use crate::model_traits::{
+    load_related, Model, ModelDelete, ModelInsert, ModelRelations, ModelUpdate,
+};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
-
-type JoinTuple = (
-    Content,
-    Option<Artist>,
-    Option<Remixer>,
-    Option<OriginalArtist>,
-    Option<Composer>,
-    Option<Lyricist>,
-    Option<Album>,
-    Option<Genre>,
-    Option<Label>,
-    Option<Key>,
-    Option<Color>,
-    Option<Image>,
-);
 
 /// Represents the `content` table in the Rekordbox One Library database.
 ///
@@ -179,6 +166,163 @@ pub struct Content {
     pub analysis_data_update_count: Option<i32>,
     /// The number of updates to the content record
     pub information_update_count: Option<i32>,
+}
+
+/// Track snapshot with all supported direct metadata relationships resolved.
+///
+/// Field access performs no queries, and editing this view does not persist changes.
+/// Related records are plain rows without recursive expansion. `None` means an
+/// absent foreign key or a missing target; the content row retains the original key.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ContentView {
+    /// Original content row, including its foreign keys.
+    pub content: Content,
+    /// Main artist.
+    pub artist: Option<Artist>,
+    /// Artist credited as remixer.
+    pub remixer: Option<Artist>,
+    /// Artist credited as original artist.
+    pub original_artist: Option<Artist>,
+    /// Artist credited as composer.
+    pub composer: Option<Artist>,
+    /// Artist credited as lyricist.
+    pub lyricist: Option<Artist>,
+    /// Associated album.
+    pub album: Option<Album>,
+    /// Associated genre.
+    pub genre: Option<Genre>,
+    /// Associated label.
+    pub label: Option<Label>,
+    /// Associated key.
+    pub key: Option<Key>,
+    /// Associated color.
+    pub color: Option<Color>,
+    /// Associated image.
+    pub image: Option<Image>,
+}
+
+impl ModelRelations for Content {
+    type Resolved = ContentView;
+
+    fn resolve_many(
+        conn: &mut SqliteConnection,
+        models: Vec<Self>,
+    ) -> QueryResult<Vec<Self::Resolved>> {
+        if models.is_empty() {
+            return Ok(Vec::new());
+        }
+        conn.transaction(|conn| {
+            let artists = load_related(
+                conn,
+                models.iter().flat_map(|row| {
+                    [
+                        row.artist_id,
+                        row.remixer_id,
+                        row.original_artist_id,
+                        row.composer_id,
+                        row.lyricist_id,
+                    ]
+                    .into_iter()
+                    .flatten()
+                }),
+                |conn, ids| Artist::query().filter(artist::id.eq_any(ids)).load(conn),
+                |row| row.id,
+            )?;
+            let albums = load_related(
+                conn,
+                models.iter().filter_map(|row| row.album_id),
+                |conn, ids| Album::query().filter(album::id.eq_any(ids)).load(conn),
+                |row| row.id,
+            )?;
+            let genres = load_related(
+                conn,
+                models.iter().filter_map(|row| row.genre_id),
+                |conn, ids| Genre::query().filter(genre::id.eq_any(ids)).load(conn),
+                |row| row.id,
+            )?;
+            let labels = load_related(
+                conn,
+                models.iter().filter_map(|row| row.label_id),
+                |conn, ids| Label::query().filter(label::id.eq_any(ids)).load(conn),
+                |row| row.id,
+            )?;
+            let keys = load_related(
+                conn,
+                models.iter().filter_map(|row| row.key_id),
+                |conn, ids| Key::query().filter(key::id.eq_any(ids)).load(conn),
+                |row| row.id,
+            )?;
+            let colors = load_related(
+                conn,
+                models.iter().filter_map(|row| row.color_id),
+                |conn, ids| Color::query().filter(color::id.eq_any(ids)).load(conn),
+                |row| row.id,
+            )?;
+            let images = load_related(
+                conn,
+                models.iter().filter_map(|row| row.image_id),
+                |conn, ids| Image::query().filter(image::id.eq_any(ids)).load(conn),
+                |row| row.id,
+            )?;
+            Ok(models
+                .into_iter()
+                .map(|content| ContentView {
+                    artist: content
+                        .artist_id
+                        .as_ref()
+                        .and_then(|id| artists.get(id))
+                        .cloned(),
+                    remixer: content
+                        .remixer_id
+                        .as_ref()
+                        .and_then(|id| artists.get(id))
+                        .cloned(),
+                    original_artist: content
+                        .original_artist_id
+                        .as_ref()
+                        .and_then(|id| artists.get(id))
+                        .cloned(),
+                    composer: content
+                        .composer_id
+                        .as_ref()
+                        .and_then(|id| artists.get(id))
+                        .cloned(),
+                    lyricist: content
+                        .lyricist_id
+                        .as_ref()
+                        .and_then(|id| artists.get(id))
+                        .cloned(),
+                    album: content
+                        .album_id
+                        .as_ref()
+                        .and_then(|id| albums.get(id))
+                        .cloned(),
+                    genre: content
+                        .genre_id
+                        .as_ref()
+                        .and_then(|id| genres.get(id))
+                        .cloned(),
+                    label: content
+                        .label_id
+                        .as_ref()
+                        .and_then(|id| labels.get(id))
+                        .cloned(),
+                    key: content.key_id.as_ref().and_then(|id| keys.get(id)).cloned(),
+                    color: content
+                        .color_id
+                        .as_ref()
+                        .and_then(|id| colors.get(id))
+                        .cloned(),
+                    image: content
+                        .image_id
+                        .as_ref()
+                        .and_then(|id| images.get(id))
+                        .cloned(),
+                    content,
+                })
+                .collect())
+        })
+    }
 }
 
 impl Model for Content {
@@ -379,394 +523,6 @@ impl Content {
     fn update_property(conn: &mut SqliteConnection) -> QueryResult<usize> {
         let count: i64 = content::table.count().get_result(conn)?;
         Property::set_number_of_contents_all(conn, count as i32)
-    }
-}
-
-/// Represents a complete `content` record with all associations.
-#[derive(Debug, Clone, PartialEq)]
-pub struct ContentJoin {
-    /// The unique identifier of the content.
-    pub id: i32,
-    /// The title of the track.
-    pub title: Option<String>,
-    /// An optional title used for searching.
-    pub title_for_search: Option<String>,
-    /// The subtitle of the track
-    pub subtitle: Option<String>,
-    /// The beats per minute multiplied by 100.
-    pub bpmx100: Option<i32>,
-    /// The length of the track in seconds.
-    pub length: Option<i32>,
-    /// The track number of the track
-    pub track_no: Option<i32>,
-    /// The disc number of the track
-    pub disc_no: Option<i32>,
-    /// Optional foreign key referencing the artist [`Artist`].
-    pub artist_id: Option<i32>,
-    /// Optional foreign key referencing the remixer [`Artist`].
-    pub remixer_id: Option<i32>,
-    /// Optional foreign key referencing the original artist [`Artist`].
-    pub original_artist_id: Option<i32>,
-    /// Optional foreign key referencing the composer [`Artist`].
-    pub composer_id: Option<i32>,
-    /// Optional foreign key referencing the lyricist [`Artist`].
-    pub lyricist_id: Option<i32>,
-    /// Optional foreign key referencing the [`Album`].
-    pub album_id: Option<i32>,
-    /// Optional foreign key referencing the [`Genre`].
-    pub genre_id: Option<i32>,
-    /// Optional foreign key referencing the [`Label`].
-    pub label_id: Option<i32>,
-    /// Optional foreign key referencing the [`Key`].
-    pub key_id: Option<i32>,
-    /// Optional foreign key referencing the [`Color`].
-    pub color_id: Option<i32>,
-    /// Optional foreign key referencing the artwork [`Image`].
-    pub image_id: Option<i32>,
-    /// The ccomment of the track.
-    pub dj_comment: Option<String>,
-    /// The rating of the track.
-    pub rating: Option<i32>,
-    /// The release year of the track.
-    pub release_year: Option<i32>,
-    /// The release date of the track
-    pub release_date: Option<String>,
-    /// The date the record was created
-    pub date_created: Date,
-    /// The date the record was added
-    pub date_added: Date,
-    /// The relative file path of the track
-    pub path: String,
-    /// The file name of the track.
-    pub file_name: Option<String>,
-    /// The file size of the track
-    pub file_size: Option<i32>,
-    /// The file type of the track
-    pub file_type: i32,
-    /// The bitrate of the trackk
-    pub bitrate: Option<i32>,
-    /// The bit depth of the track
-    pub bit_depth: Option<i32>,
-    /// The sample rate of the track.
-    pub sampling_rate: Option<i32>,
-    /// The ISRC of the track
-    pub isrc: Option<String>,
-    /// A flag if hot-cue auto load is enabled
-    pub is_hot_cue_auto_load_on: Option<i32>,
-    /// A flag if kuvo delivery is enabled
-    pub is_kuvo_deliver_status_on: Option<i32>,
-    /// A kuvo delivery comment
-    pub kuvo_delivery_comment: Option<String>,
-    /// The masterdb ID
-    pub master_db_id: Option<i32>,
-    /// The ID of the contnent in the masterdb
-    pub master_content_id: Option<i32>,
-    /// The relative path to the analysis data
-    pub analysis_data_file_path: Option<String>,
-    /// The number of bits analysed (?)
-    pub analysed_bits: Option<i32>,
-    /// The ID of the content in the content link database (seems to always be 788224)
-    pub content_link: Option<i32>,
-    /// A flag if the content has been modified
-    pub has_modified: Option<i32>,
-    /// The number of updates to the associated cues
-    pub cue_update_count: Option<i32>,
-    /// The number of updates to the analysis data
-    pub analysis_data_update_count: Option<i32>,
-    /// The number of updates to the content record
-    pub information_update_count: Option<i32>,
-
-    pub artist: Option<Artist>,
-    pub remixer: Option<Remixer>,
-    pub original_artist: Option<OriginalArtist>,
-    pub composer: Option<Composer>,
-    pub lyricist: Option<Lyricist>,
-    pub album: Option<Album>,
-    pub genre: Option<Genre>,
-    pub label: Option<Label>,
-    pub key: Option<Key>,
-    pub color: Option<Color>,
-    pub image: Option<Image>,
-}
-
-impl Model for ContentJoin {
-    type Id = i32;
-
-    fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
-        let (main_artist, remixer, original_artist, composer, lyricist) = diesel::alias!(
-            artist as main_artist,
-            artist as remixer,
-            artist as original_artist,
-            artist as composer,
-            artist as lyricist
-        );
-
-        let results: Vec<JoinTuple> = content::table
-            .left_join(
-                main_artist.on(main_artist
-                    .field(artist::id)
-                    .nullable()
-                    .eq(content::artist_id)),
-            )
-            .left_join(remixer.on(remixer.field(artist::id).nullable().eq(content::remixer_id)))
-            .left_join(
-                original_artist.on(original_artist
-                    .field(artist::id)
-                    .nullable()
-                    .eq(content::original_artist_id)),
-            )
-            .left_join(
-                composer.on(composer
-                    .field(artist::id)
-                    .nullable()
-                    .eq(content::composer_id)),
-            )
-            .left_join(
-                lyricist.on(lyricist
-                    .field(artist::id)
-                    .nullable()
-                    .eq(content::lyricist_id)),
-            )
-            .left_join(album::table.on(album::id.nullable().eq(content::album_id)))
-            .left_join(genre::table.on(genre::id.nullable().eq(content::genre_id)))
-            .left_join(label::table.on(label::id.nullable().eq(content::label_id)))
-            .left_join(key::table.on(key::id.nullable().eq(content::key_id)))
-            .left_join(color::table.on(color::id.nullable().eq(content::color_id)))
-            .left_join(image::table.on(image::id.nullable().eq(content::image_id)))
-            .load(conn)?;
-        Ok(results.into_iter().map(Self::from_join).collect())
-    }
-
-    fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
-        let (main_artist, remixer, original_artist, composer, lyricist) = diesel::alias!(
-            artist as main_artist,
-            artist as remixer,
-            artist as original_artist,
-            artist as composer,
-            artist as lyricist
-        );
-
-        let result: Option<JoinTuple> = content::table
-            .find(id)
-            .left_join(
-                main_artist.on(main_artist
-                    .field(artist::id)
-                    .nullable()
-                    .eq(content::artist_id)),
-            )
-            .left_join(remixer.on(remixer.field(artist::id).nullable().eq(content::remixer_id)))
-            .left_join(
-                original_artist.on(original_artist
-                    .field(artist::id)
-                    .nullable()
-                    .eq(content::original_artist_id)),
-            )
-            .left_join(
-                composer.on(composer
-                    .field(artist::id)
-                    .nullable()
-                    .eq(content::composer_id)),
-            )
-            .left_join(
-                lyricist.on(lyricist
-                    .field(artist::id)
-                    .nullable()
-                    .eq(content::lyricist_id)),
-            )
-            .left_join(album::table.on(album::id.nullable().eq(content::album_id)))
-            .left_join(genre::table.on(genre::id.nullable().eq(content::genre_id)))
-            .left_join(label::table.on(label::id.nullable().eq(content::label_id)))
-            .left_join(key::table.on(key::id.nullable().eq(content::key_id)))
-            .left_join(color::table.on(color::id.nullable().eq(content::color_id)))
-            .left_join(image::table.on(image::id.nullable().eq(content::image_id)))
-            .first(conn)
-            .optional()?;
-        Ok(result.map(Self::from_join))
-    }
-
-    fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool> {
-        Content::id_exists(conn, id)
-    }
-}
-
-impl ContentJoin {
-    fn from_join(tuple: JoinTuple) -> Self {
-        let mut result = ContentJoin::from(tuple.0);
-        result.artist = tuple.1;
-        result.remixer = tuple.2;
-        result.original_artist = tuple.3;
-        result.composer = tuple.4;
-        result.lyricist = tuple.5;
-        result.album = tuple.6;
-        result.genre = tuple.7;
-        result.label = tuple.8;
-        result.key = tuple.9;
-        result.color = tuple.10;
-        result.image = tuple.11;
-        result
-    }
-
-    /// Queries a record from the `content` table by its `path` with joined associations.
-    pub fn find_by_path(conn: &mut SqliteConnection, path: &str) -> QueryResult<Option<Self>> {
-        let (main_artist, remixer, original_artist, composer, lyricist) = diesel::alias!(
-            artist as main_artist,
-            artist as remixer,
-            artist as original_artist,
-            artist as composer,
-            artist as lyricist
-        );
-
-        let result: Option<JoinTuple> = content::table
-            .filter(content::path.eq(path))
-            .left_join(
-                main_artist.on(main_artist
-                    .field(artist::id)
-                    .nullable()
-                    .eq(content::artist_id)),
-            )
-            .left_join(remixer.on(remixer.field(artist::id).nullable().eq(content::remixer_id)))
-            .left_join(
-                original_artist.on(original_artist
-                    .field(artist::id)
-                    .nullable()
-                    .eq(content::original_artist_id)),
-            )
-            .left_join(
-                composer.on(composer
-                    .field(artist::id)
-                    .nullable()
-                    .eq(content::composer_id)),
-            )
-            .left_join(
-                lyricist.on(lyricist
-                    .field(artist::id)
-                    .nullable()
-                    .eq(content::lyricist_id)),
-            )
-            .left_join(album::table.on(album::id.nullable().eq(content::album_id)))
-            .left_join(genre::table.on(genre::id.nullable().eq(content::genre_id)))
-            .left_join(label::table.on(label::id.nullable().eq(content::label_id)))
-            .left_join(key::table.on(key::id.nullable().eq(content::key_id)))
-            .left_join(color::table.on(color::id.nullable().eq(content::color_id)))
-            .left_join(image::table.on(image::id.nullable().eq(content::image_id)))
-            .first(conn)
-            .optional()?;
-        Ok(result.map(Self::from_join))
-    }
-}
-
-impl Into<Content> for ContentJoin {
-    fn into(self) -> Content {
-        Content {
-            id: self.id,
-            title: self.title,
-            title_for_search: self.title_for_search,
-            subtitle: self.subtitle,
-            bpmx100: self.bpmx100,
-            length: self.length,
-            track_no: self.track_no,
-            disc_no: self.disc_no,
-            artist_id: self.artist_id,
-            remixer_id: self.remixer_id,
-            original_artist_id: self.original_artist_id,
-            composer_id: self.composer_id,
-            lyricist_id: self.lyricist_id,
-            album_id: self.album_id,
-            genre_id: self.genre_id,
-            label_id: self.label_id,
-            key_id: self.key_id,
-            color_id: self.color_id,
-            image_id: self.image_id,
-            dj_comment: self.dj_comment,
-            rating: self.rating,
-            release_year: self.release_year,
-            release_date: self.release_date,
-            date_created: self.date_created,
-            date_added: self.date_added,
-            path: self.path,
-            file_name: self.file_name,
-            file_size: self.file_size,
-            file_type: self.file_type,
-            bitrate: self.bitrate,
-            bit_depth: self.bit_depth,
-            sampling_rate: self.sampling_rate,
-            isrc: self.isrc,
-            is_hot_cue_auto_load_on: self.is_hot_cue_auto_load_on,
-            is_kuvo_deliver_status_on: self.is_kuvo_deliver_status_on,
-            kuvo_delivery_comment: self.kuvo_delivery_comment,
-            master_db_id: self.master_db_id,
-            master_content_id: self.master_content_id,
-            analysis_data_file_path: self.analysis_data_file_path,
-            analysed_bits: self.analysed_bits,
-            content_link: self.content_link,
-            has_modified: self.has_modified,
-            cue_update_count: self.cue_update_count,
-            analysis_data_update_count: self.analysis_data_update_count,
-            information_update_count: self.information_update_count,
-        }
-    }
-}
-
-impl From<Content> for ContentJoin {
-    fn from(raw: Content) -> Self {
-        Self {
-            id: raw.id,
-            title: raw.title,
-            title_for_search: raw.title_for_search,
-            subtitle: raw.subtitle,
-            bpmx100: raw.bpmx100,
-            length: raw.length,
-            track_no: raw.track_no,
-            disc_no: raw.disc_no,
-            artist_id: raw.artist_id,
-            remixer_id: raw.remixer_id,
-            original_artist_id: raw.original_artist_id,
-            composer_id: raw.composer_id,
-            lyricist_id: raw.lyricist_id,
-            album_id: raw.album_id,
-            genre_id: raw.genre_id,
-            label_id: raw.label_id,
-            key_id: raw.key_id,
-            color_id: raw.color_id,
-            image_id: raw.image_id,
-            dj_comment: raw.dj_comment,
-            rating: raw.rating,
-            release_year: raw.release_year,
-            release_date: raw.release_date,
-            date_created: raw.date_created,
-            date_added: raw.date_added,
-            path: raw.path,
-            file_name: raw.file_name,
-            file_size: raw.file_size,
-            file_type: raw.file_type,
-            bitrate: raw.bitrate,
-            bit_depth: raw.bit_depth,
-            sampling_rate: raw.sampling_rate,
-            isrc: raw.isrc,
-            is_hot_cue_auto_load_on: raw.is_hot_cue_auto_load_on,
-            is_kuvo_deliver_status_on: raw.is_kuvo_deliver_status_on,
-            kuvo_delivery_comment: raw.kuvo_delivery_comment,
-            master_db_id: raw.master_db_id,
-            master_content_id: raw.master_content_id,
-            analysis_data_file_path: raw.analysis_data_file_path,
-            analysed_bits: raw.analysed_bits,
-            content_link: raw.content_link,
-            has_modified: raw.has_modified,
-            cue_update_count: raw.cue_update_count,
-            analysis_data_update_count: raw.analysis_data_update_count,
-            information_update_count: raw.information_update_count,
-            artist: None,
-            remixer: None,
-            original_artist: None,
-            composer: None,
-            lyricist: None,
-            album: None,
-            genre: None,
-            label: None,
-            key: None,
-            color: None,
-            image: None,
-        }
     }
 }
 

@@ -20,7 +20,7 @@
 use diesel::prelude::*;
 use diesel::result::{DatabaseErrorKind, Error};
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::rc::Rc;
@@ -70,6 +70,55 @@ pub trait Model: Sized + Clone {
     /// # Returns
     /// A `QueryResult` containing a boolean indicating whether the record exists.
     fn id_exists(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<bool>;
+}
+
+/// Explicit loading of a model's direct relationships into a detached snapshot.
+///
+/// Resolution never writes to the database. Implementations preserve input order and
+/// duplicates, batch foreign-key lookups, and read related rows in one transaction.
+/// Supplied models retain their existing values; they are not reloaded from the database.
+pub trait ModelRelations: Model {
+    /// Concrete view containing the original model and its resolved relationships.
+    type Resolved;
+
+    /// Resolve all supported relationships for a batch. Empty input performs no queries.
+    /// Missing relationship targets are represented by `None`; query errors propagate.
+    fn resolve_many(
+        conn: &mut SqliteConnection,
+        models: Vec<Self>,
+    ) -> QueryResult<Vec<Self::Resolved>>;
+
+    /// Resolve all supported relationships for this snapshot.
+    fn resolve(self, conn: &mut SqliteConnection) -> QueryResult<Self::Resolved> {
+        Self::resolve_many(conn, vec![self])?
+            .into_iter()
+            .next()
+            .ok_or(Error::NotFound)
+    }
+}
+
+/// Load distinct foreign keys in bounded batches, skipping empty sets.
+pub(crate) fn load_related<K, V>(
+    conn: &mut SqliteConnection,
+    ids: impl IntoIterator<Item = K>,
+    mut load: impl FnMut(&mut SqliteConnection, &[K]) -> QueryResult<Vec<V>>,
+    key: impl Fn(&V) -> K,
+) -> QueryResult<HashMap<K, V>>
+where
+    K: Eq + Hash,
+{
+    let ids: Vec<K> = ids
+        .into_iter()
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect();
+    let mut rows = HashMap::new();
+    for chunk in ids.chunks(500) {
+        for row in load(conn, chunk)? {
+            rows.insert(key(&row), row);
+        }
+    }
+    Ok(rows)
 }
 
 /// A trait for models that support update operations.

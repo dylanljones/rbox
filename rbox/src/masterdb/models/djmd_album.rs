@@ -13,9 +13,11 @@ use uuid::Uuid;
 
 use super::agent_registry::AgentRegistry;
 use super::djmd_artist::DjmdArtist;
-use super::schema::{djmdAlbum, djmdContent};
+use super::schema::{djmdAlbum, djmdArtist, djmdContent};
 use super::{Date, DateString, RandomIdGenerator};
-use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
+use crate::model_traits::{
+    load_related, Model, ModelDelete, ModelInsert, ModelRelations, ModelUpdate,
+};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -76,6 +78,55 @@ pub struct DjmdAlbum {
     pub compilation: i32,
     /// An optional string used for searching the album.
     pub search_str: Option<String>,
+}
+
+/// Album snapshot with all direct metadata relationships resolved.
+///
+/// Field access performs no queries, and editing this view does not persist changes.
+/// Related rows are not expanded recursively. Missing targets remain `None`;
+/// the original row retains its foreign keys.
+#[derive(Debug, Clone, PartialEq)]
+pub struct DjmdAlbumView {
+    /// Original album row, including its foreign keys.
+    pub album: DjmdAlbum,
+    /// Resolved artist.
+    pub artist: Option<DjmdArtist>,
+}
+
+impl ModelRelations for DjmdAlbum {
+    type Resolved = DjmdAlbumView;
+
+    fn resolve_many(
+        conn: &mut SqliteConnection,
+        models: Vec<Self>,
+    ) -> QueryResult<Vec<Self::Resolved>> {
+        if models.is_empty() {
+            return Ok(Vec::new());
+        }
+        conn.transaction(|conn| {
+            let artists = load_related(
+                conn,
+                models.iter().filter_map(|row| row.album_artist_id.clone()),
+                |conn, ids| {
+                    DjmdArtist::query()
+                        .filter(djmdArtist::id.eq_any(ids))
+                        .load(conn)
+                },
+                |row| row.id.clone(),
+            )?;
+            Ok(models
+                .into_iter()
+                .map(|album| DjmdAlbumView {
+                    artist: album
+                        .album_artist_id
+                        .as_ref()
+                        .and_then(|id| artists.get(id))
+                        .cloned(),
+                    album,
+                })
+                .collect())
+        })
+    }
 }
 
 impl Model for DjmdAlbum {
