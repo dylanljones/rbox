@@ -7,7 +7,10 @@ mod common;
 use criterion::{criterion_group, Criterion};
 use std::hint::black_box;
 
+use binrw::{BinRead, BinWrite};
+use rbox::anlz::sections::AnlzData;
 use rbox::anlz::Anlz;
+use std::fs::File;
 
 fn anlz(c: &mut Criterion) {
     let mut group = c.benchmark_group("anlz");
@@ -30,6 +33,52 @@ fn anlz(c: &mut Criterion) {
 
     group.bench_function("read_anlz_ex2", |b| {
         b.iter(|| Anlz::load(black_box(&ex2_file)).unwrap())
+    });
+
+    group.bench_function("eager_ext", |b| {
+        b.iter(|| AnlzData::read(&mut File::open(black_box(&ext_file)).unwrap()).unwrap())
+    });
+    group.bench_function("lazy_ext_path", |b| {
+        b.iter(|| {
+            Anlz::load(black_box(&ext_file))
+                .unwrap()
+                .get_path()
+                .unwrap()
+        })
+    });
+    group.bench_function("eager_ext_path", |b| {
+        b.iter(|| {
+            let data = AnlzData::read(&mut File::open(black_box(&ext_file)).unwrap()).unwrap();
+            black_box(
+                data.sections
+                    .iter()
+                    .find(|s| s.tag == rbox::anlz::AnlzTag::Path),
+            );
+        })
+    });
+    let dir = tempfile::tempdir().unwrap();
+    let output = dir.path().join("copy.EXT");
+    group.bench_function("lazy_ext_edit_save", |b| {
+        b.iter(|| {
+            let mut data = Anlz::load(black_box(&ext_file)).unwrap();
+            data.set_path("/Music/benchmark.flac").unwrap();
+            data.dump_copy(&output).unwrap();
+        })
+    });
+    group.bench_function("eager_ext_edit_save", |b| {
+        b.iter(|| {
+            let mut data = AnlzData::read(&mut File::open(black_box(&ext_file)).unwrap()).unwrap();
+            for section in &mut data.sections {
+                if let rbox::anlz::sections::Content::Path(p) = &mut section.content {
+                    p.set("/Music/benchmark.flac");
+                    break;
+                }
+            }
+            let mut file = tempfile::NamedTempFile::new_in(dir.path()).unwrap();
+            data.write(&mut file).unwrap();
+            file.as_file().sync_all().unwrap();
+            file.persist(&output).unwrap();
+        })
     });
 }
 

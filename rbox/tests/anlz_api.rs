@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+#![cfg(feature = "anlz")]
+
 use rbox::anlz::{Anlz, AnlzPaths, AnlzTag};
 use std::path::PathBuf;
 
@@ -30,16 +32,16 @@ fn get_anlz_files(root: &PathBuf) -> AnlzFiles {
 }
 
 #[test]
-fn test_read_anlz() -> anyhow::Result<()> {
+fn read_anlz() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let paths = get_anlz_paths(&tmp_dir.path().to_path_buf());
-    let _ = Anlz::load(paths.dat);
-    let _ = Anlz::load(paths.ext.unwrap());
-    let _ = Anlz::load(paths.ex2.unwrap());
+    Anlz::load(paths.dat)?;
+    Anlz::load(paths.ext.unwrap())?;
+    Anlz::load(paths.ex2.unwrap())?;
     Ok(())
 }
 
-fn test_write(file: &PathBuf) -> anyhow::Result<()> {
+fn assert_round_trip(file: &PathBuf) -> anyhow::Result<()> {
     // Load file
     let mut anlz = Anlz::load(file.clone())?;
     // Write new file
@@ -57,17 +59,17 @@ fn test_write(file: &PathBuf) -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_write_anlz() -> anyhow::Result<()> {
+fn write_anlz() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let paths = get_anlz_paths(&tmp_dir.path().to_path_buf());
-    test_write(&paths.dat)?;
-    test_write(&paths.ext.unwrap())?;
-    test_write(&paths.ex2.unwrap())?;
+    assert_round_trip(&paths.dat)?;
+    assert_round_trip(&paths.ext.unwrap())?;
+    assert_round_trip(&paths.ex2.unwrap())?;
     Ok(())
 }
 
 #[test]
-fn test_contains() -> anyhow::Result<()> {
+fn contains() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let files = get_anlz_files(&tmp_dir.path().to_path_buf());
     assert!(files.dat.contains(AnlzTag::Path));
@@ -81,7 +83,7 @@ fn test_contains() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_get_tags() -> anyhow::Result<()> {
+fn get_tags() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let files = get_anlz_files(&tmp_dir.path().to_path_buf());
     let _ = files.dat.get_tags()?;
@@ -91,12 +93,12 @@ fn test_get_tags() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_get_beat_grid() -> anyhow::Result<()> {
+fn get_beat_grid() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let mut files = get_anlz_files(&tmp_dir.path().to_path_buf());
-    let item1 = files.dat.get_beat_grid();
-    let item2 = files.ext.get_beat_grid();
-    let item3 = files.ex2.get_beat_grid();
+    let item1 = files.dat.get_beat_grid()?;
+    let item2 = files.ext.get_beat_grid()?;
+    let item3 = files.ex2.get_beat_grid()?;
     assert!(item1.is_some());
     assert!(item2.is_none());
     assert!(item3.is_none());
@@ -104,12 +106,12 @@ fn test_get_beat_grid() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_get_extended_beat_grid() -> anyhow::Result<()> {
+fn get_extended_beat_grid() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let mut files = get_anlz_files(&tmp_dir.path().to_path_buf());
-    let item1 = files.dat.get_extended_beat_grid();
-    let item2 = files.ext.get_extended_beat_grid();
-    let item3 = files.ex2.get_extended_beat_grid();
+    let item1 = files.dat.get_extended_beat_grid()?;
+    let item2 = files.ext.get_extended_beat_grid()?;
+    let item3 = files.ex2.get_extended_beat_grid()?;
     assert!(item1.is_none());
     assert!(item2.is_some());
     assert!(item3.is_none());
@@ -117,12 +119,12 @@ fn test_get_extended_beat_grid() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_get_hot_cues() -> anyhow::Result<()> {
+fn get_hot_cues() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let mut files = get_anlz_files(&tmp_dir.path().to_path_buf());
-    let item1 = files.dat.get_hot_cues();
-    let item2 = files.ext.get_hot_cues();
-    let item3 = files.ex2.get_hot_cues();
+    let item1 = files.dat.get_hot_cues()?;
+    let item2 = files.ext.get_hot_cues()?;
+    let item3 = files.ex2.get_hot_cues()?;
     assert!(item1.is_some());
     assert!(item2.is_some());
     assert!(item3.is_none());
@@ -130,12 +132,12 @@ fn test_get_hot_cues() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_get_memory_cues() -> anyhow::Result<()> {
+fn get_memory_cues() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let mut files = get_anlz_files(&tmp_dir.path().to_path_buf());
-    let item1 = files.dat.get_memory_cues();
-    let item2 = files.ext.get_memory_cues();
-    let item3 = files.ex2.get_memory_cues();
+    let item1 = files.dat.get_memory_cues()?;
+    let item2 = files.ext.get_memory_cues()?;
+    let item3 = files.ex2.get_memory_cues()?;
     assert!(item1.is_some());
     assert!(item2.is_some());
     assert!(item3.is_none());
@@ -143,12 +145,12 @@ fn test_get_memory_cues() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_get_extended_hot_cues() -> anyhow::Result<()> {
+fn get_extended_hot_cues() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let mut files = get_anlz_files(&tmp_dir.path().to_path_buf());
-    let item1 = files.dat.get_extended_hot_cues();
-    let item2 = files.ext.get_extended_hot_cues();
-    let item3 = files.ex2.get_extended_hot_cues();
+    let item1 = files.dat.get_extended_hot_cues()?;
+    let item2 = files.ext.get_extended_hot_cues()?;
+    let item3 = files.ex2.get_extended_hot_cues()?;
     assert!(item1.is_none());
     assert!(item2.is_some());
     assert!(item3.is_none());
@@ -156,12 +158,12 @@ fn test_get_extended_hot_cues() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_get_extended_memory_cues() -> anyhow::Result<()> {
+fn get_extended_memory_cues() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let mut files = get_anlz_files(&tmp_dir.path().to_path_buf());
-    let item1 = files.dat.get_extended_memory_cues();
-    let item2 = files.ext.get_extended_memory_cues();
-    let item3 = files.ex2.get_extended_memory_cues();
+    let item1 = files.dat.get_extended_memory_cues()?;
+    let item2 = files.ext.get_extended_memory_cues()?;
+    let item3 = files.ex2.get_extended_memory_cues()?;
     assert!(item1.is_none());
     assert!(item2.is_some());
     assert!(item3.is_none());
@@ -169,12 +171,12 @@ fn test_get_extended_memory_cues() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_get_path() -> anyhow::Result<()> {
+fn get_path() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let mut files = get_anlz_files(&tmp_dir.path().to_path_buf());
-    let item1 = files.dat.get_path();
-    let item2 = files.ext.get_path();
-    let item3 = files.ex2.get_path();
+    let item1 = files.dat.get_path()?;
+    let item2 = files.ext.get_path()?;
+    let item3 = files.ex2.get_path()?;
     assert!(item1.is_some());
     assert!(item2.is_some());
     assert!(item3.is_some());
@@ -200,7 +202,7 @@ fn update_anlz_path(file: &PathBuf, new_path: &str) -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_set_path() -> anyhow::Result<()> {
+fn set_path() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let paths = get_anlz_paths(&tmp_dir.path().to_path_buf());
 
@@ -217,12 +219,12 @@ fn test_set_path() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_get_vbr() -> anyhow::Result<()> {
+fn get_vbr() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let mut files = get_anlz_files(&tmp_dir.path().to_path_buf());
-    let item1 = files.dat.get_vbr_data();
-    let item2 = files.ext.get_vbr_data();
-    let item3 = files.ex2.get_vbr_data();
+    let item1 = files.dat.get_vbr_data()?;
+    let item2 = files.ext.get_vbr_data()?;
+    let item3 = files.ex2.get_vbr_data()?;
     assert!(item1.is_some());
     assert!(item2.is_none());
     assert!(item3.is_none());
@@ -230,12 +232,12 @@ fn test_get_vbr() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_get_tiny_waveform_preview() -> anyhow::Result<()> {
+fn get_tiny_waveform_preview() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let mut files = get_anlz_files(&tmp_dir.path().to_path_buf());
-    let item1 = files.dat.get_tiny_waveform_preview();
-    let item2 = files.ext.get_tiny_waveform_preview();
-    let item3 = files.ex2.get_tiny_waveform_preview();
+    let item1 = files.dat.get_tiny_waveform_preview()?;
+    let item2 = files.ext.get_tiny_waveform_preview()?;
+    let item3 = files.ex2.get_tiny_waveform_preview()?;
     assert!(item1.is_some());
     assert!(item2.is_none());
     assert!(item3.is_none());
@@ -243,12 +245,12 @@ fn test_get_tiny_waveform_preview() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_get_waveform_preview() -> anyhow::Result<()> {
+fn get_waveform_preview() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let mut files = get_anlz_files(&tmp_dir.path().to_path_buf());
-    let item1 = files.dat.get_waveform_preview();
-    let item2 = files.ext.get_waveform_preview();
-    let item3 = files.ex2.get_waveform_preview();
+    let item1 = files.dat.get_waveform_preview()?;
+    let item2 = files.ext.get_waveform_preview()?;
+    let item3 = files.ex2.get_waveform_preview()?;
     assert!(item1.is_some());
     assert!(item2.is_none());
     assert!(item3.is_none());
@@ -256,12 +258,12 @@ fn test_get_waveform_preview() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_get_waveform_detail() -> anyhow::Result<()> {
+fn get_waveform_detail() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let mut files = get_anlz_files(&tmp_dir.path().to_path_buf());
-    let item1 = files.dat.get_waveform_detail();
-    let item2 = files.ext.get_waveform_detail();
-    let item3 = files.ex2.get_waveform_detail();
+    let item1 = files.dat.get_waveform_detail()?;
+    let item2 = files.ext.get_waveform_detail()?;
+    let item3 = files.ex2.get_waveform_detail()?;
     assert!(item1.is_none());
     assert!(item2.is_some());
     assert!(item3.is_none());
@@ -269,12 +271,12 @@ fn test_get_waveform_detail() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_get_waveform_color_preview() -> anyhow::Result<()> {
+fn get_waveform_color_preview() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let mut files = get_anlz_files(&tmp_dir.path().to_path_buf());
-    let item1 = files.dat.get_waveform_color_preview();
-    let item2 = files.ext.get_waveform_color_preview();
-    let item3 = files.ex2.get_waveform_color_preview();
+    let item1 = files.dat.get_waveform_color_preview()?;
+    let item2 = files.ext.get_waveform_color_preview()?;
+    let item3 = files.ex2.get_waveform_color_preview()?;
     assert!(item1.is_none());
     assert!(item2.is_some());
     assert!(item3.is_none());
@@ -282,12 +284,12 @@ fn test_get_waveform_color_preview() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_get_waveform_color_detail() -> anyhow::Result<()> {
+fn get_waveform_color_detail() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let mut files = get_anlz_files(&tmp_dir.path().to_path_buf());
-    let item1 = files.dat.get_waveform_color_detail();
-    let item2 = files.ext.get_waveform_color_detail();
-    let item3 = files.ex2.get_waveform_color_detail();
+    let item1 = files.dat.get_waveform_color_detail()?;
+    let item2 = files.ext.get_waveform_color_detail()?;
+    let item3 = files.ex2.get_waveform_color_detail()?;
     assert!(item1.is_none());
     assert!(item2.is_some());
     assert!(item3.is_none());
@@ -295,12 +297,12 @@ fn test_get_waveform_color_detail() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_get_waveform_3band_preview() -> anyhow::Result<()> {
+fn get_waveform_3band_preview() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let mut files = get_anlz_files(&tmp_dir.path().to_path_buf());
-    let item1 = files.dat.get_waveform_3band_preview();
-    let item2 = files.ext.get_waveform_3band_preview();
-    let item3 = files.ex2.get_waveform_3band_preview();
+    let item1 = files.dat.get_waveform_3band_preview()?;
+    let item2 = files.ext.get_waveform_3band_preview()?;
+    let item3 = files.ex2.get_waveform_3band_preview()?;
     assert!(item1.is_none());
     assert!(item2.is_none());
     assert!(item3.is_some());
@@ -308,12 +310,12 @@ fn test_get_waveform_3band_preview() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_get_waveform_3band_detail() -> anyhow::Result<()> {
+fn get_waveform_3band_detail() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let mut files = get_anlz_files(&tmp_dir.path().to_path_buf());
-    let item1 = files.dat.get_waveform_3band_detail();
-    let item2 = files.ext.get_waveform_3band_detail();
-    let item3 = files.ex2.get_waveform_3band_detail();
+    let item1 = files.dat.get_waveform_3band_detail()?;
+    let item2 = files.ext.get_waveform_3band_detail()?;
+    let item3 = files.ex2.get_waveform_3band_detail()?;
     assert!(item1.is_none());
     assert!(item2.is_none());
     assert!(item3.is_some());
@@ -321,12 +323,12 @@ fn test_get_waveform_3band_detail() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_get_song_structure() -> anyhow::Result<()> {
+fn get_song_structure() -> anyhow::Result<()> {
     let tmp_dir = common::setup_anlz_files();
     let mut files = get_anlz_files(&tmp_dir.path().to_path_buf());
-    let item1 = files.dat.get_song_structure();
-    let item2 = files.ext.get_song_structure();
-    let item3 = files.ex2.get_song_structure();
+    let item1 = files.dat.get_song_structure()?;
+    let item2 = files.ext.get_song_structure()?;
+    let item3 = files.ex2.get_song_structure()?;
     assert!(item1.is_none());
     assert!(item2.is_some());
     assert!(item3.is_none());

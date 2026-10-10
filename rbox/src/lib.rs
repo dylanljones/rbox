@@ -61,15 +61,21 @@
 //!
 //! ## Rekordbox ANLZ files
 //!
-//! rbox can parse and write all three analysis files.
+//! rbox lazily reads all three analysis formats. Opening indexes section headers;
+//! getters decode sections on demand and can return I/O or parsing errors.
+//! Shared `get_*` access leaves sections untouched; mutable `get_mut_*` access marks
+//! them for serialization. Saves stream all other sections from the source file
+//! in their original order. Do not edit that file externally while it is open.
+//! Use `get_section(index)` / `get_mut_section(index)` for low-level access,
+//! or `into_data()` to materialize the complete file.
 //!
 //! ```no_run
 //! use rbox::prelude::*;
 //!
 //! fn main() -> anyhow::Result<()> {
 //!     let mut anlz = Anlz::load("ANLZ0000.DAT")?;
-//!     let grid = anlz.get_beat_grid().unwrap();
-//!     for beat in grid {
+//!     let grid = anlz.get_beat_grid()?.unwrap();
+//!     for beat in &grid.beats {
 //!         println!("Beat: {} Tempo: {} Time: {}", beat.beat_number, beat.tempo, beat.time);
 //!     }
 //!     Ok(())

@@ -1,9 +1,11 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+#![cfg(feature = "anlz")]
+
 use binrw::{BinRead, BinWrite, NullWideString};
-use rbox::anlz::anlz::{
-    AnlzData, Beat, Content, Section, TinyWaveformColumn, WaveformColorDetailColumn,
+use rbox::anlz::sections::{
+    AnlzData, Beat, BeatGrid, Content, Section, TinyWaveformColumn, WaveformColorDetailColumn,
 };
 use rbox::anlz::{Anlz, AnlzString, AnlzTag, ColorIndex};
 use std::io::Cursor;
@@ -69,6 +71,40 @@ fn all_rb6_and_rb7_fixtures_round_trip_exactly() {
         let data = AnlzData::read(&mut Cursor::new(&bytes))
             .unwrap_or_else(|err| panic!("{}: {err}", path.display()));
         assert_eq!(encode(&data), bytes, "{}", path.display());
+    }
+}
+
+#[test]
+fn lazy_fixtures_match_eager_and_copy_exactly() {
+    let dir = tempfile::tempdir().unwrap();
+    for path in all_fixtures() {
+        let bytes = std::fs::read(&path).unwrap();
+        let eager = AnlzData::read(&mut Cursor::new(&bytes)).unwrap();
+        let mut lazy = Anlz::load(&path).unwrap();
+        let destination = dir.path().join("copy.anlz");
+        lazy.dump_copy(&destination).unwrap();
+        assert_eq!(
+            std::fs::read(&destination).unwrap(),
+            bytes,
+            "{}",
+            path.display()
+        );
+        for (index, section) in eager.sections.iter().enumerate() {
+            assert_eq!(
+                lazy.get_section(index).unwrap().unwrap(),
+                section,
+                "{}",
+                path.display()
+            );
+        }
+        lazy.dump_copy(&destination).unwrap();
+        assert_eq!(
+            std::fs::read(&destination).unwrap(),
+            bytes,
+            "{}",
+            path.display()
+        );
+        assert_eq!(lazy.into_data().unwrap(), eager, "{}", path.display());
     }
 }
 
@@ -247,7 +283,7 @@ fn path_normalization_and_io_errors() {
     let temp = common::setup_anlz_files();
     let mut file = Anlz::load(temp.path().join("ANLZ0000.DAT")).unwrap();
     file.set_path(r"C:\Music\track.flac").unwrap();
-    assert_eq!(file.get_path().unwrap(), "C:/Music/track.flac");
+    assert_eq!(file.get_path().unwrap().unwrap(), "C:/Music/track.flac");
     assert!(Anlz::load(temp.path().join("missing.DAT")).is_err());
     let invalid = temp.path().join("invalid.DAT");
     std::fs::write(&invalid, b"not an analysis file").unwrap();
@@ -398,7 +434,7 @@ fn vocal_detection_and_seek_index_decode_and_resize() {
                 .map(|e| (e.sample, e.offset, e.frame_samples))
                 .collect();
             assert_eq!(actual, entries);
-            data.entries.push(rbox::anlz::anlz::SeekPoint {
+            data.entries.push(rbox::anlz::sections::SeekPoint {
                 sample: large.0,
                 offset: large.1,
                 frame_samples: large.2,
@@ -432,23 +468,28 @@ fn new_tag_getters_and_structured_vbr_preserve_values() {
     let path = tmp.path().join("ANLZ0000.DAT");
     std::fs::write(&path, &bytes).unwrap();
     let mut file = Anlz::load(path).unwrap();
-    let v = file.get_vbr().unwrap();
+    let v = file.get_mut_vbr().unwrap().unwrap();
     assert_eq!(v.index.as_slice(), index);
     assert_eq!((v.u1, v.u2), (0x12345678, 0x87654321));
     v.index[0] = 42;
     let mut expected_raw = vbr[16..].to_vec();
     expected_raw[..4].copy_from_slice(&42u32.to_be_bytes());
-    assert_eq!(file.get_vbr_data().unwrap(), expected_raw);
-    file.get_vocal_detection().unwrap().confidence.push(42);
-    file.get_seek_index()
+    assert_eq!(file.get_vbr_data().unwrap().unwrap(), expected_raw);
+    file.get_mut_vocal_detection()
+        .unwrap()
+        .unwrap()
+        .confidence
+        .push(42);
+    file.get_mut_seek_index()
+        .unwrap()
         .unwrap()
         .entries
-        .push(rbox::anlz::anlz::SeekPoint {
+        .push(rbox::anlz::sections::SeekPoint {
             sample: 1u64 << 40,
             offset: 1u64 << 48,
             frame_samples: 4096,
         });
-    let c = file.get_waveform_3band_calibration().unwrap();
+    let c = file.get_mut_waveform_3band_calibration().unwrap().unwrap();
     // assert_eq!(c.reserved, 0x1234);
     assert_eq!([c.low_gain, c.mid_gain, c.high_gain], [1, 256, 65535]);
     c.mid_gain = 512;
@@ -464,13 +505,16 @@ fn new_tag_getters_and_structured_vbr_preserve_values() {
     file.dump_copy(&output).unwrap();
     check_lengths(&std::fs::read(&output).unwrap());
     let mut copy = Anlz::load(output).unwrap();
-    assert_eq!(copy.get_vbr().unwrap().index[0], 42);
+    assert_eq!(copy.get_vbr().unwrap().unwrap().index[0], 42);
     assert_eq!(
-        copy.get_vocal_detection().unwrap().confidence,
+        copy.get_vocal_detection().unwrap().unwrap().confidence,
         [0, 1, 255, 42]
     );
-    assert_eq!(copy.get_seek_index().unwrap().entries[0].offset, 1u64 << 48);
-    let c = copy.get_waveform_3band_calibration().unwrap();
+    assert_eq!(
+        copy.get_seek_index().unwrap().unwrap().entries[0].offset,
+        1u64 << 48
+    );
+    let c = copy.get_waveform_3band_calibration().unwrap().unwrap();
     assert_eq!([c.low_gain, c.mid_gain, c.high_gain], [1, 512, 65535]);
 }
 
@@ -554,12 +598,12 @@ fn anlz_strings_preserve_encoding_and_validate_input() {
     let mut cue = b"PCP2".to_vec();
     cue.extend(body);
     let mut reader = Cursor::new(cue);
-    assert!(rbox::anlz::anlz::ExtendedCue::read_be(&mut reader).is_err());
+    assert!(rbox::anlz::sections::ExtendedCue::read_be(&mut reader).is_err());
 }
 
 #[test]
 fn three_band_columns_use_low_mid_high_disk_order() {
-    use rbox::anlz::anlz::Waveform3BandColumn;
+    use rbox::anlz::sections::Waveform3BandColumn;
     // PWV7 samples from rekordcrate's descending 20 kHz -> 20 Hz sweep fixture,
     // commit 14d54eded7b0d2f6fe67c7871533dca35a73e5fa, at 5%, 15%, and 25%.
     for (bytes, dominant) in [([0u8, 2, 118], 2), ([8, 78, 1], 1), ([81, 17, 0], 0)] {
@@ -587,4 +631,25 @@ fn named_cue_colors_retain_unknown_values() {
     assert_eq!(ColorIndex::from(1), ColorIndex::Pink);
     assert_eq!(ColorIndex::from(8), ColorIndex::Purple);
     assert_eq!(ColorIndex::from(99), ColorIndex::Other(99));
+}
+
+#[test]
+fn signed_grid_offsets_preserve_flags_and_beats() {
+    let original: Vec<u8> = [24u32, 32, 0, 0x00080000, 1]
+        .into_iter()
+        .flat_map(u32::to_be_bytes)
+        .chain([0, 1, 0x32, 0, 0, 0, 3, 0xe8])
+        .collect();
+    for offset in [0, 234, -467, i16::MIN, i16::MAX] {
+        let mut grid = BeatGrid::read_be(&mut Cursor::new(&original)).unwrap();
+        grid.set_grid_offset(offset);
+        let mut encoded = Cursor::new(Vec::new());
+        grid.write_be(&mut encoded).unwrap();
+        let b = encoded.into_inner();
+        assert_eq!(&b[..14], &original[..14]);
+        assert_eq!(&b[16..], &original[16..]);
+        let parsed = BeatGrid::read_be(&mut Cursor::new(b)).unwrap();
+        assert_eq!(parsed.grid_offset(), offset);
+        assert_eq!(parsed.beats[0].time, 1000);
+    }
 }
