@@ -6,11 +6,9 @@
 use binrw::io::{Read, Seek, Write};
 use binrw::{binrw, BinRead, BinResult, BinWrite, Endian, NullWideString};
 use modular_bitfield::prelude::*;
-use std::ffi::OsStr;
 
 use super::xor::XorStream;
 use super::AnlzString;
-use crate::error::{Error, Result};
 
 /// The tag of section.
 #[binrw]
@@ -663,7 +661,7 @@ impl SizedSection for Path {
 }
 
 impl Path {
-    pub fn new<P: AsRef<std::path::Path> + AsRef<OsStr>>(path: P) -> Self {
+    pub fn new<P: AsRef<std::path::Path>>(path: P) -> Self {
         let string = NullWideString::from("");
         let mut item = Self {
             total_size: 0,
@@ -673,9 +671,9 @@ impl Path {
         item
     }
 
-    pub fn set<P: AsRef<std::path::Path> + AsRef<OsStr>>(&mut self, path: P) {
-        let p = std::path::Path::new(&path);
-        let string = NullWideString::from(p.to_string_lossy().replace('\\', "/"));
+    pub fn set<P: AsRef<std::path::Path>>(&mut self, path: P) {
+        let path = path.as_ref();
+        let string = NullWideString::from(path.to_string_lossy().replace('\\', "/"));
         self.path = string.clone();
         self.total_size = ((string.len() as u32) + 1) * 2 + 16;
     }
@@ -1586,6 +1584,32 @@ pub struct Section {
     pub content: Content,
 }
 
+impl Section {
+    /// Guard against mismatched tag/content edits made through mutable sections.
+    pub(crate) fn tag_matches_content(&self) -> bool {
+        match &self.content {
+            Content::BeatGrid(..) => self.tag == AnlzTag::BeatGrid,
+            Content::ExtendedBeatGrid(..) => self.tag == AnlzTag::ExtendedBeatGrid,
+            Content::VBR(..) => self.tag == AnlzTag::VBR,
+            Content::SeekIndex(..) => self.tag == AnlzTag::SeekIndex,
+            Content::TinyWaveformPreview(..) => self.tag == AnlzTag::TinyWaveformPreview,
+            Content::WaveformPreview(..) => self.tag == AnlzTag::WaveformPreview,
+            Content::WaveformDetail(..) => self.tag == AnlzTag::WaveformDetail,
+            Content::WaveformColorPreview(..) => self.tag == AnlzTag::WaveformColorPreview,
+            Content::WaveformColorDetail(..) => self.tag == AnlzTag::WaveformColorDetail,
+            Content::Waveform3BandPreview(..) => self.tag == AnlzTag::Waveform3BandPreview,
+            Content::Waveform3BandDetail(..) => self.tag == AnlzTag::Waveform3BandDetail,
+            Content::Waveform3BandCalibration(..) => self.tag == AnlzTag::Waveform3BandCalibration,
+            Content::VocalDetection(..) => self.tag == AnlzTag::VocalDetection,
+            Content::CueList(..) => self.tag == AnlzTag::CueList,
+            Content::ExtendedCueList(..) => self.tag == AnlzTag::ExtendedCueList,
+            Content::Path(..) => self.tag == AnlzTag::Path,
+            Content::SongStructure(..) => self.tag == AnlzTag::SongStructure,
+            Content::Unknown(..) => matches!(self.tag, AnlzTag::Unknown(_)),
+        }
+    }
+}
+
 /// ANLZ file contents
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -1628,379 +1652,4 @@ impl AnlzData {
         }
         self.header.total_size = total;
     }
-}
-
-// -- Anlz file handler ---------------------------------------------------------------------------
-
-/// Rekordbox ANLZ file handler.
-pub struct Anlz {
-    /// Path to the ANLZ file
-    path: std::path::PathBuf,
-    /// Parsed ANLZ data
-    pub data: AnlzData,
-}
-
-impl Anlz {
-    /// Read a Rekordbox ANLZ file.
-    pub fn load<P: AsRef<std::path::Path> + AsRef<OsStr>>(path: P) -> Result<Self> {
-        let p = std::path::Path::new(&path).to_path_buf();
-        let mut file = std::fs::File::open(&p)?;
-        let data = AnlzData::read(&mut file)?;
-        Ok(Anlz { path: p, data })
-    }
-
-    /// Write the ANLZ data to a file.
-    pub fn dump_copy<P: AsRef<std::path::Path>>(&mut self, path: P) -> Result<()> {
-        self.data.update_total_size();
-        let mut file = std::fs::File::create(path)?;
-        self.data.write(&mut file)?;
-        Ok(())
-    }
-
-    /// Write the ANLZ data to the original file.
-    pub fn dump(&mut self) -> Result<()> {
-        let path = &self.path.clone();
-        self.dump_copy(path)?;
-        Ok(())
-    }
-
-    /// Return a reference to the *first* section with the given tag type.
-    pub fn find_section_by_tag(&mut self, tag: AnlzTag) -> Option<&mut Section> {
-        self.data.sections.iter_mut().find(|s| s.tag == tag)
-    }
-
-    /// Return all references to the sections with the given tag type.
-    pub fn find_sections_by_tag(&mut self, tag: AnlzTag) -> Vec<&mut Section> {
-        // self.data.sections.iter_mut().find(|s| s.tag == tag)
-        self.data
-            .sections
-            .iter_mut()
-            .filter(|s| s.tag == tag)
-            .collect()
-    }
-
-    /// Check if the file contains a section
-    pub fn contains(&self, tag: AnlzTag) -> bool {
-        self.data.sections.iter().any(|s| s.tag == tag)
-    }
-
-    /// Return a list of all tag types present in the file
-    pub fn get_tags(&self) -> Result<Vec<String>> {
-        let mut names = Vec::new();
-        for section in &self.data.sections {
-            let name = &section.tag;
-            names.push(name.to_string());
-        }
-        Ok(names)
-    }
-
-    /// Return the beat grid entries (PQTZ) if present
-    pub fn get_beat_grid(&mut self) -> Option<&mut BeatGrid> {
-        let section = self.find_section_by_tag(AnlzTag::BeatGrid);
-        if let Some(section) = section {
-            if let Content::BeatGrid(content) = &mut section.content {
-                return Some(content);
-                // return Some(content.beats.iter_mut().collect());
-            }
-        }
-        None
-    }
-
-    /// Return the extended beat grid entries (PQT2) if present
-    pub fn get_extended_beat_grid(&mut self) -> Option<&mut ExtendedBeatGrid> {
-        let section = self.find_section_by_tag(AnlzTag::ExtendedBeatGrid);
-        if let Some(section) = section {
-            if let Content::ExtendedBeatGrid(content) = &mut section.content {
-                // return Some(content.beats.iter_mut().collect());
-                return Some(content);
-            }
-        }
-        None
-    }
-
-    /// Return the hot cue list entries (PCOB) if present
-    pub fn get_hot_cues(&mut self) -> Option<&mut CueList> {
-        let sections = self.find_sections_by_tag(AnlzTag::CueList);
-        for section in sections {
-            if let Content::CueList(content) = &mut section.content {
-                if content.list_type == CueListType::HotCues {
-                    // return Some(content.cues.iter_mut().collect());
-                    return Some(content);
-                }
-            }
-        }
-        None
-    }
-
-    /// Return the memory cue list entries (PCOB) if present
-    pub fn get_memory_cues(&mut self) -> Option<&mut CueList> {
-        let sections = self.find_sections_by_tag(AnlzTag::CueList);
-        for section in sections {
-            if let Content::CueList(content) = &mut section.content {
-                if content.list_type == CueListType::MemoryCues {
-                    // return Some(content.cues.iter_mut().collect());
-                    return Some(content);
-                }
-            }
-        }
-        None
-    }
-
-    /// Return the extended hot cue list entries (PCO2) if present
-    pub fn get_extended_hot_cues(&mut self) -> Option<&mut ExtendedCueList> {
-        let sections = self.find_sections_by_tag(AnlzTag::ExtendedCueList);
-        for section in sections {
-            if let Content::ExtendedCueList(content) = &mut section.content {
-                if content.list_type == CueListType::HotCues {
-                    // return Some(content.cues.iter_mut().collect());
-                    return Some(content);
-                }
-            }
-        }
-        None
-    }
-
-    /// Return the extended memory cue list entries (PCO2) if present
-    pub fn get_extended_memory_cues(&mut self) -> Option<&mut ExtendedCueList> {
-        let sections = self.find_sections_by_tag(AnlzTag::ExtendedCueList);
-        for section in sections {
-            if let Content::ExtendedCueList(content) = &mut section.content {
-                if content.list_type == CueListType::MemoryCues {
-                    // return Some(content.cues.iter_mut().collect());
-                    return Some(content);
-                }
-            }
-        }
-        None
-    }
-
-    /// Returns the path value (PPTH) if present
-    pub fn get_path(&mut self) -> Option<String> {
-        let section = self.find_section_by_tag(AnlzTag::Path);
-        if let Some(section) = section {
-            if let Content::Path(content) = &section.content {
-                return Some(content.path.to_string());
-            }
-        }
-        None
-    }
-
-    /// Sets the path value (PPTH)
-    ///
-    /// If no PPTH tag is present, a new one is created
-    pub fn set_path<P: AsRef<std::path::Path> + AsRef<OsStr>>(&mut self, path: P) -> Result<()> {
-        let section = self.find_section_by_tag(AnlzTag::Path);
-        if let Some(section) = section {
-            // Found PPTH tag
-            if let Content::Path(content) = &mut section.content {
-                content.set(path);
-            } else {
-                return Err(Error::AnlzError("Path not found".into()));
-            }
-        } else {
-            // No PPTH tag, create a new one
-            let content = Path::new(path);
-            let section = Section {
-                tag: AnlzTag::Path,
-                content: Content::Path(content),
-            };
-            self.data.sections.push(section);
-        }
-        self.data.update_total_size();
-        Ok(())
-    }
-
-    /// Returns the PVBR section, if present.
-    pub fn get_vbr(&mut self) -> Option<&mut VBR> {
-        let section = self.find_section_by_tag(AnlzTag::VBR)?;
-        if let Content::VBR(content) = &mut section.content {
-            Some(content)
-        } else {
-            None
-        }
-    }
-
-    /// Returns the PVB2 section, if present.
-    pub fn get_seek_index(&mut self) -> Option<&mut SeekIndex> {
-        let section = self.find_section_by_tag(AnlzTag::SeekIndex)?;
-        if let Content::SeekIndex(content) = &mut section.content {
-            Some(content)
-        } else {
-            None
-        }
-    }
-
-    /// Returns the PVBR payload bytes (400 index values followed by u2).
-    ///
-    /// Retained for compatibility; use [`Self::get_vbr`] for typed access.
-    pub fn get_vbr_data(&mut self) -> Option<Vec<u8>> {
-        let section = self.find_section_by_tag(AnlzTag::VBR);
-        if let Some(section) = section {
-            if let Content::VBR(content) = &section.content {
-                return Some(
-                    content
-                        .index
-                        .iter()
-                        .chain(std::iter::once(&content.u2))
-                        .flat_map(|value| value.to_be_bytes())
-                        .collect(),
-                );
-            }
-        }
-        None
-    }
-
-    /// Returns the tiny waveform columns (PWV2) if present
-    pub fn get_tiny_waveform_preview(&mut self) -> Option<&mut TinyWaveformPreview> {
-        let section = self.find_section_by_tag(AnlzTag::TinyWaveformPreview);
-        if let Some(section) = section {
-            if let Content::TinyWaveformPreview(content) = &mut section.content {
-                return Some(content);
-            }
-        }
-        None
-    }
-
-    /// Returns the fixed-width monochrome waveform preview columns (PWAV) if present
-    pub fn get_waveform_preview(&mut self) -> Option<&mut WaveformPreview> {
-        let section = self.find_section_by_tag(AnlzTag::WaveformPreview);
-        if let Some(section) = section {
-            if let Content::WaveformPreview(content) = &mut section.content {
-                return Some(content);
-            }
-        }
-        None
-    }
-
-    /// Returns the variable-width monochrome waveform columns (PWV3) if present
-    pub fn get_waveform_detail(&mut self) -> Option<&mut WaveformDetail> {
-        let section = self.find_section_by_tag(AnlzTag::WaveformDetail);
-        if let Some(section) = section {
-            if let Content::WaveformDetail(content) = &mut section.content {
-                return Some(content);
-            }
-        }
-        None
-    }
-
-    /// Returns the variable-width color waveform preview columns (PWV4) if present
-    pub fn get_waveform_color_preview(&mut self) -> Option<&mut WaveformColorPreview> {
-        let section = self.find_section_by_tag(AnlzTag::WaveformColorPreview);
-        if let Some(section) = section {
-            if let Content::WaveformColorPreview(content) = &mut section.content {
-                return Some(content);
-            }
-        }
-        None
-    }
-
-    /// Returns the variable-width color waveform columns (PWV5) if present
-    pub fn get_waveform_color_detail(&mut self) -> Option<&mut WaveformColorDetail> {
-        let section = self.find_section_by_tag(AnlzTag::WaveformColorDetail);
-        if let Some(section) = section {
-            if let Content::WaveformColorDetail(content) = &mut section.content {
-                return Some(content);
-            }
-        }
-        None
-    }
-
-    /// Returns the fixed-width three-band waveform preview columns (PWV6) if present
-    pub fn get_waveform_3band_preview(&mut self) -> Option<&mut Waveform3BandPreview> {
-        let section = self.find_section_by_tag(AnlzTag::Waveform3BandPreview);
-        if let Some(section) = section {
-            if let Content::Waveform3BandPreview(content) = &mut section.content {
-                return Some(content);
-            }
-        }
-        None
-    }
-
-    /// Returns the fixed-width three-band waveform columns (PWV7) if present
-    pub fn get_waveform_3band_detail(&mut self) -> Option<&mut Waveform3BandDetail> {
-        let section = self.find_section_by_tag(AnlzTag::Waveform3BandDetail);
-        if let Some(section) = section {
-            if let Content::Waveform3BandDetail(content) = &mut section.content {
-                return Some(content);
-            }
-        }
-        None
-    }
-
-    /// Returns the PWVC section, if present.
-    pub fn get_waveform_3band_calibration(&mut self) -> Option<&mut Waveform3BandCalibration> {
-        let section = self.find_section_by_tag(AnlzTag::Waveform3BandCalibration)?;
-        if let Content::Waveform3BandCalibration(content) = &mut section.content {
-            Some(content)
-        } else {
-            None
-        }
-    }
-
-    /// Returns the song structure data (PSSI) if present
-    pub fn get_song_structure(&mut self) -> Option<SongStructureData> {
-        let section = self.find_section_by_tag(AnlzTag::SongStructure);
-        if let Some(section) = section {
-            if let Content::SongStructure(content) = &mut section.content {
-                let data = content.data.clone();
-                return Some(data);
-            }
-        }
-        None
-    }
-
-    /// Returns the PVDI section, if present.
-    pub fn get_vocal_detection(&mut self) -> Option<&mut VocalDetection> {
-        let section = self.find_section_by_tag(AnlzTag::VocalDetection)?;
-        if let Content::VocalDetection(content) = &mut section.content {
-            Some(content)
-        } else {
-            None
-        }
-    }
-}
-
-/// Collection of ANLZ file paths.
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct AnlzPaths {
-    pub dat: std::path::PathBuf,
-    pub ext: Option<std::path::PathBuf>,
-    pub ex2: Option<std::path::PathBuf>,
-}
-
-/// Collection of ANLZ files.
-pub struct AnlzFiles {
-    pub dat: Anlz,
-    pub ext: Option<Anlz>,
-    pub ex2: Option<Anlz>,
-}
-
-/// Scan a directory for ANLZ files.
-pub fn find_anlz_files<P: AsRef<std::path::Path> + AsRef<OsStr>>(
-    root: P,
-) -> Result<Option<AnlzPaths>> {
-    let root = std::path::Path::new(&root).to_path_buf();
-    let mut dat: Option<std::path::PathBuf> = None;
-    let mut ext: Option<std::path::PathBuf> = None;
-    let mut ex2: Option<std::path::PathBuf> = None;
-
-    let paths = std::fs::read_dir(root)?;
-    for path in paths {
-        let file = path?.path();
-        let extension = file.extension();
-        if let Some(extension) = extension {
-            match extension.to_ascii_uppercase().to_str().unwrap() {
-                "DAT" => dat = Some(file.clone()),
-                "EXT" => ext = Some(file.clone()),
-                "2EX" => ex2 = Some(file.clone()),
-                &_ => {}
-            }
-        }
-    }
-    if dat.is_none() {
-        return Ok(None);
-    }
-    let dat = dat.unwrap();
-    let files = AnlzPaths { dat, ext, ex2 };
-    Ok(Some(files))
 }

@@ -3,7 +3,8 @@
 
 use napi::Result;
 use napi_derive::napi;
-use rbox::anlz::anlz::*;
+use rbox::anlz::sections::*;
+use rbox::anlz::{Anlz, AnlzPaths};
 
 #[napi(object, js_name = "Beat")]
 pub struct JsBeat {
@@ -12,7 +13,7 @@ pub struct JsBeat {
     pub time: u32,
 }
 
-impl Into<JsBeat> for Beat {
+impl Into<JsBeat> for &Beat {
     fn into(self) -> JsBeat {
         JsBeat {
             beat_number: self.beat_number,
@@ -27,7 +28,7 @@ pub struct JsExtBeat {
     pub beat_number: u8,
 }
 
-impl Into<JsExtBeat> for ExtBeat {
+impl Into<JsExtBeat> for &ExtBeat {
     fn into(self) -> JsExtBeat {
         JsExtBeat {
             beat_number: self.beat_number,
@@ -40,10 +41,10 @@ pub struct JsBeatGrid {
     pub beats: Vec<JsBeat>,
 }
 
-impl Into<JsBeatGrid> for BeatGrid {
+impl Into<JsBeatGrid> for &BeatGrid {
     fn into(self) -> JsBeatGrid {
         JsBeatGrid {
-            beats: self.beats.iter().map(|item| item.clone().into()).collect(),
+            beats: self.beats.iter().map(|item| item.into()).collect(),
         }
     }
 }
@@ -55,12 +56,12 @@ pub struct JsExtendedBeatGrid {
     pub version: u32,
 }
 
-impl Into<JsExtendedBeatGrid> for ExtendedBeatGrid {
+impl Into<JsExtendedBeatGrid> for &ExtendedBeatGrid {
     fn into(self) -> JsExtendedBeatGrid {
         JsExtendedBeatGrid {
             version: self.version,
-            bpm: self.bpm.iter().map(|item| item.clone().into()).collect(),
-            beats: self.beats.iter().map(|item| item.clone().into()).collect(),
+            bpm: self.bpm.iter().map(|item| item.into()).collect(),
+            beats: self.beats.iter().map(|item| item.into()).collect(),
         }
     }
 }
@@ -71,7 +72,7 @@ pub enum JsCueType {
     Loop = 2,
 }
 
-impl Into<JsCueType> for CueType {
+impl Into<JsCueType> for &CueType {
     fn into(self) -> JsCueType {
         match self {
             CueType::Point => JsCueType::Point,
@@ -86,7 +87,7 @@ pub enum JsCueListType {
     HotCues = 1,
 }
 
-impl Into<JsCueListType> for CueListType {
+impl Into<JsCueListType> for &CueListType {
     fn into(self) -> JsCueListType {
         match self {
             CueListType::MemoryCues => JsCueListType::MemoryCues,
@@ -101,7 +102,7 @@ pub enum JsCueStatus {
     Active = 4,
 }
 
-impl Into<JsCueStatus> for CueStatus {
+impl Into<JsCueStatus> for &CueStatus {
     fn into(self) -> JsCueStatus {
         match self {
             CueStatus::Disabled => JsCueStatus::Disabled,
@@ -121,14 +122,14 @@ pub struct JsCue {
     pub loop_time: u32,
 }
 
-impl Into<JsCue> for Cue {
+impl Into<JsCue> for &Cue {
     fn into(self) -> JsCue {
         JsCue {
             hot_cue: self.hot_cue,
-            status: self.status.into(),
+            status: (&self.status).into(),
             order_first: self.order_first,
             order_last: self.order_last,
-            cue_type: self.cue_type.into(),
+            cue_type: (&self.cue_type).into(),
             time: self.time,
             loop_time: self.loop_time,
         }
@@ -151,11 +152,11 @@ pub struct JsExtendedCue {
     pub hot_cue_color_blue: u8,
 }
 
-impl Into<JsExtendedCue> for ExtendedCue {
+impl Into<JsExtendedCue> for &ExtendedCue {
     fn into(self) -> JsExtendedCue {
         JsExtendedCue {
             hot_cue: self.hot_cue,
-            cue_type: self.cue_type.into(),
+            cue_type: (&self.cue_type).into(),
             time: self.time,
             loop_time: self.loop_time,
             color: self.color.into(),
@@ -176,11 +177,11 @@ pub struct JsCueList {
     pub cues: Vec<JsCue>,
 }
 
-impl Into<JsCueList> for CueList {
+impl Into<JsCueList> for &CueList {
     fn into(self) -> JsCueList {
         JsCueList {
-            list_type: self.list_type.into(),
-            cues: self.cues.iter().map(|item| item.clone().into()).collect(),
+            list_type: (&self.list_type).into(),
+            cues: self.cues.iter().map(|item| item.into()).collect(),
         }
     }
 }
@@ -191,11 +192,11 @@ pub struct JsExtendedCueList {
     pub cues: Vec<JsExtendedCue>,
 }
 
-impl Into<JsExtendedCueList> for ExtendedCueList {
+impl Into<JsExtendedCueList> for &ExtendedCueList {
     fn into(self) -> JsExtendedCueList {
         JsExtendedCueList {
-            list_type: self.list_type.into(),
-            cues: self.cues.iter().map(|item| item.clone().into()).collect(),
+            list_type: (&self.list_type).into(),
+            cues: self.cues.iter().map(|item| item.into()).collect(),
         }
     }
 }
@@ -206,7 +207,7 @@ pub struct JsTinyWaveformColumn {
     pub unused: u8,
 }
 
-impl Into<JsTinyWaveformColumn> for TinyWaveformColumn {
+impl Into<JsTinyWaveformColumn> for &TinyWaveformColumn {
     fn into(self) -> JsTinyWaveformColumn {
         JsTinyWaveformColumn {
             unused: self.unused(),
@@ -220,10 +221,10 @@ pub struct JsTinyWaveformPreview {
     pub data: Vec<JsTinyWaveformColumn>,
 }
 
-impl Into<JsTinyWaveformPreview> for TinyWaveformPreview {
+impl Into<JsTinyWaveformPreview> for &TinyWaveformPreview {
     fn into(self) -> JsTinyWaveformPreview {
         JsTinyWaveformPreview {
-            data: self.data.iter().map(|item| item.clone().into()).collect(),
+            data: self.data.iter().map(|item| item.into()).collect(),
         }
     }
 }
@@ -234,7 +235,7 @@ pub struct JsWaveformColumn {
     pub whiteness: u8,
 }
 
-impl Into<JsWaveformColumn> for WaveformColumn {
+impl Into<JsWaveformColumn> for &WaveformColumn {
     fn into(self) -> JsWaveformColumn {
         JsWaveformColumn {
             height: self.height(),
@@ -248,10 +249,10 @@ pub struct JsWaveformPreview {
     pub data: Vec<JsWaveformColumn>,
 }
 
-impl Into<JsWaveformPreview> for WaveformPreview {
+impl Into<JsWaveformPreview> for &WaveformPreview {
     fn into(self) -> JsWaveformPreview {
         JsWaveformPreview {
-            data: self.data.iter().map(|item| item.clone().into()).collect(),
+            data: self.data.iter().map(|item| item.into()).collect(),
         }
     }
 }
@@ -261,10 +262,10 @@ pub struct JsWaveformDetail {
     pub data: Vec<JsWaveformColumn>,
 }
 
-impl Into<JsWaveformDetail> for WaveformDetail {
+impl Into<JsWaveformDetail> for &WaveformDetail {
     fn into(self) -> JsWaveformDetail {
         JsWaveformDetail {
-            data: self.data.iter().map(|item| item.clone().into()).collect(),
+            data: self.data.iter().map(|item| item.into()).collect(),
         }
     }
 }
@@ -277,7 +278,7 @@ pub struct JsWaveformColorPreviewColumn {
     pub energy_top_third_freq: u8,
 }
 
-impl Into<JsWaveformColorPreviewColumn> for WaveformColorPreviewColumn {
+impl Into<JsWaveformColorPreviewColumn> for &WaveformColorPreviewColumn {
     fn into(self) -> JsWaveformColorPreviewColumn {
         JsWaveformColorPreviewColumn {
             energy_bottom_half_freq: self.energy_bottom_half_freq,
@@ -293,10 +294,10 @@ pub struct JsWaveformColorPreview {
     pub data: Vec<JsWaveformColorPreviewColumn>,
 }
 
-impl Into<JsWaveformColorPreview> for WaveformColorPreview {
+impl Into<JsWaveformColorPreview> for &WaveformColorPreview {
     fn into(self) -> JsWaveformColorPreview {
         JsWaveformColorPreview {
-            data: self.data.iter().map(|item| item.clone().into()).collect(),
+            data: self.data.iter().map(|item| item.into()).collect(),
         }
     }
 }
@@ -312,7 +313,7 @@ pub struct JsWaveformColorDetailColumn {
     pub full_height: u8,
 }
 
-impl Into<JsWaveformColorDetailColumn> for WaveformColorDetailColumn {
+impl Into<JsWaveformColorDetailColumn> for &WaveformColorDetailColumn {
     fn into(self) -> JsWaveformColorDetailColumn {
         JsWaveformColorDetailColumn {
             low_bits: self.low_bits(),
@@ -331,10 +332,10 @@ pub struct JsWaveformColorDetail {
     pub data: Vec<JsWaveformColorDetailColumn>,
 }
 
-impl Into<JsWaveformColorDetail> for WaveformColorDetail {
+impl Into<JsWaveformColorDetail> for &WaveformColorDetail {
     fn into(self) -> JsWaveformColorDetail {
         JsWaveformColorDetail {
-            data: self.data.iter().map(|item| item.clone().into()).collect(),
+            data: self.data.iter().map(|item| item.into()).collect(),
         }
     }
 }
@@ -346,7 +347,7 @@ pub struct JsWaveform3BandColumn {
     pub low: u8,
 }
 
-impl Into<JsWaveform3BandColumn> for Waveform3BandColumn {
+impl Into<JsWaveform3BandColumn> for &Waveform3BandColumn {
     fn into(self) -> JsWaveform3BandColumn {
         JsWaveform3BandColumn {
             mid: self.mid(),
@@ -361,10 +362,10 @@ pub struct JsWaveform3BandPreview {
     pub data: Vec<JsWaveform3BandColumn>,
 }
 
-impl Into<JsWaveform3BandPreview> for Waveform3BandPreview {
+impl Into<JsWaveform3BandPreview> for &Waveform3BandPreview {
     fn into(self) -> JsWaveform3BandPreview {
         JsWaveform3BandPreview {
-            data: self.data.iter().map(|item| item.clone().into()).collect(),
+            data: self.data.iter().map(|item| item.into()).collect(),
         }
     }
 }
@@ -374,10 +375,10 @@ pub struct JsWaveform3BandDetail {
     pub data: Vec<JsWaveform3BandColumn>,
 }
 
-impl Into<JsWaveform3BandDetail> for Waveform3BandDetail {
+impl Into<JsWaveform3BandDetail> for &Waveform3BandDetail {
     fn into(self) -> JsWaveform3BandDetail {
         JsWaveform3BandDetail {
-            data: self.data.iter().map(|item| item.clone().into()).collect(),
+            data: self.data.iter().map(|item| item.into()).collect(),
         }
     }
 }
@@ -389,7 +390,7 @@ pub enum JsMood {
     Low,
 }
 
-impl Into<JsMood> for Mood {
+impl Into<JsMood> for &Mood {
     fn into(self) -> JsMood {
         match self {
             Mood::High => JsMood::High,
@@ -412,7 +413,7 @@ pub enum JsBank {
     Club2,
 }
 
-impl Into<JsBank> for Bank {
+impl Into<JsBank> for &Bank {
     fn into(self) -> JsBank {
         match self {
             Bank::Default => JsBank::Default,
@@ -444,7 +445,7 @@ pub struct JsPhrase {
     pub beat_fill: u16,
 }
 
-impl Into<JsPhrase> for Phrase {
+impl Into<JsPhrase> for &Phrase {
     fn into(self) -> JsPhrase {
         JsPhrase {
             index: self.index,
@@ -471,17 +472,13 @@ pub struct JsSongStructureData {
     pub phrases: Vec<JsPhrase>,
 }
 
-impl Into<JsSongStructureData> for SongStructureData {
+impl Into<JsSongStructureData> for &SongStructureData {
     fn into(self) -> JsSongStructureData {
         JsSongStructureData {
-            mood: self.mood.into(),
+            mood: (&self.mood).into(),
             end_beat: self.end_beat,
-            bank: self.bank.into(),
-            phrases: self
-                .phrases
-                .iter()
-                .map(|item| item.clone().into())
-                .collect(),
+            bank: (&self.bank).into(),
+            phrases: self.phrases.iter().map(|item| item.into()).collect(),
         }
     }
 }
@@ -494,26 +491,23 @@ pub struct JsAnlz {
 #[napi]
 impl JsAnlz {
     #[napi]
-    pub fn get_vbr(&mut self) -> Option<JsVBR> {
-        self.anlz.get_vbr().cloned().map(Into::into)
+    pub fn get_vbr(&mut self) -> Result<Option<JsVBR>> {
+        Ok(self.anlz.get_vbr()?.map(Into::into))
     }
 
     #[napi]
-    pub fn get_seek_index(&mut self) -> Option<JsSeekIndex> {
-        self.anlz.get_seek_index().cloned().map(Into::into)
+    pub fn get_seek_index(&mut self) -> Result<Option<JsSeekIndex>> {
+        Ok(self.anlz.get_seek_index()?.map(Into::into))
     }
 
     #[napi]
-    pub fn get_waveform_3band_calibration(&mut self) -> Option<JsWaveform3BandCalibration> {
-        self.anlz
-            .get_waveform_3band_calibration()
-            .cloned()
-            .map(Into::into)
+    pub fn get_waveform_3band_calibration(&mut self) -> Result<Option<JsWaveform3BandCalibration>> {
+        Ok(self.anlz.get_waveform_3band_calibration()?.map(Into::into))
     }
 
     #[napi]
-    pub fn get_vocal_detection(&mut self) -> Option<JsVocalDetection> {
-        self.anlz.get_vocal_detection().cloned().map(Into::into)
+    pub fn get_vocal_detection(&mut self) -> Result<Option<JsVocalDetection>> {
+        Ok(self.anlz.get_vocal_detection()?.map(Into::into))
     }
 
     #[napi(constructor)]
@@ -541,62 +535,64 @@ impl JsAnlz {
     }
 
     #[napi]
-    pub fn get_beat_grid(&mut self) -> Option<JsBeatGrid> {
-        let data = self.anlz.get_beat_grid();
+    pub fn get_beat_grid(&mut self) -> Result<Option<JsBeatGrid>> {
+        let data = self.anlz.get_beat_grid()?;
         if let Some(data) = data {
-            return Some(data.clone().into());
+            return Ok(Some(data.into()));
         }
-        None
+        Ok(None)
     }
 
     #[napi]
-    pub fn get_extended_beat_grid(&mut self) -> Option<JsExtendedBeatGrid> {
-        let data = self.anlz.get_extended_beat_grid();
+    pub fn get_extended_beat_grid(&mut self) -> Result<Option<JsExtendedBeatGrid>> {
+        let data = self.anlz.get_extended_beat_grid()?;
         if let Some(data) = data {
-            return Some(data.clone().into());
+            return Ok(Some(data.into()));
         }
-        None
+        Ok(None)
     }
 
     #[napi]
-    pub fn get_hot_cues(&mut self) -> Option<JsCueList> {
-        let data = self.anlz.get_hot_cues();
+    pub fn get_hot_cues(&mut self) -> Result<Option<JsCueList>> {
+        let data = self.anlz.get_hot_cues()?;
         if let Some(data) = data {
-            return Some(data.clone().into());
+            return Ok(Some(data.into()));
         }
-        None
+        Ok(None)
     }
 
     #[napi]
-    pub fn get_memory_cues(&mut self) -> Option<JsCueList> {
-        let data = self.anlz.get_memory_cues();
+    pub fn get_memory_cues(&mut self) -> Result<Option<JsCueList>> {
+        let data = self.anlz.get_memory_cues()?;
         if let Some(data) = data {
-            return Some(data.clone().into());
+            return Ok(Some(data.into()));
         }
-        None
+        Ok(None)
     }
 
     #[napi]
-    pub fn get_extended_hot_cues(&mut self) -> Option<JsExtendedCueList> {
-        let data = self.anlz.get_extended_hot_cues();
+    pub fn get_extended_hot_cues(&mut self) -> Result<Option<JsExtendedCueList>> {
+        let data = self.anlz.get_extended_hot_cues()?;
         if let Some(data) = data {
-            return Some(data.clone().into());
+            return Ok(Some(data.into()));
         }
-        None
+        Ok(None)
     }
 
     #[napi]
-    pub fn get_extended_memory_cues(&mut self) -> Option<JsExtendedCueList> {
-        let data = self.anlz.get_extended_memory_cues();
+    pub fn get_extended_memory_cues(&mut self) -> Result<Option<JsExtendedCueList>> {
+        let data = self.anlz.get_extended_memory_cues()?;
         if let Some(data) = data {
-            return Some(data.clone().into());
+            return Ok(Some(data.into()));
         }
-        None
+        Ok(None)
     }
 
     #[napi]
-    pub fn get_path(&mut self) -> String {
-        self.anlz.get_path().expect("Failed to get Anlz path")
+    pub fn get_path(&mut self) -> Result<String> {
+        self.anlz
+            .get_path()?
+            .ok_or_else(|| napi::Error::from_reason("ANLZ path is missing"))
     }
 
     #[napi]
@@ -606,80 +602,80 @@ impl JsAnlz {
     }
 
     #[napi]
-    pub fn get_vbr_data(&mut self) -> Option<Vec<u8>> {
-        self.anlz.get_vbr_data()
+    pub fn get_vbr_data(&mut self) -> Result<Option<Vec<u8>>> {
+        Ok(self.anlz.get_vbr_data()?)
     }
 
     #[napi]
-    pub fn get_tiny_waveform_preview(&mut self) -> Option<JsTinyWaveformPreview> {
-        let data = self.anlz.get_tiny_waveform_preview();
+    pub fn get_tiny_waveform_preview(&mut self) -> Result<Option<JsTinyWaveformPreview>> {
+        let data = self.anlz.get_tiny_waveform_preview()?;
         if let Some(data) = data {
-            return Some(data.clone().into());
+            return Ok(Some(data.into()));
         }
-        None
+        Ok(None)
     }
 
     #[napi]
-    pub fn get_waveform_preview(&mut self) -> Option<JsWaveformPreview> {
-        let data = self.anlz.get_waveform_preview();
+    pub fn get_waveform_preview(&mut self) -> Result<Option<JsWaveformPreview>> {
+        let data = self.anlz.get_waveform_preview()?;
         if let Some(data) = data {
-            return Some(data.clone().into());
+            return Ok(Some(data.into()));
         }
-        None
+        Ok(None)
     }
 
     #[napi]
-    pub fn get_waveform_detail(&mut self) -> Option<JsWaveformDetail> {
-        let data = self.anlz.get_waveform_detail();
+    pub fn get_waveform_detail(&mut self) -> Result<Option<JsWaveformDetail>> {
+        let data = self.anlz.get_waveform_detail()?;
         if let Some(data) = data {
-            return Some(data.clone().into());
+            return Ok(Some(data.into()));
         }
-        None
+        Ok(None)
     }
 
     #[napi]
-    pub fn get_waveform_color_preview(&mut self) -> Option<JsWaveformColorPreview> {
-        let data = self.anlz.get_waveform_color_preview();
+    pub fn get_waveform_color_preview(&mut self) -> Result<Option<JsWaveformColorPreview>> {
+        let data = self.anlz.get_waveform_color_preview()?;
         if let Some(data) = data {
-            return Some(data.clone().into());
+            return Ok(Some(data.into()));
         }
-        None
+        Ok(None)
     }
 
     #[napi]
-    pub fn get_waveform_color_detail(&mut self) -> Option<JsWaveformColorDetail> {
-        let data = self.anlz.get_waveform_color_detail();
+    pub fn get_waveform_color_detail(&mut self) -> Result<Option<JsWaveformColorDetail>> {
+        let data = self.anlz.get_waveform_color_detail()?;
         if let Some(data) = data {
-            return Some(data.clone().into());
+            return Ok(Some(data.into()));
         }
-        None
+        Ok(None)
     }
 
     #[napi]
-    pub fn get_waveform_3band_preview(&mut self) -> Option<JsWaveform3BandPreview> {
-        let data = self.anlz.get_waveform_3band_preview();
+    pub fn get_waveform_3band_preview(&mut self) -> Result<Option<JsWaveform3BandPreview>> {
+        let data = self.anlz.get_waveform_3band_preview()?;
         if let Some(data) = data {
-            return Some(data.clone().into());
+            return Ok(Some(data.into()));
         }
-        None
+        Ok(None)
     }
 
     #[napi]
-    pub fn get_waveform_3band_detail(&mut self) -> Option<JsWaveform3BandDetail> {
-        let data = self.anlz.get_waveform_3band_detail();
+    pub fn get_waveform_3band_detail(&mut self) -> Result<Option<JsWaveform3BandDetail>> {
+        let data = self.anlz.get_waveform_3band_detail()?;
         if let Some(data) = data {
-            return Some(data.clone().into());
+            return Ok(Some(data.into()));
         }
-        None
+        Ok(None)
     }
 
     #[napi]
-    pub fn get_song_structure(&mut self) -> Option<JsSongStructureData> {
-        let data = self.anlz.get_song_structure();
+    pub fn get_song_structure(&mut self) -> Result<Option<JsSongStructureData>> {
+        let data = self.anlz.get_song_structure()?;
         if let Some(data) = data {
-            return Some(data.clone().into());
+            return Ok(Some(data.into()));
         }
-        None
+        Ok(None)
     }
 }
 
@@ -707,8 +703,8 @@ pub struct JsVBR {
     pub u2: u32,
 }
 
-impl From<VBR> for JsVBR {
-    fn from(value: VBR) -> Self {
+impl From<&VBR> for JsVBR {
+    fn from(value: &VBR) -> Self {
         Self {
             u1: value.u1,
             index: value.index.to_vec(),
@@ -724,8 +720,8 @@ pub struct JsSeekPoint {
     pub frame_samples: u32,
 }
 
-impl From<SeekPoint> for JsSeekPoint {
-    fn from(value: SeekPoint) -> Self {
+impl From<&SeekPoint> for JsSeekPoint {
+    fn from(value: &SeekPoint) -> Self {
         Self {
             sample: value.sample.into(),
             offset: value.offset.into(),
@@ -741,12 +737,12 @@ pub struct JsSeekIndex {
     pub entries: Vec<JsSeekPoint>,
 }
 
-impl From<SeekIndex> for JsSeekIndex {
-    fn from(value: SeekIndex) -> Self {
+impl From<&SeekIndex> for JsSeekIndex {
+    fn from(value: &SeekIndex) -> Self {
         Self {
             u1: value.u1,
             total_samples: value.total_samples.into(),
-            entries: value.entries.into_iter().map(Into::into).collect(),
+            entries: value.entries.iter().map(Into::into).collect(),
         }
     }
 }
@@ -758,8 +754,8 @@ pub struct JsWaveform3BandCalibration {
     pub high_gain: u16,
 }
 
-impl From<Waveform3BandCalibration> for JsWaveform3BandCalibration {
-    fn from(value: Waveform3BandCalibration) -> Self {
+impl From<&Waveform3BandCalibration> for JsWaveform3BandCalibration {
+    fn from(value: &Waveform3BandCalibration) -> Self {
         Self {
             low_gain: value.low_gain,
             mid_gain: value.mid_gain,
@@ -775,12 +771,12 @@ pub struct JsVocalDetection {
     pub confidence: Vec<u8>,
 }
 
-impl From<VocalDetection> for JsVocalDetection {
-    fn from(value: VocalDetection) -> Self {
+impl From<&VocalDetection> for JsVocalDetection {
+    fn from(value: &VocalDetection) -> Self {
         Self {
             u1: value.u1,
             u2: value.u2,
-            confidence: value.confidence,
+            confidence: value.confidence.clone(),
         }
     }
 }

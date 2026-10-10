@@ -152,15 +152,22 @@ They include waveforms, beat grids (information about the precise time at which
 each beat occurs), time indices to allow efficient seeking to specific positions
 inside variable bit-rate audio streams, and lists of memory cues and loop points.
 
-rbox can parse and write all three analysis files.
+rbox indexes analysis files on opening and decodes sections on demand. Getters
+return `Result` because reading a section can fail after opening the file.
+Use `get_*` for shared access and `get_mut_*` for mutable access. Saving preserves
+section order and copies untouched sections without decoding them.
+
+For finer access, use `get_section(index)` or `get_mut_section(index)`.
+`into_data()` consumes the handler and materializes an `AnlzData`.
+Keep the backing file unchanged externally while the handler is open.
 
 ```rust
 use rbox::prelude::*;
 
 fn main() -> anyhow::Result<()> {
     let mut anlz = Anlz::load("ANLZ0000.DAT")?;
-    let grid = anlz.get_beat_grid().unwrap();
-    for beat in grid {
+    let grid = anlz.get_beat_grid()?.unwrap();
+    for beat in &grid.beats {
         println!("Beat: {} Tempo: {} Time: {}", beat.beat_number, beat.tempo, beat.time);
     }
     Ok(())

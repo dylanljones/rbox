@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use pyo3::prelude::*;
-use rbox::anlz::anlz::*;
+use rbox::anlz::sections::*;
+use rbox::anlz::Anlz;
 
 use super::errors::AnlzError;
 use super::traits::IntoPy;
@@ -14,7 +15,7 @@ pub struct PyBeat {
     pub time: u32,
 }
 
-impl IntoPy<PyBeat> for Beat {
+impl IntoPy<PyBeat> for &Beat {
     fn into_py(self, _py: Python) -> PyResult<PyBeat> {
         let model = PyBeat {
             beat_number: self.beat_number,
@@ -30,7 +31,7 @@ pub struct PyExtBeat {
     pub beat_number: u8,
 }
 
-impl IntoPy<PyExtBeat> for ExtBeat {
+impl IntoPy<PyExtBeat> for &ExtBeat {
     fn into_py(self, _py: Python) -> PyResult<PyExtBeat> {
         let model = PyExtBeat {
             beat_number: self.beat_number,
@@ -44,11 +45,11 @@ pub struct PyBeatGrid {
     pub beats: Vec<Py<PyBeat>>,
 }
 
-impl IntoPy<PyBeatGrid> for BeatGrid {
+impl IntoPy<PyBeatGrid> for &BeatGrid {
     fn into_py(self, py: Python) -> PyResult<PyBeatGrid> {
         let mut beats = Vec::new();
-        for item in self.beats {
-            beats.push(Py::new(py, item.clone().into_py(py)?)?)
+        for item in &self.beats {
+            beats.push(Py::new(py, item.into_py(py)?)?)
         }
         let model = PyBeatGrid { beats };
         Ok(model)
@@ -62,15 +63,15 @@ pub struct PyExtendedBeatGrid {
     pub version: u32,
 }
 
-impl IntoPy<PyExtendedBeatGrid> for ExtendedBeatGrid {
+impl IntoPy<PyExtendedBeatGrid> for &ExtendedBeatGrid {
     fn into_py(self, py: Python) -> PyResult<PyExtendedBeatGrid> {
         let mut bpm = Vec::new();
         let mut beats = Vec::new();
-        for item in self.bpm {
-            bpm.push(Py::new(py, item.clone().into_py(py)?)?)
+        for item in &self.bpm {
+            bpm.push(Py::new(py, item.into_py(py)?)?)
         }
-        for item in self.beats {
-            beats.push(Py::new(py, item.clone().into_py(py)?)?)
+        for item in &self.beats {
+            beats.push(Py::new(py, item.into_py(py)?)?)
         }
 
         let model = PyExtendedBeatGrid {
@@ -93,14 +94,14 @@ pub struct PyCue {
     pub loop_time: u32,
 }
 
-impl IntoPy<PyCue> for Cue {
+impl IntoPy<PyCue> for &Cue {
     fn into_py(self, _py: Python) -> PyResult<PyCue> {
         let model = PyCue {
             hot_cue: self.hot_cue,
-            status: self.status.into(),
+            status: self.status.clone().into(),
             order_first: self.order_first,
             order_last: self.order_last,
-            cue_type: self.cue_type.into(),
+            cue_type: self.cue_type.clone().into(),
             time: self.time,
             loop_time: self.loop_time,
         };
@@ -124,11 +125,11 @@ pub struct PyExtendedCue {
     pub hot_cue_color_blue: u8,
 }
 
-impl IntoPy<PyExtendedCue> for ExtendedCue {
+impl IntoPy<PyExtendedCue> for &ExtendedCue {
     fn into_py(self, _py: Python) -> PyResult<PyExtendedCue> {
         let model = PyExtendedCue {
             hot_cue: self.hot_cue,
-            cue_type: self.cue_type.into(),
+            cue_type: self.cue_type.clone().into(),
             time: self.time,
             loop_time: self.loop_time,
             color: self.color.into(),
@@ -150,14 +151,14 @@ pub struct PyCueList {
     pub cues: Vec<Py<PyCue>>,
 }
 
-impl IntoPy<PyCueList> for CueList {
+impl IntoPy<PyCueList> for &CueList {
     fn into_py(self, py: Python) -> PyResult<PyCueList> {
         let mut cues = Vec::new();
-        for item in self.cues {
-            cues.push(Py::new(py, item.clone().into_py(py)?)?)
+        for item in &self.cues {
+            cues.push(Py::new(py, item.into_py(py)?)?)
         }
         let model = PyCueList {
-            list_type: self.list_type.into(),
+            list_type: self.list_type.clone().into(),
             cues,
         };
         Ok(model)
@@ -170,14 +171,14 @@ pub struct PyExtendedCueList {
     pub cues: Vec<Py<PyExtendedCue>>,
 }
 
-impl IntoPy<PyExtendedCueList> for ExtendedCueList {
+impl IntoPy<PyExtendedCueList> for &ExtendedCueList {
     fn into_py(self, py: Python) -> PyResult<PyExtendedCueList> {
         let mut cues = Vec::new();
-        for item in self.cues {
-            cues.push(Py::new(py, item.clone().into_py(py)?)?)
+        for item in &self.cues {
+            cues.push(Py::new(py, item.into_py(py)?)?)
         }
         let model = PyExtendedCueList {
-            list_type: self.list_type.into(),
+            list_type: self.list_type.clone().into(),
             cues,
         };
         Ok(model)
@@ -190,7 +191,7 @@ pub struct PyTinyWaveformColumn {
     pub unused: u8,
 }
 
-impl IntoPy<PyTinyWaveformColumn> for TinyWaveformColumn {
+impl IntoPy<PyTinyWaveformColumn> for &TinyWaveformColumn {
     fn into_py(self, _py: Python) -> PyResult<PyTinyWaveformColumn> {
         let model = PyTinyWaveformColumn {
             unused: self.unused(),
@@ -205,11 +206,11 @@ pub struct PyTinyWaveformPreview {
     pub data: Vec<Py<PyTinyWaveformColumn>>,
 }
 
-impl IntoPy<PyTinyWaveformPreview> for TinyWaveformPreview {
+impl IntoPy<PyTinyWaveformPreview> for &TinyWaveformPreview {
     fn into_py(self, py: Python) -> PyResult<PyTinyWaveformPreview> {
         let mut data = Vec::new();
-        for item in self.data {
-            data.push(Py::new(py, item.clone().into_py(py)?)?)
+        for item in &self.data {
+            data.push(Py::new(py, item.into_py(py)?)?)
         }
         let model = PyTinyWaveformPreview { data };
         Ok(model)
@@ -222,7 +223,7 @@ pub struct PyWaveformColumn {
     pub whiteness: u8,
 }
 
-impl IntoPy<PyWaveformColumn> for WaveformColumn {
+impl IntoPy<PyWaveformColumn> for &WaveformColumn {
     fn into_py(self, _py: Python) -> PyResult<PyWaveformColumn> {
         let model = PyWaveformColumn {
             height: self.height(),
@@ -237,11 +238,11 @@ pub struct PyWaveformPreview {
     pub data: Vec<Py<PyWaveformColumn>>,
 }
 
-impl IntoPy<PyWaveformPreview> for WaveformPreview {
+impl IntoPy<PyWaveformPreview> for &WaveformPreview {
     fn into_py(self, py: Python) -> PyResult<PyWaveformPreview> {
         let mut data = Vec::new();
-        for item in self.data {
-            data.push(Py::new(py, item.clone().into_py(py)?)?)
+        for item in &self.data {
+            data.push(Py::new(py, item.into_py(py)?)?)
         }
         let model = PyWaveformPreview { data };
         Ok(model)
@@ -253,11 +254,11 @@ pub struct PyWaveformDetail {
     pub data: Vec<Py<PyWaveformColumn>>,
 }
 
-impl IntoPy<PyWaveformDetail> for WaveformDetail {
+impl IntoPy<PyWaveformDetail> for &WaveformDetail {
     fn into_py(self, py: Python) -> PyResult<PyWaveformDetail> {
         let mut data = Vec::new();
-        for item in self.data {
-            data.push(Py::new(py, item.clone().into_py(py)?)?)
+        for item in &self.data {
+            data.push(Py::new(py, item.into_py(py)?)?)
         }
         let model = PyWaveformDetail { data };
         Ok(model)
@@ -272,7 +273,7 @@ pub struct PyWaveformColorPreviewColumn {
     pub energy_top_third_freq: u8,
 }
 
-impl IntoPy<PyWaveformColorPreviewColumn> for WaveformColorPreviewColumn {
+impl IntoPy<PyWaveformColorPreviewColumn> for &WaveformColorPreviewColumn {
     fn into_py(self, _py: Python) -> PyResult<PyWaveformColorPreviewColumn> {
         let model = PyWaveformColorPreviewColumn {
             energy_bottom_half_freq: self.energy_bottom_half_freq,
@@ -289,11 +290,11 @@ pub struct PyWaveformColorPreview {
     pub data: Vec<Py<PyWaveformColorPreviewColumn>>,
 }
 
-impl IntoPy<PyWaveformColorPreview> for WaveformColorPreview {
+impl IntoPy<PyWaveformColorPreview> for &WaveformColorPreview {
     fn into_py(self, py: Python) -> PyResult<PyWaveformColorPreview> {
         let mut data = Vec::new();
-        for item in self.data {
-            data.push(Py::new(py, item.clone().into_py(py)?)?)
+        for item in &self.data {
+            data.push(Py::new(py, item.into_py(py)?)?)
         }
         let model = PyWaveformColorPreview { data };
         Ok(model)
@@ -311,7 +312,7 @@ pub struct PyWaveformColorDetailColumn {
     pub full_height: u8,
 }
 
-impl IntoPy<PyWaveformColorDetailColumn> for WaveformColorDetailColumn {
+impl IntoPy<PyWaveformColorDetailColumn> for &WaveformColorDetailColumn {
     fn into_py(self, _py: Python) -> PyResult<PyWaveformColorDetailColumn> {
         let model = PyWaveformColorDetailColumn {
             low_bits: self.low_bits(),
@@ -331,11 +332,11 @@ pub struct PyWaveformColorDetail {
     pub data: Vec<Py<PyWaveformColorDetailColumn>>,
 }
 
-impl IntoPy<PyWaveformColorDetail> for WaveformColorDetail {
+impl IntoPy<PyWaveformColorDetail> for &WaveformColorDetail {
     fn into_py(self, py: Python) -> PyResult<PyWaveformColorDetail> {
         let mut data = Vec::new();
-        for item in self.data {
-            data.push(Py::new(py, item.clone().into_py(py)?)?)
+        for item in &self.data {
+            data.push(Py::new(py, item.into_py(py)?)?)
         }
         let model = PyWaveformColorDetail { data };
         Ok(model)
@@ -349,7 +350,7 @@ pub struct PyWaveform3BandColumn {
     pub low: u8,
 }
 
-impl IntoPy<PyWaveform3BandColumn> for Waveform3BandColumn {
+impl IntoPy<PyWaveform3BandColumn> for &Waveform3BandColumn {
     fn into_py(self, _py: Python) -> PyResult<PyWaveform3BandColumn> {
         let model = PyWaveform3BandColumn {
             mid: self.mid(),
@@ -365,11 +366,11 @@ pub struct PyWaveform3BandPreview {
     pub data: Vec<Py<PyWaveform3BandColumn>>,
 }
 
-impl IntoPy<PyWaveform3BandPreview> for Waveform3BandPreview {
+impl IntoPy<PyWaveform3BandPreview> for &Waveform3BandPreview {
     fn into_py(self, py: Python) -> PyResult<PyWaveform3BandPreview> {
         let mut data = Vec::new();
-        for item in self.data {
-            data.push(Py::new(py, item.clone().into_py(py)?)?)
+        for item in &self.data {
+            data.push(Py::new(py, item.into_py(py)?)?)
         }
         let model = PyWaveform3BandPreview { data };
         Ok(model)
@@ -381,11 +382,11 @@ pub struct PyWaveform3BandDetail {
     pub data: Vec<Py<PyWaveform3BandColumn>>,
 }
 
-impl IntoPy<PyWaveform3BandDetail> for Waveform3BandDetail {
+impl IntoPy<PyWaveform3BandDetail> for &Waveform3BandDetail {
     fn into_py(self, py: Python) -> PyResult<PyWaveform3BandDetail> {
         let mut data = Vec::new();
-        for item in self.data {
-            data.push(Py::new(py, item.clone().into_py(py)?)?)
+        for item in &self.data {
+            data.push(Py::new(py, item.into_py(py)?)?)
         }
         let model = PyWaveform3BandDetail { data };
         Ok(model)
@@ -408,7 +409,7 @@ pub struct PyPhrase {
     pub beat_fill: u16,
 }
 
-impl IntoPy<PyPhrase> for Phrase {
+impl IntoPy<PyPhrase> for &Phrase {
     fn into_py(self, _py: Python) -> PyResult<PyPhrase> {
         let model = PyPhrase {
             index: self.index,
@@ -436,16 +437,16 @@ pub struct PySongStructureData {
     pub phrases: Vec<Py<PyPhrase>>,
 }
 
-impl IntoPy<PySongStructureData> for SongStructureData {
+impl IntoPy<PySongStructureData> for &SongStructureData {
     fn into_py(self, py: Python) -> PyResult<PySongStructureData> {
         let mut phrases = Vec::new();
-        for item in self.phrases {
-            phrases.push(Py::new(py, item.clone().into_py(py)?)?)
+        for item in &self.phrases {
+            phrases.push(Py::new(py, item.into_py(py)?)?)
         }
         let model = PySongStructureData {
-            mood: self.mood.into(),
+            mood: self.mood.clone().into(),
             end_beat: self.end_beat,
-            bank: self.bank.into(),
+            bank: self.bank.clone().into(),
             phrases,
         };
         Ok(model)
@@ -462,7 +463,7 @@ impl PyAnlz {
     pub fn get_vbr(&mut self, py: Python) -> PyResult<Option<PyVBR>> {
         self.anlz
             .get_vbr()
-            .cloned()
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?
             .map(|value| value.into_py(py))
             .transpose()
     }
@@ -470,7 +471,7 @@ impl PyAnlz {
     pub fn get_seek_index(&mut self, py: Python) -> PyResult<Option<PySeekIndex>> {
         self.anlz
             .get_seek_index()
-            .cloned()
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?
             .map(|value| value.into_py(py))
             .transpose()
     }
@@ -481,7 +482,7 @@ impl PyAnlz {
     ) -> PyResult<Option<PyWaveform3BandCalibration>> {
         self.anlz
             .get_waveform_3band_calibration()
-            .cloned()
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?
             .map(|value| value.into_py(py))
             .transpose()
     }
@@ -489,7 +490,7 @@ impl PyAnlz {
     pub fn get_vocal_detection(&mut self, py: Python) -> PyResult<Option<PyVocalDetection>> {
         self.anlz
             .get_vocal_detection()
-            .cloned()
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?
             .map(|value| value.into_py(py))
             .transpose()
     }
@@ -529,55 +530,76 @@ impl PyAnlz {
     }
 
     pub fn get_beat_grid(&mut self, py: Python) -> PyResult<Option<PyBeatGrid>> {
-        let data = self.anlz.get_beat_grid();
+        let data = self
+            .anlz
+            .get_beat_grid()
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?;
         if let Some(data) = data {
-            return Ok(Some(data.clone().into_py(py)?));
+            return Ok(Some(data.into_py(py)?));
         }
         Ok(None)
     }
 
     pub fn get_extended_beat_grid(&mut self, py: Python) -> PyResult<Option<PyExtendedBeatGrid>> {
-        let data = self.anlz.get_extended_beat_grid();
+        let data = self
+            .anlz
+            .get_extended_beat_grid()
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?;
         if let Some(data) = data {
-            return Ok(Some(data.clone().into_py(py)?));
+            return Ok(Some(data.into_py(py)?));
         }
         Ok(None)
     }
 
     pub fn get_hot_cues(&mut self, py: Python) -> PyResult<Option<PyCueList>> {
-        let data = self.anlz.get_hot_cues();
+        let data = self
+            .anlz
+            .get_hot_cues()
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?;
         if let Some(data) = data {
-            return Ok(Some(data.clone().into_py(py)?));
+            return Ok(Some(data.into_py(py)?));
         }
         Ok(None)
     }
 
     pub fn get_memory_cues(&mut self, py: Python) -> PyResult<Option<PyCueList>> {
-        let data = self.anlz.get_memory_cues();
+        let data = self
+            .anlz
+            .get_memory_cues()
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?;
         if let Some(data) = data {
-            return Ok(Some(data.clone().into_py(py)?));
+            return Ok(Some(data.into_py(py)?));
         }
         Ok(None)
     }
 
     pub fn get_extended_hot_cues(&mut self, py: Python) -> PyResult<Option<PyExtendedCueList>> {
-        let data = self.anlz.get_extended_hot_cues();
+        let data = self
+            .anlz
+            .get_extended_hot_cues()
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?;
         if let Some(data) = data {
-            return Ok(Some(data.clone().into_py(py)?));
+            return Ok(Some(data.into_py(py)?));
         }
         Ok(None)
     }
 
     pub fn get_extended_memory_cues(&mut self, py: Python) -> PyResult<Option<PyExtendedCueList>> {
-        let data = self.anlz.get_extended_memory_cues();
+        let data = self
+            .anlz
+            .get_extended_memory_cues()
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?;
         if let Some(data) = data {
-            return Ok(Some(data.clone().into_py(py)?));
+            return Ok(Some(data.into_py(py)?));
         }
         Ok(None)
     }
 
     pub fn get_path(&mut self) -> PyResult<Option<String>> {
-        let path = self.anlz.get_path();
+        let path = self
+            .anlz
+            .get_path()
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?;
         if let Some(path) = path {
             return Ok(Some(path));
         }
@@ -592,7 +614,10 @@ impl PyAnlz {
     }
 
     pub fn get_vbr_data(&mut self) -> PyResult<Option<Vec<u8>>> {
-        let vbr = self.anlz.get_vbr_data();
+        let vbr = self
+            .anlz
+            .get_vbr_data()
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?;
         Ok(vbr)
     }
 
@@ -600,25 +625,34 @@ impl PyAnlz {
         &mut self,
         py: Python,
     ) -> PyResult<Option<PyTinyWaveformPreview>> {
-        let data = self.anlz.get_tiny_waveform_preview();
+        let data = self
+            .anlz
+            .get_tiny_waveform_preview()
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?;
         if let Some(data) = data {
-            return Ok(Some(data.clone().into_py(py)?));
+            return Ok(Some(data.into_py(py)?));
         }
         Ok(None)
     }
 
     pub fn get_waveform_preview(&mut self, py: Python) -> PyResult<Option<PyWaveformPreview>> {
-        let data = self.anlz.get_waveform_preview();
+        let data = self
+            .anlz
+            .get_waveform_preview()
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?;
         if let Some(data) = data {
-            return Ok(Some(data.clone().into_py(py)?));
+            return Ok(Some(data.into_py(py)?));
         }
         Ok(None)
     }
 
     pub fn get_waveform_detail(&mut self, py: Python) -> PyResult<Option<PyWaveformDetail>> {
-        let data = self.anlz.get_waveform_detail();
+        let data = self
+            .anlz
+            .get_waveform_detail()
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?;
         if let Some(data) = data {
-            return Ok(Some(data.clone().into_py(py)?));
+            return Ok(Some(data.into_py(py)?));
         }
         Ok(None)
     }
@@ -627,9 +661,12 @@ impl PyAnlz {
         &mut self,
         py: Python,
     ) -> PyResult<Option<PyWaveformColorPreview>> {
-        let data = self.anlz.get_waveform_color_preview();
+        let data = self
+            .anlz
+            .get_waveform_color_preview()
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?;
         if let Some(data) = data {
-            return Ok(Some(data.clone().into_py(py)?));
+            return Ok(Some(data.into_py(py)?));
         }
         Ok(None)
     }
@@ -638,9 +675,12 @@ impl PyAnlz {
         &mut self,
         py: Python,
     ) -> PyResult<Option<PyWaveformColorDetail>> {
-        let data = self.anlz.get_waveform_color_detail();
+        let data = self
+            .anlz
+            .get_waveform_color_detail()
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?;
         if let Some(data) = data {
-            return Ok(Some(data.clone().into_py(py)?));
+            return Ok(Some(data.into_py(py)?));
         }
         Ok(None)
     }
@@ -649,9 +689,12 @@ impl PyAnlz {
         &mut self,
         py: Python,
     ) -> PyResult<Option<PyWaveform3BandPreview>> {
-        let data = self.anlz.get_waveform_3band_preview();
+        let data = self
+            .anlz
+            .get_waveform_3band_preview()
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?;
         if let Some(data) = data {
-            return Ok(Some(data.clone().into_py(py)?));
+            return Ok(Some(data.into_py(py)?));
         }
         Ok(None)
     }
@@ -660,17 +703,23 @@ impl PyAnlz {
         &mut self,
         py: Python,
     ) -> PyResult<Option<PyWaveform3BandDetail>> {
-        let data = self.anlz.get_waveform_3band_detail();
+        let data = self
+            .anlz
+            .get_waveform_3band_detail()
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?;
         if let Some(data) = data {
-            return Ok(Some(data.clone().into_py(py)?));
+            return Ok(Some(data.into_py(py)?));
         }
         Ok(None)
     }
 
     pub fn get_song_structure(&mut self, py: Python) -> PyResult<Option<PySongStructureData>> {
-        let data = self.anlz.get_song_structure();
+        let data = self
+            .anlz
+            .get_song_structure()
+            .map_err(|e| PyErr::new::<AnlzError, _>(e.to_string()))?;
         if let Some(data) = data {
-            return Ok(Some(data.clone().into_py(py)?));
+            return Ok(Some(data.into_py(py)?));
         }
         Ok(None)
     }
@@ -683,7 +732,7 @@ pub struct PyVBR {
     pub u2: u32,
 }
 
-impl IntoPy<PyVBR> for VBR {
+impl IntoPy<PyVBR> for &VBR {
     fn into_py(self, _py: Python) -> PyResult<PyVBR> {
         Ok(PyVBR {
             u1: self.u1,
@@ -700,7 +749,7 @@ pub struct PySeekPoint {
     pub frame_samples: u32,
 }
 
-impl IntoPy<PySeekPoint> for SeekPoint {
+impl IntoPy<PySeekPoint> for &SeekPoint {
     fn into_py(self, _py: Python) -> PyResult<PySeekPoint> {
         Ok(PySeekPoint {
             sample: self.sample,
@@ -717,14 +766,14 @@ pub struct PySeekIndex {
     pub entries: Vec<Py<PySeekPoint>>,
 }
 
-impl IntoPy<PySeekIndex> for SeekIndex {
+impl IntoPy<PySeekIndex> for &SeekIndex {
     fn into_py(self, py: Python) -> PyResult<PySeekIndex> {
         Ok(PySeekIndex {
             u1: self.u1,
             total_samples: self.total_samples,
             entries: self
                 .entries
-                .into_iter()
+                .iter()
                 .map(|item| Py::new(py, item.into_py(py)?))
                 .collect::<PyResult<Vec<_>>>()?,
         })
@@ -738,7 +787,7 @@ pub struct PyWaveform3BandCalibration {
     pub high_gain: u16,
 }
 
-impl IntoPy<PyWaveform3BandCalibration> for Waveform3BandCalibration {
+impl IntoPy<PyWaveform3BandCalibration> for &Waveform3BandCalibration {
     fn into_py(self, _py: Python) -> PyResult<PyWaveform3BandCalibration> {
         Ok(PyWaveform3BandCalibration {
             low_gain: self.low_gain,
@@ -755,12 +804,12 @@ pub struct PyVocalDetection {
     pub confidence: Vec<u8>,
 }
 
-impl IntoPy<PyVocalDetection> for VocalDetection {
+impl IntoPy<PyVocalDetection> for &VocalDetection {
     fn into_py(self, _py: Python) -> PyResult<PyVocalDetection> {
         Ok(PyVocalDetection {
             u1: self.u1,
             u2: self.u2,
-            confidence: self.confidence,
+            confidence: self.confidence.clone(),
         })
     }
 }
