@@ -1,35 +1,35 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2026 Dylan Jones
 # SPDX-License-Identifier: GPL-3.0-only
 
-from pathlib import Path
-
 import pytest
 
-from rbox import Anlz
-
-DEMO_DIR = Path(__file__).parent.parent.parent.parent / ".testdata" / "RBv6" / "demo" / "rekordbox"
-
-ANLZ_ROOT = DEMO_DIR / "share" / "PIONEER" / "USBANLZ" / "e35" / "fa187-3f34-47e2-9880-2b33cb8d1304"
-ANLZ_DAT = ANLZ_ROOT / "ANLZ0000.DAT"
-ANLZ_EXT = ANLZ_ROOT / "ANLZ0000.EXT"
-ANLZ_2EX = ANLZ_ROOT / "ANLZ0000.2EX"
-ANLZ_FILES = [ANLZ_DAT, ANLZ_EXT, ANLZ_2EX]
+from rbox import Anlz, AnlzError
+from rbox.anlz import BeatGrid
 
 
-@pytest.mark.parametrize("path", ANLZ_FILES)
-def test_parse(path):
-    Anlz(path)
+@pytest.mark.parametrize("extension", ["DAT", "EXT", "2EX"])
+def test_load_and_getters(fixture_copy, extension):
+    anlz = Anlz(fixture_copy(extension))
+    assert isinstance(anlz, Anlz)
+    tags = anlz.get_tags()
+    assert isinstance(tags, list)
+    assert all(isinstance(tag, str) for tag in tags)
+    assert isinstance(anlz.get_path(), (str, type(None)))
+    assert isinstance(anlz.get_beat_grid(), (BeatGrid, type(None)))
 
 
-@pytest.mark.parametrize("path", ANLZ_FILES)
-def test_get_path(path):
-    anlz = Anlz(path)
-    _ = anlz.get_path()
+def test_setters_and_writers(fixture_copy, tmp_path):
+    anlz = Anlz(fixture_copy("DAT"))
+    assert anlz.set_path("/api/track.mp3") is None
+    assert anlz.get_path() == "/api/track.mp3"
+    assert anlz.dump() is None
+    assert anlz.dump_copy(tmp_path / "copy.DAT") is None
 
 
-@pytest.mark.parametrize("path", ANLZ_FILES)
-def test_set_path(path):
-    new = "/Some/Path"
-    anlz = Anlz(path)
-    anlz.set_path(new)
+def test_native_error(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        Anlz(tmp_path / "missing.DAT")
+    invalid = tmp_path / "invalid.DAT"
+    invalid.write_bytes(b"invalid ANLZ")
+    with pytest.raises(AnlzError):
+        Anlz(invalid)

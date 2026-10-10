@@ -45,6 +45,18 @@ impl PyOneLibrary {
         Ok(PyOneLibrary { inner })
     }
 
+    /// Load a detached album snapshot with all supported direct relationships.
+    /// Related rows are shallow snapshots; changes require explicit model updates.
+    pub fn get_album_with_relations(&self, id: i32) -> PyResult<Option<AlbumView>> {
+        self.inner.get_album_with_relations(id).map_err(db_error)
+    }
+
+    /// Load all albums with direct relationships using batched queries.
+    /// Missing relationship targets remain absent; query errors propagate.
+    pub fn get_albums_with_relations(&self) -> PyResult<Vec<AlbumView>> {
+        self.inner.get_albums_with_relations().map_err(db_error)
+    }
+
     /// Queries all records from the `album` table.
     pub fn get_albums(&self) -> PyResult<Vec<Album>> {
         let res = self.inner.get_albums().map_err(db_error)?;
@@ -137,6 +149,18 @@ impl PyOneLibrary {
         Ok(res)
     }
 
+    /// Load a detached category snapshot with all supported direct relationships.
+    /// Related rows are shallow snapshots; changes require explicit model updates.
+    pub fn get_category_with_relations(&self, id: i32) -> PyResult<Option<CategoryView>> {
+        self.inner.get_category_with_relations(id).map_err(db_error)
+    }
+
+    /// Load all categories with direct relationships using batched queries.
+    /// Missing relationship targets remain absent; query errors propagate.
+    pub fn get_categories_with_relations(&self) -> PyResult<Vec<CategoryView>> {
+        self.inner.get_categories_with_relations().map_err(db_error)
+    }
+
     /// Queries all records from the `category` table.
     pub fn get_categories(&self) -> PyResult<Vec<Category>> {
         let res = self.inner.get_categories().map_err(db_error)?;
@@ -215,6 +239,18 @@ impl PyOneLibrary {
     pub fn delete_color(&self, id: i32) -> PyResult<usize> {
         let res = self.inner.delete_color(id).map_err(db_error)?;
         Ok(res)
+    }
+
+    /// Load a detached content snapshot with all supported direct relationships.
+    /// Related rows are shallow snapshots; changes require explicit model updates.
+    pub fn get_content_with_relations(&self, id: i32) -> PyResult<Option<ContentView>> {
+        self.inner.get_content_with_relations(id).map_err(db_error)
+    }
+
+    /// Load all contents with direct relationships using batched queries.
+    /// Missing relationship targets remain absent; query errors propagate.
+    pub fn get_contents_with_relations(&self) -> PyResult<Vec<ContentView>> {
+        self.inner.get_contents_with_relations().map_err(db_error)
     }
 
     /// Queries all records from the `color` table.

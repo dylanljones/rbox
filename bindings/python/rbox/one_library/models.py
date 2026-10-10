@@ -5,6 +5,7 @@
 # ruff: noqa
 from .._rbox import (
     Album,
+    AlbumView,
     NewAlbum,
     Artist,
     Composer,
@@ -13,10 +14,12 @@ from .._rbox import (
     OriginalArtist,
     Remixer,
     Category,
+    CategoryView,
     NewCategory,
     Color,
     NewColor,
     Content,
+    ContentView,
     NewContent,
     Cue,
     Genre,

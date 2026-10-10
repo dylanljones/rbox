@@ -220,6 +220,18 @@ impl PyMasterDb {
 
     // -- Album ------------------------------------------------------------------------------------
 
+    /// Load a detached album snapshot with all supported direct relationships.
+    /// Related rows are shallow snapshots; changes require explicit model updates.
+    pub fn get_album_with_relations(&self, id: &str) -> PyResult<Option<DjmdAlbumView>> {
+        self.db.get_album_with_relations(id).map_err(db_error)
+    }
+
+    /// Load all albums with direct relationships using batched queries.
+    /// Missing relationship targets remain absent; query errors propagate.
+    pub fn get_albums_with_relations(&self) -> PyResult<Vec<DjmdAlbumView>> {
+        self.db.get_albums_with_relations().map_err(db_error)
+    }
+
     /// Retrieves all entries from the `djmdAlbum` table in the database.
     pub fn get_albums(&mut self) -> PyResult<Vec<DjmdAlbum>> {
         let models = self.db.get_albums().map_err(db_error)?;
@@ -348,6 +360,18 @@ impl PyMasterDb {
     }
 
     // -- Content ----------------------------------------------------------------------------------
+
+    /// Load a detached content snapshot with all supported direct relationships.
+    /// Related rows are shallow snapshots; changes require explicit model updates.
+    pub fn get_content_with_relations(&self, id: &str) -> PyResult<Option<DjmdContentView>> {
+        self.db.get_content_with_relations(id).map_err(db_error)
+    }
+
+    /// Load all contents with direct relationships using batched queries.
+    /// Missing relationship targets remain absent; query errors propagate.
+    pub fn get_contents_with_relations(&self) -> PyResult<Vec<DjmdContentView>> {
+        self.db.get_contents_with_relations().map_err(db_error)
+    }
 
     /// Retrieves all entries from the `djmdContent` table in the database.
     pub fn get_contents(&mut self) -> PyResult<Vec<DjmdContent>> {

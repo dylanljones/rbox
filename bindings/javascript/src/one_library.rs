@@ -37,6 +37,20 @@ impl JsOneLibrary {
         })
     }
 
+    /// Load a detached album snapshot with all supported direct relationships.
+    /// Related rows are shallow snapshots; changes require explicit model updates.
+    #[napi]
+    pub fn get_album_with_relations(&self, id: i32) -> Result<Option<AlbumView>> {
+        self.inner.get_album_with_relations(id).map_err(Into::into)
+    }
+
+    /// Load all albums with direct relationships using batched queries.
+    /// Missing relationship targets remain absent; query errors propagate.
+    #[napi]
+    pub fn get_albums_with_relations(&self) -> Result<Vec<AlbumView>> {
+        self.inner.get_albums_with_relations().map_err(Into::into)
+    }
+
     /// Queries all records from the `album` table.
     #[napi]
     pub fn get_albums(&self) -> Result<Vec<Album>> {
@@ -140,6 +154,24 @@ impl JsOneLibrary {
         Ok(res as u32)
     }
 
+    /// Load a detached category snapshot with all supported direct relationships.
+    /// Related rows are shallow snapshots; changes require explicit model updates.
+    #[napi]
+    pub fn get_category_with_relations(&self, id: i32) -> Result<Option<CategoryView>> {
+        self.inner
+            .get_category_with_relations(id)
+            .map_err(Into::into)
+    }
+
+    /// Load all categories with direct relationships using batched queries.
+    /// Missing relationship targets remain absent; query errors propagate.
+    #[napi]
+    pub fn get_categories_with_relations(&self) -> Result<Vec<CategoryView>> {
+        self.inner
+            .get_categories_with_relations()
+            .map_err(Into::into)
+    }
+
     /// Queries all records from the `category` table.
     #[napi]
     pub fn get_categories(&self) -> Result<Vec<Category>> {
@@ -227,6 +259,22 @@ impl JsOneLibrary {
     pub fn delete_color(&self, id: i32) -> Result<u32> {
         let res = self.inner.delete_color(id)?;
         Ok(res as u32)
+    }
+
+    /// Load a detached content snapshot with all supported direct relationships.
+    /// Related rows are shallow snapshots; changes require explicit model updates.
+    #[napi]
+    pub fn get_content_with_relations(&self, id: i32) -> Result<Option<ContentView>> {
+        self.inner
+            .get_content_with_relations(id)
+            .map_err(Into::into)
+    }
+
+    /// Load all contents with direct relationships using batched queries.
+    /// Missing relationship targets remain absent; query errors propagate.
+    #[napi]
+    pub fn get_contents_with_relations(&self) -> Result<Vec<ContentView>> {
+        self.inner.get_contents_with_relations().map_err(Into::into)
     }
 
     /// Queries all records from the `color` table.

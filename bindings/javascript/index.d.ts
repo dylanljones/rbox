@@ -72,6 +72,22 @@ export interface Album {
   nameForSearch?: string
 }
 
+/**
+ * Album snapshot with all direct metadata relationships resolved.
+ *
+ * Field access performs no queries, and editing this view does not persist changes.
+ * Related rows are not expanded recursively. Missing targets remain `None`;
+ * the original row retains its foreign keys.
+ */
+export interface AlbumView {
+  /** Original album row, including its foreign keys. */
+  album: Album
+  /** Resolved artist. */
+  artist?: Artist
+  /** Resolved image. */
+  image?: Image
+}
+
 export declare const enum Analyzed {
   NotAnalyzed = 0,
   Standard = 105,
@@ -115,6 +131,20 @@ export interface Category {
   seq: number
   /** A flag if the category is visible. */
   isVisible: number
+}
+
+/**
+ * Category snapshot with all direct metadata relationships resolved.
+ *
+ * Field access performs no queries, and editing this view does not persist changes.
+ * Related rows are not expanded recursively. Missing targets remain `None`;
+ * the original row retains its foreign keys.
+ */
+export interface CategoryView {
+  /** Original category row, including its foreign keys. */
+  category: Category
+  /** Resolved menu item. */
+  menuItem?: MenuItem
 }
 
 /**
@@ -437,6 +467,40 @@ export interface ContentFile {
 }
 
 /**
+ * Track snapshot with all supported direct metadata relationships resolved.
+ *
+ * Field access performs no queries, and editing this view does not persist changes.
+ * Related records are plain rows without recursive expansion. `None` means an
+ * absent foreign key or a missing target; the content row retains the original key.
+ */
+export interface ContentView {
+  /** Original content row, including its foreign keys. */
+  content: Content
+  /** Main artist. */
+  artist?: Artist
+  /** Artist credited as remixer. */
+  remixer?: Artist
+  /** Artist credited as original artist. */
+  originalArtist?: Artist
+  /** Artist credited as composer. */
+  composer?: Artist
+  /** Artist credited as lyricist. */
+  lyricist?: Artist
+  /** Associated album. */
+  album?: Album
+  /** Associated genre. */
+  genre?: Genre
+  /** Associated label. */
+  label?: Label
+  /** Associated key. */
+  key?: Key
+  /** Associated color. */
+  color?: Color
+  /** Associated image. */
+  image?: Image
+}
+
+/**
  * Represents the `cue` table in the Rekordbox One Library database.
  *
  * This struct maps to the `cue` table in the One Library export database.
@@ -606,6 +670,20 @@ export interface DjmdAlbum {
   compilation: number
   /** An optional string used for searching the album. */
   searchStr?: string
+}
+
+/**
+ * Album snapshot with all direct metadata relationships resolved.
+ *
+ * Field access performs no queries, and editing this view does not persist changes.
+ * Related rows are not expanded recursively. Missing targets remain `None`;
+ * the original row retains its foreign keys.
+ */
+export interface DjmdAlbumView {
+  /** Original album row, including its foreign keys. */
+  album: DjmdAlbum
+  /** Resolved artist. */
+  artist?: DjmdArtist
 }
 
 /**
@@ -950,6 +1028,36 @@ export interface DjmdContent {
   srcAlbumName?: string
   /** An optional integer representing the source length in milliseconds. */
   srcLength?: number
+}
+
+/**
+ * Track snapshot with all supported direct metadata relationships resolved.
+ *
+ * Field access performs no queries, and editing this view does not persist changes.
+ * Related records are plain rows without recursive expansion. `None` means an
+ * absent foreign key or a missing target; the content row retains the original key.
+ */
+export interface DjmdContentView {
+  /** Original content row, including its foreign keys. */
+  content: DjmdContent
+  /** Main artist. */
+  artist?: DjmdArtist
+  /** Artist credited as remixer. */
+  remixer?: DjmdArtist
+  /** Artist credited as original artist. */
+  originalArtist?: DjmdArtist
+  /** Artist credited as composer. */
+  composer?: DjmdArtist
+  /** Associated album. */
+  album?: DjmdAlbum
+  /** Associated genre. */
+  genre?: DjmdGenre
+  /** Associated label. */
+  label?: DjmdLabel
+  /** Associated key. */
+  key?: DjmdKey
+  /** Associated color. */
+  color?: DjmdColor
 }
 
 /**
@@ -2093,7 +2201,7 @@ export interface HistoryContent {
   historyId: number
   /** The ID of the associated [`Content`]. */
   contentId: number
-  /** The sequence/order number of the history content (1-based index) */
+  /** Position within the history, starting at zero. Before insertion, `-1` requests append. */
   seq: number
 }
 
@@ -2341,7 +2449,7 @@ export interface MenuItem {
 export interface MyTag {
   /** The unique identifier of the tag. */
   id: number
-  /** The sequence/order number of the tag (1-based index). */
+  /** Position among siblings, starting at zero. */
   seq: number
   /** The name of the tag. */
   name: string
@@ -2981,8 +3089,8 @@ export interface NewGenre {
  * ```
  */
 export interface NewHistory {
-  /** The sequence/order number of the history (1-based index) */
-  seq: number
+  /** Insertion position in the collection; `None` appends. */
+  seq?: number
   /** The name of the history. */
   name: string
   /** The attribute of the tag, either history (`0`) or a folder (`1`) */
@@ -3031,8 +3139,8 @@ export interface NewMenuItem {
  * ```
  */
 export interface NewMyTag {
-  /** The sequence/order number of the tag (1-based index). */
-  seq: number
+  /** Insertion position in the collection; `None` appends. */
+  seq?: number
   /** The name of the tag. */
   name: string
   /** The tag type, either list (`0`) or a folder (`1`). */
@@ -3055,8 +3163,8 @@ export interface NewMyTag {
  * ```
  */
 export interface NewPlaylist {
-  /** The sequence/order number of the playlist (1-based index). */
-  seq: number
+  /** Insertion position in the collection; `None` appends. */
+  seq?: number
   /** The name of the playlist. */
   name: string
   /** Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image). */
@@ -3114,7 +3222,7 @@ export interface OriginalArtist {
 export interface Playlist {
   /** The unique identifier of the playlist. */
   id: number
-  /** The sequence/order number of the playlist (1-based index). */
+  /** Position among siblings, starting at zero. */
   seq: number
   /** The name of the playlist. */
   name: string
@@ -3144,7 +3252,7 @@ export interface PlaylistContent {
   playlistId: number
   /** The ID of the associated [`Content`]. */
   contentId: number
-  /** The sequence/order number of the history content (1-based index) */
+  /** Position within the playlist, starting at zero. Before insertion, `-1` requests append. */
   seq: number
 }
 
@@ -3388,6 +3496,16 @@ export declare class MasterDb {
   getActiveCensors(): Array<DjmdActiveCensor>
   /** Retrieves a `djmdActiveCensor` entry by its unique identifier. */
   getActiveCensorById(id: string): DjmdActiveCensor | null
+  /**
+   * Load a detached album snapshot with all supported direct relationships.
+   * Related rows are shallow snapshots; changes require explicit model updates.
+   */
+  getAlbumWithRelations(id: string): DjmdAlbumView | null
+  /**
+   * Load all albums with direct relationships using batched queries.
+   * Missing relationship targets remain absent; query errors propagate.
+   */
+  getAlbumsWithRelations(): Array<DjmdAlbumView>
   /** Retrieves all entries from the `djmdAlbum` table in the database. */
   getAlbums(): Array<DjmdAlbum>
   /** Retrieves a `djmdAlbum` entry by its unique identifier. */
@@ -3424,6 +3542,16 @@ export declare class MasterDb {
   getColors(): Array<DjmdColor>
   /** Retrieves a `djmdColor` entry by its unique identifier. */
   getColorById(id: string): DjmdColor | null
+  /**
+   * Load a detached content snapshot with all supported direct relationships.
+   * Related rows are shallow snapshots; changes require explicit model updates.
+   */
+  getContentWithRelations(id: string): DjmdContentView | null
+  /**
+   * Load all contents with direct relationships using batched queries.
+   * Missing relationship targets remain absent; query errors propagate.
+   */
+  getContentsWithRelations(): Array<DjmdContentView>
   /** Retrieves all entries from the `djmdContent` table in the database. */
   getContents(): Array<DjmdContent>
   /** Retrieves a `djmdContent` entry by its unique identifier. */
@@ -3646,6 +3774,16 @@ export declare class OneLibrary {
   static create(path: string, myTagMasterDbid: number): OneLibrary
   /** Create a new OneLibrary database if it does not exist, otherwise return the existing one. */
   static createIfNotExists(path: string, myTagMasterDbid: number): OneLibrary
+  /**
+   * Load a detached album snapshot with all supported direct relationships.
+   * Related rows are shallow snapshots; changes require explicit model updates.
+   */
+  getAlbumWithRelations(id: number): AlbumView | null
+  /**
+   * Load all albums with direct relationships using batched queries.
+   * Missing relationship targets remain absent; query errors propagate.
+   */
+  getAlbumsWithRelations(): Array<AlbumView>
   /** Queries all records from the `album` table. */
   getAlbums(): Array<Album>
   /** Queries a record from the `album` table by its primary key `id`. */
@@ -3674,6 +3812,16 @@ export declare class OneLibrary {
   updateArtist(artist: Artist): Artist
   /** Deletes a record from the `artist` table by its primary key `id`. */
   deleteArtist(id: number): number
+  /**
+   * Load a detached category snapshot with all supported direct relationships.
+   * Related rows are shallow snapshots; changes require explicit model updates.
+   */
+  getCategoryWithRelations(id: number): CategoryView | null
+  /**
+   * Load all categories with direct relationships using batched queries.
+   * Missing relationship targets remain absent; query errors propagate.
+   */
+  getCategoriesWithRelations(): Array<CategoryView>
   /** Queries all records from the `category` table. */
   getCategories(): Array<Category>
   /** Queries a record from the `category` table by its primary key `id`. */
@@ -3698,6 +3846,16 @@ export declare class OneLibrary {
   updateColor(color: Color): Color
   /** Deletes a record from the `color` table by its primary key `id`. */
   deleteColor(id: number): number
+  /**
+   * Load a detached content snapshot with all supported direct relationships.
+   * Related rows are shallow snapshots; changes require explicit model updates.
+   */
+  getContentWithRelations(id: number): ContentView | null
+  /**
+   * Load all contents with direct relationships using batched queries.
+   * Missing relationship targets remain absent; query errors propagate.
+   */
+  getContentsWithRelations(): Array<ContentView>
   /** Queries all records from the `color` table. */
   getContents(): Array<Content>
   /** Queries a record from the `content` table by its primary key `id`. */

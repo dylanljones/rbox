@@ -62,6 +62,8 @@ pub struct Album {
 /// Related rows are not expanded recursively. Missing targets remain `None`;
 /// the original row retains its foreign keys.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "pyo3", pyclass(get_all))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct AlbumView {
     /// Original album row, including its foreign keys.
     pub album: Album,

@@ -46,7 +46,7 @@
     "build": "napi build --platform --release --js-package-name @dylanljones/rbox-js",
     "build:debug": "napi build --platform",
     "prepublishOnly": "napi prepublish -t npm --no-gh-release",
-    "test": "ava",
+    "test": "ava --serial",
     "universal": "napi universalize",
     "version": "napi version"
   },

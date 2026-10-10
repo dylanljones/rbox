@@ -67,12 +67,14 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<rbox::masterdb::models::ContentFile>()?;
     m.add_class::<rbox::masterdb::models::DjmdActiveCensor>()?;
     m.add_class::<rbox::masterdb::models::DjmdAlbum>()?;
+    m.add_class::<rbox::masterdb::models::DjmdAlbumView>()?;
     m.add_class::<rbox::masterdb::models::NewDjmdAlbum>()?;
     m.add_class::<rbox::masterdb::models::DjmdArtist>()?;
     m.add_class::<rbox::masterdb::models::NewDjmdArtist>()?;
     m.add_class::<rbox::masterdb::models::DjmdCategory>()?;
     m.add_class::<rbox::masterdb::models::DjmdColor>()?;
     m.add_class::<rbox::masterdb::models::DjmdContent>()?;
+    m.add_class::<rbox::masterdb::models::DjmdContentView>()?;
     m.add_class::<rbox::masterdb::models::NewDjmdContent>()?;
     m.add_class::<rbox::masterdb::models::DjmdCue>()?;
     m.add_class::<rbox::masterdb::models::DjmdDevice>()?;
@@ -120,6 +122,7 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     // Device Library Plus
     m.add_class::<one_library::PyOneLibrary>()?;
     m.add_class::<rbox::one_library::models::Album>()?;
+    m.add_class::<rbox::one_library::models::AlbumView>()?;
     m.add_class::<rbox::one_library::models::NewAlbum>()?;
     m.add_class::<rbox::one_library::models::Artist>()?;
     m.add_class::<rbox::one_library::models::Composer>()?;
@@ -128,10 +131,12 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<rbox::one_library::models::OriginalArtist>()?;
     m.add_class::<rbox::one_library::models::Remixer>()?;
     m.add_class::<rbox::one_library::models::Category>()?;
+    m.add_class::<rbox::one_library::models::CategoryView>()?;
     m.add_class::<rbox::one_library::models::NewCategory>()?;
     m.add_class::<rbox::one_library::models::Color>()?;
     m.add_class::<rbox::one_library::models::NewColor>()?;
     m.add_class::<rbox::one_library::models::Content>()?;
+    m.add_class::<rbox::one_library::models::ContentView>()?;
     m.add_class::<rbox::one_library::models::NewContent>()?;
     m.add_class::<rbox::one_library::models::Cue>()?;
     m.add_class::<rbox::one_library::models::Genre>()?;

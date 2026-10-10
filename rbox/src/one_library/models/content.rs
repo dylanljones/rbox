@@ -174,6 +174,8 @@ pub struct Content {
 /// Related records are plain rows without recursive expansion. `None` means an
 /// absent foreign key or a missing target; the content row retains the original key.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "pyo3", pyclass(get_all))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct ContentView {
     /// Original content row, including its foreign keys.
     pub content: Content,
