@@ -27,7 +27,7 @@ use crate::enums::{Analyzed, FileType};
 use crate::model_traits::{Model, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
-use crate::NormalizePath;
+use crate::PathExt;
 
 /// Represents the `djmdContent` table in the Rekordbox database.
 ///
@@ -508,10 +508,8 @@ impl ModelInsert for NewDjmdContent {
 
     fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
         let path = PathBuf::from(&self.folder_path);
-        let rb_path = path.normalize_sep("/");
-        let rb_path_str = rb_path
-            .as_os_str()
-            .to_str()
+        let rb_path_str = path
+            .normalize_unix_string()
             .expect("Failed to convert path to string");
         if !path.is_file() || !path.exists() {
             let e = Error::DatabaseError(
@@ -520,7 +518,7 @@ impl ModelInsert for NewDjmdContent {
             );
             return Err(e);
         }
-        if Self::Model::path_exists(conn, rb_path_str)? {
+        if Self::Model::path_exists(conn, &rb_path_str)? {
             let e = Error::DatabaseError(
                 DatabaseErrorKind::UniqueViolation,
                 Box::new(format!("Path is not unique: {}", rb_path_str)),
@@ -551,7 +549,7 @@ impl ModelInsert for NewDjmdContent {
             .ok_or_else(|| invalid_input(format!("Invalid file name: {}", rb_path_str)))?
             .to_string();
         let meta =
-            std::fs::metadata(&rb_path).map_err(|err| Error::SerializationError(Box::new(err)))?;
+            std::fs::metadata(&path).map_err(|err| Error::SerializationError(Box::new(err)))?;
         let file_size: u64 = meta.len();
         let db_id = DjmdDevice::master_db_id(conn)?;
         // TODO: No clue what content link should be, for now we just choose the last value used

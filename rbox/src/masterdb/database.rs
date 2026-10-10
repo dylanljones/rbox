@@ -51,7 +51,7 @@ use crate::model_traits::{
     Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, NodeRef,
 };
 use crate::options::RekordboxOptions;
-use crate::pathlib::NormalizePath;
+use crate::pathlib::PathExt;
 use crate::util::is_rekordbox_running;
 
 #[derive(Clone, Debug)]
@@ -1457,13 +1457,11 @@ impl MasterDb {
 
         // prepare path and check if it exists
         let path = Path::new(&path);
-        let rb_path = path.normalize_sep("/");
-        let rb_path_str = rb_path
-            .as_os_str()
-            .to_str()
+        let rb_path_str = path
+            .normalize_unix_string()
             .expect("Failed to convert path to string");
         if !path.is_file() || !path.exists() {
-            return Err(Error::FileNotFound(rb_path_str.to_string()));
+            return Err(Error::FileNotFound(rb_path_str.clone()));
         }
         if DjmdContent::path_exists(&mut conn, &rb_path_str)? {
             return Err(Error::Database(format!(

@@ -133,7 +133,8 @@ pub mod xml;
 
 pub use error::{Error, Result};
 pub use options::RekordboxOptions;
-pub use pathlib::NormalizePath;
+#[allow(deprecated)]
+pub use pathlib::{NormalizePath, PathExt};
 pub use util::*;
 
 #[cfg(feature = "anlz")]
