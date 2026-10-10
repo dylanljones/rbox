@@ -1,90 +1,96 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2026 Dylan Jones
 # SPDX-License-Identifier: GPL-3.0-only
 
-import shutil
-from pathlib import Path
+"""Database binding contracts, independent of database ordering and persistence logic."""
 
 import pytest
 
 from rbox import MasterDb
 from rbox.masterdb import models
 
-DEMO_DIR = Path(__file__).parent.parent.parent.parent / ".testdata" / "RBv6" / "demo" / "rekordbox"
-DEMO_DB_SRC = DEMO_DIR / "master.db"
-DEMO_DB = DEMO_DIR / "master-copy.db"
+
+def test_raw_getters(master_db):
+    db = master_db
+    assert isinstance(db, MasterDb)
+    rows = db.get_contents()
+    assert isinstance(rows, list)
+    row = rows[0]
+    assert isinstance(row, models.DjmdContent)
+    assert isinstance(row.id, str)
+    assert isinstance(db.get_content_by_id(row.id), models.DjmdContent)
+    assert db.get_content_by_id("missing-id") is None
+    assert isinstance(db.get_albums(), list)
+    assert db.get_album_by_id("missing-id") is None
+    assert not hasattr(row, "artist")
+    # Raw models expose mutable attributes and mapping access.
+    assert row["id"] == row.id
+    row.title = "API title"
+    assert row.title == "API title"
+    with pytest.raises(TypeError):
+        db.get_content_by_id([])
 
 
-@pytest.fixture
-def db():
-    """Return a clean Rekordbox database instance."""
-    shutil.copy(DEMO_DB_SRC, DEMO_DB)
-    db = MasterDb(str(DEMO_DB))
-    yield db
+def test_album_mutation_signatures(master_db):
+    db = master_db
+    row = db.create_album("API album", None, None, None)
+    assert isinstance(row, models.DjmdAlbum)
+    assert isinstance(db.get_album_by_name("API album"), models.DjmdAlbum)
+    row.name = "API renamed album"
+    assert isinstance(db.update_album(row), models.DjmdAlbum)
+    assert db.delete_album(row.id) is None
 
 
-def test_open_master_db(db):
-    pass
+def test_content_view(master_db):
+    db = master_db
+    row = db.get_contents()[0]
+    artist = db.create_artist("API artist")
+    row.artist_id = artist.id
+    assert db.update_content(row) is None
+    view = db.get_content_with_relations(row.id)
+    assert isinstance(view, models.DjmdContentView)
+    assert isinstance(view.content, models.DjmdContent)
+    assert isinstance(view.artist, models.DjmdArtist)
+    for field in ("remixer", "original_artist", "composer"):
+        assert isinstance(getattr(view, field), (models.DjmdArtist, type(None)))
+    for field, model in (
+        ("album", models.DjmdAlbum),
+        ("genre", models.DjmdGenre),
+        ("label", models.DjmdLabel),
+        ("key", models.DjmdKey),
+        ("color", models.DjmdColor),
+    ):
+        assert isinstance(getattr(view, field), (model, type(None)))
+    views = db.get_contents_with_relations()
+    assert isinstance(views, list)
+    assert isinstance(views[0], models.DjmdContentView)
+    assert db.get_content_with_relations("missing-id") is None
+    with pytest.raises(AttributeError):
+        view.artist = None
+    with pytest.raises(AttributeError):
+        view.content = row
+    # PyO3 row getters return copies, not references into the view.
+    copy = view.content
+    before = view.content.title
+    copy.title = "API detached copy"
+    assert view.content.title == before
 
 
-def test_get_local_usn(db):
-    usn = db.get_local_usn()
-    assert usn > 0
+def test_album_view(master_db):
+    db = master_db
+    artist = db.create_artist("API album artist")
 
+    row = db.create_album("API album", artist.id, None, None)
+    view = db.get_album_with_relations(row.id)
+    assert isinstance(view, models.DjmdAlbumView)
+    assert isinstance(view.album, models.DjmdAlbum)
+    assert isinstance(view.artist, models.DjmdArtist)
 
-# -- Album ----------------------------------------------------------------------------------------
+    views = db.get_albums_with_relations()
+    assert isinstance(views, list)
+    assert isinstance(views[0], models.DjmdAlbumView)
+    absent = db.create_album("API optional fields", None, None, None)
+    assert db.get_album_with_relations(absent.id).artist is None
 
-
-def test_get_albums(db):
-    _ = db.get_albums()
-
-
-def test_get_album(db):
-    item = db.get_album_by_id("1234")
-    assert item is None
-
-
-def test_insert_album(db):
-    item = db.create_album("Name")
-    assert isinstance(item, models.DjmdAlbum)
-
-    id_ = item.id
-    album = db.get_album_by_id(id_)
-    assert album is not None
-
-
-def test_get_album_by_name(db):
-    item = db.get_album_by_name("Name")
-    assert item is None
-
-    db.create_album("Name")
-
-    item = db.get_album_by_name("Name")
-    assert item is not None
-
-
-def test_update_album(db):
-    item = db.create_album("Name")
-    assert isinstance(item, models.DjmdAlbum)
-
-    id_ = item.id
-    new_item = db.get_album_by_id(id_)
-    assert new_item is not None
-
-    # Update the album name
-    new_name = "New Name"
-    new_item.name = new_name
-    db.update_album(new_item)
-
-    # Verify the update
-    updated = db.get_album_by_id(id_)
-    assert updated is not None
-    assert updated.name == new_name
-
-
-# -- Contents -------------------------------------------------------------------------------------
-
-
-def test_get_contents(db):
-    tracks = db.get_contents()
-    assert len(tracks) > 0
+    assert db.get_album_with_relations("missing-id") is None
+    with pytest.raises(AttributeError):
+        view.album = row

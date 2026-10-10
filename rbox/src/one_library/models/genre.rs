@@ -10,6 +10,8 @@ use pyo3::prelude::*;
 use rbox_derives::PyMutableMapping;
 
 use super::schema::{content, genre};
+#[cfg(feature = "master-db")]
+use crate::masterdb::models::DjmdGenre;
 use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
@@ -128,7 +130,7 @@ impl NewGenre {
 }
 
 #[cfg(feature = "master-db")]
-impl Into<NewGenre> for crate::masterdb::models::DjmdGenre {
+impl Into<NewGenre> for DjmdGenre {
     fn into(self) -> NewGenre {
         NewGenre { name: self.name }
     }

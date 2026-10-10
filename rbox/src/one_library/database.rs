@@ -29,7 +29,10 @@ use super::conn::{create_connection_pool, establish_connection, run_migrations, 
 use super::models::*;
 use crate::enums::HistoryType;
 use crate::error::{Error, Result};
-use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate};
+use crate::model_traits::{
+    Model, ModelDelete, ModelInsert, ModelList, ModelRelations, ModelTree, ModelUpdate,
+};
+use diesel::Connection;
 use std::ffi::OsStr;
 use std::path::Path;
 
@@ -86,6 +89,27 @@ impl OneLibrary {
     }
 
     // -- Album ------------------------------------------------------------------------------------
+
+    /// Load an album and all direct relationships in one read transaction.
+    /// Returns a detached snapshot; missing relationship targets remain `None`.
+    pub fn get_album_with_relations(&self, id: i32) -> Result<Option<AlbumView>> {
+        let mut conn = self.pool.get()?;
+        Ok(conn.transaction::<_, diesel::result::Error, _>(|conn| {
+            Album::find(conn, &id)?
+                .map(|row| row.resolve(conn))
+                .transpose()
+        })?)
+    }
+
+    /// Load all albums and their direct relationships using batched queries.
+    /// Base and related rows are read within the same transaction.
+    pub fn get_albums_with_relations(&self) -> Result<Vec<AlbumView>> {
+        let mut conn = self.pool.get()?;
+        Ok(conn.transaction::<_, diesel::result::Error, _>(|conn| {
+            let rows = Album::all(conn)?;
+            Album::resolve_many(conn, rows)
+        })?)
+    }
 
     /// Queries all records from the `album` table.
     pub fn get_albums(&self) -> Result<Vec<Album>> {
@@ -182,6 +206,27 @@ impl OneLibrary {
 
     // -- Category ---------------------------------------------------------------------------------
 
+    /// Load a category and all direct relationships in one read transaction.
+    /// Returns a detached snapshot; missing relationship targets remain `None`.
+    pub fn get_category_with_relations(&self, id: i32) -> Result<Option<CategoryView>> {
+        let mut conn = self.pool.get()?;
+        Ok(conn.transaction::<_, diesel::result::Error, _>(|conn| {
+            Category::find(conn, &id)?
+                .map(|row| row.resolve(conn))
+                .transpose()
+        })?)
+    }
+
+    /// Load all categories and their direct relationships using batched queries.
+    /// Base and related rows are read within the same transaction.
+    pub fn get_categories_with_relations(&self) -> Result<Vec<CategoryView>> {
+        let mut conn = self.pool.get()?;
+        Ok(conn.transaction::<_, diesel::result::Error, _>(|conn| {
+            let rows = Category::all(conn)?;
+            Category::resolve_many(conn, rows)
+        })?)
+    }
+
     /// Queries all records from the `category` table.
     pub fn get_categories(&self) -> Result<Vec<Category>> {
         let mut conn = self.pool.get()?;
@@ -277,6 +322,27 @@ impl OneLibrary {
     pub fn get_content_by_id(&self, id: i32) -> Result<Option<Content>> {
         let mut conn = self.pool.get()?;
         Ok(Content::find(&mut conn, &id)?)
+    }
+
+    /// Load a track and all direct metadata relationships in one read transaction.
+    /// Returns a detached snapshot; missing relationship targets remain `None`.
+    pub fn get_content_with_relations(&self, id: i32) -> Result<Option<ContentView>> {
+        let mut conn = self.pool.get()?;
+        Ok(conn.transaction::<_, diesel::result::Error, _>(|conn| {
+            Content::find(conn, &id)?
+                .map(|content| content.resolve(conn))
+                .transpose()
+        })?)
+    }
+
+    /// Load all tracks and their direct metadata using batched relationship queries.
+    /// Content and related rows are read within the same transaction.
+    pub fn get_contents_with_relations(&self) -> Result<Vec<ContentView>> {
+        let mut conn = self.pool.get()?;
+        Ok(conn.transaction::<_, diesel::result::Error, _>(|conn| {
+            let contents = Content::all(conn)?;
+            Content::resolve_many(conn, contents)
+        })?)
     }
 
     /// Inserts a new record into the `content` table.
@@ -678,7 +744,7 @@ impl OneLibrary {
     ) -> Result<MyTag> {
         let mut my_tag = NewMyTag::tag(name);
         my_tag.parent_id = parent_id.unwrap_or_default();
-        my_tag.seq = seq.unwrap_or_default();
+        my_tag.seq = seq;
         self.insert_my_tag(my_tag)
     }
 
@@ -691,7 +757,7 @@ impl OneLibrary {
     ) -> Result<MyTag> {
         let mut my_tag = NewMyTag::folder(name);
         my_tag.parent_id = parent_id.unwrap_or_default();
-        my_tag.seq = seq.unwrap_or_default();
+        my_tag.seq = seq;
         self.insert_my_tag(my_tag)
     }
 
@@ -793,7 +859,7 @@ impl OneLibrary {
     ) -> Result<Playlist> {
         let mut playlist = NewPlaylist::playlist(name);
         playlist.parent_id = parent_id.unwrap_or_default();
-        playlist.seq = seq.unwrap_or_default();
+        playlist.seq = seq;
         self.insert_playlist(playlist)
     }
 
@@ -806,7 +872,7 @@ impl OneLibrary {
     ) -> Result<Playlist> {
         let mut playlist = NewPlaylist::folder(name);
         playlist.parent_id = parent_id.unwrap_or_default();
-        playlist.seq = seq.unwrap_or_default();
+        playlist.seq = seq;
         self.insert_playlist(playlist)
     }
 
@@ -864,7 +930,7 @@ impl OneLibrary {
     ) -> Result<PlaylistContent> {
         let mut conn = self.pool.get()?;
         let mut playlist_content = PlaylistContent::new(playlist_id, content_id);
-        playlist_content.seq = seq.unwrap_or_default();
+        playlist_content.seq = seq.unwrap_or(-1);
         Ok(playlist_content.insert(&mut conn)?)
     }
 

@@ -143,9 +143,18 @@ pub fn derive_py_mutable_mapping(input: TokenStream) -> TokenStream {
     });
 
     let repr_impl = if let Some(field) = repr_field {
+        // Optional fields (for example, an unset insertion sequence) lack Display.
+        let format = if fields
+            .iter()
+            .any(|f| f.ident.as_ref() == Some(&field) && is_option_type(&f.ty))
+        {
+            ": {:?})"
+        } else {
+            ": {})"
+        };
         quote! {
             fn __repr__(&self) -> PyResult<String> {
-                Ok(format!(concat!(#py_name, "(", stringify!(#field), ": {})"), self.#field))
+                Ok(format!(concat!(#py_name, "(", stringify!(#field), #format), self.#field))
             }
         }
     } else {

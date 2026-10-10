@@ -19,7 +19,8 @@ use super::schema::{djmdContent, djmdSampler, djmdSongSampler};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
 use crate::enums::SamplerType;
 use crate::model_traits::{
-    Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, TreeSeq,
+    delete_tree_batch, ordering_error, Model, ModelDelete, ModelInsert, ModelList, ModelTree,
+    ModelUpdate, OrderedModel, TreeSeq,
 };
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
@@ -86,7 +87,9 @@ impl Model for DjmdSampler {
     type Id = str;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
-        Self::query().load(conn)
+        Self::query()
+            .order((djmdSampler::parent_id, djmdSampler::seq, djmdSampler::id))
+            .load(conn)
     }
 
     fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
@@ -100,65 +103,89 @@ impl Model for DjmdSampler {
 
 impl ModelUpdate for DjmdSampler {
     fn update(mut self, conn: &mut SqliteConnection) -> QueryResult<Self> {
-        let existing = match Self::find(conn, &self.id)? {
-            Some(e) => e,
-            None => return Err(Error::NotFound),
-        };
-        let mut changes = 0;
-        if self.seq != existing.seq {
-            changes += 1;
-        }
-        if self.name != existing.name {
-            changes += 1;
-        }
-        if self.attribute != existing.attribute {
-            changes += 1;
-        }
-        if self.parent_id != existing.parent_id {
-            changes += 1;
-        }
-        if changes == 0 {
-            return Ok(existing);
-        }
-        self.updated_at = Utc::now();
-        self.rb_local_usn = Some(AgentRegistry::increment_local_usn_by(conn, changes)?);
-        diesel::update(djmdSampler::table.find(self.id.clone()))
-            .set(self)
-            .get_result(conn)
+        conn.transaction(|conn| {
+            let existing = match Self::find(conn, &self.id)? {
+                Some(e) => e,
+                None => return Err(Error::NotFound),
+            };
+            if self.seq != existing.seq || self.parent_id != existing.parent_id {
+                <Self as ModelTree>::move_to(
+                    conn,
+                    &self.id,
+                    Some(&self.parent_id),
+                    Some(self.seq),
+                )?;
+            }
+            if self.attribute != existing.attribute
+                && (Self::count_children(conn, &self.id)? > 0
+                    || DjmdSongSampler::count_children(conn, &self.id)? > 0)
+            {
+                return Err(ordering_error(
+                    "Cannot change the type of a nonempty collection",
+                ));
+            }
+            let mut changes = 0;
+            if self.seq != existing.seq {
+                changes += 1;
+            }
+            if self.name != existing.name {
+                changes += 1;
+            }
+            if self.attribute != existing.attribute {
+                changes += 1;
+            }
+            if self.parent_id != existing.parent_id {
+                changes += 1;
+            }
+            if changes == 0 {
+                return Ok(existing);
+            }
+            self.updated_at = Utc::now();
+            self.rb_local_usn = Some(AgentRegistry::increment_local_usn_by(conn, changes)?);
+            diesel::update(djmdSampler::table.find(self.id.clone()))
+                .set(self)
+                .get_result(conn)
+        })
     }
 }
 
 impl ModelDelete for DjmdSampler {
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
+        delete_tree_batch::<Self>(conn, ids)
+    }
+
     fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
-        // Vec of all deleted sampler ids
-        let mut deleted_ids = vec![id.to_string()];
-        // Delete the record
-        let parent_id: String = diesel::delete(djmdSampler::table.find(id))
-            .returning(djmdSampler::parent_id)
-            .get_result(conn)?;
-        // Reorder the seq numbers of tags left in the parent
-        Self::reset_seq(conn, &parent_id)?;
-        // Remove all child records recursively
-        let mut parent_ids = VecDeque::from(vec![id.to_string()]);
-        while let Some(parent_id) = parent_ids.pop_front() {
-            // Delete children
-            let deleted: Vec<String> =
-                diesel::delete(djmdSampler::table.filter(djmdSampler::parent_id.eq(parent_id)))
-                    .returning(djmdSampler::id)
-                    .get_results(conn)?;
-            deleted_ids.extend(deleted.clone());
-            // Add children to the queue
-            for deleted_id in deleted {
-                parent_ids.push_back(deleted_id);
+        conn.transaction(|conn| {
+            // Vec of all deleted sampler ids
+            let mut deleted_ids = vec![id.to_string()];
+            // Delete the record
+            let (parent_id, old_seq): (String, i32) = diesel::delete(djmdSampler::table.find(id))
+                .returning((djmdSampler::parent_id, djmdSampler::seq))
+                .get_result(conn)?;
+            // Reorder the seq numbers of tags left in the parent
+            Self::decrement_seq_gt(conn, &parent_id, old_seq)?;
+            // Remove all child records recursively
+            let mut parent_ids = VecDeque::from(vec![id.to_string()]);
+            while let Some(parent_id) = parent_ids.pop_front() {
+                // Delete children
+                let deleted: Vec<String> =
+                    diesel::delete(djmdSampler::table.filter(djmdSampler::parent_id.eq(parent_id)))
+                        .returning(djmdSampler::id)
+                        .get_results(conn)?;
+                deleted_ids.extend(deleted.clone());
+                // Add children to the queue
+                for deleted_id in deleted {
+                    parent_ids.push_back(deleted_id);
+                }
             }
-        }
-        // Remove any records that are associated with the deleted samplers
-        DjmdSongSampler::delete_by_sampler_ids(conn, &deleted_ids)?;
+            // Remove any records that are associated with the deleted samplers
+            DjmdSongSampler::delete_by_sampler_ids(conn, &deleted_ids)?;
 
-        let n = deleted_ids.len();
-        AgentRegistry::increment_local_usn_by(conn, n)?;
+            let n = deleted_ids.len();
+            AgentRegistry::increment_local_usn_by(conn, n)?;
 
-        Ok(n)
+            Ok(n)
+        })
     }
 }
 
@@ -169,32 +196,35 @@ impl ModelTree for DjmdSampler {
         parent_id: Option<&Self::Id>,
         seq: Option<i32>,
     ) -> QueryResult<usize> {
-        let res = match Self::find(conn, id)? {
-            Some(r) => r,
-            None => return Err(Error::NotFound),
-        };
-        let old_seq = res.seq;
-        let old_parent_id = res.parent_id.clone();
-        let parent_id = parent_id.unwrap_or(&old_parent_id);
+        conn.transaction(|conn| {
+            let res = match Self::find(conn, id)? {
+                Some(r) => r,
+                None => return Err(Error::NotFound),
+            };
+            let old_seq = res.seq;
+            let old_parent_id = res.parent_id.clone();
+            let parent_id = parent_id.unwrap_or(&old_parent_id);
 
-        // *Note*: Moving other records increments USN by 1 for all changes
-        let res = Self::update_seq_before_move(conn, &old_parent_id, parent_id, old_seq, seq)?;
-        let (seq, _n) = match res {
-            Some((s, n)) => (s, n),
-            None => return Ok(0),
-        };
+            // *Note*: Moving other records increments USN by 1 for all changes
+            Self::validate_destination(conn, id, parent_id)?;
+            let res = Self::update_seq_before_move(conn, &old_parent_id, parent_id, old_seq, seq)?;
+            let (seq, _n) = match res {
+                Some((s, n)) => (s, n),
+                None => return Ok(0),
+            };
 
-        // Update Seq and parent of actual record
-        let now = Utc::now();
-        let usn = AgentRegistry::increment_local_usn(conn)?;
-        diesel::update(djmdSampler::table.find(id))
-            .set((
-                djmdSampler::seq.eq(seq),
-                djmdSampler::parent_id.eq(parent_id),
-                djmdSampler::updated_at.eq(&format_datetime(&now)),
-                djmdSampler::rb_local_usn.eq(usn),
-            ))
-            .execute(conn)
+            // Update Seq and parent of actual record
+            let now = Utc::now();
+            let usn = AgentRegistry::increment_local_usn(conn)?;
+            diesel::update(djmdSampler::table.find(id))
+                .set((
+                    djmdSampler::seq.eq(seq),
+                    djmdSampler::parent_id.eq(parent_id),
+                    djmdSampler::updated_at.eq(&format_datetime(&now)),
+                    djmdSampler::rb_local_usn.eq(usn),
+                ))
+                .execute(conn)
+        })
     }
 }
 
@@ -297,25 +327,19 @@ impl DjmdSampler {
 impl TreeSeq for DjmdSampler {
     type ParentId = str;
     const START_SEQ: i32 = 1;
-
-    #[inline]
     fn is_valid_parent(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
     ) -> QueryResult<bool> {
         Self::is_folder(conn, parent_id)
     }
-
-    #[inline]
     fn count_children(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<i32> {
         let count: i64 = djmdSampler::table
             .filter(djmdSampler::parent_id.eq(parent_id))
             .count()
             .get_result(conn)?;
-        Ok(count as i32)
+        i32::try_from(count).map_err(|_| ordering_error("Collection too large"))
     }
-
-    #[inline]
     fn get_seq_numbers(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
@@ -326,109 +350,70 @@ impl TreeSeq for DjmdSampler {
             .select(djmdSampler::seq)
             .load(conn)
     }
-
-    #[inline]
     fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<usize> {
-        diesel::sql_query(
-            r#"WITH ordered AS (
-                SELECT ID, ROW_NUMBER() OVER (ORDER BY Seq) + (? - 1) AS new_seq
-                FROM djmdSampler WHERE ParentID =?
-            ) UPDATE djmdSampler
-            SET Seq = (SELECT new_seq FROM ordered WHERE ordered.ID = djmdSampler.ID);
-            WHERE ParentID =?;"#,
-        )
-        .bind::<diesel::sql_types::Integer, _>(Self::START_SEQ)
-        .bind::<diesel::sql_types::Text, _>(parent_id)
-        .bind::<diesel::sql_types::Text, _>(parent_id)
-        .execute(conn)
+        <Self as OrderedModel>::renumber(conn, parent_id)
     }
-
-    #[inline]
-    fn increment_seq_gte(
+    fn shift_seq(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
-        seq: i32,
+        range: std::ops::Range<i32>,
+        delta: i32,
     ) -> QueryResult<usize> {
         let now = Utc::now();
         let usn = AgentRegistry::local_usn(conn)? + 1;
         diesel::update(
             djmdSampler::table
                 .filter(djmdSampler::parent_id.eq(parent_id))
-                .filter(djmdSampler::seq.ge(seq)),
+                .filter(djmdSampler::seq.ge(range.start))
+                .filter(djmdSampler::seq.lt(range.end)),
         )
         .set((
-            djmdSampler::seq.eq(djmdSampler::seq + 1),
-            djmdSampler::updated_at.eq(format_datetime(&now)),
-            djmdSampler::rb_local_usn.eq(usn),
-        ))
-        .execute(conn)
-    }
-
-    #[inline]
-    fn decrement_seq_gt(
-        conn: &mut SqliteConnection,
-        parent_id: &Self::ParentId,
-        seq: i32,
-    ) -> QueryResult<usize> {
-        let now = Utc::now();
-        let usn = AgentRegistry::local_usn(conn)? + 1;
-        diesel::update(
-            djmdSampler::table
-                .filter(djmdSampler::parent_id.eq(parent_id))
-                .filter(djmdSampler::seq.gt(seq)),
-        )
-        .set((
-            djmdSampler::seq.eq(djmdSampler::seq - 1),
-            djmdSampler::updated_at.eq(format_datetime(&now)),
-            djmdSampler::rb_local_usn.eq(usn),
-        ))
-        .execute(conn)
-    }
-
-    #[inline]
-    fn increment_seq_gte_lt(
-        conn: &mut SqliteConnection,
-        parent_id: &Self::ParentId,
-        start: i32,
-        end: i32,
-    ) -> QueryResult<usize> {
-        let now = Utc::now();
-        let usn = AgentRegistry::local_usn(conn)? + 1;
-        diesel::update(
-            djmdSampler::table
-                .filter(djmdSampler::parent_id.eq(parent_id))
-                .filter(djmdSampler::seq.ge(start))
-                .filter(djmdSampler::seq.lt(end)),
-        )
-        .set((
-            djmdSampler::seq.eq(djmdSampler::seq + 1),
+            djmdSampler::seq.eq(djmdSampler::seq + delta),
             djmdSampler::updated_at.eq(&format_datetime(&now)),
             djmdSampler::rb_local_usn.eq(usn),
         ))
         .execute(conn)
     }
+}
 
-    #[inline]
-    fn decrement_seq_gt_lte(
+impl OrderedModel for DjmdSampler {
+    fn order_id(&self) -> String {
+        self.id.clone()
+    }
+    fn order_parent(&self) -> &Self::ParentId {
+        &self.parent_id
+    }
+    fn order_position(&self) -> i32 {
+        self.seq
+    }
+    fn ordered(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<Vec<Self>> {
+        djmdSampler::table
+            .filter(djmdSampler::parent_id.eq(parent_id))
+            .order((djmdSampler::seq, djmdSampler::id))
+            .select(Self::as_select())
+            .load(conn)
+    }
+    fn write_order(
         conn: &mut SqliteConnection,
-        parent_id: &Self::ParentId,
-        start: i32,
-        end: i32,
+        changes: &[(&Self, &Self::ParentId, i32)],
     ) -> QueryResult<usize> {
+        if changes.is_empty() {
+            return Ok(0);
+        }
         let now = Utc::now();
-        let usn = AgentRegistry::local_usn(conn)? + 1;
-        diesel::update(
-            djmdSampler::table
-                .filter(djmdSampler::parent_id.eq(parent_id))
-                .filter(djmdSampler::seq.gt(start))
-                .filter(djmdSampler::seq.le(end)),
-        )
-        .set((
-            djmdSampler::seq.eq(djmdSampler::seq - 1),
-            djmdSampler::updated_at.eq(&format_datetime(&now)),
-            djmdSampler::rb_local_usn.eq(usn),
-        ))
-        .execute(conn)
+        let usn = AgentRegistry::increment_local_usn(conn)?;
+        let mut count = 0;
+        for (row, parent_id, seq) in changes {
+            count += diesel::update(djmdSampler::table.find(&row.id))
+                .set((
+                    djmdSampler::seq.eq(seq),
+                    djmdSampler::parent_id.eq(*parent_id),
+                    djmdSampler::updated_at.eq(&format_datetime(&now)),
+                    djmdSampler::rb_local_usn.eq(usn),
+                ))
+                .execute(conn)?;
+        }
+        Ok(count)
     }
 }
 
@@ -462,34 +447,36 @@ impl ModelInsert for NewDjmdSampler {
     type Model = DjmdSampler;
 
     fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
-        let parent_id = self.parent_id.unwrap_or("root".to_string());
-        // Handle seq and USN of moved records (also checks parent)
-        let (seq, n) = Self::Model::update_seq_before_insert(conn, &parent_id, self.seq)?;
-        if n > 0 {
-            // Apply USN of moved records
-            AgentRegistry::increment_local_usn(conn)?;
-        }
-        // Generate meta
-        let id = Self::Model::generate_id(conn)?;
-        let uuid = Uuid::new_v4().to_string();
-        let now = Utc::now();
-        // Get next USN: We increment by 2 (1 for creating, 1 for renaming from 'New Playlist')
-        let usn = AgentRegistry::increment_local_usn_by(conn, 2)?;
-        let item = Self::Model {
-            id,
-            uuid,
-            rb_local_usn: Some(usn),
-            created_at: now,
-            updated_at: now,
-            name: self.name,
-            seq,
-            attribute: self.attribute,
-            parent_id,
-            ..Default::default()
-        };
-        diesel::insert_into(djmdSampler::table)
-            .values(item)
-            .get_result(conn)
+        conn.transaction(|conn| {
+            let parent_id = self.parent_id.unwrap_or("root".to_string());
+            // Handle seq and USN of moved records (also checks parent)
+            let (seq, n) = Self::Model::update_seq_before_insert(conn, &parent_id, self.seq)?;
+            if n > 0 {
+                // Apply USN of moved records
+                AgentRegistry::increment_local_usn(conn)?;
+            }
+            // Generate meta
+            let id = Self::Model::generate_id(conn)?;
+            let uuid = Uuid::new_v4().to_string();
+            let now = Utc::now();
+            // Get next USN: We increment by 2 (1 for creating, 1 for renaming from 'New Playlist')
+            let usn = AgentRegistry::increment_local_usn_by(conn, 2)?;
+            let item = Self::Model {
+                id,
+                uuid,
+                rb_local_usn: Some(usn),
+                created_at: now,
+                updated_at: now,
+                name: self.name,
+                seq,
+                attribute: self.attribute,
+                parent_id,
+                ..Default::default()
+            };
+            diesel::insert_into(djmdSampler::table)
+                .values(item)
+                .get_result(conn)
+        })
     }
 }
 
@@ -592,7 +579,13 @@ impl Model for DjmdSongSampler {
     type Id = str;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
-        Self::query().load(conn)
+        Self::query()
+            .order((
+                djmdSongSampler::sampler_id,
+                djmdSongSampler::track_no,
+                djmdSongSampler::id,
+            ))
+            .load(conn)
     }
 
     fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
@@ -606,39 +599,45 @@ impl Model for DjmdSongSampler {
 
 impl ModelDelete for DjmdSongSampler {
     fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
-        let query = djmdSongSampler::table.find(id);
-        let sampler_id: String = query.select(djmdSongSampler::sampler_id).first(conn)?;
-        let result = diesel::delete(query).execute(conn)?;
-        AgentRegistry::increment_local_usn(conn)?;
-        // Reorder the track_no numbers
-        Self::reset_seq(conn, &sampler_id)?;
-        Ok(result)
+        conn.transaction(|conn| {
+            let query = djmdSongSampler::table.find(id);
+            let (sampler_id, old_seq): (String, i32) = query
+                .select((djmdSongSampler::sampler_id, djmdSongSampler::track_no))
+                .first(conn)?;
+            let result = diesel::delete(query).execute(conn)?;
+            // Reorder the track_no numbers
+            Self::decrement_seq_gt(conn, &sampler_id, old_seq)?;
+            AgentRegistry::increment_local_usn(conn)?;
+            Ok(result)
+        })
     }
 }
 
 impl ModelList for DjmdSongSampler {
     fn move_to(conn: &mut SqliteConnection, id: &Self::Id, seq: Option<i32>) -> QueryResult<usize> {
-        let res = match Self::find(conn, id)? {
-            Some(r) => r,
-            None => return Err(Error::NotFound),
-        };
-        let old_seq = res.track_no;
-        // *Note*: Moving other records increments USN by 1 for all changes
-        let res = Self::update_seq_before_move_in(conn, &res.sampler_id, old_seq, seq)?;
-        let (seq, _n) = match res {
-            Some((s, n)) => (s, n),
-            None => return Ok(0),
-        };
-        // Update seq of actual record
-        let now = Utc::now();
-        let usn = AgentRegistry::increment_local_usn(conn)?;
-        diesel::update(djmdSongSampler::table.find(id))
-            .set((
-                djmdSongSampler::track_no.eq(seq),
-                djmdSongSampler::updated_at.eq(&format_datetime(&now)),
-                djmdSongSampler::rb_local_usn.eq(usn),
-            ))
-            .execute(conn)
+        conn.transaction(|conn| {
+            let res = match Self::find(conn, id)? {
+                Some(r) => r,
+                None => return Err(Error::NotFound),
+            };
+            let old_seq = res.track_no;
+            // *Note*: Moving other records increments USN by 1 for all changes
+            let res = Self::update_seq_before_move_in(conn, &res.sampler_id, old_seq, seq)?;
+            let (seq, _n) = match res {
+                Some((s, n)) => (s, n),
+                None => return Ok(0),
+            };
+            // Update seq of actual record
+            let now = Utc::now();
+            let usn = AgentRegistry::increment_local_usn(conn)?;
+            diesel::update(djmdSongSampler::table.find(id))
+                .set((
+                    djmdSongSampler::track_no.eq(seq),
+                    djmdSongSampler::updated_at.eq(&format_datetime(&now)),
+                    djmdSongSampler::rb_local_usn.eq(usn),
+                ))
+                .execute(conn)
+        })
     }
 }
 
@@ -647,6 +646,7 @@ impl DjmdSongSampler {
     pub fn by_sampler_id(conn: &mut SqliteConnection, sampler_id: &str) -> QueryResult<Vec<Self>> {
         Self::query()
             .filter(djmdSongSampler::sampler_id.eq(sampler_id))
+            .order((djmdSongSampler::track_no, djmdSongSampler::id))
             .get_results(conn)
     }
 
@@ -680,7 +680,9 @@ impl DjmdSongSampler {
         conn: &mut SqliteConnection,
         sampler_id: &str,
     ) -> QueryResult<usize> {
-        diesel::delete(Self::filter_by_sampler_id(sampler_id)).execute(conn)
+        conn.transaction(|conn| {
+            diesel::delete(Self::filter_by_sampler_id(sampler_id)).execute(conn)
+        })
     }
 
     /// Deletes multiple records from the `djmdSongSampler` table based on their `sampler_id`.
@@ -688,7 +690,9 @@ impl DjmdSongSampler {
         conn: &mut SqliteConnection,
         sampler_ids: &[String],
     ) -> QueryResult<usize> {
-        diesel::delete(Self::filter_by_sampler_ids(sampler_ids)).execute(conn)
+        conn.transaction(|conn| {
+            diesel::delete(Self::filter_by_sampler_ids(sampler_ids)).execute(conn)
+        })
     }
 
     /// Generates a new unique identifier for a record in the `djmdSongSampler` table.
@@ -710,135 +714,92 @@ impl DjmdSongSampler {
 impl TreeSeq for DjmdSongSampler {
     type ParentId = str;
     const START_SEQ: i32 = 1;
-
-    #[inline]
     fn is_valid_parent(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
     ) -> QueryResult<bool> {
         DjmdSampler::is_sampler(conn, parent_id)
     }
-
-    #[inline]
     fn count_children(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<i32> {
-        let count: i64 = Self::filter_by_sampler_id(parent_id)
+        let count: i64 = djmdSongSampler::table
+            .filter(djmdSongSampler::sampler_id.eq(parent_id))
             .count()
             .get_result(conn)?;
-        Ok(count as i32)
+        i32::try_from(count).map_err(|_| ordering_error("Collection too large"))
     }
-
-    #[inline]
     fn get_seq_numbers(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
     ) -> QueryResult<Vec<i32>> {
-        Self::filter_by_sampler_id(parent_id)
+        djmdSongSampler::table
+            .filter(djmdSongSampler::sampler_id.eq(parent_id))
             .order(djmdSongSampler::track_no)
             .select(djmdSongSampler::track_no)
-            .get_results(conn)
+            .load(conn)
     }
-    #[inline]
     fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<usize> {
-        diesel::sql_query(
-            r#"WITH ordered AS (
-                SELECT ID, ROW_NUMBER() OVER (ORDER BY TrackNo) + (? - 1) AS new_seq
-                FROM djmdSongSampler WHERE SamplerID =?
-            ) UPDATE djmdSongSampler
-            SET TrackNo = (SELECT new_seq FROM ordered WHERE ordered.ID = djmdSongSampler.ID)
-            WHERE PlaylistID =?;"#,
-        )
-        .bind::<diesel::sql_types::Integer, _>(Self::START_SEQ)
-        .bind::<diesel::sql_types::Text, _>(parent_id)
-        .bind::<diesel::sql_types::Text, _>(parent_id)
-        .execute(conn)
+        <Self as OrderedModel>::renumber(conn, parent_id)
     }
-
-    #[inline]
-    fn increment_seq_gte(
+    fn shift_seq(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
-        seq: i32,
+        range: std::ops::Range<i32>,
+        delta: i32,
     ) -> QueryResult<usize> {
         let now = Utc::now();
         let usn = AgentRegistry::local_usn(conn)? + 1;
         diesel::update(
             djmdSongSampler::table
                 .filter(djmdSongSampler::sampler_id.eq(parent_id))
-                .filter(djmdSongSampler::track_no.ge(seq)),
+                .filter(djmdSongSampler::track_no.ge(range.start))
+                .filter(djmdSongSampler::track_no.lt(range.end)),
         )
         .set((
-            djmdSongSampler::track_no.eq(djmdSongSampler::track_no + 1),
-            djmdSongSampler::updated_at.eq(format_datetime(&now)),
-            djmdSongSampler::rb_local_usn.eq(usn),
-        ))
-        .execute(conn)
-    }
-
-    #[inline]
-    fn decrement_seq_gt(
-        conn: &mut SqliteConnection,
-        parent_id: &Self::ParentId,
-        seq: i32,
-    ) -> QueryResult<usize> {
-        let now = Utc::now();
-        let usn = AgentRegistry::local_usn(conn)? + 1;
-        diesel::update(
-            djmdSongSampler::table
-                .filter(djmdSongSampler::sampler_id.eq(parent_id))
-                .filter(djmdSongSampler::track_no.gt(seq)),
-        )
-        .set((
-            djmdSongSampler::track_no.eq(djmdSongSampler::track_no - 1),
-            djmdSongSampler::updated_at.eq(format_datetime(&now)),
-            djmdSongSampler::rb_local_usn.eq(usn),
-        ))
-        .execute(conn)
-    }
-
-    #[inline]
-    fn increment_seq_gte_lt(
-        conn: &mut SqliteConnection,
-        parent_id: &Self::ParentId,
-        start: i32,
-        end: i32,
-    ) -> QueryResult<usize> {
-        let now = Utc::now();
-        let usn = AgentRegistry::local_usn(conn)? + 1;
-        diesel::update(
-            djmdSongSampler::table
-                .filter(djmdSongSampler::sampler_id.eq(parent_id))
-                .filter(djmdSongSampler::track_no.ge(start))
-                .filter(djmdSongSampler::track_no.lt(end)),
-        )
-        .set((
-            djmdSongSampler::track_no.eq(djmdSongSampler::track_no + 1),
+            djmdSongSampler::track_no.eq(djmdSongSampler::track_no + delta),
             djmdSongSampler::updated_at.eq(&format_datetime(&now)),
             djmdSongSampler::rb_local_usn.eq(usn),
         ))
         .execute(conn)
     }
+}
 
-    #[inline]
-    fn decrement_seq_gt_lte(
+impl OrderedModel for DjmdSongSampler {
+    fn order_id(&self) -> String {
+        self.id.clone()
+    }
+    fn order_parent(&self) -> &Self::ParentId {
+        &self.sampler_id
+    }
+    fn order_position(&self) -> i32 {
+        self.track_no
+    }
+    fn ordered(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<Vec<Self>> {
+        djmdSongSampler::table
+            .filter(djmdSongSampler::sampler_id.eq(parent_id))
+            .order((djmdSongSampler::track_no, djmdSongSampler::id))
+            .select(Self::as_select())
+            .load(conn)
+    }
+    fn write_order(
         conn: &mut SqliteConnection,
-        parent_id: &Self::ParentId,
-        start: i32,
-        end: i32,
+        changes: &[(&Self, &Self::ParentId, i32)],
     ) -> QueryResult<usize> {
+        if changes.is_empty() {
+            return Ok(0);
+        }
         let now = Utc::now();
-        let usn = AgentRegistry::local_usn(conn)? + 1;
-        diesel::update(
-            djmdSongSampler::table
-                .filter(djmdSongSampler::sampler_id.eq(parent_id))
-                .filter(djmdSongSampler::track_no.gt(start))
-                .filter(djmdSongSampler::track_no.le(end)),
-        )
-        .set((
-            djmdSongSampler::track_no.eq(djmdSongSampler::track_no - 1),
-            djmdSongSampler::updated_at.eq(&format_datetime(&now)),
-            djmdSongSampler::rb_local_usn.eq(usn),
-        ))
-        .execute(conn)
+        let usn = AgentRegistry::increment_local_usn(conn)?;
+        let mut count = 0;
+        for (row, _parent_id, seq) in changes {
+            count += diesel::update(djmdSongSampler::table.find(&row.id))
+                .set((
+                    djmdSongSampler::track_no.eq(seq),
+                    djmdSongSampler::updated_at.eq(&format_datetime(&now)),
+                    djmdSongSampler::rb_local_usn.eq(usn),
+                ))
+                .execute(conn)?;
+        }
+        Ok(count)
     }
 }
 
@@ -870,37 +831,39 @@ impl ModelInsert for NewDjmdSongSampler {
     type Model = DjmdSongSampler;
 
     fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
-        // Check content
-        if !DjmdContent::id_exists(conn, &self.content_id)? {
-            return Err(Error::NotFound);
-        }
-        let parent_id = &self.sampler_id;
-        // Handle seq and USN of moved records (also checkks parent)
-        let (seq, n) = Self::Model::update_seq_before_insert(conn, &parent_id, self.track_no)?;
-        if n > 0 {
-            // Apply USN of moved records
-            AgentRegistry::increment_local_usn(conn)?;
-        }
-        // Generate meta
-        let id = Self::Model::generate_id(conn)?;
-        let uuid = Uuid::new_v4().to_string();
-        let now = Utc::now();
-        // Get next USN: We increment by 2 (1 for creating, 1 for renaming from 'New Sampler')
-        let usn = AgentRegistry::increment_local_usn_by(conn, 2)?;
-        let item = Self::Model {
-            id,
-            uuid,
-            rb_local_usn: Some(usn),
-            created_at: now,
-            updated_at: now,
-            sampler_id: self.sampler_id,
-            content_id: self.content_id,
-            track_no: seq,
-            ..Default::default()
-        };
-        diesel::insert_into(djmdSongSampler::table)
-            .values(item)
-            .get_result(conn)
+        conn.transaction(|conn| {
+            // Check content
+            if !DjmdContent::id_exists(conn, &self.content_id)? {
+                return Err(Error::NotFound);
+            }
+            let parent_id = &self.sampler_id;
+            // Handle seq and USN of moved records (also checkks parent)
+            let (seq, n) = Self::Model::update_seq_before_insert(conn, &parent_id, self.track_no)?;
+            if n > 0 {
+                // Apply USN of moved records
+                AgentRegistry::increment_local_usn(conn)?;
+            }
+            // Generate meta
+            let id = Self::Model::generate_id(conn)?;
+            let uuid = Uuid::new_v4().to_string();
+            let now = Utc::now();
+            // Get next USN: We increment by 2 (1 for creating, 1 for renaming from 'New Sampler')
+            let usn = AgentRegistry::increment_local_usn_by(conn, 2)?;
+            let item = Self::Model {
+                id,
+                uuid,
+                rb_local_usn: Some(usn),
+                created_at: now,
+                updated_at: now,
+                sampler_id: self.sampler_id,
+                content_id: self.content_id,
+                track_no: seq,
+                ..Default::default()
+            };
+            diesel::insert_into(djmdSongSampler::table)
+                .values(item)
+                .get_result(conn)
+        })
     }
 }
 

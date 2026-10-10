@@ -82,7 +82,9 @@ impl Model for DjmdHotCueBanklist {
     type Id = str;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
-        Self::query().load(conn)
+        Self::query()
+            .order((djmdHotCueBanklist::seq, djmdHotCueBanklist::id))
+            .load(conn)
     }
 
     fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
@@ -99,6 +101,7 @@ impl DjmdHotCueBanklist {
     pub fn by_parent_id(conn: &mut SqliteConnection, parent_id: &str) -> QueryResult<Vec<Self>> {
         Self::query()
             .filter(djmdHotCueBanklist::parent_id.eq(parent_id))
+            .order((djmdHotCueBanklist::seq, djmdHotCueBanklist::id))
             .load(conn)
     }
 
@@ -110,6 +113,7 @@ impl DjmdHotCueBanklist {
                     .on(djmdContent::id.eq(djmdSongHotCueBanklist::content_id)),
             )
             .filter(djmdSongHotCueBanklist::hot_cue_banklist_id.eq(&id))
+            .order((djmdSongHotCueBanklist::track_no, djmdSongHotCueBanklist::id))
             .select(DjmdContent::as_select())
             .load(conn)
     }
@@ -221,7 +225,9 @@ impl Model for DjmdSongHotCueBanklist {
     type Id = str;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
-        Self::query().load(conn)
+        Self::query()
+            .order((djmdSongHotCueBanklist::track_no, djmdSongHotCueBanklist::id))
+            .load(conn)
     }
 
     fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
@@ -241,6 +247,7 @@ impl DjmdSongHotCueBanklist {
     ) -> QueryResult<Vec<Self>> {
         Self::query()
             .filter(djmdSongHotCueBanklist::hot_cue_banklist_id.eq(history_id))
+            .order((djmdSongHotCueBanklist::track_no, djmdSongHotCueBanklist::id))
             .load(conn)
     }
 

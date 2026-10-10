@@ -222,6 +222,20 @@ impl JsMasterDb {
 
     // -- Album ------------------------------------------------------------------------------------
 
+    /// Load a detached album snapshot with all supported direct relationships.
+    /// Related rows are shallow snapshots; changes require explicit model updates.
+    #[napi]
+    pub fn get_album_with_relations(&self, id: String) -> Result<Option<DjmdAlbumView>> {
+        self.db.get_album_with_relations(&id).map_err(Into::into)
+    }
+
+    /// Load all albums with direct relationships using batched queries.
+    /// Missing relationship targets remain absent; query errors propagate.
+    #[napi]
+    pub fn get_albums_with_relations(&self) -> Result<Vec<DjmdAlbumView>> {
+        self.db.get_albums_with_relations().map_err(Into::into)
+    }
+
     /// Retrieves all entries from the `djmdAlbum` table in the database.
     #[napi]
     pub fn get_albums(&mut self) -> Result<Vec<DjmdAlbum>> {
@@ -363,6 +377,20 @@ impl JsMasterDb {
     }
 
     // -- Content ----------------------------------------------------------------------------------
+
+    /// Load a detached content snapshot with all supported direct relationships.
+    /// Related rows are shallow snapshots; changes require explicit model updates.
+    #[napi]
+    pub fn get_content_with_relations(&self, id: String) -> Result<Option<DjmdContentView>> {
+        self.db.get_content_with_relations(&id).map_err(Into::into)
+    }
+
+    /// Load all contents with direct relationships using batched queries.
+    /// Missing relationship targets remain absent; query errors propagate.
+    #[napi]
+    pub fn get_contents_with_relations(&self) -> Result<Vec<DjmdContentView>> {
+        self.db.get_contents_with_relations().map_err(Into::into)
+    }
 
     /// Retrieves all entries from the `djmdContent` table in the database.
     #[napi]

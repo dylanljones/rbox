@@ -441,6 +441,17 @@ class DjmdActiveCensor(_RustMutableMapping):
     content_uuid: Optional[str]
     """An optional string representing the uuid of the associated [`DjmdContent`]."""
 
+class DjmdAlbumView:
+    """Detached, shallow relationship snapshot. Attributes return row copies.
+
+    To persist changes, retain a row, edit it, and call its database update method.
+    """
+
+    @property
+    def album(self) -> DjmdAlbum: ...
+    @property
+    def artist(self) -> Optional[DjmdArtist]: ...
+
 class DjmdAlbum(_RustMutableMapping):
     """Represents the `djmdAlbum` table in the Rekordbox database."""
 
@@ -586,6 +597,33 @@ class DjmdColor(_RustMutableMapping):
     """The sort key for ordering colors."""
     commnt: str
     """A comment (usually the name) associated with the color."""
+
+class DjmdContentView:
+    """Detached, shallow relationship snapshot. Attributes return row copies.
+
+    To persist changes, retain a row, edit it, and call its database update method.
+    """
+
+    @property
+    def content(self) -> DjmdContent: ...
+    @property
+    def artist(self) -> Optional[DjmdArtist]: ...
+    @property
+    def remixer(self) -> Optional[DjmdArtist]: ...
+    @property
+    def original_artist(self) -> Optional[DjmdArtist]: ...
+    @property
+    def composer(self) -> Optional[DjmdArtist]: ...
+    @property
+    def album(self) -> Optional[DjmdAlbum]: ...
+    @property
+    def genre(self) -> Optional[DjmdGenre]: ...
+    @property
+    def label(self) -> Optional[DjmdLabel]: ...
+    @property
+    def key(self) -> Optional[DjmdKey]: ...
+    @property
+    def color(self) -> Optional[DjmdColor]: ...
 
 class DjmdContent(_RustMutableMapping):
     """Represents the `djmdContent` table in the Rekordbox database."""
@@ -2003,6 +2041,14 @@ class PyMasterDb:
         """Retrieves a `djmdActiveCensor` entry by its unique identifier."""
         ...
 
+    def get_album_with_relations(self, id: str) -> Optional[DjmdAlbumView]:
+        """Load a detached snapshot with all direct relationships."""
+        ...
+
+    def get_albums_with_relations(self) -> List[DjmdAlbumView]:
+        """Load all rows with their direct relationships using batched queries."""
+        ...
+
     def get_albums(self) -> List[DjmdAlbum]:
         """Retrieves all entries from the `djmdAlbum` table in the database."""
         ...
@@ -2079,6 +2125,14 @@ class PyMasterDb:
 
     def get_color_by_id(self, id: str) -> Optional[DjmdColor]:
         """Retrieves a `djmdColor` entry by its unique identifier."""
+        ...
+
+    def get_content_with_relations(self, id: str) -> Optional[DjmdContentView]:
+        """Load a detached snapshot with all direct relationships."""
+        ...
+
+    def get_contents_with_relations(self) -> List[DjmdContentView]:
+        """Load all rows with their direct relationships using batched queries."""
         ...
 
     def get_contents(self) -> List[DjmdContent]:
@@ -2536,6 +2590,19 @@ class PyMasterDb:
 
 # ---- OneLibrary  ----------------------------------------------------------------------------------
 
+class AlbumView:
+    """Detached, shallow relationship snapshot. Attributes return row copies.
+
+    To persist changes, retain a row, edit it, and call its database update method.
+    """
+
+    @property
+    def album(self) -> Album: ...
+    @property
+    def artist(self) -> Optional[Artist]: ...
+    @property
+    def image(self) -> Optional[Image]: ...
+
 class Album(_RustMutableMapping):
     """Represents the `album` table in the Rekordbox One Library database."""
 
@@ -2604,6 +2671,17 @@ class Lyricist(_RustMutableMapping):
     name: str
     name_for_search: Optional[str]
 
+class CategoryView:
+    """Detached, shallow relationship snapshot. Attributes return row copies.
+
+    To persist changes, retain a row, edit it, and call its database update method.
+    """
+
+    @property
+    def category(self) -> Category: ...
+    @property
+    def menu_item(self) -> Optional[MenuItem]: ...
+
 class Category(_RustMutableMapping):
     """Represents the `category` table in the Rekordbox One Library database."""
 
@@ -2639,6 +2717,37 @@ class NewColor(_RustMutableMapping):
 
     name: str
     """The name of the color"""
+
+class ContentView:
+    """Detached, shallow relationship snapshot. Attributes return row copies.
+
+    To persist changes, retain a row, edit it, and call its database update method.
+    """
+
+    @property
+    def content(self) -> Content: ...
+    @property
+    def artist(self) -> Optional[Artist]: ...
+    @property
+    def remixer(self) -> Optional[Artist]: ...
+    @property
+    def original_artist(self) -> Optional[Artist]: ...
+    @property
+    def composer(self) -> Optional[Artist]: ...
+    @property
+    def lyricist(self) -> Optional[Artist]: ...
+    @property
+    def album(self) -> Optional[Album]: ...
+    @property
+    def genre(self) -> Optional[Genre]: ...
+    @property
+    def label(self) -> Optional[Label]: ...
+    @property
+    def key(self) -> Optional[Key]: ...
+    @property
+    def color(self) -> Optional[Color]: ...
+    @property
+    def image(self) -> Optional[Image]: ...
 
 class Content(_RustMutableMapping):
     """Represents the `content` table in the Rekordbox One Library database."""
@@ -3153,6 +3262,14 @@ class PyOneLibrary:
         """Create a new OneLibrary database if it does not exist, otherwise return the existing one."""
         ...
 
+    def get_album_with_relations(self, id: int) -> Optional[AlbumView]:
+        """Load a detached snapshot with all direct relationships."""
+        ...
+
+    def get_albums_with_relations(self) -> List[AlbumView]:
+        """Load all rows with their direct relationships using batched queries."""
+        ...
+
     def get_albums(self) -> List[Album]:
         """Queries all records from the `album` table."""
         ...
@@ -3209,6 +3326,14 @@ class PyOneLibrary:
         """Deletes a record from the `artist` table by its primary key `id`."""
         ...
 
+    def get_category_with_relations(self, id: int) -> Optional[CategoryView]:
+        """Load a detached snapshot with all direct relationships."""
+        ...
+
+    def get_categories_with_relations(self) -> List[CategoryView]:
+        """Load all rows with their direct relationships using batched queries."""
+        ...
+
     def get_categories(self) -> List[Category]:
         """Queries all records from the `category` table."""
         ...
@@ -3255,6 +3380,14 @@ class PyOneLibrary:
 
     def delete_color(self, id: int) -> int:
         """Deletes a record from the `color` table by its primary key `id`."""
+        ...
+
+    def get_content_with_relations(self, id: int) -> Optional[ContentView]:
+        """Load a detached snapshot with all direct relationships."""
+        ...
+
+    def get_contents_with_relations(self) -> List[ContentView]:
+        """Load all rows with their direct relationships using batched queries."""
         ...
 
     def get_contents(self) -> List[Content]:

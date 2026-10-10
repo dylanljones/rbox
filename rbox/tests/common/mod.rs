@@ -3,6 +3,8 @@
 
 #![allow(dead_code)]
 
+pub mod ordering;
+
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};

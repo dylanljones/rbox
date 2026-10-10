@@ -1285,10 +1285,13 @@ impl PyRekordboxXml {
     }
 
     pub fn update_track(&mut self, py: Python, track: &PyTrack) -> PyResult<()> {
+        // The argument may be the same Python object stored in `self.tracks`.
+        // Its argument conversion already holds a shared borrow; comparing IDs
+        // only needs another shared borrow, not an exclusive one.
         if let Some(existing_track) = self
             .tracks
             .iter_mut()
-            .find(|t| &t.borrow_mut(py).trackid == &track.trackid)
+            .find(|t| &t.borrow(py).trackid == &track.trackid)
         {
             let pyitem = Py::new(py, track.clone_py(py))?;
             *existing_track = pyitem;

@@ -14,7 +14,10 @@ use std::collections::{HashSet, VecDeque};
 use super::content::Content;
 use super::schema::{content, myTag, myTag_content};
 use crate::enums::MyTagType;
-use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelTree, TreeSeq};
+use crate::model_traits::{
+    delete_tree_batch, ordering_error, Model, ModelDelete, ModelInsert, ModelTree, OrderedModel,
+    TreeSeq,
+};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -41,7 +44,7 @@ use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 pub struct MyTag {
     /// The unique identifier of the tag.
     pub id: i32,
-    /// The sequence/order number of the tag (1-based index).
+    /// Position among siblings, starting at zero.
     pub seq: i32,
     /// The name of the tag.
     pub name: String,
@@ -55,7 +58,9 @@ impl Model for MyTag {
     type Id = i32;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
-        Self::query().load(conn)
+        Self::query()
+            .order((myTag::parent_id, myTag::seq, myTag::id))
+            .load(conn)
     }
 
     fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
@@ -68,37 +73,43 @@ impl Model for MyTag {
 }
 
 impl ModelDelete for MyTag {
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
+        delete_tree_batch::<Self>(conn, ids)
+    }
+
     fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
-        // Vec of all deleted myTag ids
-        let mut deleted_ids = vec![*id];
+        conn.transaction(|conn| {
+            // Vec of all deleted myTag ids
+            let mut deleted_ids = vec![*id];
 
-        // Delete the record
-        let parent_id: i32 = diesel::delete(myTag::table.find(id))
-            .returning(myTag::parent_id)
-            .get_result(conn)?;
+            // Delete the record
+            let parent_id: i32 = diesel::delete(myTag::table.find(id))
+                .returning(myTag::parent_id)
+                .get_result(conn)?;
 
-        // Reorder the seq numbers of tags left in the parent
-        Self::reset_seq(conn, &parent_id)?;
+            // Reorder the seq numbers of tags left in the parent
+            Self::reset_seq(conn, &parent_id)?;
 
-        // Remove all child myTag records recursively
-        let mut parent_ids = VecDeque::from(vec![*id]);
-        while let Some(parent_id) = parent_ids.pop_front() {
-            // Delete children
-            let deleted: Vec<i32> =
-                diesel::delete(myTag::table.filter(myTag::parent_id.eq(parent_id)))
-                    .returning(myTag::id)
-                    .get_results(conn)?;
-            deleted_ids.extend(deleted.clone());
-            // Add children to the queue
-            for deleted_id in deleted {
-                parent_ids.push_back(deleted_id);
+            // Remove all child myTag records recursively
+            let mut parent_ids = VecDeque::from(vec![*id]);
+            while let Some(parent_id) = parent_ids.pop_front() {
+                // Delete children
+                let deleted: Vec<i32> =
+                    diesel::delete(myTag::table.filter(myTag::parent_id.eq(parent_id)))
+                        .returning(myTag::id)
+                        .get_results(conn)?;
+                deleted_ids.extend(deleted.clone());
+                // Add children to the queue
+                for deleted_id in deleted {
+                    parent_ids.push_back(deleted_id);
+                }
             }
-        }
 
-        // Remove any myTag_content records that are associated with the deleted myTags
-        MyTagContent::delete_by_my_tag_ids(conn, &deleted_ids)?;
+            // Remove any myTag_content records that are associated with the deleted myTags
+            MyTagContent::delete_by_my_tag_ids(conn, &deleted_ids)?;
 
-        Ok(deleted_ids.len())
+            Ok(deleted_ids.len())
+        })
     }
 }
 
@@ -109,22 +120,25 @@ impl ModelTree for MyTag {
         parent_id: Option<&Self::Id>,
         seq: Option<i32>,
     ) -> QueryResult<usize> {
-        let res = match Self::find(conn, &id)? {
-            Some(r) => r,
-            None => return Err(Error::NotFound),
-        };
-        let old_seq = res.seq;
-        let old_parent_id = res.parent_id.clone();
-        let parent_id = parent_id.unwrap_or(&old_parent_id);
+        conn.transaction(|conn| {
+            let res = match Self::find(conn, &id)? {
+                Some(r) => r,
+                None => return Err(Error::NotFound),
+            };
+            let old_seq = res.seq;
+            let old_parent_id = res.parent_id.clone();
+            let parent_id = parent_id.unwrap_or(&old_parent_id);
 
-        let res = Self::update_seq_before_move(conn, &old_parent_id, &parent_id, old_seq, seq)?;
-        let (seq, _n) = match res {
-            Some((s, n)) => (s, n),
-            None => return Ok(0),
-        };
-        diesel::update(myTag::table.find(id))
-            .set((myTag::seq.eq(seq), myTag::parent_id.eq(parent_id)))
-            .execute(conn)
+            Self::validate_destination(conn, id, parent_id)?;
+            let res = Self::update_seq_before_move(conn, &old_parent_id, parent_id, old_seq, seq)?;
+            let (seq, _n) = match res {
+                Some((s, n)) => (s, n),
+                None => return Ok(0),
+            };
+            diesel::update(myTag::table.find(id))
+                .set((myTag::seq.eq(seq), myTag::parent_id.eq(parent_id)))
+                .execute(conn)
+        })
     }
 }
 
@@ -227,25 +241,19 @@ impl MyTag {
 impl TreeSeq for MyTag {
     type ParentId = i32;
     const START_SEQ: i32 = 0;
-
-    #[inline]
     fn is_valid_parent(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
     ) -> QueryResult<bool> {
         Self::is_folder(conn, *parent_id)
     }
-
-    #[inline]
     fn count_children(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<i32> {
         let count: i64 = myTag::table
             .filter(myTag::parent_id.eq(parent_id))
             .count()
             .get_result(conn)?;
-        Ok(count as i32)
+        i32::try_from(count).map_err(|_| ordering_error("Collection too large"))
     }
-
-    #[inline]
     fn get_seq_numbers(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
@@ -254,87 +262,60 @@ impl TreeSeq for MyTag {
             .filter(myTag::parent_id.eq(parent_id))
             .order(myTag::seq)
             .select(myTag::seq)
-            .get_results(conn)
+            .load(conn)
     }
-
-    #[inline]
     fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<usize> {
-        diesel::sql_query(
-            r#"WITH ordered AS (
-                SELECT myTag_id, ROW_NUMBER() OVER (ORDER BY sequenceNo) + (? - 1) AS new_seq
-                FROM myTag WHERE myTag_id_parent =?
-            ) UPDATE myTag
-            SET sequenceNo = (SELECT new_seq FROM ordered WHERE ordered.myTag_id = myTag.myTag_id)
-            WHERE myTag_id_parent = ?;"#,
-        )
-        .bind::<diesel::sql_types::Integer, _>(Self::START_SEQ)
-        .bind::<diesel::sql_types::Integer, _>(parent_id)
-        .bind::<diesel::sql_types::Integer, _>(parent_id)
-        .execute(conn)
+        <Self as OrderedModel>::renumber(conn, parent_id)
     }
-
-    #[inline]
-    fn increment_seq_gte(
+    fn shift_seq(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
-        seq: i32,
+        range: std::ops::Range<i32>,
+        delta: i32,
     ) -> QueryResult<usize> {
         diesel::update(
             myTag::table
-                .filter(myTag::seq.ge(seq))
-                .filter(myTag::parent_id.eq(parent_id)),
+                .filter(myTag::parent_id.eq(parent_id))
+                .filter(myTag::seq.ge(range.start))
+                .filter(myTag::seq.lt(range.end)),
         )
-        .set(myTag::seq.eq(myTag::seq + 1))
+        .set(myTag::seq.eq(myTag::seq + delta))
         .execute(conn)
     }
+}
 
-    #[inline]
-    fn decrement_seq_gt(
-        conn: &mut SqliteConnection,
-        parent_id: &Self::ParentId,
-        seq: i32,
-    ) -> QueryResult<usize> {
-        diesel::update(
-            myTag::table
-                .filter(myTag::seq.gt(seq))
-                .filter(myTag::parent_id.eq(parent_id)),
-        )
-        .set(myTag::seq.eq(myTag::seq - 1))
-        .execute(conn)
+impl OrderedModel for MyTag {
+    fn order_id(&self) -> i32 {
+        self.id
     }
-
-    #[inline]
-    fn increment_seq_gte_lt(
-        conn: &mut SqliteConnection,
-        parent_id: &Self::ParentId,
-        start: i32,
-        end: i32,
-    ) -> QueryResult<usize> {
-        diesel::update(
-            myTag::table
-                .filter(myTag::seq.ge(start))
-                .filter(myTag::seq.lt(end))
-                .filter(myTag::parent_id.eq(parent_id)),
-        )
-        .set(myTag::seq.eq(myTag::seq + 1))
-        .execute(conn)
+    fn order_parent(&self) -> &Self::ParentId {
+        &self.parent_id
     }
-
-    #[inline]
-    fn decrement_seq_gt_lte(
+    fn order_position(&self) -> i32 {
+        self.seq
+    }
+    fn ordered(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<Vec<Self>> {
+        myTag::table
+            .filter(myTag::parent_id.eq(parent_id))
+            .order((myTag::seq, myTag::id))
+            .select(Self::as_select())
+            .load(conn)
+    }
+    fn write_order(
         conn: &mut SqliteConnection,
-        parent_id: &Self::ParentId,
-        start: i32,
-        end: i32,
+        changes: &[(&Self, &Self::ParentId, i32)],
     ) -> QueryResult<usize> {
-        diesel::update(
-            myTag::table
-                .filter(myTag::seq.gt(start))
-                .filter(myTag::seq.le(end))
-                .filter(myTag::parent_id.eq(parent_id)),
-        )
-        .set(myTag::seq.eq(myTag::seq - 1))
-        .execute(conn)
+        if changes.is_empty() {
+            return Ok(0);
+        }
+
+        let mut count = 0;
+        for (row, parent_id, seq) in changes {
+            count += diesel::update(myTag::table.find(row.id))
+                .set((myTag::seq.eq(seq), myTag::parent_id.eq(*parent_id)))
+                .execute(conn)?;
+        }
+        Ok(count)
     }
 }
 
@@ -356,8 +337,8 @@ impl TreeSeq for MyTag {
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct NewMyTag {
-    /// The sequence/order number of the tag (1-based index).
-    pub seq: i32,
+    /// Insertion position in the collection; `None` appends.
+    pub seq: Option<i32>,
     /// The name of the tag.
     pub name: String,
     /// The tag type, either list (`0`) or a folder (`1`).
@@ -370,12 +351,14 @@ impl ModelInsert for NewMyTag {
     type Model = MyTag;
 
     fn insert(mut self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
-        let seq = if self.seq == 0 { None } else { Some(self.seq) };
-        let (seq, _n) = MyTag::update_seq_before_insert(conn, &self.parent_id, seq)?;
-        self.seq = seq;
-        diesel::insert_into(myTag::table)
-            .values(&self)
-            .get_result(conn)
+        conn.transaction(|conn| {
+            let seq = self.seq;
+            let (seq, _n) = MyTag::update_seq_before_insert(conn, &self.parent_id, seq)?;
+            self.seq = Some(seq);
+            diesel::insert_into(myTag::table)
+                .values(&self)
+                .get_result(conn)
+        })
     }
 }
 
@@ -407,9 +390,9 @@ impl NewMyTag {
         }
     }
 
-    /// Builder for `seq`.
+    /// Set the insertion position among siblings; zero inserts first.
     pub fn seq(mut self, seq: i32) -> Self {
-        self.seq = seq;
+        self.seq = Some(seq);
         self
     }
 
@@ -464,7 +447,7 @@ impl Model for MyTagContent {
 
 impl ModelDelete for MyTagContent {
     fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
-        diesel::delete(myTag_content::table.find(*id)).execute(conn)
+        conn.transaction(|conn| diesel::delete(myTag_content::table.find(*id)).execute(conn))
     }
 }
 
@@ -472,23 +455,27 @@ impl ModelInsert for MyTagContent {
     type Model = MyTagContent;
 
     fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
-        if !Content::id_exists(conn, &self.content_id)? {
-            return Err(Error::NotFound);
-        }
-        diesel::insert_into(myTag_content::table)
-            .values(&self)
-            .get_result(conn)
+        conn.transaction(|conn| {
+            if !Content::id_exists(conn, &self.content_id)? {
+                return Err(Error::NotFound);
+            }
+            diesel::insert_into(myTag_content::table)
+                .values(&self)
+                .get_result(conn)
+        })
     }
 
     fn insert_all(conn: &mut SqliteConnection, items: Vec<Self>) -> QueryResult<Vec<Self::Model>> {
-        for item in &items {
-            if !Content::id_exists(conn, &item.content_id)? {
-                return Err(Error::NotFound);
+        conn.transaction(|conn| {
+            for item in &items {
+                if !Content::id_exists(conn, &item.content_id)? {
+                    return Err(Error::NotFound);
+                }
             }
-        }
-        diesel::insert_into(myTag_content::table)
-            .values(&items)
-            .get_results(conn)
+            diesel::insert_into(myTag_content::table)
+                .values(&items)
+                .get_results(conn)
+        })
     }
 }
 
@@ -541,7 +528,7 @@ impl MyTagContent {
 
     /// Deletes all record from the `myTag_content` table referencing a `myTag` record.
     pub fn delete_by_my_tag_id(conn: &mut SqliteConnection, my_tag_id: i32) -> QueryResult<usize> {
-        diesel::delete(Self::filter_by_my_tag_id(my_tag_id)).execute(conn)
+        conn.transaction(|conn| diesel::delete(Self::filter_by_my_tag_id(my_tag_id)).execute(conn))
     }
 
     /// Deletes all record from the `myTag_content` table referencing multiple `myTag` records.
@@ -549,7 +536,9 @@ impl MyTagContent {
         conn: &mut SqliteConnection,
         my_tag_ids: &[i32],
     ) -> QueryResult<usize> {
-        diesel::delete(Self::filter_by_my_tag_ids(my_tag_ids)).execute(conn)
+        conn.transaction(|conn| {
+            diesel::delete(Self::filter_by_my_tag_ids(my_tag_ids)).execute(conn)
+        })
     }
 
     /// Deletes all record from the `myTag_content` table referencing a `content` record.
@@ -557,7 +546,9 @@ impl MyTagContent {
         conn: &mut SqliteConnection,
         content_id: i32,
     ) -> QueryResult<usize> {
-        diesel::delete(Self::filter_by_content_id(content_id)).execute(conn)
+        conn.transaction(|conn| {
+            diesel::delete(Self::filter_by_content_id(content_id)).execute(conn)
+        })
     }
 
     /// Deletes all record from the `myTag_content` table referencing a `content` record.
@@ -565,6 +556,8 @@ impl MyTagContent {
         conn: &mut SqliteConnection,
         content_ids: &[i32],
     ) -> QueryResult<usize> {
-        diesel::delete(Self::filter_by_content_ids(content_ids)).execute(conn)
+        conn.transaction(|conn| {
+            diesel::delete(Self::filter_by_content_ids(content_ids)).execute(conn)
+        })
     }
 }

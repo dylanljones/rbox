@@ -35,6 +35,7 @@
 //!
 //! See individual method documentation for details on arguments, return values, and error handling.
 
+use diesel::Connection;
 use dunce;
 use std::collections::HashSet;
 use std::ffi::OsStr;
@@ -48,7 +49,7 @@ use crate::anlz::{find_anlz_files, Anlz, AnlzFiles, AnlzPaths};
 use crate::enums::*;
 use crate::error::{Error, Result};
 use crate::model_traits::{
-    Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, NodeRef,
+    Model, ModelDelete, ModelInsert, ModelList, ModelRelations, ModelTree, ModelUpdate, NodeRef,
 };
 use crate::options::RekordboxOptions;
 use crate::pathlib::PathExt;
@@ -490,6 +491,27 @@ impl MasterDb {
     }
 
     // -- Album ------------------------------------------------------------------------------------
+
+    /// Load an album and all direct relationships in one read transaction.
+    /// Returns a detached snapshot; missing relationship targets remain `None`.
+    pub fn get_album_with_relations(&self, id: &str) -> Result<Option<DjmdAlbumView>> {
+        let mut conn = self.pool.get()?;
+        Ok(conn.transaction::<_, diesel::result::Error, _>(|conn| {
+            DjmdAlbum::find(conn, id)?
+                .map(|row| row.resolve(conn))
+                .transpose()
+        })?)
+    }
+
+    /// Load all albums and their direct relationships using batched queries.
+    /// Base and related rows are read within the same transaction.
+    pub fn get_albums_with_relations(&self) -> Result<Vec<DjmdAlbumView>> {
+        let mut conn = self.pool.get()?;
+        Ok(conn.transaction::<_, diesel::result::Error, _>(|conn| {
+            let rows = DjmdAlbum::all(conn)?;
+            DjmdAlbum::resolve_many(conn, rows)
+        })?)
+    }
 
     /// Retrieves all entries from the `djmdAlbum` table in the database.
     ///
@@ -1085,6 +1107,27 @@ impl MasterDb {
     pub fn get_content_by_id(&mut self, id: &str) -> Result<Option<DjmdContent>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdContent::find(&mut conn, id)?)
+    }
+
+    /// Load a track and all direct metadata relationships in one read transaction.
+    /// Returns a detached snapshot; missing relationship targets remain `None`.
+    pub fn get_content_with_relations(&self, id: &str) -> Result<Option<DjmdContentView>> {
+        let mut conn = self.pool.get()?;
+        Ok(conn.transaction::<_, diesel::result::Error, _>(|conn| {
+            DjmdContent::find(conn, id)?
+                .map(|content| content.resolve(conn))
+                .transpose()
+        })?)
+    }
+
+    /// Load all tracks and their direct metadata using batched relationship queries.
+    /// Content and related rows are read within the same transaction.
+    pub fn get_contents_with_relations(&self) -> Result<Vec<DjmdContentView>> {
+        let mut conn = self.pool.get()?;
+        Ok(conn.transaction::<_, diesel::result::Error, _>(|conn| {
+            let contents = DjmdContent::all(conn)?;
+            DjmdContent::resolve_many(conn, contents)
+        })?)
     }
 
     /// Retrieves multiple `djmdContent` entries by their unique identifiers.
@@ -3033,14 +3076,15 @@ impl MasterDb {
         let mut conn = self.pool.get()?;
 
         // Move playlist
-        let playlist: DjmdPlaylist = self.get_playlist_by_id(id)?.expect("Playlist not found");
-        let parent_id = parent_id.unwrap_or(playlist.parent_id.clone());
+        let playlist = DjmdPlaylist::find(&mut conn, id)?.ok_or(diesel::result::Error::NotFound)?;
+        let old_parent_id = playlist.parent_id.clone();
+        let parent_id = parent_id.unwrap_or(old_parent_id.clone());
         let result = DjmdPlaylist::move_to(&mut conn, id, Some(&parent_id), seq)?;
         if result == 0 {
             return Ok(playlist);
         }
         // Update playlist XML
-        let playlist: DjmdPlaylist = self.get_playlist_by_id(id)?.expect("Playlist not found");
+        let playlist = DjmdPlaylist::find(&mut conn, id)?.ok_or(diesel::result::Error::NotFound)?;
         if let Some(pl_xml_path) = self.plxml_path.clone() {
             let mut pl_xml = MasterPlaylistXml::load(pl_xml_path);
             pl_xml.update_parent(
@@ -3049,8 +3093,10 @@ impl MasterDb {
                 playlist.updated_at.naive_utc(),
             );
             // Update update-time of all child items
-            for pl in self.get_playlist_children(&parent_id)? {
-                pl_xml.update(pl.id, pl.updated_at.naive_utc());
+            for affected_parent in HashSet::from([old_parent_id, parent_id]) {
+                for pl in self.get_playlist_children(&affected_parent)? {
+                    pl_xml.update(pl.id, pl.updated_at.naive_utc());
+                }
             }
             let _ = pl_xml.dump();
         } else {
@@ -3155,12 +3201,18 @@ impl MasterDb {
         self.assert_write_mode()?;
         let mut conn = self.pool.get()?;
 
+        let parent_id = DjmdPlaylist::find(&mut conn, id)?
+            .ok_or(diesel::result::Error::NotFound)?
+            .parent_id;
         let deleted_ids = DjmdPlaylist::delete(&mut conn, id)?;
 
         if let Some(pl_xml_path) = self.plxml_path.clone() {
             let mut pl_xml = MasterPlaylistXml::load(pl_xml_path);
             for id in &deleted_ids {
                 pl_xml.remove(id.clone());
+            }
+            for sibling in DjmdPlaylist::by_parent_id(&mut conn, &parent_id)? {
+                pl_xml.update(sibling.id, sibling.updated_at.naive_utc());
             }
             let _ = pl_xml.dump();
         } else {
