@@ -19,8 +19,8 @@ use super::schema::{djmdContent, djmdPlaylist, djmdSongPlaylist};
 use super::{format_datetime, Date, DateString, RandomIdGenerator};
 use crate::enums::PlaylistType;
 use crate::model_traits::{
-    build_tree_list, Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, NodeRef,
-    TreeNode, TreeSeq,
+    build_tree_list, delete_tree_batch, ordering_error, tree_delete_roots, Model, ModelDelete,
+    ModelInsert, ModelList, ModelTree, ModelUpdate, NodeRef, OrderedModel, TreeNode, TreeSeq,
 };
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
@@ -104,7 +104,9 @@ impl Model for DjmdPlaylist {
     type Id = str;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
-        Self::query().load(conn)
+        Self::query()
+            .order((djmdPlaylist::parent_id, djmdPlaylist::seq, djmdPlaylist::id))
+            .load(conn)
     }
 
     fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
@@ -118,75 +120,65 @@ impl Model for DjmdPlaylist {
 
 impl ModelUpdate for DjmdPlaylist {
     fn update(mut self, conn: &mut SqliteConnection) -> QueryResult<Self> {
-        let existing = match Self::find(conn, &self.id)? {
-            Some(e) => e,
-            None => return Err(Error::NotFound),
-        };
-        let mut changes = 0;
-        if self.seq != existing.seq {
-            changes += 1;
-        }
-        if self.name != existing.name {
-            changes += 1;
-        }
-        if self.attribute != existing.attribute {
-            changes += 1;
-        }
-        if self.parent_id != existing.parent_id {
-            changes += 1;
-        }
-        if self.image_path != existing.image_path {
-            changes += 1;
-        }
-        if self.smart_list != existing.smart_list {
-            changes += 1;
-        }
-        if changes == 0 {
-            return Ok(existing);
-        }
-        self.updated_at = Utc::now();
-        self.rb_local_usn = Some(AgentRegistry::increment_local_usn_by(conn, changes)?);
-        diesel::update(djmdPlaylist::table.find(self.id.clone()))
-            .set(self)
-            .get_result(conn)
+        conn.transaction(|conn| {
+            let existing = match Self::find(conn, &self.id)? {
+                Some(e) => e,
+                None => return Err(Error::NotFound),
+            };
+            if self.seq != existing.seq || self.parent_id != existing.parent_id {
+                <Self as ModelTree>::move_to(
+                    conn,
+                    &self.id,
+                    Some(&self.parent_id),
+                    Some(self.seq),
+                )?;
+            }
+            if self.attribute != existing.attribute
+                && (Self::count_children(conn, &self.id)? > 0
+                    || DjmdSongPlaylist::count_children(conn, &self.id)? > 0)
+            {
+                return Err(ordering_error(
+                    "Cannot change the type of a nonempty collection",
+                ));
+            }
+            let mut changes = 0;
+            if self.seq != existing.seq {
+                changes += 1;
+            }
+            if self.name != existing.name {
+                changes += 1;
+            }
+            if self.attribute != existing.attribute {
+                changes += 1;
+            }
+            if self.parent_id != existing.parent_id {
+                changes += 1;
+            }
+            if self.image_path != existing.image_path {
+                changes += 1;
+            }
+            if self.smart_list != existing.smart_list {
+                changes += 1;
+            }
+            if changes == 0 {
+                return Ok(existing);
+            }
+            self.updated_at = Utc::now();
+            self.rb_local_usn = Some(AgentRegistry::increment_local_usn_by(conn, changes)?);
+            diesel::update(djmdPlaylist::table.find(self.id.clone()))
+                .set(self)
+                .get_result(conn)
+        })
     }
 }
 
 impl ModelDelete for DjmdPlaylist {
     fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
-        // Vec of all deleted playlist ids
-        let mut deleted_ids = vec![id.to_string()];
+        Self::delete(conn, id).map(|ids| ids.len())
+    }
 
-        // Delete the record
-        let parent_id: String = diesel::delete(djmdPlaylist::table.find(id))
-            .returning(djmdPlaylist::parent_id)
-            .get_result(conn)?;
-
-        // Reorder the seq numbers of tags left in the parent
-        Self::reset_seq(conn, &parent_id)?;
-
-        // Remove all child records recursively
-        let mut parent_ids = VecDeque::from(vec![id.to_string()]);
-        while let Some(parent_id) = parent_ids.pop_front() {
-            // Delete children
-            let deleted: Vec<String> =
-                diesel::delete(djmdPlaylist::table.filter(djmdPlaylist::parent_id.eq(parent_id)))
-                    .returning(djmdPlaylist::id)
-                    .get_results(conn)?;
-            deleted_ids.extend(deleted.clone());
-            // Add children to the queue
-            for deleted_id in deleted {
-                parent_ids.push_back(deleted_id);
-            }
-        }
-
-        // Remove any djmdSongPlaylist records that are associated with the deleted djmdPlaylists
-        DjmdSongPlaylist::delete_by_playlist_ids(conn, &deleted_ids)?;
-
-        let n = deleted_ids.len();
-        AgentRegistry::increment_local_usn_by(conn, n)?;
-
-        Ok(n)
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
+        delete_tree_batch::<Self>(conn, ids)
     }
 }
 
@@ -197,32 +189,35 @@ impl ModelTree for DjmdPlaylist {
         parent_id: Option<&Self::Id>,
         seq: Option<i32>,
     ) -> QueryResult<usize> {
-        let res = match Self::find(conn, id)? {
-            Some(r) => r,
-            None => return Err(Error::NotFound),
-        };
-        let old_seq = res.seq;
-        let old_parent_id = res.parent_id.clone();
-        let parent_id = parent_id.unwrap_or(&old_parent_id);
+        conn.transaction(|conn| {
+            let res = match Self::find(conn, id)? {
+                Some(r) => r,
+                None => return Err(Error::NotFound),
+            };
+            let old_seq = res.seq;
+            let old_parent_id = res.parent_id.clone();
+            let parent_id = parent_id.unwrap_or(&old_parent_id);
 
-        // *Note*: Moving other records increments USN by 1 for all changes
-        let res = Self::update_seq_before_move(conn, &old_parent_id, parent_id, old_seq, seq)?;
-        let (seq, _n) = match res {
-            Some((s, n)) => (s, n),
-            None => return Ok(0),
-        };
+            // *Note*: Moving other records increments USN by 1 for all changes
+            Self::validate_destination(conn, id, parent_id)?;
+            let res = Self::update_seq_before_move(conn, &old_parent_id, parent_id, old_seq, seq)?;
+            let (seq, _n) = match res {
+                Some((s, n)) => (s, n),
+                None => return Ok(0),
+            };
 
-        // Update Seq and parent of actual record
-        let now = Utc::now();
-        let usn = AgentRegistry::increment_local_usn(conn)?;
-        diesel::update(djmdPlaylist::table.find(id))
-            .set((
-                djmdPlaylist::seq.eq(seq),
-                djmdPlaylist::parent_id.eq(parent_id),
-                djmdPlaylist::updated_at.eq(&format_datetime(&now)),
-                djmdPlaylist::rb_local_usn.eq(usn),
-            ))
-            .execute(conn)
+            // Update Seq and parent of actual record
+            let now = Utc::now();
+            let usn = AgentRegistry::increment_local_usn(conn)?;
+            diesel::update(djmdPlaylist::table.find(id))
+                .set((
+                    djmdPlaylist::seq.eq(seq),
+                    djmdPlaylist::parent_id.eq(parent_id),
+                    djmdPlaylist::updated_at.eq(&format_datetime(&now)),
+                    djmdPlaylist::rb_local_usn.eq(usn),
+                ))
+                .execute(conn)
+        })
     }
 }
 
@@ -379,43 +374,46 @@ impl DjmdPlaylist {
     /// # Returns
     /// A `QueryResult` containing the primary keys of the affected rows
     pub fn delete(conn: &mut SqliteConnection, id: &str) -> QueryResult<Vec<String>> {
-        // Vec of all deleted playlist ids
-        let mut deleted_ids = vec![id.to_string()];
+        conn.transaction(|conn| {
+            // Vec of all deleted playlist ids
+            let mut deleted_ids = vec![id.to_string()];
 
-        // Delete the record
-        let parent_id: String = diesel::delete(djmdPlaylist::table.find(id))
-            .returning(djmdPlaylist::parent_id)
-            .get_result(conn)?;
+            // Delete the record
+            let (parent_id, old_seq): (String, i32) = diesel::delete(djmdPlaylist::table.find(id))
+                .returning((djmdPlaylist::parent_id, djmdPlaylist::seq))
+                .get_result(conn)?;
 
-        // Reorder the seq numbers of tags left in the parent
-        Self::reset_seq(conn, &parent_id)?;
+            // Reorder the seq numbers of tags left in the parent
+            Self::decrement_seq_gt(conn, &parent_id, old_seq)?;
 
-        // Remove all child records recursively
-        let mut parent_ids = VecDeque::from(vec![id.to_string()]);
-        while let Some(parent_id) = parent_ids.pop_front() {
-            // Delete children
-            let deleted: Vec<String> =
-                diesel::delete(djmdPlaylist::table.filter(djmdPlaylist::parent_id.eq(parent_id)))
-                    .returning(djmdPlaylist::id)
-                    .get_results(conn)?;
-            deleted_ids.extend(deleted.clone());
-            // Add children to the queue
-            for deleted_id in deleted {
-                parent_ids.push_back(deleted_id);
+            // Remove all child records recursively
+            let mut parent_ids = VecDeque::from(vec![id.to_string()]);
+            while let Some(parent_id) = parent_ids.pop_front() {
+                // Delete children
+                let deleted: Vec<String> = diesel::delete(
+                    djmdPlaylist::table.filter(djmdPlaylist::parent_id.eq(parent_id)),
+                )
+                .returning(djmdPlaylist::id)
+                .get_results(conn)?;
+                deleted_ids.extend(deleted.clone());
+                // Add children to the queue
+                for deleted_id in deleted {
+                    parent_ids.push_back(deleted_id);
+                }
             }
-        }
 
-        // Remove any djmdSongPlaylist records that are associated with the deleted djmdPlaylists
-        DjmdSongPlaylist::delete_by_playlist_ids(conn, &deleted_ids)?;
+            // Remove any djmdSongPlaylist records that are associated with the deleted djmdPlaylists
+            DjmdSongPlaylist::delete_by_playlist_ids(conn, &deleted_ids)?;
 
-        AgentRegistry::increment_local_usn_by(conn, deleted_ids.len())?;
+            AgentRegistry::increment_local_usn_by(conn, deleted_ids.len())?;
 
-        Ok(deleted_ids)
+            Ok(deleted_ids)
+        })
     }
 
     /// Deletes multiple records from the database table.
     ///
-    /// This method uses a naive loop to delete each record individually.
+    /// Selected subtrees are deleted once, including when selections overlap.
     ///
     /// # Arguments
     /// - `conn`: A mutable reference to the database connection.
@@ -424,12 +422,14 @@ impl DjmdPlaylist {
     /// # Returns
     /// A `QueryResult` containing the primary keys of the affected rows
     pub fn delete_all(conn: &mut SqliteConnection, ids: Vec<&str>) -> QueryResult<Vec<String>> {
-        let mut results = Vec::new();
-        for id in ids {
-            let deleted_ids = Self::delete(conn, id)?;
-            results.extend(deleted_ids);
-        }
-        Ok(results)
+        conn.transaction(|conn| {
+            let mut results = Vec::new();
+            for id in tree_delete_roots::<Self>(conn, &ids)? {
+                let deleted_ids = Self::delete(conn, id)?;
+                results.extend(deleted_ids);
+            }
+            Ok(results)
+        })
     }
 
     /// Queries all records from the `djmdPlaylist` table and returns a tree structure.
@@ -458,25 +458,19 @@ impl DjmdPlaylist {
 impl TreeSeq for DjmdPlaylist {
     type ParentId = str;
     const START_SEQ: i32 = 1;
-
-    #[inline]
     fn is_valid_parent(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
     ) -> QueryResult<bool> {
         Self::is_folder(conn, parent_id)
     }
-
-    #[inline]
     fn count_children(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<i32> {
         let count: i64 = djmdPlaylist::table
             .filter(djmdPlaylist::parent_id.eq(parent_id))
             .count()
             .get_result(conn)?;
-        Ok(count as i32)
+        i32::try_from(count).map_err(|_| ordering_error("Collection too large"))
     }
-
-    #[inline]
     fn get_seq_numbers(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
@@ -488,108 +482,72 @@ impl TreeSeq for DjmdPlaylist {
             .load(conn)
     }
 
-    #[inline]
     fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<usize> {
-        diesel::sql_query(
-            r#"WITH ordered AS (
-                SELECT ID, ROW_NUMBER() OVER (ORDER BY Seq) + (? - 1) AS new_seq
-                FROM djmdPlaylist WHERE ParentID =?
-            ) UPDATE djmdPlaylist
-            SET Seq = (SELECT new_seq FROM ordered WHERE ordered.ID = djmdPlaylist.ID)
-            WHERE ParentID =?;"#,
-        )
-        .bind::<diesel::sql_types::Integer, _>(Self::START_SEQ)
-        .bind::<diesel::sql_types::Text, _>(parent_id)
-        .bind::<diesel::sql_types::Text, _>(parent_id)
-        .execute(conn)
+        <Self as OrderedModel>::renumber(conn, parent_id)
     }
 
-    #[inline]
-    fn increment_seq_gte(
+    fn shift_seq(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
-        seq: i32,
+        range: std::ops::Range<i32>,
+        delta: i32,
     ) -> QueryResult<usize> {
         let now = Utc::now();
         let usn = AgentRegistry::local_usn(conn)? + 1;
         diesel::update(
             djmdPlaylist::table
                 .filter(djmdPlaylist::parent_id.eq(parent_id))
-                .filter(djmdPlaylist::seq.ge(seq)),
+                .filter(djmdPlaylist::seq.ge(range.start))
+                .filter(djmdPlaylist::seq.lt(range.end)),
         )
         .set((
-            djmdPlaylist::seq.eq(djmdPlaylist::seq + 1),
-            djmdPlaylist::updated_at.eq(format_datetime(&now)),
-            djmdPlaylist::rb_local_usn.eq(usn),
-        ))
-        .execute(conn)
-    }
-
-    #[inline]
-    fn decrement_seq_gt(
-        conn: &mut SqliteConnection,
-        parent_id: &Self::ParentId,
-        seq: i32,
-    ) -> QueryResult<usize> {
-        let now = Utc::now();
-        let usn = AgentRegistry::local_usn(conn)? + 1;
-        diesel::update(
-            djmdPlaylist::table
-                .filter(djmdPlaylist::parent_id.eq(parent_id))
-                .filter(djmdPlaylist::seq.gt(seq)),
-        )
-        .set((
-            djmdPlaylist::seq.eq(djmdPlaylist::seq - 1),
-            djmdPlaylist::updated_at.eq(format_datetime(&now)),
-            djmdPlaylist::rb_local_usn.eq(usn),
-        ))
-        .execute(conn)
-    }
-
-    #[inline]
-    fn increment_seq_gte_lt(
-        conn: &mut SqliteConnection,
-        parent_id: &Self::ParentId,
-        start: i32,
-        end: i32,
-    ) -> QueryResult<usize> {
-        let now = Utc::now();
-        let usn = AgentRegistry::local_usn(conn)? + 1;
-        diesel::update(
-            djmdPlaylist::table
-                .filter(djmdPlaylist::parent_id.eq(parent_id))
-                .filter(djmdPlaylist::seq.ge(start))
-                .filter(djmdPlaylist::seq.lt(end)),
-        )
-        .set((
-            djmdPlaylist::seq.eq(djmdPlaylist::seq + 1),
+            djmdPlaylist::seq.eq(djmdPlaylist::seq + delta),
             djmdPlaylist::updated_at.eq(&format_datetime(&now)),
             djmdPlaylist::rb_local_usn.eq(usn),
         ))
         .execute(conn)
     }
+}
 
-    #[inline]
-    fn decrement_seq_gt_lte(
+impl OrderedModel for DjmdPlaylist {
+    fn order_id(&self) -> String {
+        self.id.clone()
+    }
+    fn order_parent(&self) -> &Self::ParentId {
+        &self.parent_id
+    }
+    fn order_position(&self) -> i32 {
+        self.seq
+    }
+    fn ordered(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<Vec<Self>> {
+        djmdPlaylist::table
+            .filter(djmdPlaylist::parent_id.eq(parent_id))
+            .order((djmdPlaylist::seq, djmdPlaylist::id))
+            .select(Self::as_select())
+            .load(conn)
+    }
+
+    fn write_order(
         conn: &mut SqliteConnection,
-        parent_id: &Self::ParentId,
-        start: i32,
-        end: i32,
+        changes: &[(&Self, &Self::ParentId, i32)],
     ) -> QueryResult<usize> {
+        if changes.is_empty() {
+            return Ok(0);
+        }
         let now = Utc::now();
-        let usn = AgentRegistry::local_usn(conn)? + 1;
-        diesel::update(
-            djmdPlaylist::table
-                .filter(djmdPlaylist::parent_id.eq(parent_id))
-                .filter(djmdPlaylist::seq.gt(start))
-                .filter(djmdPlaylist::seq.le(end)),
-        )
-        .set((
-            djmdPlaylist::seq.eq(djmdPlaylist::seq - 1),
-            djmdPlaylist::updated_at.eq(&format_datetime(&now)),
-            djmdPlaylist::rb_local_usn.eq(usn),
-        ))
-        .execute(conn)
+        let usn = AgentRegistry::increment_local_usn(conn)?;
+        let mut count = 0;
+        for (row, parent_id, seq) in changes {
+            count += diesel::update(djmdPlaylist::table.find(&row.id))
+                .set((
+                    djmdPlaylist::seq.eq(seq),
+                    djmdPlaylist::parent_id.eq(*parent_id),
+                    djmdPlaylist::updated_at.eq(&format_datetime(&now)),
+                    djmdPlaylist::rb_local_usn.eq(usn),
+                ))
+                .execute(conn)?;
+        }
+        Ok(count)
     }
 }
 
@@ -627,36 +585,38 @@ impl ModelInsert for NewDjmdPlaylist {
     type Model = DjmdPlaylist;
 
     fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
-        let parent_id = self.parent_id.unwrap_or("root".to_string());
-        // Handle seq and USN of moved records (also checkks parent)
-        let (seq, n) = Self::Model::update_seq_before_insert(conn, &parent_id, self.seq)?;
-        if n > 0 {
-            // Apply USN of moved records
-            AgentRegistry::increment_local_usn(conn)?;
-        }
-        // Generate meta
-        let id = Self::Model::generate_id(conn)?;
-        let uuid = Uuid::new_v4().to_string();
-        let now = Utc::now();
-        // Get next USN: We increment by 2 (1 for creating, 1 for renaming from 'New Playlist')
-        let usn = AgentRegistry::increment_local_usn_by(conn, 2)?;
-        let item = Self::Model {
-            id,
-            uuid,
-            rb_local_usn: Some(usn),
-            created_at: now,
-            updated_at: now,
-            name: self.name,
-            seq,
-            attribute: self.attribute,
-            parent_id,
-            image_path: self.image_path,
-            smart_list: self.smart_list,
-            ..Default::default()
-        };
-        diesel::insert_into(djmdPlaylist::table)
-            .values(item)
-            .get_result(conn)
+        conn.transaction(|conn| {
+            let parent_id = self.parent_id.unwrap_or("root".to_string());
+            // Handle seq and USN of moved records (also checkks parent)
+            let (seq, n) = Self::Model::update_seq_before_insert(conn, &parent_id, self.seq)?;
+            if n > 0 {
+                // Apply USN of moved records
+                AgentRegistry::increment_local_usn(conn)?;
+            }
+            // Generate meta
+            let id = Self::Model::generate_id(conn)?;
+            let uuid = Uuid::new_v4().to_string();
+            let now = Utc::now();
+            // Get next USN: We increment by 2 (1 for creating, 1 for renaming from 'New Playlist')
+            let usn = AgentRegistry::increment_local_usn_by(conn, 2)?;
+            let item = Self::Model {
+                id,
+                uuid,
+                rb_local_usn: Some(usn),
+                created_at: now,
+                updated_at: now,
+                name: self.name,
+                seq,
+                attribute: self.attribute,
+                parent_id,
+                image_path: self.image_path,
+                smart_list: self.smart_list,
+                ..Default::default()
+            };
+            diesel::insert_into(djmdPlaylist::table)
+                .values(item)
+                .get_result(conn)
+        })
     }
 }
 
@@ -771,7 +731,13 @@ impl Model for DjmdSongPlaylist {
     type Id = str;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
-        Self::query().load(conn)
+        Self::query()
+            .order((
+                djmdSongPlaylist::playlist_id,
+                djmdSongPlaylist::track_no,
+                djmdSongPlaylist::id,
+            ))
+            .load(conn)
     }
 
     fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
@@ -785,41 +751,47 @@ impl Model for DjmdSongPlaylist {
 
 impl ModelDelete for DjmdSongPlaylist {
     fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
-        let query = djmdSongPlaylist::table.find(id);
-        let playlist_id: String = query.select(djmdSongPlaylist::playlist_id).first(conn)?;
-        let result = diesel::delete(query).execute(conn)?;
-        AgentRegistry::increment_local_usn(conn)?;
-        // Reorder the track_no numbers
-        Self::reset_seq(conn, &playlist_id)?;
-        Ok(result)
+        conn.transaction(|conn| {
+            let query = djmdSongPlaylist::table.find(id);
+            let (playlist_id, old_seq): (String, i32) = query
+                .select((djmdSongPlaylist::playlist_id, djmdSongPlaylist::track_no))
+                .first(conn)?;
+            let result = diesel::delete(query).execute(conn)?;
+            // Reorder the track_no numbers
+            Self::decrement_seq_gt(conn, &playlist_id, old_seq)?;
+            AgentRegistry::increment_local_usn(conn)?;
+            Ok(result)
+        })
     }
 }
 
 impl ModelList for DjmdSongPlaylist {
     fn move_to(conn: &mut SqliteConnection, id: &Self::Id, seq: Option<i32>) -> QueryResult<usize> {
-        let res = match Self::find(conn, id)? {
-            Some(r) => r,
-            None => return Err(Error::NotFound),
-        };
+        conn.transaction(|conn| {
+            let res = match Self::find(conn, id)? {
+                Some(r) => r,
+                None => return Err(Error::NotFound),
+            };
 
-        let old_seq = res.track_no;
-        // *Note*: Moving other records increments USN by 1 for all changes
-        let res = Self::update_seq_before_move_in(conn, &res.playlist_id, old_seq, seq)?;
-        let (seq, _n) = match res {
-            Some((s, n)) => (s, n),
-            None => return Ok(0),
-        };
+            let old_seq = res.track_no;
+            // *Note*: Moving other records increments USN by 1 for all changes
+            let res = Self::update_seq_before_move_in(conn, &res.playlist_id, old_seq, seq)?;
+            let (seq, _n) = match res {
+                Some((s, n)) => (s, n),
+                None => return Ok(0),
+            };
 
-        // Update seq of actual record
-        let now = Utc::now();
-        let usn = AgentRegistry::increment_local_usn(conn)?;
-        diesel::update(djmdSongPlaylist::table.find(id))
-            .set((
-                djmdSongPlaylist::track_no.eq(seq),
-                djmdSongPlaylist::updated_at.eq(&format_datetime(&now)),
-                djmdSongPlaylist::rb_local_usn.eq(usn),
-            ))
-            .execute(conn)
+            // Update seq of actual record
+            let now = Utc::now();
+            let usn = AgentRegistry::increment_local_usn(conn)?;
+            diesel::update(djmdSongPlaylist::table.find(id))
+                .set((
+                    djmdSongPlaylist::track_no.eq(seq),
+                    djmdSongPlaylist::updated_at.eq(&format_datetime(&now)),
+                    djmdSongPlaylist::rb_local_usn.eq(usn),
+                ))
+                .execute(conn)
+        })
     }
 }
 
@@ -838,7 +810,7 @@ impl DjmdSongPlaylist {
     ) -> QueryResult<Vec<Self>> {
         Self::query()
             .filter(djmdSongPlaylist::playlist_id.eq(playlist_id))
-            .order(djmdSongPlaylist::track_no)
+            .order((djmdSongPlaylist::track_no, djmdSongPlaylist::id))
             .get_results(conn)
     }
 
@@ -872,7 +844,9 @@ impl DjmdSongPlaylist {
         conn: &mut SqliteConnection,
         playlist_id: &str,
     ) -> QueryResult<usize> {
-        diesel::delete(Self::filter_by_playlist_id(playlist_id)).execute(conn)
+        conn.transaction(|conn| {
+            diesel::delete(Self::filter_by_playlist_id(playlist_id)).execute(conn)
+        })
     }
 
     /// Deletes all records from the `djmdSongPlaylist` table acssociated with one of `playlist_ids`.
@@ -880,7 +854,9 @@ impl DjmdSongPlaylist {
         conn: &mut SqliteConnection,
         playlist_ids: &[String],
     ) -> QueryResult<usize> {
-        diesel::delete(Self::filter_by_playlist_ids(playlist_ids)).execute(conn)
+        conn.transaction(|conn| {
+            diesel::delete(Self::filter_by_playlist_ids(playlist_ids)).execute(conn)
+        })
     }
 
     /// Generates a new unique identifier for a record in the `djmdSongPlaylist` table.
@@ -902,136 +878,92 @@ impl DjmdSongPlaylist {
 impl TreeSeq for DjmdSongPlaylist {
     type ParentId = str;
     const START_SEQ: i32 = 1;
-
-    #[inline]
     fn is_valid_parent(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
     ) -> QueryResult<bool> {
         DjmdPlaylist::is_playlist(conn, parent_id)
     }
-
-    #[inline]
     fn count_children(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<i32> {
-        let count: i64 = Self::filter_by_playlist_id(parent_id)
+        let count: i64 = djmdSongPlaylist::table
+            .filter(djmdSongPlaylist::playlist_id.eq(parent_id))
             .count()
             .get_result(conn)?;
-        Ok(count as i32)
+        i32::try_from(count).map_err(|_| ordering_error("Collection too large"))
     }
-
-    #[inline]
     fn get_seq_numbers(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
     ) -> QueryResult<Vec<i32>> {
-        Self::filter_by_playlist_id(parent_id)
+        djmdSongPlaylist::table
+            .filter(djmdSongPlaylist::playlist_id.eq(parent_id))
             .order(djmdSongPlaylist::track_no)
             .select(djmdSongPlaylist::track_no)
-            .get_results(conn)
+            .load(conn)
     }
-
-    #[inline]
     fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<usize> {
-        diesel::sql_query(
-            r#"WITH ordered AS (
-                SELECT ID, ROW_NUMBER() OVER (ORDER BY TrackNo) + (? - 1) AS new_seq
-                FROM djmdSongPlaylist WHERE PlaylistID =?
-            ) UPDATE djmdSongPlaylist
-            SET TrackNo = (SELECT new_seq FROM ordered WHERE ordered.ID = djmdSongPlaylist.ID)
-            WHERE PlaylistID =?;"#,
-        )
-        .bind::<diesel::sql_types::Integer, _>(Self::START_SEQ)
-        .bind::<diesel::sql_types::Text, _>(parent_id)
-        .bind::<diesel::sql_types::Text, _>(parent_id)
-        .execute(conn)
+        <Self as OrderedModel>::renumber(conn, parent_id)
     }
-
-    #[inline]
-    fn increment_seq_gte(
+    fn shift_seq(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
-        seq: i32,
+        range: std::ops::Range<i32>,
+        delta: i32,
     ) -> QueryResult<usize> {
         let now = Utc::now();
         let usn = AgentRegistry::local_usn(conn)? + 1;
         diesel::update(
             djmdSongPlaylist::table
                 .filter(djmdSongPlaylist::playlist_id.eq(parent_id))
-                .filter(djmdSongPlaylist::track_no.ge(seq)),
+                .filter(djmdSongPlaylist::track_no.ge(range.start))
+                .filter(djmdSongPlaylist::track_no.lt(range.end)),
         )
         .set((
-            djmdSongPlaylist::track_no.eq(djmdSongPlaylist::track_no + 1),
-            djmdSongPlaylist::updated_at.eq(format_datetime(&now)),
-            djmdSongPlaylist::rb_local_usn.eq(usn),
-        ))
-        .execute(conn)
-    }
-
-    #[inline]
-    fn decrement_seq_gt(
-        conn: &mut SqliteConnection,
-        parent_id: &Self::ParentId,
-        seq: i32,
-    ) -> QueryResult<usize> {
-        let now = Utc::now();
-        let usn = AgentRegistry::local_usn(conn)? + 1;
-        diesel::update(
-            djmdSongPlaylist::table
-                .filter(djmdSongPlaylist::playlist_id.eq(parent_id))
-                .filter(djmdSongPlaylist::track_no.gt(seq)),
-        )
-        .set((
-            djmdSongPlaylist::track_no.eq(djmdSongPlaylist::track_no - 1),
-            djmdSongPlaylist::updated_at.eq(format_datetime(&now)),
-            djmdSongPlaylist::rb_local_usn.eq(usn),
-        ))
-        .execute(conn)
-    }
-
-    #[inline]
-    fn increment_seq_gte_lt(
-        conn: &mut SqliteConnection,
-        parent_id: &Self::ParentId,
-        start: i32,
-        end: i32,
-    ) -> QueryResult<usize> {
-        let now = Utc::now();
-        let usn = AgentRegistry::local_usn(conn)? + 1;
-        diesel::update(
-            djmdSongPlaylist::table
-                .filter(djmdSongPlaylist::playlist_id.eq(parent_id))
-                .filter(djmdSongPlaylist::track_no.ge(start))
-                .filter(djmdSongPlaylist::track_no.lt(end)),
-        )
-        .set((
-            djmdSongPlaylist::track_no.eq(djmdSongPlaylist::track_no + 1),
+            djmdSongPlaylist::track_no.eq(djmdSongPlaylist::track_no + delta),
             djmdSongPlaylist::updated_at.eq(&format_datetime(&now)),
             djmdSongPlaylist::rb_local_usn.eq(usn),
         ))
         .execute(conn)
     }
+}
 
-    #[inline]
-    fn decrement_seq_gt_lte(
+impl OrderedModel for DjmdSongPlaylist {
+    fn order_id(&self) -> String {
+        self.id.clone()
+    }
+    fn order_parent(&self) -> &Self::ParentId {
+        &self.playlist_id
+    }
+    fn order_position(&self) -> i32 {
+        self.track_no
+    }
+    fn ordered(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<Vec<Self>> {
+        djmdSongPlaylist::table
+            .filter(djmdSongPlaylist::playlist_id.eq(parent_id))
+            .order((djmdSongPlaylist::track_no, djmdSongPlaylist::id))
+            .select(Self::as_select())
+            .load(conn)
+    }
+    fn write_order(
         conn: &mut SqliteConnection,
-        parent_id: &Self::ParentId,
-        start: i32,
-        end: i32,
+        changes: &[(&Self, &Self::ParentId, i32)],
     ) -> QueryResult<usize> {
+        if changes.is_empty() {
+            return Ok(0);
+        }
         let now = Utc::now();
-        let usn = AgentRegistry::local_usn(conn)? + 1;
-        diesel::update(
-            djmdSongPlaylist::table
-                .filter(djmdSongPlaylist::playlist_id.eq(parent_id))
-                .filter(djmdSongPlaylist::track_no.gt(start))
-                .filter(djmdSongPlaylist::track_no.le(end)),
-        )
-        .set((
-            djmdSongPlaylist::track_no.eq(djmdSongPlaylist::track_no - 1),
-            djmdSongPlaylist::updated_at.eq(&format_datetime(&now)),
-            djmdSongPlaylist::rb_local_usn.eq(usn),
-        ))
-        .execute(conn)
+        let usn = AgentRegistry::increment_local_usn(conn)?;
+        let mut count = 0;
+        for (row, _parent_id, seq) in changes {
+            count += diesel::update(djmdSongPlaylist::table.find(&row.id))
+                .set((
+                    djmdSongPlaylist::track_no.eq(seq),
+                    djmdSongPlaylist::updated_at.eq(&format_datetime(&now)),
+                    djmdSongPlaylist::rb_local_usn.eq(usn),
+                ))
+                .execute(conn)?;
+        }
+        Ok(count)
     }
 }
 
@@ -1063,40 +995,42 @@ impl ModelInsert for NewDjmdSongPlaylist {
     type Model = DjmdSongPlaylist;
 
     fn insert(self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
-        // Check content
-        if !DjmdContent::id_exists(conn, &self.content_id)? {
-            return Err(Error::NotFound);
-        }
+        conn.transaction(|conn| {
+            // Check content
+            if !DjmdContent::id_exists(conn, &self.content_id)? {
+                return Err(Error::NotFound);
+            }
 
-        let parent_id = &self.playlist_id;
-        // Handle seq and USN of moved records (also checkks parent)
-        let (seq, n) = Self::Model::update_seq_before_insert(conn, &parent_id, self.track_no)?;
-        if n > 0 {
-            // Apply USN of moved records
-            AgentRegistry::increment_local_usn(conn)?;
-        }
+            let parent_id = &self.playlist_id;
+            // Handle seq and USN of moved records (also checkks parent)
+            let (seq, n) = Self::Model::update_seq_before_insert(conn, &parent_id, self.track_no)?;
+            if n > 0 {
+                // Apply USN of moved records
+                AgentRegistry::increment_local_usn(conn)?;
+            }
 
-        // Generate meta
-        let id = Self::Model::generate_id(conn)?;
-        let uuid = Uuid::new_v4().to_string();
-        let now = Utc::now();
+            // Generate meta
+            let id = Self::Model::generate_id(conn)?;
+            let uuid = Uuid::new_v4().to_string();
+            let now = Utc::now();
 
-        // Get next USN: We increment by 2 (1 for creating, 1 for renaming from 'New Playlist')
-        let usn = AgentRegistry::increment_local_usn_by(conn, 2)?;
-        let item = Self::Model {
-            id,
-            uuid,
-            rb_local_usn: Some(usn),
-            created_at: now,
-            updated_at: now,
-            playlist_id: self.playlist_id,
-            content_id: self.content_id,
-            track_no: seq,
-            ..Default::default()
-        };
-        diesel::insert_into(djmdSongPlaylist::table)
-            .values(item)
-            .get_result(conn)
+            // Get next USN: We increment by 2 (1 for creating, 1 for renaming from 'New Playlist')
+            let usn = AgentRegistry::increment_local_usn_by(conn, 2)?;
+            let item = Self::Model {
+                id,
+                uuid,
+                rb_local_usn: Some(usn),
+                created_at: now,
+                updated_at: now,
+                playlist_id: self.playlist_id,
+                content_id: self.content_id,
+                track_no: seq,
+                ..Default::default()
+            };
+            diesel::insert_into(djmdSongPlaylist::table)
+                .values(item)
+                .get_result(conn)
+        })
     }
 }
 

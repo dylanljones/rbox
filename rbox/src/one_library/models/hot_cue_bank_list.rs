@@ -48,7 +48,9 @@ impl Model for HotCueBankList {
     type Id = i32;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
-        Self::query().load(conn)
+        Self::query()
+            .order((hotCueBankList::seq, hotCueBankList::id))
+            .load(conn)
     }
 
     fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {

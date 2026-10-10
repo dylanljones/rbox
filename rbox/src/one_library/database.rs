@@ -678,7 +678,7 @@ impl OneLibrary {
     ) -> Result<MyTag> {
         let mut my_tag = NewMyTag::tag(name);
         my_tag.parent_id = parent_id.unwrap_or_default();
-        my_tag.seq = seq.unwrap_or_default();
+        my_tag.seq = seq;
         self.insert_my_tag(my_tag)
     }
 
@@ -691,7 +691,7 @@ impl OneLibrary {
     ) -> Result<MyTag> {
         let mut my_tag = NewMyTag::folder(name);
         my_tag.parent_id = parent_id.unwrap_or_default();
-        my_tag.seq = seq.unwrap_or_default();
+        my_tag.seq = seq;
         self.insert_my_tag(my_tag)
     }
 
@@ -793,7 +793,7 @@ impl OneLibrary {
     ) -> Result<Playlist> {
         let mut playlist = NewPlaylist::playlist(name);
         playlist.parent_id = parent_id.unwrap_or_default();
-        playlist.seq = seq.unwrap_or_default();
+        playlist.seq = seq;
         self.insert_playlist(playlist)
     }
 
@@ -806,7 +806,7 @@ impl OneLibrary {
     ) -> Result<Playlist> {
         let mut playlist = NewPlaylist::folder(name);
         playlist.parent_id = parent_id.unwrap_or_default();
-        playlist.seq = seq.unwrap_or_default();
+        playlist.seq = seq;
         self.insert_playlist(playlist)
     }
 
@@ -864,7 +864,7 @@ impl OneLibrary {
     ) -> Result<PlaylistContent> {
         let mut conn = self.pool.get()?;
         let mut playlist_content = PlaylistContent::new(playlist_id, content_id);
-        playlist_content.seq = seq.unwrap_or_default();
+        playlist_content.seq = seq.unwrap_or(-1);
         Ok(playlist_content.insert(&mut conn)?)
     }
 

@@ -10,6 +10,8 @@ use pyo3::prelude::*;
 use rbox_derives::PyMutableMapping;
 
 use super::schema::{content, label};
+#[cfg(feature = "master-db")]
+use crate::masterdb::models::DjmdLabel;
 use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
@@ -131,7 +133,7 @@ impl NewLabel {
 }
 
 #[cfg(feature = "master-db")]
-impl Into<NewLabel> for crate::masterdb::models::DjmdLabel {
+impl Into<NewLabel> for DjmdLabel {
     fn into(self) -> NewLabel {
         NewLabel { name: self.name }
     }

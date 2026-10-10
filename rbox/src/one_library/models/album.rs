@@ -12,6 +12,8 @@ use rbox_derives::PyMutableMapping;
 use super::artist::Artist;
 use super::image::Image;
 use super::schema::{album, artist, content, image};
+#[cfg(feature = "master-db")]
+use crate::masterdb::models::DjmdAlbum;
 use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
@@ -292,7 +294,7 @@ impl NewAlbum {
 }
 
 #[cfg(feature = "master-db")]
-impl Into<NewAlbum> for crate::masterdb::models::DjmdAlbum {
+impl Into<NewAlbum> for DjmdAlbum {
     fn into(self) -> NewAlbum {
         NewAlbum {
             name: self.name,

@@ -207,19 +207,23 @@ impl ModelUpdate for Content {
 
 impl ModelDelete for Content {
     fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
-        let mut result = diesel::delete(content::table.find(id)).execute(conn)?;
-        result += Self::cascade_delete(conn, *id)?;
-        Self::update_property(conn)?;
-        Ok(result)
+        conn.transaction(|conn| {
+            let mut result = diesel::delete(content::table.find(id)).execute(conn)?;
+            result += Self::cascade_delete(conn, *id)?;
+            Self::update_property(conn)?;
+            Ok(result)
+        })
     }
 
     fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
-        let mut result =
-            diesel::delete(content::table.filter(content::id.eq_any(&ids))).execute(conn)?;
-        let ids: Vec<i32> = ids.iter().map(|id| *(*id)).collect();
-        result += Self::cascade_deletes(conn, &ids)?;
-        Self::update_property(conn)?;
-        Ok(result)
+        conn.transaction(|conn| {
+            let mut result =
+                diesel::delete(content::table.filter(content::id.eq_any(&ids))).execute(conn)?;
+            let ids: Vec<i32> = ids.iter().map(|id| *(*id)).collect();
+            result += Self::cascade_deletes(conn, &ids)?;
+            Self::update_property(conn)?;
+            Ok(result)
+        })
     }
 }
 

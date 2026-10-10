@@ -3033,14 +3033,15 @@ impl MasterDb {
         let mut conn = self.pool.get()?;
 
         // Move playlist
-        let playlist: DjmdPlaylist = self.get_playlist_by_id(id)?.expect("Playlist not found");
-        let parent_id = parent_id.unwrap_or(playlist.parent_id.clone());
+        let playlist = DjmdPlaylist::find(&mut conn, id)?.ok_or(diesel::result::Error::NotFound)?;
+        let old_parent_id = playlist.parent_id.clone();
+        let parent_id = parent_id.unwrap_or(old_parent_id.clone());
         let result = DjmdPlaylist::move_to(&mut conn, id, Some(&parent_id), seq)?;
         if result == 0 {
             return Ok(playlist);
         }
         // Update playlist XML
-        let playlist: DjmdPlaylist = self.get_playlist_by_id(id)?.expect("Playlist not found");
+        let playlist = DjmdPlaylist::find(&mut conn, id)?.ok_or(diesel::result::Error::NotFound)?;
         if let Some(pl_xml_path) = self.plxml_path.clone() {
             let mut pl_xml = MasterPlaylistXml::load(pl_xml_path);
             pl_xml.update_parent(
@@ -3049,8 +3050,10 @@ impl MasterDb {
                 playlist.updated_at.naive_utc(),
             );
             // Update update-time of all child items
-            for pl in self.get_playlist_children(&parent_id)? {
-                pl_xml.update(pl.id, pl.updated_at.naive_utc());
+            for affected_parent in HashSet::from([old_parent_id, parent_id]) {
+                for pl in self.get_playlist_children(&affected_parent)? {
+                    pl_xml.update(pl.id, pl.updated_at.naive_utc());
+                }
             }
             let _ = pl_xml.dump();
         } else {
@@ -3155,12 +3158,18 @@ impl MasterDb {
         self.assert_write_mode()?;
         let mut conn = self.pool.get()?;
 
+        let parent_id = DjmdPlaylist::find(&mut conn, id)?
+            .ok_or(diesel::result::Error::NotFound)?
+            .parent_id;
         let deleted_ids = DjmdPlaylist::delete(&mut conn, id)?;
 
         if let Some(pl_xml_path) = self.plxml_path.clone() {
             let mut pl_xml = MasterPlaylistXml::load(pl_xml_path);
             for id in &deleted_ids {
                 pl_xml.remove(id.clone());
+            }
+            for sibling in DjmdPlaylist::by_parent_id(&mut conn, &parent_id)? {
+                pl_xml.update(sibling.id, sibling.updated_at.naive_utc());
             }
             let _ = pl_xml.dump();
         } else {

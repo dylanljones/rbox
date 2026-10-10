@@ -72,7 +72,9 @@ impl Model for DjmdSort {
     type Id = str;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
-        Self::query().load(conn)
+        Self::query()
+            .order((djmdSort::seq, djmdSort::id))
+            .load(conn)
     }
 
     fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {

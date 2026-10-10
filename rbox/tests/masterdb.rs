@@ -1,10 +1,10 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
-use rbox::enums::PlaylistType;
+use rbox::enums::{FileType, PlaylistType};
 use rbox::masterdb::{
-    DjmdPlaylist, DjmdSongPlaylist, LogicalOperator, MasterDb, MasterPlaylistXml, Operator,
-    Property, SmartList,
+    AgentRegistry, DjmdPlaylist, DjmdSongPlaylist, LogicalOperator, MasterDb, MasterPlaylistXml,
+    NewDjmdAlbum, Operator, Property, SmartList,
 };
 use rbox::model_traits::{validate_seq_numbers, TreeSeq};
 
@@ -1733,5 +1733,139 @@ fn test_get_smart_playlist_contents_all_property_types_execute() -> anyhow::Resu
     let contents = db.get_playlist_contents(&pl.id)?;
     assert!(contents.len() <= total);
 
+    Ok(())
+}
+#[test]
+fn file_type_codes_and_extensions() {
+    for (code, kind) in [
+        (0, FileType::INVALID),
+        (1, FileType::MP3),
+        (3, FileType::MP4),
+        (4, FileType::M4A),
+        (5, FileType::FLAC),
+        (6, FileType::ALAC),
+        (11, FileType::WAV),
+        (12, FileType::AIFF),
+        (16, FileType::VIDEO),
+        (26, FileType::StreamApple),
+    ] {
+        assert_eq!(kind as i32, code);
+        assert_eq!(FileType::try_from(code), Ok(kind));
+    }
+    assert_eq!(FileType::AAC, FileType::M4A);
+    assert_eq!(FileType::AIF, FileType::AIFF);
+    assert_eq!(FileType::default(), FileType::INVALID);
+    for value in [-1, 2, 20, 999] {
+        assert!(FileType::try_from(value).is_err());
+    }
+    for (ext, code) in [
+        ("MP3", 1),
+        ("mp4", 3),
+        ("m4a", 4),
+        ("aac", 4),
+        ("alac", 6),
+        ("flac", 5),
+        ("wav", 11),
+        ("aif", 12),
+        ("aiff", 12),
+        ("avi", 16),
+        ("m4v", 16),
+        ("mov", 16),
+        ("mpg", 16),
+    ] {
+        assert_eq!(FileType::try_from_extension(ext).unwrap() as i32, code);
+    }
+    assert!(FileType::try_from_extension("unsupported").is_err());
+}
+
+#[test]
+fn rejected_content_does_not_change_registry_or_rows() -> anyhow::Result<()> {
+    for version in [6, 7] {
+        let fixture = common::setup_master_db_path(version);
+        let mut db = MasterDb::new(fixture.path())?;
+        db.set_unsafe_writes(true); // Only this temporary fixture copy is writable.
+        let files = common::create_temp_dir();
+        let before_usn = db.get_local_usn()?;
+        let before_count = db.get_contents()?.len();
+        for name in ["track.unsupported", "no_extension"] {
+            let path = files.path().join(name);
+            std::fs::write(&path, b"")?;
+            let error = db.create_content(&path).unwrap_err();
+            assert!(error.to_string().contains(if name.contains('.') {
+                "Unknown file type"
+            } else {
+                "Missing or invalid file extension"
+            }));
+            assert_eq!(db.get_local_usn()?, before_usn);
+            assert_eq!(db.get_contents()?.len(), before_count);
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn content_insertion_stores_correct_file_type_codes() -> anyhow::Result<()> {
+    let fixture = common::setup_master_db_path(6);
+    let mut db = MasterDb::new(fixture.path())?;
+    db.set_unsafe_writes(true);
+    let files = common::create_temp_dir();
+    for (ext, code) in [("mp3", 1), ("m4a", 4), ("alac", 6), ("mov", 16)] {
+        let path = files.path().join(format!("track.{ext}"));
+        // Insertion records metadata; it does not decode or analyze audio.
+        std::fs::write(&path, b"")?;
+        let row = db.create_content(&path)?;
+        assert_eq!(row.file_type, code);
+        assert_eq!(db.get_content_by_id(&row.id)?.unwrap().file_type, code);
+    }
+    Ok(())
+}
+
+#[test]
+fn album_reuse_matches_artist_when_supplied() -> anyhow::Result<()> {
+    for version in [6, 7] {
+        let fixture = common::setup_master_db_path(version);
+        let mut db = MasterDb::new(fixture.path())?;
+        db.set_unsafe_writes(true);
+        let first = db.create_artist("First regression artist".into())?;
+        let second = db.create_artist("Second regression artist".into())?;
+        let mut conn = db.pool.get()?;
+        let album = |artist: Option<String>| NewDjmdAlbum {
+            name: "Shared regression album".into(),
+            album_artist_id: artist,
+            ..Default::default()
+        };
+        let a = album(Some(first.id.clone())).insert_if_not_exists(&mut conn)?;
+        let b = album(Some(second.id.clone())).insert_if_not_exists(&mut conn)?;
+        assert_ne!(a.id, b.id);
+        assert_eq!(a.album_artist_id, Some(first.id.clone()));
+        assert_eq!(b.album_artist_id, Some(second.id.clone()));
+        let usn = AgentRegistry::local_usn(&mut conn)?;
+        assert_eq!(
+            album(Some(first.id)).insert_if_not_exists(&mut conn)?.id,
+            a.id
+        );
+        assert_eq!(
+            album(Some(second.id)).insert_if_not_exists(&mut conn)?.id,
+            b.id
+        );
+        let unnamed = album(None).insert_if_not_exists(&mut conn)?;
+        assert!(unnamed.id == a.id || unnamed.id == b.id);
+        assert_eq!(AgentRegistry::local_usn(&mut conn)?, usn);
+    }
+    Ok(())
+}
+
+#[test]
+fn raw_file_type_values_remain_readable() -> anyhow::Result<()> {
+    use diesel::prelude::*;
+    use rbox::masterdb::schema::djmdContent;
+    let fixture = common::setup_master_db_path(6);
+    let mut db = MasterDb::new(fixture.path())?;
+    let row = db.get_contents()?.remove(0);
+    let mut conn = db.pool.get()?;
+    diesel::update(djmdContent::table.find(&row.id))
+        .set(djmdContent::file_type.eq(999))
+        .execute(&mut conn)?;
+    assert_eq!(db.get_content_by_id(&row.id)?.unwrap().file_type, 999);
     Ok(())
 }

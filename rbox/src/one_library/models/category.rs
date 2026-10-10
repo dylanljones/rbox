@@ -11,7 +11,9 @@ use rbox_derives::PyMutableMapping;
 
 use super::menu_item::MenuItem;
 use super::schema::{category, menuItem};
-use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate, SequenceVisible};
+use crate::model_traits::{
+    ordering_error, Model, ModelDelete, ModelInsert, ModelUpdate, SequenceStore, SequenceVisible,
+};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
 
@@ -46,7 +48,9 @@ impl Model for Category {
     type Id = i32;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
-        Self::query().load(conn)
+        Self::query()
+            .order((category::seq, category::id))
+            .load(conn)
     }
 
     fn find(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<Option<Self>> {
@@ -59,32 +63,60 @@ impl Model for Category {
 }
 
 impl ModelUpdate for Category {
-    fn update(self, conn: &mut SqliteConnection) -> QueryResult<Self> {
-        diesel::update(category::table.find(self.id))
-            .set(self)
-            .get_result(conn)
+    fn update(mut self, conn: &mut SqliteConnection) -> QueryResult<Self> {
+        conn.transaction(|conn| {
+            let old = Self::find(conn, &self.id)?.ok_or(diesel::result::Error::NotFound)?;
+            if self.is_visible != 0 && self.is_visible != 1 {
+                return Err(ordering_error("Visibility must be zero or one"));
+            }
+            self.seq = match (old.is_visible == 1, self.is_visible == 1) {
+                (false, true) => {
+                    <Self as SequenceVisible>::update_seq_before_insert(conn, self.seq)?
+                }
+                (true, false) => {
+                    Self::decrement_seq_gt(conn, &(), old.seq)?;
+                    0
+                }
+                (true, true) => Self::update_seq_before_move_in(
+                    conn,
+                    &(),
+                    old.seq,
+                    if self.seq == 0 { None } else { Some(self.seq) },
+                )?
+                .map_or(old.seq, |(seq, _)| seq),
+                (false, false) => 0,
+            };
+            diesel::update(category::table.find(self.id))
+                .set(self)
+                .get_result(conn)
+        })
     }
 }
 
 impl ModelDelete for Category {
     fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
-        let (is_visible, seq) = diesel::delete(category::table.find(id))
-            .returning((category::is_visible, category::seq))
-            .get_result::<(i32, i32)>(conn)?;
-        if is_visible == 1 {
-            Self::decrement_seq_after_delete(conn, seq)?;
-        }
-        Ok(1)
+        conn.transaction(|conn| {
+            let (is_visible, seq) = diesel::delete(category::table.find(id))
+                .returning((category::is_visible, category::seq))
+                .get_result::<(i32, i32)>(conn)?;
+            if is_visible == 1 {
+                Self::decrement_seq_after_delete(conn, seq)?;
+            }
+            Ok(1)
+        })
     }
 
     fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
-        let is_visible: Vec<i32> = diesel::delete(category::table.filter(category::id.eq_any(ids)))
-            .returning(category::is_visible)
-            .get_results(conn)?;
-        if is_visible.iter().any(|&v| v == 1) {
-            Self::reset_seq(conn)?;
-        }
-        Ok(is_visible.len())
+        conn.transaction(|conn| {
+            let is_visible: Vec<i32> =
+                diesel::delete(category::table.filter(category::id.eq_any(ids)))
+                    .returning(category::is_visible)
+                    .get_results(conn)?;
+            if is_visible.iter().any(|&v| v == 1) {
+                <Self as SequenceVisible>::reset_seq(conn)?;
+            }
+            Ok(is_visible.len())
+        })
     }
 }
 
@@ -96,56 +128,58 @@ impl Category {
     }
 }
 
-impl SequenceVisible for Category {
-    #[inline]
-    fn count_visible(conn: &mut SqliteConnection) -> QueryResult<i32> {
-        let count: i64 = Self::filter_is_visible(1).count().get_result(conn)?;
-        Ok(count as i32)
+impl SequenceStore for Category {
+    type ParentId = ();
+    fn is_valid_parent(_: &mut SqliteConnection, _: &()) -> QueryResult<bool> {
+        Ok(true)
     }
-
-    #[inline]
-    fn get_seq_numbers(conn: &mut SqliteConnection) -> QueryResult<Vec<i32>> {
+    fn count_children(conn: &mut SqliteConnection, _: &()) -> QueryResult<i32> {
+        let count: i64 = Self::filter_is_visible(1).count().get_result(conn)?;
+        i32::try_from(count).map_err(|_| ordering_error("Collection too large"))
+    }
+    fn get_seq_numbers(conn: &mut SqliteConnection, _: &()) -> QueryResult<Vec<i32>> {
         Self::filter_is_visible(1)
             .order(category::seq)
             .select(category::seq)
-            .get_results(conn)
+            .load(conn)
     }
-
-    #[inline]
-    fn reset_seq(conn: &mut SqliteConnection) -> QueryResult<usize> {
-        diesel::sql_query(
-            r#"WITH ordered AS (
-                SELECT category_id, ROW_NUMBER() OVER (ORDER BY sequenceNo) AS new_seq
-                FROM category WHERE isVisible = 1
-            ) UPDATE category
-            SET sequenceNo = (SELECT new_seq FROM ordered WHERE ordered.category_id = category.category_id)
-            WHERE isVisible = 1;"#,
-        )
-            .execute(conn)
+    fn reset_seq(conn: &mut SqliteConnection, _: &()) -> QueryResult<usize> {
+        conn.transaction(|conn| {
+            let rows: Vec<(i32, i32)> = Self::filter_is_visible(1)
+                .order((category::seq, category::id))
+                .select((category::id, category::seq))
+                .load(conn)?;
+            let mut count = 0;
+            for (i, (id, old)) in rows.into_iter().enumerate() {
+                let seq = i32::try_from(i)
+                    .ok()
+                    .and_then(|i| Self::START_SEQ.checked_add(i))
+                    .ok_or_else(|| ordering_error("Position overflow"))?;
+                if seq != old {
+                    count += diesel::update(category::table.find(id))
+                        .set(category::seq.eq(seq))
+                        .execute(conn)?;
+                }
+            }
+            Ok(count)
+        })
     }
-
-    #[inline]
-    fn increment_seq_before_insert(conn: &mut SqliteConnection, seq: i32) -> QueryResult<usize> {
+    fn shift_seq(
+        conn: &mut SqliteConnection,
+        _: &(),
+        range: std::ops::Range<i32>,
+        delta: i32,
+    ) -> QueryResult<usize> {
         diesel::update(
-            category::table
-                .filter(category::is_visible.eq(1))
-                .filter(category::seq.ge(seq)),
+            Self::filter_is_visible(1)
+                .filter(category::seq.ge(range.start))
+                .filter(category::seq.lt(range.end)),
         )
-        .set(category::seq.eq(category::seq + 1))
-        .execute(conn)
-    }
-
-    #[inline]
-    fn decrement_seq_after_delete(conn: &mut SqliteConnection, seq: i32) -> QueryResult<usize> {
-        diesel::update(
-            category::table
-                .filter(category::is_visible.eq(1))
-                .filter(category::seq.gt(seq)),
-        )
-        .set(category::seq.eq(category::seq - 1))
+        .set(category::seq.eq(category::seq + delta))
         .execute(conn)
     }
 }
+impl SequenceVisible for Category {}
 
 /// Represents a complete category with its associated menu item.
 #[derive(Debug, Clone, PartialEq)]
@@ -248,14 +282,19 @@ impl ModelInsert for NewCategory {
     type Model = Category;
 
     fn insert(mut self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
-        self.seq = if self.is_visible == 1 {
-            Category::update_seq_before_insert(conn, self.seq)?
-        } else {
-            0 // Make sure seq is 0 for hidden items
-        };
-        diesel::insert_into(category::table)
-            .values(self)
-            .get_result(conn)
+        conn.transaction(|conn| {
+            if self.is_visible != 0 && self.is_visible != 1 {
+                return Err(ordering_error("Visibility must be zero or one"));
+            }
+            self.seq = if self.is_visible == 1 {
+                <Category as SequenceVisible>::update_seq_before_insert(conn, self.seq)?
+            } else {
+                0 // Make sure seq is 0 for hidden items
+            };
+            diesel::insert_into(category::table)
+                .values(self)
+                .get_result(conn)
+        })
     }
 }
 

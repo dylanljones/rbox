@@ -10,6 +10,8 @@ use pyo3::prelude::*;
 use rbox_derives::PyMutableMapping;
 
 use super::schema::{content, key};
+#[cfg(feature = "master-db")]
+use crate::masterdb::models::DjmdKey;
 use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
@@ -131,7 +133,7 @@ impl NewKey {
 }
 
 #[cfg(feature = "master-db")]
-impl Into<NewKey> for crate::masterdb::models::DjmdKey {
+impl Into<NewKey> for DjmdKey {
     fn into(self) -> NewKey {
         NewKey { name: self.name }
     }

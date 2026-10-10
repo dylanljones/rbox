@@ -10,6 +10,8 @@ use pyo3::prelude::*;
 use rbox_derives::PyMutableMapping;
 
 use super::schema::artist;
+#[cfg(feature = "master-db")]
+use crate::masterdb::models::DjmdArtist;
 use crate::model_traits::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg(feature = "pyo3")]
 use crate::util::{PyItemsIter, PyObjectIter, PyStrIter};
@@ -192,7 +194,7 @@ impl NewArtist {
 }
 
 #[cfg(feature = "master-db")]
-impl Into<NewArtist> for crate::masterdb::models::DjmdArtist {
+impl Into<NewArtist> for DjmdArtist {
     fn into(self) -> NewArtist {
         NewArtist {
             name: self.name,
