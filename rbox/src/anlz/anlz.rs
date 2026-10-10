@@ -218,11 +218,9 @@ pub struct BeatGrid {
     #[br(assert(u1 == 0))]
     #[bw(calc = 0)]
     u1: u32,
-    /// Unknown field: Seems to always be `0x80000`.
-    #[br(temp)]
-    #[br(assert(u2 == 0x80000))]
-    #[bw(calc = 0x80000)]
-    u2: u32,
+    /// PQTZ flags and signed millisecond grid correction in the low 16 bits.
+    /// Preserve the high bits even when their meaning is not known.
+    pub header_flags: u32,
     /// Number of beats
     #[br(temp)]
     #[bw(calc = beats.len() as u32)]
@@ -230,6 +228,18 @@ pub struct BeatGrid {
     /// Beats in this beatgrid.
     #[br(count = n_beats)]
     pub beats: Vec<Beat>,
+}
+
+impl BeatGrid {
+    /// Signed millisecond correction applied independently of stored beat times.
+    pub fn grid_offset(&self) -> i16 {
+        self.header_flags as u16 as i16
+    }
+
+    /// Change the correction while preserving flags and original beat records.
+    pub fn set_grid_offset(&mut self, offset_ms: i16) {
+        self.header_flags = (self.header_flags & 0xffff0000) | u32::from(offset_ms as u16);
+    }
 }
 
 impl SizedSection for BeatGrid {

@@ -18,7 +18,7 @@ name = "rbox"
 default = ["full", "bundled-vendored-openssl"]
 # Component features
 full        = ["master-db", "one-library", "anlz", "xml", "settings"]
-master-db   = ["anlz", "dep:diesel", "dep:libsqlite3-sys", "dep:quick-xml", "dep:rand", "dep:uuid", "dep:dunce", "diesel/128-column-tables"]
+master-db   = ["anlz", "dep:diesel", "dep:libsqlite3-sys", "dep:quick-xml", "dep:rand", "dep:dunce", "diesel/128-column-tables"]
 one-library = ["dep:diesel", "dep:diesel_migrations", "dep:libsqlite3-sys", "dep:dunce", "diesel/64-column-tables"]
 anlz        = ["dep:binrw", "dep:modular-bitfield"]
 settings    = ["dep:binrw", "dep:parse-display", "dep:crc16"]
@@ -41,7 +41,7 @@ libsqlite3-sys    = { version = "0.33", features = ["sqlcipher"], optional = tru
 diesel            = { version = "2.3", features = ["sqlite", "r2d2", "returning_clauses_for_sqlite_3_35"], optional = true }
 diesel_migrations = { version = "2.3", features = ["sqlite"], optional = true }
 rand              = { version = "0.10", optional = true }
-uuid              = { version = "1.16", features = ["v4"], optional = true }
+uuid              = { version = "1.16", features = ["v4"] }
 quick-xml         = { version = "0.39", features = ["serialize"], optional = true }
 binrw             = { version = "0.15", optional = true }
 modular-bitfield  = { version = "0.13", optional = true }
