@@ -21,7 +21,14 @@ The bindings have separate API tests in `bindings/python/tests` and
 and the Tests workflow can also be started manually on `dev` or another branch.
 Changes to shared crates trigger tests for both bindings.
 
-Use Python 3.11 or later to bump the workspace release version:
+Use Python 3.10 or later to bump the workspace release version.
+First install the TOML parser:
+
+```sh
+python -m pip install tomlkit
+```
+
+Then preview or apply the version bump:
 
 ```sh
 python scripts/bump_version.py 0.1.8 --dry-run

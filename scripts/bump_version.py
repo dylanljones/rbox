@@ -3,8 +3,8 @@
 
 """Bump the workspace release and its internal dependency requirements.
 
-Requires Python 3.11+. Independently versioned crates (rbox-derives) retain
-both their package version and dependency requirements. Only Git-visible files
+Requires Python 3.10+ and tomlkit. Independently versioned crates (rbox-derives)
+retain both their package version and dependency requirements. Only Git-visible files
 are visited, so build outputs, environments, and node_modules are excluded.
 """
 
@@ -12,7 +12,11 @@ import argparse
 from pathlib import Path
 import re
 import subprocess
-import tomllib
+
+try:
+    import tomlkit
+except ModuleNotFoundError:
+    raise SystemExit("Install tomlkit with 'python -m pip install tomlkit'.") from None
 
 ROOT = Path(__file__).resolve().parent.parent
 SEMVER = re.compile(
@@ -22,14 +26,14 @@ SEMVER = re.compile(
 
 def update_dependencies(text: str, names: set[str], version: str) -> str:
     """Update versioned internal dependencies, preserving manifest formatting."""
-    data = tomllib.loads(text)
+    data = tomlkit.loads(text)
     sections = re.split(r"(?m)^(\[[^\r\n]+\][ \t]*(?:#[^\r\n]*)?\r?\n)", text)
     for index in range(1, len(sections), 2):
         header, body = sections[index : index + 2]
         if "dependencies" not in header:
             continue
         # Parse the table header to resolve quoted target selectors and aliases.
-        table = tomllib.loads(header + "__marker = true\n")
+        table = tomlkit.loads(header + "__marker = true\n")
         keys = []
         while "__marker" not in table:
             key = next(iter(table))
@@ -78,7 +82,7 @@ def bump_version(new_version: str, dry: bool = False, encoding: str = "utf-8") -
     ):
         raise ValueError(f"Invalid version: {new_version}")
     workspace_path = ROOT / "Cargo.toml"
-    workspace = tomllib.loads(workspace_path.read_text(encoding=encoding))
+    workspace = tomlkit.loads(workspace_path.read_text(encoding=encoding))
     old_version = workspace["workspace"]["package"]["version"]
     output = subprocess.check_output(
         ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
@@ -101,7 +105,7 @@ def bump_version(new_version: str, dry: bool = False, encoding: str = "utf-8") -
         )
     names = set()
     for path in manifests:
-        package = tomllib.loads(path.read_text(encoding=encoding)).get("package", {})
+        package = tomlkit.loads(path.read_text(encoding=encoding)).get("package", {})
         if package.get("version") == {"workspace": True}:
             names.add(package["name"])
 
