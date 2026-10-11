@@ -4,7 +4,7 @@
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use pyo3::prelude::*;
 use pyo3::types::{PyDateTime, PyDict, PyType};
-use rbox::util::{PyItemsIter, PyObjectIter, PyStrIter};
+use rbox::core::python::{PyItemsIter, PyObjectIter, PyStrIter};
 use rbox::xml::{
     PlaylistNode, PlaylistNodeType, PlaylistTrack, PositionMark, RekordboxXml, Tempo, Track,
 };
@@ -1148,7 +1148,8 @@ impl PyRekordboxXml {
 impl PyRekordboxXml {
     #[new]
     pub fn new(py: Python, path: &str) -> PyResult<Self> {
-        let mut xml = RekordboxXml::load(path);
+        let mut xml =
+            RekordboxXml::load(path).map_err(|error| XmlError::new_err(error.to_string()))?;
         let root_node = xml.get_playlist_root();
         let node_ref = root_node.clone().into_py(py)?;
         let tracks = xml.get_tracks();

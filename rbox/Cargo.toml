@@ -5,68 +5,54 @@ readme = "README.md"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
+repository.workspace = true
 keywords.workspace = true
 categories.workspace = true
-repository.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+
+publish = true
 
 [lib]
 name = "rbox"
 
 [features]
 default = ["full", "bundled-vendored-openssl"]
-# Component features
-full        = ["master-db", "one-library", "anlz", "xml", "settings"]
-master-db   = ["anlz", "dep:diesel", "dep:libsqlite3-sys", "dep:quick-xml", "dep:rand", "dep:dunce", "diesel/128-column-tables"]
-one-library = ["dep:diesel", "dep:diesel_migrations", "dep:libsqlite3-sys", "dep:dunce", "diesel/64-column-tables"]
-anlz        = ["dep:binrw", "dep:modular-bitfield", "dep:tempfile"]
-settings    = ["dep:binrw", "dep:parse-display", "dep:crc16"]
-xml         = ["dep:quick-xml", "dep:lazy-regex"]
-# Features for SQLCipher support
-bundled = ["libsqlite3-sys/bundled-sqlcipher"]
-bundled-vendored-openssl = ["libsqlite3-sys/bundled-sqlcipher-vendored-openssl"]
+full = ["master-db", "one-library", "anlz", "xml", "settings"]
+
+master-db = ["dep:rbox-masterdb", "dep:rbox-db", "anlz", "rbox-onelib?/master-db"]
+one-library = ["dep:rbox-onelib", "dep:rbox-db"]
+anlz = ["dep:rbox-anlz"]
+xml = ["dep:rbox-xml"]
+settings = ["dep:rbox-setting"]
+
+# Weak forwarding configures enabled components without enabling them.
+bundled = ["rbox-db?/bundled", "rbox-masterdb?/bundled", "rbox-onelib?/bundled"]
+bundled-vendored-openssl = ["rbox-db?/bundled-vendored-openssl", "rbox-masterdb?/bundled-vendored-openssl", "rbox-onelib?/bundled-vendored-openssl"]
+
 # Features for the bindings
-pyo3 = ["dep:pyo3", "dep:rbox-derives"]
-napi = ["dep:napi", "dep:napi-derive"]
+pyo3 = ["rbox-core/pyo3", "rbox-db?/pyo3", "rbox-masterdb?/pyo3", "rbox-onelib?/pyo3"]
+napi = ["rbox-core/napi", "rbox-db?/napi", "rbox-masterdb?/napi", "rbox-onelib?/napi"]
 
 [dependencies]
-serde             = { workspace = true }
-serde_json        = { workspace = true }
-chrono            = { workspace = true }
-thiserror         = { version = "2.0" }
-sysinfo           = { version = "0.38" }
-dunce             = { version = "1.0", optional = true }
-libsqlite3-sys    = { version = "0.33", features = ["sqlcipher"], optional = true }
-diesel            = { version = "2.3", features = ["sqlite", "r2d2", "returning_clauses_for_sqlite_3_35"], optional = true }
-diesel_migrations = { version = "2.3", features = ["sqlite"], optional = true }
-rand              = { version = "0.10", optional = true }
-uuid              = { version = "1.16", features = ["v4"] }
-quick-xml         = { version = "0.39", features = ["serialize"], optional = true }
-binrw             = { version = "0.15", optional = true }
-modular-bitfield  = { version = "0.13", optional = true }
-lazy-regex        = { version = "3.4", optional = true }
-crc16             = { version = "0.4", optional = true }
-parse-display     = { version = "0.10", optional = true }
-tempfile          = { version = "3.23", optional = true }
-# Binding dependencies
-pyo3              = { workspace = true, optional = true }
-rbox-derives      = { path = "../rbox-derives", version = "0.1.1", optional = true }
-napi              = { workspace = true, optional = true }
-napi-derive       = { workspace = true, optional = true }
+thiserror       = { workspace = true }
+
+# The facade controls defaults, including the SQLCipher build strategy.
+rbox-core       = { path = "../crates/rbox-core", version = "0.1.7", default-features = false }
+rbox-db         = { path = "../crates/rbox-db", version = "0.1.7", default-features = false, optional = true }
+rbox-masterdb   = { path = "../crates/rbox-masterdb", version = "0.1.7", default-features = false, optional = true }
+rbox-onelib     = { path = "../crates/rbox-onelib", version = "0.1.7", default-features = false, optional = true }
+rbox-anlz       = { path = "../crates/rbox-anlz", version = "0.1.7", default-features = false, optional = true }
+rbox-xml        = { path = "../crates/rbox-xml", version = "0.1.7", default-features = false, optional = true }
+rbox-setting    = { path = "../crates/rbox-setting", version = "0.1.7", default-features = false, optional = true }
 
 [dev-dependencies]
-anyhow            = { workspace = true }
-rstest            = { version = "0.26.1" }
-tempfile          = { version = "3.23" }
-criterion         = { version = "0.8" }
+anyhow          = { workspace = true }
+criterion       = { workspace = true }
+binrw           = { workspace = true }
+tempfile        = { workspace = true }
+rbox-testing    = { path = "../crates/rbox-testing" }
 
 [[bench]]
 name = "main"
 harness = false
-
-[package.metadata.docs.rs]
-no-default-features = true
-features = ["full"]
-default-target = "x86_64-unknown-linux-gnu"
-targets = []

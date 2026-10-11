@@ -1336,115 +1336,151 @@ pub struct JsSetting {
 impl JsSetting {
     #[napi(constructor)]
     pub fn new(path: String) -> Result<Self> {
-        let setting = Setting::load(path)?;
+        let setting = Setting::load(path).map_err(crate::util::binding_error)?;
         Ok(Self { setting })
     }
 
     #[napi(factory)]
     pub fn new_mysetting(path: String) -> Result<Self> {
-        let setting = Setting::new_mysetting(path)?;
+        let setting = Setting::new_mysetting(path).map_err(crate::util::binding_error)?;
         Ok(Self { setting })
     }
 
     #[napi(factory)]
     pub fn new_mysetting2(path: String) -> Result<Self> {
-        let setting = Setting::new_mysetting2(path)?;
+        let setting = Setting::new_mysetting2(path).map_err(crate::util::binding_error)?;
         Ok(Self { setting })
     }
 
     #[napi(factory)]
     pub fn new_djmmysetting(path: String) -> Result<Self> {
-        let setting = Setting::new_djmmysetting(path)?;
+        let setting = Setting::new_djmmysetting(path).map_err(crate::util::binding_error)?;
         Ok(Self { setting })
     }
 
     #[napi(factory)]
     pub fn new_devsetting(path: String) -> Result<Self> {
-        let setting = Setting::new_devsetting(path)?;
+        let setting = Setting::new_devsetting(path).map_err(crate::util::binding_error)?;
         Ok(Self { setting })
     }
 
     #[napi(factory)]
     pub fn load(path: String) -> Result<Self> {
-        let setting = Setting::load(path)?;
+        let setting = Setting::load(path).map_err(crate::util::binding_error)?;
         Ok(Self { setting })
     }
 
     #[napi]
     pub fn dump_copy(&mut self, path: String) -> Result<()> {
-        self.setting.dump_copy(path)?;
+        self.setting
+            .dump_copy(path)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn dump(&mut self) -> Result<()> {
-        self.setting.dump()?;
+        self.setting.dump().map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_on_air_display(&self) -> Result<JsOnAirDisplay> {
-        Ok(self.setting.get_on_air_display()?.into())
+        Ok(self
+            .setting
+            .get_on_air_display()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_on_air_display(&mut self, on_air_display: JsOnAirDisplay) -> Result<()> {
         let value: OnAirDisplay = on_air_display.into();
-        self.setting.set_on_air_display(value)?;
+        self.setting
+            .set_on_air_display(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_lcd_brightness(&self) -> Result<JsLCDBrightness> {
-        Ok(self.setting.get_lcd_brightness()?.into())
+        Ok(self
+            .setting
+            .get_lcd_brightness()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_lcd_brightness(&mut self, lcd_brightness: JsLCDBrightness) -> Result<()> {
         let value: LCDBrightness = lcd_brightness.into();
-        self.setting.set_lcd_brightness(value)?;
+        self.setting
+            .set_lcd_brightness(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_quantize(&self) -> Result<JsQuantize> {
-        Ok(self.setting.get_quantize()?.into())
+        Ok(self
+            .setting
+            .get_quantize()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_quantize(&mut self, quantize: JsQuantize) -> Result<()> {
         let value: Quantize = quantize.into();
-        self.setting.set_quantize(value)?;
+        self.setting
+            .set_quantize(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_auto_cue_level(&self) -> Result<JsAutoCueLevel> {
-        Ok(self.setting.get_auto_cue_level()?.into())
+        Ok(self
+            .setting
+            .get_auto_cue_level()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_auto_cue_level(&mut self, auto_cue_level: JsAutoCueLevel) -> Result<()> {
         let value: AutoCueLevel = auto_cue_level.into();
-        self.setting.set_auto_cue_level(value)?;
+        self.setting
+            .set_auto_cue_level(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_language(&self) -> Result<JsLanguage> {
-        Ok(self.setting.get_language()?.into())
+        Ok(self
+            .setting
+            .get_language()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_language(&mut self, language: JsLanguage) -> Result<()> {
         let value: Language = language.into();
-        self.setting.set_language(value)?;
+        self.setting
+            .set_language(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_jog_ring_brightness(&self) -> Result<JsJogRingBrightness> {
-        Ok(self.setting.get_jog_ring_brightness()?.into())
+        Ok(self
+            .setting
+            .get_jog_ring_brightness()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
@@ -1453,37 +1489,55 @@ impl JsSetting {
         jog_ring_brightness: JsJogRingBrightness,
     ) -> Result<()> {
         let value: JogRingBrightness = jog_ring_brightness.into();
-        self.setting.set_jog_ring_brightness(value)?;
+        self.setting
+            .set_jog_ring_brightness(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_jog_ring_indicator(&self) -> Result<JsJogRingIndicator> {
-        Ok(self.setting.get_jog_ring_indicator()?.into())
+        Ok(self
+            .setting
+            .get_jog_ring_indicator()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_jog_ring_indicator(&mut self, jog_ring_indicator: JsJogRingIndicator) -> Result<()> {
         let value: JogRingIndicator = jog_ring_indicator.into();
-        self.setting.set_jog_ring_indicator(value)?;
+        self.setting
+            .set_jog_ring_indicator(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_slip_flashing(&self) -> Result<JsSlipFlashing> {
-        Ok(self.setting.get_slip_flashing()?.into())
+        Ok(self
+            .setting
+            .get_slip_flashing()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_slip_flashing(&mut self, slip_flashing: JsSlipFlashing) -> Result<()> {
         let value: SlipFlashing = slip_flashing.into();
-        self.setting.set_slip_flashing(value)?;
+        self.setting
+            .set_slip_flashing(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_disc_slot_illumination(&self) -> Result<JsDiscSlotIllumination> {
-        Ok(self.setting.get_disc_slot_illumination()?.into())
+        Ok(self
+            .setting
+            .get_disc_slot_illumination()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
@@ -1492,49 +1546,73 @@ impl JsSetting {
         disc_slot_illumination: JsDiscSlotIllumination,
     ) -> Result<()> {
         let value: DiscSlotIllumination = disc_slot_illumination.into();
-        self.setting.set_disc_slot_illumination(value)?;
+        self.setting
+            .set_disc_slot_illumination(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_eject_lock(&self) -> Result<JsEjectLock> {
-        Ok(self.setting.get_eject_lock()?.into())
+        Ok(self
+            .setting
+            .get_eject_lock()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_eject_lock(&mut self, eject_lock: JsEjectLock) -> Result<()> {
         let value: EjectLock = eject_lock.into();
-        self.setting.set_eject_lock(value)?;
+        self.setting
+            .set_eject_lock(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_sync(&self) -> Result<JsSync> {
-        Ok(self.setting.get_sync()?.into())
+        Ok(self
+            .setting
+            .get_sync()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_sync(&mut self, sync: JsSync) -> Result<()> {
         let value: Sync = sync.into();
-        self.setting.set_sync(value)?;
+        self.setting
+            .set_sync(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_play_mode(&self) -> Result<JsPlayMode> {
-        Ok(self.setting.get_play_mode()?.into())
+        Ok(self
+            .setting
+            .get_play_mode()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_play_mode(&mut self, play_mode: JsPlayMode) -> Result<()> {
         let value: PlayMode = play_mode.into();
-        self.setting.set_play_mode(value)?;
+        self.setting
+            .set_play_mode(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_quantize_beat_value(&self) -> Result<JsQuantizeBeatValue> {
-        Ok(self.setting.get_quantize_beat_value()?.into())
+        Ok(self
+            .setting
+            .get_quantize_beat_value()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
@@ -1543,145 +1621,217 @@ impl JsSetting {
         quantize_beat_value: JsQuantizeBeatValue,
     ) -> Result<()> {
         let value: QuantizeBeatValue = quantize_beat_value.into();
-        self.setting.set_quantize_beat_value(value)?;
+        self.setting
+            .set_quantize_beat_value(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_hotcue_autoload(&self) -> Result<JsHotCueAutoLoad> {
-        Ok(self.setting.get_hotcue_autoload()?.into())
+        Ok(self
+            .setting
+            .get_hotcue_autoload()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_hotcue_autoload(&mut self, hotcue_autoload: JsHotCueAutoLoad) -> Result<()> {
         let value: HotCueAutoLoad = hotcue_autoload.into();
-        self.setting.set_hotcue_autoload(value)?;
+        self.setting
+            .set_hotcue_autoload(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_hotcue_color(&self) -> Result<JsHotCueColor> {
-        Ok(self.setting.get_hotcue_color()?.into())
+        Ok(self
+            .setting
+            .get_hotcue_color()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_hotcue_color(&mut self, hotcue_color: JsHotCueColor) -> Result<()> {
         let value: HotCueColor = hotcue_color.into();
-        self.setting.set_hotcue_color(value)?;
+        self.setting
+            .set_hotcue_color(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_needle_lock(&self) -> Result<JsNeedleLock> {
-        Ok(self.setting.get_needle_lock()?.into())
+        Ok(self
+            .setting
+            .get_needle_lock()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_needle_lock(&mut self, needle_lock: JsNeedleLock) -> Result<()> {
         let value: NeedleLock = needle_lock.into();
-        self.setting.set_needle_lock(value)?;
+        self.setting
+            .set_needle_lock(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_time_mode(&self) -> Result<JsTimeMode> {
-        Ok(self.setting.get_time_mode()?.into())
+        Ok(self
+            .setting
+            .get_time_mode()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_time_mode(&mut self, time_mode: JsTimeMode) -> Result<()> {
         let value: TimeMode = time_mode.into();
-        self.setting.set_time_mode(value)?;
+        self.setting
+            .set_time_mode(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_jog_mode(&self) -> Result<JsJogMode> {
-        Ok(self.setting.get_jog_mode()?.into())
+        Ok(self
+            .setting
+            .get_jog_mode()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_jog_mode(&mut self, jog_mode: JsJogMode) -> Result<()> {
         let value: JogMode = jog_mode.into();
-        self.setting.set_jog_mode(value)?;
+        self.setting
+            .set_jog_mode(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_auto_cue(&self) -> Result<JsAutoCue> {
-        Ok(self.setting.get_auto_cue()?.into())
+        Ok(self
+            .setting
+            .get_auto_cue()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_auto_cue(&mut self, auto_cue: JsAutoCue) -> Result<()> {
         let value: AutoCue = auto_cue.into();
-        self.setting.set_auto_cue(value)?;
+        self.setting
+            .set_auto_cue(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_master_tempo(&self) -> Result<JsMasterTempo> {
-        Ok(self.setting.get_master_tempo()?.into())
+        Ok(self
+            .setting
+            .get_master_tempo()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_master_tempo(&mut self, master_tempo: JsMasterTempo) -> Result<()> {
         let value: MasterTempo = master_tempo.into();
-        self.setting.set_master_tempo(value)?;
+        self.setting
+            .set_master_tempo(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_tempo_range(&self) -> Result<JsTempoRange> {
-        Ok(self.setting.get_tempo_range()?.into())
+        Ok(self
+            .setting
+            .get_tempo_range()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_tempo_range(&mut self, tempo_range: JsTempoRange) -> Result<()> {
         let value: TempoRange = tempo_range.into();
-        self.setting.set_tempo_range(value)?;
+        self.setting
+            .set_tempo_range(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_phase_meter(&self) -> Result<JsPhaseMeter> {
-        Ok(self.setting.get_phase_meter()?.into())
+        Ok(self
+            .setting
+            .get_phase_meter()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_phase_meter(&mut self, phase_meter: JsPhaseMeter) -> Result<()> {
         let value: PhaseMeter = phase_meter.into();
-        self.setting.set_phase_meter(value)?;
+        self.setting
+            .set_phase_meter(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_vinyl_speed_adjust(&self) -> Result<JsVinylSpeedAdjust> {
-        Ok(self.setting.get_vinyl_speed_adjust()?.into())
+        Ok(self
+            .setting
+            .get_vinyl_speed_adjust()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_vinyl_speed_adjust(&mut self, vinyl_speed_adjust: JsVinylSpeedAdjust) -> Result<()> {
         let value: VinylSpeedAdjust = vinyl_speed_adjust.into();
-        self.setting.set_vinyl_speed_adjust(value)?;
+        self.setting
+            .set_vinyl_speed_adjust(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_jog_display_mode(&self) -> Result<JsJogDisplayMode> {
-        Ok(self.setting.get_jog_display_mode()?.into())
+        Ok(self
+            .setting
+            .get_jog_display_mode()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_jog_display_mode(&mut self, jog_display_mode: JsJogDisplayMode) -> Result<()> {
         let value: JogDisplayMode = jog_display_mode.into();
-        self.setting.set_jog_display_mode(value)?;
+        self.setting
+            .set_jog_display_mode(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_pad_button_brightness(&self) -> Result<JsPadButtonBrightness> {
-        Ok(self.setting.get_pad_button_brightness()?.into())
+        Ok(self
+            .setting
+            .get_pad_button_brightness()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
@@ -1690,25 +1840,37 @@ impl JsSetting {
         pad_button_brightness: JsPadButtonBrightness,
     ) -> Result<()> {
         let value: PadButtonBrightness = pad_button_brightness.into();
-        self.setting.set_pad_button_brightness(value)?;
+        self.setting
+            .set_pad_button_brightness(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_jog_lcd_brightness(&self) -> Result<JsJogLCDBrightness> {
-        Ok(self.setting.get_jog_lcd_brightness()?.into())
+        Ok(self
+            .setting
+            .get_jog_lcd_brightness()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_jog_lcd_brightness(&mut self, jog_lcd_brightness: JsJogLCDBrightness) -> Result<()> {
         let value: JogLCDBrightness = jog_lcd_brightness.into();
-        self.setting.set_jog_lcd_brightness(value)?;
+        self.setting
+            .set_jog_lcd_brightness(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_waveform_divisions(&self) -> Result<JsWaveformDivisions> {
-        Ok(self.setting.get_waveform_divisions()?.into())
+        Ok(self
+            .setting
+            .get_waveform_divisions()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
@@ -1717,25 +1879,37 @@ impl JsSetting {
         waveform_divisions: JsWaveformDivisions,
     ) -> Result<()> {
         let value: WaveformDivisions = waveform_divisions.into();
-        self.setting.set_waveform_divisions(value)?;
+        self.setting
+            .set_waveform_divisions(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_waveform(&self) -> Result<JsWaveform> {
-        Ok(self.setting.get_waveform()?.into())
+        Ok(self
+            .setting
+            .get_waveform()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_waveform(&mut self, waveform: JsWaveform) -> Result<()> {
         let value: Waveform = waveform.into();
-        self.setting.set_waveform(value)?;
+        self.setting
+            .set_waveform(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_beat_jump_beat_value(&self) -> Result<JsBeatJumpBeatValue> {
-        Ok(self.setting.get_beat_jump_beat_value()?.into())
+        Ok(self
+            .setting
+            .get_beat_jump_beat_value()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
@@ -1744,13 +1918,19 @@ impl JsSetting {
         beat_jump_beat_value: JsBeatJumpBeatValue,
     ) -> Result<()> {
         let value: BeatJumpBeatValue = beat_jump_beat_value.into();
-        self.setting.set_beat_jump_beat_value(value)?;
+        self.setting
+            .set_beat_jump_beat_value(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_channel_fader_curve(&self) -> Result<JsChannelFaderCurve> {
-        Ok(self.setting.get_channel_fader_curve()?.into())
+        Ok(self
+            .setting
+            .get_channel_fader_curve()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
@@ -1759,37 +1939,55 @@ impl JsSetting {
         channel_fader_curve: JsChannelFaderCurve,
     ) -> Result<()> {
         let value: ChannelFaderCurve = channel_fader_curve.into();
-        self.setting.set_channel_fader_curve(value)?;
+        self.setting
+            .set_channel_fader_curve(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_crossfader_curve(&self) -> Result<JsCrossfaderCurve> {
-        Ok(self.setting.get_crossfader_curve()?.into())
+        Ok(self
+            .setting
+            .get_crossfader_curve()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_crossfader_curve(&mut self, crossfader_curve: JsCrossfaderCurve) -> Result<()> {
         let value: CrossfaderCurve = crossfader_curve.into();
-        self.setting.set_crossfader_curve(value)?;
+        self.setting
+            .set_crossfader_curve(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_headphones_pre_eq(&self) -> Result<JsHeadphonesPreEQ> {
-        Ok(self.setting.get_headphones_pre_eq()?.into())
+        Ok(self
+            .setting
+            .get_headphones_pre_eq()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_headphones_pre_eq(&mut self, headphones_pre_eq: JsHeadphonesPreEQ) -> Result<()> {
         let value: HeadphonesPreEQ = headphones_pre_eq.into();
-        self.setting.set_headphones_pre_eq(value)?;
+        self.setting
+            .set_headphones_pre_eq(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_headphones_mono_split(&self) -> Result<JsHeadphonesMonoSplit> {
-        Ok(self.setting.get_headphones_mono_split()?.into())
+        Ok(self
+            .setting
+            .get_headphones_mono_split()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
@@ -1798,85 +1996,127 @@ impl JsSetting {
         headphones_mono_split: JsHeadphonesMonoSplit,
     ) -> Result<()> {
         let value: HeadphonesMonoSplit = headphones_mono_split.into();
-        self.setting.set_headphones_mono_split(value)?;
+        self.setting
+            .set_headphones_mono_split(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_beat_fx_quantize(&self) -> Result<JsBeatFXQuantize> {
-        Ok(self.setting.get_beat_fx_quantize()?.into())
+        Ok(self
+            .setting
+            .get_beat_fx_quantize()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_beat_fx_quantize(&mut self, beat_fx_quantize: JsBeatFXQuantize) -> Result<()> {
         let value: BeatFXQuantize = beat_fx_quantize.into();
-        self.setting.set_beat_fx_quantize(value)?;
+        self.setting
+            .set_beat_fx_quantize(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_mic_low_cut(&self) -> Result<JsMicLowCut> {
-        Ok(self.setting.get_mic_low_cut()?.into())
+        Ok(self
+            .setting
+            .get_mic_low_cut()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_mic_low_cut(&mut self, mic_low_cut: JsMicLowCut) -> Result<()> {
         let value: MicLowCut = mic_low_cut.into();
-        self.setting.set_mic_low_cut(value)?;
+        self.setting
+            .set_mic_low_cut(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_talk_over_mode(&self) -> Result<JsTalkOverMode> {
-        Ok(self.setting.get_talk_over_mode()?.into())
+        Ok(self
+            .setting
+            .get_talk_over_mode()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_talk_over_mode(&mut self, talk_over_mode: JsTalkOverMode) -> Result<()> {
         let value: TalkOverMode = talk_over_mode.into();
-        self.setting.set_talk_over_mode(value)?;
+        self.setting
+            .set_talk_over_mode(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_talk_over_level(&self) -> Result<JsTalkOverLevel> {
-        Ok(self.setting.get_talk_over_level()?.into())
+        Ok(self
+            .setting
+            .get_talk_over_level()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_talk_over_level(&mut self, talk_over_level: JsTalkOverLevel) -> Result<()> {
         let value: TalkOverLevel = talk_over_level.into();
-        self.setting.set_talk_over_level(value)?;
+        self.setting
+            .set_talk_over_level(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_midi_channel(&self) -> Result<JsMidiChannel> {
-        Ok(self.setting.get_midi_channel()?.into())
+        Ok(self
+            .setting
+            .get_midi_channel()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_midi_channel(&mut self, midi_channel: JsMidiChannel) -> Result<()> {
         let value: MidiChannel = midi_channel.into();
-        self.setting.set_midi_channel(value)?;
+        self.setting
+            .set_midi_channel(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_midi_button_type(&self) -> Result<JsMidiButtonType> {
-        Ok(self.setting.get_midi_button_type()?.into())
+        Ok(self
+            .setting
+            .get_midi_button_type()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_midi_button_type(&mut self, midi_button_type: JsMidiButtonType) -> Result<()> {
         let value: MidiButtonType = midi_button_type.into();
-        self.setting.set_midi_button_type(value)?;
+        self.setting
+            .set_midi_button_type(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_mixer_display_brightness(&self) -> Result<JsMixerDisplayBrightness> {
-        Ok(self.setting.get_mixer_display_brightness()?.into())
+        Ok(self
+            .setting
+            .get_mixer_display_brightness()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
@@ -1885,13 +2125,19 @@ impl JsSetting {
         mixer_display_brightness: JsMixerDisplayBrightness,
     ) -> Result<()> {
         let value: MixerDisplayBrightness = mixer_display_brightness.into();
-        self.setting.set_mixer_display_brightness(value)?;
+        self.setting
+            .set_mixer_display_brightness(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_mixer_indicator_brightness(&self) -> Result<JsMixerIndicatorBrightness> {
-        Ok(self.setting.get_mixer_indicator_brightness()?.into())
+        Ok(self
+            .setting
+            .get_mixer_indicator_brightness()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
@@ -1900,13 +2146,19 @@ impl JsSetting {
         mixer_indicator_brightness: JsMixerIndicatorBrightness,
     ) -> Result<()> {
         let value: MixerIndicatorBrightness = mixer_indicator_brightness.into();
-        self.setting.set_mixer_indicator_brightness(value)?;
+        self.setting
+            .set_mixer_indicator_brightness(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_channel_fader_curve_long_fader(&self) -> Result<JsChannelFaderCurveLongFader> {
-        Ok(self.setting.get_channel_fader_curve_long_fader()?.into())
+        Ok(self
+            .setting
+            .get_channel_fader_curve_long_fader()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
@@ -1915,13 +2167,19 @@ impl JsSetting {
         channel_fader_curve_long_fader: JsChannelFaderCurveLongFader,
     ) -> Result<()> {
         let value: ChannelFaderCurveLongFader = channel_fader_curve_long_fader.into();
-        self.setting.set_channel_fader_curve_long_fader(value)?;
+        self.setting
+            .set_channel_fader_curve_long_fader(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_overview_waveform_type(&self) -> Result<JsOverviewWaveformType> {
-        Ok(self.setting.get_overview_waveform_type()?.into())
+        Ok(self
+            .setting
+            .get_overview_waveform_type()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
@@ -1930,37 +2188,55 @@ impl JsSetting {
         overview_waveform_type: JsOverviewWaveformType,
     ) -> Result<()> {
         let value: OverviewWaveformType = overview_waveform_type.into();
-        self.setting.set_overview_waveform_type(value)?;
+        self.setting
+            .set_overview_waveform_type(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_waveform_color(&self) -> Result<JsWaveformColor> {
-        Ok(self.setting.get_waveform_color()?.into())
+        Ok(self
+            .setting
+            .get_waveform_color()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_waveform_color(&mut self, waveform_color: JsWaveformColor) -> Result<()> {
         let value: WaveformColor = waveform_color.into();
-        self.setting.set_waveform_color(value)?;
+        self.setting
+            .set_waveform_color(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_key_display_format(&self) -> Result<JsKeyDisplayFormat> {
-        Ok(self.setting.get_key_display_format()?.into())
+        Ok(self
+            .setting
+            .get_key_display_format()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
     pub fn set_key_display_format(&mut self, key_display_format: JsKeyDisplayFormat) -> Result<()> {
         let value: KeyDisplayFormat = key_display_format.into();
-        self.setting.set_key_display_format(value)?;
+        self.setting
+            .set_key_display_format(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_waveform_current_position(&self) -> Result<JsWaveformCurrentPosition> {
-        Ok(self.setting.get_waveform_current_position()?.into())
+        Ok(self
+            .setting
+            .get_waveform_current_position()
+            .map_err(crate::util::binding_error)?
+            .into())
     }
 
     #[napi]
@@ -1969,7 +2245,9 @@ impl JsSetting {
         waveform_current_position: JsWaveformCurrentPosition,
     ) -> Result<()> {
         let value: WaveformCurrentPosition = waveform_current_position.into();
-        self.setting.set_waveform_current_position(value)?;
+        self.setting
+            .set_waveform_current_position(value)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 }

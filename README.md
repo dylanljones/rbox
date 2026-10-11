@@ -157,7 +157,31 @@ Does this library support the old Device Library export files?
 
 </details>
 
+## Structure
 
+The project is structured as a Rust workspace. The diagram shows the main crates;
+arrows point from a crate to its dependencies. The dashed arrow is enabled by the
+`master-db` feature of `rbox-onelib`.
+
+```mermaid
+flowchart TD
+    bindings["Python / JavaScript bindings"] --> rbox["rbox"]
+
+    rbox --> anlz["rbox-anlz"]
+    rbox --> masterdb["rbox-masterdb"]
+    rbox --> onelib["rbox-onelib"]
+    rbox --> settings["rbox-setting"]
+    rbox --> xml["rbox-xml"]
+    rbox --> db["rbox-db"]
+    rbox --> core["rbox-core"]
+
+    masterdb --> anlz
+    masterdb --> db
+    masterdb --> core
+    onelib --> db
+    onelib --> core
+    onelib -.-> masterdb
+```
 
 ## Sponsor
 

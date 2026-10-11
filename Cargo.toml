@@ -2,9 +2,8 @@
 resolver = "3"
 members = [
     "rbox",
+    "crates/*",
     "bindings/*",
-    "rbox-derives",
-    "codegen"
 ]
 
 [workspace.package]
@@ -20,15 +19,35 @@ edition = "2021"
 rust-version = "1.88"
 
 [workspace.dependencies]
-anyhow          = { version = "1.0" }
-chrono          = { version = "0.4", features = ["serde"] }
-serde           = { version = "1.0", features = ["derive"] }
-serde_json      = { version = "1.0" }
-pyo3            = { version = "0.27", features = ["serde", "chrono"] }
-napi            = { version = "3.5", default-features = false, features = ["napi5", "serde-json", "chrono_date"] }
-napi-derive     = { version = "3.3"}
-quote           = { version = "1.0" }
-syn             = { version = "2.0", features = ["full", "extra-traits"] }
+anyhow            = { version = "1.0" }
+binrw             = { version = "0.15" }
+chrono            = { version = "0.4", features = ["serde"] }
+crc16             = { version = "0.4" }
+criterion         = { version = "0.8" }
+diesel            = { version = "2.3", features = ["sqlite", "r2d2", "returning_clauses_for_sqlite_3_35"] }
+diesel_migrations = { version = "2.3", features = ["sqlite"] }
+dunce             = { version = "1.0" }
+lazy-regex        = { version = "3.4" }
+libsqlite3-sys    = { version = "0.33", features = ["sqlcipher"] }
+modular-bitfield  = { version = "0.13" }
+parse-display     = { version = "0.10" }
+quote             = { version = "1.0" }
+quick-xml         = { version = "0.39", features = ["serialize"] }
+rand              = { version = "0.10" }
+rstest            = { version = "0.26.1" }
+serde             = { version = "1.0", features = ["derive"] }
+serde_json        = { version = "1.0" }
+syn               = { version = "2.0", features = ["full", "extra-traits"] }
+sysinfo           = { version = "0.38" }
+thiserror         = { version = "2.0" }
+tempfile          = { version = "3.23" }
+uuid              = { version = "1.16", features = ["v4"] }
+
+napi              = { version = "3.5", default-features = false, features = ["napi6", "serde-json", "chrono_date"] }
+napi-derive       = { version = "3.3"}
+pyo3              = { version = "0.27", features = ["serde", "chrono"] }
+pyo3-build-config = { version = "0.27" }
+
 # proc-macro2     = { version = "1.0"  }
 
 [profile.release]

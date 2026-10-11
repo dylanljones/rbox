@@ -9,7 +9,7 @@
 //!
 //! <br>
 //!
-//! > rbox gives you full control over your Rekordbox data.
+//! > rbox gives you full control of your Rekordbox data.
 //!
 //! <br>
 //!
@@ -34,7 +34,7 @@
 //!
 //! fn main() -> anyhow::Result<()> {
 //!     let mut db = MasterDb::open()?;
-//!     let contents = db.get_content()?;
+//!     let contents = db.get_contents()?;
 //!     for content in contents {
 //!         println!("{:?}", content);
 //!     }
@@ -50,7 +50,7 @@
 //! use rbox::prelude::*;
 //!
 //! fn main() -> anyhow::Result<()> {
-//!     let mut xml = RekordboxXml::load("database.xml");
+//!     let mut xml = RekordboxXml::load("database.xml")?;
 //!     let tracks = xml.get_tracks();
 //!     for track in tracks {
 //!         println!("{:?}", track);
@@ -109,41 +109,50 @@ compile_error!(
     "The 'bundled' or 'bundled-vendored-openssl' features require either 'master-db' or 'one-library' to be enabled"
 );
 
-mod error;
-mod options;
-mod pathlib;
+pub mod error;
 pub mod prelude;
-pub mod util;
+pub use error::{Error, Result};
 
 #[cfg(feature = "anlz")]
-pub mod anlz;
+pub use rbox_anlz as anlz;
+pub use rbox_core as core;
 #[cfg(any(feature = "master-db", feature = "one-library"))]
-pub mod enums;
+pub use rbox_db as db;
 #[cfg(feature = "master-db")]
-pub mod masterdb;
-#[cfg(any(feature = "master-db", feature = "one-library"))]
-pub mod model_traits;
+pub use rbox_masterdb as masterdb;
 #[cfg(feature = "one-library")]
-pub mod one_library;
+pub use rbox_onelib as one_library;
 #[cfg(feature = "settings")]
-pub mod settings;
-pub mod share;
+pub use rbox_setting as settings;
 #[cfg(feature = "xml")]
-pub mod xml;
+pub use rbox_xml as xml;
 
-pub use error::{Error, Result};
-pub use options::RekordboxOptions;
-#[allow(deprecated)]
-pub use pathlib::{NormalizePath, PathExt};
-pub use util::*;
+// Core exports
+pub use core::*;
 
+// anlz exports
 #[cfg(feature = "anlz")]
 pub use anlz::Anlz;
+
+// shared db exports
+#[cfg(any(feature = "master-db", feature = "one-library"))]
+pub use db::{
+    DbConn, DbPool, Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, NodeRef,
+    OrderedModel, TreeNode, TreeSeq,
+};
+
+// masterdb exports
 #[cfg(feature = "master-db")]
-pub use masterdb::MasterDb;
+pub use masterdb::{MasterDb, MasterPlaylistXml, SmartList};
+
+// onelib exports
 #[cfg(feature = "one-library")]
 pub use one_library::OneLibrary;
+
+// settings exports
 #[cfg(feature = "settings")]
 pub use settings::Setting;
+
+// xml exports
 #[cfg(feature = "xml")]
 pub use xml::RekordboxXml;

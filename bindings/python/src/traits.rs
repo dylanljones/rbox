@@ -6,7 +6,7 @@ use pyo3::types::PyDict;
 use pyo3::PyClass;
 use std::collections::HashMap;
 
-use rbox::util::{PyItemsIter, PyObjectIter, PyStrIter};
+use rbox::core::python::{PyItemsIter, PyObjectIter, PyStrIter};
 
 pub trait IntoPy<T> {
     fn into_py(self, py: Python) -> PyResult<T>;

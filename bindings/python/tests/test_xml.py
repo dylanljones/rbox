@@ -7,6 +7,15 @@ from rbox import RekordboxXml, XmlError
 from rbox.rbxml import PlaylistNode, Track
 
 
+def test_load_errors_are_xml_errors(tmp_path):
+    with pytest.raises(XmlError):
+        RekordboxXml(str(tmp_path / "missing.xml"))
+    malformed = tmp_path / "malformed.xml"
+    malformed.write_text("<invalid>", encoding="utf-8")
+    with pytest.raises(XmlError):
+        RekordboxXml(str(malformed))
+
+
 def test_load_and_getters(fixture_copy):
     xml = RekordboxXml(fixture_copy("xml"))
     assert isinstance(xml, RekordboxXml)

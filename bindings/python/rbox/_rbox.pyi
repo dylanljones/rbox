@@ -203,6 +203,17 @@ class PlaylistType(enum.IntEnum):
     def __eq__(self, other: int | PlaylistType) -> bool: ...
     def __ne__(self, other: int | PlaylistType) -> bool: ...
 
+class OneLibraryPlaylistType(enum.IntEnum):
+    List: OneLibraryPlaylistType
+    Folder: OneLibraryPlaylistType
+    SmartList: OneLibraryPlaylistType
+    CloudLibrarySync: OneLibraryPlaylistType
+
+    def __int__(self) -> int: ...
+    def __repr__(self) -> str: ...
+    def __eq__(self, other: int | OneLibraryPlaylistType) -> bool: ...
+    def __ne__(self, other: int | OneLibraryPlaylistType) -> bool: ...
+
 class RelatedTracksType(enum.IntEnum):
     List: RelatedTracksType
     Folder: RelatedTracksType
@@ -3164,7 +3175,7 @@ class Playlist(_RustMutableMapping):
     """The name of the playlist."""
     image_id: Optional[int]
     """Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image)."""
-    attribute: PlaylistType
+    attribute: OneLibraryPlaylistType
     """The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`)."""
     parent_id: int
     """The ID of the parent [`Playlist`], `0` for top-level records."""
@@ -3178,7 +3189,7 @@ class NewPlaylist(_RustMutableMapping):
     """The name of the playlist."""
     image_id: Optional[int]
     """Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image)."""
-    attribute: PlaylistType
+    attribute: OneLibraryPlaylistType
     """The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`)."""
     parent_id: int
     """The ID of the parent [`Playlist`], `0` for top-level records."""

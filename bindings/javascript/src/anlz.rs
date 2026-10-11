@@ -492,51 +492,72 @@ pub struct JsAnlz {
 impl JsAnlz {
     #[napi]
     pub fn get_vbr(&mut self) -> Result<Option<JsVBR>> {
-        Ok(self.anlz.get_vbr()?.map(Into::into))
+        Ok(self
+            .anlz
+            .get_vbr()
+            .map_err(crate::util::binding_error)?
+            .map(Into::into))
     }
 
     #[napi]
     pub fn get_seek_index(&mut self) -> Result<Option<JsSeekIndex>> {
-        Ok(self.anlz.get_seek_index()?.map(Into::into))
+        Ok(self
+            .anlz
+            .get_seek_index()
+            .map_err(crate::util::binding_error)?
+            .map(Into::into))
     }
 
     #[napi]
     pub fn get_waveform_3band_calibration(&mut self) -> Result<Option<JsWaveform3BandCalibration>> {
-        Ok(self.anlz.get_waveform_3band_calibration()?.map(Into::into))
+        Ok(self
+            .anlz
+            .get_waveform_3band_calibration()
+            .map_err(crate::util::binding_error)?
+            .map(Into::into))
     }
 
     #[napi]
     pub fn get_vocal_detection(&mut self) -> Result<Option<JsVocalDetection>> {
-        Ok(self.anlz.get_vocal_detection()?.map(Into::into))
+        Ok(self
+            .anlz
+            .get_vocal_detection()
+            .map_err(crate::util::binding_error)?
+            .map(Into::into))
     }
 
     #[napi(constructor)]
     pub fn new(path: String) -> Result<Self> {
-        let anlz = Anlz::load(path)?;
+        let anlz = Anlz::load(path).map_err(crate::util::binding_error)?;
         Ok(JsAnlz { anlz })
     }
 
     #[napi]
     pub fn dump_copy(&mut self, path: String) -> Result<()> {
-        self.anlz.dump_copy(path)?;
+        self.anlz
+            .dump_copy(path)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn dump(&mut self) -> Result<()> {
-        self.anlz.dump()?;
+        self.anlz.dump().map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_tags(&mut self) -> Result<Vec<String>> {
-        let tags = self.anlz.get_tags()?;
+        let tags = self.anlz.get_tags().map_err(crate::util::binding_error)?;
         Ok(tags)
     }
 
     #[napi]
     pub fn get_beat_grid(&mut self) -> Result<Option<JsBeatGrid>> {
-        let data = self.anlz.get_beat_grid()?;
+        let data = self
+            .anlz
+            .get_beat_grid()
+            .map_err(crate::util::binding_error)?;
         if let Some(data) = data {
             return Ok(Some(data.into()));
         }
@@ -545,7 +566,10 @@ impl JsAnlz {
 
     #[napi]
     pub fn get_extended_beat_grid(&mut self) -> Result<Option<JsExtendedBeatGrid>> {
-        let data = self.anlz.get_extended_beat_grid()?;
+        let data = self
+            .anlz
+            .get_extended_beat_grid()
+            .map_err(crate::util::binding_error)?;
         if let Some(data) = data {
             return Ok(Some(data.into()));
         }
@@ -554,7 +578,10 @@ impl JsAnlz {
 
     #[napi]
     pub fn get_hot_cues(&mut self) -> Result<Option<JsCueList>> {
-        let data = self.anlz.get_hot_cues()?;
+        let data = self
+            .anlz
+            .get_hot_cues()
+            .map_err(crate::util::binding_error)?;
         if let Some(data) = data {
             return Ok(Some(data.into()));
         }
@@ -563,7 +590,10 @@ impl JsAnlz {
 
     #[napi]
     pub fn get_memory_cues(&mut self) -> Result<Option<JsCueList>> {
-        let data = self.anlz.get_memory_cues()?;
+        let data = self
+            .anlz
+            .get_memory_cues()
+            .map_err(crate::util::binding_error)?;
         if let Some(data) = data {
             return Ok(Some(data.into()));
         }
@@ -572,7 +602,10 @@ impl JsAnlz {
 
     #[napi]
     pub fn get_extended_hot_cues(&mut self) -> Result<Option<JsExtendedCueList>> {
-        let data = self.anlz.get_extended_hot_cues()?;
+        let data = self
+            .anlz
+            .get_extended_hot_cues()
+            .map_err(crate::util::binding_error)?;
         if let Some(data) = data {
             return Ok(Some(data.into()));
         }
@@ -581,7 +614,10 @@ impl JsAnlz {
 
     #[napi]
     pub fn get_extended_memory_cues(&mut self) -> Result<Option<JsExtendedCueList>> {
-        let data = self.anlz.get_extended_memory_cues()?;
+        let data = self
+            .anlz
+            .get_extended_memory_cues()
+            .map_err(crate::util::binding_error)?;
         if let Some(data) = data {
             return Ok(Some(data.into()));
         }
@@ -591,24 +627,33 @@ impl JsAnlz {
     #[napi]
     pub fn get_path(&mut self) -> Result<String> {
         self.anlz
-            .get_path()?
+            .get_path()
+            .map_err(crate::util::binding_error)?
             .ok_or_else(|| napi::Error::from_reason("ANLZ path is missing"))
     }
 
     #[napi]
     pub fn set_path(&mut self, path: String) -> Result<()> {
-        self.anlz.set_path(path)?;
+        self.anlz
+            .set_path(path)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn get_vbr_data(&mut self) -> Result<Option<Vec<u8>>> {
-        Ok(self.anlz.get_vbr_data()?)
+        Ok(self
+            .anlz
+            .get_vbr_data()
+            .map_err(crate::util::binding_error)?)
     }
 
     #[napi]
     pub fn get_tiny_waveform_preview(&mut self) -> Result<Option<JsTinyWaveformPreview>> {
-        let data = self.anlz.get_tiny_waveform_preview()?;
+        let data = self
+            .anlz
+            .get_tiny_waveform_preview()
+            .map_err(crate::util::binding_error)?;
         if let Some(data) = data {
             return Ok(Some(data.into()));
         }
@@ -617,7 +662,10 @@ impl JsAnlz {
 
     #[napi]
     pub fn get_waveform_preview(&mut self) -> Result<Option<JsWaveformPreview>> {
-        let data = self.anlz.get_waveform_preview()?;
+        let data = self
+            .anlz
+            .get_waveform_preview()
+            .map_err(crate::util::binding_error)?;
         if let Some(data) = data {
             return Ok(Some(data.into()));
         }
@@ -626,7 +674,10 @@ impl JsAnlz {
 
     #[napi]
     pub fn get_waveform_detail(&mut self) -> Result<Option<JsWaveformDetail>> {
-        let data = self.anlz.get_waveform_detail()?;
+        let data = self
+            .anlz
+            .get_waveform_detail()
+            .map_err(crate::util::binding_error)?;
         if let Some(data) = data {
             return Ok(Some(data.into()));
         }
@@ -635,7 +686,10 @@ impl JsAnlz {
 
     #[napi]
     pub fn get_waveform_color_preview(&mut self) -> Result<Option<JsWaveformColorPreview>> {
-        let data = self.anlz.get_waveform_color_preview()?;
+        let data = self
+            .anlz
+            .get_waveform_color_preview()
+            .map_err(crate::util::binding_error)?;
         if let Some(data) = data {
             return Ok(Some(data.into()));
         }
@@ -644,7 +698,10 @@ impl JsAnlz {
 
     #[napi]
     pub fn get_waveform_color_detail(&mut self) -> Result<Option<JsWaveformColorDetail>> {
-        let data = self.anlz.get_waveform_color_detail()?;
+        let data = self
+            .anlz
+            .get_waveform_color_detail()
+            .map_err(crate::util::binding_error)?;
         if let Some(data) = data {
             return Ok(Some(data.into()));
         }
@@ -653,7 +710,10 @@ impl JsAnlz {
 
     #[napi]
     pub fn get_waveform_3band_preview(&mut self) -> Result<Option<JsWaveform3BandPreview>> {
-        let data = self.anlz.get_waveform_3band_preview()?;
+        let data = self
+            .anlz
+            .get_waveform_3band_preview()
+            .map_err(crate::util::binding_error)?;
         if let Some(data) = data {
             return Ok(Some(data.into()));
         }
@@ -662,7 +722,10 @@ impl JsAnlz {
 
     #[napi]
     pub fn get_waveform_3band_detail(&mut self) -> Result<Option<JsWaveform3BandDetail>> {
-        let data = self.anlz.get_waveform_3band_detail()?;
+        let data = self
+            .anlz
+            .get_waveform_3band_detail()
+            .map_err(crate::util::binding_error)?;
         if let Some(data) = data {
             return Ok(Some(data.into()));
         }
@@ -671,7 +734,10 @@ impl JsAnlz {
 
     #[napi]
     pub fn get_song_structure(&mut self) -> Result<Option<JsSongStructureData>> {
-        let data = self.anlz.get_song_structure()?;
+        let data = self
+            .anlz
+            .get_song_structure()
+            .map_err(crate::util::binding_error)?;
         if let Some(data) = data {
             return Ok(Some(data.into()));
         }

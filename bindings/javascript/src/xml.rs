@@ -580,28 +580,30 @@ impl JsRekordboxXml {
     }
 
     #[napi(factory)]
-    pub fn load(path: String) -> Self {
-        let xml = RekordboxXml::load(path);
-        Self::from_xml(xml)
+    pub fn load(path: String) -> Result<Self> {
+        let xml = RekordboxXml::load(path).map_err(crate::util::binding_error)?;
+        Ok(Self::from_xml(xml))
     }
 
     #[napi]
     pub fn to_string(&mut self) -> Result<String> {
         self.update_xml();
-        Ok(self.xml.to_string()?)
+        Ok(self.xml.to_string().map_err(crate::util::binding_error)?)
     }
 
     #[napi]
     pub fn dump_copy(&mut self, path: String) -> Result<()> {
         self.update_xml();
-        self.xml.dump_copy(path)?;
+        self.xml
+            .dump_copy(path)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn dump(&mut self) -> Result<()> {
         self.update_xml();
-        self.xml.dump()?;
+        self.xml.dump().map_err(crate::util::binding_error)?;
         Ok(())
     }
 
@@ -678,13 +680,17 @@ impl JsRekordboxXml {
     #[napi]
     pub fn update_track(&mut self, track: JsTrack) -> Result<()> {
         let track = Track::from(track);
-        self.xml.update_track(track)?;
+        self.xml
+            .update_track(track)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 
     #[napi]
     pub fn remove_track(&mut self, track_id: String) -> Result<()> {
-        self.xml.remove_track(&track_id)?;
+        self.xml
+            .remove_track(&track_id)
+            .map_err(crate::util::binding_error)?;
         Ok(())
     }
 

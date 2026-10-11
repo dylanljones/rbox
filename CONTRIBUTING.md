@@ -8,6 +8,38 @@ please use [GitHub Discussions][discussions] instead of opening an issue.
 rbox is tested on Windows, MacOS and Linux, however some features can't be tested in
 the CI setup since it requires a working Rekordbox installation.
 
+## Tests and releases
+
+Run the Rust workspace tests from the repository root:
+
+```sh
+cargo test --workspace --exclude rbox-py --exclude rbox-js --lib --bins --tests
+```
+
+The bindings have separate API tests in `bindings/python/tests` and
+`bindings/javascript/__test__`. CI runs on pull requests targeting `main`,
+and the Tests workflow can also be started manually on `dev` or another branch.
+Changes to shared crates trigger tests for both bindings.
+
+Use Python 3.11 or later to bump the workspace release version:
+
+```sh
+python scripts/bump_version.py 0.1.8 --dry-run
+python scripts/bump_version.py 0.1.8
+```
+
+The script updates workspace metadata, versioned dependencies between workspace
+crates, binding package versions, and existing version references in documentation.
+`rbox-derives` has an independent version; update its manifest and dependency
+requirements separately when releasing changes to the macro.
+
+Rust releases publish the public sub-crates in dependency order, followed by
+`rbox`. Already-published versions are skipped so a failed release can be retried.
+`codegen`, `rbox-testing`, and the binding crates are not published to crates.io.
+Rust publication waits for the reusable Tests workflow; npm and PyPI publication
+wait for tests of their built artifacts. PyPI releases also verify that the source
+archive builds without the repository checkout.
+
 ## Pre-commit Hooks
 
 We are using the [pre-commit framework] to automatically run a linter and code formatter

@@ -4,7 +4,7 @@
 use chrono::{DateTime, Utc};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyString, PyType};
-use rbox::enums::PlaylistType;
+use rbox::masterdb::enums::PlaylistType;
 use rbox::masterdb::{models::*, MasterDb};
 
 use super::errors::MasterDbError;

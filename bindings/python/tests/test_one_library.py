@@ -6,7 +6,15 @@
 import pytest
 
 from rbox import OneLibrary
+from rbox.enums import OneLibraryPlaylistType, PlaylistType
 from rbox.one_library import models
+
+
+def test_playlist_enum_registration(one_library):
+    assert OneLibraryPlaylistType is not PlaylistType
+    playlist = one_library.create_playlist("enum API", None, None)
+    assert isinstance(playlist.attribute, OneLibraryPlaylistType)
+    assert playlist.attribute == OneLibraryPlaylistType.List
 
 
 def test_raw_getters(one_library):

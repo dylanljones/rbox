@@ -11,7 +11,10 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  working-directory: rbox-derives
+
+concurrency:
+  group: crates-io-publish
+  cancel-in-progress: false
 
 jobs:
   cargo-fmt-check:

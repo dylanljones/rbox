@@ -1,14 +1,10 @@
 
 ### -- Project gitignore ---------------------------------------------------------------------- ###
 
-**main.py
 **master-copy.db
 **database-copy.xml
 **database-out.xml
-**main.mjs
-.chglog
 .testdata/.tmp
-diesel.toml
 .tmp*
 
 ### -- Rust gitignore ------------------------------------------------------------------------- ###

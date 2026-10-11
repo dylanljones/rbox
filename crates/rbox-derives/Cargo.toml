@@ -1,0 +1,21 @@
+[package]
+name = "rbox-derives"
+description = "Proc macros for rbox's pyo3 bindings"
+readme = "README.md"
+version = "0.1.1"
+authors.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+repository.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+publish = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote       = { workspace = true }
+syn         = { workspace = true }
