@@ -37,9 +37,9 @@ rand              = { workspace = true }
 uuid              = { workspace = true }
 dunce             = { workspace = true }
 
-rbox-anlz         = { path = "../rbox-anlz", version = "0.1.7", default-features = false }
-rbox-db           = { path = "../rbox-db", version = "0.1.7", default-features = false }
-rbox-core         = { path = "../rbox-core", version = "0.1.7", default-features = false }
+rbox-anlz         = { path = "../rbox-anlz", version = "0.2.0", default-features = false }
+rbox-db           = { path = "../rbox-db", version = "0.2.0", default-features = false }
+rbox-core         = { path = "../rbox-core", version = "0.2.0", default-features = false }
 rbox-derives      = { path = "../rbox-derives", version = "0.2.0", optional = true }
 
 [dev-dependencies]
