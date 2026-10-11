@@ -37,8 +37,15 @@ python scripts/bump_version.py 0.1.8
 
 The script updates workspace metadata, versioned dependencies between workspace
 crates, binding package versions, and existing version references in documentation.
-`rbox-derives` has an independent version; update its manifest and dependency
-requirements separately when releasing changes to the macro.
+To bump `rbox-derives` and its versioned dependency requirements separately:
+
+```sh
+python scripts/bump_version.py 0.2.1 --derives --dry-run
+python scripts/bump_version.py 0.2.1 --derives
+```
+
+This leaves the workspace version, other crate versions, and binding package
+versions unchanged. Dependencies that only specify a local path remain unchanged.
 
 Rust releases publish the public sub-crates in dependency order, followed by
 `rbox`. Already-published versions are skipped so a failed release can be retried.

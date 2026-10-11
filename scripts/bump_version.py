@@ -1,7 +1,7 @@
 # Copyright (C) 2026 Dylan Jones
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Bump the workspace release and its internal dependency requirements.
+"""Bump the workspace release, or rbox-derives separately with --derives.
 
 Requires Python 3.10+ and tomlkit. Independently versioned crates (rbox-derives)
 retain both their package version and dependency requirements. Only Git-visible files
@@ -73,8 +73,14 @@ def update_dependencies(text: str, names: set[str], version: str) -> str:
     return "".join(sections)
 
 
-def bump_version(new_version: str, dry: bool = False, encoding: str = "utf-8") -> None:
-    """Update release metadata and versioned dependencies without bumping derives."""
+def bump_version(
+    new_version: str,
+    dry: bool = False,
+    encoding: str = "utf-8",
+    *,
+    derives: bool = False,
+) -> None:
+    """Update the selected release and its versioned workspace dependencies."""
     prerelease = new_version.split("+", 1)[0].partition("-")[2]
     if not SEMVER.fullmatch(new_version) or any(
         part.isdigit() and len(part) > 1 and part.startswith("0")
@@ -104,10 +110,23 @@ def bump_version(new_version: str, dry: bool = False, encoding: str = "utf-8") -
             if path.resolve() not in excluded and (path / "Cargo.toml").is_file()
         )
     names = set()
+    derives_path = None
     for path in manifests:
         package = tomlkit.loads(path.read_text(encoding=encoding)).get("package", {})
+        if package.get("name") == "rbox-derives":
+            derives_path = path
         if package.get("version") == {"workspace": True}:
             names.add(package["name"])
+
+    if derives:
+        if derives_path is None:
+            raise ValueError("rbox-derives was not found in the workspace")
+        old_version = tomlkit.loads(derives_path.read_text(encoding=encoding))[
+            "package"
+        ]["version"]
+        if not isinstance(old_version, str):
+            raise ValueError("rbox-derives must have an independent package version")
+        names = {"rbox-derives"}
 
     replacements = (
         'rbox = "{v}"',
@@ -118,6 +137,8 @@ def bump_version(new_version: str, dry: bool = False, encoding: str = "utf-8") -
     )
     changes = {}
     for path in files:
+        if derives and path not in manifests:
+            continue
         if not path.is_file() or (
             path not in manifests and path.suffix not in (".md", ".js", ".json")
         ):
@@ -127,7 +148,11 @@ def bump_version(new_version: str, dry: bool = False, encoding: str = "utf-8") -
         text = original
         if path in manifests:
             text = update_dependencies(text, names, new_version)
-            if path == workspace_path:
+            if derives and path == derives_path:
+                document = tomlkit.loads(text)
+                document["package"]["version"] = new_version
+                text = tomlkit.dumps(document)
+            elif not derives and path == workspace_path:
                 text = re.sub(
                     r'(?ms)(^\[workspace\.package\]\s*.*?^version\s*=\s*)"[^"]+"',
                     lambda m: m[1] + f'"{new_version}"',
@@ -152,12 +177,17 @@ def bump_version(new_version: str, dry: bool = False, encoding: str = "utf-8") -
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("version", help="New workspace version, e.g. 0.1.8")
+    parser.add_argument("version", help="New version for the workspace or rbox-derives")
+    parser.add_argument(
+        "--derives",
+        action="store_true",
+        help="Bump only rbox-derives and its dependency requirements",
+    )
     parser.add_argument(
         "--dry-run", action="store_true", help="Show changes without writing files"
     )
     args = parser.parse_args()
-    bump_version(args.version, dry=args.dry_run)
+    bump_version(args.version, dry=args.dry_run, derives=args.derives)
 
 
 if __name__ == "__main__":
