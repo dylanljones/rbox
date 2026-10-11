@@ -7,6 +7,11 @@
 .testdata/.tmp
 .tmp*
 
+# mdBook output and generated mdbook-tabs assets
+/docs/book/
+/docs/theme/tabs.css
+/docs/theme/tabs.js
+
 ### -- Rust gitignore ------------------------------------------------------------------------- ###
 
 /target
