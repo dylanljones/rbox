@@ -63,7 +63,7 @@ cargo add rbox
 ```
 or add the following line to your Cargo.toml:
 ```shell
-rbox = "0.1.7"
+rbox = "0.1.8"
 ```
 
 ### 🐍 Python
