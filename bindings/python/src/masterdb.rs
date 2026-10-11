@@ -433,6 +433,11 @@ impl PyMasterDb {
         Ok(model)
     }
 
+    /// Inserts a configured content model into the `djmdContent` table.
+    pub fn add_content(&mut self, content: NewDjmdContent) -> PyResult<DjmdContent> {
+        self.db.add_content(content).map_err(db_error)
+    }
+
     /// Updates an existing `djmdContent` entry in the database.
     pub fn update_content(&mut self, item: PyRef<'_, DjmdContent>) -> PyResult<()> {
         self.db.update_content(&item).map_err(db_error)?;

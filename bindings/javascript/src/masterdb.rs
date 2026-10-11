@@ -554,6 +554,14 @@ impl JsMasterDb {
         Ok(model)
     }
 
+    /// Inserts a configured content model into the `djmdContent` table.
+    #[napi]
+    pub fn add_content(&mut self, content: NewDjmdContent) -> Result<DjmdContent> {
+        self.db
+            .add_content(content)
+            .map_err(crate::util::binding_error)
+    }
+
     /// Updates an existing `djmdContent` entry in the database.
     #[napi]
     pub fn update_content(&mut self, mut model: DjmdContent) -> Result<i32> {

@@ -3597,6 +3597,8 @@ export declare class MasterDb {
   getContentAnlzPaths(id: string): AnlzPaths | null
   /** Creates a new content entry and inserts it into the `djmdContent` table. */
   createContent(path: string): DjmdContent
+  /** Inserts a configured content model into the `djmdContent` table. */
+  addContent(content: NewDjmdContent): DjmdContent
   /** Updates an existing `djmdContent` entry in the database. */
   updateContent(model: DjmdContent): number
   /** Update the content album field. */
@@ -5430,7 +5432,7 @@ export interface DjmdContent {
   genreId?: string
   /** An optional integer representing the BPM of the track. */
   bpm?: number
-  /** An optional integer representing the length of the track in milliseconds. */
+  /** An optional integer representing the length of the track in rounded seconds. */
   length?: number
   /** An optional integer representing the track number in the album. */
   trackNo?: number
@@ -6808,8 +6810,10 @@ export interface NewDjmdArtist {
  * ```
  */
 export interface NewDjmdContent {
-  /** An optional string representing the folder path of the track. */
+  /** The path of the track file. */
   folderPath: string
+  /** Explicit Rekordbox file type, or `None` to infer it from the path extension. */
+  fileType?: FileType
   /** An optional string representing the title of the track. */
   title?: string
   /** An optional string representing the ID of the associated artist in [`DjmdArtist`]. */

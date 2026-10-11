@@ -1326,6 +1326,21 @@ impl MasterDb {
         Ok(Some(files))
     }
 
+    /// Inserts a configured content model into the `djmdContent` table.
+    ///
+    /// Use this method when fields beyond the path should be set before insertion.
+    /// The model validates the file, normalizes its path, and infers its file type
+    /// from the extension unless [`NewDjmdContent::file_type`] was used.
+    ///
+    /// # Errors
+    /// Returns an error when writes are disabled, the file or model is invalid,
+    /// the path already exists in the database, or the insertion fails.
+    pub fn add_content(&mut self, item: NewDjmdContent) -> Result<DjmdContent> {
+        self.assert_write_mode()?;
+        let mut conn = self.pool.get()?;
+        Ok(item.insert(&mut conn)?)
+    }
+
     /// Creates a new content entry and inserts it into the `djmdContent` table.
     ///
     /// **Note:** Not all fields of [`DjmdContent`] are set by this function. The user should update
@@ -1359,14 +1374,12 @@ impl MasterDb {
         &mut self,
         path: P,
     ) -> Result<DjmdContent> {
-        self.assert_write_mode()?;
-        let mut conn = self.pool.get()?;
         let path = Path::new(&path)
             .to_str()
             .ok_or_else(|| Error::InvalidOperation("Content path is not valid UTF-8".into()))?
             .to_string();
         let item = NewDjmdContent::new(path);
-        Ok(item.insert(&mut conn)?)
+        self.add_content(item)
     }
 
     /// Updates an existing `djmdContent` entry in the database.

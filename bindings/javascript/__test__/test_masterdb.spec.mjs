@@ -14,6 +14,7 @@ test.beforeEach(t => {
 test('raw getters and argument conversion', t => {
     const db = t.context.db
     t.true(db instanceof MasterDb)
+    t.is(typeof db.addContent, 'function')
     const rows = db.getContents()
     t.true(Array.isArray(rows))
     const row = rows[0]

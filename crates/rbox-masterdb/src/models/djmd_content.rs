@@ -113,7 +113,7 @@ pub struct DjmdContent {
     pub genre_id: Option<String>,
     /// An optional integer representing the BPM of the track.
     pub bpm: Option<i32>,
-    /// An optional integer representing the length of the track in milliseconds.
+    /// An optional integer representing the length of the track in rounded seconds.
     pub length: Option<i32>,
     /// An optional integer representing the track number in the album.
     pub track_no: Option<i32>,
@@ -601,8 +601,10 @@ impl DjmdContent {
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct NewDjmdContent {
-    /// An optional string representing the folder path of the track.
+    /// The path of the track file.
     pub folder_path: String,
+    /// Explicit Rekordbox file type, or `None` to infer it from the path extension.
+    pub file_type: Option<FileType>,
     /// An optional string representing the title of the track.
     pub title: Option<String>,
     /// An optional string representing the ID of the associated artist in [`DjmdArtist`].
@@ -689,16 +691,21 @@ impl ModelInsert for NewDjmdContent {
                 message,
             )))
         };
-        let ext = path
-            .extension()
-            .and_then(|ext| ext.to_str())
-            .ok_or_else(|| {
-                invalid_input(format!(
-                    "Missing or invalid file extension: {}",
-                    rb_path_str
-                ))
-            })?;
-        let file_type = FileType::try_from_extension(ext).map_err(invalid_input)?;
+        let file_type = match self.file_type {
+            Some(file_type) => file_type,
+            None => {
+                let ext = path
+                    .extension()
+                    .and_then(|ext| ext.to_str())
+                    .ok_or_else(|| {
+                        invalid_input(format!(
+                            "Missing or invalid file extension: {}",
+                            rb_path_str
+                        ))
+                    })?;
+                FileType::try_from_extension(ext).map_err(invalid_input)?
+            }
+        };
         let file_name = path
             .file_name()
             .and_then(|name| name.to_str())
@@ -797,6 +804,15 @@ impl NewDjmdContent {
             folder_path: path.into(),
             ..Default::default()
         }
+    }
+
+    /// Use an explicit Rekordbox file type instead of inferring it from the extension.
+    ///
+    /// This is useful for containers such as M4A, whose codec cannot be determined
+    /// from the extension alone, and for files with non-standard extensions.
+    pub fn file_type(mut self, file_type: FileType) -> Self {
+        self.file_type = Some(file_type);
+        self
     }
 
     /// Builder for `title`.
