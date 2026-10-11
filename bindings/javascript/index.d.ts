@@ -3428,6 +3428,37 @@ export interface UuidIDMap {
   /** The current ID in the mapping. */
   currentId: string
 }
+/** Known Rekordbox file type codes; use raw integers to retain unknown values. */
+export declare const enum FileType {
+  /** Content that rekordbox could not read; this is a known on-disk code. */
+  INVALID = 0,
+  MP3 = 1,
+  MP4 = 3,
+  M4A = 4,
+  FLAC = 5,
+  ALAC = 6,
+  WAV = 11,
+  AIFF = 12,
+  VIDEO = 16,
+  StreamApple = 26
+}
+/** Stored Rekordbox codes for HistoryType. */
+export declare const enum HistoryType {
+  List = 0,
+  Folder = 1
+}
+
+/** Stored Rekordbox codes for HotCueBanklistType. */
+export declare const enum HotCueBanklistType {
+  List = 0,
+  Folder = 1
+}
+
+/** Stored Rekordbox codes for MyTagType. */
+export declare const enum MyTagType {
+  List = 0,
+  Folder = 1
+}
 export declare class Anlz {
   getVbr(): JsVBR | null
   getSeekIndex(): JsSeekIndex | null
@@ -4836,4 +4867,3408 @@ export declare const enum WaveformDivisions {
 
 export interface WaveformPreview {
   data: Array<WaveformColumn>
+}
+/**
+ * Represents the `agentRegistry` table in the Rekordbox database.
+ *
+ * This struct maps to the `agentRegistry` table in the SQLite database used by Rekordbox.
+ * It contains various fields representing metadata and attributes of the Rekordbox collection.
+ * Each entry has a unique name as `registry_id`. The local update sequence number (USN), for
+ * example, is used to track changes made to the entry locally and if stored in the entry
+ * with `registry_id="localUpdateCount"`.
+ * Some important fields include:
+ * * localUpdateCount
+ * * SyncAnalysisDataRootPath
+ * * SyncSettingsRootPath
+ * * LangPath
+ */
+export interface AgentRegistry {
+  /** A unique identifier for the registry entry. */
+  registryId: string
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** An optional string field for additional identifier data. */
+  id1?: string
+  /** An optional string field for additional identifier data. */
+  id2?: string
+  /** An optional integer field for numerical data. */
+  int1?: number
+  /** An optional integer field for numerical data. */
+  int2?: number
+  /** An optional string field for textual data. */
+  str1?: string
+  /** An optional string field for textual data. */
+  str2?: string
+  /** An optional string field for date-related data. */
+  date1?: string
+  /** An optional string field for date-related data. */
+  date2?: string
+  /** An optional string field for extended text data. */
+  text1?: string
+  /** An optional string field for extended text data. */
+  text2?: string
+}
+
+/** Stored Rekordbox codes for Analyzed. */
+export declare const enum Analyzed {
+  NotAnalyzed = 0,
+  Standard = 105,
+  Advanced = 121,
+  Locked = 233
+}
+
+/**
+ * Represents the `cloudAgentRegistry` table in the Rekordbox database.
+ *
+ * This struct maps to the `cloudAgentRegistry` table in the SQLite database used by Rekordbox.
+ * It contains similar fields as the [`AgentRegistry`], but is specifically used for cloud-related
+ * registry entries.
+ */
+export interface CloudAgentRegistry {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** An optional integer field for numerical data. */
+  int1?: number
+  /** An optional integer field for numerical data. */
+  int2?: number
+  /** An optional string field for textual data. */
+  str1?: string
+  /** An optional string field for textual data. */
+  str2?: string
+  /** An optional string field for date-related data. */
+  date1?: string
+  /** An optional string field for date-related data. */
+  date2?: string
+  /** An optional string field for extended text data. */
+  text1?: string
+  /** An optional string field for extended text data. */
+  text2?: string
+}
+
+/**
+ * Represents the `contentActiveCensor` table in the Rekordbox database.
+ *
+ * This struct maps to the `contentActiveCensor` table in the SQLite database used by Rekordbox.
+ * It contains the active censor entries [`DjmdActiveCensor`] of a file as stringified JSON data.
+ *
+ * # References
+ * * [`DjmdContent`] via `content_id` foreign key.
+ */
+export interface ContentActiveCensor {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The id of the associated [`DjmdContent`]. */
+  contentId: string
+  /** A string representing the active censors. */
+  activeCensors: string
+  /** The count of active censors. */
+  rbActivecensorCount: number
+}
+
+/**
+ * Represents the `contentCue` table in the Rekordbox database.
+ *
+ * This struct maps to the `contentCue` table in the SQLite database used by Rekordbox.
+ * It contains the cue entry [`DjmdCue`] of a file as stringified JSON data.
+ *
+ * # References
+ * * [`DjmdContent`] via `content_id` foreign key.
+ */
+export interface ContentCue {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The id of the associated [`DjmdContent`]. */
+  contentId: string
+  /** A JSON string representing the cue data. */
+  cues: string
+  /** The count of cues. */
+  rbCueCount: number
+}
+
+/**
+ * Represents the `contentFile` table in the Rekordbox database.
+ *
+ * This struct maps to the `contentFile` table in the SQLite database used by Rekordbox.
+ * It contains metadata and attributes of the additional file of contents. These include
+ * the analysis and artwork files linked to a track
+ *
+ * # References
+ * * [`DjmdContent`] via `content_id` foreign key.
+ */
+export interface ContentFile {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The id of the associated [`DjmdContent`]. */
+  contentId: string
+  /** The relative file path. */
+  path: string
+  /** The file hash. */
+  hash: string
+  /** The file size. */
+  size: number
+  /** The absolute file path. */
+  rbLocalPath: string
+  /** An optional string representing the in-sync file hash. */
+  rbInsyncHash?: string
+  /** An optional integer representing the in-sync local update sequence number. */
+  rbInsyncLocalUsn?: number
+  /** An optional integer indicating whether the file hash is dirty. */
+  rbFileHashDirty?: number
+  /** An optional integer representing the local file status. */
+  rbLocalFileStatus?: number
+  /** An optional integer indicating whether the file is in progress. */
+  rbInProgress?: number
+  /** An optional integer representing the process type. */
+  rbProcessType?: number
+  /** An optional string representing the temporary file path. */
+  rbTempPath?: string
+  /** An optional integer representing the file priority. */
+  rbPriority?: number
+  /** An optional integer indicating whether the file size is dirty. */
+  rbFileSizeDirty?: number
+}
+
+/**
+ * Represents the `djmdActiveCensor` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdActiveCensor` table in the SQLite database used by Rekordbox.
+ * It contains information for actively censoring explicit content of tracks in the Rekordbox
+ * collection. Active Censor items behave like two cue points, between which an effect is applied
+ * to the audio of a track.
+ *
+ * # References
+ * * [`DjmdContent`] via `content_id` and `content_uuid` foreign keys.
+ */
+export interface DjmdActiveCensor {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The id of the associated [`DjmdContent`]. */
+  contentId: string
+  /** An optional integer representing the start time of the censor in milliseconds. */
+  inMsec?: number
+  /** An optional integer representing the end time of the censor in milliseconds. */
+  outMsec?: number
+  /** An optional integer representing additional information about the censor. */
+  info?: number
+  /** An optional string representing the list of parameters for the censor. */
+  parameterList?: string
+  /** An optional string representing the uuid of the associated [`DjmdContent`]. */
+  contentUuid?: string
+}
+
+/**
+ * Represents the `djmdAlbum` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdAlbum` table in the SQLite database used by Rekordbox.
+ * It stores album-related data, allowing multiple tracks to be associated with the same album.
+ * This table includes metadata such as album name, artist, and compilation status.
+ *
+ * # Referenced by
+ * * [`DjmdContent`] via `album_id` foreign key.
+ *
+ * # References
+ * * [`DjmdArtist`] via `album_artist_id` foreign key.
+ */
+export interface DjmdAlbum {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The name of the album. */
+  name: string
+  /** An optional string representing the id of the album artist [`DjmdArtist`]. */
+  albumArtistId?: string
+  /** An optional string representing the path to the album's image. */
+  imagePath?: string
+  /** A flag if the album is a compilation. */
+  compilation: number
+  /** An optional string used for searching the album. */
+  searchStr?: string
+}
+
+/**
+ * Album snapshot with all direct metadata relationships resolved.
+ *
+ * Field access performs no queries, and editing this view does not persist changes.
+ * Related rows are not expanded recursively. Missing targets remain `None`;
+ * the original row retains its foreign keys.
+ */
+export interface DjmdAlbumView {
+  /** Original album row, including its foreign keys. */
+  album: DjmdAlbum
+  /** Resolved artist. */
+  artist?: DjmdArtist
+}
+
+/**
+ * Represents the `djmdArtist` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdArtist` table in the SQLite database used by Rekordbox.
+ * It stores artist-related data, allowing multiple tracks to be associated with the same artist.
+ *
+ * # Referenced by
+ * * [`DjmdContent`] via `artist_id` foreign key.
+ * * [`DjmdAlbum`] via `album_artist_id` foreign key.
+ */
+export interface DjmdArtist {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** An optional string representing the name of the artist. */
+  name: string
+  /** An optional string used for searching the artist. */
+  searchStr?: string
+}
+
+/**
+ * Represents the `djmdCategory` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdCategory` table in the SQLite database used by Rekordbox.
+ * It stores category-related data, which can be associated with menu items.
+ *
+ * # References
+ * * [`DjmdMenuItems`] via `menu_item_id` foreign key.
+ */
+export interface DjmdCategory {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The id of the associated [`DjmdMenuItems`]. */
+  menuItemId: string
+  /** The sequence/order of the category. */
+  seq: number
+  /** A flag indicating whether the category is disabled. */
+  disable: number
+  /** The info order for the category. */
+  infoOrder: number
+}
+
+/**
+ * Represents the `djmdCloudProperty` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdCloudProperty` table in the SQLite database used by Rekordbox.
+ * It stores metadata and properties related to cloud-based entries, including status,
+ * synchronization details, and reserved fields for future use.
+ */
+export interface DjmdCloudProperty {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** An optional string for reserved data. */
+  reserved1?: string
+  /** An optional string for reserved data. */
+  reserved2?: string
+  /** An optional string for reserved data. */
+  reserved3?: string
+  /** An optional string for reserved data. */
+  reserved4?: string
+  /** An optional string for reserved data. */
+  reserved5?: string
+}
+
+/**
+ * Represents the `djmdColor` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdColor` table in the SQLite database used by Rekordbox.
+ * It stores color-related data, which can be associated with tracks and other entities.
+ *
+ * # Referenced by
+ * * [`DjmdContent`] via `color_id` foreign key.
+ */
+export interface DjmdColor {
+  /** A unique identifier for the color entry. */
+  id: string
+  /** A unique universal identifier for the color entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** An optional string representing the color code (e.g., hex value). */
+  colorCode?: string
+  /** The sort key for ordering colors. */
+  sortKey: number
+  /** A comment (usually the name) associated with the color. */
+  commnt: string
+}
+
+/**
+ * Represents the `djmdContent` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdContent` table in the SQLite database used by Rekordbox.
+ * It contains metadata and attributes for each track in the collection, including file info,
+ * artist, album, genre, and more.
+ *
+ * # Referenced by
+ * * [`ContentActiveCensor`] via `content_id` foreign key.
+ * * [`ContentCue`] via `content_id` foreign key.
+ * * [`ContentFile`] via `content_id` foreign key.
+ * * [`DjmdActiveCensor`] via `content_id` and `content_uuid` foreign keys.
+ * * [`DjmdSongHistory`] via `content_id` foreign key.
+ * * [`DjmdSongHotCueBanklist`] via `content_id` foreign key.
+ * * [`DjmdMixerParam`] via `content_id` foreign key.
+ * * [`DjmdSongMyTag`] via `content_id` foreign key.
+ * * [`DjmdSongPlaylist`] via `content_id` foreign key.
+ * * [`DjmdRecommendLike`] via `content_id1` and `content_id2` foreign keys.
+ * * [`DjmdSongRelatedTracks`] via `content_id` foreign key.
+ * * [`DjmdSongSampler`] via `content_id` foreign key.
+ * * [`DjmdSongTagList`] via `content_id` foreign key.
+ *
+ * # References
+ * * [`DjmdArtist`] via `artist_id`, `remixer_id`, `original_artist_id`, `composer_id` and `lyricist` foreign keys.
+ * * [`DjmdAlbum`] via `album_id` foreign key.
+ * * [`DjmdGenre`] via `genre_id` foreign key.
+ * * [`DjmdLabel`] via `label_id` foreign key.
+ * * [`DjmdKey`] via `key_id` foreign key.
+ * * [`DjmdColor`] via `color_id` foreign key.
+ */
+export interface DjmdContent {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** An optional string representing the folder path of the track. */
+  folderPath?: string
+  /** An optional string representing the long file name of the track. */
+  fileNameL?: string
+  /** An optional string representing the short file name of the track. */
+  fileNameS?: string
+  /** An optional string representing the title of the track. */
+  title?: string
+  /** An optional string representing the ID of the associated artist in [`DjmdArtist`]. */
+  artistId?: string
+  /** An optional string representing the ID of the associated album in [`DjmdAlbum`]. */
+  albumId?: string
+  /** An optional string representing the ID of the associated genre in [`DjmdGenre`]. */
+  genreId?: string
+  /** An optional integer representing the BPM of the track. */
+  bpm?: number
+  /** An optional integer representing the length of the track in milliseconds. */
+  length?: number
+  /** An optional integer representing the track number in the album. */
+  trackNo?: number
+  /** An optional integer representing the bit rate of the track. */
+  bitRate?: number
+  /** An optional integer representing the bit depth of the track. */
+  bitDepth?: number
+  /** An optional string representing comments about the track. */
+  commnt?: string
+  /** An optional integer representing the file type of the track. */
+  fileType: number
+  /** An optional integer representing the rating of the track. */
+  rating?: number
+  /** An optional integer representing the release year of the track. */
+  releaseYear?: number
+  /** An optional string representing the ID of the remixer in [`DjmdArtist`]. */
+  remixerId?: string
+  /** An optional string representing the ID of the label in [`DjmdLabel`]. */
+  labelId?: string
+  /** An optional string representing the ID of the original artist in [`DjmdArtist`]. */
+  orgArtistId?: string
+  /** An optional string representing the ID of the key in [`DjmdKey`]. */
+  keyId?: string
+  /** An optional string representing the stock date of the track. */
+  stockDate?: string
+  /** An optional string representing the ID of the color in [`DjmdColor`]. */
+  colorId?: string
+  /** An optional integer representing the DJ play count of the track. */
+  djPlayCount?: number
+  /** An optional string representing the path to the track's image. */
+  imagePath?: string
+  /** An optional string representing the ID of the master database. */
+  masterDbId?: string
+  /** An optional string representing the ID of the master song. */
+  masterSongId?: string
+  /** An optional string representing the path to the analysis data. */
+  analysisDataPath?: string
+  /** An optional string used for searching the track. */
+  searchStr?: string
+  /** An optional integer representing the file size of the track. */
+  fileSize?: number
+  /** An optional integer representing the disc number of the track. */
+  discNo?: number
+  /** An optional string representing the ID of the composer in [`DjmdArtist`]. */
+  composerId?: string
+  /** An optional string representing the subtitle of the track. */
+  subtitle?: string
+  /** An optional integer representing the sample rate of the track. */
+  sampleRate?: number
+  /** An optional integer indicating whether quantization is disabled for the track. */
+  disableQuantize?: number
+  /** An optional integer indicating whether the track has been analyzed. */
+  analysed?: number
+  /** An optional string representing the release date of the track. */
+  releaseDate?: string
+  /** An optional string representing the creation date of the track. */
+  dateCreated?: string
+  /** An optional integer representing the content link of the track. */
+  contentLink?: number
+  /** An optional string representing tags associated with the track. */
+  tag?: string
+  /** An optional string indicating whether the track was modified by Rekordbox. */
+  modifiedByRbm?: string
+  /** An optional string representing the auto-load hot cue setting. */
+  hotCueAutoLoad?: string
+  /** An optional string representing the delivery control setting. */
+  deliveryControl?: string
+  /** An optional string representing comments about the delivery. */
+  deliveryComment?: string
+  /** An optional string indicating whether the cue points were updated. */
+  cueUpdated?: string
+  /** An optional string indicating whether the analysis data was updated. */
+  analysisUpdated?: string
+  /** An optional string indicating whether the track info was updated. */
+  trackInfoUpdated?: string
+  /** An optional string representing the lyricist of the track. */
+  lyricist?: string
+  /** An optional string representing the ISRC (International Standard Recording Code) of the track. */
+  isrc?: string
+  /** An optional integer representing sampler track information. */
+  samplerTrackInfo?: number
+  /** An optional integer representing the sampler play offset. */
+  samplerPlayOffset?: number
+  /** An optional float representing the sampler gain. */
+  samplerGain?: number
+  /** An optional string representing the associated video. */
+  videoAssociate?: string
+  /** An optional integer representing the lyric status of the track. */
+  lyricStatus?: number
+  /** An optional integer representing the service ID. */
+  serviceId?: number
+  /** An optional string representing the original folder path of the track. */
+  orgFolderPath?: string
+  /** An optional string for reserved data. */
+  reserved1?: string
+  /** An optional string for reserved data. */
+  reserved2?: string
+  /** An optional string for reserved data. */
+  reserved3?: string
+  /** An optional string for reserved data. */
+  reserved4?: string
+  /** An optional string for extended information. */
+  extInfo?: string
+  /** An optional string representing the Rekordbox file ID. */
+  rbFileId?: string
+  /** An optional string representing the ID of the associated device in [`DjmdDevice`]. */
+  deviceId?: string
+  /** An optional string representing the local folder path in Rekordbox. */
+  rbLocalFolderPath?: string
+  /** An optional string representing the source ID. */
+  srcId?: string
+  /** An optional string representing the source title. */
+  srcTitle?: string
+  /** An optional string representing the source artist name. */
+  srcArtistName?: string
+  /** An optional string representing the source album name. */
+  srcAlbumName?: string
+  /** An optional integer representing the source length in milliseconds. */
+  srcLength?: number
+}
+
+/**
+ * Track snapshot with all supported direct metadata relationships resolved.
+ *
+ * Field access performs no queries, and editing this view does not persist changes.
+ * Related records are plain rows without recursive expansion. `None` means an
+ * absent foreign key or a missing target; the content row retains the original key.
+ */
+export interface DjmdContentView {
+  /** Original content row, including its foreign keys. */
+  content: DjmdContent
+  /** Main artist. */
+  artist?: DjmdArtist
+  /** Artist credited as remixer. */
+  remixer?: DjmdArtist
+  /** Artist credited as original artist. */
+  originalArtist?: DjmdArtist
+  /** Artist credited as composer. */
+  composer?: DjmdArtist
+  /** Associated album. */
+  album?: DjmdAlbum
+  /** Associated genre. */
+  genre?: DjmdGenre
+  /** Associated label. */
+  label?: DjmdLabel
+  /** Associated key. */
+  key?: DjmdKey
+  /** Associated color. */
+  color?: DjmdColor
+}
+
+/**
+ * Represents the `djmdCue` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdCue` table in the SQLite database used by Rekordbox.
+ * It stores information about cue points for tracks, including their timing, type, and
+ * additional metadata.
+ *
+ * # Notes
+ * Rekordbox internally represents time in “frames”, each being 1/150th of a second (6.666ms).
+ * The InFrame and OutFrame values use this unit of time. However, when a track is encoded with
+ * variable bit-rate (VBR) or average bit-rate (ABR), the InMpegFrame and OutMpegFrame values are
+ * filled out to assist with correct seeking. Despite the names, these values are not the frame
+ * indices within the MPEG file, but instead use an alternative timing scheme that is typically
+ * around 1/75th of a second (13.333ms) per frame, i.e. about half the granularity of normal frames.
+ *
+ * # References
+ * * [`DjmdContent`] via `content_id` and `content_uuid` foreign keys.
+ *
+ * # Referenced by
+ * * [`DjmdSongHotCueBanklist`] via `cue_id` foreign key.
+ */
+export interface DjmdCue {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The ID of the associated track in [`DjmdContent`]. */
+  contentId: string
+  /** The cue's start time in milliseconds. */
+  inMsec: number
+  /**
+   * The cue's start frame.
+   *
+   * One frame is 1/150th of a second
+   */
+  inFrame: number
+  /** The cue's start MPEG frame or 0 if not a VBR/ABR MPEG file (see note). */
+  inMpegFrame: number
+  /** The cue's start MPEG absolute frame or 0 if not a VBR/ABR MPEG file. */
+  inMpegAbs: number
+  /** The cue's end time in milliseconds or -1 if not a loop. */
+  outMsec: number
+  /**
+   * The cue's end frame or -1 if not a loop.
+   *
+   * One frame is 1/150th of a second
+   */
+  outFrame: number
+  /** The cue's end MPEG frame or 0 if not a loop or not a VBR/ABR MPEG file (see note) */
+  outMpegFrame: number
+  /** The cue's end MPEG absolute frame or 0 if not a loop or not a VBR/ABR MPEG file */
+  outMpegAbs: number
+  /**
+   * The type of the cue.
+   *
+   * 0 if a memory cue, otherwise the number of Hot Cue
+   */
+  kind: number
+  /** The color ID of the cue or -1 if no color. */
+  color: number
+  /** An optional integer representing the index of the color in the color table. */
+  colorTableIndex?: number
+  /** An optional integer indicating whether the cue is part of an active loop. */
+  activeLoop?: number
+  /** An optional string containing comments about the cue. */
+  comment?: string
+  /** An optional integer representing the size of the beat loop. */
+  beatLoopSize?: number
+  /** An optional integer representing the cue's position in microseconds. */
+  cueMicrosec?: number
+  /** An optional string containing seek information for the cue's start point. */
+  inPointSeekInfo?: string
+  /** An optional string containing seek information for the cue's end point. */
+  outPointSeekInfo?: string
+  /** An optional string representing the UUID of the associated track in [`DjmdContent`]. */
+  contentUuid?: string
+}
+
+/**
+ * Represents the `djmdDevice` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdDevice` table in the SQLite database used by Rekordbox.
+ * It stores information about devices associated with the Rekordbox collection, including
+ * metadata such as device name and master database ID.
+ */
+export interface DjmdDevice {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The ID of the master database associated with the device. */
+  masterDbId: string
+  /** The name of the device. */
+  name: string
+}
+
+/**
+ * Represents the `djmdGenre` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdGenre` table in the SQLite database used by Rekordbox.
+ * It stores genre-related data, allowing tracks to be categorized by genre.
+ *
+ * # Referenced by
+ * * [`DjmdContent`] via `genre_id` foreign key.
+ */
+export interface DjmdGenre {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** An optional string representing the name of the genre. */
+  name: string
+}
+
+/**
+ * Represents the `djmdHistory` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdHistory` table in the SQLite database used by Rekordbox.
+ * It stores information about history entries, including metadata such as sequence, name,
+ * attributes, and parent relationships.
+ *
+ * # Referenced by
+ * * [`DjmdHistory`] via `parent_id` foreign key.
+ * * [`DjmdSongHistory`] via `history_id` foreign key.
+ *
+ * # References
+ * * [`DjmdHistory`] via `parent_id` foreign key.
+ */
+export interface DjmdHistory {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The sequence/order number of the history (1-based index) */
+  seq: number
+  /** The name of the history. */
+  name: string
+  /** The attribute of the tag, either history (`0`) or a folder (`1`) */
+  attribute: HistoryType
+  /** The ID of the parent [`DjmdHistory`], `'root'` for top-level my-tag records. */
+  parentId: string
+  /** The creation date of the history. */
+  dateCreated: string
+}
+
+/**
+ * Represents the `djmdHotCueBanklist` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdHotCueBanklist` table in the SQLite database used by Rekordbox.
+ * It stores information about hot cue bank lists, including metadata such as sequence, name,
+ * image path, and parent relationships.
+ *
+ * # Referenced by
+ * * [`DjmdHotCueBanklist`] via `parent_id` foreign key.
+ * * [`DjmdSongHotCueBanklist`] via `hot_cue_banklist_id` and `hot_cue_banklist_uuid` foreign keys.
+ * * [`HotCueBanklistCue`] via `hot_cue_banklist_id` foreign key.
+ *
+ * # References
+ * * [`DjmdHotCueBanklist`] via `parent_id` foreign key.
+ */
+export interface DjmdHotCueBanklist {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The sequence/order of the hot cue bank list (1-based index) */
+  seq: number
+  /** The name of the hot cue bank list. */
+  name: string
+  /** An optional path to the image associated with the hot cue bank list. */
+  imagePath?: string
+  /** The attribute of the hot cue bank list, either list (`0`) or a folder (`1`) */
+  attribute: HotCueBanklistType
+  /** The ID of the parent [`DjmdHotCueBanklist`], `'root'` for top-level records. */
+  parentId: string
+}
+
+/**
+ * Represents the `djmdKey` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdKey` table in the SQLite database used by Rekordbox.
+ * It stores information about musical keys, including their names and sequence order.
+ *
+ * # Referenced by
+ * * [`DjmdContent`] via `key_id` foreign key.
+ */
+export interface DjmdKey {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The name of the musical key. */
+  name: string
+  /** An optional integer representing the sequence/order of the key. */
+  seq?: number
+}
+
+/**
+ * Represents the `djmdLabel` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdLabel` table in the SQLite database used by Rekordbox.
+ * It stores information about labels, including their names and metadata.
+ *
+ * # Referenced by
+ * * [`DjmdContent`] via `label_id` foreign key.
+ */
+export interface DjmdLabel {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The name of the label. */
+  name: string
+}
+
+/**
+ * Represents the `djmdMenuItems` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdMenuItems` table in the SQLite database used by Rekordbox.
+ * It stores information about menu items, including their class, name, and metadata.
+ *
+ * # Referenced by
+ * * [`DjmdCategory`] via `menu_item_id` foreign key.
+ * * [`DjmdSort`] via `menu_item_id` foreign key.
+ */
+export interface DjmdMenuItems {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The class of the menu item. */
+  class: number
+  /** The name of the menu item. */
+  name: string
+}
+
+/**
+ * Represents the `djmdMixerParam` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdMixerParam` table in the SQLite database used by Rekordbox.
+ * It stores information about mixer parameters, including gain and peak values for high and low frequencies.
+ *
+ * Each of the two gain values are represented by a 32-bit floating point number packed into a
+ * pair of 16-bit integers. The floating point value represents the linear gain factor, which can
+ * be converted into decibels (dB) by calculating 20.0 * math.log10(f) where f is the gain factor.
+ *
+ * The auto-gain value is the one shown in the grid edit panel. The peak value does not appear to
+ * be displayed anywhere in the program, and is most likely used internally for
+ * limiting and/or waveform scaling.
+ *
+ * # References
+ * * [`DjmdContent`] via `content_id` foreign key.
+ */
+export interface DjmdMixerParam {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The ID of the associated [`DjmdContent`]. */
+  contentId: string
+  /**
+   * The upper 16 bits of a IEEE754 single-precision floating point number representing the gain.
+   *
+   * Use `get_gain_db` and `set_gain_db` to access and modify the gain in decibels (dB).
+   */
+  gainHigh: number
+  /**
+   * The lower 16 bits of a IEEE754 single-precision floating point number representing the gain.
+   *
+   * Use `get_gain_db` and `set_gain_db` to access and modify the gain in decibels (dB).
+   */
+  gainLow: number
+  /**
+   * The upper 16 bits of a IEEE754 single-precision floating point number representing the peak.
+   *
+   * Use `get_peak_db` and `set_peak_db` to access and modify the peak in decibels (dB).
+   */
+  peakHigh: number
+  /**
+   * The lower 16 bits of a IEEE754 single-precision floating point number representing the peak.
+   *
+   * Use `get_peak_db` and `set_peak_db` to access and modify the peak in decibels (dB).
+   */
+  peakLow: number
+}
+
+/**
+ * Represents the `djmdMyTag` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdMyTag` table in the SQLite database used by Rekordbox.
+ * It stores information about custom tags (MyTags) that can be associated with tracks,
+ * including metadata such as sequence, name, attributes, and parent relationships.
+ *
+ * # Referenced by
+ * * [`DjmdMyTag`] via `parent_id` foreign key.
+ * * [`DjmdSongMyTag`] via `my_tag_id` foreign key.
+ *
+ * # References
+ * * [`DjmdMyTag`] via `parent_id` foreign key.
+ */
+export interface DjmdMyTag {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The sequence/order number of the tag (1-based index) */
+  seq: number
+  /** The name of the tag */
+  name: string
+  /** The attribute of the tag, either my-tag (`0`) or a folder (`1`) */
+  attribute: MyTagType
+  /** The ID of the parent [`DjmdMyTag`], `'root'` for top-level my-tag records. */
+  parentId: string
+}
+
+/**
+ * Represents the `djmdPlaylist` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdPlaylist` table in the SQLite database used by Rekordbox.
+ * It stores information about playlists, including metadata such as sequence, name, image path,
+ * attributes, and parent relationships.
+ *
+ * **Note**: This model does not implement `ModelDelete`, but provides slightly different
+ * `delete` and `delete_all` methods that return the deleted playlist Ids instead of the number
+ * of affected rows. This is required for the playlist XML handling.
+ *
+ * # Referenced by
+ * * [`DjmdPlaylist`] via `parent_id` foreign key.
+ * * [`DjmdSongPlaylist`] via `playlist_id` foreign key.
+ *
+ * # References
+ * * [`DjmdPlaylist`] via `parent_id` foreign key.
+ */
+export interface DjmdPlaylist {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The sequence/order number of the record (1-based index) */
+  seq: number
+  /** The name of the playlist. */
+  name: string
+  /** An optional path to the image associated with the playlist. */
+  imagePath?: string
+  /** The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`). */
+  attribute: PlaylistType
+  /** The ID of the parent [`DjmdPlaylist`], `'root'` for top-level records. */
+  parentId: string
+  /** An optional smart list configuration for the playlist (None if not a smart playlist) */
+  smartList?: string
+}
+
+/**
+ * Represents the `djmdProperty` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdProperty` table in the SQLite database used by Rekordbox.
+ * It stores metadata and properties related to the database, including versioning,
+ * drive information, and associated device details.
+ */
+export interface DjmdProperty {
+  /** A unique identifier for the database entry. */
+  dbId: string
+  /** The version of the database. */
+  dbVersion: string
+  /** The base drive of the database. */
+  baseDbDrive: string
+  /** The current drive of the database. */
+  currentDbDrive: string
+  /** The ID of the associated device in [`DjmdDevice`]. */
+  deviceId: string
+  /** An optional string for reserved data. */
+  reserved1?: string
+  /** An optional string for reserved data. */
+  reserved2?: string
+  /** An optional string for reserved data. */
+  reserved3?: string
+  /** An optional string for reserved data. */
+  reserved4?: string
+  /** An optional string for reserved data. */
+  reserved5?: string
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+}
+
+/**
+ * Represents the `djmdRecommendLike` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdRecommendLike` table in the SQLite database used by Rekordbox.
+ * It stores information about recommended track relationships, including metadata such as
+ * like rate, creation timestamps, and associated content IDs.
+ *
+ * # References
+ * * [`DjmdContent`] via `content_id1` and `content_id2` foreign keys.
+ */
+export interface DjmdRecommendLike {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The ID of the first associated content in [`DjmdContent`]. */
+  contentId1: string
+  /** The ID of the second associated content in [`DjmdContent`]. */
+  contentId2: string
+  /** An optional integer representing the like rate between the two associated contents. */
+  likeRate?: number
+  /** An optional integer representing the high part of the creation timestamp. */
+  dataCreatedH?: number
+  /** An optional integer representing the low part of the creation timestamp. */
+  dataCreatedL?: number
+}
+
+/**
+ * Represents the `djmdRelatedTracks` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdRelatedTracks` table in the SQLite database used by Rekordbox.
+ * It stores information about related tracks, including metadata such as sequence, name,
+ * attributes, and parent relationships.
+ *
+ * # Referenced by
+ * * [`DjmdRelatedTracks`] via `parent_id` foreign key.
+ * * [`DjmdSongRelatedTracks`] via `related_tracks_id` foreign key.
+ *
+ * # References
+ * * [`DjmdRelatedTracks`] via `parent_id` foreign key.
+ */
+export interface DjmdRelatedTracks {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The sequence/order number of the record (1-based index) */
+  seq: number
+  /** The name of the related track record. */
+  name: string
+  /** The attribute of the related track, either list (`0`) or a folder (`1`) */
+  attribute: RelatedTracksType
+  /** The ID of the parent [`DjmdRelatedTracks`], `'root'` for top-level records. */
+  parentId: string
+  /** A JSON string containing the criteria for the related tracks. */
+  criteria: string
+}
+
+/**
+ * Represents the `djmdSampler` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdSampler` table in the SQLite database used by Rekordbox.
+ * It stores information about samplers, including metadata such as sequence, name,
+ * attributes, and parent relationships.
+ *
+ * # Referenced by
+ * * [`DjmdSampler`] via `parent_id` foreign key.
+ * * [`DjmdSongSampler`] via `sampler_id` foreign key.
+ *
+ * # References
+ * * [`DjmdSampler`] via `parent_id` foreign key.
+ */
+export interface DjmdSampler {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The sequence/order number of the record (1-based index) */
+  seq: number
+  /** The name of the sampler. */
+  name: string
+  /** The attribute of the sampler, either list (`0`) or a folder (`1`) */
+  attribute: SamplerType
+  /** The ID of the parent [`DjmdSampler`], `'root'` for top-level records. */
+  parentId: string
+}
+
+/**
+ * Represents the `djmdSongHistory` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdSongHistory` table in the SQLite database used by Rekordbox.
+ * It stores information about the relationship between songs and history entries, including
+ * metadata such as track number and associated history or content IDs.
+ *
+ * # References
+ * * [`DjmdHistory`] via `history_id` foreign key.
+ * * [`DjmdContent`] via `content_id` foreign key.
+ */
+export interface DjmdSongHistory {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The ID of the associated history entry in [`DjmdHistory`]. */
+  historyId: string
+  /** The ID of the associated content entry in [`DjmdContent`]. */
+  contentId: string
+  /** The track number in the history entry. */
+  trackNo: number
+}
+
+/**
+ * Represents the `djmdSongHotCueBanklist` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdSongHotCueBanklist` table in the SQLite database used by Rekordbox.
+ * It stores information about the relationship between hot cue bank lists and their associated songs,
+ * including the actual cue data
+ *
+ * # Notes
+ * Rekordbox internally represents time in “frames”, each being 1/150th of a second (6.666ms).
+ * The InFrame and OutFrame values use this unit of time. However, when a track is encoded with
+ * variable bit-rate (VBR) or average bit-rate (ABR), the InMpegFrame and OutMpegFrame values are
+ * filled out to assist with correct seeking. Despite the names, these values are not the frame
+ * indices within the MPEG file, but instead use an alternative timing scheme that is typically
+ * around 1/75th of a second (13.333ms) per frame, i.e. about half the granularity of normal frames.
+ *
+ * # References
+ * * [`DjmdHotCueBanklist`] via `hot_cue_banklist_id` and `hot_cue_banklist_uuid` foreign keys.
+ * * [`DjmdContent`] via `content_id` foreign key.
+ * * [`DjmdCue`] via `cue_id` foreign key.
+ */
+export interface DjmdSongHotCueBanklist {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The ID of the associated [`DjmdHotCueBanklist`]. */
+  hotCueBanklistId: string
+  /** The ID of the associated content in [`DjmdContent`]. */
+  contentId: string
+  /** The track number in the hot cue bank list (1-based index) */
+  trackNo: number
+  /** The ID of the associated [`DjmdCue`] */
+  cueId: string
+  /** The cue's start time in milliseconds. */
+  inMsec: number
+  /**
+   * The cue's start frame.
+   *
+   * One frame is 1/150th of a second
+   */
+  inFrame: number
+  /** The cue's start MPEG frame or 0 if not a VBR/ABR MPEG file (see note). */
+  inMpegFrame: number
+  /** The cue's start MPEG absolute frame or 0 if not a VBR/ABR MPEG file. */
+  inMpegAbs: number
+  /** The cue's end time in milliseconds or -1 if not a loop. */
+  outMsec: number
+  /**
+   * The cue's end frame or -1 if not a loop.
+   *
+   * One frame is 1/150th of a second
+   */
+  outFrame: number
+  /** The cue's end MPEG frame or 0 if not a loop or not a VBR/ABR MPEG file (see note) */
+  outMpegFrame: number
+  /** The cue's end MPEG absolute frame or 0 if not a loop or not a VBR/ABR MPEG file */
+  outMpegAbs: number
+  /** The color ID of the cue or -1 if no color. */
+  color: number
+  /** An optional integer representing the index of the color in the color table. */
+  colorTableIndex?: number
+  /** An optional integer indicating whether the cue is part of an active loop. */
+  activeLoop?: number
+  /** An optional string containing comments about the cue. */
+  comment?: string
+  /** An optional integer representing the size of the beat loop. */
+  beatLoopSize?: number
+  /** An optional integer representing the cue's position in microseconds. */
+  cueMicrosec?: number
+  /** An optional string containing seek information for the cue's start point. */
+  inPointSeekInfo?: string
+  /** An optional string containing seek information for the cue's end point. */
+  outPointSeekInfo?: string
+  /** An optional string representing the UUID of the associate [`DjmdHotCueBanklist`] */
+  hotCueBanklistUuid?: string
+}
+
+/**
+ * Represents the `djmdSongMyTag` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdSongMyTag` table in the SQLite database used by Rekordbox.
+ * It links the `djmdMyTag` records to the associated `djmdContent` records.
+ *
+ * # References
+ * * [`DjmdMyTag`] via `my_tag_id` foreign key.
+ * * [`DjmdContent`] via `content_id` foreign key.
+ */
+export interface DjmdSongMyTag {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The ID of the associated [`DjmdMyTag`]. */
+  myTagId: string
+  /** The ID of the associated [`DjmdContent`]. */
+  contentId: string
+  /** The track number in the tag. */
+  trackNo: number
+}
+
+/**
+ * Represents the `djmdSongPlaylist` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdSongPlaylist` table in the SQLite database used by Rekordbox.
+ * It stores information about the relationship between songs and playlists, including
+ * metadata such as track number and associated playlist or content IDs.
+ *
+ * # References
+ * * [`DjmdPlaylist`] via `playlist_id` foreign key.
+ * * [`DjmdContent`] via `content_id` foreign key.
+ */
+export interface DjmdSongPlaylist {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The ID of the associated playlist in [`DjmdPlaylist`]. */
+  playlistId: string
+  /** The ID of the associated content in [`DjmdContent`]. */
+  contentId: string
+  /** The track number in the playlist. */
+  trackNo: number
+}
+
+/**
+ * Represents the `djmdSongRelatedTracks` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdSongRelatedTracks` table in the SQLite database used by Rekordbox.
+ * It stores information about the relationship between songs and related tracks, including
+ * metadata such as update sequence numbers, timestamps, and associated content or related tracks IDs.
+ *
+ * # References
+ * * [`DjmdRelatedTracks`] via `related_tracks_id` foreign key.
+ * * [`DjmdContent`] via `content_id` foreign key.
+ */
+export interface DjmdSongRelatedTracks {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The ID of the associated related tracks entry in [`DjmdRelatedTracks`]. */
+  relatedTracksId: string
+  /** The ID of the associated content entry in [`DjmdContent`]. */
+  contentId: string
+  /** The track number in the related tracks entry. */
+  trackNo: number
+}
+
+/**
+ * Represents the `djmdSongSampler` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdSongSampler` table in the SQLite database used by Rekordbox.
+ * It stores information about the relationship between songs and samplers, including
+ * metadata such as update sequence numbers, timestamps, and associated sampler or content IDs.
+ *
+ * # References
+ * * [`DjmdSampler`] via `sampler_id` foreign key.
+ * * [`DjmdContent`] via `content_id` foreign key.
+ */
+export interface DjmdSongSampler {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The ID of the associated sampler in [`DjmdSampler`]. */
+  samplerId: string
+  /** The ID of the associated content in [`DjmdContent`]. */
+  contentId: string
+  /** The sequence/order number of the record (1-based index) */
+  trackNo: number
+}
+
+/**
+ * Represents the `djmdSongTagList` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdSongTagList` table in the SQLite database used by Rekordbox.
+ * It stores information about the relationship between songs and tag lists, including
+ * metadata such as update sequence numbers, timestamps, and associated content IDs.
+ *
+ * # References
+ * * [`DjmdContent`] via `content_id` foreign key.
+ */
+export interface DjmdSongTagList {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The ID of the associated content in [`DjmdContent`]. */
+  contentId: string
+  /** The sequence/order number of the record (1-based index) */
+  trackNo: number
+}
+
+/**
+ * Represents the `djmdSort` table in the Rekordbox database.
+ *
+ * This struct maps to the `djmdSort` table in the SQLite database used by Rekordbox.
+ * It stores information about sorting options, including metadata such as sequence,
+ * menu item associations, and disable status.
+ *
+ * # References
+ * * [`DjmdMenuItems`] via `menu_item_id` foreign key.
+ */
+export interface DjmdSort {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The ID of the associated menu item in [`DjmdMenuItems`]. */
+  menuItemId: string
+  /** The sequence/order of the sort entry. */
+  seq: number
+  /** A flag whether the sort entry is disabled. */
+  disable: number
+}
+
+/**
+ * Represents the `hotCueBanklistCue` table in the Rekordbox database.
+ *
+ * This struct maps to the `hotCueBanklistCue` table in the SQLite database used by Rekordbox.
+ * It stores information about the relationship between hot cue bank lists and their associated cues,
+ * including metadata such as update sequence numbers, timestamps, and cue data as JSON string.
+ *
+ * # References
+ * * [`DjmdHotCueBanklist`] via `hot_cue_banklist_id` foreign key.
+ */
+export interface HotCueBanklistCue {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The ID of the associated [`DjmdSongHotCueBanklist`]. */
+  hotCueBanklistId: string
+  /** An optional string containing the serialized cue data. */
+  cues?: string
+  /** An optional integer representing the count of cues. */
+  rbCueCount?: number
+}
+
+/**
+ * Represents the `imageFile` table in the Rekordbox database.
+ *
+ * This struct maps to the `imageFile` table in the SQLite database used by Rekordbox.
+ * It stores information about image files, including metadata such as file paths,
+ * hashes, and synchronization details.
+ */
+export interface ImageFile {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** An optional string representing the table name associated with the image file. */
+  tableName?: string
+  /** An optional string representing the target UUID associated with the image file. */
+  targetUuid?: string
+  /** An optional string representing the target ID associated with the image file. */
+  targetId?: string
+  /** An optional string representing the file path of the image. */
+  path?: string
+  /** An optional string representing the hash of the image file. */
+  hash?: string
+  /** An optional integer representing the size of the image file. */
+  size?: number
+  /** An optional string representing the local path of the image file in Rekordbox. */
+  rbLocalPath?: string
+  /** An optional string representing the in-sync hash of the image file. */
+  rbInsyncHash?: string
+  /** An optional integer representing the in-sync local update sequence number. */
+  rbInsyncLocalUsn?: number
+  /** An optional integer indicating whether the file hash is dirty. */
+  rbFileHashDirty?: number
+  /** An optional integer representing the local file status in Rekordbox. */
+  rbLocalFileStatus?: number
+  /** An optional integer indicating whether the file is in progress. */
+  rbInProgress?: number
+  /** An optional integer representing the process type of the file. */
+  rbProcessType?: number
+  /** An optional string representing the temporary path of the file. */
+  rbTempPath?: string
+  /** An optional integer representing the priority of the file. */
+  rbPriority?: number
+  /** An optional integer indicating whether the file size is dirty. */
+  rbFileSizeDirty?: number
+}
+
+/**
+ * Represents a new record insertale to the `djmdAlbum` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_masterdb::models::NewDjmdAlbum;
+ *
+ * let new = NewDjmdAlbum::new("Name").compilation(1);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdAlbum {
+  /** The name of the album. */
+  name: string
+  /** An optional string representing the id of the album artist [`DjmdArtist`]. */
+  albumArtistId?: string
+  /** An optional string representing the path to the album's image. */
+  imagePath?: string
+  /** An optional integer indicating whether the album is a compilation. */
+  compilation?: number
+  /** An optional string used for searching the album. */
+  searchStr?: string
+}
+
+/**
+ * Represents a new record insertale to the `djmdArtist` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_masterdb::models::NewDjmdArtist;
+ *
+ * let new = NewDjmdArtist::new("Name").search_str("Search");
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdArtist {
+  /** The name of the artist. */
+  name: string
+  /** An optional string used for searching the artist. */
+  searchStr?: string
+}
+
+/**
+ * Represents a new record insertale to the `djmdContent` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_masterdb::models::NewDjmdContent;
+ *
+ * let new = NewDjmdContent::new("path/to/file").title("Title").artist_id("1");
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdContent {
+  /** An optional string representing the folder path of the track. */
+  folderPath: string
+  /** An optional string representing the title of the track. */
+  title?: string
+  /** An optional string representing the ID of the associated artist in [`DjmdArtist`]. */
+  artistId?: string
+  /** An optional string representing the ID of the associated album in [`DjmdAlbum`]. */
+  albumId?: string
+  /** An optional string representing the ID of the associated genre in [`DjmdGenre`]. */
+  genreId?: string
+  /** An optional integer representing the BPM of the track. */
+  bpm?: number
+  /** An optional integer representing the length of the track in milliseconds. */
+  length?: number
+  /** An optional integer representing the track number in the album. */
+  trackNo?: number
+  /** An optional integer representing the bit rate of the track. */
+  bitRate?: number
+  /** An optional integer representing the bit depth of the track. */
+  bitDepth?: number
+  /** An optional string representing comments about the track. */
+  commnt?: string
+  /** An optional integer representing the rating of the track. */
+  rating?: number
+  /** An optional integer representing the release year of the track. */
+  releaseYear?: number
+  /** An optional string representing the ID of the remixer in [`DjmdArtist`]. */
+  remixerId?: string
+  /** An optional string representing the ID of the label in [`DjmdLabel`]. */
+  labelId?: string
+  /** An optional string representing the ID of the original artist in [`DjmdArtist`]. */
+  orgArtistId?: string
+  /** An optional string representing the ID of the key in [`DjmdKey`]. */
+  keyId?: string
+  /** An optional string representing the stock date of the track. */
+  stockDate?: string
+  /** An optional string used for searching the track. */
+  searchStr?: string
+  /** An optional integer representing the disc number of the track. */
+  discNo?: number
+  /** An optional string representing the ID of the composer in [`DjmdArtist`]. */
+  composerId?: string
+  /** An optional string representing the subtitle of the track. */
+  subtitle?: string
+  /** An optional integer representing the sample rate of the track. */
+  sampleRate?: number
+  /** An optional string representing the release date of the track. */
+  releaseDate?: string
+  /** An optional string representing the creation date of the track. */
+  dateCreated?: string
+  /** An optional string representing tags associated with the track. */
+  tag?: string
+  /** An optional string representing the lyricist of the track. */
+  lyricist?: string
+  /** An optional string representing the ISRC (International Standard Recording Code) of the track. */
+  isrc?: string
+}
+
+/**
+ * Represents a new record insertale to the `djmdGenre` table.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_masterdb::models::NewDjmdGenre;
+ *
+ * let new = NewDjmdGenre::new("Name");
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdGenre {
+  /** The name of the genre. */
+  name: string
+}
+
+/**
+ * Represents a new record insertale to the `djmdHistory` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_masterdb::models::NewDjmdHistory;
+ *
+ * let new = NewDjmdHistory::history("Name").seq(2);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdHistory {
+  /** The name of the history. */
+  name: string
+  /** The attribute of the tag, either history (`0`) or a folder (`1`) */
+  attribute: HistoryType
+  /** The sequence/order number of the history (1-based index) */
+  seq?: number
+  /** The ID of the parent [`DjmdHistory`], `'root'` for top-level my-tag records. */
+  parentId?: string
+  /** The creation date of the history. */
+  dateCreated?: string
+}
+
+/**
+ * Represents a new record insertale to the `djmdKey` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_masterdb::models::NewDjmdKey;
+ *
+ * let new = NewDjmdKey::new("C").seq(1);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdKey {
+  /** The name of the musical key. */
+  name: string
+  /** An optional integer representing the sequence/order of the key. */
+  seq?: number
+}
+
+/**
+ * Represents a new record insertale to the `djmdLabel` table.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_masterdb::models::NewDjmdLabel;
+ *
+ * let new = NewDjmdLabel::new("Name");
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdLabel {
+  /** The name of the label. */
+  name: string
+}
+
+/**
+ * Represents a new record insertale to the `djmdMyTag` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_masterdb::models::NewDjmdMyTag;
+ *
+ * let new = NewDjmdMyTag::my_tag("Name").seq(1);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdMyTag {
+  /** The name of the tag */
+  name: string
+  /** The attribute of the tag, either my-tag (`0`) or a section (`1`) */
+  attribute: MyTagType
+  /** The sequence/order number of the tag (1-based index) */
+  seq?: number
+  /** The ID of the parent [`DjmdMyTag`]. */
+  parentId?: string
+}
+
+/**
+ * Represents a new record insertale to the `djmdPlaylist` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_masterdb::models::NewDjmdPlaylist;
+ *
+ * let new = NewDjmdPlaylist::playlist("Name").seq(2);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdPlaylist {
+  /** The name of the playlist. */
+  name: string
+  /** The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`). */
+  attribute: PlaylistType
+  /** The sequence/order number of the record (1-based index) */
+  seq?: number
+  /** The ID of the parent [`DjmdPlaylist`], `'root'` for top-level records (default). */
+  parentId?: string
+  /** An optional path to the image associated with the playlist. */
+  imagePath?: string
+  /** An optional smart list configuration for the playlist (None if not a smart playlist) */
+  smartList?: string
+}
+
+/**
+ * Represents a new record insertale to the `djmdRelatedTracks` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_masterdb::models::NewDjmdRelatedTracks;
+ *
+ * let new = NewDjmdRelatedTracks::related_tracks("Name").seq(1);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdRelatedTracks {
+  /** The name of the related track. */
+  name: string
+  /** The attribute of the related track, either list (`0`) or a folder (`1`) */
+  attribute: RelatedTracksType
+  /** The sequence/order number of the record (1-based index) */
+  seq?: number
+  /** The ID of the parent [`DjmdRelatedTracks`], `'root'` for top-level records. */
+  parentId?: string
+  /** A JSON string containing the criteria for the related tracks. */
+  criteria?: string
+}
+
+/**
+ * Represents a new record insertale to the `djmdSampler` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_masterdb::models::NewDjmdSampler;
+ *
+ * let new = NewDjmdSampler::sampler("Name").seq(2);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdSampler {
+  /** The name of the sampler. */
+  name: string
+  /** The attribute of the sampler, either list (`0`) or a folder (`1`) */
+  attribute: SamplerType
+  /** The sequence/order number of the record (1-based index) */
+  seq?: number
+  /** The ID of the parent [`DjmdSampler`], `'root'` for top-level records. */
+  parentId?: string
+}
+
+/**
+ * Represents a new record insertale to the `djmdSongHistory` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_masterdb::models::NewDjmdSongHistory;
+ *
+ * let new = NewDjmdSongHistory::new("historyId".into(), "contentId".into()).track_no(1);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdSongHistory {
+  /** The ID of the associated history entry in [`DjmdHistory`]. */
+  historyId: string
+  /** The ID of the associated content entry in [`DjmdContent`]. */
+  contentId: string
+  /** The track number in the history entry. */
+  trackNo?: number
+}
+
+/**
+ * Represents a new record insertale to the `djmdSongMyTag` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_masterdb::models::NewDjmdSongMyTag;
+ *
+ * let new = NewDjmdSongMyTag::new("my_tag_id", "content_id").track_no(1);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdSongMyTag {
+  /** The ID of the associated [`DjmdMyTag`]. */
+  myTagId: string
+  /** The ID of the associated [`DjmdContent`]. */
+  contentId: string
+  /** The track number in the tag. */
+  trackNo?: number
+}
+
+/**
+ * Represents a new record insertale to the `djmdSongPlaylist` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_masterdb::models::NewDjmdSongPlaylist;
+ *
+ * let new = NewDjmdSongPlaylist::new("playlistId", "contentId").track_no(1);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdSongPlaylist {
+  /** The ID of the associated playlist in [`DjmdPlaylist`]. */
+  playlistId: string
+  /** The ID of the associated content in [`DjmdContent`]. */
+  contentId: string
+  /** The track number in the playlist. */
+  trackNo?: number
+}
+
+/**
+ * Represents a new record insertale to the `djmdSongRelatedTracks` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_masterdb::models::NewDjmdSongRelatedTracks;
+ *
+ * let new = NewDjmdSongRelatedTracks::new("relatedId", "contentId").track_no(1);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdSongRelatedTracks {
+  /** The ID of the associated playlist in [`DjmdPlaylist`]. */
+  relatedTracksId: string
+  /** The ID of the associated content in [`DjmdContent`]. */
+  contentId: string
+  /** The track number in the playlist. */
+  trackNo?: number
+}
+
+/**
+ * Represents a new record insertale to the `djmdSongSampler` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_masterdb::models::NewDjmdSongSampler;
+ *
+ * let new = NewDjmdSongSampler::new("samplerId", "contentId").track_no(1);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewDjmdSongSampler {
+  /** The ID of the associated sampler in [`DjmdSampler`]. */
+  samplerId: string
+  /** The ID of the associated content in [`DjmdContent`]. */
+  contentId: string
+  /** The sequence/order number of the record (1-based index) */
+  trackNo?: number
+}
+
+/** Stored Rekordbox codes for PlaylistType. */
+export declare const enum PlaylistType {
+  List = 0,
+  Folder = 1,
+  SmartList = 4,
+  CloudLibrarySync = -128
+}
+
+/** Stored Rekordbox codes for RelatedTracksType. */
+export declare const enum RelatedTracksType {
+  List = 11,
+  Folder = 10
+}
+
+/** Stored Rekordbox codes for SamplerType. */
+export declare const enum SamplerType {
+  List = 2,
+  Folder = 3,
+  All = 5,
+  Capture = 6
+}
+
+/**
+ * Represents the `settingFile` table in the Rekordbox database.
+ *
+ * This struct maps to the `settingFile` table in the SQLite database used by Rekordbox.
+ * It stores information about setting files, including metadata such as file paths,
+ * hashes, and synchronization details.
+ */
+export interface SettingFile {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** The relative file path of the setting file. */
+  path: string
+  /** The hash of the setting file. */
+  hash: string
+  /** The size of the setting file. */
+  size: number
+  /** An optional string representing the local path of the setting file in Rekordbox. */
+  rbLocalPath?: string
+  /** An optional string representing the in-sync hash of the setting file. */
+  rbInsyncHash?: string
+  /** An optional integer representing the in-sync local update sequence number. */
+  rbInsyncLocalUsn?: number
+  /** An optional integer indicating whether the file hash is dirty. */
+  rbFileHashDirty?: number
+  /** An optional integer indicating whether the file size is dirty. */
+  rbFileSizeDirty?: number
+}
+
+/**
+ * Represents the `uuidIDMap` table in the Rekordbox database.
+ *
+ * This struct maps to the `uuidIDMap` table in the SQLite database used by Rekordbox.
+ * It stores information about UUID-to-ID mappings, including metadata such as table names,
+ * target UUIDs, and current IDs.
+ */
+export interface UuidIDMap {
+  /** A unique identifier for the entry. */
+  id: string
+  /** A unique universal identifier for the entry. */
+  uuid: string
+  /** An integer representing the data status in Rekordbox. */
+  rbDataStatus: number
+  /** An integer representing the local data status in Rekordbox. */
+  rbLocalDataStatus: number
+  /** An integer indicating whether the entry is locally deleted. */
+  rbLocalDeleted: number
+  /** An integer indicating whether the entry is locally synced. */
+  rbLocalSynced: number
+  /** An optional integer representing the update sequence number. */
+  usn?: number
+  /** An optional integer representing the local update sequence number. */
+  rbLocalUsn?: number
+  /** The timestamp when the entry was created, serialized/deserialized as `DateString`. */
+  createdAt: Date
+  /** The timestamp when the entry was last updated, serialized/deserialized as `DateString`. */
+  updatedAt: Date
+  /** Table name associated with the mapping. */
+  tableName: string
+  /** The target UUID in the mapping. */
+  targetUuid: string
+  /** The current ID in the mapping. */
+  currentId: string
+}
+/**
+ * Represents the `album` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `album` table in the One Library export database.
+ * It stores album-related data, allowing multiple tracks to be associated with the same album.
+ * This table includes metadata such as album name, artist, and compilation status.
+ *
+ * # Referenced by
+ * * [`Content`] via `album_id` foreign key.
+ *
+ * # References
+ * * [`Artist`] via `artist_id` foreign key.
+ * * [`Image`] via `image_id` foreign key.
+ */
+export interface Album {
+  /** The unique identifier of the album. */
+  id: number
+  /** The name of the album. */
+  name: string
+  /** An optional foreign key referencing the album [`Artist`]. */
+  artistId?: number
+  /** An optional foreign key referencing the album artwork [`Image`]. */
+  imageId?: number
+  /** A flag if the album is a compilation. */
+  isCompilation: number
+  /** An optional string used for searching the album. */
+  nameForSearch?: string
+}
+
+/**
+ * Album snapshot with all direct metadata relationships resolved.
+ *
+ * Field access performs no queries, and editing this view does not persist changes.
+ * Related rows are not expanded recursively. Missing targets remain `None`;
+ * the original row retains its foreign keys.
+ */
+export interface AlbumView {
+  /** Original album row, including its foreign keys. */
+  album: Album
+  /** Resolved artist. */
+  artist?: Artist
+  /** Resolved image. */
+  image?: Image
+}
+
+/**
+ * Represents the `artist` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `artist` table in the One Library export database.
+ * It stores artist-related data, allowing multiple tracks to be associated with the same artist.
+ *
+ * # Referenced by
+ * * [`Album`] via `artist_id` foreign key.
+ * * [`Content`] via `artist_id`, `remixer_id`, `original_artist_id`, `composer_id` and `lyricist_id` foreign keys.
+ */
+export interface Artist {
+  /** The unique identifier of the artist. */
+  id: number
+  /** The name of the artist. */
+  name: string
+  /** An optional field for storing a search-optimized version of the artist name. */
+  nameForSearch?: string
+}
+
+/**
+ * Represents the `category` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `category` table in the One Library export database.
+ *
+ * # References
+ * * [`MenuItem`] via `menu_item_id` foreign key.
+ */
+export interface Category {
+  /** The unique identifier of the category. */
+  id: number
+  /** A foreign key referencing the [`MenuItem`]. */
+  menuItemId: number
+  /** The sequence/order of the category. */
+  seq: number
+  /** A flag if the category is visible. */
+  isVisible: number
+}
+
+/**
+ * Category snapshot with all direct metadata relationships resolved.
+ *
+ * Field access performs no queries, and editing this view does not persist changes.
+ * Related rows are not expanded recursively. Missing targets remain `None`;
+ * the original row retains its foreign keys.
+ */
+export interface CategoryView {
+  /** Original category row, including its foreign keys. */
+  category: Category
+  /** Resolved menu item. */
+  menuItem?: MenuItem
+}
+
+/**
+ * Represents the `color` table in the Rekordbox One Library database.
+ *
+ *
+ * # Referenced by
+ * * [`Content`] via `color_id` foreign key.
+ */
+export interface Color {
+  /** The unique identifier of the color. */
+  id: number
+  /** The name of the color */
+  name: string
+}
+
+export interface Composer {
+  id: number
+  name: string
+  nameForSearch?: string
+}
+
+/**
+ * Represents the `content` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `content` table in the One Library export database.
+ * It contains metadata and attributes for each track in the collection, including file info,
+ * artist, album, genre, and more.
+ *
+ * # Referenced by
+ * * [`Cue`] via `content_id` foreign key.
+ * * [`HistoryContent`] via `content_id` foreign key.
+ * * [`MyTagContent`] via `content_id` foreign key.
+ * * [`PlaylistContent`] via `content_id` foreign key.
+ * * [`RecommendedLike`] via `content_id_1` and `content_id_2` foreign keys.
+ *
+ * # References
+ * * [`Artist`] via `artist_id`, `remixer_id`, `original_artist_id`, `composer_id` and `lyricist_id` foreign keys.
+ * * [`Album`] via `album_id` foreign key.
+ * * [`Genre`] via `genre_id` foreign key.
+ * * [`Label`] via `label_id` foreign key.
+ * * [`Key`] via `key_id` foreign key.
+ * * [`Color`] via `color_id` foreign key.
+ * * [`Image`] via `image_id` foreign key.
+ */
+export interface Content {
+  /** The unique identifier of the content. */
+  id: number
+  /** The title of the track. */
+  title?: string
+  /** An optional title used for searching. */
+  titleForSearch?: string
+  /** The subtitle of the track */
+  subtitle?: string
+  /** The beats per minute multiplied by 100. */
+  bpmx100?: number
+  /** The length of the track in seconds. */
+  length?: number
+  /** The track number of the track */
+  trackNo?: number
+  /** The disc number of the track */
+  discNo?: number
+  /** Optional foreign key referencing the artist [`Artist`]. */
+  artistId?: number
+  /** Optional foreign key referencing the remixer [`Artist`]. */
+  remixerId?: number
+  /** Optional foreign key referencing the original artist [`Artist`]. */
+  originalArtistId?: number
+  /** Optional foreign key referencing the composer [`Artist`]. */
+  composerId?: number
+  /** Optional foreign key referencing the lyricist [`Artist`]. */
+  lyricistId?: number
+  /** Optional foreign key referencing the [`Album`]. */
+  albumId?: number
+  /** Optional foreign key referencing the [`Genre`]. */
+  genreId?: number
+  /** Optional foreign key referencing the [`Label`]. */
+  labelId?: number
+  /** Optional foreign key referencing the [`Key`]. */
+  keyId?: number
+  /** Optional foreign key referencing the [`Color`]. */
+  colorId?: number
+  /** Optional foreign key referencing the artwork [`Image`]. */
+  imageId?: number
+  /** The ccomment of the track. */
+  djComment?: string
+  /** The rating of the track. */
+  rating?: number
+  /** The release year of the track. */
+  releaseYear?: number
+  /** The release date of the track */
+  releaseDate?: string
+  /** The date the record was created */
+  dateCreated: Date
+  /** The date the record was added */
+  dateAdded: Date
+  /** The relative file path of the track (usually `'/Contents/<Artist>/<Title>'`) */
+  path: string
+  /** The file name of the track. */
+  fileName?: string
+  /** The file size of the track */
+  fileSize?: number
+  /** The file type of the track */
+  fileType: number
+  /** The bitrate of the trackk */
+  bitrate?: number
+  /** The bit depth of the track */
+  bitDepth?: number
+  /** The sample rate of the track. */
+  samplingRate?: number
+  /** The ISRC of the track */
+  isrc?: string
+  /** A flag if hot-cue auto load is enabled */
+  isHotCueAutoLoadOn?: number
+  /** A flag if kuvo delivery is enabled */
+  isKuvoDeliverStatusOn?: number
+  /** A kuvo delivery comment */
+  kuvoDeliveryComment?: string
+  /** The masterdb ID */
+  masterDbId?: number
+  /** The ID of the contnent in the masterdb */
+  masterContentId?: number
+  /** The relative path to the analysis data */
+  analysisDataFilePath?: string
+  /** The number of bits analysed (?) */
+  analysedBits?: number
+  /** The ID of the content in the content link database (seems to always be 788224) */
+  contentLink?: number
+  /** A flag if the content has been modified */
+  hasModified?: number
+  /** The number of updates to the associated cues */
+  cueUpdateCount?: number
+  /** The number of updates to the analysis data */
+  analysisDataUpdateCount?: number
+  /** The number of updates to the content record */
+  informationUpdateCount?: number
+}
+
+/**
+ * Track snapshot with all supported direct metadata relationships resolved.
+ *
+ * Field access performs no queries, and editing this view does not persist changes.
+ * Related records are plain rows without recursive expansion. `None` means an
+ * absent foreign key or a missing target; the content row retains the original key.
+ */
+export interface ContentView {
+  /** Original content row, including its foreign keys. */
+  content: Content
+  /** Main artist. */
+  artist?: Artist
+  /** Artist credited as remixer. */
+  remixer?: Artist
+  /** Artist credited as original artist. */
+  originalArtist?: Artist
+  /** Artist credited as composer. */
+  composer?: Artist
+  /** Artist credited as lyricist. */
+  lyricist?: Artist
+  /** Associated album. */
+  album?: Album
+  /** Associated genre. */
+  genre?: Genre
+  /** Associated label. */
+  label?: Label
+  /** Associated key. */
+  key?: Key
+  /** Associated color. */
+  color?: Color
+  /** Associated image. */
+  image?: Image
+}
+
+/**
+ * Represents the `cue` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `cue` table in the One Library export database.
+ * It stores information about cue points for tracks, including their timing, type, and
+ * additional metadata.
+ *
+ * # Notes
+ * Rekordbox internally represents time in “frames”, each being 1/150th of a second (6.666ms).
+ * The InFrame and OutFrame values use this unit of time. However, when a track is encoded with
+ * variable bit-rate (VBR) or average bit-rate (ABR), the InMpegFrame and OutMpegFrame values are
+ * filled out to assist with correct seeking. Despite the names, these values are not the frame
+ * indices within the MPEG file, but instead use an alternative timing scheme that is typically
+ * around 1/75th of a second (13.333ms) per frame, i.e. about half the granularity of normal frames.
+ *
+ * # Referenced by
+ * * [`HotCueBankListCue`] via `cue_id` foreign key.
+ *
+ * # References
+ * * [`Content`] via `content_id` foreign key.
+ */
+export interface Cue {
+  /** The unique identifier of the cue. */
+  id: number
+  /** A foreign key referencing the [`Content`]. */
+  contentId: number
+  /**
+   * The type of the cue.
+   *
+   * 0 if a memory cue, otherwise the number of Hot Cue
+   */
+  kind?: number
+  /** An optional integer representing the index of the color in the color table. */
+  colorTableIndex?: number
+  /** A comment for the cue */
+  cueComment?: string
+  /** A flag whether the cue is part of an active loop. */
+  isActiveLoop?: number
+  /** Unknown */
+  beatLoopNumerator?: number
+  /** Unknonw */
+  beatLoopDenominator?: number
+  /** The cue's start time in microseconds. */
+  inUsec?: number
+  /** The cue's end time in microseconds. */
+  outUsec?: number
+  /**
+   * The cue's start frame.
+   *
+   * One frame is 1/150th of a second
+   */
+  in150FramePerSec?: number
+  /**
+   * The cue's end frame or -1 if not a loop.
+   *
+   * One frame is 1/150th of a second
+   */
+  out150FramePerSec?: number
+  /** The cue's start MPEG frame or 0 if not a VBR/ABR MPEG file (see note). */
+  inMpegFrameNumber?: number
+  /** The cue's end MPEG frame or 0 if not a loop or not a VBR/ABR MPEG file (see note) */
+  outMpegFrameNumber?: number
+  /** The cue's start MPEG absolute frame or 0 if not a VBR/ABR MPEG file. */
+  inMpegAbs?: number
+  /** The cue's end MPEG absolute frame or 0 if not a loop or not a VBR/ABR MPEG file */
+  outMpegAbs?: number
+  /** The cue's start frame position in the decoding block. */
+  inDecodingStartFramePosition?: number
+  /** The cue's end frame position in the decoding block. */
+  outDecodingStartFramePosition?: number
+  /** The cue's start file offset in the decoding block. */
+  inFileOffsetInBlock?: number
+  /** The cue's end file offset in the decoding block. */
+  outFileOffsetInBlock?: number
+  /** The cue's start sample position in the decoding block. */
+  inNumberOfSampleInBlock?: number
+  /** The cue's end sample position in the decoding block. */
+  outNumberOfSampleInBlock?: number
+}
+
+/**
+ * Represents the `genre` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `genre` table in the One Library export database.
+ * It stores genre-related data, allowing multiple tracks to be associated with the same genre.
+ */
+export interface Genre {
+  /** The unique identifier of the genre. */
+  id: number
+  /** The name of the genre. */
+  name: string
+}
+
+/**
+ * Represents the `history` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `history` table in the One Library export database.
+ * It stores information about history entries, including metadata such as sequence, name,
+ * attributes, and parent relationships.
+ *
+ * # Referenced by
+ * * [`History`] via `parent_id` foreign key.
+ * * [`HistoryContent`] via `history_id` foreign key.
+ *
+ * # References
+ * * [`History`] via `parent_id` foreign key.
+ */
+export interface History {
+  /** A unique identifier for the entry. */
+  id: number
+  /** The sequence/order number of the history (1-based index) */
+  seq: number
+  /** The name of the history. */
+  name: string
+  /** The attribute of the tag, either history (`0`) or a folder (`1`) */
+  attribute: HistoryType
+  /** The ID of the parent [`History`] or `0` for top-level record. */
+  parentId: number
+}
+
+/**
+ * Represents the `history_content` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `history_content` table in the One Library export database.
+ * It stores information about the relationship between songs and history entries, including
+ * metadata such as track number and associated history or content IDs.
+ *
+ * # References
+ * * [`History`] via `history_id` foreign key.
+ * * [`Content`] via `content_id` foreign key.
+ */
+export interface HistoryContent {
+  /** The ID of the associated [`History`]. */
+  historyId: number
+  /** The ID of the associated [`Content`]. */
+  contentId: number
+  /** Position within the history, starting at zero. Before insertion, `-1` requests append. */
+  seq: number
+}
+
+/**
+ * Represents the `hotCueBankList` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `hotCueBankList` table in the One Library export database.
+ *
+ * # References
+ * * [`HotCueBankList`] via `parent_id` foreign key.
+ * * [`Image`] via `image_id` foreign key.
+ */
+export interface HotCueBankList {
+  /** The unique identifier of the hot cue bank list. */
+  id: number
+  /** The sequence/order number of the hot cue bank list (1-based index). */
+  seq: number
+  /** The name of the hot cue bank list. */
+  name?: string
+  /** An optional foreign key referencing an [`Image`]. */
+  imageId?: number
+  /** The hot cue bank list type, either list (`0`) or a folder (`1`). */
+  attribute: HotCueBanklistType
+  /** The ID of the parent [`HotCueBankList`], `0` for top-level records. */
+  parentId?: number
+}
+
+/**
+ * Represents the `hotCueBankList_cue` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `hotCueBankList_cue` table in the One Library export database.
+ *
+ * # References
+ * * [`HotCueBankList`] via `hot_cue_bank_list_id` foreign key.
+ * * [`Cue`] via `cue_id` foreign key.
+ */
+export interface HotCueBankListCue {
+  /** The unique identifier of the hot cue bank list. */
+  hotCueBankListId: number
+  /** The unique identifier of the cue. */
+  cueId: number
+  /** The sequence/order number of the hot cue bank list cue (1-based index). */
+  seq: number
+}
+
+/**
+ * Represents the `image` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `image` table in the One Library export database.
+ * It stores the relative file paths of all images on the device.
+ *
+ * # Referenced by
+ * * [`Album`] via `image_id` foreign key.
+ * * [`Content`] via `image_id` foreign key.
+ */
+export interface Image {
+  /** The unique identifier of the image. */
+  id: number
+  /** The relative file path of the image. */
+  path: string
+}
+
+/**
+ * Represents the `key` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `key` table in the One Library export database.
+ * It stores key-related data, allowing multiple tracks to be associated with the same key.
+ *
+ * # Referenced by
+ * * [`Content`] via `key_id` foreign key.
+ */
+export interface Key {
+  /** The unique identifier of the key. */
+  id: number
+  /** The name of the key. */
+  name: string
+}
+
+/**
+ * Represents the `label` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `label` table in the One Library export database.
+ * It stores label-related data, allowing multiple tracks to be associated with the same label.
+ *
+ * # Referenced by
+ * * [`Content`] via `label_id` foreign key.
+ */
+export interface Label {
+  /** The unique identifier of the label. */
+  id: number
+  /** The name of the label. */
+  name: string
+}
+
+export interface Lyricist {
+  id: number
+  name: string
+  nameForSearch?: string
+}
+
+/**
+ * Represents the `menuItem` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `menuItem` table in the One Library export database.
+ * It stores genre-related data, allowing multiple tracks to be associated with the same genre.
+ *
+ * # Referenced by
+ * * [`Category`] via `menu_item_id` foreign key.
+ * * [`Sort`] via `menu_item_id` foreign key.
+ */
+export interface MenuItem {
+  /** The unique identifier of the record. */
+  id: number
+  /** The kind of menu item (similar to `class` in the main DB). */
+  kind: number
+  /** The name of the menu item. */
+  name: string
+}
+
+/**
+ * Represents the `myTag` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `myTag` table in the One Library export database.
+ * It stores information about my-tags, including metadata such as sequence, name
+ * attributes, and parent relationships.
+ *
+ * # Referenced by
+ * * [`MyTag`] via `parent_id` foreign key.
+ * * [`MyTagContent`] via `my_tag_id` foreign key.
+ *
+ * # References
+ * * [`MyTag`] via `parent_id` foreign key.
+ */
+export interface MyTag {
+  /** The unique identifier of the tag. */
+  id: number
+  /** Position among siblings, starting at zero. */
+  seq: number
+  /** The name of the tag. */
+  name: string
+  /** The tag type, either list (`0`) or a folder (`1`). */
+  attribute: MyTagType
+  /** The ID of the parent [`MyTag`], `0` for top-level records. */
+  parentId: number
+}
+
+/**
+ * Represents the `myTag_content` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `myTag_content` table in the One Library export database.
+ * It stores information about the relationship between songs and myTags.
+ *
+ * This struct also is insertable into the `myTag_content` table.
+ *
+ * # References
+ * * [`MyTag`] via `my_tag_id` foreign key.
+ * * [`Content`] via `content_id` foreign key.
+ */
+export interface MyTagContent {
+  /** The ID of the associated [`MyTag`]. */
+  myTagId: number
+  /** The ID of the associated [`Content`]. */
+  contentId: number
+}
+
+/**
+ * Represents a new record insertale to the `album` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_onelib::models::NewAlbum;
+ *
+ * let new = NewAlbum::new("Name").compilation(1);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewAlbum {
+  /** The name of the album. */
+  name: string
+  /** An optional foreign key referencing the album artist [`Artist`]. */
+  artistId?: number
+  /** An optional foreign key referencing the album artwork [`Image`]. */
+  imageId?: number
+  /** A flag if the album is a compilation. */
+  isCompilation: number
+  /** An optional string used for searching the album. */
+  nameForSearch?: string
+}
+
+/**
+ * Represents a new record insertale to the `artist` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_onelib::models::NewArtist;
+ *
+ * let new = NewArtist::new("Name").name_for_search("Name");
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewArtist {
+  /** The name of the artist. */
+  name: string
+  /** An optional field for storing a search-optimized version of the artist name. */
+  nameForSearch?: string
+}
+
+/**
+ * Represents a new record insertale to the `category` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_onelib::models::NewCategory;
+ *
+ * let new = NewCategory::new(0).visible(1);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewCategory {
+  /** A foreign key referencing the [`MenuItem`]. */
+  menuItemId: number
+  /** The sequence/order of the category. */
+  seq: number
+  /** A flag if the category is visible. */
+  isVisible: number
+}
+
+/** Represents a new record insertale to the `color` table. */
+export interface NewColor {
+  /** The name of the color */
+  name: string
+}
+
+/**
+ * Represents a new record insertale to the `content` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_onelib::models::NewContent;
+ *
+ * let new = NewContent::new("Content/Artist/Title.mp3");
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewContent {
+  /** The date the record was created */
+  dateCreated: Date
+  /** The date the record was added */
+  dateAdded: Date
+  /** The relative file path of the track */
+  path: string
+  /** The title of the track. */
+  title?: string
+  /** An optional title used for searching. */
+  titleForSearch?: string
+  /** The subtitle of the track */
+  subtitle?: string
+  /** The beats per minute multiplied by 100. */
+  bpmx100?: number
+  /** The length of the track in seconds. */
+  length?: number
+  /** The track number of the track */
+  trackNo?: number
+  /** The disc number of the track */
+  discNo?: number
+  /** Optional foreign key referencing the artist [`Artist`]. */
+  artistId?: number
+  /** Optional foreign key referencing the remixer [`Artist`]. */
+  remixerId?: number
+  /** Optional foreign key referencing the original artist [`Artist`]. */
+  originalArtistId?: number
+  /** Optional foreign key referencing the composer [`Artist`]. */
+  composerId?: number
+  /** Optional foreign key referencing the lyricist [`Artist`]. */
+  lyricistId?: number
+  /** Optional foreign key referencing the [`Album`]. */
+  albumId?: number
+  /** Optional foreign key referencing the [`Genre`]. */
+  genreId?: number
+  /** Optional foreign key referencing the [`Label`]. */
+  labelId?: number
+  /** Optional foreign key referencing the [`Key`]. */
+  keyId?: number
+  /** Optional foreign key referencing the [`Color`]. */
+  colorId?: number
+  /** Optional foreign key referencing the artwork [`Image`]. */
+  imageId?: number
+  /** The ccomment of the track. */
+  djComment?: string
+  /** The rating of the track. */
+  rating?: number
+  /** The release year of the track. */
+  releaseYear?: number
+  /** The release date of the track */
+  releaseDate?: string
+  /** The file name of the track. */
+  fileName?: string
+  /** The file size of the track */
+  fileSize?: number
+  /** The file typo of the track */
+  fileType?: number
+  /** The bitrate of the trackk */
+  bitrate?: number
+  /** The bit depth of the track */
+  bitDepth?: number
+  /** The sample rate of the track. */
+  samplingRate?: number
+  /** The ISRC of the track */
+  isrc?: string
+  /** A flag if hot-cue auto load is enabled */
+  isHotCueAutoLoadOn?: number
+  /** A flag if kuvo delivery is enabled */
+  isKuvoDeliverStatusOn?: number
+  /** A kuvo delivery comment */
+  kuvoDeliveryComment?: string
+  /** The masterdb ID */
+  masterDbId?: number
+  /** The ID of the contnent in the masterdb */
+  masterContentId?: number
+  /** The relative path to the analysis data */
+  analysisDataFilePath?: string
+  /** The number of bits analysed (?) */
+  analysedBits?: number
+  /** The ID of the content in the content link database (seems to always be 788224) */
+  contentLink?: number
+  /** A flag if the content has been modified */
+  hasModified?: number
+  /** The number of updates to the associated cues */
+  cueUpdateCount?: number
+  /** The number of updates to the analysis data */
+  analysisDataUpdateCount?: number
+  /** The number of updates to the content record */
+  informationUpdateCount?: number
+}
+
+/** Represents a new record insertale to the `genre` table. */
+export interface NewGenre {
+  /** The name of the genre. */
+  name: string
+}
+
+/**
+ * Represents a new record insertale to the `history` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_onelib::models::NewHistory;
+ *
+ * let new = NewHistory::history("Name").seq(2);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewHistory {
+  /** Insertion position in the collection; `None` appends. */
+  seq?: number
+  /** The name of the history. */
+  name: string
+  /** The attribute of the tag, either history (`0`) or a folder (`1`) */
+  attribute: HistoryType
+  /** The ID of the parent [`History`] or `0` for top-level record. */
+  parentId: number
+}
+
+/** Represents a new record insertale to the `image` table. */
+export interface NewImage {
+  /** The relative file path of the image. */
+  path: string
+}
+
+/** Represents a new record insertale to the `key` table. */
+export interface NewKey {
+  /** The name of the key. */
+  name: string
+}
+
+/** Represents a new record insertale to the `label` table. */
+export interface NewLabel {
+  /** The name of the label. */
+  name: string
+}
+
+/** Represents a new record insertale to the `menuItem` table. */
+export interface NewMenuItem {
+  /** The kind of menu item (similar to `class` in the main DB). */
+  kind: number
+  /** The name of the menu item. */
+  name: string
+}
+
+/**
+ * Represents a new record insertale to the `myTag` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_onelib::models::NewMyTag;
+ *
+ * let new = NewMyTag::tag("Name").seq(2);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewMyTag {
+  /** Insertion position in the collection; `None` appends. */
+  seq?: number
+  /** The name of the tag. */
+  name: string
+  /** The tag type, either list (`0`) or a folder (`1`). */
+  attribute: MyTagType
+  /** The ID of the parent [`MyTag`], `0` for top-level records. */
+  parentId: number
+}
+
+/**
+ * Represents a new record insertale to the `playlist` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_onelib::models::NewPlaylist;
+ *
+ * let new = NewPlaylist::playlist("Name").seq(2);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewPlaylist {
+  /** Insertion position in the collection; `None` appends. */
+  seq?: number
+  /** The name of the playlist. */
+  name: string
+  /** Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image). */
+  imageId?: number
+  /** The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`). */
+  attribute: OneLibraryPlaylistType
+  /** The ID of the parent [`Playlist`], `0` for top-level records. */
+  parentId: number
+}
+
+/**
+ * Represents a new record insertale to the `sort` table.
+ *
+ * Implements the builder pattern for optional values of the new record.
+ *
+ * # Examples
+ * ```rust
+ * use rbox_onelib::models::NewSort;
+ *
+ * let new = NewSort::new(1234).visible(1);
+ * println!("{:?}", new);
+ * ```
+ */
+export interface NewSort {
+  /** An optional foreign key referencing the [`MenuItem`]. */
+  menuItemId: number
+  /** The sequence/order number of the item (1-based index) */
+  seq: number
+  /** A flag if the item is visible in the menu */
+  isVisible: number
+  /** A flag if the item is selected as a sub-column */
+  isSelectedAsSubColumn: number
+}
+
+/** Stored Rekordbox codes for PlaylistType. */
+export declare const enum OneLibraryPlaylistType {
+  List = 0,
+  Folder = 1,
+  SmartList = 4,
+  CloudLibrarySync = -128
+}
+
+export interface OriginalArtist {
+  id: number
+  name: string
+  nameForSearch?: string
+}
+
+/**
+ * Represents the `playlist` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `playlist` table in the One Library export database.
+ * It stores information about playlists, including metadata such as sequence, name, image path,
+ * attributes, and parent relationships.
+ *
+ * # Referenced by
+ * * [`Playlist`] via `parent_id` foreign key.
+ * * [`PlaylistContent`] via `playlist_id` foreign key.
+ *
+ * # References
+ * * [`Playlist`] via `parent_id` foreign key.
+ */
+export interface Playlist {
+  /** The unique identifier of the playlist. */
+  id: number
+  /** Position among siblings, starting at zero. */
+  seq: number
+  /** The name of the playlist. */
+  name: string
+  /** Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image). */
+  imageId?: number
+  /** The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`). */
+  attribute: OneLibraryPlaylistType
+  /** The ID of the parent [`Playlist`], `0` for top-level records. */
+  parentId: number
+}
+
+/**
+ * Represents the `playlist_content` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `playlist_content` table in the One Library export database.
+ * It stores information about the relationship between songs and playlists, including
+ * metadata such as track number and associated playlist or content IDs.
+ *
+ * This struct also is insertable into the `playlist_content` table.
+ *
+ * # References
+ * * [`Playlist`] via `playlist_id` foreign key.
+ * * [`Content`] via `content_id` foreign key.
+ */
+export interface PlaylistContent {
+  /** The ID of the associated [`Playlist`]. */
+  playlistId: number
+  /** The ID of the associated [`Content`]. */
+  contentId: number
+  /** Position within the playlist, starting at zero. Before insertion, `-1` requests append. */
+  seq: number
+}
+
+/**
+ * Represents the `property` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `property` table in the One Library export database.
+ * It stores information about the device(s) and the export library.
+ */
+export interface Property {
+  /** The name of the device ('' by default) */
+  deviceName: string
+  /** The DB version (1000 by default) */
+  dbVersion: number
+  /** The number of ['Content'] in the device */
+  numberOfContents: number
+  /** The date of creation for the device */
+  createdDate: Date
+  /** The background color type (0 by default) */
+  backGroundColorType: number
+  /** The master.db database id of the tag data */
+  myTagMasterDbid: number
+}
+
+/**
+ * Represents the `recommendedLike` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `recommendedLike` table in the One Library export database.
+ * It stores information about recommended track relationships, including metadata such as
+ * a rating, creation timestamps, and associated content IDs.
+ *
+ * This struct also is insertable into the `recommendedLike` table.
+ *
+ * # References
+ * * [`Content`] via `content_id_1` foreign key.
+ * * [`Content`] via `content_id_2` foreign key.
+ */
+export interface RecommendedLike {
+  /** The ID of the first associated [`Content`]. */
+  contentId1: number
+  /** The ID of the second associated [`Content`]. */
+  contentId2: number
+  /** The rating of the relationship, between 1-5. */
+  rating: number
+  /** The timestamp when the entry was created, serialized/deserialized as `Datetime<Utc>`. */
+  createdDate: Date
+}
+
+export interface Remixer {
+  id: number
+  name: string
+  nameForSearch?: string
+}
+
+/**
+ * Represents the `sort` table in the Rekordbox One Library database.
+ *
+ * This struct maps to the `sort` table in the One Library export database.
+ *
+ * # References
+ * * [`MenuItem`] via `menu_item_id` foreign key.
+ */
+export interface Sort {
+  /** The unique identifier of the record. */
+  id: number
+  /** An optional foreign key referencing the [`MenuItem`]. */
+  menuItemId: number
+  /** The sequence/order number of the *visible* items (1-based index) */
+  seq: number
+  /** A flag if the item is visible in the menu */
+  isVisible: number
+  /** A flag if the item is selected as a sub-column */
+  isSelectedAsSubColumn: number
 }

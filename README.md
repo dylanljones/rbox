@@ -159,29 +159,35 @@ Does this library support the old Device Library export files?
 
 ## Structure
 
-The project is structured as a Rust workspace. The diagram shows the main crates;
-arrows point from a crate to its dependencies. The dashed arrow is enabled by the
-`master-db` feature of `rbox-onelib`.
+The project is structured as a Rust workspace. Arrows point toward dependencies;
+arrows between groups summarize dependencies rather than applying to every crate.
+The dashed arrow is enabled by the `master-db` feature of `rbox-onelib`.
 
 ```mermaid
 flowchart TD
     bindings["Python / JavaScript bindings"] --> rbox["rbox"]
 
-    rbox --> anlz["rbox-anlz"]
-    rbox --> masterdb["rbox-masterdb"]
-    rbox --> onelib["rbox-onelib"]
-    rbox --> settings["rbox-setting"]
-    rbox --> xml["rbox-xml"]
-    rbox --> db["rbox-db"]
-    rbox --> core["rbox-core"]
+    subgraph main_crates["Main crates"]
+        direction LR
+        onelib["rbox-onelib"] -.-> masterdb["rbox-masterdb"]
+        masterdb --> anlz["rbox-anlz"]
+        anlz ~~~ settings["rbox-setting"] ~~~ xml["rbox-xml"]
+    end
 
-    masterdb --> anlz
-    masterdb --> db
-    masterdb --> core
-    onelib --> db
-    onelib --> core
-    onelib -.-> masterdb
+    subgraph core_crates["Core crates"]
+        direction LR
+        db["rbox-db"] ~~~ core["rbox-core"]
+    end
+
+    %% Connect groups to preserve their horizontal layout.
+    %% Invisible links above control ordering without implying dependencies.
+    rbox --> main_crates
+    rbox --> core_crates
+    main_crates --> core_crates
 ```
+
+Both database handlers depend on `rbox-db` and `rbox-core`; `rbox` also exposes
+these shared crates directly.
 
 ## Sponsor
 
