@@ -36,7 +36,7 @@ It supports the following Rekordbox files:
 | Rekordbox database |  ✓   |      ✓ |      ❌ |
 | One Library        |  ✓   |      ✓ |      ✓ |
 | XML database       |  ✓   |      ✓ |      ✓ |
-| Analysis Files     |  ✓   |      ✓ |      ❌ |
+| Analysis Files     |  ✓   |      ✓ |      ✓ |
 | Settings Files     |  ✓   |      ✓ |      ✓ |
 
 

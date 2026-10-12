@@ -603,8 +603,6 @@ impl DjmdContent {
 pub struct NewDjmdContent {
     /// The path of the track file.
     pub folder_path: String,
-    /// Explicit Rekordbox file type, or `None` to infer it from the path extension.
-    pub file_type: Option<FileType>,
     /// An optional string representing the title of the track.
     pub title: Option<String>,
     /// An optional string representing the ID of the associated artist in [`DjmdArtist`].
@@ -625,6 +623,8 @@ pub struct NewDjmdContent {
     pub bit_depth: Option<i32>,
     /// An optional string representing comments about the track.
     pub commnt: Option<String>,
+    /// Explicit Rekordbox file type, or `None` to infer it from the path extension.
+    pub file_type: Option<FileType>,
     /// An optional integer representing the rating of the track.
     pub rating: Option<i32>,
     /// An optional integer representing the release year of the track.
@@ -639,6 +639,14 @@ pub struct NewDjmdContent {
     pub key_id: Option<String>,
     /// An optional string representing the stock date of the track.
     pub stock_date: Option<String>,
+    /// An optional string representing the ID of the color in [`DjmdColor`].
+    pub color_id: Option<String>,
+    /// An optional integer representing the DJ play count of the track.
+    pub dj_play_count: Option<i32>,
+    /// An optional string representing the path to the track's image.
+    pub image_path: Option<String>,
+    /// An optional string representing the path to the analysis data.
+    pub analysis_data_path: Option<String>,
     /// An optional string used for searching the track.
     pub search_str: Option<String>,
     /// An optional integer representing the disc number of the track.
@@ -653,12 +661,56 @@ pub struct NewDjmdContent {
     pub release_date: Option<String>,
     /// An optional string representing the creation date of the track.
     pub date_created: Option<String>,
+    /// An optional integer representing the content link of the track.
+    pub content_link: Option<i32>,
     /// An optional string representing tags associated with the track.
     pub tag: Option<String>,
+    // /// An optional string representing the auto-load hot cue setting.
+    // pub hot_cue_auto_load: Option<String>,
+    // /// An optional string representing the delivery control setting.
+    //  delivery_control: Option<String>,
+    /// An optional string representing comments about the delivery.
+    pub delivery_comment: Option<String>,
     /// An optional string representing the lyricist of the track.
     pub lyricist: Option<String>,
     /// An optional string representing the ISRC (International Standard Recording Code) of the track.
     pub isrc: Option<String>,
+    /// An optional integer representing sampler track information.
+    pub sampler_track_info: Option<i32>,
+    /// An optional integer representing the sampler play offset.
+    pub sampler_play_offset: Option<i32>,
+    /// An optional float representing the sampler gain.
+    pub sampler_gain: Option<f64>,
+    /// An optional string representing the associated video.
+    pub video_associate: Option<String>,
+    /// An optional integer representing the lyric status of the track.
+    pub lyric_status: Option<i32>,
+    /// An optional string representing the original folder path of the track.
+    pub org_folder_path: Option<String>,
+    /// An optional string for reserved data.
+    pub reserved1: Option<String>,
+    /// An optional string for reserved data.
+    pub reserved2: Option<String>,
+    /// An optional string for reserved data.
+    pub reserved3: Option<String>,
+    /// An optional string for reserved data.
+    pub reserved4: Option<String>,
+    /// An optional string for extended information.
+    pub ext_info: Option<String>,
+    /// An optional string representing the ID of the associated device in [`DjmdDevice`].
+    pub device_id: Option<String>,
+    /// An optional string representing the local folder path in Rekordbox.
+    pub rb_local_folder_path: Option<String>,
+    /// An optional string representing the source ID.
+    pub src_id: Option<String>,
+    /// An optional string representing the source title.
+    pub src_title: Option<String>,
+    /// An optional string representing the source artist name.
+    pub src_artist_name: Option<String>,
+    /// An optional string representing the source album name.
+    pub src_album_name: Option<String>,
+    /// An optional integer representing the source length in milliseconds.
+    pub src_length: Option<i32>,
 }
 
 impl ModelInsert for NewDjmdContent {
@@ -716,12 +768,14 @@ impl ModelInsert for NewDjmdContent {
         let file_size: u64 = meta.len();
         let db_id = DjmdDevice::master_db_id(conn)?;
         // TODO: No clue what content link should be, for now we just choose the last value used
-        let content_link = djmdContent::table
-            .select(djmdContent::content_link)
-            .order(djmdContent::rb_local_usn.desc())
-            .limit(1)
-            .first(conn)?;
-
+        let content_link = self.content_link.or_else(|| {
+            djmdContent::table
+                .select(djmdContent::content_link)
+                .order(djmdContent::content_link.desc())
+                .first::<Option<i32>>(conn)
+                .ok()
+                .flatten()
+        });
         let id = Self::Model::generate_id(conn)?;
         let file_id = Self::Model::generate_file_id(conn)?;
         let uuid = Uuid::new_v4().to_string();
@@ -744,10 +798,10 @@ impl ModelInsert for NewDjmdContent {
             content_link,
             hot_cue_auto_load: Some("on".to_string()),
             delivery_control: Some("on".to_string()),
-            sampler_track_info: Some(0),
-            sampler_play_offset: Some(0),
-            sampler_gain: Some(0.0),
-            lyric_status: Some(0),
+            // sampler_track_info: Some(0),
+            // sampler_play_offset: Some(0),
+            // sampler_gain: Some(0.0),
+            // lyric_status: Some(0),
             service_id: Some(0),
             rb_file_id: Some(file_id),
             title: self.title,
@@ -767,6 +821,10 @@ impl ModelInsert for NewDjmdContent {
             org_artist_id: self.org_artist_id,
             key_id: self.key_id,
             stock_date: self.stock_date,
+            color_id: self.color_id,
+            dj_play_count: self.dj_play_count,
+            image_path: self.image_path,
+            analysis_data_path: self.analysis_data_path,
             search_str: self.search_str,
             disc_no: self.disc_no,
             composer_id: self.composer_id,
@@ -775,8 +833,27 @@ impl ModelInsert for NewDjmdContent {
             release_date: self.release_date,
             date_created: self.date_created,
             tag: self.tag,
+            delivery_comment: self.delivery_comment,
             lyricist: self.lyricist,
             isrc: self.isrc,
+            sampler_track_info: self.sampler_track_info,
+            sampler_play_offset: self.sampler_play_offset,
+            sampler_gain: self.sampler_gain,
+            video_associate: self.video_associate,
+            lyric_status: self.lyric_status,
+            org_folder_path: self.org_folder_path,
+            reserved1: self.reserved1,
+            reserved2: self.reserved2,
+            reserved3: self.reserved3,
+            reserved4: self.reserved4,
+            ext_info: self.ext_info,
+            device_id: self.device_id,
+            rb_local_folder_path: self.rb_local_folder_path,
+            src_id: self.src_id,
+            src_title: self.src_title,
+            src_artist_name: self.src_artist_name,
+            src_album_name: self.src_album_name,
+            src_length: self.src_length,
             analysed: Some(Analyzed::NotAnalyzed as i32),
             ..Default::default()
         };

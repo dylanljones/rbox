@@ -43,6 +43,9 @@ thiserror         = { version = "2.0" }
 tempfile          = { version = "3.23" }
 uuid              = { version = "1.16", features = ["v4"] }
 
+lofty             = { version = "0.25.4" }
+symphonia         = { version = "0.6", default-features = false, features = ["mp3", "aac", "alac", "isomp4", "flac", "wav", "aiff", "pcm", "adpcm"] }
+
 napi              = { version = "3.5", default-features = false, features = ["napi6", "serde-json", "chrono_date"] }
 napi-derive       = { version = "3.3"}
 pyo3              = { version = "0.27", features = ["serde", "chrono"] }

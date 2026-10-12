@@ -5,11 +5,14 @@
 
 use diesel::prelude::*;
 use rbox_db::connection::ConnectionOptions;
+use rbox_db::test_support::ordering;
 use rbox_db::*;
 use rbox_masterdb::{establish_connection, MasterDb, MasterPlaylistXml};
 use rbox_testing::data as common;
-use rbox_testing::ordering;
+
+mod support;
 use rstest::rstest;
+use support::master_tree_updates;
 
 #[rstest]
 #[case(6)]
@@ -157,26 +160,26 @@ fn masterdb_updates_and_bulk_rollback(#[case] version: usize) {
     use rbox_masterdb::{enums::PlaylistType, models::*};
     let fixture = common::setup_master_db_path(version);
     let mut conn = establish_connection(fixture.path(), &ConnectionOptions::default()).unwrap();
-    rbox_testing::master_tree_updates!(conn, DjmdPlaylist, NewDjmdPlaylist, PlaylistType::List);
-    rbox_testing::master_tree_updates!(
+    master_tree_updates!(conn, DjmdPlaylist, NewDjmdPlaylist, PlaylistType::List);
+    master_tree_updates!(
         conn,
         DjmdHistory,
         NewDjmdHistory,
         rbox_db::enums::HistoryType::List
     );
-    rbox_testing::master_tree_updates!(
+    master_tree_updates!(
         conn,
         DjmdMyTag,
         NewDjmdMyTag,
         rbox_db::enums::MyTagType::List
     );
-    rbox_testing::master_tree_updates!(
+    master_tree_updates!(
         conn,
         DjmdRelatedTracks,
         NewDjmdRelatedTracks,
         rbox_masterdb::enums::RelatedTracksType::List
     );
-    rbox_testing::master_tree_updates!(
+    master_tree_updates!(
         conn,
         DjmdSampler,
         NewDjmdSampler,

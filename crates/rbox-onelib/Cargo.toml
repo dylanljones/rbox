@@ -44,6 +44,7 @@ rbox-derives      = { path = "../rbox-derives", version = "0.2.0", optional = tr
 rbox-masterdb     = { path = "../rbox-masterdb", version = "0.2.0", default-features = false, optional = true }
 
 [dev-dependencies]
+rbox-db           = { path = "../rbox-db", version = "0.2.0", default-features = false, features = ["test-support"] }
 anyhow            = { workspace = true }
 tempfile          = { workspace = true }
 rbox-testing      = { path = "../rbox-testing" }

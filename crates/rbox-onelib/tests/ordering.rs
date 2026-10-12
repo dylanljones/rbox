@@ -3,8 +3,9 @@
 
 //! Ordering integration tests for One Library.
 
-use rbox_testing::connection::ConnectionFixture;
-use rbox_testing::{ordering, visible_matrix};
+mod support;
+use rbox_db::test_support::ordering;
+use support::{one_tree_updates, visible_handler_test, visible_matrix, ConnectionFixture};
 
 use diesel::prelude::*;
 use rbox_db::connection::ConnectionOptions;
@@ -185,9 +186,9 @@ fn one_library_association_deletion_and_rollback() {
 fn one_library_bulk_insert_and_invalid_parents() {
     use rbox_onelib::{enums::PlaylistType, models::*};
     let mut conn = ConnectionFixture::one_library(rbox_onelib::connection::establish_connection);
-    rbox_testing::one_tree_updates!(conn, Playlist, NewPlaylist, PlaylistType::List);
-    rbox_testing::one_tree_updates!(conn, History, NewHistory, rbox_db::enums::HistoryType::List);
-    rbox_testing::one_tree_updates!(conn, MyTag, NewMyTag, rbox_db::enums::MyTagType::List);
+    one_tree_updates!(conn, Playlist, NewPlaylist, PlaylistType::List);
+    one_tree_updates!(conn, History, NewHistory, rbox_db::enums::HistoryType::List);
+    one_tree_updates!(conn, MyTag, NewMyTag, rbox_db::enums::MyTagType::List);
 }
 
 #[test]
@@ -397,7 +398,7 @@ fn handler_my_tag_moves_and_deletions() {
     assert!(MyTag::find(&mut fixture, &a.id).unwrap().is_none());
 }
 
-rbox_testing::visible_handler_test!(
+visible_handler_test!(
     handler_category_visibility,
     Category,
     create_category,
@@ -405,7 +406,7 @@ rbox_testing::visible_handler_test!(
     delete_category,
     ConnectionFixture::one_library(rbox_onelib::connection::establish_connection)
 );
-rbox_testing::visible_handler_test!(
+visible_handler_test!(
     handler_sort_visibility,
     Sort,
     create_sort,

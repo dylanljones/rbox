@@ -43,6 +43,7 @@ rbox-core         = { path = "../rbox-core", version = "0.2.0", default-features
 rbox-derives      = { path = "../rbox-derives", version = "0.2.0", optional = true }
 
 [dev-dependencies]
+rbox-db           = { path = "../rbox-db", version = "0.2.0", default-features = false, features = ["test-support"] }
 anyhow            = { workspace = true }
 tempfile          = { workspace = true }
 rstest            = { workspace = true }

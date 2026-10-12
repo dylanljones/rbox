@@ -15,6 +15,7 @@ publish = true
 
 [features]
 default = []
+test-support = []
 # Features for SQLCipher support
 bundled = ["libsqlite3-sys/bundled-sqlcipher"]
 bundled-vendored-openssl = ["libsqlite3-sys/bundled-sqlcipher-vendored-openssl"]
@@ -23,12 +24,12 @@ pyo3 = ["dep:pyo3"]
 napi = ["dep:napi", "dep:napi-derive"]
 
 [dependencies]
-pyo3 = { workspace = true, optional = true }
-napi = { workspace = true, optional = true }
-napi-derive = { workspace = true, optional = true }
 diesel            = { workspace = true }
 libsqlite3-sys    = { workspace = true }
 thiserror         = { workspace = true }
+pyo3              = { workspace = true, optional = true }
+napi              = { workspace = true, optional = true }
+napi-derive       = { workspace = true, optional = true }
 
 [dev-dependencies]
 tempfile          = { workspace = true }
