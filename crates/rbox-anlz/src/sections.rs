@@ -326,6 +326,68 @@ impl BeatGrid {
         }
     }
 
+    /// Create a fixed-tempo 4/4 grid, starting with beat 1 at `first_beat_ms`.
+    ///
+    /// `bpm` is in beats per minute in the range 1.0-300.0, rounded to the format's
+    /// nearest centi-BPM. Beats are generated through `end_ms`, inclusive,
+    /// using that stored tempo. Both timestamps are raw milliseconds from the
+    /// start of the track; no beats are generated before `first_beat_ms`.
+    /// Each timestamp is rounded independently to the nearest millisecond,
+    /// avoiding accumulated rounding drift. The grid correction starts at zero.
+    ///
+    /// Returns an error for non-finite/out-of-range BPM, reversed timestamps,
+    /// or an allocation failure. This only creates PQTZ; a corresponding PQT2
+    /// extended grid must be updated separately if present.
+    ///
+    /// ```
+    /// use rbox_anlz::BeatGrid;
+    /// let grid = BeatGrid::new_static_bpm(120.0, 100, 2100)?;
+    /// assert_eq!(grid.beats.iter().map(|b| b.time).collect::<Vec<_>>(), [100, 600, 1100, 1600, 2100]);
+    /// # Ok::<(), rbox_anlz::error::AnlzError>(())
+    /// ```
+    pub fn new_static_bpm(bpm: f64, first_beat_ms: u32, end_ms: u32) -> Result<Self> {
+        let mut grid = Self::new(Vec::new());
+        grid.set_static_bpm(bpm, first_beat_ms, end_ms)?;
+        Ok(grid)
+    }
+
+    /// Replace the beats with a fixed-tempo 4/4 grid.
+    ///
+    /// Uses the units, rounding and inclusive endpoint of [`Self::new_static_bpm`].
+    /// Preserves all header flags, including the signed grid correction, which
+    /// remains applied independently of these raw timestamps. On error, leaves
+    /// the entire grid unchanged. Does not update a separate PQT2 extended grid.
+    pub fn set_static_bpm(&mut self, bpm: f64, first_beat_ms: u32, end_ms: u32) -> Result<()> {
+        if !bpm.is_finite() || !(1.0..=300.0).contains(&bpm) {
+            return Err(AnlzError::InvalidSectionValue(
+                "static grid BPM must be finite and in 1.0..=300.0",
+            ));
+        }
+        if end_ms < first_beat_ms {
+            return Err(AnlzError::InvalidSectionValue(
+                "static grid end must not precede its first beat",
+            ));
+        }
+        let tempo = (bpm * 100.).round() as u16;
+        // In centi-BPM, one beat lasts 6,000,000 / tempo milliseconds.
+        // Integer arithmetic makes endpoint selection and long grids drift-free.
+        let count = u64::from(end_ms - first_beat_ms) * u64::from(tempo) / 6_000_000 + 1;
+        let mut beats = Vec::new();
+        beats
+            .try_reserve_exact(count as usize)
+            .map_err(|_| AnlzError::InvalidSectionValue("cannot allocate static beat grid"))?;
+        for i in 0..count {
+            let elapsed_ms = (i * 6_000_000 + u64::from(tempo) / 2) / u64::from(tempo);
+            beats.push(Beat {
+                beat_number: (i % 4 + 1) as u16,
+                tempo,
+                time: first_beat_ms + elapsed_ms as u32,
+            });
+        }
+        self.beats = beats;
+        Ok(())
+    }
+
     /// Signed millisecond correction applied independently of stored beat times.
     pub fn grid_offset(&self) -> i16 {
         self.header_flags as u16 as i16

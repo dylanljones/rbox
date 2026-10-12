@@ -127,6 +127,34 @@ impl JsBeatGrid {
     }
 }
 
+/// Create a fixed 4/4 grid at 1..=300 BPM. Times are raw integer milliseconds;
+/// endMs is inclusive. Apply the returned snapshot with Anlz.setBeatGrid.
+#[napi]
+pub fn new_static_beat_grid(bpm: f64, first_beat_ms: f64, end_ms: f64) -> Result<JsBeatGrid> {
+    let first = read_number(first_beat_ms, 0., u32::MAX as f64, "firstBeatMs")? as u32;
+    let end = read_number(end_ms, 0., u32::MAX as f64, "endMs")? as u32;
+    let grid = BeatGrid::new_static_bpm(bpm, first, end).map_err(|e| invalid(&e.to_string()))?;
+    Ok((&grid).into())
+}
+
+/// Return a copy with fixed-tempo beats, preserving flags and grid correction.
+/// The input object is unchanged. Apply the result with Anlz.setBeatGrid.
+/// BPM is 1..=300; raw millisecond endMs is inclusive. PQT2 is not updated.
+#[napi]
+pub fn set_static_beat_grid(
+    grid: JsBeatGrid,
+    bpm: f64,
+    first_beat_ms: f64,
+    end_ms: f64,
+) -> Result<JsBeatGrid> {
+    let first = read_number(first_beat_ms, 0., u32::MAX as f64, "firstBeatMs")? as u32;
+    let end = read_number(end_ms, 0., u32::MAX as f64, "endMs")? as u32;
+    let mut grid = grid.to_core()?;
+    grid.set_static_bpm(bpm, first, end)
+        .map_err(|e| invalid(&e.to_string()))?;
+    Ok((&grid).into())
+}
+
 /// Editable snapshot; changes take effect only through an Anlz setter.
 #[napi(object, js_name = "ExtendedBeatGrid")]
 pub struct JsExtendedBeatGrid {

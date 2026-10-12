@@ -234,3 +234,29 @@ def test_typed_setters_and_removers(fixture_copy, tmp_path, extension, version):
         while getattr(anlz, "remove_" + name)():
             pass
         assert not getattr(anlz, "remove_" + name)()
+
+
+def test_static_beat_grid_helpers():
+    grid = BeatGrid.new_static_bpm(120.0, 100, 2100)
+    assert [b.time for b in grid.beats] == [100, 600, 1100, 1600, 2100]
+    assert [b.beat_number for b in grid.beats] == [1, 2, 3, 4, 1]
+    assert all(b.tempo == 12000 for b in grid.beats)
+    grid.header_flags = 0xABCDFF83
+    grid.set_static_bpm(100.0, 200, 1400)
+    assert grid.header_flags == 0xABCDFF83
+    assert [b.time for b in grid.beats] == [200, 800, 1400]
+    for bpm in (float("nan"), float("inf"), 0.999, 300.001):
+        with pytest.raises(AnlzError):
+            BeatGrid.new_static_bpm(bpm, 0, 1000)
+        with pytest.raises(AnlzError):
+            grid.set_static_bpm(bpm, 0, 1000)
+        assert [b.time for b in grid.beats] == [200, 800, 1400]
+        assert grid.header_flags == 0xABCDFF83
+    for bpm in (1.0, 300.0):
+        assert BeatGrid.new_static_bpm(bpm, 0, 1000).beats[0].tempo == int(bpm * 100)
+    with pytest.raises(AnlzError):
+        grid.set_static_bpm(120.0, 1001, 1000)
+    with pytest.raises(OverflowError):
+        BeatGrid.new_static_bpm(120.0, -1, 1000)
+    with pytest.raises(TypeError):
+        BeatGrid.new_static_bpm(120.0, 0.5, 1000)

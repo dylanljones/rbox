@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! Typed ANLZ snapshots and explicit editing methods for Python.
+
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 use rbox::anlz::sections::*;
@@ -100,6 +102,30 @@ pub struct PyBeatGrid {
 
 #[pymethods]
 impl PyBeatGrid {
+    /// Create a fixed 4/4 grid at 1..=300 BPM. Timestamps are raw milliseconds;
+    /// end_ms is inclusive. Apply the snapshot with Anlz.set_beat_grid.
+    #[staticmethod]
+    fn new_static_bpm(py: Python, bpm: f64, first_beat_ms: u32, end_ms: u32) -> PyResult<Self> {
+        let grid = BeatGrid::new_static_bpm(bpm, first_beat_ms, end_ms).map_err(anlz_error)?;
+        (&grid).into_py(py)
+    }
+
+    /// Replace beats, preserving flags and correction. Errors leave this snapshot
+    /// unchanged. Apply with Anlz.set_beat_grid; PQT2 is not updated implicitly.
+    fn set_static_bpm(
+        &mut self,
+        py: Python,
+        bpm: f64,
+        first_beat_ms: u32,
+        end_ms: u32,
+    ) -> PyResult<()> {
+        let mut grid = self.to_core(py)?;
+        grid.set_static_bpm(bpm, first_beat_ms, end_ms)
+            .map_err(anlz_error)?;
+        *self = (&grid).into_py(py)?;
+        Ok(())
+    }
+
     #[new]
     #[allow(clippy::too_many_arguments)]
     fn new(py: Python, beats: Vec<Py<PyBeat>>, header_flags: u32) -> PyResult<Self> {

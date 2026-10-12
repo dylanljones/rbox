@@ -3859,6 +3859,9 @@ class BeatGrid:
     beats: List[Beat]
     header_flags: int
     def __init__(self, beats: List[Beat], header_flags: int) -> None: ...
+    @staticmethod
+    def new_static_bpm(bpm: float, first_beat_ms: int, end_ms: int) -> BeatGrid: ...
+    def set_static_bpm(self, bpm: float, first_beat_ms: int, end_ms: int) -> None: ...
 
 class ExtendedBeatGrid:
     first_beat: Beat

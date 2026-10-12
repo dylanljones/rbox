@@ -4738,6 +4738,12 @@ export declare const enum NeedleLock {
   Lock = 'Lock'
 }
 
+/**
+ * Create a fixed 4/4 grid at 1..=300 BPM. Times are raw integer milliseconds;
+ * endMs is inclusive. Apply the returned snapshot with Anlz.setBeatGrid.
+ */
+export declare function newStaticBeatGrid(bpm: number, firstBeatMs: number, endMs: number): BeatGrid
+
 export declare const enum OnAirDisplay {
   Off = 'Off',
   On = 'On'
@@ -4839,6 +4845,13 @@ export interface SeekPoint {
   offset: bigint
   frameSamples: number
 }
+
+/**
+ * Return a copy with fixed-tempo beats, preserving flags and grid correction.
+ * The input object is unchanged. Apply the result with Anlz.setBeatGrid.
+ * BPM is 1..=300; raw millisecond endMs is inclusive. PQT2 is not updated.
+ */
+export declare function setStaticBeatGrid(grid: BeatGrid, bpm: number, firstBeatMs: number, endMs: number): BeatGrid
 
 export declare const enum SlipFlashing {
   Off = 'Off',

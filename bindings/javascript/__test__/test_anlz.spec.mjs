@@ -3,7 +3,7 @@
 
 import test from 'ava'
 import fs from 'node:fs'
-import { Anlz } from '../index.js'
+import { Anlz, newStaticBeatGrid, setStaticBeatGrid } from '../index.js'
 import { cleanupFixtures, fixtureCopy, temporaryPath } from './helpers/fixtures.mjs'
 
 
@@ -188,4 +188,28 @@ test('ANLZ rejects invalid edits without changing the handler', t => {
         t.is(anlz.sectionCount(), 1)
         t.is(anlz.getWaveformPreview().data[0].height, 1)
     }
+})
+
+
+test('static beat grid helpers validate and preserve snapshot flags', t => {
+    const grid = newStaticBeatGrid(120, 100, 2100)
+    t.deepEqual(grid.beats.map(b => b.time), [100, 600, 1100, 1600, 2100])
+    t.deepEqual(grid.beats.map(b => b.beatNumber), [1, 2, 3, 4, 1])
+    t.true(grid.beats.every(b => b.tempo === 12000))
+    grid.headerFlags = 0xABCDFF83
+    const edited = setStaticBeatGrid(grid, 100, 200, 1400)
+    t.is(edited.headerFlags, grid.headerFlags)
+    t.deepEqual(edited.beats.map(b => b.time), [200, 800, 1400])
+    t.deepEqual(grid.beats.map(b => b.time), [100, 600, 1100, 1600, 2100])
+    for (const bpm of [NaN, Infinity, 0.999, 300.001]) {
+        t.throws(() => newStaticBeatGrid(bpm, 0, 1000))
+        t.throws(() => setStaticBeatGrid(grid, bpm, 0, 1000))
+    }
+    for (const bpm of [1, 300]) t.is(newStaticBeatGrid(bpm, 0, 1000).beats[0].tempo, bpm * 100)
+    for (const time of [-1, 0.5, NaN, Infinity, 2 ** 32]) {
+        t.throws(() => newStaticBeatGrid(120, time, 1000))
+        t.throws(() => setStaticBeatGrid(grid, 120, 0, time))
+    }
+    t.throws(() => newStaticBeatGrid(120, 1001, 1000))
+    t.is(grid.headerFlags, 0xABCDFF83)
 })
