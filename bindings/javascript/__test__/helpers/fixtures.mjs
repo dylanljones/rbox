@@ -47,8 +47,14 @@ export async function cleanupFixtures(t) {
     }
 }
 
-export function fixtureCopy(t, name) {
-    const source = fixtures[name]
+export function fixtureCopy(t, name, version = 6) {
+    let source = fixtures[name]
+    if (version !== 6) {
+        if (version !== 7 || !['DAT', 'EXT', '2EX'].includes(name)) {
+            throw new Error('Version override is only supported for RB7 ANLZ fixtures')
+        }
+        source = path.join(root, 'RBv7', 'demo', 'export', 'PIONEER', 'USBANLZ', 'P016', '0000875E', path.basename(source))
+    }
     const destination = temporaryPath(t, path.basename(source))
     fs.copyFileSync(source, destination)
     return destination

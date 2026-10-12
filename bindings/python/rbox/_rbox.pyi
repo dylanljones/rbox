@@ -5,7 +5,9 @@
 
 import enum
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+
+from .anlz import AnlzData, AnlzSection
 
 class Error(Exception):
     """The base class of the other exceptions in this module.
@@ -3841,23 +3843,41 @@ class PyOneLibrary:
         """Deletes a record from the `sort` table by its primary key `id`."""
         ...
 
-# ---- ANLZ  ----------------------------------------------------------------------------------------
+# ---- ANLZ snapshots and handlers ---------------------------------------------------------------
 
 class Beat:
     beat_number: int
     tempo: int
     time: int
+    def __init__(self, beat_number: int, tempo: int, time: int) -> None: ...
 
 class ExtBeat:
-    beat_number: int
+    microseconds: int
+    def __init__(self, microseconds: int) -> None: ...
 
 class BeatGrid:
     beats: List[Beat]
+    header_flags: int
+    def __init__(self, beats: List[Beat], header_flags: int) -> None: ...
 
 class ExtendedBeatGrid:
-    version: int
-    bpm: List[Beat]
+    first_beat: Beat
+    last_beat: Beat
+    offset_ms: int
+    offset_flags: int
+    checksum: int
     beats: List[ExtBeat]
+    version: int
+    def __init__(
+        self,
+        first_beat: Beat,
+        last_beat: Beat,
+        offset_ms: int,
+        offset_flags: int,
+        checksum: int,
+        beats: List[ExtBeat],
+        version: int,
+    ) -> None: ...
 
 class AnlzCue:
     hot_cue: int
@@ -3867,6 +3887,26 @@ class AnlzCue:
     cue_type: int
     time: int
     loop_time: int
+    header_size: int
+    u4: int
+    u5: int
+    u6: int
+    u7: int
+    def __init__(
+        self,
+        hot_cue: int,
+        status: int,
+        order_first: int,
+        order_last: int,
+        cue_type: int,
+        time: int,
+        loop_time: int,
+        header_size: int,
+        u4: int,
+        u5: int,
+        u6: int,
+        u7: int,
+    ) -> None: ...
 
 class ExtendedCue:
     hot_cue: int
@@ -3881,63 +3921,117 @@ class ExtendedCue:
     hot_cue_color_red: int
     hot_cue_color_green: int
     hot_cue_color_blue: int
+    header_size: int
+    u3: int
+    u4: int
+    u5: int
+    comment_trailing_nuls: int
+    trailing_data: bytes
+    def __init__(
+        self,
+        hot_cue: int,
+        cue_type: int,
+        time: int,
+        loop_time: int,
+        color: int,
+        loop_numerator: int,
+        loop_denominator: int,
+        comment: str,
+        hot_cue_color_index: int,
+        hot_cue_color_red: int,
+        hot_cue_color_green: int,
+        hot_cue_color_blue: int,
+        header_size: int,
+        u3: int,
+        u4: int,
+        u5: int,
+        comment_trailing_nuls: int,
+        trailing_data: Union[bytes, List[int]],
+    ) -> None: ...
 
 class CueList:
     list_type: int
     cues: List[AnlzCue]
+    memory_count: int
+    def __init__(self, list_type: int, cues: List[AnlzCue], memory_count: int) -> None: ...
 
 class ExtendedCueList:
     list_type: int
     cues: List[ExtendedCue]
+    def __init__(self, list_type: int, cues: List[ExtendedCue]) -> None: ...
 
 class TinyWaveformColumn:
-    unused: int
     height: int
+    unused: int
+    def __init__(self, height: int, unused: int) -> None: ...
 
 class TinyWaveformPreview:
     data: List[TinyWaveformColumn]
+    def __init__(self, data: List[TinyWaveformColumn]) -> None: ...
 
 class WaveformColumn:
     height: int
     whiteness: int
+    def __init__(self, height: int, whiteness: int) -> None: ...
 
 class WaveformPreview:
     data: List[WaveformColumn]
+    def __init__(self, data: List[WaveformColumn]) -> None: ...
 
 class WaveformDetail:
     data: List[WaveformColumn]
+    def __init__(self, data: List[WaveformColumn]) -> None: ...
 
 class WaveformColorPreviewColumn:
     energy_bottom_half_freq: int
     energy_bottom_third_freq: int
     energy_mid_third_freq: int
     energy_top_third_freq: int
+    u1: int
+    u2: int
+    def __init__(
+        self,
+        energy_bottom_half_freq: int,
+        energy_bottom_third_freq: int,
+        energy_mid_third_freq: int,
+        energy_top_third_freq: int,
+        u1: int,
+        u2: int,
+    ) -> None: ...
 
 class WaveformColorPreview:
     data: List[WaveformColorPreviewColumn]
+    def __init__(self, data: List[WaveformColorPreviewColumn]) -> None: ...
 
 class WaveformColorDetailColumn:
-    low_bits: int
-    fine_height_substep: int
-    full_height: int
     red: int
     green: int
     blue: int
     height: int
+    low_bits: int
+    fine_height_substep: int
+    full_height: int
+    def __init__(self, red: int, green: int, blue: int, height: int, low_bits: int) -> None: ...
 
 class WaveformColorDetail:
     data: List[WaveformColorDetailColumn]
+    unknown: int
+    def __init__(self, data: List[WaveformColorDetailColumn], unknown: int) -> None: ...
 
 class Waveform3BandColumn:
     mid: int
     high: int
     low: int
+    def __init__(self, mid: int, high: int, low: int) -> None: ...
 
 class Waveform3BandPreview:
     data: List[Waveform3BandColumn]
+    def __init__(self, data: List[Waveform3BandColumn]) -> None: ...
 
 class Waveform3BandDetail:
     data: List[Waveform3BandColumn]
+    unknown: int
+    def __init__(self, data: List[Waveform3BandColumn], unknown: int) -> None: ...
 
 class Phrase:
     index: int
@@ -3952,44 +4046,95 @@ class Phrase:
     k3: int
     fill: int
     beat_fill: int
+    u1: int
+    u2: int
+    u3: int
+    u4: int
+    u5: int
+    def __init__(
+        self,
+        index: int,
+        beat: int,
+        kind: int,
+        k1: int,
+        k2: int,
+        b: int,
+        beat2: int,
+        beat3: int,
+        beat4: int,
+        k3: int,
+        fill: int,
+        beat_fill: int,
+        u1: int,
+        u2: int,
+        u3: int,
+        u4: int,
+        u5: int,
+    ) -> None: ...
 
 class SongStructureData:
     mood: int
     end_beat: int
     bank: int
     phrases: List[Phrase]
+    u1: int
+    u2: int
+    u3: int
+    u4: int
+    def __init__(
+        self, mood: int, end_beat: int, bank: int, phrases: List[Phrase], u1: int, u2: int, u3: int, u4: int
+    ) -> None: ...
 
 class VBR:
     u1: int
     index: List[int]
     u2: int
+    def __init__(self, u1: int, index: List[int], u2: int) -> None: ...
 
 class SeekPoint:
     sample: int
     offset: int
     frame_samples: int
+    def __init__(self, sample: int, offset: int, frame_samples: int) -> None: ...
 
 class SeekIndex:
     u1: int
     total_samples: int
     entries: List[SeekPoint]
+    def __init__(self, u1: int, total_samples: int, entries: List[SeekPoint]) -> None: ...
 
 class Waveform3BandCalibration:
     low_gain: int
     mid_gain: int
     high_gain: int
+    def __init__(self, low_gain: int, mid_gain: int, high_gain: int) -> None: ...
 
 class VocalDetection:
     u1: int
     u2: int
-    confidence: List[int]
+    confidence: bytes
+    def __init__(self, u1: int, u2: int, confidence: Union[bytes, List[int]]) -> None: ...
+
+class SongStructure:
+    version: int
+    is_encrypted: bool
+    data: SongStructureData
+    def __init__(self, version: int, is_encrypted: bool, data: SongStructureData) -> None: ...
+
+class UnknownSection:
+    code: bytes
+    header_data: bytes
+    content_data: bytes
+    def __init__(
+        self, code: Union[bytes, List[int]], header_data: Union[bytes, List[int]], content_data: Union[bytes, List[int]]
+    ) -> None: ...
 
 class PyAnlz:
     def get_vbr(self) -> Optional[VBR]: ...
     def get_seek_index(self) -> Optional[SeekIndex]: ...
     def get_waveform_3band_calibration(self) -> Optional[Waveform3BandCalibration]: ...
     def get_vocal_detection(self) -> Optional[VocalDetection]: ...
-    def __init__(self, path: str) -> "PyAnlz": ...
+    def __init__(self, path: str) -> None: ...
     def dump_copy(self, path: str) -> None: ...
     def dump(self) -> None: ...
     def contains(self, tag: str) -> bool: ...
@@ -4002,7 +4147,7 @@ class PyAnlz:
     def get_extended_memory_cues(self) -> Optional[ExtendedCueList]: ...
     def get_path(self) -> Optional[str]: ...
     def set_path(self, path: str) -> None: ...
-    def get_vbr_data(self) -> Optional[List[int]]: ...
+    def get_vbr_data(self) -> Optional[bytes]: ...
     def get_tiny_waveform_preview(self) -> Optional[TinyWaveformPreview]: ...
     def get_waveform_preview(self) -> Optional[WaveformPreview]: ...
     def get_waveform_detail(self) -> Optional[WaveformDetail]: ...
@@ -4011,6 +4156,70 @@ class PyAnlz:
     def get_waveform_3band_preview(self) -> Optional[Waveform3BandPreview]: ...
     def get_waveform_3band_detail(self) -> Optional[Waveform3BandDetail]: ...
     def get_song_structure(self) -> Optional[SongStructureData]: ...
+    @staticmethod
+    def new_dat(path: str) -> "PyAnlz": ...
+    @staticmethod
+    def new_ext(path: str) -> "PyAnlz": ...
+    @staticmethod
+    def new_2ex(path: str) -> "PyAnlz": ...
+    @staticmethod
+    def load(path: str) -> "PyAnlz": ...
+    def section_count(self) -> int: ...
+    def get_section(self, index: int) -> Optional[AnlzSection]: ...
+    def get_section_by_tag(self, tag: str) -> Optional[AnlzSection]: ...
+    def get_sections_by_tag(self, tag: str) -> List[AnlzSection]: ...
+    def get_data(self) -> AnlzData: ...
+    def into_data(self) -> AnlzData: ...
+    def set_section(self, section: AnlzSection) -> None: ...
+    def set_section_at(self, index: int, section: AnlzSection) -> None: ...
+    def insert_section(self, index: int, section: AnlzSection) -> None: ...
+    def push_section(self, section: AnlzSection) -> None: ...
+    def remove_section(self, index: int) -> None: ...
+    def remove_section_by_tag(self, tag: str) -> bool: ...
+    def remove_sections_by_tag(self, tag: str) -> int: ...
+    def remove_path(self) -> bool: ...
+    def get_song_structure_section(self) -> Optional[SongStructure]: ...
+    def set_song_structure_data(self, value: SongStructureData) -> None: ...
+    def set_beat_grid(self, value: BeatGrid) -> None: ...
+    def remove_beat_grid(self) -> bool: ...
+    def set_extended_beat_grid(self, value: ExtendedBeatGrid) -> None: ...
+    def remove_extended_beat_grid(self) -> bool: ...
+    def set_cue_list(self, value: CueList) -> None: ...
+    def remove_cue_list(self) -> bool: ...
+    def set_extended_cue_list(self, value: ExtendedCueList) -> None: ...
+    def remove_extended_cue_list(self) -> bool: ...
+    def set_vbr(self, value: VBR) -> None: ...
+    def remove_vbr(self) -> bool: ...
+    def set_seek_index(self, value: SeekIndex) -> None: ...
+    def remove_seek_index(self) -> bool: ...
+    def set_tiny_waveform_preview(self, value: TinyWaveformPreview) -> None: ...
+    def remove_tiny_waveform_preview(self) -> bool: ...
+    def set_waveform_preview(self, value: WaveformPreview) -> None: ...
+    def remove_waveform_preview(self) -> bool: ...
+    def set_waveform_detail(self, value: WaveformDetail) -> None: ...
+    def remove_waveform_detail(self) -> bool: ...
+    def set_waveform_color_preview(self, value: WaveformColorPreview) -> None: ...
+    def remove_waveform_color_preview(self) -> bool: ...
+    def set_waveform_color_detail(self, value: WaveformColorDetail) -> None: ...
+    def remove_waveform_color_detail(self) -> bool: ...
+    def set_waveform_3band_preview(self, value: Waveform3BandPreview) -> None: ...
+    def remove_waveform_3band_preview(self) -> bool: ...
+    def set_waveform_3band_detail(self, value: Waveform3BandDetail) -> None: ...
+    def remove_waveform_3band_detail(self) -> bool: ...
+    def set_waveform_3band_calibration(self, value: Waveform3BandCalibration) -> None: ...
+    def remove_waveform_3band_calibration(self) -> bool: ...
+    def set_song_structure(self, value: SongStructure) -> None: ...
+    def remove_song_structure(self) -> bool: ...
+    def set_vocal_detection(self, value: VocalDetection) -> None: ...
+    def remove_vocal_detection(self) -> bool: ...
+    def set_hot_cues(self, value: CueList) -> None: ...
+    def remove_hot_cues(self) -> bool: ...
+    def set_memory_cues(self, value: CueList) -> None: ...
+    def remove_memory_cues(self) -> bool: ...
+    def set_extended_hot_cues(self, value: ExtendedCueList) -> None: ...
+    def remove_extended_hot_cues(self) -> bool: ...
+    def set_extended_memory_cues(self, value: ExtendedCueList) -> None: ...
+    def remove_extended_memory_cues(self) -> bool: ...
 
 # ---- Settings  ------------------------------------------------------------------------------------
 

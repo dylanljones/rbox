@@ -3460,10 +3460,98 @@ export declare const enum MyTagType {
   Folder = 1
 }
 export declare class Anlz {
-  getVbr(): JsVBR | null
-  getSeekIndex(): JsSeekIndex | null
-  getWaveform3BandCalibration(): JsWaveform3BandCalibration | null
-  getVocalDetection(): JsVocalDetection | null
+  /** Owned snapshot equivalent of Rust's into_data; the binding handler remains usable. */
+  intoData(): AnlzData
+  /** Include version and encoding settings when editing song structure. */
+  getSongStructureSection(): SongStructure | null
+  /** Update phrase data while retaining the existing version and encoding. */
+  setSongStructureData(value: SongStructureData): void
+  /** Create an empty file in memory; dump writes it. */
+  static newDat(path: string): Anlz
+  /** Create an empty file in memory; dump writes it. */
+  static newExt(path: string): Anlz
+  /** Create an empty file in memory; dump writes it. */
+  static new2ex(path: string): Anlz
+  static load(path: string): Anlz
+  sectionCount(): number
+  contains(tag: string): boolean
+  getSection(index: number): AnlzSection | null
+  getSectionByTag(tag: string): AnlzSection | null
+  getSectionsByTag(tag: string): Array<AnlzSection>
+  /** Read the complete file without consuming or modifying the handler. */
+  getData(): AnlzData
+  insertSection(index: number, section: AnlzSection): void
+  setSectionAt(index: number, section: AnlzSection): void
+  pushSection(section: AnlzSection): void
+  setSection(section: AnlzSection): void
+  removeSection(index: number): void
+  removeSectionByTag(tag: string): boolean
+  removeSectionsByTag(tag: string): number
+  /** Replace or insert this section using Rust's section ordering. */
+  setBeatGrid(value: BeatGrid): void
+  removeBeatGrid(): boolean
+  /** Replace or insert this section using Rust's section ordering. */
+  setExtendedBeatGrid(value: ExtendedBeatGrid): void
+  removeExtendedBeatGrid(): boolean
+  /** Replace or insert this section using Rust's section ordering. */
+  setCueList(value: CueList): void
+  removeCueList(): boolean
+  /** Replace or insert this section using Rust's section ordering. */
+  setExtendedCueList(value: ExtendedCueList): void
+  removeExtendedCueList(): boolean
+  /** Replace or insert this section using Rust's section ordering. */
+  setVbr(value: VBR): void
+  removeVbr(): boolean
+  /** Replace or insert this section using Rust's section ordering. */
+  setSeekIndex(value: SeekIndex): void
+  removeSeekIndex(): boolean
+  /** Replace or insert this section using Rust's section ordering. */
+  setTinyWaveformPreview(value: TinyWaveformPreview): void
+  removeTinyWaveformPreview(): boolean
+  /** Replace or insert this section using Rust's section ordering. */
+  setWaveformPreview(value: WaveformPreview): void
+  removeWaveformPreview(): boolean
+  /** Replace or insert this section using Rust's section ordering. */
+  setWaveformDetail(value: WaveformDetail): void
+  removeWaveformDetail(): boolean
+  /** Replace or insert this section using Rust's section ordering. */
+  setWaveformColorPreview(value: WaveformColorPreview): void
+  removeWaveformColorPreview(): boolean
+  /** Replace or insert this section using Rust's section ordering. */
+  setWaveformColorDetail(value: WaveformColorDetail): void
+  removeWaveformColorDetail(): boolean
+  /** Replace or insert this section using Rust's section ordering. */
+  setWaveform3BandPreview(value: Waveform3BandPreview): void
+  removeWaveform3BandPreview(): boolean
+  /** Replace or insert this section using Rust's section ordering. */
+  setWaveform3BandDetail(value: Waveform3BandDetail): void
+  removeWaveform3BandDetail(): boolean
+  /** Replace or insert this section using Rust's section ordering. */
+  setWaveform3BandCalibration(value: Waveform3BandCalibration): void
+  removeWaveform3BandCalibration(): boolean
+  /** Replace or insert this section using Rust's section ordering. */
+  setSongStructure(value: SongStructure): void
+  removeSongStructure(): boolean
+  /** Replace or insert this section using Rust's section ordering. */
+  setVocalDetection(value: VocalDetection): void
+  removeVocalDetection(): boolean
+  /** Replace or insert this section using Rust's section ordering. */
+  setHotCues(value: CueList): void
+  removeHotCues(): boolean
+  /** Replace or insert this section using Rust's section ordering. */
+  setMemoryCues(value: CueList): void
+  removeMemoryCues(): boolean
+  /** Replace or insert this section using Rust's section ordering. */
+  setExtendedHotCues(value: ExtendedCueList): void
+  removeExtendedHotCues(): boolean
+  /** Replace or insert this section using Rust's section ordering. */
+  setExtendedMemoryCues(value: ExtendedCueList): void
+  removeExtendedMemoryCues(): boolean
+  removePath(): boolean
+  getVbr(): VBR | null
+  getSeekIndex(): SeekIndex | null
+  getWaveform3BandCalibration(): Waveform3BandCalibration | null
+  getVocalDetection(): VocalDetection | null
   constructor(path: string)
   dumpCopy(path: string): void
   dump(): void
@@ -3474,7 +3562,7 @@ export declare class Anlz {
   getMemoryCues(): CueList | null
   getExtendedHotCues(): ExtendedCueList | null
   getExtendedMemoryCues(): ExtendedCueList | null
-  getPath(): string
+  getPath(): string | null
   setPath(path: string): void
   getVbrData(): Array<number> | null
   getTinyWaveformPreview(): TinyWaveformPreview | null
@@ -4272,6 +4360,7 @@ export declare class Setting {
 }
 export type JsSetting = Setting
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface AnlzCue {
   hotCue: number
   status: CueStatus
@@ -4280,6 +4369,25 @@ export interface AnlzCue {
   cueType: CueType
   time: number
   loopTime: number
+  headerSize: number
+  u4: number
+  u5: number
+  u6: number
+  u7: number
+}
+
+/** Complete eager snapshot. Calling getData explicitly loads all sections. */
+export interface AnlzData {
+  header: AnlzHeader
+  headerData: Array<number>
+  sections: Array<AnlzSection>
+}
+
+/** Computed PMAI header information in a complete snapshot. */
+export interface AnlzHeader {
+  code: Array<number>
+  size: number
+  totalSize: number
 }
 
 export interface AnlzPaths {
@@ -4287,6 +4395,27 @@ export interface AnlzPaths {
   ext?: string
   ex2?: string
 }
+
+/** Tagged, editable snapshot of one section. Unknown tags retain their original code and bytes. */
+export type AnlzSection =
+  | { tag: 'PQTZ', content: BeatGrid }
+  | { tag: 'PQT2', content: ExtendedBeatGrid }
+  | { tag: 'PCOB', content: CueList }
+  | { tag: 'PCO2', content: ExtendedCueList }
+  | { tag: 'PPTH', content: string }
+  | { tag: 'PVBR', content: VBR }
+  | { tag: 'PVB2', content: SeekIndex }
+  | { tag: 'PWV2', content: TinyWaveformPreview }
+  | { tag: 'PWAV', content: WaveformPreview }
+  | { tag: 'PWV3', content: WaveformDetail }
+  | { tag: 'PWV4', content: WaveformColorPreview }
+  | { tag: 'PWV5', content: WaveformColorDetail }
+  | { tag: 'PWV6', content: Waveform3BandPreview }
+  | { tag: 'PWV7', content: Waveform3BandDetail }
+  | { tag: 'PWVC', content: Waveform3BandCalibration }
+  | { tag: 'PSSI', content: SongStructure }
+  | { tag: 'PVDI', content: VocalDetection }
+  | { tag: 'Unknown', content: UnknownSection }
 
 export declare const enum AutoCue {
   Off = 'Off',
@@ -4317,6 +4446,7 @@ export declare const enum Bank {
   Club2 = 8
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface Beat {
   beatNumber: number
   tempo: number
@@ -4328,8 +4458,10 @@ export declare const enum BeatFXQuantize {
   On = 'On'
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface BeatGrid {
   beats: Array<Beat>
+  headerFlags: number
 }
 
 export declare const enum BeatJumpBeatValue {
@@ -4361,9 +4493,11 @@ export declare const enum CrossfaderCurve {
   FastCut = 'FastCut'
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface CueList {
   listType: CueListType
   cues: Array<AnlzCue>
+  memoryCount: number
 }
 
 export declare const enum CueListType {
@@ -4412,16 +4546,23 @@ export declare const enum EjectLock {
   Lock = 'Lock'
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface ExtBeat {
-  beatNumber: number
+  microseconds: number
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface ExtendedBeatGrid {
-  bpm: Array<Beat>
+  firstBeat: Beat
+  lastBeat: Beat
+  offsetMs: number
+  offsetFlags: number
+  checksum: number
   beats: Array<ExtBeat>
   version: number
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface ExtendedCue {
   hotCue: number
   cueType: CueType
@@ -4435,8 +4576,15 @@ export interface ExtendedCue {
   hotCueColorRed: number
   hotCueColorGreen: number
   hotCueColorBlue: number
+  headerSize: number
+  u3: number
+  u4: number
+  u5: number
+  commentTrailingNuls: number
+  trailingData: Array<number>
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface ExtendedCueList {
   listType: CueListType
   cues: Array<ExtendedCue>
@@ -4614,6 +4762,7 @@ export declare const enum PhaseMeter {
   Type2 = 'Type2'
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface Phrase {
   index: number
   beat: number
@@ -4627,6 +4776,11 @@ export interface Phrase {
   k3: number
   fill: number
   beatFill: number
+  u1: number
+  u2: number
+  u3: number
+  u4: number
+  u5: number
 }
 
 export declare const enum PlaylistKeyType {
@@ -4672,12 +4826,14 @@ export declare function rekordboxAgentAppDir(): string
 
 export declare function rekordboxAppDir(): string
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface SeekIndex {
   u1: number
   totalSamples: bigint
   entries: Array<SeekPoint>
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface SeekPoint {
   sample: bigint
   offset: bigint
@@ -4689,11 +4845,23 @@ export declare const enum SlipFlashing {
   On = 'On'
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
+export interface SongStructure {
+  version: number
+  isEncrypted: boolean
+  data: SongStructureData
+}
+
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface SongStructureData {
   mood: Mood
   endBeat: number
   bank: Bank
   phrases: Array<Phrase>
+  u1: number
+  u2: number
+  u3: number
+  u4: number
 }
 
 export declare const enum Sync {
@@ -4732,11 +4900,13 @@ export declare const enum TimeMode {
   Remain = 'Remain'
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface TinyWaveformColumn {
   height: number
   unused: number
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface TinyWaveformPreview {
   data: Array<TinyWaveformColumn>
 }
@@ -4774,6 +4944,14 @@ export interface Track {
   positionMarks?: Array<PositionMark>
 }
 
+/** Opaque section bytes, including the exact four-byte identifier. */
+export interface UnknownSection {
+  code: Array<number>
+  headerData: Array<number>
+  contentData: Array<number>
+}
+
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface VBR {
   u1: number
   index: Array<number>
@@ -4786,6 +4964,7 @@ export declare const enum VinylSpeedAdjust {
   Release = 'Release'
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface VocalDetection {
   u1: number
   u2: number
@@ -4797,22 +4976,27 @@ export declare const enum Waveform {
   PhaseMeter = 'PhaseMeter'
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface Waveform3BandCalibration {
   lowGain: number
   midGain: number
   highGain: number
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface Waveform3BandColumn {
   mid: number
   high: number
   low: number
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface Waveform3BandDetail {
   data: Array<Waveform3BandColumn>
+  unknown: number
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface Waveform3BandPreview {
   data: Array<Waveform3BandColumn>
 }
@@ -4823,31 +5007,39 @@ export declare const enum WaveformColor {
   TriBand = 'TriBand'
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface WaveformColorDetail {
   data: Array<WaveformColorDetailColumn>
+  unknown: number
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface WaveformColorDetailColumn {
   red: number
   green: number
   blue: number
   height: number
   lowBits: number
-  fineHeightSubstep: number
-  fullHeight: number
+  fineHeightSubstep?: number
+  fullHeight?: number
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface WaveformColorPreview {
   data: Array<WaveformColorPreviewColumn>
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface WaveformColorPreviewColumn {
   energyBottomHalfFreq: number
   energyBottomThirdFreq: number
   energyMidThirdFreq: number
   energyTopThirdFreq: number
+  u1: number
+  u2: number
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface WaveformColumn {
   height: number
   whiteness: number
@@ -4858,6 +5050,7 @@ export declare const enum WaveformCurrentPosition {
   Center = 'Center'
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface WaveformDetail {
   data: Array<WaveformColumn>
 }
@@ -4867,6 +5060,7 @@ export declare const enum WaveformDivisions {
   Phrase = 'Phrase'
 }
 
+/** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface WaveformPreview {
   data: Array<WaveformColumn>
 }
@@ -6812,8 +7006,6 @@ export interface NewDjmdArtist {
 export interface NewDjmdContent {
   /** The path of the track file. */
   folderPath: string
-  /** Explicit Rekordbox file type, or `None` to infer it from the path extension. */
-  fileType?: FileType
   /** An optional string representing the title of the track. */
   title?: string
   /** An optional string representing the ID of the associated artist in [`DjmdArtist`]. */
@@ -6834,6 +7026,8 @@ export interface NewDjmdContent {
   bitDepth?: number
   /** An optional string representing comments about the track. */
   commnt?: string
+  /** Explicit Rekordbox file type, or `None` to infer it from the path extension. */
+  fileType?: FileType
   /** An optional integer representing the rating of the track. */
   rating?: number
   /** An optional integer representing the release year of the track. */
@@ -6848,6 +7042,14 @@ export interface NewDjmdContent {
   keyId?: string
   /** An optional string representing the stock date of the track. */
   stockDate?: string
+  /** An optional string representing the ID of the color in [`DjmdColor`]. */
+  colorId?: string
+  /** An optional integer representing the DJ play count of the track. */
+  djPlayCount?: number
+  /** An optional string representing the path to the track's image. */
+  imagePath?: string
+  /** An optional string representing the path to the analysis data. */
+  analysisDataPath?: string
   /** An optional string used for searching the track. */
   searchStr?: string
   /** An optional integer representing the disc number of the track. */
@@ -6862,12 +7064,52 @@ export interface NewDjmdContent {
   releaseDate?: string
   /** An optional string representing the creation date of the track. */
   dateCreated?: string
+  /** An optional integer representing the content link of the track. */
+  contentLink?: number
   /** An optional string representing tags associated with the track. */
   tag?: string
+  /** An optional string representing comments about the delivery. */
+  deliveryComment?: string
   /** An optional string representing the lyricist of the track. */
   lyricist?: string
   /** An optional string representing the ISRC (International Standard Recording Code) of the track. */
   isrc?: string
+  /** An optional integer representing sampler track information. */
+  samplerTrackInfo?: number
+  /** An optional integer representing the sampler play offset. */
+  samplerPlayOffset?: number
+  /** An optional float representing the sampler gain. */
+  samplerGain?: number
+  /** An optional string representing the associated video. */
+  videoAssociate?: string
+  /** An optional integer representing the lyric status of the track. */
+  lyricStatus?: number
+  /** An optional string representing the original folder path of the track. */
+  orgFolderPath?: string
+  /** An optional string for reserved data. */
+  reserved1?: string
+  /** An optional string for reserved data. */
+  reserved2?: string
+  /** An optional string for reserved data. */
+  reserved3?: string
+  /** An optional string for reserved data. */
+  reserved4?: string
+  /** An optional string for extended information. */
+  extInfo?: string
+  /** An optional string representing the ID of the associated device in [`DjmdDevice`]. */
+  deviceId?: string
+  /** An optional string representing the local folder path in Rekordbox. */
+  rbLocalFolderPath?: string
+  /** An optional string representing the source ID. */
+  srcId?: string
+  /** An optional string representing the source title. */
+  srcTitle?: string
+  /** An optional string representing the source artist name. */
+  srcArtistName?: string
+  /** An optional string representing the source album name. */
+  srcAlbumName?: string
+  /** An optional integer representing the source length in milliseconds. */
+  srcLength?: number
 }
 
 /**

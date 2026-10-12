@@ -25,8 +25,11 @@ FIXTURES = {
 def fixture_copy(tmp_path):
     """Copy a fixture before opening it, including readers that create WAL files."""
 
-    def copy(name):
+    def copy(name, version=6):
         source = FIXTURES[name]
+        if version != 6:
+            assert version == 7 and name in ("DAT", "EXT", "2EX")
+            source = TESTDATA / "RBv7/demo/export/PIONEER/USBANLZ/P016/0000875E" / source.name
         destination = tmp_path / source.name
         shutil.copyfile(source, destination)
         return destination

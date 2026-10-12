@@ -167,6 +167,8 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<rbox::one_library::models::Sort>()?;
 
     // Anlz
+    m.add_class::<anlz::PySongStructure>()?;
+    m.add_class::<anlz::PyUnknownSection>()?;
     m.add_class::<anlz::PyVBR>()?;
     m.add_class::<anlz::PySeekPoint>()?;
     m.add_class::<anlz::PySeekIndex>()?;
