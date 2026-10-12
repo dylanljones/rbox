@@ -17,7 +17,13 @@ fn db_error<E: ToString>(e: E) -> PyErr {
 }
 
 #[derive(Clone)]
-#[pyclass(name = "DjmdPlaylistTreeNode", unsendable, get_all, set_all)]
+#[pyclass(
+    from_py_object,
+    name = "DjmdPlaylistTreeNode",
+    unsendable,
+    get_all,
+    set_all
+)]
 pub struct PyDjmdPlaylistTreeNode {
     pub id: String,
     pub uuid: String,

@@ -48,8 +48,8 @@ symphonia         = { version = "0.6", default-features = false, features = ["mp
 
 napi              = { version = "3.5", default-features = false, features = ["napi6", "serde-json", "chrono_date"] }
 napi-derive       = { version = "3.3"}
-pyo3              = { version = "0.27", features = ["serde", "chrono"] }
-pyo3-build-config = { version = "0.27" }
+pyo3              = { version = "0.29.3", features = ["serde", "chrono"] }
+pyo3-build-config = { version = "0.29.3" }
 
 # proc-macro2     = { version = "1.0"  }
 

@@ -46,7 +46,7 @@ use rbox_db::{
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdPlaylist, foreign_key = parent_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
-#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct DjmdPlaylist {
@@ -561,7 +561,7 @@ impl OrderedModel for DjmdPlaylist {
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
-#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct NewDjmdPlaylist {
@@ -688,7 +688,7 @@ impl NewDjmdPlaylist {
 #[diesel(belongs_to(DjmdPlaylist, foreign_key = playlist_id))]
 #[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
-#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct DjmdSongPlaylist {
@@ -977,7 +977,7 @@ impl OrderedModel for DjmdSongPlaylist {
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
-#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct NewDjmdSongPlaylist {

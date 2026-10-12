@@ -30,7 +30,7 @@ use rbox_db::Model;
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
-#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct DjmdActiveCensor {

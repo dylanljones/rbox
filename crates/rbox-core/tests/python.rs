@@ -7,8 +7,6 @@
 use pyo3::prelude::*;
 use rbox_derives::PyMutableMapping;
 
-type PyObject = Py<PyAny>;
-
 #[pyclass]
 #[derive(PyMutableMapping)]
 struct Mapping {

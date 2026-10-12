@@ -25,7 +25,7 @@ use rbox_masterdb::models::DjmdLabel;
 #[diesel(table_name = label)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
-#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Label {
@@ -99,7 +99,7 @@ impl Label {
 #[derive(Debug, Clone, PartialEq, Default, Insertable)]
 #[diesel(table_name = label)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
-#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct NewLabel {

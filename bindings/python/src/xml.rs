@@ -14,7 +14,7 @@ use super::errors::XmlError;
 use super::traits::{FromPy, IntoPy, MutableMapping};
 
 #[derive(Debug, Clone)]
-#[pyclass(name = "Tempo", unsendable, get_all, set_all)]
+#[pyclass(from_py_object, name = "Tempo", unsendable, get_all, set_all)]
 pub struct PyTempo {
     pub inizio: f64,
     pub bpm: f64,
@@ -151,7 +151,7 @@ impl FromPy<PyTempo> for Tempo {
 
 /// Position element for storing position markers like cue points of a track
 #[derive(Clone, Debug)]
-#[pyclass(name = "PositionMark", unsendable, get_all, set_all)]
+#[pyclass(from_py_object, name = "PositionMark", unsendable, get_all, set_all)]
 pub struct PyPositionMark {
     pub name: String,
     pub mark_type: u16,
@@ -786,7 +786,7 @@ impl FromPy<PyTrack> for Track {
 }
 
 #[derive(Clone, Debug)]
-#[pyclass(name = "PlaylistTrack", unsendable, get_all, set_all)]
+#[pyclass(from_py_object, name = "PlaylistTrack", unsendable, get_all, set_all)]
 pub struct PyPlaylistTrack {
     pub key: String,
 }

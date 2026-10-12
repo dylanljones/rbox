@@ -68,7 +68,7 @@ use rbox_db::{load_related, Model, ModelInsert, ModelRelations, ModelUpdate};
 #[diesel(belongs_to(DjmdColor, foreign_key = color_id))]
 #[diesel(belongs_to(DjmdDevice, foreign_key = device_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
-#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct DjmdContent {
@@ -241,7 +241,7 @@ pub struct DjmdContent {
 /// Related records are plain rows without recursive expansion. `None` means an
 /// absent foreign key or a missing target; the content row retains the original key.
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "pyo3", pyclass(get_all))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct DjmdContentView {
     /// Original content row, including its foreign keys.
@@ -597,7 +597,7 @@ impl DjmdContent {
 /// println!("{:?}", new);
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
-#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct NewDjmdContent {

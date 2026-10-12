@@ -34,7 +34,7 @@ use rbox_masterdb::models::DjmdAlbum;
 #[diesel(belongs_to(Artist, foreign_key = artist_id))]
 #[diesel(belongs_to(Image, foreign_key = image_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
-#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Album {
@@ -58,7 +58,7 @@ pub struct Album {
 /// Related rows are not expanded recursively. Missing targets remain `None`;
 /// the original row retains its foreign keys.
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "pyo3", pyclass(get_all))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct AlbumView {
     /// Original album row, including its foreign keys.
@@ -187,7 +187,7 @@ impl Album {
 #[derive(Debug, Clone, PartialEq, Default, Insertable)]
 #[diesel(table_name = album)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
-#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct NewAlbum {

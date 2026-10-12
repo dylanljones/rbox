@@ -48,7 +48,7 @@ macro_rules! diesel_int_enum {
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default, FromSqlRow, AsExpression)]
 #[diesel(sql_type = Integer)]
-#[cfg_attr(feature = "pyo3", pyclass(eq, eq_int))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, eq, eq_int))]
 #[cfg_attr(feature = "napi", napi)]
 pub enum HistoryType {
     #[default]
@@ -74,7 +74,7 @@ diesel_int_enum!(HistoryType);
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default, FromSqlRow, AsExpression)]
 #[diesel(sql_type = Integer)]
-#[cfg_attr(feature = "pyo3", pyclass(eq, eq_int))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, eq, eq_int))]
 #[cfg_attr(feature = "napi", napi)]
 pub enum HotCueBanklistType {
     #[default]
@@ -100,7 +100,7 @@ diesel_int_enum!(HotCueBanklistType);
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default, FromSqlRow, AsExpression)]
 #[diesel(sql_type = Integer)]
-#[cfg_attr(feature = "pyo3", pyclass(eq, eq_int))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, eq, eq_int))]
 #[cfg_attr(feature = "napi", napi)]
 pub enum MyTagType {
     #[default]

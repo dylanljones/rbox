@@ -22,7 +22,10 @@ use pyo3::prelude::*;
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default, FromSqlRow, AsExpression)]
 #[diesel(sql_type = Integer)]
-#[cfg_attr(feature = "pyo3", pyclass(name = "OneLibraryPlaylistType", eq, eq_int))]
+#[cfg_attr(
+    feature = "pyo3",
+    pyclass(from_py_object, name = "OneLibraryPlaylistType", eq, eq_int)
+)]
 #[cfg_attr(feature = "napi", napi(js_name = "OneLibraryPlaylistType"))]
 pub enum PlaylistType {
     #[default]

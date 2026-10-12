@@ -38,7 +38,8 @@ fn is_rekordbox_running() -> PyResult<bool> {
     Ok(rbox::core::is_rekordbox_running())
 }
 
-#[pymodule]
+// Preserve the module's GIL requirement; free-threaded support needs a separate audit.
+#[pymodule(gil_used = true)]
 fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rekordbox_agent_app_dir, m)?)?;
     m.add_function(wrap_pyfunction!(options_json_path, m)?)?;

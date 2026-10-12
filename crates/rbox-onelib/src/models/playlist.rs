@@ -40,7 +40,7 @@ pub type PlaylistTreeNodeRef = Rc<RefCell<PlaylistTreeNode>>;
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(Playlist, foreign_key = parent_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
-#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Playlist {
@@ -338,7 +338,7 @@ impl OrderedModel for Playlist {
 #[derive(Debug, Clone, PartialEq, Default, Insertable)]
 #[diesel(table_name = playlist)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
-#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct NewPlaylist {
@@ -437,7 +437,7 @@ impl NewPlaylist {
 #[diesel(belongs_to(Playlist, foreign_key = playlist_id))]
 #[diesel(belongs_to(Content, foreign_key = content_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
-#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct PlaylistContent {

@@ -11,7 +11,7 @@ use pyo3::prelude::*;
 /// Known Rekordbox file type codes; use raw integers to retain unknown values.
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
-#[cfg_attr(feature = "pyo3", pyclass(eq, eq_int))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, eq, eq_int))]
 #[cfg_attr(feature = "napi", napi)]
 pub enum FileType {
     /// Content that rekordbox could not read; this is a known on-disk code.

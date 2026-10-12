@@ -30,7 +30,7 @@ use crate::schema::{agentRegistry, cloudAgentRegistry};
 #[diesel(table_name = agentRegistry)]
 #[diesel(primary_key(registry_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
-#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct AgentRegistry {
@@ -148,7 +148,10 @@ impl AgentRegistry {
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, Insertable, AsChangeset)]
 #[diesel(table_name = cloudAgentRegistry)]
 #[diesel(primary_key(id))]
-#[cfg_attr(feature = "pyo3", pyclass(unsendable, get_all, set_all, mapping))]
+#[cfg_attr(
+    feature = "pyo3",
+    pyclass(from_py_object, unsendable, get_all, set_all, mapping)
+)]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct CloudAgentRegistry {

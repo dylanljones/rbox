@@ -198,14 +198,14 @@ pub fn derive_py_mutable_mapping(input: TokenStream) -> TokenStream {
                 Py::new(py, ::rbox_core::python::PyStrIter::new(keys))
             }
 
-            pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<PyObject> {
+            pub fn __getitem__(&self, py: Python, key: &str) -> PyResult<Py<PyAny>> {
                 match key {
                     #(#getter_arms)*
                     _ => Err(pyo3::exceptions::PyKeyError::new_err(format!("Key '{}' not found", key))),
                 }
             }
 
-            pub fn __setitem__(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+            pub fn __setitem__(&mut self, py: Python, key: &str, value: Py<PyAny>) -> PyResult<()> {
                 match key {
                     #(#setter_arms)*
                     _ => Err(pyo3::exceptions::PyKeyError::new_err(format!("Key '{}' not found", key))),
@@ -218,7 +218,7 @@ pub fn derive_py_mutable_mapping(input: TokenStream) -> TokenStream {
             }
 
             pub fn values(&self, py: Python) -> PyResult<Py<::rbox_core::python::PyObjectIter>> {
-                let values: Vec<PyObject> = Self::field_names()
+                let values: Vec<Py<PyAny>> = Self::field_names()
                     .iter()
                     .filter_map(|key| self.__getitem__(py, key).ok())
                     .collect();
@@ -226,7 +226,7 @@ pub fn derive_py_mutable_mapping(input: TokenStream) -> TokenStream {
             }
 
             pub fn items(&self, py: Python) -> PyResult<Py<::rbox_core::python::PyItemsIter>> {
-                let items: Vec<(String, PyObject)> = Self::field_names()
+                let items: Vec<(String, Py<PyAny>)> = Self::field_names()
                     .iter()
                     .filter_map(|key| {
                         self.__getitem__(py, key)
@@ -237,7 +237,7 @@ pub fn derive_py_mutable_mapping(input: TokenStream) -> TokenStream {
                 Py::new(py, ::rbox_core::python::PyItemsIter::new(items))
             }
 
-            pub fn get(&self, py: Python, key: &str, default: PyObject) -> PyResult<PyObject> {
+            pub fn get(&self, py: Python, key: &str, default: Py<PyAny>) -> PyResult<Py<PyAny>> {
                 match self.__getitem__(py, key) {
                     Ok(value) => Ok(value),
                     Err(_) => Ok(default),
@@ -245,7 +245,7 @@ pub fn derive_py_mutable_mapping(input: TokenStream) -> TokenStream {
             }
 
             #[pyo3(name = "update")]
-            pub fn update_py(&mut self, py: Python, data: std::collections::HashMap<String, PyObject>) -> PyResult<()> {
+            pub fn update_py(&mut self, py: Python, data: std::collections::HashMap<String, Py<PyAny>>) -> PyResult<()> {
                 for (key, value) in data {
                     self.__setitem__(py, &key, value)?;
                 }

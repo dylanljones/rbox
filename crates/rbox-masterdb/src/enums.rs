@@ -19,7 +19,7 @@ use pyo3::prelude::*;
 /// Stored Rekordbox codes for Analyzed.
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
-#[cfg_attr(feature = "pyo3", pyclass(eq, eq_int))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, eq, eq_int))]
 #[cfg_attr(feature = "napi", napi)]
 pub enum Analyzed {
     #[default]
@@ -47,7 +47,7 @@ impl TryFrom<i32> for Analyzed {
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default, FromSqlRow, AsExpression)]
 #[diesel(sql_type = Integer)]
-#[cfg_attr(feature = "pyo3", pyclass(eq, eq_int))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, eq, eq_int))]
 #[cfg_attr(feature = "napi", napi)]
 pub enum PlaylistType {
     #[default]
@@ -77,7 +77,7 @@ diesel_int_enum!(PlaylistType);
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default, FromSqlRow, AsExpression)]
 #[diesel(sql_type = Integer)]
-#[cfg_attr(feature = "pyo3", pyclass(eq, eq_int))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, eq, eq_int))]
 #[cfg_attr(feature = "napi", napi)]
 pub enum RelatedTracksType {
     #[default]
@@ -103,7 +103,7 @@ diesel_int_enum!(RelatedTracksType);
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default, FromSqlRow, AsExpression)]
 #[diesel(sql_type = Integer)]
-#[cfg_attr(feature = "pyo3", pyclass(eq, eq_int))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, eq, eq_int))]
 #[cfg_attr(feature = "napi", napi)]
 pub enum SamplerType {
     #[default]

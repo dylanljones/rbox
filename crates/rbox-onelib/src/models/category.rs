@@ -27,7 +27,7 @@ use rbox_db::{
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(MenuItem, foreign_key = menu_item_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
-#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Category {
@@ -47,7 +47,7 @@ pub struct Category {
 /// Related rows are not expanded recursively. Missing targets remain `None`;
 /// the original row retains its foreign keys.
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "pyo3", pyclass(get_all))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct CategoryView {
     /// Original category row, including its foreign keys.
@@ -239,7 +239,7 @@ impl SequenceVisible for Category {}
 #[derive(Debug, Clone, PartialEq, Default, Insertable)]
 #[diesel(table_name = category)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
-#[cfg_attr(feature = "pyo3", pyclass(get_all, set_all, mapping))]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct NewCategory {
