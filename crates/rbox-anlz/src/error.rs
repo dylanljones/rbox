@@ -37,6 +37,18 @@ impl std::fmt::Display for InvalidFileReason {
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum AnlzError {
+    /// A tag input is neither a known descriptive name nor a four-byte ASCII code.
+    #[error("invalid ANLZ tag: {0}")]
+    InvalidTag(String),
+
+    /// An authored section cannot be represented by its declared binary layout.
+    #[error("invalid ANLZ section value: {0}")]
+    InvalidSectionValue(&'static str),
+
+    /// An indexed section edit addressed a position outside the ordered sequence.
+    #[error("section index {index} is out of bounds for {len} sections")]
+    SectionIndexOutOfBounds { index: usize, len: usize },
+
     /// An underlying filesystem operation failed.
     #[error(transparent)]
     Io(#[from] std::io::Error),

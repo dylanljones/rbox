@@ -5,10 +5,11 @@
 
 #![allow(unused_parens)] // Suppress warnings coming from binrw macros
 
-use binrw::io::{Read, Seek, Write};
+use binrw::io::{Read, Seek, SeekFrom, Write};
 use binrw::{binrw, BinRead, BinResult, BinWrite, Endian, NullWideString};
 use modular_bitfield::prelude::*;
 
+use crate::error::{AnlzError, Result};
 use crate::string::AnlzString;
 use crate::xor::XorStream;
 
@@ -100,6 +101,60 @@ pub enum AnlzTag {
 }
 
 impl AnlzTag {
+    /// Four-byte on-disk identifier, including unrecognized identifiers.
+    pub fn code(&self) -> [u8; 4] {
+        match self {
+            Self::BeatGrid => *b"PQTZ",
+            Self::ExtendedBeatGrid => *b"PQT2",
+            Self::CueList => *b"PCOB",
+            Self::ExtendedCueList => *b"PCO2",
+            Self::Path => *b"PPTH",
+            Self::VBR => *b"PVBR",
+            Self::SeekIndex => *b"PVB2",
+            Self::TinyWaveformPreview => *b"PWV2",
+            Self::WaveformPreview => *b"PWAV",
+            Self::WaveformDetail => *b"PWV3",
+            Self::WaveformColorPreview => *b"PWV4",
+            Self::WaveformColorDetail => *b"PWV5",
+            Self::Waveform3BandPreview => *b"PWV6",
+            Self::Waveform3BandDetail => *b"PWV7",
+            Self::Waveform3BandCalibration => *b"PWVC",
+            Self::SongStructure => *b"PSSI",
+            Self::VocalDetection => *b"PVDI",
+            Self::File => *b"PMAI",
+            Self::Cue => *b"PCPT",
+            Self::ExtendedCue => *b"PCP2",
+            Self::Unknown(code) => *code,
+        }
+    }
+
+    /// Resolve a four-byte identifier without losing unknown tags.
+    pub fn from_code(code: [u8; 4]) -> Self {
+        match &code {
+            b"PQTZ" => Self::BeatGrid,
+            b"PQT2" => Self::ExtendedBeatGrid,
+            b"PCOB" => Self::CueList,
+            b"PCO2" => Self::ExtendedCueList,
+            b"PPTH" => Self::Path,
+            b"PVBR" => Self::VBR,
+            b"PVB2" => Self::SeekIndex,
+            b"PWV2" => Self::TinyWaveformPreview,
+            b"PWAV" => Self::WaveformPreview,
+            b"PWV3" => Self::WaveformDetail,
+            b"PWV4" => Self::WaveformColorPreview,
+            b"PWV5" => Self::WaveformColorDetail,
+            b"PWV6" => Self::Waveform3BandPreview,
+            b"PWV7" => Self::Waveform3BandDetail,
+            b"PWVC" => Self::Waveform3BandCalibration,
+            b"PSSI" => Self::SongStructure,
+            b"PVDI" => Self::VocalDetection,
+            b"PMAI" => Self::File,
+            b"PCPT" => Self::Cue,
+            b"PCP2" => Self::ExtendedCue,
+            _ => Self::Unknown(code),
+        }
+    }
+
     /// Returns the tag type as a string.
     pub fn to_string(&self) -> String {
         match self {
@@ -124,6 +179,37 @@ impl AnlzTag {
             AnlzTag::SongStructure => "SongStructure".to_string(),
             AnlzTag::VocalDetection => "VocalDetection".to_string(),
             _ => format!("Unknown({:?})", self),
+        }
+    }
+
+    /// Accept a descriptive tag name or a four-byte ASCII identifier.
+    pub fn parse(value: &str) -> Result<Self> {
+        match value {
+            "BeatGrid" => Ok(Self::BeatGrid),
+            "ExtendedBeatGrid" => Ok(Self::ExtendedBeatGrid),
+            "CueList" => Ok(Self::CueList),
+            "ExtendedCueList" => Ok(Self::ExtendedCueList),
+            "Path" => Ok(Self::Path),
+            "VBR" => Ok(Self::VBR),
+            "SeekIndex" => Ok(Self::SeekIndex),
+            "TinyWaveformPreview" => Ok(Self::TinyWaveformPreview),
+            "WaveformPreview" => Ok(Self::WaveformPreview),
+            "WaveformDetail" => Ok(Self::WaveformDetail),
+            "WaveformColorPreview" => Ok(Self::WaveformColorPreview),
+            "WaveformColorDetail" => Ok(Self::WaveformColorDetail),
+            "Waveform3BandPreview" => Ok(Self::Waveform3BandPreview),
+            "Waveform3BandDetail" => Ok(Self::Waveform3BandDetail),
+            "Waveform3BandCalibration" => Ok(Self::Waveform3BandCalibration),
+            "SongStructure" => Ok(Self::SongStructure),
+            "VocalDetection" => Ok(Self::VocalDetection),
+            "File" => Ok(Self::File),
+            "Cue" => Ok(Self::Cue),
+            "ExtendedCue" => Ok(Self::ExtendedCue),
+            _ if value.is_ascii() && value.len() == 4 => {
+                let bytes = value.as_bytes();
+                Ok(Self::from_code([bytes[0], bytes[1], bytes[2], bytes[3]]))
+            }
+            _ => Err(AnlzError::InvalidTag(value.to_owned())),
         }
     }
 }
@@ -231,6 +317,15 @@ pub struct BeatGrid {
 }
 
 impl BeatGrid {
+    /// Create a grid with observed zero-offset flags. Times are ms; tempo is centi-BPM.
+    pub fn new(beats: Vec<Beat>) -> Self {
+        Self {
+            total_size: 0,
+            header_flags: 0x0008_0000,
+            beats,
+        }
+    }
+
     /// Signed millisecond correction applied independently of stored beat times.
     pub fn grid_offset(&self) -> i16 {
         self.header_flags as u16 as i16
@@ -248,15 +343,13 @@ impl SizedSection for BeatGrid {
     }
 }
 
-/// Single beat grid entry inside a `BeatGridExtended` section.
+/// Sub-millisecond precision for the corresponding `PQTZ` beat.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(big)]
 pub struct ExtBeat {
-    /// Beat number inside the bar (1-4).
-    pub beat_number: u8,
-    /// Unknown field.
-    unknown: u8,
+    /// Microseconds after the raw whole-millisecond timestamp (normally 0..=999).
+    pub microseconds: u16,
 }
 
 /// Extended Beat Grid Tag (PQT2) containing all extended beats in the track
@@ -279,23 +372,23 @@ pub struct ExtendedBeatGrid {
     #[br(assert(pad1 == 0))]
     #[bw(calc = 0)]
     pad1: u32,
-    /// Observed version values include `0x01000002` and `0x02000002`.
+    /// Observed flags include `0x01000002`, `0x02000002`, and `0x03000002`.
     pub version: u32,
-    /// Padding: 4bytes.
-    #[br(temp)]
-    #[br(assert(pad2 == 0))]
-    #[bw(calc = 0)]
-    pad2: u32,
-    /// Two 'normal' beats for BPM
-    #[br(count = 2)]
-    #[bw(assert(bpm.len() == 2))]
-    pub bpm: Vec<Beat>,
+    /// Signed millisecond correction, applied once to raw beat times.
+    pub offset_ms: i16,
+    /// Uninterpreted flags following the saved offset; preserved verbatim.
+    pub offset_flags: u16,
+    /// First raw beat record from the corresponding `PQTZ` section.
+    pub first_beat: Beat,
+    /// Last raw beat record from the corresponding `PQTZ` section.
+    pub last_beat: Beat,
     /// Number of beats
     #[br(temp)]
     #[bw(calc = beats.len() as u32)]
     n_beats: u32,
-    /// Unknow field
-    u2: u32,
+    /// Wrapping sum of beat number, centi-BPM and raw milliseconds over all PQTZ beats.
+    /// Must be updated alongside changes to the corresponding PQTZ grid.
+    pub checksum: u32,
     /// Unknow field: Seems to always be `0`
     #[br(temp)]
     #[br(assert(u3 == 0))]
@@ -309,6 +402,23 @@ pub struct ExtendedBeatGrid {
     /// Beats in this beatgrid.
     #[br(count = n_beats)]
     pub beats: Vec<ExtBeat>,
+}
+
+impl ExtendedBeatGrid {
+    /// Create an extended grid with zero offset and supplied raw endpoints and checksum.
+    pub fn new(version: u32, endpoints: [Beat; 2], beats: Vec<ExtBeat>, checksum: u32) -> Self {
+        let [first_beat, last_beat] = endpoints;
+        Self {
+            total_size: 0,
+            version,
+            offset_ms: 0,
+            offset_flags: 0,
+            first_beat,
+            last_beat,
+            beats,
+            checksum,
+        }
+    }
 }
 
 impl SizedSection for ExtendedBeatGrid {
@@ -386,7 +496,7 @@ impl Into<u16> for CueStatus {
 pub struct Cue {
     /// Cue entry header.
     #[br(assert(header.tag == AnlzTag::Cue && header.total_size == 56))]
-    header: Header,
+    pub header: Header,
     /// Hot cue number.
     pub hot_cue: u32,
     /// Loop status. `4` if this cue is an active loop, `0` otherwise.
@@ -419,13 +529,13 @@ pub struct Cue {
     /// Time in milliseconds after which this the loop would jump back to `time` (at normal playback speed).
     pub loop_time: u32,
     /// Unknown field.
-    u4: u32,
+    pub u4: u32,
     /// Unknown field.
-    u5: u32,
+    pub u5: u32,
     /// Unknown field.
-    u6: u32,
+    pub u6: u32,
     /// Unknown field.
-    u7: u32,
+    pub u7: u32,
 }
 
 /// Indexed memory-cue colors. Unrecognized values are retained.
@@ -495,7 +605,7 @@ pub struct ExtendedCue {
     /// Cue entry header.
     #[br(assert(header.tag == AnlzTag::ExtendedCue && header.total_size >= 48))]
     #[bw(map = |header: &Header| { let mut h = header.clone(); h.total_size = self.size(); h })]
-    header: Header,
+    pub header: Header,
     /// Hot cue number.
     pub hot_cue: u32,
     /// Type of this cue (`2` if this cue is a loop).
@@ -519,11 +629,11 @@ pub struct ExtendedCue {
     /// Only used by memory cues, hot cues use a different value (see below).
     pub color: ColorIndex,
     /// Unknown field.
-    u3: u8,
+    pub u3: u8,
     /// Unknown field.
-    u4: u16,
+    pub u4: u16,
     /// Unknown field.
-    u5: u32,
+    pub u5: u32,
     /// Represents the loop size numerator (if this is a quantized loop).
     pub loop_numerator: u16,
     /// Represents the loop size denominator (if this is a quantized loop).
@@ -583,6 +693,18 @@ pub struct CueList {
     pub cues: Vec<Cue>,
 }
 
+impl CueList {
+    /// Create a cue list with an unspecified memory count (-1).
+    pub fn new(list_type: CueListType, cues: Vec<Cue>) -> Self {
+        Self {
+            total_size: 0,
+            list_type,
+            memory_count: -1,
+            cues,
+        }
+    }
+}
+
 impl SizedSection for CueList {
     fn size(&self) -> u32 {
         24 + self.cues.len() as u32 * 56
@@ -620,6 +742,17 @@ pub struct ExtendedCueList {
     /// Cues
     #[br(count = usize::from(len_cues))]
     pub cues: Vec<ExtendedCue>,
+}
+
+impl ExtendedCueList {
+    /// Create an extended cue list from supplied cues.
+    pub fn new(list_type: CueListType, cues: Vec<ExtendedCue>) -> Self {
+        Self {
+            total_size: 0,
+            list_type,
+            cues,
+        }
+    }
 }
 
 impl SizedSection for ExtendedCueList {
@@ -805,6 +938,16 @@ pub struct TinyWaveformPreview {
     pub data: Vec<TinyWaveformColumn>,
 }
 
+impl TinyWaveformPreview {
+    /// Create a section from supplied columns; lengths are calculated on write.
+    pub fn new(data: Vec<TinyWaveformColumn>) -> Self {
+        Self {
+            total_size: 0,
+            data,
+        }
+    }
+}
+
 impl SizedSection for TinyWaveformPreview {
     fn size(&self) -> u32 {
         20 + self.data.len() as u32
@@ -855,6 +998,16 @@ pub struct WaveformPreview {
     pub data: Vec<WaveformColumn>,
 }
 
+impl WaveformPreview {
+    /// Create a section from supplied columns; lengths are calculated on write.
+    pub fn new(data: Vec<WaveformColumn>) -> Self {
+        Self {
+            total_size: 0,
+            data,
+        }
+    }
+}
+
 impl SizedSection for WaveformPreview {
     fn size(&self) -> u32 {
         20 + self.data.len() as u32
@@ -899,6 +1052,16 @@ pub struct WaveformDetail {
     pub data: Vec<WaveformColumn>,
 }
 
+impl WaveformDetail {
+    /// Create a section from supplied columns; lengths are calculated on write.
+    pub fn new(data: Vec<WaveformColumn>) -> Self {
+        Self {
+            total_size: 0,
+            data,
+        }
+    }
+}
+
 impl SizedSection for WaveformDetail {
     fn size(&self) -> u32 {
         24 + self.data.len() as u32
@@ -913,9 +1076,9 @@ impl SizedSection for WaveformDetail {
 #[brw(big)]
 pub struct WaveformColorPreviewColumn {
     /// Unknown field (somehow encodes the "whiteness").
-    u1: u8,
+    pub u1: u8,
     /// Unknown field (somehow encodes the "whiteness").
-    u2: u8,
+    pub u2: u8,
     /// Sound energy in the bottom half of the frequency range (<10 KHz).
     pub energy_bottom_half_freq: u8,
     /// Sound energy in the bottom third of the frequency range.
@@ -962,6 +1125,16 @@ pub struct WaveformColorPreview {
     /// so for each second of track audio there are 150 waveform detail entries.
     #[br(count = len_entries)]
     pub data: Vec<WaveformColorPreviewColumn>,
+}
+
+impl WaveformColorPreview {
+    /// Create a section from supplied columns; lengths are calculated on write.
+    pub fn new(data: Vec<WaveformColorPreviewColumn>) -> Self {
+        Self {
+            total_size: 0,
+            data,
+        }
+    }
 }
 
 impl SizedSection for WaveformColorPreview {
@@ -1031,10 +1204,21 @@ pub struct WaveformColorDetail {
     #[br(assert((len_entry_bytes * len_entries) == total_size - header_size))]
     len_entries: u32,
     /// Unknown field (apparently always `0x00960305`)
-    unknown: u32,
+    pub unknown: u32,
     /// Waveform detail column data.
     #[br(count = len_entries)]
     pub data: Vec<WaveformColorDetailColumn>,
+}
+
+impl WaveformColorDetail {
+    /// Create a section from supplied columns; lengths are calculated on write.
+    pub fn new(data: Vec<WaveformColorDetailColumn>) -> Self {
+        Self {
+            total_size: 0,
+            data,
+            unknown: 0x00960305,
+        }
+    }
 }
 
 impl SizedSection for WaveformColorDetail {
@@ -1089,6 +1273,16 @@ pub struct Waveform3BandPreview {
     pub data: Vec<Waveform3BandColumn>,
 }
 
+impl Waveform3BandPreview {
+    /// Create a section from supplied columns; lengths are calculated on write.
+    pub fn new(data: Vec<Waveform3BandColumn>) -> Self {
+        Self {
+            total_size: 0,
+            data,
+        }
+    }
+}
+
 impl SizedSection for Waveform3BandPreview {
     fn size(&self) -> u32 {
         20 + self.data.len() as u32 * 3
@@ -1121,10 +1315,21 @@ pub struct Waveform3BandDetail {
     #[br(assert((len_entry_bytes * len_entries) == total_size - header_size))]
     len_entries: u32,
     /// Unknown field (apparently always `0x00960000`)
-    unknown: u32,
+    pub unknown: u32,
     /// Waveform detail column data.
     #[br(count = len_entries)]
     pub data: Vec<Waveform3BandColumn>,
+}
+
+impl Waveform3BandDetail {
+    /// Create a section from supplied columns; lengths are calculated on write.
+    pub fn new(data: Vec<Waveform3BandColumn>) -> Self {
+        Self {
+            total_size: 0,
+            data,
+            unknown: 0x00960000,
+        }
+    }
 }
 
 impl SizedSection for Waveform3BandDetail {
@@ -1256,7 +1461,7 @@ pub struct Phrase {
     pub kind: u16,
     /// Unknown field.
     #[allow(dead_code)]
-    u1: u8,
+    pub u1: u8,
     /// Flag byte used for numbered variations (in case of the `High` mood).
     ///
     /// See the documentation for details:
@@ -1264,7 +1469,7 @@ pub struct Phrase {
     pub k1: u8,
     /// Unknown field.
     #[allow(dead_code)]
-    u2: u8,
+    pub u2: u8,
     /// Flag byte used for numbered variations (in case of the `High` mood).
     ///
     /// See the documentation for details:
@@ -1272,7 +1477,7 @@ pub struct Phrase {
     pub k2: u8,
     /// Unknown field.
     #[allow(dead_code)]
-    u3: u8,
+    pub u3: u8,
     /// Flag that determined if only `beat2` is used (0), or if `beat2`, `beat3` and `beat4` are
     /// used (1).
     pub b: u8,
@@ -1284,7 +1489,7 @@ pub struct Phrase {
     pub beat4: u16,
     /// Unknown field.
     #[allow(dead_code)]
-    u4: u8,
+    pub u4: u8,
     /// Flag byte used for numbered variations (in case of the `High` mood).
     ///
     /// See the documentation for details:
@@ -1292,7 +1497,7 @@ pub struct Phrase {
     pub k3: u8,
     /// Unknown field.
     #[allow(dead_code)]
-    u5: u8,
+    pub u5: u8,
     /// Indicates if there are fill (non-phrase) beats at the end of the phrase.
     pub fill: u8,
     /// Beat number where the fill begins (if `fill` is non-zero).
@@ -1307,17 +1512,17 @@ pub struct SongStructureData {
     /// Overall type of phrase structure.
     pub mood: Mood,
     /// Unknown field.
-    u1: u32,
+    pub u1: u32,
     /// Unknown field.
-    u2: u16,
+    pub u2: u16,
     /// Number of the beat at which the last recognized phrase ends.
     pub end_beat: u16,
     /// Unknown field.
-    u3: u16,
+    pub u3: u16,
     /// Stylistic bank assigned in Lightning Mode.
     pub bank: Bank,
     /// Unknown field.
-    u4: u8,
+    pub u4: u8,
     /// Phrase entry data.
     #[br(count = usize::from(len_entries))]
     pub phrases: Vec<Phrase>,
@@ -1342,8 +1547,34 @@ impl SongStructureData {
             .map(move |byte| byte.wrapping_add(len_entries as u8))
     }
 
-    fn check_if_encrypted(raw_mood: [u8; 2]) -> bool {
-        !(1..=3).contains(&u16::from_be_bytes(raw_mood))
+    fn check_if_encrypted<R: Read + Seek>(
+        reader: &mut R,
+        endian: Endian,
+        (len_entries, version): (u16, u16),
+    ) -> BinResult<bool> {
+        let start = reader.stream_position()?;
+        // At counts such as 53 the masked mood can also be 1..=3. Check the
+        // complete phrase structure instead of deciding from those two bytes.
+        for encrypted in [false, true] {
+            reader.seek(SeekFrom::Start(start))?;
+            if let Ok(data) =
+                Self::read_encrypted(reader, endian, (encrypted, len_entries, version))
+            {
+                let valid = data.phrases.iter().enumerate().all(|(i, phrase)| {
+                    usize::from(phrase.index) == i + 1
+                        && phrase.beat > 0
+                        && phrase.beat <= data.end_beat
+                        && (i == 0 || data.phrases[i - 1].beat < phrase.beat)
+                });
+                if valid {
+                    return Ok(encrypted);
+                }
+            }
+        }
+        Err(binrw::Error::AssertFail {
+            pos: start,
+            message: "invalid plain or masked PSSI phrase structure".into(),
+        })
     }
 
     /// Read a [`SongStructureData`] section that may be encrypted, depending on the `is_encrypted`
@@ -1410,13 +1641,25 @@ pub struct SongStructure {
     /// Indicates if the remaining parts of the song structure section are encrypted.
     ///
     /// This is a virtual field and not actually present in the file.
-    #[br(restore_position, map = |raw_mood: [u8; 2]| SongStructureData::check_if_encrypted(raw_mood))]
+    #[br(restore_position, args(len_entries, version), parse_with = SongStructureData::check_if_encrypted)]
     #[bw(ignore)]
     pub is_encrypted: bool,
     /// Song structure data.
     #[br(args(is_encrypted, len_entries, version), parse_with = SongStructureData::read_encrypted)]
     #[bw(args(*is_encrypted, len_entries, *version), write_with = SongStructureData::write_encrypted)]
     pub data: SongStructureData,
+}
+
+impl SongStructure {
+    /// Create a song-structure section from supplied data and wire-format settings.
+    pub fn new(version: u16, is_encrypted: bool, data: SongStructureData) -> Self {
+        Self {
+            total_size: 0,
+            version,
+            is_encrypted,
+            data,
+        }
+    }
 }
 
 impl SizedSection for SongStructure {
@@ -1479,6 +1722,33 @@ pub struct Unknown {
     /// Unknown content data.
     #[br(count = total_size - header_size)]
     content_data: Vec<u8>,
+}
+
+impl Unknown {
+    /// Create an opaque section payload; lengths are derived from the supplied bytes.
+    pub fn new(header_data: Vec<u8>, content_data: Vec<u8>) -> Result<Self> {
+        let header_size = 12u64 + header_data.len() as u64;
+        let total_size = header_size + content_data.len() as u64;
+        if total_size > u64::from(u32::MAX) {
+            return Err(AnlzError::OutputTooLarge { size: total_size });
+        }
+        Ok(Self {
+            header_size: header_size as u32,
+            total_size: total_size as u32,
+            header_data,
+            content_data,
+        })
+    }
+
+    /// Opaque bytes between the standard section header and payload.
+    pub fn header_data(&self) -> &[u8] {
+        &self.header_data
+    }
+
+    /// Opaque payload bytes.
+    pub fn content_data(&self) -> &[u8] {
+        &self.content_data
+    }
 }
 
 impl SizedSection for Unknown {
@@ -1587,6 +1857,27 @@ pub struct Section {
 }
 
 impl Section {
+    /// Validate an authored snapshot before installing it in a handler.
+    /// Includes tag/content agreement, format widths, nested records and lengths.
+    pub fn validate(&self) -> Result<()> {
+        if !self.tag_matches_content() {
+            return Err(AnlzError::TagContentMismatch {
+                tag: self.tag.clone(),
+            });
+        }
+        let mut bytes = std::io::Cursor::new(Vec::new());
+        self.write_be(&mut bytes)?;
+        let length = bytes.get_ref().len() as u64;
+        bytes.set_position(0);
+        Self::read_be(&mut bytes)?;
+        if bytes.position() != length {
+            return Err(AnlzError::InvalidSectionValue(
+                "section contains unrepresentable counts or trailing bytes",
+            ));
+        }
+        Ok(())
+    }
+
     /// Guard against mismatched tag/content edits made through mutable sections.
     pub(crate) fn tag_matches_content(&self) -> bool {
         match &self.content {

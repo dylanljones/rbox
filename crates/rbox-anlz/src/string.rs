@@ -20,6 +20,19 @@ pub struct AnlzString {
 }
 
 impl AnlzString {
+    /// Original trailing UTF-16 NUL count, for lossless editable snapshots.
+    pub fn trailing_nuls(&self) -> u32 {
+        self.trailing_nuls
+    }
+
+    /// Construct text with an explicit padding convention.
+    pub fn with_padding(text: String, trailing_nuls: u32) -> Self {
+        Self {
+            text,
+            trailing_nuls,
+        }
+    }
+
     /// Encoded payload size, excluding the four-byte length prefix.
     pub fn payload_byte_len(&self) -> u32 {
         self.checked_payload_len()

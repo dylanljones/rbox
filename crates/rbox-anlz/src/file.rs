@@ -100,6 +100,268 @@ pub struct Anlz {
 }
 
 impl Anlz {
+    /// Create an empty, unsaved DAT analysis file at `path`, using a `.DAT` extension.
+    ///
+    /// Initializes the 28-byte PMAI header observed in RB6/RB7 fixtures. No audio
+    /// analysis is generated. Setters and `push_section` insert known sections
+    /// in the format's conventional order, regardless of call order.
+    /// The parent directory must exist. Nothing is written until `dump()`.
+    /// Existing output files are only replaced when explicitly saving.
+    pub fn new_dat<P: AsRef<std::path::Path>>(path: P) -> Result<Self> {
+        Self::new_empty(path.as_ref().with_extension("DAT"))
+    }
+
+    /// Create an empty, unsaved EXT file. See [`new_dat`](Self::new_dat).
+    pub fn new_ext<P: AsRef<std::path::Path>>(path: P) -> Result<Self> {
+        Self::new_empty(path.as_ref().with_extension("EXT"))
+    }
+
+    /// Create an empty, unsaved 2EX file. See [`new_dat`](Self::new_dat).
+    pub fn new_2ex<P: AsRef<std::path::Path>>(path: P) -> Result<Self> {
+        Self::new_empty(path.as_ref().with_extension("2EX"))
+    }
+
+    fn new_empty(path: std::path::PathBuf) -> Result<Self> {
+        let path = Self::output_path(&path)?;
+        Ok(Self {
+            path,
+            source: None,
+            header: Header {
+                tag: AnlzTag::File,
+                size: 28,
+                total_size: 28,
+            },
+            // Opaque PMAI extension: identical in all 120 RB6/RB7 demo fixtures.
+            // the field meanings are unknown.
+            header_data: vec![0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+            sections: Vec::new(),
+        })
+    }
+
+    fn output_path(path: &std::path::Path) -> Result<std::path::PathBuf> {
+        if path.exists() {
+            return Ok(std::fs::canonicalize(path)?);
+        }
+        let parent = path
+            .parent()
+            .filter(|p| !p.as_os_str().is_empty())
+            .unwrap_or_else(|| std::path::Path::new("."));
+        Ok(std::fs::canonicalize(parent)?.join(
+            path.file_name()
+                .ok_or_else(|| AnlzError::InvalidOutputPath(path.to_path_buf()))?,
+        ))
+    }
+
+    fn new_entry(section: Section) -> Result<SectionEntry> {
+        if !section.tag_matches_content() {
+            return Err(AnlzError::TagContentMismatch { tag: section.tag });
+        }
+        Ok(SectionEntry {
+            original_range: None,
+            tag: section.tag.clone(),
+            decoded: Some(section),
+            potentially_modified: true,
+        })
+    }
+
+    /// Low-level insertion at `index` (including `section_count()` to append).
+    /// Bypasses automatic ordering; prefer setters or [`push_section`](Self::push_section).
+    /// Preserves duplicates and never reads existing payloads. Rejects an invalid
+    /// index or mismatched tag/content before modifying the file.
+    pub fn insert_section(&mut self, index: usize, section: Section) -> Result<()> {
+        if index > self.sections.len() {
+            return Err(AnlzError::SectionIndexOutOfBounds {
+                index,
+                len: self.sections.len(),
+            });
+        }
+        let entry = Self::new_entry(section)?;
+        self.sections.insert(index, entry);
+        Ok(())
+    }
+
+    /// Add a section at its conventional DAT/EXT/2EX position, retaining duplicates.
+    ///
+    /// Existing sections are not reordered. Only cue lists may be decoded, to
+    /// order hot cues before memory cues. Unknown/unranked sections append.
+    /// Equal-ranked sections retain insertion order. Explicit indexed methods
+    /// bypass this policy for lossless editing of unusual files.
+    pub fn push_section(&mut self, section: Section) -> Result<()> {
+        if !section.tag_matches_content() {
+            return Err(AnlzError::TagContentMismatch { tag: section.tag });
+        }
+        let index = self.ordered_insertion_index(&section)?;
+        self.insert_section(index, section)
+    }
+
+    /// Remove the section at `index` without reading or decoding its payload.
+    ///
+    /// Returns an index error without changing the file when out of bounds.
+    /// Later indices shift left; remaining sections retain their relative order
+    /// and modification state. Call `dump()` or `dump_copy()` to persist removals.
+    pub fn remove_section(&mut self, index: usize) -> Result<()> {
+        if index >= self.sections.len() {
+            return Err(AnlzError::SectionIndexOutOfBounds {
+                index,
+                len: self.sections.len(),
+            });
+        }
+        self.sections.remove(index);
+        Ok(())
+    }
+
+    /// Remove the first occurrence of `tag`, returning whether it was present.
+    /// Does not decode any payload, including the removed section. Later
+    /// duplicates remain; use `remove_sections_by_tag` to remove all occurrences.
+    pub fn remove_section_by_tag(&mut self, tag: AnlzTag) -> bool {
+        let Some(index) = self.sections.iter().position(|entry| entry.tag() == &tag) else {
+            return false;
+        };
+        self.sections.remove(index);
+        true
+    }
+
+    /// Remove every occurrence of `tag` and return the number removed.
+    /// Does not read payloads. For cue tags this removes both hot and memory
+    /// lists; use the subtype-specific methods to remove a single cue list.
+    pub fn remove_sections_by_tag(&mut self, tag: AnlzTag) -> usize {
+        let before = self.sections.len();
+        self.sections.retain(|entry| entry.tag() != &tag);
+        before - self.sections.len()
+    }
+
+    /// Ranks follow fourfour's writer, supplemented by PWV2 and 2EX fixture order.
+    /// Optional/unknown tags without an established relative order stay unranked.
+    fn section_rank(&self, tag: &AnlzTag) -> Option<u8> {
+        let extension = self.path.extension()?.to_str()?.to_ascii_uppercase();
+        let order: &[AnlzTag] = match extension.as_str() {
+            "DAT" => &[
+                AnlzTag::Path,
+                AnlzTag::VBR,
+                AnlzTag::BeatGrid,
+                AnlzTag::WaveformPreview,
+                AnlzTag::TinyWaveformPreview,
+                AnlzTag::CueList,
+            ],
+            "EXT" => &[
+                AnlzTag::Path,
+                AnlzTag::WaveformDetail,
+                AnlzTag::CueList,
+                AnlzTag::ExtendedCueList,
+                AnlzTag::ExtendedBeatGrid,
+                AnlzTag::WaveformColorDetail,
+                AnlzTag::WaveformColorPreview,
+                AnlzTag::Waveform3BandDetail,
+                AnlzTag::Waveform3BandPreview,
+                AnlzTag::SeekIndex,
+            ],
+            "2EX" => &[
+                AnlzTag::Path,
+                AnlzTag::Waveform3BandDetail,
+                AnlzTag::Waveform3BandPreview,
+                AnlzTag::Waveform3BandCalibration,
+            ],
+            _ => return None,
+        };
+        order
+            .iter()
+            .position(|value| value == tag)
+            .map(|rank| rank as u8)
+    }
+
+    fn cue_order(content: &Content) -> Option<u8> {
+        let kind = match content {
+            Content::CueList(value) => &value.list_type,
+            Content::ExtendedCueList(value) => &value.list_type,
+            _ => return None,
+        };
+        Some(match kind {
+            CueListType::HotCues => 0,
+            CueListType::MemoryCues => 1,
+        })
+    }
+
+    fn ordered_insertion_index(&mut self, section: &Section) -> Result<usize> {
+        if section.tag == AnlzTag::Path {
+            // PPTH is first even when the file extension or other tags are unknown.
+            return Ok(self
+                .sections
+                .iter()
+                .take_while(|entry| entry.tag() == &AnlzTag::Path)
+                .count());
+        }
+        let Some(rank) = self.section_rank(&section.tag) else {
+            return Ok(self.sections.len());
+        };
+        let mut after = None;
+        for index in 0..self.sections.len() {
+            let Some(existing_rank) = self.section_rank(self.sections[index].tag()) else {
+                continue;
+            };
+            if existing_rank > rank {
+                return Ok(index);
+            }
+            if existing_rank == rank {
+                if let Some(cue_order) = Self::cue_order(&section.content) {
+                    self.decode(index)?;
+                    if self.sections[index]
+                        .decoded
+                        .as_ref()
+                        .and_then(|existing| Self::cue_order(&existing.content))
+                        .is_some_and(|existing| existing > cue_order)
+                    {
+                        return Ok(index);
+                    }
+                }
+            }
+            after = Some(index + 1);
+        }
+        Ok(after.unwrap_or(0))
+    }
+
+    /// Replace one occurrence by index without decoding its old payload.
+    /// Other occurrences, section order, and untouched source bytes are preserved.
+    pub fn set_section_at(&mut self, index: usize, section: Section) -> Result<()> {
+        if index >= self.sections.len() {
+            return Err(AnlzError::SectionIndexOutOfBounds {
+                index,
+                len: self.sections.len(),
+            });
+        }
+        self.sections[index] = Self::new_entry(section)?;
+        Ok(())
+    }
+
+    /// Replace the first matching section in place, or insert in format order if absent.
+    ///
+    /// Cue lists match both tag and hot/memory subtype; finding one can decode
+    /// existing cue lists and return a parsing error. Other tags require no
+    /// payload reads. Later duplicates and unknown sections remain untouched.
+    /// A missing PPTH is inserted first, as with [`set_path`](Self::set_path).
+    /// Use indexed methods to control duplicates and exact insertion order.
+    pub fn set_section(&mut self, section: Section) -> Result<()> {
+        if !section.tag_matches_content() {
+            return Err(AnlzError::TagContentMismatch { tag: section.tag });
+        }
+        let index = match &section.content {
+            Content::CueList(value) => {
+                self.cue_index(section.tag.clone(), value.list_type.clone())?
+            }
+            Content::ExtendedCueList(value) => {
+                self.cue_index(section.tag.clone(), value.list_type.clone())?
+            }
+            _ => self
+                .sections
+                .iter()
+                .position(|entry| entry.tag() == &section.tag),
+        };
+        match index {
+            Some(index) => self.set_section_at(index, section),
+            None if section.tag == AnlzTag::Path => self.insert_section(0, section),
+            None => self.push_section(section),
+        }
+    }
+
     /// Open an analysis file and index its sections without decoding their payloads.
     ///
     /// The path is canonicalized and a file handle is retained for later reads.
@@ -201,6 +463,47 @@ impl Anlz {
     /// This uses the index and does not read or decode payloads.
     pub fn section_count(&self) -> usize {
         self.sections.len()
+    }
+
+    /// Read matching sections in file order without marking them modified.
+    /// Other tags remain lazy.
+    pub fn get_sections_by_tag(&mut self, tag: AnlzTag) -> Result<Vec<&Section>> {
+        let indices: Vec<_> = self
+            .sections
+            .iter()
+            .enumerate()
+            .filter_map(|(i, entry)| (entry.tag() == &tag).then_some(i))
+            .collect();
+        for &index in &indices {
+            self.decode(index)?;
+        }
+        Ok(indices
+            .into_iter()
+            .filter_map(|i| self.sections[i].decoded.as_ref())
+            .collect())
+    }
+
+    /// Clone the complete file as an editable snapshot, explicitly decoding all sections.
+    pub fn get_data(&mut self) -> Result<AnlzData> {
+        for index in 0..self.sections.len() {
+            self.decode(index)?;
+        }
+        let mut data = AnlzData {
+            header: self.header.clone(),
+            header_data: self.header_data.clone(),
+            sections: self
+                .sections
+                .iter()
+                .map(|entry| {
+                    entry
+                        .decoded
+                        .clone()
+                        .ok_or(AnlzError::InvalidState("materialized section is missing"))
+                })
+                .collect::<Result<_>>()?,
+        };
+        data.update_total_size();
+        Ok(data)
     }
 
     /// Populate one valid index on success; leave failed decodes uncached.
@@ -396,20 +699,15 @@ impl Anlz {
     /// so the caller can correct the problem and retry.
     pub fn dump_copy<P: AsRef<std::path::Path>>(&mut self, path: P) -> Result<()> {
         let path = path.as_ref();
-        let destination = if path.exists() {
-            std::fs::canonicalize(path)?
-        } else {
-            let parent = path
-                .parent()
-                .filter(|p| !p.as_os_str().is_empty())
-                .unwrap_or_else(|| std::path::Path::new("."));
-            std::fs::canonicalize(parent)?.join(
-                path.file_name()
-                    .ok_or_else(|| AnlzError::InvalidOutputPath(path.to_path_buf()))?,
-            )
-        };
+        let destination = Self::output_path(path)?;
         let replace_source = destination == self.path;
-        self.source()?;
+        if self
+            .sections
+            .iter()
+            .any(|entry| !entry.potentially_modified)
+        {
+            self.source()?;
+        }
         let output_parent = destination
             .parent()
             .ok_or_else(|| AnlzError::InvalidOutputPath(destination.clone()))?;
@@ -512,6 +810,21 @@ impl Anlz {
 
     // ---- Beat Grid Tags -------------------------------------------------------------------------
 
+    /// Remove the first BeatGrid section without decoding any payload.
+    /// Returns false when absent; later duplicates remain.
+    pub fn remove_beat_grid(&mut self) -> bool {
+        self.remove_section_by_tag(AnlzTag::BeatGrid)
+    }
+
+    /// Set BeatGrid content using the replacement and automatic insertion rules of
+    /// [`set_section`](Self::set_section). No analysis data is generated.
+    pub fn set_beat_grid(&mut self, value: BeatGrid) -> Result<()> {
+        self.set_section(Section {
+            tag: AnlzTag::BeatGrid,
+            content: Content::BeatGrid(value),
+        })
+    }
+
     /// Mutably borrow the first PQTZ section (beat grid).
     ///
     /// Uses the same selection and loading behavior as [`get_beat_grid`](Self::get_beat_grid).
@@ -537,6 +850,21 @@ impl Anlz {
                 ..
             }) => Some(value),
             _ => None,
+        })
+    }
+
+    /// Remove the first ExtendedBeatGrid section without decoding any payload.
+    /// Returns false when absent; later duplicates remain.
+    pub fn remove_extended_beat_grid(&mut self) -> bool {
+        self.remove_section_by_tag(AnlzTag::ExtendedBeatGrid)
+    }
+
+    /// Set ExtendedBeatGrid content using the replacement and automatic insertion rules of
+    /// [`set_section`](Self::set_section). No analysis data is generated.
+    pub fn set_extended_beat_grid(&mut self, value: ExtendedBeatGrid) -> Result<()> {
+        self.set_section(Section {
+            tag: AnlzTag::ExtendedBeatGrid,
+            content: Content::ExtendedBeatGrid(value),
         })
     }
 
@@ -571,6 +899,44 @@ impl Anlz {
     }
 
     // ---- Cue List Tags --------------------------------------------------------------------------
+    /// Remove the first ExtendedCueList section without decoding any payload.
+    /// Returns false when absent; later duplicates remain.
+    pub fn remove_extended_cue_list(&mut self) -> bool {
+        self.remove_section_by_tag(AnlzTag::ExtendedCueList)
+    }
+
+    /// Set ExtendedCueList content using the replacement and automatic insertion rules of
+    /// [`set_section`](Self::set_section). No analysis data is generated.
+    pub fn set_extended_cue_list(&mut self, value: ExtendedCueList) -> Result<()> {
+        self.set_section(Section {
+            tag: AnlzTag::ExtendedCueList,
+            content: Content::ExtendedCueList(value),
+        })
+    }
+
+    /// Remove the first CueList section without decoding any payload.
+    /// Returns false when absent; later duplicates remain.
+    pub fn remove_cue_list(&mut self) -> bool {
+        self.remove_section_by_tag(AnlzTag::CueList)
+    }
+
+    /// Set CueList content using the replacement and automatic insertion rules of
+    /// [`set_section`](Self::set_section). No analysis data is generated.
+    pub fn set_cue_list(&mut self, value: CueList) -> Result<()> {
+        self.set_section(Section {
+            tag: AnlzTag::CueList,
+            content: Content::CueList(value),
+        })
+    }
+
+    /// Resolve the subtype before removal, leaving all sections in place on errors.
+    fn remove_cue_subtype(&mut self, tag: AnlzTag, list_type: CueListType) -> Result<bool> {
+        let Some(index) = self.cue_index(tag, list_type)? else {
+            return Ok(false);
+        };
+        self.sections.remove(index);
+        Ok(true)
+    }
 
     /// Resolve a cue-list subtype without marking inspected candidates modified.
     fn cue_index(&mut self, tag: AnlzTag, list_type: CueListType) -> Result<Option<usize>> {
@@ -591,6 +957,23 @@ impl Anlz {
             }
         }
         Ok(None)
+    }
+
+    /// Remove the first hot cues list, returning false if absent.
+    /// Only candidate cue lists are decoded. On a parsing error no sections are
+    /// removed. Other subtypes and later duplicates remain unchanged.
+    pub fn remove_hot_cues(&mut self) -> Result<bool> {
+        self.remove_cue_subtype(AnlzTag::CueList, CueListType::HotCues)
+    }
+
+    /// Set the hot cues list, assigning its subtype to `HotCues`.
+    /// Other cue subtypes and later duplicates remain unchanged.
+    pub fn set_hot_cues(&mut self, mut value: CueList) -> Result<()> {
+        value.list_type = CueListType::HotCues;
+        self.set_section(Section {
+            tag: AnlzTag::CueList,
+            content: Content::CueList(value),
+        })
     }
 
     /// Mutably borrow the first hot-cue list (PCOB), in file order.
@@ -627,6 +1010,23 @@ impl Anlz {
                 ..
             }) => Some(value),
             _ => None,
+        })
+    }
+
+    /// Remove the first memory cues list, returning false if absent.
+    /// Only candidate cue lists are decoded. On a parsing error no sections are
+    /// removed. Other subtypes and later duplicates remain unchanged.
+    pub fn remove_memory_cues(&mut self) -> Result<bool> {
+        self.remove_cue_subtype(AnlzTag::CueList, CueListType::MemoryCues)
+    }
+
+    /// Set the memory cues list, assigning its subtype to `MemoryCues`.
+    /// Other cue subtypes and later duplicates remain unchanged.
+    pub fn set_memory_cues(&mut self, mut value: CueList) -> Result<()> {
+        value.list_type = CueListType::MemoryCues;
+        self.set_section(Section {
+            tag: AnlzTag::CueList,
+            content: Content::CueList(value),
         })
     }
 
@@ -667,6 +1067,23 @@ impl Anlz {
         })
     }
 
+    /// Remove the first extended hot cues list, returning false if absent.
+    /// Only candidate cue lists are decoded. On a parsing error no sections are
+    /// removed. Other subtypes and later duplicates remain unchanged.
+    pub fn remove_extended_hot_cues(&mut self) -> Result<bool> {
+        self.remove_cue_subtype(AnlzTag::ExtendedCueList, CueListType::HotCues)
+    }
+
+    /// Set the extended hot cues list, assigning its subtype to `HotCues`.
+    /// Other cue subtypes and later duplicates remain unchanged.
+    pub fn set_extended_hot_cues(&mut self, mut value: ExtendedCueList) -> Result<()> {
+        value.list_type = CueListType::HotCues;
+        self.set_section(Section {
+            tag: AnlzTag::ExtendedCueList,
+            content: Content::ExtendedCueList(value),
+        })
+    }
+
     /// Mutably borrow the first extended hot-cue list (PCO2), in file order.
     ///
     /// Uses the same selection and decoding behavior as [`get_extended_hot_cues`](Self::get_extended_hot_cues).
@@ -701,6 +1118,23 @@ impl Anlz {
                 ..
             }) => Some(value),
             _ => None,
+        })
+    }
+
+    /// Remove the first extended memory cues list, returning false if absent.
+    /// Only candidate cue lists are decoded. On a parsing error no sections are
+    /// removed. Other subtypes and later duplicates remain unchanged.
+    pub fn remove_extended_memory_cues(&mut self) -> Result<bool> {
+        self.remove_cue_subtype(AnlzTag::ExtendedCueList, CueListType::MemoryCues)
+    }
+
+    /// Set the extended memory cues list, assigning its subtype to `MemoryCues`.
+    /// Other cue subtypes and later duplicates remain unchanged.
+    pub fn set_extended_memory_cues(&mut self, mut value: ExtendedCueList) -> Result<()> {
+        value.list_type = CueListType::MemoryCues;
+        self.set_section(Section {
+            tag: AnlzTag::ExtendedCueList,
+            content: Content::ExtendedCueList(value),
         })
     }
 
@@ -742,6 +1176,12 @@ impl Anlz {
     }
 
     // ---- Path Tag -------------------------------------------------------------------------------
+
+    /// Remove the first PPTH section without decoding it. Returns false if absent.
+    /// This removes the stored audio path; the ANLZ output path is unchanged.
+    pub fn remove_path(&mut self) -> bool {
+        self.remove_section_by_tag(AnlzTag::Path)
+    }
 
     /// Return an owned copy of the audio path in the first PPTH section.
     ///
@@ -796,6 +1236,21 @@ impl Anlz {
 
     // ---- VBR Tag --------------------------------------------------------------------------------
 
+    /// Remove the first VBR section without decoding any payload.
+    /// Returns false when absent; later duplicates remain.
+    pub fn remove_vbr(&mut self) -> bool {
+        self.remove_section_by_tag(AnlzTag::VBR)
+    }
+
+    /// Set VBR content using the replacement and automatic insertion rules of
+    /// [`set_section`](Self::set_section). No analysis data is generated.
+    pub fn set_vbr(&mut self, value: VBR) -> Result<()> {
+        self.set_section(Section {
+            tag: AnlzTag::VBR,
+            content: Content::VBR(value),
+        })
+    }
+
     /// Mutably borrow the first PVBR section (variable-bitrate seek table).
     ///
     /// Uses the same selection and loading behavior as [`get_vbr`](Self::get_vbr).
@@ -840,6 +1295,21 @@ impl Anlz {
         }))
     }
 
+    /// Remove the first SeekIndex section without decoding any payload.
+    /// Returns false when absent; later duplicates remain.
+    pub fn remove_seek_index(&mut self) -> bool {
+        self.remove_section_by_tag(AnlzTag::SeekIndex)
+    }
+
+    /// Set SeekIndex content using the replacement and automatic insertion rules of
+    /// [`set_section`](Self::set_section). No analysis data is generated.
+    pub fn set_seek_index(&mut self, value: SeekIndex) -> Result<()> {
+        self.set_section(Section {
+            tag: AnlzTag::SeekIndex,
+            content: Content::SeekIndex(value),
+        })
+    }
+
     /// Mutably borrow the first PVB2 section (frame seek index).
     ///
     /// Uses the same selection and loading behavior as [`get_seek_index`](Self::get_seek_index).
@@ -869,6 +1339,21 @@ impl Anlz {
     }
 
     // ---- Tiny Waveform Preview Tag --------------------------------------------------------------
+
+    /// Remove the first TinyWaveformPreview section without decoding any payload.
+    /// Returns false when absent; later duplicates remain.
+    pub fn remove_tiny_waveform_preview(&mut self) -> bool {
+        self.remove_section_by_tag(AnlzTag::TinyWaveformPreview)
+    }
+
+    /// Set TinyWaveformPreview content using the replacement and automatic insertion rules of
+    /// [`set_section`](Self::set_section). No analysis data is generated.
+    pub fn set_tiny_waveform_preview(&mut self, value: TinyWaveformPreview) -> Result<()> {
+        self.set_section(Section {
+            tag: AnlzTag::TinyWaveformPreview,
+            content: Content::TinyWaveformPreview(value),
+        })
+    }
 
     /// Mutably borrow the first PWV2 section (small monochrome waveform preview).
     ///
@@ -904,6 +1389,21 @@ impl Anlz {
 
     // ---- Waveform Tags --------------------------------------------------------------------------
 
+    /// Remove the first WaveformPreview section without decoding any payload.
+    /// Returns false when absent; later duplicates remain.
+    pub fn remove_waveform_preview(&mut self) -> bool {
+        self.remove_section_by_tag(AnlzTag::WaveformPreview)
+    }
+
+    /// Set WaveformPreview content using the replacement and automatic insertion rules of
+    /// [`set_section`](Self::set_section). No analysis data is generated.
+    pub fn set_waveform_preview(&mut self, value: WaveformPreview) -> Result<()> {
+        self.set_section(Section {
+            tag: AnlzTag::WaveformPreview,
+            content: Content::WaveformPreview(value),
+        })
+    }
+
     /// Mutably borrow the first PWAV section (monochrome waveform preview).
     ///
     /// Uses the same selection and loading behavior as [`get_waveform_preview`](Self::get_waveform_preview).
@@ -931,6 +1431,21 @@ impl Anlz {
                 ..
             }) => Some(value),
             _ => None,
+        })
+    }
+
+    /// Remove the first WaveformDetail section without decoding any payload.
+    /// Returns false when absent; later duplicates remain.
+    pub fn remove_waveform_detail(&mut self) -> bool {
+        self.remove_section_by_tag(AnlzTag::WaveformDetail)
+    }
+
+    /// Set WaveformDetail content using the replacement and automatic insertion rules of
+    /// [`set_section`](Self::set_section). No analysis data is generated.
+    pub fn set_waveform_detail(&mut self, value: WaveformDetail) -> Result<()> {
+        self.set_section(Section {
+            tag: AnlzTag::WaveformDetail,
+            content: Content::WaveformDetail(value),
         })
     }
 
@@ -966,6 +1481,21 @@ impl Anlz {
 
     // ---- Waveform Color Tag ---------------------------------------------------------------------
 
+    /// Remove the first WaveformColorPreview section without decoding any payload.
+    /// Returns false when absent; later duplicates remain.
+    pub fn remove_waveform_color_preview(&mut self) -> bool {
+        self.remove_section_by_tag(AnlzTag::WaveformColorPreview)
+    }
+
+    /// Set WaveformColorPreview content using the replacement and automatic insertion rules of
+    /// [`set_section`](Self::set_section). No analysis data is generated.
+    pub fn set_waveform_color_preview(&mut self, value: WaveformColorPreview) -> Result<()> {
+        self.set_section(Section {
+            tag: AnlzTag::WaveformColorPreview,
+            content: Content::WaveformColorPreview(value),
+        })
+    }
+
     /// Mutably borrow the first PWV4 section (color waveform preview).
     ///
     /// Uses the same selection and loading behavior as [`get_waveform_color_preview`](Self::get_waveform_color_preview).
@@ -999,6 +1529,21 @@ impl Anlz {
     }
 
     // ---- Waveform Color Detail Tag --------------------------------------------------------------
+
+    /// Remove the first WaveformColorDetail section without decoding any payload.
+    /// Returns false when absent; later duplicates remain.
+    pub fn remove_waveform_color_detail(&mut self) -> bool {
+        self.remove_section_by_tag(AnlzTag::WaveformColorDetail)
+    }
+
+    /// Set WaveformColorDetail content using the replacement and automatic insertion rules of
+    /// [`set_section`](Self::set_section). No analysis data is generated.
+    pub fn set_waveform_color_detail(&mut self, value: WaveformColorDetail) -> Result<()> {
+        self.set_section(Section {
+            tag: AnlzTag::WaveformColorDetail,
+            content: Content::WaveformColorDetail(value),
+        })
+    }
 
     /// Mutably borrow the first PWV5 section (detailed color waveform).
     ///
@@ -1034,6 +1579,21 @@ impl Anlz {
 
     // ---- Waveform 3-Band Tags -------------------------------------------------------------------
 
+    /// Remove the first Waveform3BandPreview section without decoding any payload.
+    /// Returns false when absent; later duplicates remain.
+    pub fn remove_waveform_3band_preview(&mut self) -> bool {
+        self.remove_section_by_tag(AnlzTag::Waveform3BandPreview)
+    }
+
+    /// Set Waveform3BandPreview content using the replacement and automatic insertion rules of
+    /// [`set_section`](Self::set_section). No analysis data is generated.
+    pub fn set_waveform_3band_preview(&mut self, value: Waveform3BandPreview) -> Result<()> {
+        self.set_section(Section {
+            tag: AnlzTag::Waveform3BandPreview,
+            content: Content::Waveform3BandPreview(value),
+        })
+    }
+
     /// Mutably borrow the first PWV6 section (three-band waveform preview).
     ///
     /// Uses the same selection and loading behavior as [`get_waveform_3band_preview`](Self::get_waveform_3band_preview).
@@ -1064,6 +1624,21 @@ impl Anlz {
                 _ => None,
             },
         )
+    }
+
+    /// Remove the first Waveform3BandDetail section without decoding any payload.
+    /// Returns false when absent; later duplicates remain.
+    pub fn remove_waveform_3band_detail(&mut self) -> bool {
+        self.remove_section_by_tag(AnlzTag::Waveform3BandDetail)
+    }
+
+    /// Set Waveform3BandDetail content using the replacement and automatic insertion rules of
+    /// [`set_section`](Self::set_section). No analysis data is generated.
+    pub fn set_waveform_3band_detail(&mut self, value: Waveform3BandDetail) -> Result<()> {
+        self.set_section(Section {
+            tag: AnlzTag::Waveform3BandDetail,
+            content: Content::Waveform3BandDetail(value),
+        })
     }
 
     /// Mutably borrow the first PWV7 section (detailed three-band waveform).
@@ -1099,6 +1674,24 @@ impl Anlz {
     }
 
     // ---- Waveform 3-Band Calibration Tag --------------------------------------------------------
+
+    /// Remove the first Waveform3BandCalibration section without decoding any payload.
+    /// Returns false when absent; later duplicates remain.
+    pub fn remove_waveform_3band_calibration(&mut self) -> bool {
+        self.remove_section_by_tag(AnlzTag::Waveform3BandCalibration)
+    }
+
+    /// Set Waveform3BandCalibration content using the replacement and automatic insertion rules of
+    /// [`set_section`](Self::set_section). No analysis data is generated.
+    pub fn set_waveform_3band_calibration(
+        &mut self,
+        value: Waveform3BandCalibration,
+    ) -> Result<()> {
+        self.set_section(Section {
+            tag: AnlzTag::Waveform3BandCalibration,
+            content: Content::Waveform3BandCalibration(value),
+        })
+    }
 
     /// Mutably borrow the first PWVC section (three-band waveform calibration).
     ///
@@ -1136,6 +1729,21 @@ impl Anlz {
 
     // ---- Song Structure Tag ---------------------------------------------------------------------
 
+    /// Remove the first SongStructure section without decoding any payload.
+    /// Returns false when absent; later duplicates remain.
+    pub fn remove_song_structure(&mut self) -> bool {
+        self.remove_section_by_tag(AnlzTag::SongStructure)
+    }
+
+    /// Set SongStructure content using the replacement and automatic insertion rules of
+    /// [`set_section`](Self::set_section). No analysis data is generated.
+    pub fn set_song_structure(&mut self, value: SongStructure) -> Result<()> {
+        self.set_section(Section {
+            tag: AnlzTag::SongStructure,
+            content: Content::SongStructure(value),
+        })
+    }
+
     /// Mutably borrow the analysis data in the first PSSI song-structure section.
     ///
     /// Decodes the section on demand, including decryption when needed, and marks
@@ -1168,6 +1776,21 @@ impl Anlz {
     }
 
     // ---- Vocal Detection ------------------------------------------------------------------------
+
+    /// Remove the first VocalDetection section without decoding any payload.
+    /// Returns false when absent; later duplicates remain.
+    pub fn remove_vocal_detection(&mut self) -> bool {
+        self.remove_section_by_tag(AnlzTag::VocalDetection)
+    }
+
+    /// Set VocalDetection content using the replacement and automatic insertion rules of
+    /// [`set_section`](Self::set_section). No analysis data is generated.
+    pub fn set_vocal_detection(&mut self, value: VocalDetection) -> Result<()> {
+        self.set_section(Section {
+            tag: AnlzTag::VocalDetection,
+            content: Content::VocalDetection(value),
+        })
+    }
 
     /// Mutably borrow the first PVDI section (vocal-detection confidence data).
     ///
@@ -1203,6 +1826,47 @@ impl Anlz {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn removal_skips_malformed_payloads_and_preserves_unloaded_sections() {
+        let malformed = section(b"PCOB", 24, &[0xff; 12]);
+        let wave = waveform();
+        let unknown = section(b"ZZZZ", 12, &[1, 2, 3]);
+        let (_dir, mut file) = open(&file_bytes(&[malformed, wave.clone(), unknown.clone()]));
+        assert!(file.remove_hot_cues().is_err());
+        assert_eq!(file.section_count(), 3);
+        assert!(file.sections.iter().all(|entry| entry.decoded.is_none()));
+        assert!(file.remove_section_by_tag(AnlzTag::CueList));
+        assert!(file.sections.iter().all(|entry| entry.decoded.is_none()));
+        file.dump().unwrap();
+        assert!(std::fs::read(&file.path)
+            .unwrap()
+            .ends_with(&[wave, unknown].concat()));
+        assert!(file.sections.iter().all(|entry| entry.decoded.is_none()));
+        assert_eq!(file.remove_sections_by_tag(AnlzTag::Unknown(*b"ZZZZ")), 1);
+        file.remove_section(0).unwrap();
+        file.dump().unwrap();
+        assert_eq!(std::fs::metadata(&file.path).unwrap().len(), 28);
+    }
+
+    #[test]
+    fn replacing_a_section_does_not_decode_unrelated_or_old_payloads() {
+        let malformed = section(b"PQTZ", 24, &[0xff; 12]);
+        let wave = waveform();
+        let unknown = section(b"ZZZZ", 12, &[1, 2, 3]);
+        let (_dir, mut file) = open(&file_bytes(&[malformed, wave.clone(), unknown.clone()]));
+        file.set_beat_grid(BeatGrid::new(vec![])).unwrap();
+        assert!(file.sections[1..]
+            .iter()
+            .all(|entry| entry.decoded.is_none()));
+        file.dump().unwrap();
+        assert!(std::fs::read(&file.path)
+            .unwrap()
+            .ends_with(&[wave, unknown].concat()));
+        assert!(file.sections[1..]
+            .iter()
+            .all(|entry| entry.decoded.is_none()));
+    }
 
     #[cfg(windows)]
     #[test]

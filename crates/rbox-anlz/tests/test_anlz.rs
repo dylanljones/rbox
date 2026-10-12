@@ -38,6 +38,62 @@ fn all_fixtures() -> Vec<PathBuf> {
     files
 }
 
+#[test]
+fn extended_grids_match_corresponding_raw_beats() -> anyhow::Result<()> {
+    let mut checked = 0;
+    for path in all_fixtures()
+        .into_iter()
+        .filter(|p| p.extension().unwrap() == "EXT")
+    {
+        let mut ext = Anlz::load(&path)?;
+        let Some(grid) = ext.get_extended_beat_grid()? else {
+            continue;
+        };
+        if grid.beats.is_empty() {
+            continue;
+        }
+        let mut dat = Anlz::load(path.with_extension("DAT"))?;
+        let beats = &dat.get_beat_grid()?.unwrap().beats;
+        assert_eq!(&grid.first_beat, beats.first().unwrap());
+        assert_eq!(&grid.last_beat, beats.last().unwrap());
+        assert_eq!(grid.beats.len(), beats.len());
+        let checksum = beats.iter().fold(0u32, |sum, b| {
+            sum.wrapping_add(u32::from(b.beat_number))
+                .wrapping_add(u32::from(b.tempo))
+                .wrapping_add(b.time)
+        });
+        assert_eq!(grid.checksum, checksum);
+        assert!(grid.beats.iter().all(|b| b.microseconds <= 999));
+        checked += 1;
+    }
+    assert!(checked > 0);
+    Ok(())
+}
+
+#[test]
+fn reverse_order_insertion_recreates_fixture_section_order() -> anyhow::Result<()> {
+    let dir = create_temp_dir();
+    for path in all_fixtures() {
+        let original = Anlz::load(&path)?.into_data()?;
+        let extension = path.extension().unwrap().to_str().unwrap();
+        let output = dir.path().join(format!("ANLZ0000.{extension}"));
+        let mut file = match extension {
+            "DAT" => Anlz::new_dat(&output)?,
+            "EXT" => Anlz::new_ext(&output)?,
+            "2EX" => Anlz::new_2ex(&output)?,
+            _ => unreachable!(),
+        };
+        for section in original.sections.iter().rev() {
+            file.push_section(section.clone())?;
+        }
+        file.dump()?;
+        drop(file);
+        let rebuilt = Anlz::load(&output)?.into_data()?;
+        assert_eq!(rebuilt.sections, original.sections, "{}", path.display());
+    }
+    Ok(())
+}
+
 fn encode(data: &AnlzData) -> Vec<u8> {
     let mut out = Cursor::new(Vec::new());
     data.write(&mut out).unwrap();
@@ -128,6 +184,58 @@ fn lazy_fixtures_match_eager_and_copy_exactly() {
 }
 
 #[test]
+fn in_place_fixture_saves_are_byte_exact() -> anyhow::Result<()> {
+    let dir = create_temp_dir();
+    for path in all_fixtures() {
+        let original = std::fs::read(&path)?;
+        let copy = dir.path().join(path.file_name().unwrap());
+        std::fs::copy(&path, &copy)?;
+        let mut file = Anlz::load(&copy)?;
+
+        file.dump()?;
+        assert_eq!(
+            std::fs::read(&copy)?,
+            original,
+            "unloaded: {}",
+            path.display()
+        );
+
+        for index in 0..file.section_count() {
+            assert!(file.get_section(index)?.is_some());
+        }
+        file.dump()?;
+        assert_eq!(
+            std::fs::read(&copy)?,
+            original,
+            "shared reads: {}",
+            path.display()
+        );
+
+        // Mutable access marks every section for serialization, without edits.
+        for index in 0..file.section_count() {
+            assert!(file.get_mut_section(index)?.is_some());
+        }
+        file.dump()?;
+        assert_eq!(
+            std::fs::read(&copy)?,
+            original,
+            "reserialized: {}",
+            path.display()
+        );
+
+        drop(file);
+        Anlz::load(&copy)?.dump()?;
+        assert_eq!(
+            std::fs::read(&copy)?,
+            original,
+            "reopened: {}",
+            path.display()
+        );
+    }
+    Ok(())
+}
+
+#[test]
 fn resized_sections_and_comments_have_consistent_lengths() {
     for path in all_fixtures() {
         let bytes = std::fs::read(path).unwrap();
@@ -208,6 +316,13 @@ fn pssi(version: u16, encrypted: bool, entries: u16) -> Vec<u8> {
     bytes.extend(entries.to_be_bytes());
     let mut payload = vec![0; 14 + usize::from(entries) * 24];
     payload[1] = 1; // mood: High; bank: Default
+    payload[8..10].copy_from_slice(&(entries + 1).to_be_bytes());
+    for i in 0..entries {
+        let offset = 14 + usize::from(i) * 24;
+        payload[offset..offset + 2].copy_from_slice(&(i + 1).to_be_bytes());
+        payload[offset + 2..offset + 4].copy_from_slice(&(i + 1).to_be_bytes());
+        payload[offset + 4..offset + 6].copy_from_slice(&1u16.to_be_bytes());
+    }
     if encrypted {
         let mask = [
             0xcb_u8, 0xe1, 0xee, 0xfa, 0xe5, 0xee, 0xad, 0xee, 0xe9, 0xd2, 0xe9, 0xeb, 0xe1, 0xe9,
