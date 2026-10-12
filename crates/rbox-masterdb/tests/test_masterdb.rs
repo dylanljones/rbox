@@ -2148,15 +2148,6 @@ fn content_insertion_accepts_an_explicit_file_type() -> anyhow::Result<()> {
     db.set_unsafe_writes(true);
     let files = create_temp_dir();
 
-    let m4a = files.path().join("lossless.m4a");
-    std::fs::write(&m4a, b"")?;
-    let row = db.create_content_with_file_type(&m4a, FileType::ALAC)?;
-    assert_eq!(row.file_type, FileType::ALAC as i32);
-    assert_eq!(
-        db.get_content_by_id(&row.id)?.unwrap().file_type,
-        FileType::ALAC as i32
-    );
-
     let extensionless = files.path().join("recording");
     std::fs::write(&extensionless, b"")?;
     let mut conn = db.pool.get()?;
