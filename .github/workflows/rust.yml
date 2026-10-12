@@ -28,20 +28,27 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Install system SQLCipher for standalone crate verification
         run: sudo apt-get update && sudo apt-get install -y libsqlcipher-dev pkg-config
+      - name: Determine publishable crates and dependency order
+        shell: bash
+        run: |
+          python3 -m unittest discover -s scripts/tests -p test_publish_order.py
+          cargo metadata --no-deps --format-version 1 | python3 scripts/publish_order.py > "$RUNNER_TEMP/publish-plan.tsv"
+          cat "$RUNNER_TEMP/publish-plan.tsv"
       - name: Publish crate family in dependency order
         shell: bash
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
         run: |
-          metadata=$(cargo metadata --no-deps --format-version 1)
           index_file=$(mktemp)
           trap 'rm -f "$index_file"' EXIT
 
-          # Dependencies first; rbox-derives keeps its independent version.
-          for crate in rbox-derives rbox-core rbox-db rbox-anlz rbox-setting \
-                       rbox-xml rbox-masterdb rbox-onelib rbox; do
-            version=$(jq -er --arg name "$crate" '.packages[] | select(.name == $name) | .version' <<< "$metadata")
-            url="https://index.crates.io/${crate:0:2}/${crate:2:2}/$crate"
+          while IFS=$'\t' read -r crate version; do
+            case ${#crate} in
+              1|2) index_path="${#crate}/$crate" ;;
+              3) index_path="3/${crate:0:1}/$crate" ;;
+              *) index_path="${crate:0:2}/${crate:2:2}/$crate" ;;
+            esac
+            url="https://index.crates.io/${index_path,,}"
             status=$(curl --silent --show-error --retry 3 --max-time 30 \
               --output "$index_file" --write-out '%{http_code}' "$url")
 
@@ -61,5 +68,5 @@ jobs:
               *) echo "::error::Registry lookup failed for $crate (HTTP $status)"; exit 1 ;;
             esac
 
-            cargo publish -p "$crate"
-          done
+            cargo publish --registry crates-io -p "$crate"
+          done < "$RUNNER_TEMP/publish-plan.tsv"

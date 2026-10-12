@@ -8,51 +8,38 @@ please use [GitHub Discussions][discussions] instead of opening an issue.
 rbox is tested on Windows, MacOS and Linux, however some features can't be tested in
 the CI setup since it requires a working Rekordbox installation.
 
-## Tests and releases
+## Structure
 
-Run the Rust workspace tests from the repository root:
+The project is structured as a Rust workspace. Arrows point toward dependencies;
+arrows between groups summarize dependencies rather than applying to every crate.
+The dashed arrow is enabled by the `master-db` feature of `rbox-onelib`.
 
-```sh
-cargo test --workspace --exclude rbox-py --exclude rbox-js --lib --bins --tests
+```mermaid
+flowchart TD
+    bindings["Python / JavaScript bindings"] --> rbox["rbox"]
+
+    subgraph main_crates["Main crates"]
+        direction LR
+        onelib["rbox-onelib"] -.-> masterdb["rbox-masterdb"]
+        masterdb --> anlz["rbox-anlz"]
+        anlz ~~~ settings["rbox-setting"] ~~~ xml["rbox-xml"]
+    end
+
+    subgraph core_crates["Core crates"]
+        direction LR
+        db["rbox-db"] ~~~ core["rbox-core"]
+    end
+
+    %% Connect groups to preserve their horizontal layout.
+    %% Invisible links above control ordering without implying dependencies.
+    rbox --> main_crates
+    rbox --> core_crates
+    main_crates --> core_crates
 ```
 
-The bindings have separate API tests in `bindings/python/tests` and
-`bindings/javascript/__test__`. CI runs on pull requests targeting `main`,
-and the Tests workflow can also be started manually on `dev` or another branch.
-Changes to shared crates trigger tests for both bindings.
+Both database handlers depend on `rbox-db` and `rbox-core`; `rbox` also exposes
+these shared crates directly.
 
-Use Python 3.10 or later to bump the workspace release version.
-First install the TOML parser:
-
-```sh
-python -m pip install tomlkit
-```
-
-Then preview or apply the version bump:
-
-```sh
-python scripts/bump_version.py 0.1.8 --dry-run
-python scripts/bump_version.py 0.1.8
-```
-
-The script updates workspace metadata, versioned dependencies between workspace
-crates, binding package versions, and existing version references in documentation.
-To bump `rbox-derives` and its versioned dependency requirements separately:
-
-```sh
-python scripts/bump_version.py 0.2.1 --derives --dry-run
-python scripts/bump_version.py 0.2.1 --derives
-```
-
-This leaves the workspace version, other crate versions, and binding package
-versions unchanged. Dependencies that only specify a local path remain unchanged.
-
-Rust releases publish the public sub-crates in dependency order, followed by
-`rbox`. Already-published versions are skipped so a failed release can be retried.
-`codegen`, `rbox-testing`, and the binding crates are not published to crates.io.
-Rust publication waits for the reusable Tests workflow; npm and PyPI publication
-wait for tests of their built artifacts. PyPI releases also verify that the source
-archive builds without the repository checkout.
 
 ## Pre-commit Hooks
 
@@ -192,6 +179,53 @@ includes migration instructions.
 Similarly, a Deprecation section should start with "DEPRECATED: " followed by a short description
 of what is deprecated, a blank line, and a detailed description of the deprecation that also
 mentions the recommended update path.
+
+## Tests and releases
+
+Run the Rust workspace tests from the repository root:
+
+```sh
+cargo test --workspace --exclude rbox-py --exclude rbox-js --lib --bins --tests
+```
+
+The bindings have separate API tests in `bindings/python/tests` and
+`bindings/javascript/__test__`. CI runs on pull requests targeting `main`,
+and the Tests workflow can also be started manually on `dev` or another branch.
+Changes to shared crates trigger tests for both bindings.
+
+Use Python 3.10 or later to bump the workspace release version.
+First install the TOML parser:
+
+```sh
+python -m pip install tomlkit
+```
+
+Then preview or apply the version bump:
+
+```sh
+python scripts/bump_version.py 0.1.8 --dry-run
+python scripts/bump_version.py 0.1.8
+```
+
+The script updates workspace metadata, versioned dependencies between workspace
+crates, binding package versions, and existing version references in documentation.
+To bump `rbox-derives` and its versioned dependency requirements separately:
+
+```sh
+python scripts/bump_version.py 0.2.1 --derives --dry-run
+python scripts/bump_version.py 0.2.1 --derives
+```
+
+This leaves the workspace version, other crate versions, and binding package
+versions unchanged. Dependencies that only specify a local path remain unchanged.
+
+Rust releases publish the public sub-crates in dependency order, followed by
+`rbox`. Already-published versions are skipped so a failed release can be retried.
+`codegen`, `rbox-testing`, and the binding crates are not published to crates.io.
+Rust publication waits for the reusable Tests workflow; npm and PyPI publication
+wait for tests of their built artifacts. PyPI releases also verify that the source
+archive builds without the repository checkout.
+
 
 [issue]: https://github.com/dylanljones/rbox/issues
 [pulls]: https://github.com/dylanljones/rbox/pulls

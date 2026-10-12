@@ -147,38 +147,6 @@ Does this library support the old Device Library export files?
 
 </details>
 
-## Structure
-
-The project is structured as a Rust workspace. Arrows point toward dependencies;
-arrows between groups summarize dependencies rather than applying to every crate.
-The dashed arrow is enabled by the `master-db` feature of `rbox-onelib`.
-
-```mermaid
-flowchart TD
-    bindings["Python / JavaScript bindings"] --> rbox["rbox"]
-
-    subgraph main_crates["Main crates"]
-        direction LR
-        onelib["rbox-onelib"] -.-> masterdb["rbox-masterdb"]
-        masterdb --> anlz["rbox-anlz"]
-        anlz ~~~ settings["rbox-setting"] ~~~ xml["rbox-xml"]
-    end
-
-    subgraph core_crates["Core crates"]
-        direction LR
-        db["rbox-db"] ~~~ core["rbox-core"]
-    end
-
-    %% Connect groups to preserve their horizontal layout.
-    %% Invisible links above control ordering without implying dependencies.
-    rbox --> main_crates
-    rbox --> core_crates
-    main_crates --> core_crates
-```
-
-Both database handlers depend on `rbox-db` and `rbox-core`; `rbox` also exposes
-these shared crates directly.
-
 ## Thank you
 
 A special thank you to everyone who has contributed to [pyrekordbox]. Your code,
