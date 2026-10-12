@@ -7,24 +7,35 @@ from enum import Enum
 from pathlib import Path
 from typing import List, Literal, Optional, TypedDict, Union
 
+# Explicit aliases keep public re-exports that are not used inside this module.
 from ._rbox import (
     VBR,
+    Beat as Beat,
     BeatGrid,
     CueList,
+    ExtBeat as ExtBeat,
     ExtendedBeatGrid,
+    ExtendedCue as ExtendedCue,
     ExtendedCueList,
+    Phrase as Phrase,
     PyAnlz as _PyAnlz,
     SeekIndex,
+    SeekPoint as SeekPoint,
     SongStructure,
     SongStructureData,
+    TinyWaveformColumn as TinyWaveformColumn,
     TinyWaveformPreview,
     UnknownSection,
     VocalDetection,
     Waveform3BandCalibration,
+    Waveform3BandColumn as Waveform3BandColumn,
     Waveform3BandDetail,
     Waveform3BandPreview,
     WaveformColorDetail,
+    WaveformColorDetailColumn as WaveformColorDetailColumn,
     WaveformColorPreview,
+    WaveformColorPreviewColumn as WaveformColorPreviewColumn,
+    WaveformColumn as WaveformColumn,
     WaveformDetail,
     WaveformPreview,
 )
