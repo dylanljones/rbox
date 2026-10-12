@@ -1,0 +1,27 @@
+[package]
+name = "rbox-anlz"
+description = "Rekordbox ANLZ file handler"
+readme = "README.md"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+publish = true
+
+[features]
+default = []
+
+[dependencies]
+binrw             = { workspace = true }
+modular-bitfield  = { workspace = true }
+tempfile          = { workspace = true }
+thiserror         = { workspace = true }
+
+[dev-dependencies]
+anyhow            = { workspace = true }
+rbox-testing      = { path = "../rbox-testing" }

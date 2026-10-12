@@ -7,17 +7,18 @@ description = "Python library for interacting with the local and export data of 
 authors = [
     {name = "Dylan Jones", email = "dylanljones@proton.me"},
 ]
-requires-python = '>=3.10'
+# Keep aligned with the tested CPython versions in the release workflow.
+requires-python = '>=3.11,<3.16'
 classifiers = [
     'Development Status :: 3 - Alpha',
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3 :: Only',
-    'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
     'Programming Language :: Python :: 3.13',
     'Programming Language :: Python :: 3.14',
+    'Programming Language :: Python :: 3.15',
     'Programming Language :: Rust',
     'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
     'Operating System :: Microsoft :: Windows',

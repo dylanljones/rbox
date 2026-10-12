@@ -4,7 +4,7 @@
 use chrono::{DateTime, Utc};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyString, PyType};
-use rbox::enums::PlaylistType;
+use rbox::masterdb::enums::PlaylistType;
 use rbox::masterdb::{models::*, MasterDb};
 
 use super::errors::MasterDbError;
@@ -17,7 +17,13 @@ fn db_error<E: ToString>(e: E) -> PyErr {
 }
 
 #[derive(Clone)]
-#[pyclass(name = "DjmdPlaylistTreeNode", unsendable, get_all, set_all)]
+#[pyclass(
+    from_py_object,
+    name = "DjmdPlaylistTreeNode",
+    unsendable,
+    get_all,
+    set_all
+)]
 pub struct PyDjmdPlaylistTreeNode {
     pub id: String,
     pub uuid: String,
@@ -431,6 +437,11 @@ impl PyMasterDb {
     pub fn create_content(&mut self, path: &str) -> PyResult<DjmdContent> {
         let model = self.db.create_content(path).map_err(db_error)?;
         Ok(model)
+    }
+
+    /// Inserts a configured content model into the `djmdContent` table.
+    pub fn add_content(&mut self, content: NewDjmdContent) -> PyResult<DjmdContent> {
+        self.db.add_content(content).map_err(db_error)
     }
 
     /// Updates an existing `djmdContent` entry in the database.

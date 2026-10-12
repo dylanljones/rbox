@@ -3,7 +3,7 @@
 
 use pyo3::prelude::*;
 use pyo3::types::PyType;
-use rbox::enums::HistoryType;
+use rbox::db::enums::HistoryType;
 use rbox::one_library::{models::*, OneLibrary};
 
 use super::errors::OneLibraryError;

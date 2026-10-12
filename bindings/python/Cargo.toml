@@ -21,11 +21,11 @@ crate-type = ["cdylib"]
 extension-module = ["pyo3/extension-module"]
 
 [dependencies]
-rbox            = { path = "../../rbox", features = ["full", "bundled-vendored-openssl", "pyo3"] }
-pyo3            = { workspace = true }
-chrono          = { workspace = true }
+rbox              = { path = "../../rbox", default-features = false, features = ["full", "bundled-vendored-openssl", "pyo3"] }
+pyo3              = { workspace = true }
+chrono            = { workspace = true }
 
 [build-dependencies]
 # version_check = "0.9.5"
 # used where logic has to be version/distribution specific, e.g. pypy
-pyo3-build-config = { version = "0.27" }
+pyo3-build-config = { workspace = true }

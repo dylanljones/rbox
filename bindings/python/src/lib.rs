@@ -14,31 +14,32 @@ use pyo3::prelude::*;
 
 #[pyfunction]
 fn rekordbox_agent_app_dir() -> PyResult<String> {
-    let path = rbox::util::rekordbox_agent_app_dir()
+    let path = rbox::core::rekordbox_agent_app_dir()
         .map_err(|e| PyErr::new::<errors::Error, _>(format!("{}", e)))?;
     Ok(path.to_str().unwrap().to_string())
 }
 
 #[pyfunction]
 fn options_json_path() -> PyResult<String> {
-    let path = rbox::util::options_json_path()
+    let path = rbox::core::options_json_path()
         .map_err(|e| PyErr::new::<errors::Error, _>(format!("{}", e)))?;
     Ok(path.to_str().unwrap().to_string())
 }
 
 #[pyfunction]
 fn rekordbox_app_dir() -> PyResult<String> {
-    let path = rbox::util::rekordbox_app_dir()
+    let path = rbox::core::rekordbox_app_dir()
         .map_err(|e| PyErr::new::<errors::Error, _>(format!("{}", e)))?;
     Ok(path.to_str().unwrap().to_string())
 }
 
 #[pyfunction]
 fn is_rekordbox_running() -> PyResult<bool> {
-    Ok(rbox::util::is_rekordbox_running())
+    Ok(rbox::core::is_rekordbox_running())
 }
 
-#[pymodule]
+// Preserve the module's GIL requirement; free-threaded support needs a separate audit.
+#[pymodule(gil_used = true)]
 fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rekordbox_agent_app_dir, m)?)?;
     m.add_function(wrap_pyfunction!(options_json_path, m)?)?;
@@ -49,14 +50,15 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<options::PyRekordboxOptions>()?;
 
     // Database enums
-    m.add_class::<rbox::enums::FileType>()?;
-    m.add_class::<rbox::enums::Analyzed>()?;
-    m.add_class::<rbox::enums::HistoryType>()?;
-    m.add_class::<rbox::enums::HotCueBanklistType>()?;
-    m.add_class::<rbox::enums::MyTagType>()?;
-    m.add_class::<rbox::enums::PlaylistType>()?;
-    m.add_class::<rbox::enums::RelatedTracksType>()?;
-    m.add_class::<rbox::enums::SamplerType>()?;
+    m.add_class::<rbox::core::FileType>()?;
+    m.add_class::<rbox::masterdb::enums::Analyzed>()?;
+    m.add_class::<rbox::db::enums::HistoryType>()?;
+    m.add_class::<rbox::db::enums::HotCueBanklistType>()?;
+    m.add_class::<rbox::db::enums::MyTagType>()?;
+    m.add_class::<rbox::masterdb::enums::PlaylistType>()?;
+    m.add_class::<rbox::one_library::enums::PlaylistType>()?;
+    m.add_class::<rbox::masterdb::enums::RelatedTracksType>()?;
+    m.add_class::<rbox::masterdb::enums::SamplerType>()?;
 
     // Master-db
     m.add_class::<masterdb::PyMasterDb>()?;
@@ -166,6 +168,8 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<rbox::one_library::models::Sort>()?;
 
     // Anlz
+    m.add_class::<anlz::PySongStructure>()?;
+    m.add_class::<anlz::PyUnknownSection>()?;
     m.add_class::<anlz::PyVBR>()?;
     m.add_class::<anlz::PySeekPoint>()?;
     m.add_class::<anlz::PySeekIndex>()?;

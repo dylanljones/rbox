@@ -25,7 +25,7 @@ jobs:
       fail-fast: true
       matrix:
         settings:
-          - host: macos-latest
+          - host: macos-15-intel
             target: x86_64-apple-darwin
             build: yarn build --target x86_64-apple-darwin
           - host: windows-latest
@@ -130,7 +130,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bindings-${{ matrix.settings.target }}
-          path: bindings/javascript/${{ env.APP_NAME }}.*.node
+          path: |
+            bindings/javascript/${{ env.APP_NAME }}.*.node
+            bindings/javascript/index.js
+            bindings/javascript/index.d.ts
           if-no-files-found: error
 
   universal-macOS:
@@ -183,8 +186,41 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bindings-universal-apple-darwin
-          path: bindings/javascript/artifacts/${{ env.APP_NAME }}.*.node
+          path: |
+            bindings/javascript/artifacts/${{ env.APP_NAME }}.darwin-universal.node
+            bindings/javascript/artifacts/index.js
+            bindings/javascript/artifacts/index.d.ts
           if-no-files-found: error
+
+  test-artifacts:
+    needs: [build, universal-macOS]
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['18', '22']
+        platform:
+          - {host: ubuntu-latest, target: x86_64-unknown-linux-gnu, architecture: x64}
+          - {host: windows-latest, target: x86_64-pc-windows-msvc, architecture: x64}
+          - {host: macos-15-intel, target: universal-apple-darwin, architecture: x64}
+          - {host: macos-latest, target: universal-apple-darwin, architecture: arm64}
+    runs-on: ${{ matrix.platform.host }}
+    defaults:
+      run:
+        working-directory: bindings/javascript
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          architecture: ${{ matrix.platform.architecture }}
+          cache: yarn
+          cache-dependency-path: bindings/javascript/yarn.lock
+      - run: yarn install --immutable
+      - uses: actions/download-artifact@v4
+        with:
+          name: bindings-${{ matrix.platform.target }}
+          path: bindings/javascript
+      - run: yarn test
 
   publish:
     name: Publish
@@ -196,6 +232,7 @@ jobs:
     needs:
       - build
       - universal-macOS
+      - test-artifacts
     defaults:
       run:
         working-directory: ${{ env.working-directory }}
@@ -225,6 +262,11 @@ jobs:
 
       - name: Move artifacts
         run: yarn artifacts
+
+      - name: Use generated JavaScript entry points
+        run: |
+          cp artifacts/bindings-x86_64-unknown-linux-gnu/index.js index.js
+          cp artifacts/bindings-x86_64-unknown-linux-gnu/index.d.ts index.d.ts
 
       - name: List packages
         run: ls -R ./npm

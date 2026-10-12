@@ -2,13 +2,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import test from 'ava'
-import { OneLibrary } from '../index.js'
+import { OneLibrary, OneLibraryPlaylistType, PlaylistType } from '../index.js'
 import { cleanupFixtures, fixtureCopy } from './helpers/fixtures.mjs'
 
 test.afterEach.always(cleanupFixtures)
 
 test.beforeEach(t => {
     t.context.db = new OneLibrary(fixtureCopy(t, 'oneLibrary'))
+})
+
+test('database playlist enums have distinct exports', t => {
+    t.not(OneLibraryPlaylistType, PlaylistType)
+    const row = t.context.db.createPlaylist('enum API', null, null)
+    t.is(row.attribute, OneLibraryPlaylistType.List)
 })
 
 test('raw getters and argument conversion', t => {

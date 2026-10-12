@@ -3,9 +3,12 @@
 
 // Run via `cargo run --color=always --example locate --profile dev`
 
-use rbox::{default_master_db_path, rekordbox_agent_app_dir, RekordboxOptions};
+use rbox::{locate_library, rekordbox_agent_app_dir, RekordboxOptions};
 
 fn main() -> anyhow::Result<()> {
+    let loc = locate_library()?;
+    println!("Rekordbox library located at: {:#?}", loc);
+
     let agent_dir = rekordbox_agent_app_dir();
     if agent_dir.is_err() {
         println!("Failed to locate Rekordbox agent directory");
@@ -22,9 +25,5 @@ fn main() -> anyhow::Result<()> {
     println!("Settings root:      {:?}", opts.settings_root);
     println!("Database directory: {:?}", opts.get_db_dir());
 
-    println!("");
-    println!("Default locations:");
-    let db_path = default_master_db_path();
-    println!("Default database path: {:?}", db_path);
     Ok(())
 }

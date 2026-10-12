@@ -1,0 +1,17 @@
+[package]
+name = "rbox-testing"
+description = "Testing utilities for rbox"
+readme = "README.md"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+publish = false
+
+[dependencies]
+tempfile        = { workspace = true }

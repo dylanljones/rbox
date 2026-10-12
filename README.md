@@ -36,7 +36,7 @@ It supports the following Rekordbox files:
 | Rekordbox database |  ✓   |      ✓ |      ❌ |
 | One Library        |  ✓   |      ✓ |      ✓ |
 | XML database       |  ✓   |      ✓ |      ✓ |
-| Analysis Files     |  ✓   |      ✓ |      ❌ |
+| Analysis Files     |  ✓   |      ✓ |      ✓ |
 | Settings Files     |  ✓   |      ✓ |      ✓ |
 
 
@@ -63,7 +63,7 @@ cargo add rbox
 ```
 or add the following line to your Cargo.toml:
 ```shell
-rbox = "0.1.8"
+rbox = "0.2.0"
 ```
 
 ### 🐍 Python
@@ -108,6 +108,62 @@ For general questions or discussions about the library or Rekordbox,
 please use [GitHub Discussions][discussions] instead of opening an issue.
 
 
+## FAQ
+
+<details>
+<summary>
+Can rbox analyze audio and generate analysis files?
+</summary>
+
+> Not yet. `rbox` can read and modify existing analysis files, but it cannot currently generate
+> analysis data from audio. A goal of the project is to support audio processing and generate
+> Rekordbox-compatible analysis files, including waveforms. This is planned work, with no release
+> timeline yet.
+
+</details>
+
+<details>
+
+<summary>
+Can I use rbox to prepare device exports without Rekordbox?
+</summary>
+
+> `rbox` supports the One Library (Device Library Plus) export database format, and existing
+> analysis files can be copied to a device. A complete export workflow starting from unanalysed
+> audio still requires analysis-file generation, which is a project goal.
+
+</details>
+
+<details>
+<summary>
+Does this library support the old Device Library export files?
+</summary>
+
+> Not yet. Support for the original Device Library (`.pdb`) format is planned, but it will take
+> time to implement. There is no release timeline yet.
+>
+> In the meantime, check out [rekordcrate](https://github.com/Holzhaus/rekordcrate) for a library focused more on export files
+> and their awesome work of reverse engineering the `.pdb` format.
+
+</details>
+
+## Thank you
+
+A special thank you to everyone who has contributed to [pyrekordbox]. Your code,
+bug reports, testing, documentation, and ideas helped build the foundation that
+rbox builds on today.
+
+Thank you also to everyone contributing to rbox and sharing knowledge about
+Rekordbox's file formats and databases. Every contribution helps make these tools
+better for the community.
+
+## Sponsor
+
+If rbox has helped you or saved you time, consider supporting its development - every coffee makes a difference!
+
+[![BuyMeACoffee](https://raw.githubusercontent.com/pachadotdev/buymeacoffee-badges/main/bmc-white.svg)](https://www.buymeacoffee.com/dylanljones)
+
+
 ## License
 
 This project is licensed under the
@@ -118,52 +174,6 @@ Earlier releases may have been available under different terms.
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in this project by you shall be licensed under the same terms as
 this project, without any additional terms or conditions.
-
-
-## FAQ
-
-<details>
-<summary>
-Can I run the analysis provided by Rekordbox with rbox?
-</summary>
-
-> No, `rbox` is only an interface to Rekordbox's data. It can read and write Rekordbox analysis
-> files (waveforms, beat grids, hot cues, etc.), but it does not implement or run Rekordbox’s audio
-> analysis algorithms.
-
-</details>
-
-<details>
-
-<summary>
-Can I use rbox to prepare device exports without Rekordbox?
-</summary>
-
-> Although `rbox` does support the new One Library (Device Library Plus) export format, the library
-> cannot run the analysis provided by Rekordbox.
-> Once files have been analyzed, the analysis data can be exported to the device.
-
-</details>
-
-<details>
-<summary>
-Does this library support the old Device Library export files?
-</summary>
-
-> `rbox` does not support the old device library export files and support is not planned anytime soon.
->
-> Check out [rekordcrate](https://github.com/Holzhaus/rekordcrate) for a library focused more on export files
-> and their awesome work of reverse engineering the `.pdb` format.
-
-</details>
-
-
-
-## Sponsor
-
-If rbox has helped you or saved you time, consider supporting its development - every coffee makes a difference!
-
-[![BuyMeACoffee](https://raw.githubusercontent.com/pachadotdev/buymeacoffee-badges/main/bmc-white.svg)](https://www.buymeacoffee.com/dylanljones)
 
 
 [crates.io]: https://crates.io/crates/rbox

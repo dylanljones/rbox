@@ -3,7 +3,7 @@
 
 use napi::Result;
 use napi_derive::napi;
-use rbox::enums::HistoryType;
+use rbox::db::enums::HistoryType;
 use rbox::one_library::{models::*, OneLibrary};
 
 #[napi(js_name = "OneLibrary")]
@@ -17,7 +17,7 @@ impl JsOneLibrary {
     #[napi(constructor)]
     pub fn new(path: String) -> Result<Self> {
         Ok(Self {
-            inner: OneLibrary::new(path.as_str())?,
+            inner: OneLibrary::new(path.as_str()).map_err(crate::util::binding_error)?,
         })
     }
 
@@ -25,7 +25,8 @@ impl JsOneLibrary {
     #[napi(factory)]
     pub fn create(path: String, my_tag_master_dbid: i32) -> Result<Self> {
         Ok(Self {
-            inner: OneLibrary::create(path.as_str(), my_tag_master_dbid)?,
+            inner: OneLibrary::create(path.as_str(), my_tag_master_dbid)
+                .map_err(crate::util::binding_error)?,
         })
     }
 
@@ -33,7 +34,8 @@ impl JsOneLibrary {
     #[napi(factory)]
     pub fn create_if_not_exists(path: String, my_tag_master_dbid: i32) -> Result<Self> {
         Ok(Self {
-            inner: OneLibrary::create_if_not_exists(path.as_str(), my_tag_master_dbid)?,
+            inner: OneLibrary::create_if_not_exists(path.as_str(), my_tag_master_dbid)
+                .map_err(crate::util::binding_error)?,
         })
     }
 
@@ -41,41 +43,57 @@ impl JsOneLibrary {
     /// Related rows are shallow snapshots; changes require explicit model updates.
     #[napi]
     pub fn get_album_with_relations(&self, id: i32) -> Result<Option<AlbumView>> {
-        self.inner.get_album_with_relations(id).map_err(Into::into)
+        self.inner
+            .get_album_with_relations(id)
+            .map_err(crate::util::binding_error)
     }
 
     /// Load all albums with direct relationships using batched queries.
     /// Missing relationship targets remain absent; query errors propagate.
     #[napi]
     pub fn get_albums_with_relations(&self) -> Result<Vec<AlbumView>> {
-        self.inner.get_albums_with_relations().map_err(Into::into)
+        self.inner
+            .get_albums_with_relations()
+            .map_err(crate::util::binding_error)
     }
 
     /// Queries all records from the `album` table.
     #[napi]
     pub fn get_albums(&self) -> Result<Vec<Album>> {
-        let res = self.inner.get_albums()?;
+        let res = self
+            .inner
+            .get_albums()
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `album` table by its primary key `id`.
     #[napi]
     pub fn get_album_by_id(&self, id: i32) -> Result<Option<Album>> {
-        let res = self.inner.get_album_by_id(id)?;
+        let res = self
+            .inner
+            .get_album_by_id(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `album` table by its `name`.
     #[napi]
     pub fn get_album_by_name(&self, name: String) -> Result<Option<Album>> {
-        let res = self.inner.get_album_by_name(&name)?;
+        let res = self
+            .inner
+            .get_album_by_name(&name)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Inserts a new record into the `album` table.
     #[napi]
     pub fn insert_album(&self, album: NewAlbum) -> Result<Album> {
-        let res = self.inner.insert_album(album)?;
+        let res = self
+            .inner
+            .insert_album(album)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
@@ -87,70 +105,100 @@ impl JsOneLibrary {
         artist_id: Option<i32>,
         image_id: Option<i32>,
     ) -> Result<Album> {
-        let res = self.inner.create_album(name, artist_id, image_id)?;
+        let res = self
+            .inner
+            .create_album(name, artist_id, image_id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Updates an existing record in the `album` table.
     #[napi]
     pub fn update_album(&self, album: Album) -> Result<Album> {
-        let res = self.inner.update_album(album)?;
+        let res = self
+            .inner
+            .update_album(album)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Deletes a record from the `album` table by its primary key `id`.
     #[napi]
     pub fn delete_album(&self, id: i32) -> Result<u32> {
-        let res = self.inner.delete_album(id)?;
+        let res = self
+            .inner
+            .delete_album(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
     /// Queries all records from the `artist` table.
     #[napi]
     pub fn get_artists(&self) -> Result<Vec<Artist>> {
-        let res = self.inner.get_artists()?;
+        let res = self
+            .inner
+            .get_artists()
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `artist` table by its primary key `id`.
     #[napi]
     pub fn get_artist_by_id(&self, id: i32) -> Result<Option<Artist>> {
-        let res = self.inner.get_artist_by_id(id)?;
+        let res = self
+            .inner
+            .get_artist_by_id(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `artist` table by its `name`.
     #[napi]
     pub fn get_artist_by_name(&self, name: String) -> Result<Option<Artist>> {
-        let res = self.inner.get_artist_by_name(&name)?;
+        let res = self
+            .inner
+            .get_artist_by_name(&name)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Inserts a new record into the `artist` table.
     #[napi]
     pub fn insert_artist(&self, artist: NewArtist) -> Result<Artist> {
-        let res = self.inner.insert_artist(artist)?;
+        let res = self
+            .inner
+            .insert_artist(artist)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Creates a new record and inserts it into the `artist` table.
     #[napi]
     pub fn create_artist(&self, name: String) -> Result<Artist> {
-        let res = self.inner.create_artist(name)?;
+        let res = self
+            .inner
+            .create_artist(name)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Updates an existing record in the `artist` table.
     #[napi]
     pub fn update_artist(&self, artist: Artist) -> Result<Artist> {
-        let res = self.inner.update_artist(artist)?;
+        let res = self
+            .inner
+            .update_artist(artist)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Deletes a record from the `artist` table by its primary key `id`.
     #[napi]
     pub fn delete_artist(&self, id: i32) -> Result<u32> {
-        let res = self.inner.delete_artist(id)?;
+        let res = self
+            .inner
+            .delete_artist(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
@@ -160,7 +208,7 @@ impl JsOneLibrary {
     pub fn get_category_with_relations(&self, id: i32) -> Result<Option<CategoryView>> {
         self.inner
             .get_category_with_relations(id)
-            .map_err(Into::into)
+            .map_err(crate::util::binding_error)
     }
 
     /// Load all categories with direct relationships using batched queries.
@@ -169,27 +217,36 @@ impl JsOneLibrary {
     pub fn get_categories_with_relations(&self) -> Result<Vec<CategoryView>> {
         self.inner
             .get_categories_with_relations()
-            .map_err(Into::into)
+            .map_err(crate::util::binding_error)
     }
 
     /// Queries all records from the `category` table.
     #[napi]
     pub fn get_categories(&self) -> Result<Vec<Category>> {
-        let res = self.inner.get_categories()?;
+        let res = self
+            .inner
+            .get_categories()
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `category` table by its primary key `id`.
     #[napi]
     pub fn get_category_by_id(&self, id: i32) -> Result<Option<Category>> {
-        let res = self.inner.get_category_by_id(id)?;
+        let res = self
+            .inner
+            .get_category_by_id(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Inserts a new record into the `category` table.
     #[napi]
     pub fn insert_category(&self, category: NewCategory) -> Result<Category> {
-        let res = self.inner.insert_category(category)?;
+        let res = self
+            .inner
+            .insert_category(category)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
@@ -201,63 +258,90 @@ impl JsOneLibrary {
         seq: Option<i32>,
         is_visible: Option<i32>,
     ) -> Result<Category> {
-        let res = self.inner.create_category(menu_item_id, seq, is_visible)?;
+        let res = self
+            .inner
+            .create_category(menu_item_id, seq, is_visible)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Updates an existing record in the `category` table.
     #[napi]
     pub fn update_category(&self, category: Category) -> Result<Category> {
-        let res = self.inner.update_category(category)?;
+        let res = self
+            .inner
+            .update_category(category)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Deletes a record from the `category` table by its primary key `id`.
     #[napi]
     pub fn delete_category(&self, id: i32) -> Result<u32> {
-        let res = self.inner.delete_category(id)?;
+        let res = self
+            .inner
+            .delete_category(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
     /// Queries all records from the `color` table.
     #[napi]
     pub fn get_colors(&self) -> Result<Vec<Color>> {
-        let res = self.inner.get_colors()?;
+        let res = self
+            .inner
+            .get_colors()
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `color` table by its primary key `id`.
     #[napi]
     pub fn get_color_by_id(&self, id: i32) -> Result<Option<Color>> {
-        let res = self.inner.get_color_by_id(id)?;
+        let res = self
+            .inner
+            .get_color_by_id(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Inserts a new record into the `color` table.
     #[napi]
     pub fn insert_color(&self, color: NewColor) -> Result<Color> {
-        let res = self.inner.insert_color(color)?;
+        let res = self
+            .inner
+            .insert_color(color)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Creates a new record and inserts it into the `color` table.
     #[napi]
     pub fn create_color(&self, name: String) -> Result<Color> {
-        let res = self.inner.create_color(name)?;
+        let res = self
+            .inner
+            .create_color(name)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Updates an existing record in the `color` table.
     #[napi]
     pub fn update_color(&self, color: Color) -> Result<Color> {
-        let res = self.inner.update_color(color)?;
+        let res = self
+            .inner
+            .update_color(color)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Deletes a record from the `color` table by its primary key `id`.
     #[napi]
     pub fn delete_color(&self, id: i32) -> Result<u32> {
-        let res = self.inner.delete_color(id)?;
+        let res = self
+            .inner
+            .delete_color(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
@@ -267,181 +351,252 @@ impl JsOneLibrary {
     pub fn get_content_with_relations(&self, id: i32) -> Result<Option<ContentView>> {
         self.inner
             .get_content_with_relations(id)
-            .map_err(Into::into)
+            .map_err(crate::util::binding_error)
     }
 
     /// Load all contents with direct relationships using batched queries.
     /// Missing relationship targets remain absent; query errors propagate.
     #[napi]
     pub fn get_contents_with_relations(&self) -> Result<Vec<ContentView>> {
-        self.inner.get_contents_with_relations().map_err(Into::into)
+        self.inner
+            .get_contents_with_relations()
+            .map_err(crate::util::binding_error)
     }
 
     /// Queries all records from the `color` table.
     #[napi]
     pub fn get_contents(&self) -> Result<Vec<Content>> {
-        let res = self.inner.get_contents()?;
+        let res = self
+            .inner
+            .get_contents()
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `content` table by its primary key `id`.
     #[napi]
     pub fn get_content_by_id(&self, id: i32) -> Result<Option<Content>> {
-        let res = self.inner.get_content_by_id(id)?;
+        let res = self
+            .inner
+            .get_content_by_id(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Inserts a new record into the `content` table.
     #[napi]
     pub fn insert_content(&self, content: NewContent) -> Result<Content> {
-        let res = self.inner.insert_content(content)?;
+        let res = self
+            .inner
+            .insert_content(content)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Creates a new record and inserts it into the `content` table.
     #[napi]
     pub fn create_content(&self, path: String) -> Result<Content> {
-        let res = self.inner.create_content(path)?;
+        let res = self
+            .inner
+            .create_content(path)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Updates an existing record in the `content` table.
     #[napi]
     pub fn update_content(&self, content: Content) -> Result<Content> {
-        let res = self.inner.update_content(content)?;
+        let res = self
+            .inner
+            .update_content(content)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Deletes a record from the `content` table by its primary key `id`.
     #[napi]
     pub fn delete_content(&self, id: i32) -> Result<u32> {
-        let res = self.inner.delete_content(id)?;
+        let res = self
+            .inner
+            .delete_content(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
     /// Queries all records from the `color` table.
     #[napi]
     pub fn get_cues(&self) -> Result<Vec<Cue>> {
-        let res = self.inner.get_cues()?;
+        let res = self.inner.get_cues().map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `cue` table by its primary key `id`.
     #[napi]
     pub fn get_cue_by_id(&self, id: i32) -> Result<Option<Cue>> {
-        let res = self.inner.get_cue_by_id(id)?;
+        let res = self
+            .inner
+            .get_cue_by_id(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Updates an existing record in the `cue` table.
     #[napi]
     pub fn update_cue(&self, cue: Cue) -> Result<Cue> {
-        let res = self.inner.update_cue(cue)?;
+        let res = self
+            .inner
+            .update_cue(cue)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Deletes a record from the `cue` table by its primary key `id`.
     #[napi]
     pub fn delete_cue(&self, id: i32) -> Result<u32> {
-        let res = self.inner.delete_cue(id)?;
+        let res = self
+            .inner
+            .delete_cue(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
     /// Queries all records from the `genre` table.
     #[napi]
     pub fn get_genres(&self) -> Result<Vec<Genre>> {
-        let res = self.inner.get_genres()?;
+        let res = self
+            .inner
+            .get_genres()
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `genre` table by its primary key `id`.
     #[napi]
     pub fn get_genre_by_id(&self, id: i32) -> Result<Option<Genre>> {
-        let res = self.inner.get_genre_by_id(id)?;
+        let res = self
+            .inner
+            .get_genre_by_id(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `genre` table by its `name`.
     #[napi]
     pub fn get_genre_by_name(&self, name: String) -> Result<Option<Genre>> {
-        let res = self.inner.get_genre_by_name(&name)?;
+        let res = self
+            .inner
+            .get_genre_by_name(&name)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Inserts a new record into the `genre` table.
     #[napi]
     pub fn insert_genre(&self, genre: NewGenre) -> Result<Genre> {
-        let res = self.inner.insert_genre(genre)?;
+        let res = self
+            .inner
+            .insert_genre(genre)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Creates a new record and inserts it into the `genre` table.
     #[napi]
     pub fn create_genre(&self, name: String) -> Result<Genre> {
-        let res = self.inner.create_genre(name)?;
+        let res = self
+            .inner
+            .create_genre(name)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Updates an existing record in the `genre` table.
     #[napi]
     pub fn update_genre(&self, genre: Genre) -> Result<Genre> {
-        let res = self.inner.update_genre(genre)?;
+        let res = self
+            .inner
+            .update_genre(genre)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Deletes a record from the `genre` table by its primary key `id`.
     #[napi]
     pub fn delete_genre(&self, id: i32) -> Result<u32> {
-        let res = self.inner.delete_genre(id)?;
+        let res = self
+            .inner
+            .delete_genre(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
     /// Queries all records from the `history` table.
     #[napi]
     pub fn get_histories(&self) -> Result<Vec<History>> {
-        let res = self.inner.get_histories()?;
+        let res = self
+            .inner
+            .get_histories()
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries all child records from the `history` table by parent `id`.
     #[napi]
     pub fn get_history_children(&self, id: i32) -> Result<Vec<History>> {
-        let res = self.inner.get_history_children(id)?;
+        let res = self
+            .inner
+            .get_history_children(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries all `content` records associated with a `history` record.
     #[napi]
     pub fn get_history_contents(&self, id: i32) -> Result<Vec<Content>> {
-        let res = self.inner.get_history_contents(id)?;
+        let res = self
+            .inner
+            .get_history_contents(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `history` table by its primary key `id`.
     #[napi]
     pub fn get_history_by_id(&self, id: i32) -> Result<Option<History>> {
-        let res = self.inner.get_history_by_id(id)?;
+        let res = self
+            .inner
+            .get_history_by_id(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Inserts a new record into the `history` table.
     #[napi]
     pub fn insert_history(&self, history: NewHistory) -> Result<History> {
-        let res = self.inner.insert_history(history)?;
+        let res = self
+            .inner
+            .insert_history(history)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Creates a new record and inserts it into the `history` table.
     #[napi]
     pub fn create_history(&self, name: String, attribute: HistoryType) -> Result<History> {
-        let res = self.inner.create_history(name, attribute)?;
+        let res = self
+            .inner
+            .create_history(name, attribute)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Deletes a record from the `history` table by its primary key `id`.
     #[napi]
     pub fn delete_history(&self, id: i32) -> Result<u32> {
-        let res = self.inner.delete_history(id)?;
+        let res = self
+            .inner
+            .delete_history(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
@@ -452,266 +607,377 @@ impl JsOneLibrary {
         history_id: i32,
         content_id: i32,
     ) -> Result<HistoryContent> {
-        let res = self.inner.create_history_content(history_id, content_id)?;
+        let res = self
+            .inner
+            .create_history_content(history_id, content_id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Deletes a record from the `history_content` table by its primary key.
     #[napi]
     pub fn delete_history_content(&self, history_id: i32, content_id: i32) -> Result<u32> {
-        let res = self.inner.delete_history_content(history_id, content_id)?;
+        let res = self
+            .inner
+            .delete_history_content(history_id, content_id)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
     /// Queries all records from the `color` table.
     #[napi]
     pub fn get_hot_cue_bank_lists(&self) -> Result<Vec<HotCueBankList>> {
-        let res = self.inner.get_hot_cue_bank_lists()?;
+        let res = self
+            .inner
+            .get_hot_cue_bank_lists()
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `hot_cue_bank_list` table by its primary key `id`.
     #[napi]
     pub fn get_hot_cue_bank_list_by_id(&self, id: i32) -> Result<Option<HotCueBankList>> {
-        let res = self.inner.get_hot_cue_bank_list_by_id(id)?;
+        let res = self
+            .inner
+            .get_hot_cue_bank_list_by_id(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries all records from the `image` table.
     #[napi]
     pub fn get_images(&self) -> Result<Vec<Image>> {
-        let res = self.inner.get_images()?;
+        let res = self
+            .inner
+            .get_images()
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `image` table by its primary key `id`.
     #[napi]
     pub fn get_image_by_id(&self, id: i32) -> Result<Option<Image>> {
-        let res = self.inner.get_image_by_id(id)?;
+        let res = self
+            .inner
+            .get_image_by_id(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `image` table by its `path`.
     #[napi]
     pub fn get_image_by_path(&self, path: String) -> Result<Option<Image>> {
-        let res = self.inner.get_image_by_path(&path)?;
+        let res = self
+            .inner
+            .get_image_by_path(&path)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Inserts a new record into the `image` table.
     #[napi]
     pub fn insert_image(&self, image: NewImage) -> Result<Image> {
-        let res = self.inner.insert_image(image)?;
+        let res = self
+            .inner
+            .insert_image(image)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Creates a new record and inserts it into the `image` table.
     #[napi]
     pub fn create_image(&self, path: String) -> Result<Image> {
-        let res = self.inner.create_image(path)?;
+        let res = self
+            .inner
+            .create_image(path)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Updates an existing record in the `image` table.
     #[napi]
     pub fn update_image(&self, image: Image) -> Result<Image> {
-        let res = self.inner.update_image(image)?;
+        let res = self
+            .inner
+            .update_image(image)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Deletes a record from the `image` table by its primary key `id`.
     #[napi]
     pub fn delete_image(&self, id: i32) -> Result<u32> {
-        let res = self.inner.delete_image(id)?;
+        let res = self
+            .inner
+            .delete_image(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
     /// Queries all records from the `key` table.
     #[napi]
     pub fn get_keys(&self) -> Result<Vec<Key>> {
-        let res = self.inner.get_keys()?;
+        let res = self.inner.get_keys().map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `key` table by its primary key `id`.
     #[napi]
     pub fn get_key_by_id(&self, id: i32) -> Result<Option<Key>> {
-        let res = self.inner.get_key_by_id(id)?;
+        let res = self
+            .inner
+            .get_key_by_id(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `key` table by its `name`.
     #[napi]
     pub fn get_key_by_name(&self, name: String) -> Result<Option<Key>> {
-        let res = self.inner.get_key_by_name(&name)?;
+        let res = self
+            .inner
+            .get_key_by_name(&name)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Inserts a new record into the `key` table.
     #[napi]
     pub fn insert_key(&self, key: NewKey) -> Result<Key> {
-        let res = self.inner.insert_key(key)?;
+        let res = self
+            .inner
+            .insert_key(key)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Creates a new record and inserts it into the `key` table.
     #[napi]
     pub fn create_key(&self, name: String) -> Result<Key> {
-        let res = self.inner.create_key(name)?;
+        let res = self
+            .inner
+            .create_key(name)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Updates an existing record in the `key` table.
     #[napi]
     pub fn update_key(&self, key: Key) -> Result<Key> {
-        let res = self.inner.update_key(key)?;
+        let res = self
+            .inner
+            .update_key(key)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Deletes a record from the `key` table by its primary key `id`.
     #[napi]
     pub fn delete_key(&self, id: i32) -> Result<u32> {
-        let res = self.inner.delete_key(id)?;
+        let res = self
+            .inner
+            .delete_key(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
     /// Queries all records from the `label` table.
     #[napi]
     pub fn get_labels(&self) -> Result<Vec<Label>> {
-        let res = self.inner.get_labels()?;
+        let res = self
+            .inner
+            .get_labels()
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `label` table by its primary key `id`.
     #[napi]
     pub fn get_label_by_id(&self, id: i32) -> Result<Option<Label>> {
-        let res = self.inner.get_label_by_id(id)?;
+        let res = self
+            .inner
+            .get_label_by_id(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `label` table by its `name`.
     #[napi]
     pub fn get_label_by_name(&self, name: String) -> Result<Option<Label>> {
-        let res = self.inner.get_label_by_name(&name)?;
+        let res = self
+            .inner
+            .get_label_by_name(&name)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Inserts a new record into the `label` table.
     #[napi]
     pub fn insert_label(&self, label: NewLabel) -> Result<Label> {
-        let res = self.inner.insert_label(label)?;
+        let res = self
+            .inner
+            .insert_label(label)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Creates a new record and inserts it into the `label` table.
     #[napi]
     pub fn create_label(&self, name: String) -> Result<Label> {
-        let res = self.inner.create_label(name)?;
+        let res = self
+            .inner
+            .create_label(name)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Updates an existing record in the `label` table.
     #[napi]
     pub fn update_label(&self, label: Label) -> Result<Label> {
-        let res = self.inner.update_label(label)?;
+        let res = self
+            .inner
+            .update_label(label)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Deletes a record from the `label` table by its primary key `id`.
     #[napi]
     pub fn delete_label(&self, id: i32) -> Result<u32> {
-        let res = self.inner.delete_label(id)?;
+        let res = self
+            .inner
+            .delete_label(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
     /// Queries all records from the `menuItem` table.
     #[napi]
     pub fn get_menu_items(&self) -> Result<Vec<MenuItem>> {
-        let res = self.inner.get_menu_items()?;
+        let res = self
+            .inner
+            .get_menu_items()
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `menuItem` table by its primary key `id`.
     #[napi]
     pub fn get_menu_item_by_id(&self, id: i32) -> Result<Option<MenuItem>> {
-        let res = self.inner.get_menu_item_by_id(id)?;
+        let res = self
+            .inner
+            .get_menu_item_by_id(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `menuItem` table by its `name`.
     #[napi]
     pub fn get_menu_item_by_name(&self, name: String) -> Result<Option<MenuItem>> {
-        let res = self.inner.get_menu_item_by_name(&name)?;
+        let res = self
+            .inner
+            .get_menu_item_by_name(&name)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Inserts a new record into the `menuItem` table.
     #[napi]
     pub fn insert_menu_item(&self, menu_item: NewMenuItem) -> Result<MenuItem> {
-        let res = self.inner.insert_menu_item(menu_item)?;
+        let res = self
+            .inner
+            .insert_menu_item(menu_item)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Creates a new record and inserts it into the `menuItem` table.
     #[napi]
     pub fn create_menu_item(&self, name: String, kind: i32) -> Result<MenuItem> {
-        let res = self.inner.create_menu_item(name, kind)?;
+        let res = self
+            .inner
+            .create_menu_item(name, kind)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Updates an existing record in the `menuItem` table.
     #[napi]
     pub fn update_menu_item(&self, menu_item: MenuItem) -> Result<MenuItem> {
-        let res = self.inner.update_menu_item(menu_item)?;
+        let res = self
+            .inner
+            .update_menu_item(menu_item)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Deletes a record from the `menuItem` table by its primary key `id`.
     #[napi]
     pub fn delete_menu_item(&self, id: i32) -> Result<u32> {
-        let res = self.inner.delete_menu_item(id)?;
+        let res = self
+            .inner
+            .delete_menu_item(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
     /// Queries all records from the `myTag` table.
     #[napi]
     pub fn get_my_tags(&self) -> Result<Vec<MyTag>> {
-        let res = self.inner.get_my_tags()?;
+        let res = self
+            .inner
+            .get_my_tags()
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries all child records from the `myTag` table by parent `id`.
     #[napi]
     pub fn get_my_tag_children(&self, id: i32) -> Result<Vec<MyTag>> {
-        let res = self.inner.get_my_tag_children(id)?;
+        let res = self
+            .inner
+            .get_my_tag_children(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries all `content` records associated with a `myTag` record.
     #[napi]
     pub fn get_my_tag_contents(&self, id: i32) -> Result<Vec<Content>> {
-        let res = self.inner.get_my_tag_contents(id)?;
+        let res = self
+            .inner
+            .get_my_tag_contents(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `myTag` table by its primary key `id`.
     #[napi]
     pub fn get_my_tag_by_id(&self, id: i32) -> Result<Option<MyTag>> {
-        let res = self.inner.get_my_tag_by_id(id)?;
+        let res = self
+            .inner
+            .get_my_tag_by_id(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries all records from the `myTag` table their associated `content_id` via `myTag_content`
     #[napi]
     pub fn get_my_tag_by_content_id(&self, cid: i32) -> Result<Vec<MyTag>> {
-        let res = self.inner.get_my_tag_by_content_id(cid)?;
+        let res = self
+            .inner
+            .get_my_tag_by_content_id(cid)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Inserts a new record into the `myTag` table.
     #[napi]
     pub fn insert_my_tag(&self, my_tag: NewMyTag) -> Result<MyTag> {
-        let res = self.inner.insert_my_tag(my_tag)?;
+        let res = self
+            .inner
+            .insert_my_tag(my_tag)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
@@ -723,7 +989,10 @@ impl JsOneLibrary {
         parent_id: Option<i32>,
         seq: Option<i32>,
     ) -> Result<MyTag> {
-        let res = self.inner.create_my_tag(name, parent_id, seq)?;
+        let res = self
+            .inner
+            .create_my_tag(name, parent_id, seq)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
@@ -735,14 +1004,20 @@ impl JsOneLibrary {
         parent_id: Option<i32>,
         seq: Option<i32>,
     ) -> Result<MyTag> {
-        let res = self.inner.create_my_tag_folder(name, parent_id, seq)?;
+        let res = self
+            .inner
+            .create_my_tag_folder(name, parent_id, seq)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Renames an existing my_tag record in the `myTag` table.
     #[napi]
     pub fn rename_my_tag(&self, my_tag_id: i32, name: String) -> Result<u32> {
-        let res = self.inner.rename_my_tag(my_tag_id, &name)?;
+        let res = self
+            .inner
+            .rename_my_tag(my_tag_id, &name)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
@@ -754,7 +1029,10 @@ impl JsOneLibrary {
         parent_id: Option<i32>,
         seq: Option<i32>,
     ) -> Result<u32> {
-        let res = self.inner.move_my_tag(my_tag_id, parent_id.as_ref(), seq)?;
+        let res = self
+            .inner
+            .move_my_tag(my_tag_id, parent_id.as_ref(), seq)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
@@ -766,32 +1044,40 @@ impl JsOneLibrary {
         parent_id: i32,
         start_seq: Option<i32>,
     ) -> Result<u32> {
-        let res = self.inner.move_my_tags(
-            my_tag_ids.iter().map(|i| i).collect(),
-            parent_id,
-            start_seq,
-        )?;
+        let res = self
+            .inner
+            .move_my_tags(my_tag_ids.iter().map(|i| i).collect(), parent_id, start_seq)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
     /// Deletes a record from the `myTag` table by its primary key `id`.
     #[napi]
     pub fn delete_my_tag(&self, id: i32) -> Result<u32> {
-        let res = self.inner.delete_my_tag(id)?;
+        let res = self
+            .inner
+            .delete_my_tag(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
     /// Deletes multiple records from the `myTag` table by its primary keys `id`.
     #[napi]
     pub fn delete_my_tags(&self, ids: Vec<i32>) -> Result<u32> {
-        let res = self.inner.delete_my_tags(ids.iter().map(|i| i).collect())?;
+        let res = self
+            .inner
+            .delete_my_tags(ids.iter().map(|i| i).collect())
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
     /// Deletes a record from the `myTag_content` table by its primary key.
     #[napi]
     pub fn delete_my_tag_content(&self, my_tag_id: i32, content_id: i32) -> Result<u32> {
-        let res = self.inner.delete_my_tag_content(my_tag_id, content_id)?;
+        let res = self
+            .inner
+            .delete_my_tag_content(my_tag_id, content_id)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
@@ -800,42 +1086,58 @@ impl JsOneLibrary {
     pub fn delete_my_tag_contents(&self, ids: Vec<(i32, i32)>) -> Result<u32> {
         let res = self
             .inner
-            .delete_my_tag_contents(ids.iter().map(|i| i).collect())?;
+            .delete_my_tag_contents(ids.iter().map(|i| i).collect())
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
     /// Queries all records from the `playlist` table.
     #[napi]
     pub fn get_playlists(&self) -> Result<Vec<Playlist>> {
-        let res = self.inner.get_playlists()?;
+        let res = self
+            .inner
+            .get_playlists()
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries all child records from the `playlist` table by parent `id`.
     #[napi]
     pub fn get_playlist_children(&self, id: i32) -> Result<Vec<Playlist>> {
-        let res = self.inner.get_playlist_children(id)?;
+        let res = self
+            .inner
+            .get_playlist_children(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries all `content` records associated with a `playlist` record.
     #[napi]
     pub fn get_playlist_contents(&self, id: i32) -> Result<Vec<Content>> {
-        let res = self.inner.get_playlist_contents(id)?;
+        let res = self
+            .inner
+            .get_playlist_contents(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `playlist` table by its primary key `id`.
     #[napi]
     pub fn get_playlist_by_id(&self, id: i32) -> Result<Option<Playlist>> {
-        let res = self.inner.get_playlist_by_id(id)?;
+        let res = self
+            .inner
+            .get_playlist_by_id(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Inserts a new record into the `playlist` table.
     #[napi]
     pub fn insert_playlist(&self, playlist: NewPlaylist) -> Result<Playlist> {
-        let res = self.inner.insert_playlist(playlist)?;
+        let res = self
+            .inner
+            .insert_playlist(playlist)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
@@ -847,7 +1149,10 @@ impl JsOneLibrary {
         parent_id: Option<i32>,
         seq: Option<i32>,
     ) -> Result<Playlist> {
-        let res = self.inner.create_playlist(name, parent_id, seq)?;
+        let res = self
+            .inner
+            .create_playlist(name, parent_id, seq)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
@@ -859,14 +1164,20 @@ impl JsOneLibrary {
         parent_id: Option<i32>,
         seq: Option<i32>,
     ) -> Result<Playlist> {
-        let res = self.inner.create_playlist_folder(name, parent_id, seq)?;
+        let res = self
+            .inner
+            .create_playlist_folder(name, parent_id, seq)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Renames an existing playlist record in the `playlist` table.
     #[napi]
     pub fn rename_playlist(&self, playlist_id: i32, name: String) -> Result<u32> {
-        let res = self.inner.rename_playlist(playlist_id, &name)?;
+        let res = self
+            .inner
+            .rename_playlist(playlist_id, &name)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
@@ -880,7 +1191,8 @@ impl JsOneLibrary {
     ) -> Result<u32> {
         let res = self
             .inner
-            .move_playlist(playlist_id, parent_id.as_ref(), seq)?;
+            .move_playlist(playlist_id, parent_id.as_ref(), seq)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
@@ -892,18 +1204,24 @@ impl JsOneLibrary {
         parent_id: i32,
         start_seq: Option<i32>,
     ) -> Result<u32> {
-        let res = self.inner.move_playlists(
-            playlist_ids.iter().map(|i| i).collect(),
-            parent_id,
-            start_seq,
-        )?;
+        let res = self
+            .inner
+            .move_playlists(
+                playlist_ids.iter().map(|i| i).collect(),
+                parent_id,
+                start_seq,
+            )
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
     /// Deletes a record from the `playlist` table by its primary key `id`.
     #[napi]
     pub fn delete_playlist(&self, id: i32) -> Result<u32> {
-        let res = self.inner.delete_playlist(id)?;
+        let res = self
+            .inner
+            .delete_playlist(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
@@ -912,7 +1230,8 @@ impl JsOneLibrary {
     pub fn delete_playlists(&self, ids: Vec<i32>) -> Result<u32> {
         let res = self
             .inner
-            .delete_playlists(ids.iter().map(|i| i).collect())?;
+            .delete_playlists(ids.iter().map(|i| i).collect())
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
@@ -926,7 +1245,8 @@ impl JsOneLibrary {
     ) -> Result<PlaylistContent> {
         let res = self
             .inner
-            .create_playlist_content(playlist_id, content_id, seq)?;
+            .create_playlist_content(playlist_id, content_id, seq)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
@@ -940,7 +1260,8 @@ impl JsOneLibrary {
     ) -> Result<u32> {
         let res = self
             .inner
-            .move_playlist_content(playlist_id, content_id, seq)?;
+            .move_playlist_content(playlist_id, content_id, seq)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
@@ -953,7 +1274,8 @@ impl JsOneLibrary {
     ) -> Result<u32> {
         let res = self
             .inner
-            .move_playlist_contents(ids.iter().map(|i| i).collect(), start_seq)?;
+            .move_playlist_contents(ids.iter().map(|i| i).collect(), start_seq)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
@@ -962,7 +1284,8 @@ impl JsOneLibrary {
     pub fn delete_playlist_content(&self, playlist_id: i32, content_id: i32) -> Result<u32> {
         let res = self
             .inner
-            .delete_playlist_content(playlist_id, content_id)?;
+            .delete_playlist_content(playlist_id, content_id)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
@@ -971,35 +1294,48 @@ impl JsOneLibrary {
     pub fn delete_playlist_contents(&self, ids: Vec<(i32, i32)>) -> Result<u32> {
         let res = self
             .inner
-            .delete_playlist_contents(ids.iter().map(|i| i).collect())?;
+            .delete_playlist_contents(ids.iter().map(|i| i).collect())
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
     /// Queries all records from the `property` table.
     #[napi]
     pub fn get_properties(&self) -> Result<Vec<Property>> {
-        let res = self.inner.get_properties()?;
+        let res = self
+            .inner
+            .get_properties()
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `property` table by its primary key `device_name`.
     #[napi]
     pub fn get_property_by_device(&self, device_name: String) -> Result<Option<Property>> {
-        let res = self.inner.get_property_by_device(&device_name)?;
+        let res = self
+            .inner
+            .get_property_by_device(&device_name)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `property` table by its primary key `device_name`.
     #[napi]
     pub fn get_first_property(&self) -> Result<Option<Property>> {
-        let res = self.inner.get_first_property()?;
+        let res = self
+            .inner
+            .get_first_property()
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Inserts a new record into the `property` table.
     #[napi]
     pub fn insert_property(&self, property: Property) -> Result<Property> {
-        let res = self.inner.insert_property(property)?;
+        let res = self
+            .inner
+            .insert_property(property)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
@@ -1012,28 +1348,38 @@ impl JsOneLibrary {
     ) -> Result<Property> {
         let res = self
             .inner
-            .create_property(device_name, my_tag_master_dbid)?;
+            .create_property(device_name, my_tag_master_dbid)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Updates an existing record in the `property` table.
     #[napi]
     pub fn update_property(&self, property: Property) -> Result<Property> {
-        let res = self.inner.update_property(property)?;
+        let res = self
+            .inner
+            .update_property(property)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Deletes a record from the `property` table by its primary key `device_name`.
     #[napi]
     pub fn delete_property(&self, device_name: String) -> Result<u32> {
-        let res = self.inner.delete_property(&device_name)?;
+        let res = self
+            .inner
+            .delete_property(&device_name)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
     /// Queries all records from the `recommendLike` table.
     #[napi]
     pub fn get_recommend_likes(&self) -> Result<Vec<RecommendedLike>> {
-        let res = self.inner.get_recommend_likes()?;
+        let res = self
+            .inner
+            .get_recommend_likes()
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
@@ -1046,7 +1392,8 @@ impl JsOneLibrary {
     ) -> Result<Option<RecommendedLike>> {
         let res = self
             .inner
-            .get_recommend_like_by_id(content_id_1, content_id_2)?;
+            .get_recommend_like_by_id(content_id_1, content_id_2)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
@@ -1056,14 +1403,20 @@ impl JsOneLibrary {
         &self,
         content_id: i32,
     ) -> Result<Vec<RecommendedLike>> {
-        let res = self.inner.get_recommend_like_by_content_id(content_id)?;
+        let res = self
+            .inner
+            .get_recommend_like_by_content_id(content_id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Get related `content` ids for a given `content`.
     #[napi]
     pub fn get_recommend_like_contents(&self, content_id: i32) -> Result<Vec<i32>> {
-        let res = self.inner.get_recommend_like_contents(content_id)?;
+        let res = self
+            .inner
+            .get_recommend_like_contents(content_id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
@@ -1073,7 +1426,10 @@ impl JsOneLibrary {
         &self,
         recommend_like: RecommendedLike,
     ) -> Result<RecommendedLike> {
-        let res = self.inner.insert_recommend_like(recommend_like)?;
+        let res = self
+            .inner
+            .insert_recommend_like(recommend_like)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
@@ -1087,7 +1443,8 @@ impl JsOneLibrary {
     ) -> Result<RecommendedLike> {
         let res = self
             .inner
-            .create_recommend_like(content_id_1, content_id_2, rating)?;
+            .create_recommend_like(content_id_1, content_id_2, rating)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
@@ -1097,7 +1454,10 @@ impl JsOneLibrary {
         &self,
         recommend_like: RecommendedLike,
     ) -> Result<RecommendedLike> {
-        let res = self.inner.update_recommend_like(recommend_like)?;
+        let res = self
+            .inner
+            .update_recommend_like(recommend_like)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
@@ -1106,35 +1466,45 @@ impl JsOneLibrary {
     pub fn delete_recommend_like(&self, content_id_1: i32, content_id_2: i32) -> Result<u32> {
         let res = self
             .inner
-            .delete_recommend_like(content_id_1, content_id_2)?;
+            .delete_recommend_like(content_id_1, content_id_2)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
     /// Deletes a record from the `recommendLike` table by its primary key.
     #[napi]
     pub fn delete_recommend_like_by_content(&self, content_id: i32) -> Result<u32> {
-        let res = self.inner.delete_recommend_like_by_content(content_id)?;
+        let res = self
+            .inner
+            .delete_recommend_like_by_content(content_id)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 
     /// Queries all records from the `sort` table.
     #[napi]
     pub fn get_sorts(&self) -> Result<Vec<Sort>> {
-        let res = self.inner.get_sorts()?;
+        let res = self.inner.get_sorts().map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `sort` table by its primary key `id`.
     #[napi]
     pub fn get_sort_by_id(&self, id: i32) -> Result<Option<Sort>> {
-        let res = self.inner.get_sort_by_id(id)?;
+        let res = self
+            .inner
+            .get_sort_by_id(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Inserts a new record into the `sort` table.
     #[napi]
     pub fn insert_sort(&self, sort: NewSort) -> Result<Sort> {
-        let res = self.inner.insert_sort(sort)?;
+        let res = self
+            .inner
+            .insert_sort(sort)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
@@ -1146,21 +1516,30 @@ impl JsOneLibrary {
         seq: Option<i32>,
         is_visible: Option<i32>,
     ) -> Result<Sort> {
-        let res = self.inner.create_sort(menu_item_id, seq, is_visible)?;
+        let res = self
+            .inner
+            .create_sort(menu_item_id, seq, is_visible)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Updates an existing record in the `sort` table.
     #[napi]
     pub fn update_sort(&self, sort: Sort) -> Result<Sort> {
-        let res = self.inner.update_sort(sort)?;
+        let res = self
+            .inner
+            .update_sort(sort)
+            .map_err(crate::util::binding_error)?;
         Ok(res)
     }
 
     /// Deletes a record from the `sort` table by its primary key `id`.
     #[napi]
     pub fn delete_sort(&self, id: i32) -> Result<u32> {
-        let res = self.inner.delete_sort(id)?;
+        let res = self
+            .inner
+            .delete_sort(id)
+            .map_err(crate::util::binding_error)?;
         Ok(res as u32)
     }
 }

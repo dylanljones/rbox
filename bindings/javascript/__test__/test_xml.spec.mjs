@@ -2,10 +2,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import test from 'ava'
+import { writeFileSync } from 'node:fs'
 import { RekordboxXml, PlaylistKeyType, PlaylistNode, PlaylistNodeType } from '../index.js'
 import { cleanupFixtures, fixtureCopy, temporaryPath } from './helpers/fixtures.mjs'
 
 test.afterEach.always(cleanupFixtures)
+
+test('XML load failures throw JavaScript errors', t => {
+    t.throws(() => RekordboxXml.load(temporaryPath(t, 'missing.xml')), { instanceOf: Error })
+    const path = temporaryPath(t, 'malformed.xml')
+    writeFileSync(path, '<invalid>')
+    t.throws(() => RekordboxXml.load(path), { instanceOf: Error })
+})
 
 test('XML constructors, getters and optional results', t => {
     const xml = RekordboxXml.load(fixtureCopy(t, 'xml'))

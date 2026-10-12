@@ -1,102 +1,50 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
-#[cfg(feature = "napi")]
-use napi::Error as NapiError;
-use thiserror::Error;
+//! Errors shared by applications using multiple Rbox components.
+//!
+//! Component methods retain their own error types. Their errors convert into
+//! [`Error`] with `?` in functions returning [`Result`], preserving the original
+//! error values and messages. Optional variants follow the component features.
 
-#[derive(Error, Debug)]
-pub enum Error {
-    #[error("Enviroment variable {0} is not set")]
-    EnvionmentNotFound(String),
-
-    #[error("File not found: {0}")]
-    FileNotFound(String),
-
-    #[error("{0}")]
-    Error(String),
-
-    #[error(transparent)]
-    JsonError(#[from] serde_json::Error),
-
-    #[error(transparent)]
-    IOError(#[from] std::io::Error),
-
-    #[error(transparent)]
-    Utf8Error(#[from] std::str::Utf8Error),
-
-    #[cfg(any(feature = "anlz", feature = "settings"))]
-    #[error(transparent)]
-    BinReadError(#[from] binrw::error::Error),
-
-    #[error("XML Error: {0}")]
-    #[cfg(any(feature = "xml", feature = "master-db"))]
-    XmlError(String),
-
-    #[error("Failed to parse options.json: {0}")]
-    OptionError(String),
-
-    #[error("Setting Error: {0}")]
-    #[cfg(feature = "settings")]
-    SettingError(String),
-
-    #[error("Invalid {0} value: {1}")]
-    #[cfg(feature = "settings")]
-    SettingInvalidValue(String, String),
-
-    #[error("Not a {0} file")]
-    #[cfg(feature = "settings")]
-    SettingInvalidFile(String),
-
-    #[error("Anlz Error: {0}")]
-    #[cfg(feature = "anlz")]
-    AnlzError(String),
-
-    #[cfg(any(feature = "master-db", feature = "one-library"))]
-    #[error("Diesel error: {0}")]
-    Diesel(#[from] diesel::result::Error),
-
-    #[cfg(any(feature = "master-db", feature = "one-library"))]
-    #[error("Connection pool error: {0}")]
-    Pool(#[from] diesel::r2d2::PoolError),
-
-    #[cfg(any(feature = "master-db", feature = "one-library"))]
-    #[error("Database error: {0}")]
-    Database(String),
-
-    #[cfg(any(feature = "master-db", feature = "one-library"))]
-    #[error("Connection error: {0}")]
-    Connection(#[from] diesel::ConnectionError),
-
-    #[error("Rekordbox is running. Please close Rekordbox and try again.")]
-    RekordboxRunning,
-}
-
+/// A result that can contain an error from any enabled Rbox component.
 pub type Result<T> = std::result::Result<T, Error>;
 
-impl From<String> for Error {
-    fn from(s: String) -> Self {
-        Error::Error(s)
-    }
-}
+/// A failure from a Rbox component.
+#[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+pub enum Error {
+    /// Configuration, path discovery, or other core utility failure.
+    #[error(transparent)]
+    Core(#[from] rbox_core::error::Error),
 
-#[cfg(any(feature = "xml", feature = "master-db"))]
-impl From<quick_xml::de::DeError> for Error {
-    fn from(error: quick_xml::de::DeError) -> Self {
-        Error::XmlError(error.to_string())
-    }
-}
+    /// Shared database connection, pool, or query failure.
+    #[cfg(any(feature = "master-db", feature = "one-library"))]
+    #[error(transparent)]
+    Database(#[from] rbox_db::error::Error),
 
-#[cfg(any(feature = "xml", feature = "master-db"))]
-impl From<quick_xml::se::SeError> for Error {
-    fn from(error: quick_xml::se::SeError) -> Self {
-        Error::XmlError(error.to_string())
-    }
-}
+    /// Master database operation failure.
+    #[cfg(feature = "master-db")]
+    #[error(transparent)]
+    MasterDb(#[from] rbox_masterdb::error::Error),
 
-#[cfg(feature = "napi")]
-impl From<Error> for NapiError {
-    fn from(error: Error) -> Self {
-        Self::from_reason(error.to_string())
-    }
+    /// One Library database operation failure.
+    #[cfg(feature = "one-library")]
+    #[error(transparent)]
+    OneLibrary(#[from] rbox_onelib::error::Error),
+
+    /// Analysis file parsing, editing, or writing failure.
+    #[cfg(feature = "anlz")]
+    #[error(transparent)]
+    Anlz(#[from] rbox_anlz::error::AnlzError),
+
+    /// Rekordbox XML operation failure.
+    #[cfg(feature = "xml")]
+    #[error(transparent)]
+    Xml(#[from] rbox_xml::XmlError),
+
+    /// Device settings operation failure.
+    #[cfg(feature = "settings")]
+    #[error(transparent)]
+    Setting(#[from] rbox_setting::SettingError),
 }

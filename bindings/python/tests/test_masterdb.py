@@ -12,6 +12,7 @@ from rbox.masterdb import models
 def test_raw_getters(master_db):
     db = master_db
     assert isinstance(db, MasterDb)
+    assert callable(db.add_content)
     rows = db.get_contents()
     assert isinstance(rows, list)
     row = rows[0]

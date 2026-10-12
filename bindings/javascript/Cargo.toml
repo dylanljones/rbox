@@ -15,8 +15,8 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-rbox            = { path = "../../rbox", features = ["full", "bundled-vendored-openssl", "napi"] }
-napi            = { workspace = true, features = ["napi6"] }
+rbox            = { path = "../../rbox", default-features = false, features = ["full", "bundled-vendored-openssl", "napi"] }
+napi            = { workspace = true}
 napi-derive     = { workspace = true}
 chrono          = { workspace = true }
 
