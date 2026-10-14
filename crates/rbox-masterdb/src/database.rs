@@ -1512,6 +1512,9 @@ impl MasterDb {
 
     /// Updates the file path of a content entry in the database.
     ///
+    /// Preserves each ANLZ file's `?/filename` convention when present; other
+    /// embedded paths and the database path use the full normalized new path.
+    ///
     /// This function performs the following steps:
     /// 1. Checks if unsafe writes are allowed when Rekordbox is running.
     /// 2. Validates the provided file path to ensure it exists and is a file.
@@ -1561,18 +1564,25 @@ impl MasterDb {
 
         // Update path in analysis data
         let anlz_files: Option<AnlzFiles> = self.get_content_anlz_files(content_id)?;
-        if anlz_files.is_some() {
-            let mut anlz_files = anlz_files.unwrap();
-            anlz_files.dat.set_path(&rb_path_str)?;
-            anlz_files.dat.dump()?;
-
-            if let Some(ext) = &mut anlz_files.ext {
-                ext.set_path(&rb_path_str)?;
-                ext.dump()?;
-            }
-            if let Some(ex2) = &mut anlz_files.ex2 {
-                ex2.set_path(&rb_path_str)?;
-                ex2.dump()?;
+        if let Some(mut files) = anlz_files {
+            for file in std::iter::once(&mut files.dat)
+                .chain(files.ext.iter_mut())
+                .chain(files.ex2.iter_mut())
+            {
+                // Preserve each file's convention; mixed formats occur in local libraries.
+                let embedded_path = if file
+                    .get_path()?
+                    .is_some_and(|old| old.starts_with("?/") || old.starts_with("?\\"))
+                {
+                    let filename = rb_path_str.rsplit('/').next().ok_or_else(|| {
+                        Error::InvalidOperation("Track path has no filename".into())
+                    })?;
+                    format!("?/{filename}")
+                } else {
+                    rb_path_str.clone()
+                };
+                file.set_path(&embedded_path)?;
+                file.dump()?;
             }
         }
 
