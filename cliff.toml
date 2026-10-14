@@ -50,6 +50,11 @@ protect_breaking_commits = true
 tag_pattern = '^v[0-9]+\.[0-9]+\.[0-9]+$'
 sort_commits = "oldest"
 
+# Convert issue numbers in commit messages to links to the GitHub issues page.
+commit_preprocessors = [
+    { pattern = '\(#([0-9]+)\)', replace = "([#${1}](https://github.com/dylanljones/rbox/issues/${1}))" },
+]
+
 commit_parsers = [
     { footer = "^BREAKING CHANGE", group = "<!-- 0 -->BREAKING CHANGE" },
     { message = "^feat", group = "<!-- 1 -->New Features" },
