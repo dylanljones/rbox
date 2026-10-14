@@ -47,7 +47,7 @@ pub type Result<T> = std::result::Result<T, XmlError>;
 
 /// A playlist operation rejected because it does not apply to the node type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PlaylistOperation {
+pub enum XmlPlaylistOperation {
     AddChild,
     RemoveChild,
     ClearChildren,
@@ -58,7 +58,7 @@ pub enum PlaylistOperation {
     ClearTracks,
 }
 
-impl Display for PlaylistOperation {
+impl Display for XmlPlaylistOperation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let operation = match self {
             Self::AddChild => "add a child node",
@@ -113,8 +113,8 @@ pub enum XmlError {
     /// An operation was attempted on an incompatible playlist node type.
     #[error("cannot {operation} on a {node_type} node")]
     InvalidOperation {
-        operation: PlaylistOperation,
-        node_type: PlaylistNodeType,
+        operation: XmlPlaylistOperation,
+        node_type: XmlPlaylistNodeType,
     },
 
     /// The in-memory document is missing data required by the XML format.
@@ -209,7 +209,7 @@ where
 
 /// The product XML element of the Rekordbox XML file.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Product {
+pub struct XmlProduct {
     /// Name of product
     ///
     /// This name will be displayed in each application software.
@@ -223,11 +223,11 @@ pub struct Product {
     pub company: String,
 }
 
-// -- Collection ----------------------------------------------------------------------------------
+// -- XmlCollection ----------------------------------------------------------------------------------
 
-/// Tempo element representing the beat grid of a track.
+/// XmlTempo element representing the beat grid of a track.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Tempo {
+pub struct XmlTempo {
     /// Start position of BeatGrid
     /// Unit : Second (with decimal numbers)
     #[serde(rename = "@Inizio")]
@@ -246,7 +246,7 @@ pub struct Tempo {
     pub battito: u16,
 }
 
-impl Tempo {
+impl XmlTempo {
     pub fn new(inizio: f64, bpm: f64, metro: &str, battito: u16) -> Self {
         Self {
             inizio,
@@ -259,7 +259,7 @@ impl Tempo {
 
 /// Position element for storing position markers like cue points of a track
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct PositionMark {
+pub struct XmlPositionMark {
     /// Name of position mark
     #[serde(rename = "@Name")]
     pub name: String,
@@ -282,7 +282,7 @@ pub struct PositionMark {
     pub num: i32,
 }
 
-impl PositionMark {
+impl XmlPositionMark {
     pub fn new(name: &str, mark_type: u16, num: i32, start: f64, end: Option<f64>) -> Self {
         Self {
             name: name.to_string(),
@@ -296,7 +296,7 @@ impl PositionMark {
 
 /// The track XML element of the Rekordbox XML file.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Track {
+pub struct XmlTrack {
     /// Identification of track
     #[serde(rename = "@TrackID")]
     pub trackid: String,
@@ -401,14 +401,14 @@ pub struct Track {
     #[serde(rename = "TEMPO")]
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default)]
-    pub tempos: Vec<Tempo>,
+    pub tempos: Vec<XmlTempo>,
     #[serde(rename = "POSITION_MARK")]
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default)]
-    pub position_marks: Vec<PositionMark>,
+    pub position_marks: Vec<XmlPositionMark>,
 }
 
-impl Track {
+impl XmlTrack {
     pub fn new(trackid: &str, location: &str) -> Self {
         Self {
             trackid: trackid.to_string(),
@@ -418,7 +418,7 @@ impl Track {
     }
 }
 
-impl Default for Track {
+impl Default for XmlTrack {
     fn default() -> Self {
         Self {
             trackid: String::new(),
@@ -455,7 +455,7 @@ impl Default for Track {
     }
 }
 
-impl Display for Track {
+impl Display for XmlTrack {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -469,13 +469,13 @@ impl Display for Track {
 
 /// The collection XML element containing the tracks of the Rekordbox XML file.
 #[derive(Debug, PartialEq, Clone, Deserialize)]
-pub struct Collection {
-    /// Track entries in COLLECTION
+pub struct XmlCollection {
+    /// XmlTrack entries in COLLECTION
     #[serde(rename = "TRACK")]
-    pub tracks: Vec<Track>,
+    pub tracks: Vec<XmlTrack>,
 }
 
-impl Serialize for Collection {
+impl Serialize for XmlCollection {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -485,12 +485,12 @@ impl Serialize for Collection {
             /// Number of TRACK in COLLECTION
             #[serde(rename = "@Entries")]
             entries: usize,
-            /// Track entries in COLLECTION
+            /// XmlTrack entries in COLLECTION
             #[serde(rename = "TRACK")]
-            tracks: &'a Vec<Track>,
+            tracks: &'a Vec<XmlTrack>,
         }
 
-        let tracks: &Vec<Track> = self.tracks.as_ref();
+        let tracks: &Vec<XmlTrack> = self.tracks.as_ref();
         let value = Value {
             entries: tracks.len(),
             tracks,
@@ -499,38 +499,38 @@ impl Serialize for Collection {
     }
 }
 
-// -- Playlists ------------------------------------------------------------------------------------
+// -- XmlPlaylists ------------------------------------------------------------------------------------
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct PlaylistTrack {
+pub struct XmlPlaylistTrack {
     /// Identification of track, "Track ID" or "Location" in "COLLECTION"
     #[serde(rename = "@Key")]
     pub key: String,
 }
 
-impl PlaylistTrack {
+impl XmlPlaylistTrack {
     pub fn new(key: &str) -> Self {
         Self {
             key: key.to_string(),
         }
     }
 
-    pub fn from_track(track: &Track, key_type: &PlaylistKeyType) -> Self {
+    pub fn from_track(track: &XmlTrack, key_type: &XmlPlaylistKeyType) -> Self {
         let key = match key_type {
-            PlaylistKeyType::TrackID => track.trackid.clone(),
-            PlaylistKeyType::Location => track.location.clone(),
+            XmlPlaylistKeyType::TrackID => track.trackid.clone(),
+            XmlPlaylistKeyType::Location => track.location.clone(),
         };
         Self { key }
     }
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum PlaylistNodeType {
+pub enum XmlPlaylistNodeType {
     Folder,   // Type="0"
     Playlist, // Type="1"
 }
 
-impl Display for PlaylistNodeType {
+impl Display for XmlPlaylistNodeType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
             Self::Folder => "folder",
@@ -539,22 +539,22 @@ impl Display for PlaylistNodeType {
     }
 }
 
-impl Into<u16> for PlaylistNodeType {
+impl Into<u16> for XmlPlaylistNodeType {
     fn into(self) -> u16 {
         match self {
-            PlaylistNodeType::Folder => 0,
-            PlaylistNodeType::Playlist => 1,
+            XmlPlaylistNodeType::Folder => 0,
+            XmlPlaylistNodeType::Playlist => 1,
         }
     }
 }
 
-impl TryFrom<u16> for PlaylistNodeType {
+impl TryFrom<u16> for XmlPlaylistNodeType {
     type Error = XmlError;
 
     fn try_from(value: u16) -> std::result::Result<Self, Self::Error> {
         match value {
-            0 => Ok(PlaylistNodeType::Folder),
-            1 => Ok(PlaylistNodeType::Playlist),
+            0 => Ok(XmlPlaylistNodeType::Folder),
+            1 => Ok(XmlPlaylistNodeType::Playlist),
             _ => Err(XmlError::InvalidValue {
                 field: "playlist node type",
                 value: value.into(),
@@ -563,28 +563,28 @@ impl TryFrom<u16> for PlaylistNodeType {
     }
 }
 
-impl<'de> Deserialize<'de> for PlaylistNodeType {
+impl<'de> Deserialize<'de> for XmlPlaylistNodeType {
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
         match s.as_str() {
-            "1" => Ok(PlaylistNodeType::Playlist),
-            "0" => Ok(PlaylistNodeType::Folder),
+            "1" => Ok(XmlPlaylistNodeType::Playlist),
+            "0" => Ok(XmlPlaylistNodeType::Folder),
             _ => Err(D::Error::custom(format!("Invalid node type: {}", s))),
         }
     }
 }
 
-impl Serialize for PlaylistNodeType {
+impl Serialize for XmlPlaylistNodeType {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         let s = match self {
-            PlaylistNodeType::Playlist => "1",
-            PlaylistNodeType::Folder => "0",
+            XmlPlaylistNodeType::Playlist => "1",
+            XmlPlaylistNodeType::Folder => "0",
         };
         serializer.serialize_str(s)
     }
@@ -592,27 +592,27 @@ impl Serialize for PlaylistNodeType {
 
 #[repr(i32)]
 #[derive(Debug, PartialEq, Clone)]
-pub enum PlaylistKeyType {
+pub enum XmlPlaylistKeyType {
     TrackID = 0,  // KeyType="0"
     Location = 1, // KeyType="1"
 }
 
-impl Into<u16> for PlaylistKeyType {
+impl Into<u16> for XmlPlaylistKeyType {
     fn into(self) -> u16 {
         match self {
-            PlaylistKeyType::TrackID => 0,
-            PlaylistKeyType::Location => 1,
+            XmlPlaylistKeyType::TrackID => 0,
+            XmlPlaylistKeyType::Location => 1,
         }
     }
 }
 
-impl TryFrom<u16> for PlaylistKeyType {
+impl TryFrom<u16> for XmlPlaylistKeyType {
     type Error = XmlError;
 
     fn try_from(value: u16) -> std::result::Result<Self, Self::Error> {
         match value {
-            0 => Ok(PlaylistKeyType::TrackID),
-            1 => Ok(PlaylistKeyType::Location),
+            0 => Ok(XmlPlaylistKeyType::TrackID),
+            1 => Ok(XmlPlaylistKeyType::Location),
             _ => Err(XmlError::InvalidValue {
                 field: "playlist key type",
                 value: value.into(),
@@ -621,40 +621,40 @@ impl TryFrom<u16> for PlaylistKeyType {
     }
 }
 
-impl<'de> Deserialize<'de> for PlaylistKeyType {
+impl<'de> Deserialize<'de> for XmlPlaylistKeyType {
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
         match s.as_str() {
-            "0" => Ok(PlaylistKeyType::TrackID),
-            "1" => Ok(PlaylistKeyType::Location),
+            "0" => Ok(XmlPlaylistKeyType::TrackID),
+            "1" => Ok(XmlPlaylistKeyType::Location),
             _ => Err(D::Error::custom(format!("Invalid node type: {}", s))),
         }
     }
 }
 
-impl Serialize for PlaylistKeyType {
+impl Serialize for XmlPlaylistKeyType {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         let s = match self {
-            PlaylistKeyType::TrackID => "0",
-            PlaylistKeyType::Location => "1",
+            XmlPlaylistKeyType::TrackID => "0",
+            XmlPlaylistKeyType::Location => "1",
         };
         serializer.serialize_str(s)
     }
 }
 
-impl TryFrom<i32> for PlaylistKeyType {
+impl TryFrom<i32> for XmlPlaylistKeyType {
     type Error = XmlError;
 
     fn try_from(value: i32) -> std::result::Result<Self, Self::Error> {
         match value {
-            0 => Ok(PlaylistKeyType::TrackID),
-            1 => Ok(PlaylistKeyType::Location),
+            0 => Ok(XmlPlaylistKeyType::TrackID),
+            1 => Ok(XmlPlaylistKeyType::Location),
             _ => Err(XmlError::InvalidValue {
                 field: "playlist key type",
                 value,
@@ -664,28 +664,28 @@ impl TryFrom<i32> for PlaylistKeyType {
 }
 
 #[derive(PartialEq, Clone, Deserialize)]
-pub struct PlaylistNode {
+pub struct XmlPlaylistNode {
     /// Name of NODE
     #[serde(rename = "@Name")]
     pub name: String,
     /// Node type, "0" (Playlist) or "1"(Folder)
     #[serde(rename = "@Type")]
-    pub node_type: PlaylistNodeType,
+    pub node_type: XmlPlaylistNodeType,
     /// Kind of identification, "0" (Track ID) or "1" (Location)
     /// Only used for playlist nodes
     #[serde(rename = "@KeyType")]
-    pub key_type: Option<PlaylistKeyType>,
+    pub key_type: Option<XmlPlaylistKeyType>,
     /// Tracks contained in the playlist
     /// Only used for playlist nodes
     #[serde(rename = "TRACK")]
-    pub tracks: Option<Vec<PlaylistTrack>>,
+    pub tracks: Option<Vec<XmlPlaylistTrack>>,
     /// Child nodes
     /// Only used for folder nodes
     #[serde(rename = "NODE")]
-    pub nodes: Option<Vec<PlaylistNode>>,
+    pub nodes: Option<Vec<XmlPlaylistNode>>,
 }
 
-impl Serialize for PlaylistNode {
+impl Serialize for XmlPlaylistNode {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -697,14 +697,14 @@ impl Serialize for PlaylistNode {
             name: &'a String,
             /// Node type, "0" (Playlist) or "1"(Folder)
             #[serde(rename = "@Type")]
-            node_type: &'a PlaylistNodeType,
+            node_type: &'a XmlPlaylistNodeType,
             /// Count
             #[serde(rename = "@Count")]
             count: usize,
             /// Nodes
             #[serde(rename = "NODE")]
             #[serde(skip_serializing_if = "Vec::is_empty")]
-            nodes: &'a Vec<PlaylistNode>,
+            nodes: &'a Vec<XmlPlaylistNode>,
         }
 
         #[derive(Serialize)]
@@ -714,41 +714,41 @@ impl Serialize for PlaylistNode {
             name: &'a String,
             /// Node type, "0" (Playlist) or "1"(Folder)
             #[serde(rename = "@Type")]
-            node_type: &'a PlaylistNodeType,
+            node_type: &'a XmlPlaylistNodeType,
             /// Number of TRACK in PLAYLIST
             #[serde(rename = "@Entries")]
             entries: usize,
             /// Kind of identification
             /// "0" (Track ID) or "1"(Location)
             #[serde(rename = "@KeyType")]
-            key_type: &'a PlaylistKeyType,
+            key_type: &'a XmlPlaylistKeyType,
             #[serde(rename = "TRACK")]
             #[serde(skip_serializing_if = "Vec::is_empty")]
-            tracks: &'a Vec<PlaylistTrack>,
+            tracks: &'a Vec<XmlPlaylistTrack>,
         }
 
         match self.node_type {
-            PlaylistNodeType::Playlist => {
+            XmlPlaylistNodeType::Playlist => {
                 let key_type = self.key_type.as_ref().ok_or_else(|| {
                     <S::Error as serde::ser::Error>::custom("playlist node is missing its key type")
                 })?;
                 let empty = Vec::new();
-                let children: &Vec<PlaylistTrack> = self.tracks.as_ref().unwrap_or(&empty);
+                let children: &Vec<XmlPlaylistTrack> = self.tracks.as_ref().unwrap_or(&empty);
                 let value = Playlist {
                     name: &self.name,
-                    node_type: &PlaylistNodeType::Playlist,
+                    node_type: &XmlPlaylistNodeType::Playlist,
                     entries: children.len(),
                     key_type,
                     tracks: children,
                 };
                 value.serialize(serializer)
             }
-            PlaylistNodeType::Folder => {
+            XmlPlaylistNodeType::Folder => {
                 let empty = Vec::new();
-                let children: &Vec<PlaylistNode> = self.nodes.as_ref().unwrap_or(&empty);
+                let children: &Vec<XmlPlaylistNode> = self.nodes.as_ref().unwrap_or(&empty);
                 let value = Folder {
                     name: &self.name,
-                    node_type: &PlaylistNodeType::Folder,
+                    node_type: &XmlPlaylistNodeType::Folder,
                     count: children.len(),
                     nodes: children,
                 };
@@ -758,8 +758,8 @@ impl Serialize for PlaylistNode {
     }
 }
 
-impl PlaylistNode {
-    pub fn new(name: &str, node_type: PlaylistNodeType) -> Self {
+impl XmlPlaylistNode {
+    pub fn new(name: &str, node_type: XmlPlaylistNodeType) -> Self {
         Self {
             name: name.to_string(),
             node_type,
@@ -769,24 +769,24 @@ impl PlaylistNode {
         }
     }
 
-    pub fn playlist(name: &str, key_type: PlaylistKeyType) -> Self {
-        let mut node = Self::new(name, PlaylistNodeType::Playlist);
+    pub fn playlist(name: &str, key_type: XmlPlaylistKeyType) -> Self {
+        let mut node = Self::new(name, XmlPlaylistNodeType::Playlist);
         node.tracks = Some(Vec::new());
         node.key_type = Some(key_type);
         node
     }
 
     pub fn folder(name: &str) -> Self {
-        let mut node = Self::new(name, PlaylistNodeType::Folder);
+        let mut node = Self::new(name, XmlPlaylistNodeType::Folder);
         node.nodes = Some(Vec::new());
         node
     }
 
-    pub fn add_node(&mut self, node: PlaylistNode) -> Result<()> {
-        if self.node_type == PlaylistNodeType::Playlist {
+    pub fn add_node(&mut self, node: XmlPlaylistNode) -> Result<()> {
+        if self.node_type == XmlPlaylistNodeType::Playlist {
             return Err(XmlError::InvalidOperation {
-                operation: PlaylistOperation::AddChild,
-                node_type: PlaylistNodeType::Playlist,
+                operation: XmlPlaylistOperation::AddChild,
+                node_type: XmlPlaylistNodeType::Playlist,
             });
         }
         self.nodes.get_or_insert_default().push(node);
@@ -796,12 +796,12 @@ impl PlaylistNode {
     pub fn new_playlist(
         &mut self,
         name: &str,
-        key_type: PlaylistKeyType,
-    ) -> Result<&mut PlaylistNode> {
-        if self.node_type == PlaylistNodeType::Playlist {
+        key_type: XmlPlaylistKeyType,
+    ) -> Result<&mut XmlPlaylistNode> {
+        if self.node_type == XmlPlaylistNodeType::Playlist {
             return Err(XmlError::InvalidOperation {
-                operation: PlaylistOperation::AddChild,
-                node_type: PlaylistNodeType::Playlist,
+                operation: XmlPlaylistOperation::AddChild,
+                node_type: XmlPlaylistNodeType::Playlist,
             });
         };
         let idx = self.nodes.as_ref().map_or(0, Vec::len);
@@ -812,11 +812,11 @@ impl PlaylistNode {
         Ok(node_out)
     }
 
-    pub fn new_folder(&mut self, name: &str) -> Result<&mut PlaylistNode> {
-        if self.node_type == PlaylistNodeType::Playlist {
+    pub fn new_folder(&mut self, name: &str) -> Result<&mut XmlPlaylistNode> {
+        if self.node_type == XmlPlaylistNodeType::Playlist {
             return Err(XmlError::InvalidOperation {
-                operation: PlaylistOperation::AddChild,
-                node_type: PlaylistNodeType::Playlist,
+                operation: XmlPlaylistOperation::AddChild,
+                node_type: XmlPlaylistNodeType::Playlist,
             });
         };
         let idx = self.nodes.as_ref().map_or(0, Vec::len);
@@ -828,10 +828,10 @@ impl PlaylistNode {
     }
 
     pub fn remove_node(&mut self, index: usize) -> Result<()> {
-        if self.node_type == PlaylistNodeType::Playlist {
+        if self.node_type == XmlPlaylistNodeType::Playlist {
             return Err(XmlError::InvalidOperation {
-                operation: PlaylistOperation::RemoveChild,
-                node_type: PlaylistNodeType::Playlist,
+                operation: XmlPlaylistOperation::RemoveChild,
+                node_type: XmlPlaylistNodeType::Playlist,
             });
         };
         let nodes = self.nodes.get_or_insert_default();
@@ -846,32 +846,32 @@ impl PlaylistNode {
     }
 
     pub fn clear_nodes(&mut self) -> Result<()> {
-        if self.node_type == PlaylistNodeType::Playlist {
+        if self.node_type == XmlPlaylistNodeType::Playlist {
             return Err(XmlError::InvalidOperation {
-                operation: PlaylistOperation::ClearChildren,
-                node_type: PlaylistNodeType::Playlist,
+                operation: XmlPlaylistOperation::ClearChildren,
+                node_type: XmlPlaylistNodeType::Playlist,
             });
         };
         self.nodes.get_or_insert_default().clear();
         Ok(())
     }
 
-    pub fn get_child(&mut self, idx: usize) -> Result<Option<&mut PlaylistNode>> {
-        if self.node_type == PlaylistNodeType::Playlist {
+    pub fn get_child(&mut self, idx: usize) -> Result<Option<&mut XmlPlaylistNode>> {
+        if self.node_type == XmlPlaylistNodeType::Playlist {
             return Err(XmlError::InvalidOperation {
-                operation: PlaylistOperation::GetChild,
-                node_type: PlaylistNodeType::Playlist,
+                operation: XmlPlaylistOperation::GetChild,
+                node_type: XmlPlaylistNodeType::Playlist,
             });
         };
         let nodes = self.nodes.get_or_insert_default();
         Ok(nodes.get_mut(idx))
     }
 
-    pub fn find_child(&mut self, name: &str) -> Result<Option<&mut PlaylistNode>> {
-        if self.node_type == PlaylistNodeType::Playlist {
+    pub fn find_child(&mut self, name: &str) -> Result<Option<&mut XmlPlaylistNode>> {
+        if self.node_type == XmlPlaylistNodeType::Playlist {
             return Err(XmlError::InvalidOperation {
-                operation: PlaylistOperation::GetChild,
-                node_type: PlaylistNodeType::Playlist,
+                operation: XmlPlaylistOperation::GetChild,
+                node_type: XmlPlaylistNodeType::Playlist,
             });
         };
         let nodes = self.nodes.get_or_insert_default();
@@ -879,7 +879,7 @@ impl PlaylistNode {
         Ok(node)
     }
 
-    pub fn get_child_by_path(&mut self, path: Vec<String>) -> Result<Option<&mut PlaylistNode>> {
+    pub fn get_child_by_path(&mut self, path: Vec<String>) -> Result<Option<&mut XmlPlaylistNode>> {
         let mut parent = self;
 
         for name in path {
@@ -891,11 +891,11 @@ impl PlaylistNode {
         Ok(Some(parent))
     }
 
-    pub fn get_track(&mut self, idx: usize) -> Result<Option<&PlaylistTrack>> {
-        if self.node_type == PlaylistNodeType::Folder {
+    pub fn get_track(&mut self, idx: usize) -> Result<Option<&XmlPlaylistTrack>> {
+        if self.node_type == XmlPlaylistNodeType::Folder {
             return Err(XmlError::InvalidOperation {
-                operation: PlaylistOperation::GetTrack,
-                node_type: PlaylistNodeType::Folder,
+                operation: XmlPlaylistOperation::GetTrack,
+                node_type: XmlPlaylistNodeType::Folder,
             });
         };
         let tracks = self.tracks.get_or_insert_default();
@@ -903,47 +903,47 @@ impl PlaylistNode {
     }
 
     pub fn new_track(&mut self, key: &str) -> Result<()> {
-        if self.node_type == PlaylistNodeType::Folder {
+        if self.node_type == XmlPlaylistNodeType::Folder {
             return Err(XmlError::InvalidOperation {
-                operation: PlaylistOperation::AddTrack,
-                node_type: PlaylistNodeType::Folder,
+                operation: XmlPlaylistOperation::AddTrack,
+                node_type: XmlPlaylistNodeType::Folder,
             });
         };
-        let track_item = PlaylistTrack::new(key);
+        let track_item = XmlPlaylistTrack::new(key);
         self.tracks.get_or_insert_default().push(track_item);
         Ok(())
     }
     pub fn add_track_key(&mut self, key: &str) -> Result<()> {
-        if self.node_type == PlaylistNodeType::Folder {
+        if self.node_type == XmlPlaylistNodeType::Folder {
             return Err(XmlError::InvalidOperation {
-                operation: PlaylistOperation::AddTrack,
-                node_type: PlaylistNodeType::Folder,
+                operation: XmlPlaylistOperation::AddTrack,
+                node_type: XmlPlaylistNodeType::Folder,
             });
         };
-        let track_item = PlaylistTrack::new(key);
+        let track_item = XmlPlaylistTrack::new(key);
         self.tracks.get_or_insert_default().push(track_item);
         Ok(())
     }
-    pub fn add_track(&mut self, track: &Track) -> Result<()> {
-        if self.node_type == PlaylistNodeType::Folder {
+    pub fn add_track(&mut self, track: &XmlTrack) -> Result<()> {
+        if self.node_type == XmlPlaylistNodeType::Folder {
             return Err(XmlError::InvalidOperation {
-                operation: PlaylistOperation::AddTrack,
-                node_type: PlaylistNodeType::Folder,
+                operation: XmlPlaylistOperation::AddTrack,
+                node_type: XmlPlaylistNodeType::Folder,
             });
         };
         let key_type = self.key_type.as_ref().ok_or(XmlError::InvalidDocument(
             "playlist node is missing its key type",
         ))?;
-        let track_item = PlaylistTrack::from_track(track, key_type);
+        let track_item = XmlPlaylistTrack::from_track(track, key_type);
         self.tracks.get_or_insert_default().push(track_item);
         Ok(())
     }
 
     pub fn remove_track(&mut self, key: &str) -> Result<()> {
-        if self.node_type == PlaylistNodeType::Folder {
+        if self.node_type == XmlPlaylistNodeType::Folder {
             return Err(XmlError::InvalidOperation {
-                operation: PlaylistOperation::RemoveTrack,
-                node_type: PlaylistNodeType::Folder,
+                operation: XmlPlaylistOperation::RemoveTrack,
+                node_type: XmlPlaylistNodeType::Folder,
             });
         };
         let tracks = self.tracks.get_or_insert_default();
@@ -959,10 +959,10 @@ impl PlaylistNode {
     }
 
     pub fn clear_tracks(&mut self) -> Result<()> {
-        if self.node_type == PlaylistNodeType::Folder {
+        if self.node_type == XmlPlaylistNodeType::Folder {
             return Err(XmlError::InvalidOperation {
-                operation: PlaylistOperation::ClearTracks,
-                node_type: PlaylistNodeType::Folder,
+                operation: XmlPlaylistOperation::ClearTracks,
+                node_type: XmlPlaylistNodeType::Folder,
             });
         };
         self.tracks.get_or_insert_default().clear();
@@ -970,16 +970,16 @@ impl PlaylistNode {
     }
 }
 
-impl Debug for PlaylistNode {
+impl Debug for XmlPlaylistNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.node_type {
-            PlaylistNodeType::Playlist => f
+            XmlPlaylistNodeType::Playlist => f
                 .debug_struct("PlaylistNode")
                 .field("name", &self.name)
                 .field("key_type", &self.key_type)
                 // .field("tracks", &self.tracks)
                 .finish(),
-            PlaylistNodeType::Folder => f
+            XmlPlaylistNodeType::Folder => f
                 .debug_struct("PlaylistNode")
                 .field("name", &self.name)
                 // .field("children", &self.nodes)
@@ -988,13 +988,13 @@ impl Debug for PlaylistNode {
     }
 }
 
-impl Display for PlaylistNode {
+impl Display for XmlPlaylistNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.node_type {
-            PlaylistNodeType::Playlist => {
+            XmlPlaylistNodeType::Playlist => {
                 write!(f, "Playlist: {}", self.name)
             }
-            PlaylistNodeType::Folder => {
+            XmlPlaylistNodeType::Folder => {
                 write!(f, "Folder:   {}", self.name)
             }
         }
@@ -1003,45 +1003,45 @@ impl Display for PlaylistNode {
 
 /// The playlist node XML element of the Rekordbox XML file.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Playlists {
+pub struct XmlPlaylists {
     #[serde(rename = "NODE")]
-    node: PlaylistNode,
+    node: XmlPlaylistNode,
 }
 
-// -- Main Document -------------------------------------------------------------------------------
+// -- Main XmlDocument -------------------------------------------------------------------------------
 
 /// The root element of the Rekordbox XML file.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 #[serde(rename = "DJ_PLAYLISTS")]
-pub struct Document {
+pub struct XmlDocument {
     /// Version of the XML format for share the playlists.
     #[serde(rename = "@Version")]
     pub version: String,
-    /// Product information
+    /// XmlProduct information
     #[serde(rename = "PRODUCT")]
-    pub product: Product,
+    pub product: XmlProduct,
     #[serde(rename = "COLLECTION")]
-    pub collection: Collection,
+    pub collection: XmlCollection,
     #[serde(rename = "PLAYLISTS")]
-    pub playlists: Playlists,
+    pub playlists: XmlPlaylists,
 }
 
-impl Document {
+impl XmlDocument {
     pub fn new() -> Self {
         let version = "1.0.0";
         let product_name = "rbox";
         let product_version = "0.1.0";
         let product_company = "rbox";
-        Document {
+        XmlDocument {
             version: version.to_string(),
-            product: Product {
+            product: XmlProduct {
                 name: product_name.to_string(),
                 version: product_version.to_string(),
                 company: product_company.to_string(),
             },
-            collection: Collection { tracks: Vec::new() },
-            playlists: Playlists {
-                node: PlaylistNode::folder("ROOT"),
+            collection: XmlCollection { tracks: Vec::new() },
+            playlists: XmlPlaylists {
+                node: XmlPlaylistNode::folder("ROOT"),
             },
         }
     }
@@ -1052,7 +1052,7 @@ pub struct RekordboxXml {
     /// Path to the XML file
     path: PathBuf,
     /// XML document
-    doc: Document,
+    doc: XmlDocument,
 }
 
 impl Debug for RekordboxXml {
@@ -1068,7 +1068,7 @@ impl RekordboxXml {
     /// Create a new Rekordbox XML file.
     pub fn new<P: AsRef<Path>>(path: P) -> Self {
         let p = path.as_ref().to_path_buf();
-        let doc = Document::new();
+        let doc = XmlDocument::new();
         RekordboxXml { path: p, doc }
     }
 
@@ -1077,7 +1077,7 @@ impl RekordboxXml {
         let p = path.as_ref().to_path_buf();
         let file = std::fs::File::open(&p)?;
         let reader = std::io::BufReader::new(file);
-        let doc: Document = quick_xml::de::from_reader(reader)?;
+        let doc: XmlDocument = quick_xml::de::from_reader(reader)?;
         Ok(RekordboxXml { path: p, doc })
     }
 
@@ -1117,21 +1117,63 @@ impl RekordboxXml {
         Ok(())
     }
 
+    // -- Xml file info ----------------------------------------------------------------------------
+
+    /// Return the XML format version (DJ_PLAYLISTS Version).
+    pub fn get_version(&self) -> &str {
+        &self.doc.version
+    }
+
+    /// Set the XML format version (DJ_PLAYLISTS Version). Persist with `dump` or `dump_copy`.
+    pub fn set_version(&mut self, value: impl Into<String>) {
+        self.doc.version = value.into();
+    }
+
+    /// Return the name of the application that produced the XML.
+    pub fn get_product_name(&self) -> &str {
+        &self.doc.product.name
+    }
+
+    /// Set the name of the application that produced the XML. Persist with `dump` or `dump_copy`.
+    pub fn set_product_name(&mut self, value: impl Into<String>) {
+        self.doc.product.name = value.into();
+    }
+
+    /// Return the version of the application that produced the XML.
+    pub fn get_product_version(&self) -> &str {
+        &self.doc.product.version
+    }
+
+    /// Set the version of the application that produced the XML. Persist with `dump` or `dump_copy`.
+    pub fn set_product_version(&mut self, value: impl Into<String>) {
+        self.doc.product.version = value.into();
+    }
+
+    /// Return the company that produced the application.
+    pub fn get_product_company(&self) -> &str {
+        &self.doc.product.company
+    }
+
+    /// Set the company that produced the application. Persist with `dump` or `dump_copy`.
+    pub fn set_product_company(&mut self, value: impl Into<String>) {
+        self.doc.product.company = value.into();
+    }
+
     // -- Track handling --------------------------------------------------------------------------
 
-    pub fn get_tracks(&mut self) -> &mut Vec<Track> {
+    pub fn get_tracks(&mut self) -> &mut Vec<XmlTrack> {
         &mut self.doc.collection.tracks
     }
 
-    pub fn set_tracks(&mut self, tracks: Vec<Track>) {
+    pub fn set_tracks(&mut self, tracks: Vec<XmlTrack>) {
         self.doc.collection.tracks = tracks;
     }
 
-    pub fn get_track(&mut self, index: usize) -> Option<&mut Track> {
+    pub fn get_track(&mut self, index: usize) -> Option<&mut XmlTrack> {
         self.doc.collection.tracks.get_mut(index)
     }
 
-    pub fn get_track_by_id(&mut self, track_id: &str) -> Option<&mut Track> {
+    pub fn get_track_by_id(&mut self, track_id: &str) -> Option<&mut XmlTrack> {
         let item = self
             .doc
             .collection
@@ -1145,7 +1187,7 @@ impl RekordboxXml {
         }
     }
 
-    pub fn get_track_by_location(&mut self, location: &str) -> Option<&mut Track> {
+    pub fn get_track_by_location(&mut self, location: &str) -> Option<&mut XmlTrack> {
         let item = self
             .doc
             .collection
@@ -1159,25 +1201,29 @@ impl RekordboxXml {
         }
     }
 
-    pub fn get_track_by_key(&mut self, key: &str, key_type: PlaylistKeyType) -> Option<&mut Track> {
+    pub fn get_track_by_key(
+        &mut self,
+        key: &str,
+        key_type: XmlPlaylistKeyType,
+    ) -> Option<&mut XmlTrack> {
         match key_type {
-            PlaylistKeyType::TrackID => self.get_track_by_id(key),
-            PlaylistKeyType::Location => self.get_track_by_location(key),
+            XmlPlaylistKeyType::TrackID => self.get_track_by_id(key),
+            XmlPlaylistKeyType::Location => self.get_track_by_location(key),
         }
     }
 
-    pub fn add_track(&mut self, track: Track) {
+    pub fn add_track(&mut self, track: XmlTrack) {
         self.doc.collection.tracks.push(track);
     }
 
-    pub fn new_track(&mut self, trackid: &str, location: &str) -> &mut Track {
-        let track = Track::new(trackid, location);
+    pub fn new_track(&mut self, trackid: &str, location: &str) -> &mut XmlTrack {
+        let track = XmlTrack::new(trackid, location);
         let index = self.doc.collection.tracks.len();
         self.doc.collection.tracks.push(track);
         self.doc.collection.tracks.get_mut(index).unwrap()
     }
 
-    pub fn update_track(&mut self, track: Track) -> Result<()> {
+    pub fn update_track(&mut self, track: XmlTrack) -> Result<()> {
         if let Some(existing_track) = self
             .doc
             .collection
@@ -1219,15 +1265,18 @@ impl RekordboxXml {
 
     // -- Playlist handling -----------------------------------------------------------------------
 
-    pub fn get_playlist_root(&mut self) -> &mut PlaylistNode {
+    pub fn get_playlist_root(&mut self) -> &mut XmlPlaylistNode {
         &mut self.doc.playlists.node
     }
 
-    pub fn set_playlist_root(&mut self, node: PlaylistNode) {
+    pub fn set_playlist_root(&mut self, node: XmlPlaylistNode) {
         self.doc.playlists.node = node;
     }
 
-    pub fn get_playlist_by_path(&mut self, path: Vec<String>) -> Result<Option<&mut PlaylistNode>> {
+    pub fn get_playlist_by_path(
+        &mut self,
+        path: Vec<String>,
+    ) -> Result<Option<&mut XmlPlaylistNode>> {
         let root = &mut self.doc.playlists.node;
         root.get_child_by_path(path)
     }
@@ -1235,7 +1284,7 @@ impl RekordboxXml {
     pub fn new_playlist(
         &mut self,
         name: &str,
-        key_type: PlaylistKeyType,
+        key_type: XmlPlaylistKeyType,
         parent_path: Vec<String>,
     ) -> Result<()> {
         let Some(parent) = self.get_playlist_by_path(parent_path.clone())? else {
@@ -1270,7 +1319,11 @@ impl RekordboxXml {
         Ok(())
     }
 
-    pub fn add_track_to_playlist(&mut self, track: &Track, parent_path: Vec<String>) -> Result<()> {
+    pub fn add_track_to_playlist(
+        &mut self,
+        track: &XmlTrack,
+        parent_path: Vec<String>,
+    ) -> Result<()> {
         let Some(parent) = self.get_playlist_by_path(parent_path.clone())? else {
             return Err(XmlError::NotFound {
                 entity: XmlEntity::ParentPlaylist,
@@ -1281,3 +1334,51 @@ impl RekordboxXml {
         Ok(())
     }
 }
+
+/// Deprecated compatibility name; use [`XmlTrack`].
+#[deprecated(note = "use XmlTrack instead")]
+pub type Track = XmlTrack;
+
+/// Deprecated compatibility name; use [`XmlTempo`].
+#[deprecated(note = "use XmlTempo instead")]
+pub type Tempo = XmlTempo;
+
+/// Deprecated compatibility name; use [`XmlPositionMark`].
+#[deprecated(note = "use XmlPositionMark instead")]
+pub type PositionMark = XmlPositionMark;
+
+/// Deprecated compatibility name; use [`XmlPlaylistTrack`].
+#[deprecated(note = "use XmlPlaylistTrack instead")]
+pub type PlaylistTrack = XmlPlaylistTrack;
+
+/// Deprecated compatibility name; use [`XmlPlaylistNode`].
+#[deprecated(note = "use XmlPlaylistNode instead")]
+pub type PlaylistNode = XmlPlaylistNode;
+
+/// Deprecated compatibility name; use [`XmlPlaylistNodeType`].
+#[deprecated(note = "use XmlPlaylistNodeType instead")]
+pub type PlaylistNodeType = XmlPlaylistNodeType;
+
+/// Deprecated compatibility name; use [`XmlPlaylistKeyType`].
+#[deprecated(note = "use XmlPlaylistKeyType instead")]
+pub type PlaylistKeyType = XmlPlaylistKeyType;
+
+/// Deprecated compatibility name; use [`XmlCollection`].
+#[deprecated(note = "use XmlCollection instead")]
+pub type Collection = XmlCollection;
+
+/// Deprecated compatibility name; use [`XmlProduct`].
+#[deprecated(note = "use XmlProduct instead")]
+pub type Product = XmlProduct;
+
+/// Deprecated compatibility name; use [`XmlPlaylists`].
+#[deprecated(note = "use XmlPlaylists instead")]
+pub type Playlists = XmlPlaylists;
+
+/// Deprecated compatibility name; use [`XmlDocument`].
+#[deprecated(note = "use XmlDocument instead")]
+pub type Document = XmlDocument;
+
+/// Deprecated compatibility name; use [`XmlPlaylistOperation`].
+#[deprecated(note = "use XmlPlaylistOperation instead")]
+pub type PlaylistOperation = XmlPlaylistOperation;
