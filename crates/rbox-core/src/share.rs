@@ -122,3 +122,13 @@ pub fn artwork_dir_local(uuid: &str) -> String {
     let relpath = compute_share_relpath_local(uuid);
     format!("/PIONEER/Artwork/{}", relpath)
 }
+
+/// Return the image path for a local artwork file derived from the supplied UUID.
+///
+/// # Panics
+///
+/// Panics if `uuid` cannot be parsed as a UUID.
+pub fn image_path_local(uuid: &str) -> String {
+    let relpath = compute_share_relpath_local(uuid);
+    format!("/PIONEER/Artwork/{}/artwork.jpg", relpath)
+}

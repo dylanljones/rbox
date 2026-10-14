@@ -7,6 +7,7 @@
 //! local Rekordbox installation. It does not open or decrypt databases and does
 //! not modify Rekordbox's preferences.
 
+pub mod artwork;
 pub mod error;
 pub mod locate;
 pub mod options;
@@ -20,7 +21,7 @@ pub mod python;
 
 pub use locate::{
     find_programs, find_programs_in, locate_library, options_json_path, rekordbox_agent_app_dir,
-    rekordbox_app_dir, LookupPaths,
+    rekordbox_app_dir, LibraryLocation,
 };
 pub use options::RekordboxOptions;
 pub use pathlib::PathExt;
@@ -28,4 +29,6 @@ pub use process::{get_rekordbox_pid, is_rekordbox_running};
 pub use share::{anlz_dir_local, anlz_dir_usb, artwork_dir_local};
 
 pub mod enums;
+pub mod models;
+
 pub use enums::FileType;

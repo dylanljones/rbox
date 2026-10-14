@@ -48,6 +48,12 @@ impl TryFrom<i32> for FileType {
     }
 }
 
+impl Into<i32> for FileType {
+    fn into(self) -> i32 {
+        self as i32
+    }
+}
+
 impl FileType {
     /// AAC audio uses the same database code as M4A.
     pub const AAC: Self = Self::M4A;
