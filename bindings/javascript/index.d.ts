@@ -4200,31 +4200,6 @@ export declare class OneLibrary {
 }
 export type JsOneLibrary = OneLibrary
 
-export declare class PlaylistNode {
-  constructor(name: string, nodeType: PlaylistNodeType, keyType?: PlaylistKeyType | undefined | null)
-  static playlist(name: string, keyType: PlaylistKeyType): PlaylistNode
-  static folder(name: string): PlaylistNode
-  get name(): string
-  set name(v: string)
-  get nodeType(): PlaylistNodeType
-  get keyType(): PlaylistKeyType | null
-  get nodes(): Array<PlaylistNode>
-  get tracks(): Array<PlaylistTrack>
-  get numNodes(): number
-  get numTracks(): number
-  addNode(node: PlaylistNode): void
-  newPlaylist(name: string, keyType: PlaylistKeyType): PlaylistNode
-  newFolder(name: string): PlaylistNode
-  removeNode(index: number): void
-  clearNodes(): void
-  getChild(index: number): PlaylistNode
-  addTrack(track: PlaylistTrack): void
-  newTrack(key: string): void
-  removeTrack(index: number): void
-  clearTracks(): void
-}
-export type JsPlaylistNode = PlaylistNode
-
 export declare class RekordboxOptions {
   constructor(dbPath: string, analysisRoot: string, settingsRoot: string)
   static load(path: string): RekordboxOptions
@@ -4238,19 +4213,35 @@ export type JsRekordboxOptions = RekordboxOptions
 export declare class RekordboxXml {
   constructor(path: string)
   static load(path: string): RekordboxXml
+  /** Return the XML format version (DJ_PLAYLISTS Version). */
+  getVersion(): string
+  /** Set the XML format version (DJ_PLAYLISTS Version). */
+  setVersion(value: string): void
+  /** Return the name of the application that produced the XML. */
+  getProductName(): string
+  /** Set the name of the application that produced the XML. */
+  setProductName(value: string): void
+  /** Return the version of the application that produced the XML. */
+  getProductVersion(): string
+  /** Set the version of the application that produced the XML. */
+  setProductVersion(value: string): void
+  /** Return the company that produced the application. */
+  getProductCompany(): string
+  /** Set the company that produced the application. */
+  setProductCompany(value: string): void
   toString(): string
   dumpCopy(path: string): void
   dump(): void
-  get playlistRoot(): PlaylistNode
-  getPlaylistRoots(): PlaylistNode
-  getTracks(): Array<Track>
-  getTrack(index: number): Track | null
-  getTrackById(trackId: string): Track | null
-  getTrackByLocation(location: string): Track | null
-  getTrackByKey(key: string, keyType: PlaylistKeyType): Track | null
-  addTrack(track: Track): void
-  newTrack(trackid: string, location: string): Track
-  updateTrack(track: Track): void
+  get playlistRoot(): XmlPlaylistNode
+  getPlaylistRoots(): XmlPlaylistNode
+  getTracks(): Array<XmlTrack>
+  getTrack(index: number): XmlTrack | null
+  getTrackById(trackId: string): XmlTrack | null
+  getTrackByLocation(location: string): XmlTrack | null
+  getTrackByKey(key: string, keyType: XmlPlaylistKeyType): XmlTrack | null
+  addTrack(track: XmlTrack): void
+  newTrack(trackid: string, location: string): XmlTrack
+  updateTrack(track: XmlTrack): void
   removeTrack(trackId: string): void
   clearTracks(): void
 }
@@ -4359,6 +4350,31 @@ export declare class Setting {
   setWaveformCurrentPosition(waveformCurrentPosition: WaveformCurrentPosition): void
 }
 export type JsSetting = Setting
+
+export declare class XmlPlaylistNode {
+  constructor(name: string, nodeType: XmlPlaylistNodeType, keyType?: XmlPlaylistKeyType | undefined | null)
+  static playlist(name: string, keyType: XmlPlaylistKeyType): XmlPlaylistNode
+  static folder(name: string): XmlPlaylistNode
+  get name(): string
+  set name(v: string)
+  get nodeType(): XmlPlaylistNodeType
+  get keyType(): XmlPlaylistKeyType | null
+  get nodes(): Array<XmlPlaylistNode>
+  get tracks(): Array<XmlPlaylistTrack>
+  get numNodes(): number
+  get numTracks(): number
+  addNode(node: XmlPlaylistNode): void
+  newPlaylist(name: string, keyType: XmlPlaylistKeyType): XmlPlaylistNode
+  newFolder(name: string): XmlPlaylistNode
+  removeNode(index: number): void
+  clearNodes(): void
+  getChild(index: number): XmlPlaylistNode
+  addTrack(track: XmlPlaylistTrack): void
+  newTrack(key: string): void
+  removeTrack(index: number): void
+  clearTracks(): void
+}
+export type JsXmlPlaylistNode = XmlPlaylistNode
 
 /** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface AnlzCue {
@@ -4486,6 +4502,12 @@ export declare const enum ChannelFaderCurveLongFader {
   Smooth = 'Smooth',
   Linear = 'Linear'
 }
+
+/** Create a library track with empty database identifiers. */
+export declare function createTrack(path: string): Track
+
+/** Create metadata with only the path populated. */
+export declare function createTrackMetadata(path: string): TrackMetadata
 
 export declare const enum CrossfaderCurve {
   ConstantPower = 'ConstantPower',
@@ -4789,31 +4811,9 @@ export interface Phrase {
   u5: number
 }
 
-export declare const enum PlaylistKeyType {
-  TrackID = 0,
-  Location = 1
-}
-
-export declare const enum PlaylistNodeType {
-  Folder = 0,
-  Playlist = 1
-}
-
-export interface PlaylistTrack {
-  key: string
-}
-
 export declare const enum PlayMode {
   Continue = 'Continue',
   Single = 'Single'
-}
-
-export interface PositionMark {
-  name: string
-  markType: number
-  start: number
-  end?: number
-  num: number
 }
 
 export declare const enum Quantize {
@@ -4894,13 +4894,6 @@ export declare const enum TalkOverMode {
   Normal = 'Normal'
 }
 
-export interface Tempo {
-  inizio: number
-  bpm: number
-  metro: string
-  battito: number
-}
-
 export declare const enum TempoRange {
   SixPercent = 'SixPercent',
   TenPercent = 'TenPercent',
@@ -4924,38 +4917,83 @@ export interface TinyWaveformPreview {
   data: Array<TinyWaveformColumn>
 }
 
+/** Shared track data. BPM is unscaled, length is seconds, fileSize is bytes as bigint. */
 export interface Track {
-  trackid: string
-  name?: string
-  artist?: string
-  composer?: string
-  album?: string
-  grouping?: string
-  genre?: string
-  kind?: string
-  size?: number
-  totaltime?: number
-  discnumber?: number
-  tracknumber?: number
-  year?: number
-  averagebpm?: number
-  datemodified?: Date
-  dateadded?: Date
-  bitrate?: number
-  samplerate?: number
-  comments?: string
-  playcount?: number
-  lastplayed?: Date
+  id: string
+  uuid: string
+  path: string
+  fileType?: number
   rating?: number
-  location: string
+  searchStr?: string
+  tag?: string
+  title?: string
+  artist?: string
+  album?: string
+  albumArtist?: string
+  genre?: string
+  bpm?: number
+  length?: number
+  trackNo?: number
+  bitRate?: number
+  bitDepth?: number
+  commnt?: string
+  releaseYear?: number
   remixer?: string
-  tonality?: string
   label?: string
-  mix?: string
-  color?: string
-  tempos?: Array<Tempo>
-  positionMarks?: Array<PositionMark>
+  orgArtist?: string
+  key?: string
+  stockDate?: string
+  fileSize?: bigint
+  discNo?: number
+  composer?: string
+  subtitle?: string
+  sampleRate?: number
+  releaseDate?: string
+  dateCreated?: string
+  lyricist?: string
+  isrc?: string
 }
+
+/** Copy metadata into a track with empty database identifiers. */
+export declare function trackFromMetadata(metadata: TrackMetadata): Track
+
+/** Shared track data. BPM is unscaled, length is seconds, fileSize is bytes as bigint. */
+export interface TrackMetadata {
+  path: string
+  fileType?: number
+  rating?: number
+  searchStr?: string
+  tag?: string
+  title?: string
+  artist?: string
+  album?: string
+  albumArtist?: string
+  genre?: string
+  bpm?: number
+  length?: number
+  trackNo?: number
+  bitRate?: number
+  bitDepth?: number
+  commnt?: string
+  releaseYear?: number
+  remixer?: string
+  label?: string
+  orgArtist?: string
+  key?: string
+  stockDate?: string
+  fileSize?: bigint
+  discNo?: number
+  composer?: string
+  subtitle?: string
+  sampleRate?: number
+  releaseDate?: string
+  dateCreated?: string
+  lyricist?: string
+  isrc?: string
+}
+
+/** Copy metadata, omitting database identifiers. */
+export declare function trackToMetadata(track: Track): TrackMetadata
 
 /** Opaque section bytes, including the exact four-byte identifier. */
 export interface UnknownSection {
@@ -5076,6 +5114,68 @@ export declare const enum WaveformDivisions {
 /** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface WaveformPreview {
   data: Array<WaveformColumn>
+}
+
+export declare const enum XmlPlaylistKeyType {
+  TrackID = 0,
+  Location = 1
+}
+
+export declare const enum XmlPlaylistNodeType {
+  Folder = 0,
+  Playlist = 1
+}
+
+export interface XmlPlaylistTrack {
+  key: string
+}
+
+export interface XmlPositionMark {
+  name: string
+  markType: number
+  start: number
+  end?: number
+  num: number
+}
+
+export interface XmlTempo {
+  inizio: number
+  bpm: number
+  metro: string
+  battito: number
+}
+
+export interface XmlTrack {
+  trackid: string
+  name?: string
+  artist?: string
+  composer?: string
+  album?: string
+  grouping?: string
+  genre?: string
+  kind?: string
+  size?: number
+  totaltime?: number
+  discnumber?: number
+  tracknumber?: number
+  year?: number
+  averagebpm?: number
+  datemodified?: Date
+  dateadded?: Date
+  bitrate?: number
+  samplerate?: number
+  comments?: string
+  playcount?: number
+  lastplayed?: Date
+  rating?: number
+  location: string
+  remixer?: string
+  tonality?: string
+  label?: string
+  mix?: string
+  color?: string
+  tempos?: Array<XmlTempo>
+  positionMarks?: Array<XmlPositionMark>
 }
 /**
  * Represents the `agentRegistry` table in the Rekordbox database.
@@ -7004,7 +7104,12 @@ export interface NewDjmdArtist {
 }
 
 /**
- * Represents a new record insertale to the `djmdContent` table.
+ * Represents a new record insertable into the `djmdContent` table.
+ *
+ * Insertion uses the library identity from `djmdProperty` and initializes local
+ * playback, sampler and empty-text fields using observed import defaults.
+ * Explicit builder values take precedence. `ExtInfo` defaults to the text
+ * `"null"`; `ContentLink` is left absent unless supplied by the caller.
  *
  * Implements the builder pattern for optional values of the new record.
  *
@@ -7040,7 +7145,7 @@ export interface NewDjmdContent {
   /** An optional string representing comments about the track. */
   commnt?: string
   /** Explicit Rekordbox file type, or `None` to infer it from the path extension. */
-  fileType?: FileType
+  fileType?: number
   /** An optional integer representing the rating of the track. */
   rating?: number
   /** An optional integer representing the release year of the track. */

@@ -5,6 +5,8 @@
 
 import enum
 from datetime import datetime
+from os import PathLike
+from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from .anlz import AnlzData, AnlzSection
@@ -4335,7 +4337,7 @@ class PySetting:
 
 # ---- XML  -----------------------------------------------------------------------------------------
 
-class Tempo(_RustMutableMapping):
+class XmlTempo(_RustMutableMapping):
     inizio: float
     bpm: float
     metro: str
@@ -4343,7 +4345,7 @@ class Tempo(_RustMutableMapping):
 
     def __init__(self, inizio: float, bpm: float, metro: str, battito: int) -> None: ...
 
-class PositionMark(_RustMutableMapping):
+class XmlPositionMark(_RustMutableMapping):
     name: str
     mark_type: int
     num: int
@@ -4352,14 +4354,14 @@ class PositionMark(_RustMutableMapping):
 
     def __init__(self, name: str, mark_type: int, num: int, start: float, end: Optional[float]) -> None: ...
 
-class PlaylistTrack:
+class XmlPlaylistTrack:
     key: str
 
-class Track(_RustMutableMapping):
+class XmlTrack(_RustMutableMapping):
     trackid: str
     location: str
-    tempos: List[Tempo]
-    position_marks: List[PositionMark]
+    tempos: List[XmlTempo]
+    position_marks: List[XmlPositionMark]
     name: Optional[str] = None
     artist: Optional[str] = None
     composer: Optional[str] = None
@@ -4389,34 +4391,42 @@ class Track(_RustMutableMapping):
 
     def __init__(self, track_id: str, location: str) -> None: ...
 
-class PlaylistNode:
+class XmlPlaylistNode:
     name: str
     node_type: int
     key_type: Optional[int]
-    tracks: Optional[List[PlaylistTrack]]
-    nodes: Optional[List[PlaylistNode]]
+    tracks: Optional[List[XmlPlaylistTrack]]
+    nodes: Optional[List[XmlPlaylistNode]]
 
     def __init__(self, node_type: int) -> None: ...
     @classmethod
-    def playlist(cls, name: str, key_type: int) -> "PlaylistNode": ...
+    def playlist(cls, name: str, key_type: int) -> "XmlPlaylistNode": ...
     @classmethod
-    def folder(cls, name: str) -> "PlaylistNode": ...
-    def add_node(self, node: "PlaylistNode") -> None: ...
-    def new_playlist(self, name: str, key_type: int) -> "PlaylistNode": ...
-    def new_folder(self, name: str) -> "PlaylistNode": ...
+    def folder(cls, name: str) -> "XmlPlaylistNode": ...
+    def add_node(self, node: "XmlPlaylistNode") -> None: ...
+    def new_playlist(self, name: str, key_type: int) -> "XmlPlaylistNode": ...
+    def new_folder(self, name: str) -> "XmlPlaylistNode": ...
     def remove_node(self, index: int) -> None: ...
     def clear_nodes(self) -> None: ...
-    def get_child(self, index: int) -> "PlaylistNode": ...
-    def find_child(self, name: str) -> Optional["PlaylistNode"]: ...
-    def get_track(self, index: int) -> PlaylistTrack: ...
+    def get_child(self, index: int) -> "XmlPlaylistNode": ...
+    def find_child(self, name: str) -> Optional["XmlPlaylistNode"]: ...
+    def get_track(self, index: int) -> XmlPlaylistTrack: ...
     def new_track(self, track_key: str) -> None: ...
-    def add_track(self, track: PlaylistTrack) -> None: ...
+    def add_track(self, track: XmlPlaylistTrack) -> None: ...
     def remove_track(self, track_key: str) -> None: ...
     def clear_tracks(self) -> None: ...
 
 class PyRekordboxXml:
-    root_playlist: PlaylistNode
-    tracks: List[Track]
+    def get_version(self) -> str: ...
+    def set_version(self, value: str) -> None: ...
+    def get_product_name(self) -> str: ...
+    def set_product_name(self, value: str) -> None: ...
+    def get_product_version(self) -> str: ...
+    def set_product_version(self, value: str) -> None: ...
+    def get_product_company(self) -> str: ...
+    def set_product_company(self, value: str) -> None: ...
+    root_playlist: XmlPlaylistNode
+    tracks: List[XmlTrack]
 
     def __init__(self, path: str) -> None: ...
     @classmethod
@@ -4424,14 +4434,101 @@ class PyRekordboxXml:
     def to_string(self) -> str: ...
     def dump_copy(self, path: str) -> None: ...
     def dump(self) -> None: ...
-    # def get_tracks(self) -> List[Track]: ...
-    def get_track(self, index: int) -> Optional[Track]: ...
-    def get_track_by_id(self, track_id: str) -> Optional[Track]: ...
-    def get_track_by_location(self, location: str) -> Optional[Track]: ...
-    def get_track_by_key(self, key: str, key_type: int) -> Optional[Track]: ...
-    def add_track(self, track: Track) -> None: ...
-    def new_track(self, track_id: str, location: str) -> Track: ...
-    def update_track(self, track: Track) -> None: ...
+    # def get_tracks(self) -> List[XmlTrack]: ...
+    def get_track(self, index: int) -> Optional[XmlTrack]: ...
+    def get_track_by_id(self, track_id: str) -> Optional[XmlTrack]: ...
+    def get_track_by_location(self, location: str) -> Optional[XmlTrack]: ...
+    def get_track_by_key(self, key: str, key_type: int) -> Optional[XmlTrack]: ...
+    def add_track(self, track: XmlTrack) -> None: ...
+    def new_track(self, track_id: str, location: str) -> XmlTrack: ...
+    def update_track(self, track: XmlTrack) -> None: ...
     def remove_track(self, track_id: str) -> None: ...
     def clear_tracks(self) -> None: ...
-    # def get_playlist_root(self) -> PlaylistNode: ...
+    # def get_playlist_root(self) -> XmlPlaylistNode: ...
+
+# Shared core track models. Paths are exposed as pathlib.Path objects.
+
+class TrackMetadata:
+    path: Path
+    file_type: Optional[int]
+    rating: Optional[int]
+    search_str: Optional[str]
+    tag: Optional[str]
+    title: Optional[str]
+    artist: Optional[str]
+    album: Optional[str]
+    album_artist: Optional[str]
+    genre: Optional[str]
+    bpm: Optional[float]
+    length: Optional[float]
+    track_no: Optional[int]
+    bit_rate: Optional[int]
+    bit_depth: Optional[int]
+    commnt: Optional[str]
+    release_year: Optional[int]
+    remixer: Optional[str]
+    label: Optional[str]
+    org_artist: Optional[str]
+    key: Optional[str]
+    stock_date: Optional[str]
+    file_size: Optional[int]
+    disc_no: Optional[int]
+    composer: Optional[str]
+    subtitle: Optional[str]
+    sample_rate: Optional[int]
+    release_date: Optional[str]
+    date_created: Optional[str]
+    lyricist: Optional[str]
+    isrc: Optional[str]
+    def __init__(self, path: Union[str, PathLike[str]]) -> None: ...
+
+class Track:
+    id: str
+    uuid: str
+    path: Path
+    file_type: Optional[int]
+    rating: Optional[int]
+    search_str: Optional[str]
+    tag: Optional[str]
+    title: Optional[str]
+    artist: Optional[str]
+    album: Optional[str]
+    album_artist: Optional[str]
+    genre: Optional[str]
+    bpm: Optional[float]
+    length: Optional[float]
+    track_no: Optional[int]
+    bit_rate: Optional[int]
+    bit_depth: Optional[int]
+    commnt: Optional[str]
+    release_year: Optional[int]
+    remixer: Optional[str]
+    label: Optional[str]
+    org_artist: Optional[str]
+    key: Optional[str]
+    stock_date: Optional[str]
+    file_size: Optional[int]
+    disc_no: Optional[int]
+    composer: Optional[str]
+    subtitle: Optional[str]
+    sample_rate: Optional[int]
+    release_date: Optional[str]
+    date_created: Optional[str]
+    lyricist: Optional[str]
+    isrc: Optional[str]
+    def __init__(self, path: Union[str, PathLike[str]]) -> None: ...
+    @staticmethod
+    def from_metadata(metadata: TrackMetadata) -> Track: ...
+    def to_metadata(self) -> TrackMetadata: ...
+
+# Deprecated XML compatibility alias.
+Tempo = XmlTempo
+
+# Deprecated XML compatibility alias.
+PositionMark = XmlPositionMark
+
+# Deprecated XML compatibility alias.
+PlaylistTrack = XmlPlaylistTrack
+
+# Deprecated XML compatibility alias.
+PlaylistNode = XmlPlaylistNode

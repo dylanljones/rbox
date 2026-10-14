@@ -1,12 +1,15 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! Python bindings for Rekordbox XML collections and XmlTrack models.
+
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use pyo3::prelude::*;
 use pyo3::types::{PyDateTime, PyDict, PyType};
 use rbox::core::python::{PyItemsIter, PyObjectIter, PyStrIter};
 use rbox::xml::{
-    PlaylistNode, PlaylistNodeType, PlaylistTrack, PositionMark, RekordboxXml, Tempo, Track,
+    RekordboxXml, XmlPlaylistNode, XmlPlaylistNodeType, XmlPlaylistTrack, XmlPositionMark,
+    XmlTempo, XmlTrack,
 };
 use std::collections::HashMap;
 
@@ -14,15 +17,15 @@ use super::errors::XmlError;
 use super::traits::{FromPy, IntoPy, MutableMapping};
 
 #[derive(Debug, Clone)]
-#[pyclass(from_py_object, name = "Tempo", unsendable, get_all, set_all)]
-pub struct PyTempo {
+#[pyclass(from_py_object, name = "XmlTempo", unsendable, get_all, set_all)]
+pub struct PyXmlTempo {
     pub inizio: f64,
     pub bpm: f64,
     pub metro: String,
     pub battito: u16,
 }
 
-impl MutableMapping for PyTempo {
+impl MutableMapping for PyXmlTempo {
     fn field_names() -> Vec<String> {
         vec![
             "inizio".to_string(),
@@ -63,7 +66,7 @@ impl MutableMapping for PyTempo {
 }
 
 #[pymethods]
-impl PyTempo {
+impl PyXmlTempo {
     #[new]
     fn new(inizio: f64, bpm: f64, metro: &str, battito: u16) -> Self {
         Self {
@@ -120,15 +123,15 @@ impl PyTempo {
 
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!(
-            "Tempo(inizio: {}, bpm: {}, metro: {}, battito: {:})",
+            "XmlTempo(inizio: {}, bpm: {}, metro: {}, battito: {:})",
             self.inizio, self.bpm, self.metro, self.battito
         ))
     }
 }
 
-impl IntoPy<PyTempo> for Tempo {
-    fn into_py(self, _py: Python) -> PyResult<PyTempo> {
-        let model = PyTempo {
+impl IntoPy<PyXmlTempo> for XmlTempo {
+    fn into_py(self, _py: Python) -> PyResult<PyXmlTempo> {
+        let model = PyXmlTempo {
             inizio: self.inizio,
             bpm: self.bpm,
             metro: self.metro,
@@ -138,8 +141,8 @@ impl IntoPy<PyTempo> for Tempo {
     }
 }
 
-impl FromPy<PyTempo> for Tempo {
-    fn from_py(_py: Python, model: PyRef<'_, PyTempo>) -> Self {
+impl FromPy<PyXmlTempo> for XmlTempo {
+    fn from_py(_py: Python, model: PyRef<'_, PyXmlTempo>) -> Self {
         Self {
             inizio: model.inizio,
             bpm: model.bpm,
@@ -151,8 +154,8 @@ impl FromPy<PyTempo> for Tempo {
 
 /// Position element for storing position markers like cue points of a track
 #[derive(Clone, Debug)]
-#[pyclass(from_py_object, name = "PositionMark", unsendable, get_all, set_all)]
-pub struct PyPositionMark {
+#[pyclass(from_py_object, name = "XmlPositionMark", unsendable, get_all, set_all)]
+pub struct PyXmlPositionMark {
     pub name: String,
     pub mark_type: u16,
     pub start: f64,
@@ -160,7 +163,7 @@ pub struct PyPositionMark {
     pub num: i32,
 }
 
-impl MutableMapping for PyPositionMark {
+impl MutableMapping for PyXmlPositionMark {
     fn field_names() -> Vec<String> {
         vec![
             "name".to_string(),
@@ -204,7 +207,7 @@ impl MutableMapping for PyPositionMark {
 }
 
 #[pymethods]
-impl PyPositionMark {
+impl PyXmlPositionMark {
     #[new]
     fn new(name: &str, mark_type: u16, num: i32, start: f64, end: Option<f64>) -> Self {
         Self {
@@ -263,21 +266,21 @@ impl PyPositionMark {
     fn __repr__(&self) -> PyResult<String> {
         if let Some(end) = self.end {
             Ok(format!(
-                "PositionMark(name: {}, type: {}, start: {}, end: {}, num: {})",
+                "XmlPositionMark(name: {}, type: {}, start: {}, end: {}, num: {})",
                 self.name, self.mark_type, self.start, end, self.num
             ))
         } else {
             Ok(format!(
-                "PositionMark(name: {}, type: {}, start: {}, num: {})",
+                "XmlPositionMark(name: {}, type: {}, start: {}, num: {})",
                 self.name, self.mark_type, self.start, self.num
             ))
         }
     }
 }
 
-impl IntoPy<PyPositionMark> for PositionMark {
-    fn into_py(self, _py: Python) -> PyResult<PyPositionMark> {
-        let model = PyPositionMark {
+impl IntoPy<PyXmlPositionMark> for XmlPositionMark {
+    fn into_py(self, _py: Python) -> PyResult<PyXmlPositionMark> {
+        let model = PyXmlPositionMark {
             name: self.name,
             mark_type: self.mark_type,
             start: self.start,
@@ -288,8 +291,8 @@ impl IntoPy<PyPositionMark> for PositionMark {
     }
 }
 
-impl FromPy<PyPositionMark> for PositionMark {
-    fn from_py(_py: Python, model: PyRef<'_, PyPositionMark>) -> Self {
+impl FromPy<PyXmlPositionMark> for XmlPositionMark {
+    fn from_py(_py: Python, model: PyRef<'_, PyXmlPositionMark>) -> Self {
         Self {
             name: model.name.clone(),
             mark_type: model.mark_type,
@@ -301,8 +304,8 @@ impl FromPy<PyPositionMark> for PositionMark {
 }
 
 #[derive(Debug)]
-#[pyclass(name = "Track", unsendable, get_all, set_all)]
-pub struct PyTrack {
+#[pyclass(name = "XmlTrack", unsendable, get_all, set_all)]
+pub struct PyXmlTrack {
     pub trackid: String,
     pub name: Option<String>,
     pub artist: Option<String>,
@@ -331,16 +334,16 @@ pub struct PyTrack {
     pub label: Option<String>,
     pub mix: Option<String>,
     pub color: Option<String>,
-    pub tempos: Vec<Py<PyTempo>>,
-    pub position_marks: Vec<Py<PyPositionMark>>,
+    pub tempos: Vec<Py<PyXmlTempo>>,
+    pub position_marks: Vec<Py<PyXmlPositionMark>>,
 }
 
-impl PyTrack {
+impl PyXmlTrack {
     fn clone_py(&self, py: Python) -> Self {
-        let mut tempos: Vec<Py<PyTempo>> = Vec::new();
-        let mut position_marks: Vec<Py<PyPositionMark>> = Vec::new();
-        let tempo_vec: &Vec<Py<PyTempo>> = self.tempos.as_ref();
-        let position_vec: &Vec<Py<PyPositionMark>> = self.position_marks.as_ref();
+        let mut tempos: Vec<Py<PyXmlTempo>> = Vec::new();
+        let mut position_marks: Vec<Py<PyXmlPositionMark>> = Vec::new();
+        let tempo_vec: &Vec<Py<PyXmlTempo>> = self.tempos.as_ref();
+        let position_vec: &Vec<Py<PyXmlPositionMark>> = self.position_marks.as_ref();
         for item in tempo_vec.iter() {
             let pyitem = Py::new(py, item.borrow(py).clone()).expect("");
             tempos.push(pyitem);
@@ -418,7 +421,7 @@ impl PyTrack {
     }
 }
 
-impl MutableMapping for PyTrack {
+impl MutableMapping for PyXmlTrack {
     fn field_names() -> Vec<String> {
         vec![
             "trackid".to_string(),
@@ -551,7 +554,7 @@ impl MutableMapping for PyTrack {
 }
 
 #[pymethods]
-impl PyTrack {
+impl PyXmlTrack {
     #[new]
     fn new(trackid: &str, location: &str) -> PyResult<Self> {
         let track = Self {
@@ -634,12 +637,12 @@ impl PyTrack {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("Track({:10} {})", self.trackid, self.location))
+        Ok(format!("XmlTrack({:10} {})", self.trackid, self.location))
     }
 }
 
-impl IntoPy<PyTrack> for Track {
-    fn into_py(self, py: Python) -> PyResult<PyTrack> {
+impl IntoPy<PyXmlTrack> for XmlTrack {
+    fn into_py(self, py: Python) -> PyResult<PyXmlTrack> {
         const MIDNIGHT: NaiveTime = NaiveTime::from_hms_opt(0, 0, 0).unwrap();
 
         let mut tempos = Vec::new();
@@ -684,7 +687,7 @@ impl IntoPy<PyTrack> for Track {
             None
         };
 
-        let model = PyTrack {
+        let model = PyXmlTrack {
             trackid: self.trackid,
             name: self.name,
             artist: self.artist,
@@ -720,15 +723,15 @@ impl IntoPy<PyTrack> for Track {
     }
 }
 
-impl FromPy<PyTrack> for Track {
-    fn from_py(py: Python, model: PyRef<'_, PyTrack>) -> Self {
-        let mut tempos: Vec<Tempo> = Vec::new();
-        let mut position_marks: Vec<PositionMark> = Vec::new();
+impl FromPy<PyXmlTrack> for XmlTrack {
+    fn from_py(py: Python, model: PyRef<'_, PyXmlTrack>) -> Self {
+        let mut tempos: Vec<XmlTempo> = Vec::new();
+        let mut position_marks: Vec<XmlPositionMark> = Vec::new();
         for item in &model.tempos {
-            tempos.push(Tempo::from_py(py, item.borrow(py)));
+            tempos.push(XmlTempo::from_py(py, item.borrow(py)));
         }
         for item in &model.position_marks {
-            position_marks.push(PositionMark::from_py(py, item.borrow(py)));
+            position_marks.push(XmlPositionMark::from_py(py, item.borrow(py)));
         }
 
         let datemodified: Option<NaiveDate> = if let Some(dt) = &model.datemodified {
@@ -786,13 +789,19 @@ impl FromPy<PyTrack> for Track {
 }
 
 #[derive(Clone, Debug)]
-#[pyclass(from_py_object, name = "PlaylistTrack", unsendable, get_all, set_all)]
-pub struct PyPlaylistTrack {
+#[pyclass(
+    from_py_object,
+    name = "XmlPlaylistTrack",
+    unsendable,
+    get_all,
+    set_all
+)]
+pub struct PyXmlPlaylistTrack {
     pub key: String,
 }
 
 #[pymethods]
-impl PyPlaylistTrack {
+impl PyXmlPlaylistTrack {
     #[new]
     pub fn new(key: &str) -> PyResult<Self> {
         Ok(Self {
@@ -805,14 +814,14 @@ impl PyPlaylistTrack {
     }
 }
 
-impl IntoPy<PyPlaylistTrack> for PlaylistTrack {
-    fn into_py(self, _py: Python) -> PyResult<PyPlaylistTrack> {
-        Ok(PyPlaylistTrack { key: self.key })
+impl IntoPy<PyXmlPlaylistTrack> for XmlPlaylistTrack {
+    fn into_py(self, _py: Python) -> PyResult<PyXmlPlaylistTrack> {
+        Ok(PyXmlPlaylistTrack { key: self.key })
     }
 }
 
-impl FromPy<PyPlaylistTrack> for PlaylistTrack {
-    fn from_py(_py: Python, model: PyRef<'_, PyPlaylistTrack>) -> Self {
+impl FromPy<PyXmlPlaylistTrack> for XmlPlaylistTrack {
+    fn from_py(_py: Python, model: PyRef<'_, PyXmlPlaylistTrack>) -> Self {
         Self {
             key: model.key.clone(),
         }
@@ -820,18 +829,18 @@ impl FromPy<PyPlaylistTrack> for PlaylistTrack {
 }
 
 #[derive(Debug)]
-#[pyclass(name = "PlaylistNode", unsendable, get_all, set_all)]
-pub struct PyPlaylistNode {
+#[pyclass(name = "XmlPlaylistNode", unsendable, get_all, set_all)]
+pub struct PyXmlPlaylistNode {
     pub name: String,
     pub node_type: u16,
     pub key_type: Option<u16>,
-    pub tracks: Option<Vec<Py<PyPlaylistTrack>>>,
-    pub nodes: Option<Vec<Py<PyPlaylistNode>>>,
+    pub tracks: Option<Vec<Py<PyXmlPlaylistTrack>>>,
+    pub nodes: Option<Vec<Py<PyXmlPlaylistNode>>>,
 }
 
-impl PyPlaylistNode {
+impl PyXmlPlaylistNode {
     fn clone_py(&self, py: Python) -> Self {
-        let mut tracks: Option<Vec<Py<PyPlaylistTrack>>> = None;
+        let mut tracks: Option<Vec<Py<PyXmlPlaylistTrack>>> = None;
         if self.tracks.is_some() {
             let mut items = Vec::new();
             for track in self.tracks.as_ref().unwrap().iter() {
@@ -841,7 +850,7 @@ impl PyPlaylistNode {
             tracks = Some(items);
         }
 
-        let mut nodes: Option<Vec<Py<PyPlaylistNode>>> = None;
+        let mut nodes: Option<Vec<Py<PyXmlPlaylistNode>>> = None;
         if self.nodes.is_some() {
             let mut items = Vec::new();
             for node in self.nodes.as_ref().unwrap().iter() {
@@ -861,7 +870,7 @@ impl PyPlaylistNode {
 }
 
 #[pymethods]
-impl PyPlaylistNode {
+impl PyXmlPlaylistNode {
     #[new]
     pub fn new(name: &str, node_type: u16) -> PyResult<Self> {
         Ok(Self {
@@ -877,7 +886,7 @@ impl PyPlaylistNode {
     fn playlist(_cls: &Bound<'_, PyType>, name: &str, key_type: u16) -> PyResult<Self> {
         Ok(Self {
             name: name.to_string(),
-            node_type: PlaylistNodeType::Playlist.into(),
+            node_type: XmlPlaylistNodeType::Playlist.into(),
             key_type: Some(key_type),
             tracks: Some(Vec::new()),
             nodes: Some(Vec::new()),
@@ -888,14 +897,14 @@ impl PyPlaylistNode {
     fn folder(_cls: &Bound<'_, PyType>, name: &str) -> PyResult<Self> {
         Ok(Self {
             name: name.to_string(),
-            node_type: PlaylistNodeType::Folder.into(),
+            node_type: XmlPlaylistNodeType::Folder.into(),
             key_type: None,
             tracks: Some(Vec::new()),
             nodes: Some(Vec::new()),
         })
     }
 
-    pub fn add_node(&mut self, py: Python, node: PyRef<'_, PyPlaylistNode>) -> PyResult<()> {
+    pub fn add_node(&mut self, py: Python, node: PyRef<'_, PyXmlPlaylistNode>) -> PyResult<()> {
         let node = node.clone_py(py);
         let pynode = Py::new(py, node)?;
         self.nodes.as_mut().unwrap().push(pynode);
@@ -907,7 +916,7 @@ impl PyPlaylistNode {
         py: Python,
         name: &str,
         key_type: u16,
-    ) -> PyResult<&Py<PyPlaylistNode>> {
+    ) -> PyResult<&Py<PyXmlPlaylistNode>> {
         if self.node_type != 0 {
             return Err(PyErr::new::<XmlError, _>(
                 "Cannot add child node to playlist node",
@@ -915,7 +924,7 @@ impl PyPlaylistNode {
         }
         let node = Self {
             name: name.to_string(),
-            node_type: PlaylistNodeType::Playlist.into(),
+            node_type: XmlPlaylistNodeType::Playlist.into(),
             key_type: Some(key_type),
             tracks: Some(Vec::new()),
             nodes: Some(Vec::new()),
@@ -929,7 +938,7 @@ impl PyPlaylistNode {
         self.get_child(index)
     }
 
-    pub fn new_folder(&mut self, py: Python, name: &str) -> PyResult<&Py<PyPlaylistNode>> {
+    pub fn new_folder(&mut self, py: Python, name: &str) -> PyResult<&Py<PyXmlPlaylistNode>> {
         if self.node_type != 0 {
             return Err(PyErr::new::<XmlError, _>(
                 "Cannot add child node to playlist node",
@@ -937,7 +946,7 @@ impl PyPlaylistNode {
         }
         let node = Self {
             name: name.to_string(),
-            node_type: PlaylistNodeType::Folder.into(),
+            node_type: XmlPlaylistNodeType::Folder.into(),
             key_type: None,
             tracks: Some(Vec::new()),
             nodes: Some(Vec::new()),
@@ -971,7 +980,7 @@ impl PyPlaylistNode {
         Ok(())
     }
 
-    pub fn get_child(&mut self, index: usize) -> PyResult<&Py<PyPlaylistNode>> {
+    pub fn get_child(&mut self, index: usize) -> PyResult<&Py<PyXmlPlaylistNode>> {
         if self.node_type != 0 {
             return Err(PyErr::new::<XmlError, _>(
                 "Cannot get child of playlist node",
@@ -981,7 +990,11 @@ impl PyPlaylistNode {
         Ok(item)
     }
 
-    pub fn find_child(&mut self, py: Python, name: &str) -> PyResult<Option<&Py<PyPlaylistNode>>> {
+    pub fn find_child(
+        &mut self,
+        py: Python,
+        name: &str,
+    ) -> PyResult<Option<&Py<PyXmlPlaylistNode>>> {
         if self.node_type != 0 {
             return Err(PyErr::new::<XmlError, _>(
                 "Cannot get child of playlist node",
@@ -992,7 +1005,7 @@ impl PyPlaylistNode {
         Ok(item)
     }
 
-    pub fn get_track(&mut self, index: usize) -> PyResult<&Py<PyPlaylistTrack>> {
+    pub fn get_track(&mut self, index: usize) -> PyResult<&Py<PyXmlPlaylistTrack>> {
         if self.node_type != 0 {
             return Err(PyErr::new::<XmlError, _>("Cannot get track of folder node"));
         }
@@ -1004,13 +1017,13 @@ impl PyPlaylistNode {
         if self.node_type != 1 {
             return Err(PyErr::new::<XmlError, _>("Cannot add track to folder node"));
         }
-        let track_item = PyPlaylistTrack::new(key)?;
+        let track_item = PyXmlPlaylistTrack::new(key)?;
         let pyitem = Py::new(py, track_item)?;
         self.tracks.as_mut().unwrap().push(pyitem);
         Ok(())
     }
 
-    pub fn add_track(&mut self, py: Python, track: PyRef<'_, PyPlaylistTrack>) -> PyResult<()> {
+    pub fn add_track(&mut self, py: Python, track: PyRef<'_, PyXmlPlaylistTrack>) -> PyResult<()> {
         if self.node_type != 1 {
             return Err(PyErr::new::<XmlError, _>("Cannot add track to folder node"));
         }
@@ -1054,8 +1067,8 @@ impl PyPlaylistNode {
     }
 }
 
-impl IntoPy<PyPlaylistNode> for PlaylistNode {
-    fn into_py(self, py: Python) -> PyResult<PyPlaylistNode> {
+impl IntoPy<PyXmlPlaylistNode> for XmlPlaylistNode {
+    fn into_py(self, py: Python) -> PyResult<PyXmlPlaylistNode> {
         let tracks = if let Some(items) = self.tracks {
             let mut vec = Vec::new();
             for item in items {
@@ -1077,7 +1090,7 @@ impl IntoPy<PyPlaylistNode> for PlaylistNode {
             None
         };
 
-        let model = PyPlaylistNode {
+        let model = PyXmlPlaylistNode {
             name: self.name,
             node_type: self.node_type.into(),
             key_type: self.key_type.map_or(None, |key| Some(key.into())),
@@ -1088,22 +1101,22 @@ impl IntoPy<PyPlaylistNode> for PlaylistNode {
     }
 }
 
-impl FromPy<PyPlaylistNode> for PlaylistNode {
-    fn from_py(py: Python, model: PyRef<'_, PyPlaylistNode>) -> Self {
-        let tracks: Option<Vec<PlaylistTrack>> = if let Some(items) = &model.tracks {
-            let mut data: Vec<PlaylistTrack> = Vec::new();
+impl FromPy<PyXmlPlaylistNode> for XmlPlaylistNode {
+    fn from_py(py: Python, model: PyRef<'_, PyXmlPlaylistNode>) -> Self {
+        let tracks: Option<Vec<XmlPlaylistTrack>> = if let Some(items) = &model.tracks {
+            let mut data: Vec<XmlPlaylistTrack> = Vec::new();
             for item in items {
-                data.push(PlaylistTrack::from_py(py, item.borrow(py)));
+                data.push(XmlPlaylistTrack::from_py(py, item.borrow(py)));
             }
             Some(data)
         } else {
             None
         };
 
-        let nodes: Option<Vec<PlaylistNode>> = if let Some(items) = &model.nodes {
-            let mut data: Vec<PlaylistNode> = Vec::new();
+        let nodes: Option<Vec<XmlPlaylistNode>> = if let Some(items) = &model.nodes {
+            let mut data: Vec<XmlPlaylistNode> = Vec::new();
             for item in items {
-                data.push(PlaylistNode::from_py(py, item.borrow(py)));
+                data.push(XmlPlaylistNode::from_py(py, item.borrow(py)));
             }
             Some(data)
         } else {
@@ -1126,19 +1139,20 @@ impl FromPy<PyPlaylistNode> for PlaylistNode {
 pub struct PyRekordboxXml {
     xml: RekordboxXml,
     #[pyo3(get, set)]
-    pub tracks: Vec<Py<PyTrack>>,
+    pub tracks: Vec<Py<PyXmlTrack>>,
     #[pyo3(get, set)]
-    pub root_playlist: Py<PyPlaylistNode>,
+    pub root_playlist: Py<PyXmlPlaylistNode>,
 }
 
 impl PyRekordboxXml {
     fn update_xml(&mut self, py: Python) {
-        let root: PlaylistNode = PlaylistNode::from_py(py, self.root_playlist.borrow(py).into());
+        let root: XmlPlaylistNode =
+            XmlPlaylistNode::from_py(py, self.root_playlist.borrow(py).into());
         self.xml.set_playlist_root(root);
-        let tracks: Vec<Track> = self
+        let tracks: Vec<XmlTrack> = self
             .tracks
             .iter()
-            .map(|t| Track::from_py(py, t.borrow(py)))
+            .map(|t| XmlTrack::from_py(py, t.borrow(py)))
             .collect();
         self.xml.set_tracks(tracks);
     }
@@ -1153,7 +1167,7 @@ impl PyRekordboxXml {
         let root_node = xml.get_playlist_root();
         let node_ref = root_node.clone().into_py(py)?;
         let tracks = xml.get_tracks();
-        let track_ref: Vec<Py<PyTrack>> = tracks
+        let track_ref: Vec<Py<PyXmlTrack>> = tracks
             .iter()
             .map(|t| Py::new(py, t.clone().into_py(py).expect("")).expect(""))
             .collect();
@@ -1167,6 +1181,46 @@ impl PyRekordboxXml {
     #[classmethod]
     pub fn load(_cls: &Bound<'_, PyType>, py: Python, path: &str) -> PyResult<Self> {
         Ok(PyRekordboxXml::new(py, path)?)
+    }
+
+    /// Return the XML format version (DJ_PLAYLISTS Version).
+    pub fn get_version(&self) -> String {
+        self.xml.get_version().to_owned()
+    }
+
+    /// Set the XML format version (DJ_PLAYLISTS Version).
+    pub fn set_version(&mut self, value: String) {
+        self.xml.set_version(value);
+    }
+
+    /// Return the name of the application that produced the XML.
+    pub fn get_product_name(&self) -> String {
+        self.xml.get_product_name().to_owned()
+    }
+
+    /// Set the name of the application that produced the XML.
+    pub fn set_product_name(&mut self, value: String) {
+        self.xml.set_product_name(value);
+    }
+
+    /// Return the version of the application that produced the XML.
+    pub fn get_product_version(&self) -> String {
+        self.xml.get_product_version().to_owned()
+    }
+
+    /// Set the version of the application that produced the XML.
+    pub fn set_product_version(&mut self, value: String) {
+        self.xml.set_product_version(value);
+    }
+
+    /// Return the company that produced the application.
+    pub fn get_product_company(&self) -> String {
+        self.xml.get_product_company().to_owned()
+    }
+
+    /// Set the company that produced the application.
+    pub fn set_product_company(&mut self, value: String) {
+        self.xml.set_product_company(value);
     }
 
     pub fn to_string(&mut self, py: Python) -> PyResult<String> {
@@ -1196,7 +1250,7 @@ impl PyRekordboxXml {
 
     // -- Track handling --------------------------------------------------------------------------
 
-    // pub fn get_tracks(&mut self, py: Python) -> PyResult<Vec<Py<PyTrack>>> {
+    // pub fn get_tracks(&mut self, py: Python) -> PyResult<Vec<Py<PyXmlTrack>>> {
     //     let mut data = Vec::new();
     //     for item in self.xml.get_tracks() {
     //         let py_item = item.clone().into_py(py)?;
@@ -1205,7 +1259,7 @@ impl PyRekordboxXml {
     //     Ok(data)
     // }
 
-    pub fn get_track(&mut self, index: usize) -> PyResult<Option<&Py<PyTrack>>> {
+    pub fn get_track(&mut self, index: usize) -> PyResult<Option<&Py<PyXmlTrack>>> {
         Ok(self.tracks.get(index))
         // let data = self.xml.get_track(index);
         // if let Some(data) = data {
@@ -1219,7 +1273,7 @@ impl PyRekordboxXml {
         &mut self,
         py: Python,
         track_id: &str,
-    ) -> PyResult<Option<&Py<PyTrack>>> {
+    ) -> PyResult<Option<&Py<PyXmlTrack>>> {
         let item = self
             .tracks
             .iter()
@@ -1238,7 +1292,7 @@ impl PyRekordboxXml {
         &mut self,
         py: Python,
         location: &str,
-    ) -> PyResult<Option<&Py<PyTrack>>> {
+    ) -> PyResult<Option<&Py<PyXmlTrack>>> {
         let item = self
             .tracks
             .iter()
@@ -1258,7 +1312,7 @@ impl PyRekordboxXml {
         py: Python,
         key: &str,
         key_type: i32,
-    ) -> PyResult<Option<&Py<PyTrack>>> {
+    ) -> PyResult<Option<&Py<PyXmlTrack>>> {
         match key_type {
             0 => self.get_track_by_id(py, key),
             1 => self.get_track_by_location(py, key),
@@ -1266,7 +1320,7 @@ impl PyRekordboxXml {
         }
     }
 
-    pub fn add_track(&mut self, py: Python, track: &PyTrack) -> PyResult<()> {
+    pub fn add_track(&mut self, py: Python, track: &PyXmlTrack) -> PyResult<()> {
         let pyitem = Py::new(py, track.clone_py(py))?;
         self.tracks.push(pyitem);
         Ok(())
@@ -1277,15 +1331,15 @@ impl PyRekordboxXml {
         py: Python,
         trackid: &str,
         location: &str,
-    ) -> PyResult<Option<&Py<PyTrack>>> {
+    ) -> PyResult<Option<&Py<PyXmlTrack>>> {
         let index = self.tracks.len();
-        let track = PyTrack::new(trackid, location)?;
+        let track = PyXmlTrack::new(trackid, location)?;
         let pyitem = Py::new(py, track.clone_py(py))?;
         self.tracks.push(pyitem);
         self.get_track(index)
     }
 
-    pub fn update_track(&mut self, py: Python, track: &PyTrack) -> PyResult<()> {
+    pub fn update_track(&mut self, py: Python, track: &PyXmlTrack) -> PyResult<()> {
         // The argument may be the same Python object stored in `self.tracks`.
         // Its argument conversion already holds a shared borrow; comparing IDs
         // only needs another shared borrow, not an exclusive one.

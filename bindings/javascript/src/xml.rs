@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! JavaScript bindings for Rekordbox XML collections and XmlTrack models.
+
 #![allow(non_snake_case)]
 
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
@@ -10,8 +12,8 @@ use napi_derive::napi;
 use std::sync::{Arc, RwLock};
 
 use rbox::xml::{
-    PlaylistKeyType, PlaylistNode, PlaylistNodeType, PlaylistTrack, PositionMark, RekordboxXml,
-    Tempo, Track,
+    RekordboxXml, XmlPlaylistKeyType, XmlPlaylistNode, XmlPlaylistNodeType, XmlPlaylistTrack,
+    XmlPositionMark, XmlTempo, XmlTrack,
 };
 
 pub fn datetime_to_js_date<'a>(env: &'a Env, date: &NaiveDate) -> JsDate<'a> {
@@ -52,17 +54,17 @@ pub trait IntoJsDate {
 }
 
 #[derive(Clone)]
-#[napi(object, js_name = "Tempo")]
-pub struct JsTempo {
+#[napi(object, js_name = "XmlTempo")]
+pub struct JsXmlTempo {
     pub inizio: f64,
     pub bpm: f64,
     pub metro: String,
     pub battito: u16,
 }
 
-impl Into<JsTempo> for Tempo {
-    fn into(self) -> JsTempo {
-        JsTempo {
+impl Into<JsXmlTempo> for XmlTempo {
+    fn into(self) -> JsXmlTempo {
+        JsXmlTempo {
             inizio: self.inizio,
             bpm: self.bpm,
             metro: self.metro,
@@ -71,8 +73,8 @@ impl Into<JsTempo> for Tempo {
     }
 }
 
-impl From<JsTempo> for Tempo {
-    fn from(model: JsTempo) -> Self {
+impl From<JsXmlTempo> for XmlTempo {
+    fn from(model: JsXmlTempo) -> Self {
         Self {
             inizio: model.inizio,
             bpm: model.bpm,
@@ -83,8 +85,8 @@ impl From<JsTempo> for Tempo {
 }
 
 #[derive(Clone)]
-#[napi(object, js_name = "PositionMark")]
-pub struct JsPositionMark {
+#[napi(object, js_name = "XmlPositionMark")]
+pub struct JsXmlPositionMark {
     pub name: String,
     pub mark_type: u16,
     pub start: f64,
@@ -92,9 +94,9 @@ pub struct JsPositionMark {
     pub num: i32,
 }
 
-impl Into<JsPositionMark> for PositionMark {
-    fn into(self) -> JsPositionMark {
-        JsPositionMark {
+impl Into<JsXmlPositionMark> for XmlPositionMark {
+    fn into(self) -> JsXmlPositionMark {
+        JsXmlPositionMark {
             name: self.name,
             mark_type: self.mark_type,
             start: self.start,
@@ -104,8 +106,8 @@ impl Into<JsPositionMark> for PositionMark {
     }
 }
 
-impl From<JsPositionMark> for PositionMark {
-    fn from(model: JsPositionMark) -> Self {
+impl From<JsXmlPositionMark> for XmlPositionMark {
+    fn from(model: JsXmlPositionMark) -> Self {
         Self {
             name: model.name,
             mark_type: model.mark_type,
@@ -117,8 +119,8 @@ impl From<JsPositionMark> for PositionMark {
 }
 
 #[derive(Clone)]
-#[napi(object, js_name = "Track")]
-pub struct JsTrack<'a> {
+#[napi(object, js_name = "XmlTrack")]
+pub struct JsXmlTrack<'a> {
     pub trackid: String,
     pub name: Option<String>,
     pub artist: Option<String>,
@@ -147,15 +149,15 @@ pub struct JsTrack<'a> {
     pub label: Option<String>,
     pub mix: Option<String>,
     pub color: Option<String>,
-    pub tempos: Option<Vec<JsTempo>>,
-    pub position_marks: Option<Vec<JsPositionMark>>,
+    pub tempos: Option<Vec<JsXmlTempo>>,
+    pub position_marks: Option<Vec<JsXmlPositionMark>>,
 }
 
-impl IntoJsDate for Track {
-    type Out<'a> = JsTrack<'a>;
+impl IntoJsDate for XmlTrack {
+    type Out<'a> = JsXmlTrack<'a>;
 
     fn into_js(self, env: &Env) -> Self::Out<'_> {
-        JsTrack {
+        JsXmlTrack {
             trackid: self.trackid,
             name: self.name,
             artist: self.artist,
@@ -195,18 +197,18 @@ impl IntoJsDate for Track {
     }
 }
 
-impl From<JsTrack<'_>> for Track {
-    fn from(model: JsTrack) -> Self {
+impl From<JsXmlTrack<'_>> for XmlTrack {
+    fn from(model: JsXmlTrack) -> Self {
         let mut tempos = Vec::new();
         let mut position_marks = Vec::new();
         if let Some(t) = model.tempos {
             for item in t {
-                tempos.push(Tempo::from(item));
+                tempos.push(XmlTempo::from(item));
             }
         }
         if let Some(pm) = model.position_marks {
             for item in pm {
-                position_marks.push(PositionMark::from(item));
+                position_marks.push(XmlPositionMark::from(item));
             }
         }
 
@@ -246,69 +248,69 @@ impl From<JsTrack<'_>> for Track {
 }
 
 #[derive(Clone, PartialEq)]
-#[napi(object, js_name = "PlaylistTrack")]
-pub struct JsPlaylistTrack {
+#[napi(object, js_name = "XmlPlaylistTrack")]
+pub struct JsXmlPlaylistTrack {
     pub key: String,
 }
 
-impl Into<JsPlaylistTrack> for PlaylistTrack {
-    fn into(self) -> JsPlaylistTrack {
-        JsPlaylistTrack { key: self.key }
+impl Into<JsXmlPlaylistTrack> for XmlPlaylistTrack {
+    fn into(self) -> JsXmlPlaylistTrack {
+        JsXmlPlaylistTrack { key: self.key }
     }
 }
 
-impl From<JsPlaylistTrack> for PlaylistTrack {
-    fn from(model: JsPlaylistTrack) -> Self {
+impl From<JsXmlPlaylistTrack> for XmlPlaylistTrack {
+    fn from(model: JsXmlPlaylistTrack) -> Self {
         Self { key: model.key }
     }
 }
 
 #[derive(Clone, PartialEq)]
-#[napi(js_name = "PlaylistNodeType")]
-pub enum JsPlaylistNodeType {
+#[napi(js_name = "XmlPlaylistNodeType")]
+pub enum JsXmlPlaylistNodeType {
     Folder = 0,
     Playlist = 1,
 }
 
-impl Into<JsPlaylistNodeType> for PlaylistNodeType {
-    fn into(self) -> JsPlaylistNodeType {
+impl Into<JsXmlPlaylistNodeType> for XmlPlaylistNodeType {
+    fn into(self) -> JsXmlPlaylistNodeType {
         match self {
-            PlaylistNodeType::Folder => JsPlaylistNodeType::Folder,
-            PlaylistNodeType::Playlist => JsPlaylistNodeType::Playlist,
+            XmlPlaylistNodeType::Folder => JsXmlPlaylistNodeType::Folder,
+            XmlPlaylistNodeType::Playlist => JsXmlPlaylistNodeType::Playlist,
         }
     }
 }
 
-impl From<JsPlaylistNodeType> for PlaylistNodeType {
-    fn from(js: JsPlaylistNodeType) -> Self {
+impl From<JsXmlPlaylistNodeType> for XmlPlaylistNodeType {
+    fn from(js: JsXmlPlaylistNodeType) -> Self {
         match js {
-            JsPlaylistNodeType::Folder => PlaylistNodeType::Folder,
-            JsPlaylistNodeType::Playlist => PlaylistNodeType::Playlist,
+            JsXmlPlaylistNodeType::Folder => XmlPlaylistNodeType::Folder,
+            JsXmlPlaylistNodeType::Playlist => XmlPlaylistNodeType::Playlist,
         }
     }
 }
 
 #[derive(Clone)]
-#[napi(js_name = "PlaylistKeyType")]
-pub enum JsPlaylistKeyType {
+#[napi(js_name = "XmlPlaylistKeyType")]
+pub enum JsXmlPlaylistKeyType {
     TrackID = 0,
     Location = 1,
 }
 
-impl Into<JsPlaylistKeyType> for PlaylistKeyType {
-    fn into(self) -> JsPlaylistKeyType {
+impl Into<JsXmlPlaylistKeyType> for XmlPlaylistKeyType {
+    fn into(self) -> JsXmlPlaylistKeyType {
         match self {
-            PlaylistKeyType::TrackID => JsPlaylistKeyType::TrackID,
-            PlaylistKeyType::Location => JsPlaylistKeyType::Location,
+            XmlPlaylistKeyType::TrackID => JsXmlPlaylistKeyType::TrackID,
+            XmlPlaylistKeyType::Location => JsXmlPlaylistKeyType::Location,
         }
     }
 }
 
-impl From<JsPlaylistKeyType> for PlaylistKeyType {
-    fn from(js: JsPlaylistKeyType) -> Self {
+impl From<JsXmlPlaylistKeyType> for XmlPlaylistKeyType {
+    fn from(js: JsXmlPlaylistKeyType) -> Self {
         match js {
-            JsPlaylistKeyType::TrackID => PlaylistKeyType::TrackID,
-            JsPlaylistKeyType::Location => PlaylistKeyType::Location,
+            JsXmlPlaylistKeyType::TrackID => XmlPlaylistKeyType::TrackID,
+            JsXmlPlaylistKeyType::Location => XmlPlaylistKeyType::Location,
         }
     }
 }
@@ -316,33 +318,33 @@ impl From<JsPlaylistKeyType> for PlaylistKeyType {
 #[derive(Clone)]
 struct PlaylistNodeInner {
     name: String,
-    node_type: JsPlaylistNodeType, // 0=Folder, 1=Playlist (map to your enums at the edges)
-    key_type: Option<JsPlaylistKeyType>, // 0=TrackID, 1=Location
+    node_type: JsXmlPlaylistNodeType, // 0=Folder, 1=Playlist (map to your enums at the edges)
+    key_type: Option<JsXmlPlaylistKeyType>, // 0=TrackID, 1=Location
     nodes: Vec<Arc<RwLock<PlaylistNodeInner>>>,
-    tracks: Vec<JsPlaylistTrack>, // or your real PlaylistTrack; using String keys for clarity
+    tracks: Vec<JsXmlPlaylistTrack>, // or your real XmlPlaylistTrack; using String keys for clarity
 }
 
 #[derive(Clone)]
-#[napi(js_name = "PlaylistNode")]
-pub struct JsPlaylistNode {
+#[napi(js_name = "XmlPlaylistNode")]
+pub struct JsXmlPlaylistNode {
     inner: Arc<RwLock<PlaylistNodeInner>>,
 }
 
-impl JsPlaylistNode {
+impl JsXmlPlaylistNode {
     fn from_inner(inner: Arc<RwLock<PlaylistNodeInner>>) -> Self {
         Self { inner }
     }
 }
 
 #[napi]
-impl JsPlaylistNode {
+impl JsXmlPlaylistNode {
     #[napi(constructor)]
     pub fn new(
         name: String,
-        node_type: JsPlaylistNodeType,
-        key_type: Option<JsPlaylistKeyType>,
+        node_type: JsXmlPlaylistNodeType,
+        key_type: Option<JsXmlPlaylistKeyType>,
     ) -> Self {
-        if node_type == JsPlaylistNodeType::Folder && key_type.is_some() {
+        if node_type == JsXmlPlaylistNodeType::Folder && key_type.is_some() {
             panic!("Folder node cannot have a key type");
         }
         let inner = Arc::new(RwLock::new(PlaylistNodeInner {
@@ -356,13 +358,13 @@ impl JsPlaylistNode {
     }
 
     #[napi(factory)]
-    pub fn playlist(name: String, key_type: JsPlaylistKeyType) -> Self {
-        Self::new(name, JsPlaylistNodeType::Playlist, Some(key_type))
+    pub fn playlist(name: String, key_type: JsXmlPlaylistKeyType) -> Self {
+        Self::new(name, JsXmlPlaylistNodeType::Playlist, Some(key_type))
     }
 
     #[napi(factory)]
     pub fn folder(name: String) -> Self {
-        Self::new(name, JsPlaylistNodeType::Folder, None)
+        Self::new(name, JsXmlPlaylistNodeType::Folder, None)
     }
 
     #[napi(getter)]
@@ -376,28 +378,28 @@ impl JsPlaylistNode {
     }
 
     #[napi(getter)]
-    pub fn node_type(&self) -> JsPlaylistNodeType {
+    pub fn node_type(&self) -> JsXmlPlaylistNodeType {
         self.inner.read().unwrap().node_type.clone()
     }
 
     #[napi(getter)]
-    pub fn key_type(&self) -> Option<JsPlaylistKeyType> {
+    pub fn key_type(&self) -> Option<JsXmlPlaylistKeyType> {
         self.inner.read().unwrap().key_type.clone()
     }
 
     #[napi(getter)]
-    pub fn get_nodes(&self) -> Vec<JsPlaylistNode> {
+    pub fn get_nodes(&self) -> Vec<JsXmlPlaylistNode> {
         let guard = self.inner.read().unwrap();
-        let items: Vec<JsPlaylistNode> = guard
+        let items: Vec<JsXmlPlaylistNode> = guard
             .nodes
             .iter()
-            .map(|n| JsPlaylistNode::from_inner(n.clone()))
+            .map(|n| JsXmlPlaylistNode::from_inner(n.clone()))
             .collect();
         items
     }
 
     #[napi(getter)]
-    pub fn get_tracks(&self) -> Vec<JsPlaylistTrack> {
+    pub fn get_tracks(&self) -> Vec<JsXmlPlaylistTrack> {
         let guard = self.inner.read().unwrap();
         guard.tracks.clone()
     }
@@ -413,12 +415,12 @@ impl JsPlaylistNode {
     }
 
     #[napi]
-    pub fn add_node(&self, node: &JsPlaylistNode) {
+    pub fn add_node(&self, node: &JsXmlPlaylistNode) {
         self.inner.write().unwrap().nodes.push(node.inner.clone());
     }
 
     #[napi]
-    pub fn new_playlist(&self, name: String, key_type: JsPlaylistKeyType) -> Self {
+    pub fn new_playlist(&self, name: String, key_type: JsXmlPlaylistKeyType) -> Self {
         let node = Self::playlist(name, key_type);
         self.add_node(&node);
         node
@@ -448,24 +450,24 @@ impl JsPlaylistNode {
     }
 
     #[napi]
-    pub fn get_child(&self, index: u32) -> Result<JsPlaylistNode> {
+    pub fn get_child(&self, index: u32) -> Result<JsXmlPlaylistNode> {
         let guard = self.inner.read().unwrap();
         let child: Arc<RwLock<PlaylistNodeInner>> = guard
             .nodes
             .get(index as usize)
             .ok_or_else(|| Error::new(Status::InvalidArg, "child index out of bounds"))?
             .clone();
-        Ok(JsPlaylistNode::from_inner(child))
+        Ok(JsXmlPlaylistNode::from_inner(child))
     }
 
     #[napi]
-    pub fn add_track(&self, track: JsPlaylistTrack) {
+    pub fn add_track(&self, track: JsXmlPlaylistTrack) {
         self.inner.write().unwrap().tracks.push(track);
     }
 
     #[napi]
     pub fn new_track(&self, key: String) {
-        let track = JsPlaylistTrack { key };
+        let track = JsXmlPlaylistTrack { key };
         self.add_track(track);
     }
 
@@ -489,11 +491,11 @@ impl JsPlaylistNode {
 #[napi(js_name = "RekordboxXml")]
 pub struct JsRekordboxXml {
     xml: RekordboxXml,
-    playlist_root: JsPlaylistNode,
-    //  tracks: Vec<JsTrack>
+    playlist_root: JsXmlPlaylistNode,
+    //  tracks: Vec<JsXmlTrack>
 }
 
-impl IntoJs<Arc<RwLock<PlaylistNodeInner>>> for PlaylistNode {
+impl IntoJs<Arc<RwLock<PlaylistNodeInner>>> for XmlPlaylistNode {
     fn into_js(self) -> Arc<RwLock<PlaylistNodeInner>> {
         let inner = Arc::new(RwLock::new(PlaylistNodeInner {
             name: self.name.clone(),
@@ -506,7 +508,7 @@ impl IntoJs<Arc<RwLock<PlaylistNodeInner>>> for PlaylistNode {
         if let Some(tracks) = &self.tracks {
             let mut js_tracks = Vec::new();
             for track in tracks {
-                let js_track: JsPlaylistTrack = track.clone().into();
+                let js_track: JsXmlPlaylistTrack = track.clone().into();
                 js_tracks.push(js_track);
             }
             inner.write().unwrap().tracks = js_tracks;
@@ -525,25 +527,25 @@ impl IntoJs<Arc<RwLock<PlaylistNodeInner>>> for PlaylistNode {
     }
 }
 
-impl From<PlaylistNodeInner> for PlaylistNode {
+impl From<PlaylistNodeInner> for XmlPlaylistNode {
     fn from(inner: PlaylistNodeInner) -> Self {
-        let nodes: Option<Vec<PlaylistNode>> = if inner.nodes.is_empty() {
+        let nodes: Option<Vec<XmlPlaylistNode>> = if inner.nodes.is_empty() {
             None
         } else {
             let items = inner
                 .nodes
                 .iter()
-                .map(|n| PlaylistNode::from(n.read().unwrap().clone()))
+                .map(|n| XmlPlaylistNode::from(n.read().unwrap().clone()))
                 .collect();
             Some(items)
         };
-        let tracks: Option<Vec<PlaylistTrack>> = if inner.tracks.is_empty() {
+        let tracks: Option<Vec<XmlPlaylistTrack>> = if inner.tracks.is_empty() {
             None
         } else {
             let items = inner
                 .tracks
                 .iter()
-                .map(|t| PlaylistTrack::from(t.clone()))
+                .map(|t| XmlPlaylistTrack::from(t.clone()))
                 .collect();
             Some(items)
         };
@@ -560,13 +562,13 @@ impl From<PlaylistNodeInner> for PlaylistNode {
 impl JsRekordboxXml {
     fn from_xml(mut xml: RekordboxXml) -> Self {
         let playlist_root_inner = xml.get_playlist_root().clone().into_js();
-        let playlist_root = JsPlaylistNode::from_inner(playlist_root_inner);
+        let playlist_root = JsXmlPlaylistNode::from_inner(playlist_root_inner);
         Self { xml, playlist_root }
     }
 
     fn update_xml(&mut self) {
         let guard = self.playlist_root.inner.read().unwrap();
-        let root: PlaylistNode = PlaylistNode::from(guard.clone());
+        let root: XmlPlaylistNode = XmlPlaylistNode::from(guard.clone());
         self.xml.set_playlist_root(root);
     }
 }
@@ -583,6 +585,54 @@ impl JsRekordboxXml {
     pub fn load(path: String) -> Result<Self> {
         let xml = RekordboxXml::load(path).map_err(crate::util::binding_error)?;
         Ok(Self::from_xml(xml))
+    }
+
+    /// Return the XML format version (DJ_PLAYLISTS Version).
+    #[napi]
+    pub fn get_version(&self) -> String {
+        self.xml.get_version().to_owned()
+    }
+
+    /// Set the XML format version (DJ_PLAYLISTS Version).
+    #[napi]
+    pub fn set_version(&mut self, value: String) {
+        self.xml.set_version(value);
+    }
+
+    /// Return the name of the application that produced the XML.
+    #[napi]
+    pub fn get_product_name(&self) -> String {
+        self.xml.get_product_name().to_owned()
+    }
+
+    /// Set the name of the application that produced the XML.
+    #[napi]
+    pub fn set_product_name(&mut self, value: String) {
+        self.xml.set_product_name(value);
+    }
+
+    /// Return the version of the application that produced the XML.
+    #[napi]
+    pub fn get_product_version(&self) -> String {
+        self.xml.get_product_version().to_owned()
+    }
+
+    /// Set the version of the application that produced the XML.
+    #[napi]
+    pub fn set_product_version(&mut self, value: String) {
+        self.xml.set_product_version(value);
+    }
+
+    /// Return the company that produced the application.
+    #[napi]
+    pub fn get_product_company(&self) -> String {
+        self.xml.get_product_company().to_owned()
+    }
+
+    /// Set the company that produced the application.
+    #[napi]
+    pub fn set_product_company(&mut self, value: String) {
+        self.xml.set_product_company(value);
     }
 
     #[napi]
@@ -608,32 +658,36 @@ impl JsRekordboxXml {
     }
 
     #[napi(getter)]
-    pub fn get_playlist_root(&self) -> JsPlaylistNode {
+    pub fn get_playlist_root(&self) -> JsXmlPlaylistNode {
         self.playlist_root.clone()
     }
 
     #[napi]
-    pub fn get_playlist_roots(&self) -> JsPlaylistNode {
+    pub fn get_playlist_roots(&self) -> JsXmlPlaylistNode {
         self.playlist_root.clone()
     }
 
     #[napi]
-    pub fn get_tracks<'a>(&mut self, env: &'a Env) -> Vec<JsTrack<'a>> {
+    pub fn get_tracks<'a>(&mut self, env: &'a Env) -> Vec<JsXmlTrack<'a>> {
         let tracks = self.xml.get_tracks();
-        let items: Vec<JsTrack> = tracks.into_iter().map(|t| t.clone().into_js(env)).collect();
+        let items: Vec<JsXmlTrack> = tracks.into_iter().map(|t| t.clone().into_js(env)).collect();
         items
     }
 
     #[napi]
-    pub fn get_track<'a>(&mut self, env: &'a Env, index: u32) -> Option<JsTrack<'a>> {
+    pub fn get_track<'a>(&mut self, env: &'a Env, index: u32) -> Option<JsXmlTrack<'a>> {
         let idx: usize = index as usize;
-        let item: Option<&mut Track> = self.xml.get_track(idx);
+        let item: Option<&mut XmlTrack> = self.xml.get_track(idx);
         item.map(|track| track.clone().into_js(env))
     }
 
     #[napi]
-    pub fn get_track_by_id<'a>(&mut self, env: &'a Env, track_id: String) -> Option<JsTrack<'a>> {
-        let item: Option<&mut Track> = self.xml.get_track_by_id(&track_id);
+    pub fn get_track_by_id<'a>(
+        &mut self,
+        env: &'a Env,
+        track_id: String,
+    ) -> Option<JsXmlTrack<'a>> {
+        let item: Option<&mut XmlTrack> = self.xml.get_track_by_id(&track_id);
         item.map(|track| track.clone().into_js(env))
     }
 
@@ -642,8 +696,8 @@ impl JsRekordboxXml {
         &mut self,
         env: &'a Env,
         location: String,
-    ) -> Option<JsTrack<'a>> {
-        let item: Option<&mut Track> = self.xml.get_track_by_location(&location);
+    ) -> Option<JsXmlTrack<'a>> {
+        let item: Option<&mut XmlTrack> = self.xml.get_track_by_location(&location);
         item.map(|track| track.clone().into_js(env))
     }
 
@@ -652,17 +706,17 @@ impl JsRekordboxXml {
         &mut self,
         key: String,
         env: &'a Env,
-        key_type: JsPlaylistKeyType,
-    ) -> Option<JsTrack<'a>> {
+        key_type: JsXmlPlaylistKeyType,
+    ) -> Option<JsXmlTrack<'a>> {
         match key_type {
-            JsPlaylistKeyType::TrackID => self.get_track_by_id(env, key),
-            JsPlaylistKeyType::Location => self.get_track_by_location(env, key),
+            JsXmlPlaylistKeyType::TrackID => self.get_track_by_id(env, key),
+            JsXmlPlaylistKeyType::Location => self.get_track_by_location(env, key),
         }
     }
 
     #[napi]
-    pub fn add_track(&mut self, track: JsTrack) {
-        let track = Track::from(track);
+    pub fn add_track(&mut self, track: JsXmlTrack) {
+        let track = XmlTrack::from(track);
         self.xml.add_track(track);
     }
 
@@ -672,14 +726,14 @@ impl JsRekordboxXml {
         env: &'a Env,
         trackid: String,
         location: String,
-    ) -> JsTrack<'a> {
+    ) -> JsXmlTrack<'a> {
         let track = self.xml.new_track(&trackid, &location);
         track.clone().into_js(env)
     }
 
     #[napi]
-    pub fn update_track(&mut self, track: JsTrack) -> Result<()> {
-        let track = Track::from(track);
+    pub fn update_track(&mut self, track: JsXmlTrack) -> Result<()> {
+        let track = XmlTrack::from(track);
         self.xml
             .update_track(track)
             .map_err(crate::util::binding_error)?;

@@ -46,6 +46,10 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rekordbox_app_dir, m)?)?;
     m.add_function(wrap_pyfunction!(is_rekordbox_running, m)?)?;
 
+    // Shared track models
+    m.add_class::<rbox::core::models::TrackMetadata>()?;
+    m.add_class::<rbox::core::models::Track>()?;
+
     // Rekordbox Options
     m.add_class::<options::PyRekordboxOptions>()?;
 
@@ -200,11 +204,16 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<anlz::PySongStructureData>()?;
 
     // Rekordbox XML
-    m.add_class::<xml::PyTempo>()?;
-    m.add_class::<xml::PyPositionMark>()?;
-    m.add_class::<xml::PyTrack>()?;
-    m.add_class::<xml::PyPlaylistTrack>()?;
-    m.add_class::<xml::PyPlaylistNode>()?;
+    m.add_class::<xml::PyXmlTempo>()?;
+    m.add("Tempo", m.getattr("XmlTempo")?)?;
+    m.add_class::<xml::PyXmlPositionMark>()?;
+    m.add("PositionMark", m.getattr("XmlPositionMark")?)?;
+    m.add_class::<xml::PyXmlTrack>()?;
+
+    m.add_class::<xml::PyXmlPlaylistTrack>()?;
+    m.add("PlaylistTrack", m.getattr("XmlPlaylistTrack")?)?;
+    m.add_class::<xml::PyXmlPlaylistNode>()?;
+    m.add("PlaylistNode", m.getattr("XmlPlaylistNode")?)?;
     m.add_class::<xml::PyRekordboxXml>()?;
 
     // My-Settings

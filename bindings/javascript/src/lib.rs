@@ -3,6 +3,7 @@
 
 mod anlz;
 mod masterdb;
+mod models;
 mod one_library;
 mod options;
 mod settings;
