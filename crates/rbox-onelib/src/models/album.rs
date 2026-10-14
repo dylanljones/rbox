@@ -71,6 +71,15 @@ pub struct AlbumView {
     pub image: Option<Image>,
 }
 
+/// Read row fields directly while keeping relationship resolution explicit.
+impl std::ops::Deref for AlbumView {
+    type Target = Album;
+
+    fn deref(&self) -> &Self::Target {
+        &self.album
+    }
+}
+
 impl ModelRelations for Album {
     type Resolved = AlbumView;
 

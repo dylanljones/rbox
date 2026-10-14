@@ -93,6 +93,15 @@ pub struct DjmdAlbumView {
     pub artist: Option<DjmdArtist>,
 }
 
+/// Read row fields directly while keeping relationship resolution explicit.
+impl std::ops::Deref for DjmdAlbumView {
+    type Target = DjmdAlbum;
+
+    fn deref(&self) -> &Self::Target {
+        &self.album
+    }
+}
+
 impl ModelRelations for DjmdAlbum {
     type Resolved = DjmdAlbumView;
 

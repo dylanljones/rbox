@@ -58,6 +58,15 @@ pub struct CategoryView {
     pub menu_item: Option<MenuItem>,
 }
 
+/// Read row fields directly while keeping relationship resolution explicit.
+impl std::ops::Deref for CategoryView {
+    type Target = Category;
+
+    fn deref(&self) -> &Self::Target {
+        &self.category
+    }
+}
+
 impl ModelRelations for Category {
     type Resolved = CategoryView;
 

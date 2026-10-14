@@ -201,6 +201,15 @@ pub struct ContentView {
     pub image: Option<Image>,
 }
 
+/// Read row fields directly while keeping relationship resolution explicit.
+impl std::ops::Deref for ContentView {
+    type Target = Content;
+
+    fn deref(&self) -> &Self::Target {
+        &self.content
+    }
+}
+
 impl ModelRelations for Content {
     type Resolved = ContentView;
 

@@ -273,6 +273,15 @@ pub struct DjmdContentView {
     pub color: Option<DjmdColor>,
 }
 
+/// Read row fields directly while keeping relationship resolution explicit.
+impl std::ops::Deref for DjmdContentView {
+    type Target = DjmdContent;
+
+    fn deref(&self) -> &Self::Target {
+        &self.content
+    }
+}
+
 impl ModelRelations for DjmdContent {
     type Resolved = DjmdContentView;
 
