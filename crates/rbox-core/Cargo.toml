@@ -14,9 +14,9 @@ rust-version.workspace = true
 publish = true
 
 [features]
+default = []
 pyo3 = ["dep:pyo3"]
 napi = ["dep:napi", "dep:napi-derive"]
-default = []
 
 [dependencies]
 pyo3            = { workspace = true, optional = true }

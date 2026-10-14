@@ -221,6 +221,8 @@ pub struct LookupPaths {
 
 /// Where the selected library path came from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyo3::pyclass(from_py_object, eq, eq_int))]
+#[cfg_attr(feature = "napi", napi_derive::napi)]
 pub enum LocationSource {
     /// The `masterDbDirectory` application setting.
     Settings,

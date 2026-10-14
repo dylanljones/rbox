@@ -42,7 +42,7 @@ use std::path::{Path, PathBuf};
 
 use rbox_anlz::{find_anlz_files, Anlz, AnlzFiles, AnlzPaths};
 use rbox_core::pathlib::PathExt;
-use rbox_core::{is_rekordbox_running, locate_library, RekordboxOptions};
+use rbox_core::{is_rekordbox_running, locate_library, LibraryLocation, RekordboxOptions};
 use rbox_db::{ConnectionOptions, DbPool};
 use rbox_db::{Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, NodeRef};
 
@@ -128,17 +128,34 @@ impl MasterDb {
     ///
     /// The default location of the `master.db` file is determined by the [`locate_library`] method.
     pub fn open() -> Result<Self> {
-        let located = locate_library()?;
-        let plxml_path = located
+        Self::from_location(&locate_library()?)
+    }
+
+    /// Open the database selected by discovery without running discovery again.
+    ///
+    /// Rechecks the database file rather than trusting the snapshot's `available`
+    /// flag. Uses `analysis_root` for share data and locates `masterPlaylists6.xml`
+    /// beside the database. `settings_root` is not used by this handler.
+    pub fn from_location(location: &LibraryLocation) -> Result<Self> {
+        match std::fs::metadata(&location.db_path) {
+            Ok(metadata) if metadata.is_file() => (),
+            Ok(_) => {
+                return Err(rbox_core::error::Error::FileNotFound(location.db_path.clone()).into())
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                return Err(rbox_core::error::Error::FileNotFound(location.db_path.clone()).into());
+            }
+            Err(error) => return Err(error.into()),
+        }
+        let plxml_path = location
             .db_path
             .parent()
-            .unwrap()
+            .unwrap_or_else(|| Path::new("."))
             .join("masterPlaylists6.xml")
             .normalize();
-
         Ok(Self {
-            pool: create_connection_pool(&located.db_path, &ConnectionOptions::default(), 8)?,
-            share_dir: Some(located.analysis_root),
+            pool: create_connection_pool(&location.db_path, &ConnectionOptions::default(), 8)?,
+            share_dir: Some(location.analysis_root.normalize()),
             plxml_path: Some(plxml_path),
             unsafe_writes: false,
         })

@@ -3442,6 +3442,16 @@ export declare const enum FileType {
   VIDEO = 16,
   StreamApple = 26
 }
+
+/** Where the selected library path came from. */
+export declare const enum LocationSource {
+  /** The `masterDbDirectory` application setting. */
+  Settings = 0,
+  /** The agent's `db-path` option. */
+  Options = 1,
+  /** A platform default library location. */
+  Default = 2
+}
 /** Stored Rekordbox codes for HistoryType. */
 export declare const enum HistoryType {
   List = 0,
@@ -3576,11 +3586,27 @@ export declare class Anlz {
 }
 export type JsAnlz = Anlz
 
+/** Custom discovery inputs. Construction does not access the filesystem. */
+export declare class LookupPaths {
+  constructor(settingsFile: string, optionsFile: string, defaultLibraryDirs: Array<string>)
+  static under(base: string): LookupPaths
+  static installed(): LookupPaths
+  locate(): LibraryLocation
+  get settingsFile(): string
+  set settingsFile(value: string)
+  get optionsFile(): string
+  set optionsFile(value: string)
+  get defaultLibraryDirs(): Array<string>
+  set defaultLibraryDirs(value: Array<string>)
+}
+
 export declare class MasterDb {
   /** Open a Rekordbox database specified by path. */
   constructor(path: string)
   /** Open the Rekordbox database specified by the `RekordboxOptions`. */
   static fromOptions(options: JsRekordboxOptions): MasterDb
+  /** Open a selected library without repeating discovery. */
+  static fromLocation(location: LibraryLocation): MasterDb
   /** Open the default Rekordbox `master.db` database. */
   static open(): MasterDb
   /** Sets the unsafe writes flag for the database. */
@@ -4433,6 +4459,9 @@ export type AnlzSection =
   | { tag: 'PVDI', content: VocalDetection }
   | { tag: 'Unknown', content: UnknownSection }
 
+/** Return the platform application-data base directory without checking existence. */
+export declare function appDir(): string
+
 export declare const enum AutoCue {
   Off = 'Off',
   On = 'On'
@@ -4537,6 +4566,9 @@ export declare const enum CueType {
   Loop = 2
 }
 
+/** Return an existing database in the platform default locations. */
+export declare function defaultMasterDbPath(): string
+
 export declare const enum DiscSlotIllumination {
   Off = 'Off',
   Dark = 'Dark',
@@ -4611,6 +4643,12 @@ export interface ExtendedCueList {
   listType: CueListType
   cues: Array<ExtendedCue>
 }
+
+/** Discover installed Rekordbox programs, newest version first. */
+export declare function findPrograms(): Array<ProgramLocation>
+
+/** Discover Rekordbox programs beneath explicit roots without consulting the environment. */
+export declare function findProgramsIn(roots: Array<string>): Array<ProgramLocation>
 
 export declare const enum HeadphonesMonoSplit {
   MonoSplit = 'MonoSplit',
@@ -4699,6 +4737,21 @@ export declare const enum LCDBrightness {
   Four = 'Four',
   Five = 'Five'
 }
+
+/** Selected library and its availability at discovery time. Paths are strings. */
+export interface LibraryLocation {
+  dbPath: string
+  analysisRoot: string
+  settingsRoot: string
+  source: LocationSource
+  available: boolean
+}
+
+/** Locate the selected library, including unavailable configured paths. */
+export declare function locateLibrary(): LibraryLocation
+
+/** Return the selected database path, requiring an existing file. */
+export declare function masterDbPath(): string
 
 export declare const enum MasterTempo {
   Off = 'Off',
@@ -4814,6 +4867,12 @@ export interface Phrase {
 export declare const enum PlayMode {
   Continue = 'Continue',
   Single = 'Single'
+}
+
+/** A discovered executable and version parsed from its directory name. */
+export interface ProgramLocation {
+  executable: string
+  version: Array<number>
 }
 
 export declare const enum Quantize {

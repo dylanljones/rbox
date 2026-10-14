@@ -3,6 +3,7 @@
 
 mod anlz;
 mod errors;
+mod locate;
 mod masterdb;
 mod one_library;
 mod options;
@@ -45,6 +46,17 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(options_json_path, m)?)?;
     m.add_function(wrap_pyfunction!(rekordbox_app_dir, m)?)?;
     m.add_function(wrap_pyfunction!(is_rekordbox_running, m)?)?;
+
+    m.add_class::<rbox::core::locate::LocationSource>()?;
+    m.add_class::<locate::PyLibraryLocation>()?;
+    m.add_class::<locate::PyProgramLocation>()?;
+    m.add_class::<locate::PyLookupPaths>()?;
+    m.add_function(wrap_pyfunction!(locate::locate_library, m)?)?;
+    m.add_function(wrap_pyfunction!(locate::find_programs, m)?)?;
+    m.add_function(wrap_pyfunction!(locate::find_programs_in, m)?)?;
+    m.add_function(wrap_pyfunction!(locate::app_dir, m)?)?;
+    m.add_function(wrap_pyfunction!(locate::default_master_db_path, m)?)?;
+    m.add_function(wrap_pyfunction!(locate::master_db_path, m)?)?;
 
     // Shared track models
     m.add_class::<rbox::core::models::TrackMetadata>()?;

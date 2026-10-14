@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 mod anlz;
+mod locate;
 mod masterdb;
 mod models;
 mod one_library;

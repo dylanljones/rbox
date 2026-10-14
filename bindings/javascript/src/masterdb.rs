@@ -83,6 +83,14 @@ impl JsMasterDb {
         })
     }
 
+    /// Open a selected library without repeating discovery.
+    #[napi(factory)]
+    pub fn from_location(location: crate::locate::LibraryLocation) -> Result<Self> {
+        Ok(Self {
+            db: MasterDb::from_location(&location.into()).map_err(crate::util::binding_error)?,
+        })
+    }
+
     /// Open the default Rekordbox `master.db` database.
     #[napi(factory)]
     pub fn open() -> Result<Self> {

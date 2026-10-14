@@ -95,6 +95,17 @@ impl PyMasterDb {
         Ok(PyMasterDb { db })
     }
 
+    /// Open a selected library without repeating discovery.
+    #[classmethod]
+    pub fn from_location(
+        _cls: &Bound<'_, PyType>,
+        location: crate::locate::PyLibraryLocation,
+    ) -> PyResult<Self> {
+        Ok(Self {
+            db: MasterDb::from_location(&location.into()).map_err(db_error)?,
+        })
+    }
+
     /// Open the default Rekordbox `master.db` database.
     #[classmethod]
     fn open(_cls: &Bound<'_, PyType>) -> PyResult<Self> {
