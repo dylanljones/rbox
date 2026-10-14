@@ -4,7 +4,7 @@
 //! Ordering integration tests for One Library.
 
 mod support;
-use rbox_db::test_support::ordering;
+use rbox_testing::ordering;
 use support::{one_tree_updates, visible_handler_test, visible_matrix, ConnectionFixture};
 
 use diesel::prelude::*;

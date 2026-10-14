@@ -19,10 +19,10 @@
 //! entry points and side effects such as playlist XML updates. Model-specific
 //! update and visibility contracts live in the database crates' test support.
 
-use crate::ordering::SequenceStore;
-use crate::{Model, ModelDelete, ModelList, ModelTree, OrderedModel};
 use diesel::prelude::*;
 use diesel::result::Error;
+use rbox_db::ordering::SequenceStore;
+use rbox_db::{Model, ModelDelete, ModelList, ModelTree, OrderedModel};
 use std::borrow::Borrow;
 use std::fmt::Debug;
 

@@ -9,9 +9,6 @@ pub mod model;
 pub mod ordering;
 pub mod relations;
 
-#[cfg(feature = "test-support")]
-pub mod test_support;
-
 pub use connection::{
     create_connection_pool, establish_connection, ConnectionOptions, DbConn, DbPool, JournalMode,
     OpenMode, Synchronous,

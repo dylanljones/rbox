@@ -5,10 +5,10 @@
 
 use diesel::prelude::*;
 use rbox_db::connection::ConnectionOptions;
-use rbox_db::test_support::ordering;
 use rbox_db::*;
 use rbox_masterdb::{establish_connection, MasterDb, MasterPlaylistXml};
 use rbox_testing::data as common;
+use rbox_testing::ordering;
 
 mod support;
 use rstest::rstest;

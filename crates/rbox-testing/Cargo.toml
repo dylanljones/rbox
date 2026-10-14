@@ -10,8 +10,13 @@ keywords.workspace = true
 categories.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-
 publish = false
 
+[features]
+default = []
+database = ["dep:rbox-db", "dep:diesel"]
+
 [dependencies]
-tempfile        = { workspace = true }
+tempfile = { workspace = true }
+diesel = { workspace = true, optional = true }
+rbox-db = { path = "../rbox-db", default-features = false, optional = true }
