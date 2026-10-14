@@ -1188,6 +1188,13 @@ impl Anlz {
     /// This is the embedded audio-file path, not the ANLZ file's source path.
     /// Returns `Ok(None)` if absent; reading or parsing PPTH can fail.
     /// Does not mark the section modified.
+    ///
+    /// Local library files can contain either an absolute audio path (for example,
+    /// `D:/Music/track.mp3`) or `?/track.mp3`. Both forms were observed in DAT,
+    /// EXT, and 2EX files in the same Rekordbox library (October 2026).
+    /// The conditions determining which form Rekordbox writes are not established.
+    /// The `?` prefix is returned literally; this method does not resolve it to
+    /// a filesystem path. Do not assume all local PPTH tags use one format.
     pub fn get_path(&mut self) -> Result<Option<String>> {
         Ok(match self.get_section_by_tag(AnlzTag::Path)? {
             Some(Section {
@@ -1204,6 +1211,9 @@ impl Anlz {
     /// section after PMAI. Insertion shifts existing section indices by one.
     /// Path conversion follows [`Path::set`], including normalizing backslashes to
     /// forward slashes. The ANLZ source path is unchanged.
+    /// Both absolute paths and `?/filename` occur in local libraries; see
+    /// [`get_path`](Self::get_path). This setter does not convert between them
+    /// or add/remove the `?` prefix.
     ///
     /// Only the affected section is marked for serialization; unrelated payloads
     /// are not decoded. Call [`dump`](Self::dump) or [`dump_copy`](Self::dump_copy)
