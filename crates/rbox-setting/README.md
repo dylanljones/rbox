@@ -6,4 +6,4 @@ and device preferences.
 Supports `MYSETTING.DAT`, `MYSETTING2.DAT`, `DJMMYSETTING.DAT`, and
 `DEVSETTING.DAT`, with typed setting values and errors.
 
-Part of [rbox](../../README.md), also available through `rbox::settings`.
+Part of [rbox](https://crates.io/crates/rbox), also available through `rbox::settings`.

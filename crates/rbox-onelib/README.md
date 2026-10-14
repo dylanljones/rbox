@@ -10,4 +10,4 @@ connection helpers, and schema initialization for new databases. The optional
 The default `bundled-vendored-openssl` feature builds SQLCipher and OpenSSL.
 The `bundled` feature builds SQLCipher using a system OpenSSL installation.
 
-Part of [rbox](../../README.md), also available through `rbox::one_library`.
+Part of [rbox](https://crates.io/crates/rbox), also available through `rbox::one_library`.

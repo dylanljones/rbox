@@ -6,4 +6,4 @@ The `RekordboxXml` handler manages tracks and playlist trees, with models for
 track metadata, cue points, and beat grids. Parsing, file access, and invalid
 operations are reported through `XmlError`.
 
-Part of [rbox](../../README.md), also available through `rbox::xml`.
+Part of [rbox](https://crates.io/crates/rbox), also available through `rbox::xml`.

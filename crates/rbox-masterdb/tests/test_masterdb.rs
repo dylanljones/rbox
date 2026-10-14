@@ -2172,7 +2172,7 @@ fn content_insertion_accepts_an_explicit_file_type() -> anyhow::Result<()> {
     std::fs::write(&extensionless, b"")?;
     let mut conn = db.pool.get()?;
     let row = NewDjmdContent::new(extensionless.to_string_lossy())
-        .file_type(FileType::WAV)
+        .file_type(FileType::WAV.into())
         .insert(&mut conn)?;
     assert_eq!(row.file_type, FileType::WAV as i32);
 
@@ -2190,7 +2190,7 @@ fn add_content_inserts_a_configured_model() -> anyhow::Result<()> {
 
     let content = db.add_content(
         NewDjmdContent::new(path.to_string_lossy())
-            .file_type(FileType::WAV)
+            .file_type(FileType::WAV.into())
             .title("Configured title"),
     )?;
 

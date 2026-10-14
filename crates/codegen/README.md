@@ -6,4 +6,4 @@ This crate is unpublished.
 Use `parse_rust_file` or `parse_rust_source` to inspect modules, types, and
 functions as structured models, and `walk_rust_files` to discover source files.
 
-Part of [rbox](../../README.md).
+Part of [rbox](https://crates.io/crates/rbox).

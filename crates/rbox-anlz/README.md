@@ -6,4 +6,4 @@ The `Anlz` handler indexes sections when opening a file and decodes them on
 demand. It provides access to individual sections and preserves section order
 and unchanged section bytes when writing.
 
-Part of [rbox](../../README.md), also available through `rbox::anlz`.
+Part of [rbox](https://crates.io/crates/rbox), also available through `rbox::anlz`.

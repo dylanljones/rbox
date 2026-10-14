@@ -7,4 +7,4 @@ Provides fixture paths and temporary copies using only filesystem utilities.
 Fixture-based tests use the repository's `.testdata` directory.
 
 
-Part of [rbox](../../README.md).
+Part of [rbox](https://crates.io/crates/rbox).

@@ -9,4 +9,4 @@ schemas and models live in `rbox-masterdb` and `rbox-onelib`.
 The `bundled` and `bundled-vendored-openssl` features control SQLCipher builds.
 No features are enabled by default.
 
-Part of [rbox](../../README.md).
+Part of [rbox](https://crates.io/crates/rbox).
