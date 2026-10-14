@@ -13,23 +13,27 @@ use syn::File;
 
 use super::models::*;
 
-fn parse_function(f: &syn::ItemFn, is_method: bool) -> FunctionInfo {
+fn parse_function(
+    sig: &syn::Signature,
+    vis: &syn::Visibility,
+    attrs: &[syn::Attribute],
+    is_method: bool,
+) -> FunctionInfo {
     FunctionInfo {
-        name: f.sig.ident.to_string(),
-        vis: vis_info(&f.vis),
-        attrs: attrs_info(&f.attrs),
-        doc: collect_doc(&f.attrs),
-        generics: generics_info(&f.sig.generics),
-        args: fn_args(&f.sig.inputs),
-        ret: match &f.sig.output {
+        name: sig.ident.to_string(),
+        vis: vis_info(vis),
+        attrs: attrs_info(attrs),
+        doc: collect_doc(attrs),
+        generics: generics_info(&sig.generics),
+        args: fn_args(&sig.inputs),
+        ret: match &sig.output {
             syn::ReturnType::Default => None,
             syn::ReturnType::Type(_, ty) => Some(parse_type(ty)),
         },
-        is_async: f.sig.asyncness.is_some(),
-        is_unsafe: f.sig.unsafety.is_some(),
-        is_const: f.sig.constness.is_some(),
-        abi: f
-            .sig
+        is_async: sig.asyncness.is_some(),
+        is_unsafe: matches!(sig.safety, syn::Safety::Unsafe(_)),
+        is_const: sig.constness.is_some(),
+        abi: sig
             .abi
             .as_ref()
             .map(|abi| abi.to_token_stream().to_string()),
@@ -78,7 +82,7 @@ fn parse_struct(s: &syn::ItemStruct) -> StructInfo {
 fn parse_impl(imp: &syn::ItemImpl) -> ImplInfo {
     let self_ty = type_to_str(&imp.self_ty);
 
-    let trait_path = if let Some((_, path, _)) = &imp.trait_ {
+    let trait_path = if let Some((path, _)) = &imp.trait_ {
         Some(path.to_token_stream().to_string())
     } else {
         None
@@ -87,15 +91,7 @@ fn parse_impl(imp: &syn::ItemImpl) -> ImplInfo {
     let mut methods = Vec::new();
     for item in &imp.items {
         if let syn::ImplItem::Fn(m) = item {
-            // synthesize a temporary ItemFn to reuse extractor
-            let dummy_block: syn::Block = syn::parse_quote!({ /* stub */ });
-            let f = syn::ItemFn {
-                attrs: m.attrs.clone(),
-                vis: m.vis.clone(),
-                sig: m.sig.clone(),
-                block: Box::new(dummy_block),
-            };
-            methods.push(parse_function(&f, true));
+            methods.push(parse_function(&m.sig, &m.vis, &m.attrs, true));
         }
     }
 
@@ -116,7 +112,9 @@ pub fn parse_rust_source(src: &str) -> Result<ModuleAst> {
     let mut ast = ModuleAst::default();
     for item in file.items {
         match item {
-            syn::Item::Fn(f) => ast.functions.push(parse_function(&f, false)),
+            syn::Item::Fn(f) => ast
+                .functions
+                .push(parse_function(&f.sig, &f.vis, &f.attrs, false)),
             syn::Item::Struct(s) => ast.structs.push(parse_struct(&s)),
             syn::Item::Impl(imp) => ast.impls.push(parse_impl(&imp)),
             _ => {}

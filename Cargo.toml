@@ -25,19 +25,19 @@ chrono            = { version = "0.4", features = ["serde"] }
 crc16             = { version = "0.4" }
 criterion         = { version = "0.8" }
 diesel            = { version = "2.3", features = ["sqlite", "r2d2", "returning_clauses_for_sqlite_3_35"] }
-diesel_migrations = { version = "2.3", features = ["sqlite"] }
 dunce             = { version = "1.0" }
 lazy-regex        = { version = "3.4" }
-libsqlite3-sys    = { version = "0.33", features = ["sqlcipher"] }
+# Version is pinned for compatibility with sqlcipher
+libsqlite3-sys    = { version = "=0.33", features = ["sqlcipher"] }
 modular-bitfield  = { version = "0.13" }
-parse-display     = { version = "0.10" }
+parse-display     = { version = "0.11" }
 quote             = { version = "1.0" }
-quick-xml         = { version = "0.39", features = ["serialize"] }
+quick-xml         = { version = "0.42", features = ["serialize"] }
 rand              = { version = "0.10" }
-rstest            = { version = "0.26.1" }
+rstest            = { version = "0.27" }
 serde             = { version = "1.0", features = ["derive"] }
 serde_json        = { version = "1.0" }
-syn               = { version = "2.0", features = ["full", "extra-traits"] }
+syn               = { version = "3.0", features = ["full", "extra-traits"] }
 sysinfo           = { version = "0.38" }
 thiserror         = { version = "2.0" }
 tempfile          = { version = "3.23" }
