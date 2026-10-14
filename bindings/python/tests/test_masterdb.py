@@ -46,11 +46,14 @@ def test_content_view(master_db):
     row = db.get_contents()[0]
     artist = db.create_artist("API artist")
     row.artist_id = artist.id
+    album_artist = db.create_artist("API album artist")
+    row.album_id = db.create_album("API content album", album_artist.id, None, None).id
     assert db.update_content(row) is None
     view = db.get_content_with_relations(row.id)
     assert isinstance(view, models.DjmdContentView)
     assert isinstance(view.content, models.DjmdContent)
     assert isinstance(view.artist, models.DjmdArtist)
+    assert view.album_artist.id == album_artist.id
     for field in ("remixer", "original_artist", "composer"):
         assert isinstance(getattr(view, field), (models.DjmdArtist, type(None)))
     for field, model in (

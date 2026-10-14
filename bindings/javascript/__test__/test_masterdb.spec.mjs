@@ -41,10 +41,13 @@ test('content views expose converted rows and optional fields', t => {
     const db = t.context.db
     const row = db.getContents()[0]
     row.artistId = db.createArtist('API artist').id
+    const albumArtist = db.createArtist('API album artist')
+    row.albumId = db.createAlbum('API content album', albumArtist.id, null, null).id
     t.is(typeof db.updateContent(row), 'number')
     const view = db.getContentWithRelations(row.id)
     t.is(typeof view.content.id, 'string')
     t.is(typeof view.artist.name, 'string')
+    t.is(view.albumArtist.id, albumArtist.id)
     for (const field of ['remixer', 'originalArtist', 'composer', 'album', 'genre', 'label', 'key', 'color']) {
         // Optional object properties may be omitted by N-API.
         t.true(view[field] == null || typeof view[field].id === 'string')

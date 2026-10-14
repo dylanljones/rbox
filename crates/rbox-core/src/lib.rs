@@ -30,5 +30,6 @@ pub use share::{anlz_dir_local, anlz_dir_usb, artwork_dir_local};
 
 pub mod enums;
 pub mod models;
+pub use models::{Track, TrackMetadata};
 
 pub use enums::FileType;

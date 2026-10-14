@@ -24,6 +24,7 @@ fn assert_no_content_relations(view: &DjmdContentView) {
     assert!(view.original_artist.is_none());
     assert!(view.composer.is_none());
     assert!(view.album.is_none());
+    assert!(view.album_artist.is_none());
     assert!(view.genre.is_none());
     assert!(view.label.is_none());
     assert!(view.key.is_none());
@@ -170,7 +171,12 @@ fn test_content_relationships(#[case] version: usize) -> anyhow::Result<()> {
     track.org_artist_id = Some(original_artist.id.clone());
     let composer = NewDjmdArtist::new("relation composer").insert(&mut conn)?;
     track.composer_id = Some(composer.id.clone());
-    let album = NewDjmdAlbum::new("relationship album").insert(&mut conn)?;
+    let album_artist = NewDjmdArtist::new("relation album artist").insert(&mut conn)?;
+    let album = NewDjmdAlbum {
+        album_artist_id: Some(album_artist.id.clone()),
+        ..NewDjmdAlbum::new("relationship album")
+    }
+    .insert(&mut conn)?;
     track.album_id = Some(album.id.clone());
     let genre = NewDjmdGenre::new("relationship genre").insert(&mut conn)?;
     track.genre_id = Some(genre.id.clone());
@@ -190,6 +196,7 @@ fn test_content_relationships(#[case] version: usize) -> anyhow::Result<()> {
     assert_eq!(view.original_artist, Some(original_artist.clone()));
     assert_eq!(view.composer, Some(composer.clone()));
     assert_eq!(view.album, Some(album));
+    assert_eq!(view.album_artist, Some(album_artist));
     assert_eq!(view.genre, Some(genre));
     assert_eq!(view.label, Some(label));
     assert_eq!(view.key, Some(key));
@@ -204,6 +211,19 @@ fn test_content_relationships(#[case] version: usize) -> anyhow::Result<()> {
     assert_eq!(shared.remixer, Some(artist.clone()));
     assert_eq!(shared.original_artist, Some(artist.clone()));
     assert_eq!(shared.composer, Some(artist.clone()));
+    // An existing album may have an absent or dangling artist reference.
+    for artist_id in [None, Some("missing-album-artist".to_owned())] {
+        let album = NewDjmdAlbum {
+            album_artist_id: artist_id,
+            ..NewDjmdAlbum::new("optional album artist")
+        }
+        .insert(&mut conn)?;
+        let mut optional = track.clone();
+        optional.album_id = Some(album.id);
+        let view = optional.resolve(&mut conn)?;
+        assert!(view.album.is_some());
+        assert!(view.album_artist.is_none());
+    }
     let mut absent = track.clone();
     absent.artist_id = None;
     absent.remixer_id = None;

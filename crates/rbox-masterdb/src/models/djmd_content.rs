@@ -25,10 +25,11 @@ use super::djmd_key::DjmdKey;
 use super::djmd_label::DjmdLabel;
 use super::{Date, DateString, RandomIdGenerator};
 use crate::enums::{Analyzed, FileType};
+use crate::error::Error as MasterDbError;
 use crate::schema::{
     djmdAlbum, djmdArtist, djmdColor, djmdContent, djmdGenre, djmdKey, djmdLabel, djmdProperty,
 };
-use rbox_core::PathExt;
+use rbox_core::{PathExt, Track, TrackMetadata};
 use rbox_db::{load_related, Model, ModelInsert, ModelRelations, ModelUpdate};
 
 /// Represents the `djmdContent` table in the Rekordbox database.
@@ -239,7 +240,7 @@ pub struct DjmdContent {
     pub src_length: Option<i32>,
 }
 
-/// Track snapshot with all supported direct metadata relationships resolved.
+/// Track snapshot with direct metadata relationships and the album artist resolved.
 ///
 /// Field access performs no queries, and editing this view does not persist changes.
 /// Related records are plain rows without recursive expansion. `None` means an
@@ -260,6 +261,8 @@ pub struct DjmdContentView {
     pub composer: Option<DjmdArtist>,
     /// Associated album.
     pub album: Option<DjmdAlbum>,
+    /// Artist referenced by the associated album's `album_artist_id`.
+    pub album_artist: Option<DjmdArtist>,
     /// Associated genre.
     pub genre: Option<DjmdGenre>,
     /// Associated label.
@@ -281,31 +284,38 @@ impl ModelRelations for DjmdContent {
             return Ok(Vec::new());
         }
         conn.transaction(|conn| {
-            let artists = load_related(
-                conn,
-                models.iter().flat_map(|row| {
-                    [
-                        row.artist_id.clone(),
-                        row.remixer_id.clone(),
-                        row.org_artist_id.clone(),
-                        row.composer_id.clone(),
-                    ]
-                    .into_iter()
-                    .flatten()
-                }),
-                |conn, ids| {
-                    DjmdArtist::query()
-                        .filter(djmdArtist::id.eq_any(ids))
-                        .load(conn)
-                },
-                |row| row.id.clone(),
-            )?;
             let albums = load_related(
                 conn,
                 models.iter().filter_map(|row| row.album_id.clone()),
                 |conn, ids| {
                     DjmdAlbum::query()
                         .filter(djmdAlbum::id.eq_any(ids))
+                        .load(conn)
+                },
+                |row| row.id.clone(),
+            )?;
+            let artists = load_related(
+                conn,
+                models
+                    .iter()
+                    .flat_map(|row| {
+                        [
+                            row.artist_id.clone(),
+                            row.remixer_id.clone(),
+                            row.org_artist_id.clone(),
+                            row.composer_id.clone(),
+                        ]
+                        .into_iter()
+                        .flatten()
+                    })
+                    .chain(
+                        albums
+                            .values()
+                            .filter_map(|album| album.album_artist_id.clone()),
+                    ),
+                |conn, ids| {
+                    DjmdArtist::query()
+                        .filter(djmdArtist::id.eq_any(ids))
                         .load(conn)
                 },
                 |row| row.id.clone(),
@@ -367,6 +377,13 @@ impl ModelRelations for DjmdContent {
                     composer: content
                         .composer_id
                         .as_ref()
+                        .and_then(|id| artists.get(id))
+                        .cloned(),
+                    album_artist: content
+                        .album_id
+                        .as_ref()
+                        .and_then(|id| albums.get(id))
+                        .and_then(|album| album.album_artist_id.as_ref())
                         .and_then(|id| artists.get(id))
                         .cloned(),
                     album: content
@@ -1091,5 +1108,200 @@ impl NewDjmdContent {
     pub fn isrc<S: Into<String>>(mut self, isrc: S) -> Self {
         self.isrc = Some(isrc.into());
         self
+    }
+}
+
+/// Convert a resolved view without querying the database. Missing paths become empty paths.
+/// Negative or out-of-range numeric metadata is rejected.
+impl TryFrom<&DjmdContentView> for Track {
+    type Error = MasterDbError;
+
+    fn try_from(view: &DjmdContentView) -> Result<Self, Self::Error> {
+        let input = &view.content;
+        if input.rating.is_some_and(|value| !(0..=5).contains(&value)) {
+            return Err(MasterDbError::InvalidOperation(
+                "rating must be between 0 and 5".into(),
+            ));
+        }
+        if input.bpm.is_some_and(|value| value < 0) || input.length.is_some_and(|value| value < 0) {
+            return Err(MasterDbError::InvalidOperation(
+                "bpm and length must be nonnegative".into(),
+            ));
+        }
+        Ok(Self {
+            id: input.id.clone(),
+            uuid: input.uuid.clone(),
+            path: input
+                .folder_path
+                .as_ref()
+                .map(PathBuf::from)
+                .unwrap_or_default(),
+            file_type: Some(input.file_type),
+            bpm: input.bpm.map(|value| f64::from(value) / 100.0),
+            length: input.length.map(f64::from),
+            title: input.title.clone(),
+            search_str: input.search_str.clone(),
+            tag: input.tag.clone(),
+            commnt: input.commnt.clone(),
+            stock_date: input.stock_date.clone(),
+            subtitle: input.subtitle.clone(),
+            release_date: input.release_date.clone(),
+            date_created: input.date_created.clone(),
+            lyricist: input.lyricist.clone(),
+            isrc: input.isrc.clone(),
+            rating: input.rating.map(u8::try_from).transpose().map_err(|_| {
+                MasterDbError::InvalidOperation("rating is outside the Track u8 range".into())
+            })?,
+            track_no: input.track_no.map(u32::try_from).transpose().map_err(|_| {
+                MasterDbError::InvalidOperation("track_no is outside the Track u32 range".into())
+            })?,
+            bit_rate: input.bit_rate.map(u32::try_from).transpose().map_err(|_| {
+                MasterDbError::InvalidOperation("bit_rate is outside the Track u32 range".into())
+            })?,
+            bit_depth: input
+                .bit_depth
+                .map(u16::try_from)
+                .transpose()
+                .map_err(|_| {
+                    MasterDbError::InvalidOperation(
+                        "bit_depth is outside the Track u16 range".into(),
+                    )
+                })?,
+            release_year: input
+                .release_year
+                .map(u16::try_from)
+                .transpose()
+                .map_err(|_| {
+                    MasterDbError::InvalidOperation(
+                        "release_year is outside the Track u16 range".into(),
+                    )
+                })?,
+            file_size: input
+                .file_size
+                .map(u64::try_from)
+                .transpose()
+                .map_err(|_| {
+                    MasterDbError::InvalidOperation(
+                        "file_size is outside the Track u64 range".into(),
+                    )
+                })?,
+            disc_no: input.disc_no.map(u32::try_from).transpose().map_err(|_| {
+                MasterDbError::InvalidOperation("disc_no is outside the Track u32 range".into())
+            })?,
+            sample_rate: input
+                .sample_rate
+                .map(u32::try_from)
+                .transpose()
+                .map_err(|_| {
+                    MasterDbError::InvalidOperation(
+                        "sample_rate is outside the Track u32 range".into(),
+                    )
+                })?,
+            artist: view.artist.as_ref().map(|row| row.name.clone()),
+            album: view.album.as_ref().map(|row| row.name.clone()),
+            genre: view.genre.as_ref().map(|row| row.name.clone()),
+            remixer: view.remixer.as_ref().map(|row| row.name.clone()),
+            org_artist: view.original_artist.as_ref().map(|row| row.name.clone()),
+            composer: view.composer.as_ref().map(|row| row.name.clone()),
+            key: view.key.as_ref().map(|row| row.name.clone()),
+            label: view.label.as_ref().map(|row| row.name.clone()),
+            album_artist: view.album_artist.as_ref().map(|row| row.name.clone()),
+        })
+    }
+}
+
+/// Build an insertion row without resolving names or writing to the database.
+/// BPM is rounded to hundredths and duration to seconds. File size is read from
+/// the actual file by `insert`; the metadata size hint is not copied.
+impl TryFrom<&TrackMetadata> for NewDjmdContent {
+    type Error = MasterDbError;
+
+    fn try_from(input: &TrackMetadata) -> Result<Self, Self::Error> {
+        if input.rating.is_some_and(|value| value > 5) {
+            return Err(MasterDbError::InvalidOperation(
+                "rating must be between 0 and 5".into(),
+            ));
+        }
+        Ok(Self {
+            folder_path: input
+                .path
+                .normalize_unix_string()
+                .ok_or_else(|| MasterDbError::InvalidOperation("Track path is not UTF-8".into()))?,
+            file_type: input.file_type,
+            title: input.title.clone(),
+            search_str: input.search_str.clone(),
+            tag: input.tag.clone(),
+            commnt: input.commnt.clone(),
+            stock_date: input.stock_date.clone(),
+            subtitle: input.subtitle.clone(),
+            release_date: input.release_date.clone(),
+            date_created: input.date_created.clone(),
+            lyricist: input.lyricist.clone(),
+            isrc: input.isrc.clone(),
+            bpm: input
+                .bpm
+                .map(|value| {
+                    let rounded = (value * 100.0).round();
+                    if !value.is_finite() || value < 0.0 || rounded > f64::from(i32::MAX) {
+                        return Err(MasterDbError::InvalidOperation(
+                            "bpm must be finite, nonnegative, and fit the database's i32 range"
+                                .into(),
+                        ));
+                    }
+                    Ok(rounded as i32)
+                })
+                .transpose()?,
+            length: input
+                .length
+                .map(|value| {
+                    let rounded = (value * 1.0).round();
+                    if !value.is_finite() || value < 0.0 || rounded > f64::from(i32::MAX) {
+                        return Err(MasterDbError::InvalidOperation(
+                            "length must be finite, nonnegative, and fit the database's i32 range"
+                                .into(),
+                        ));
+                    }
+                    Ok(rounded as i32)
+                })
+                .transpose()?,
+            rating: input.rating.map(i32::from),
+            bit_depth: input.bit_depth.map(i32::from),
+            release_year: input.release_year.map(i32::from),
+            track_no: input.track_no.map(i32::try_from).transpose().map_err(|_| {
+                MasterDbError::InvalidOperation("track_no exceeds the database i32 range".into())
+            })?,
+            bit_rate: input.bit_rate.map(i32::try_from).transpose().map_err(|_| {
+                MasterDbError::InvalidOperation("bit_rate exceeds the database i32 range".into())
+            })?,
+            disc_no: input.disc_no.map(i32::try_from).transpose().map_err(|_| {
+                MasterDbError::InvalidOperation("disc_no exceeds the database i32 range".into())
+            })?,
+            sample_rate: input
+                .sample_rate
+                .map(i32::try_from)
+                .transpose()
+                .map_err(|_| {
+                    MasterDbError::InvalidOperation(
+                        "sample_rate exceeds the database i32 range".into(),
+                    )
+                })?,
+            ..Default::default()
+        })
+    }
+}
+
+impl TryFrom<DjmdContentView> for Track {
+    type Error = MasterDbError;
+
+    fn try_from(input: DjmdContentView) -> Result<Self, Self::Error> {
+        Self::try_from(&input)
+    }
+}
+
+impl TryFrom<TrackMetadata> for NewDjmdContent {
+    type Error = MasterDbError;
+
+    fn try_from(input: TrackMetadata) -> Result<Self, Self::Error> {
+        Self::try_from(&input)
     }
 }

@@ -18,3 +18,5 @@ pub use crate::{Error, PathExt, RekordboxOptions, Result};
 pub use rbox_db::{
     Model, ModelDelete, ModelInsert, ModelList, ModelRelations, ModelTree, ModelUpdate,
 };
+// Core exports
+pub use core::*;

@@ -5862,7 +5862,7 @@ export interface DjmdContent {
 }
 
 /**
- * Track snapshot with all supported direct metadata relationships resolved.
+ * Track snapshot with direct metadata relationships and the album artist resolved.
  *
  * Field access performs no queries, and editing this view does not persist changes.
  * Related records are plain rows without recursive expansion. `None` means an
@@ -5881,6 +5881,8 @@ export interface DjmdContentView {
   composer?: DjmdArtist
   /** Associated album. */
   album?: DjmdAlbum
+  /** Artist referenced by the associated album's `album_artist_id`. */
+  albumArtist?: DjmdArtist
   /** Associated genre. */
   genre?: DjmdGenre
   /** Associated label. */
