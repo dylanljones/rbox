@@ -35,7 +35,6 @@
 //!
 //! See individual method documentation for details on arguments, return values, and error handling.
 
-use diesel::Connection;
 use dunce;
 use std::collections::HashSet;
 use std::ffi::OsStr;
@@ -45,9 +44,7 @@ use rbox_anlz::{find_anlz_files, Anlz, AnlzFiles, AnlzPaths};
 use rbox_core::pathlib::PathExt;
 use rbox_core::{is_rekordbox_running, locate_library, RekordboxOptions};
 use rbox_db::{ConnectionOptions, DbPool};
-use rbox_db::{
-    Model, ModelDelete, ModelInsert, ModelList, ModelRelations, ModelTree, ModelUpdate, NodeRef,
-};
+use rbox_db::{Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, NodeRef};
 
 use crate::connection::create_connection_pool;
 use crate::enums::*;
@@ -521,21 +518,14 @@ impl MasterDb {
     /// Returns a detached snapshot; missing relationship targets remain `None`.
     pub fn get_album_with_relations(&self, id: &str) -> Result<Option<DjmdAlbumView>> {
         let mut conn = self.pool.get()?;
-        Ok(conn.transaction::<_, diesel::result::Error, _>(|conn| {
-            DjmdAlbum::find(conn, id)?
-                .map(|row| row.resolve(conn))
-                .transpose()
-        })?)
+        Ok(DjmdAlbum::find_with_relations(&mut conn, id)?)
     }
 
     /// Load all albums and their direct relationships using batched queries.
     /// Base and related rows are read within the same transaction.
     pub fn get_albums_with_relations(&self) -> Result<Vec<DjmdAlbumView>> {
         let mut conn = self.pool.get()?;
-        Ok(conn.transaction::<_, diesel::result::Error, _>(|conn| {
-            let rows = DjmdAlbum::all(conn)?;
-            DjmdAlbum::resolve_many(conn, rows)
-        })?)
+        Ok(DjmdAlbum::all_with_relations(&mut conn)?)
     }
 
     /// Retrieves all entries from the `djmdAlbum` table in the database.
@@ -1142,21 +1132,14 @@ impl MasterDb {
     /// Returns a detached snapshot; missing relationship targets remain `None`.
     pub fn get_content_with_relations(&self, id: &str) -> Result<Option<DjmdContentView>> {
         let mut conn = self.pool.get()?;
-        Ok(conn.transaction::<_, diesel::result::Error, _>(|conn| {
-            DjmdContent::find(conn, id)?
-                .map(|content| content.resolve(conn))
-                .transpose()
-        })?)
+        Ok(DjmdContent::find_with_relations(&mut conn, id)?)
     }
 
     /// Load all tracks and their direct metadata using batched relationship queries.
     /// Content and related rows are read within the same transaction.
     pub fn get_contents_with_relations(&self) -> Result<Vec<DjmdContentView>> {
         let mut conn = self.pool.get()?;
-        Ok(conn.transaction::<_, diesel::result::Error, _>(|conn| {
-            let contents = DjmdContent::all(conn)?;
-            DjmdContent::resolve_many(conn, contents)
-        })?)
+        Ok(DjmdContent::all_with_relations(&mut conn)?)
     }
 
     /// Retrieves multiple `djmdContent` entries by their unique identifiers.

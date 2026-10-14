@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! Track records, relationship access, and local import defaults.
+
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel::result::{DatabaseErrorKind, Error};
@@ -23,7 +25,9 @@ use super::djmd_key::DjmdKey;
 use super::djmd_label::DjmdLabel;
 use super::{Date, DateString, RandomIdGenerator};
 use crate::enums::{Analyzed, FileType};
-use crate::schema::{djmdAlbum, djmdArtist, djmdColor, djmdContent, djmdGenre, djmdKey, djmdLabel};
+use crate::schema::{
+    djmdAlbum, djmdArtist, djmdColor, djmdContent, djmdGenre, djmdKey, djmdLabel, djmdProperty,
+};
 use rbox_core::PathExt;
 use rbox_db::{load_related, Model, ModelInsert, ModelRelations, ModelUpdate};
 
@@ -421,6 +425,28 @@ impl ModelUpdate for DjmdContent {
 }
 
 impl DjmdContent {
+    /// Load all tracks and their direct metadata using batched relationship queries.
+    /// Content and related rows are read within the same transaction.
+    pub fn all_with_relations(conn: &mut SqliteConnection) -> QueryResult<Vec<DjmdContentView>> {
+        Ok(conn.transaction::<_, Error, _>(|conn| {
+            let contents = DjmdContent::all(conn)?;
+            Self::resolve_many(conn, contents)
+        })?)
+    }
+
+    /// Load a track and all direct metadata relationships in one read transaction.
+    /// Returns a detached snapshot; missing relationship targets remain `None`.
+    pub fn find_with_relations(
+        conn: &mut SqliteConnection,
+        id: &str,
+    ) -> crate::Result<Option<DjmdContentView>> {
+        Ok(conn.transaction::<_, Error, _>(|conn| {
+            Self::find(conn, id)?
+                .map(|content| content.resolve(conn))
+                .transpose()
+        })?)
+    }
+
     /// Queries all records from the `djmdContent` table matching the given `ids`.
     pub fn by_ids(conn: &mut SqliteConnection, ids: &[&str]) -> QueryResult<Vec<Self>> {
         Self::query().filter(djmdContent::id.eq_any(ids)).load(conn)
@@ -432,6 +458,18 @@ impl DjmdContent {
             .filter(djmdContent::folder_path.eq(name))
             .first(conn)
             .optional()
+    }
+
+    /// Queries a record from the `djmdContent` table by its `folder_path` and loads all direct metadata relationships in one read transaction.
+    pub fn find_by_path_with_relations(
+        conn: &mut SqliteConnection,
+        id: &str,
+    ) -> crate::Result<Option<DjmdContentView>> {
+        Ok(conn.transaction::<_, Error, _>(|conn| {
+            Self::find_by_path(conn, id)?
+                .map(|content| content.resolve(conn))
+                .transpose()
+        })?)
     }
 
     /// Checks if a record with the given `folder_path` exists in the `djmdContent` table.
@@ -585,7 +623,12 @@ impl DjmdContent {
     }
 }
 
-/// Represents a new record insertale to the `djmdContent` table.
+/// Represents a new record insertable into the `djmdContent` table.
+///
+/// Insertion uses the library identity from `djmdProperty` and initializes local
+/// playback, sampler and empty-text fields using observed import defaults.
+/// Explicit builder values take precedence. `ExtInfo` defaults to the text
+/// `"null"`; `ContentLink` is left absent unless supplied by the caller.
 ///
 /// Implements the builder pattern for optional values of the new record.
 ///
@@ -624,7 +667,7 @@ pub struct NewDjmdContent {
     /// An optional string representing comments about the track.
     pub commnt: Option<String>,
     /// Explicit Rekordbox file type, or `None` to infer it from the path extension.
-    pub file_type: Option<FileType>,
+    pub file_type: Option<i32>,
     /// An optional integer representing the rating of the track.
     pub rating: Option<i32>,
     /// An optional integer representing the release year of the track.
@@ -755,7 +798,9 @@ impl ModelInsert for NewDjmdContent {
                             rb_path_str
                         ))
                     })?;
-                FileType::try_from_extension(ext).map_err(invalid_input)?
+                FileType::try_from_extension(ext)
+                    .map_err(invalid_input)?
+                    .into()
             }
         };
         let file_name = path
@@ -765,17 +810,14 @@ impl ModelInsert for NewDjmdContent {
             .to_string();
         let meta =
             std::fs::metadata(&path).map_err(|err| Error::SerializationError(Box::new(err)))?;
-        let file_size: u64 = meta.len();
-        let db_id = DjmdDevice::master_db_id(conn)?;
-        // TODO: No clue what content link should be, for now we just choose the last value used
-        let content_link = self.content_link.or_else(|| {
-            djmdContent::table
-                .select(djmdContent::content_link)
-                .order(djmdContent::content_link.desc())
-                .first::<Option<i32>>(conn)
-                .ok()
-                .flatten()
-        });
+        let file_size =
+            i32::try_from(meta.len()).map_err(|err| Error::SerializationError(Box::new(err)))?;
+        let (db_id, library_device_id): (String, String) = djmdProperty::table
+            .select((djmdProperty::db_id, djmdProperty::device_id))
+            .first(conn)?;
+        // ContentLink is track-state metadata, not a menu USN or a maximum
+        // borrowed from another track. Leave it absent unless supplied.
+        let content_link = self.content_link;
         let id = Self::Model::generate_id(conn)?;
         let file_id = Self::Model::generate_file_id(conn)?;
         let uuid = Uuid::new_v4().to_string();
@@ -794,14 +836,11 @@ impl ModelInsert for NewDjmdContent {
             file_type: file_type as i32,
             master_db_id: Some(db_id),
             master_song_id: Some(id),
-            file_size: Some(file_size as i32),
+            file_size: Some(file_size),
             content_link,
             hot_cue_auto_load: Some("on".to_string()),
-            delivery_control: Some("on".to_string()),
-            // sampler_track_info: Some(0),
-            // sampler_play_offset: Some(0),
-            // sampler_gain: Some(0.0),
-            // lyric_status: Some(0),
+            delivery_control: Some(String::new()),
+            modified_by_rbm: Some(String::new()),
             service_id: Some(0),
             rb_file_id: Some(file_id),
             title: self.title,
@@ -814,40 +853,40 @@ impl ModelInsert for NewDjmdContent {
             bit_rate: self.bit_rate,
             bit_depth: self.bit_depth,
             commnt: self.commnt,
-            rating: self.rating,
+            rating: self.rating.or(Some(0)),
             release_year: self.release_year,
             remixer_id: self.remixer_id,
             label_id: self.label_id,
             org_artist_id: self.org_artist_id,
             key_id: self.key_id,
             stock_date: self.stock_date,
-            color_id: self.color_id,
-            dj_play_count: self.dj_play_count,
+            color_id: Some(self.color_id.unwrap_or_else(|| "0".into())),
+            dj_play_count: self.dj_play_count.or(Some(0)),
             image_path: self.image_path,
             analysis_data_path: self.analysis_data_path,
             search_str: self.search_str,
-            disc_no: self.disc_no,
+            disc_no: self.disc_no.or(Some(0)),
             composer_id: self.composer_id,
-            subtitle: self.subtitle,
+            subtitle: Some(self.subtitle.unwrap_or_default()),
             sample_rate: self.sample_rate,
             release_date: self.release_date,
             date_created: self.date_created,
             tag: self.tag,
-            delivery_comment: self.delivery_comment,
-            lyricist: self.lyricist,
+            delivery_comment: Some(self.delivery_comment.unwrap_or_default()),
+            lyricist: Some(self.lyricist.unwrap_or_default()),
             isrc: self.isrc,
-            sampler_track_info: self.sampler_track_info,
-            sampler_play_offset: self.sampler_play_offset,
-            sampler_gain: self.sampler_gain,
-            video_associate: self.video_associate,
-            lyric_status: self.lyric_status,
-            org_folder_path: self.org_folder_path,
-            reserved1: self.reserved1,
+            sampler_track_info: self.sampler_track_info.or(Some(0)),
+            sampler_play_offset: self.sampler_play_offset.or(Some(0)),
+            sampler_gain: self.sampler_gain.or(Some(0.0)),
+            video_associate: Some(self.video_associate.unwrap_or_else(|| "0".into())),
+            lyric_status: self.lyric_status.or(Some(0)),
+            org_folder_path: Some(self.org_folder_path.unwrap_or_default()),
+            reserved1: Some(self.reserved1.unwrap_or_default()),
             reserved2: self.reserved2,
             reserved3: self.reserved3,
             reserved4: self.reserved4,
-            ext_info: self.ext_info,
-            device_id: self.device_id,
+            ext_info: Some(self.ext_info.unwrap_or_else(|| "null".into())),
+            device_id: Some(self.device_id.unwrap_or(library_device_id)),
             rb_local_folder_path: self.rb_local_folder_path,
             src_id: self.src_id,
             src_title: self.src_title,
@@ -887,7 +926,7 @@ impl NewDjmdContent {
     ///
     /// This is useful for containers such as M4A, whose codec cannot be determined
     /// from the extension alone, and for files with non-standard extensions.
-    pub fn file_type(mut self, file_type: FileType) -> Self {
+    pub fn file_type(mut self, file_type: i32) -> Self {
         self.file_type = Some(file_type);
         self
     }

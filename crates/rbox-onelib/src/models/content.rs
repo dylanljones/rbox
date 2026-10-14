@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! Database records and explicit relationship loading.
+
 use chrono::Utc;
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
@@ -370,6 +372,28 @@ impl ModelDelete for Content {
 }
 
 impl Content {
+    /// Load all rows and their direct relationships using batched queries.
+    /// Base and related rows are read within the same transaction.
+    pub fn all_with_relations(conn: &mut SqliteConnection) -> QueryResult<Vec<ContentView>> {
+        conn.transaction(|conn| {
+            let rows = Self::all(conn)?;
+            Self::resolve_many(conn, rows)
+        })
+    }
+
+    /// Load a row and its direct relationships in one read transaction.
+    /// Returns a detached snapshot; missing relationship targets remain `None`.
+    pub fn find_with_relations(
+        conn: &mut SqliteConnection,
+        id: i32,
+    ) -> QueryResult<Option<ContentView>> {
+        conn.transaction(|conn| {
+            Self::find(conn, &id)?
+                .map(|row| row.resolve(conn))
+                .transpose()
+        })
+    }
+
     /// Queries all records from the `content` table matching the given `ids`.
     pub fn by_ids(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<Vec<Self>> {
         Self::query().filter(content::id.eq_any(ids)).load(conn)

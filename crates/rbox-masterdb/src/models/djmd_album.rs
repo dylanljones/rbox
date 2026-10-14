@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! Album records, artist relationships, and insertion helpers.
+
 use chrono::Utc;
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
@@ -212,6 +214,28 @@ impl ModelDelete for DjmdAlbum {
 }
 
 impl DjmdAlbum {
+    /// Load all rows and their direct relationships using batched queries.
+    /// Base and related rows are read within the same transaction.
+    pub fn all_with_relations(conn: &mut SqliteConnection) -> QueryResult<Vec<DjmdAlbumView>> {
+        conn.transaction(|conn| {
+            let rows = Self::all(conn)?;
+            Self::resolve_many(conn, rows)
+        })
+    }
+
+    /// Load a row and its direct relationships in one read transaction.
+    /// Returns a detached snapshot; missing relationship targets remain `None`.
+    pub fn find_with_relations(
+        conn: &mut SqliteConnection,
+        id: &str,
+    ) -> QueryResult<Option<DjmdAlbumView>> {
+        conn.transaction(|conn| {
+            Self::find(conn, id)?
+                .map(|row| row.resolve(conn))
+                .transpose()
+        })
+    }
+
     /// Queries a record from the `djmdAlbum` table by its `name`.
     pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
         Self::query()
@@ -306,15 +330,16 @@ impl NewDjmdAlbum {
         }
     }
 
-    /// Inserts the new album or returns an existing record if an album with the same name already exists.
-    /// When an album artist is supplied, the artist must match as well.
-    /// Without an artist, retains the name-only lookup behavior.
+    /// Insert the album or return an existing row with the same name and album artist ID.
+    /// An absent artist matches only rows whose album artist ID is NULL.
     pub fn insert_if_not_exists(self, conn: &mut SqliteConnection) -> QueryResult<DjmdAlbum> {
         let mut query = DjmdAlbum::query()
             .filter(djmdAlbum::name.eq(&self.name))
             .into_boxed();
         if let Some(artist_id) = &self.album_artist_id {
             query = query.filter(djmdAlbum::album_artist_id.eq(artist_id));
+        } else {
+            query = query.filter(djmdAlbum::album_artist_id.is_null());
         }
         let existing = query.first(conn).optional()?;
         match existing {
@@ -324,13 +349,13 @@ impl NewDjmdAlbum {
     }
 
     /// Builder for `album_artist_id`.
-    pub fn album_artist_id<S: Into<String>>(mut self, id: String) -> Self {
+    pub fn album_artist_id<S: Into<String>>(mut self, id: S) -> Self {
         self.album_artist_id = Some(id.into());
         self
     }
 
     /// Builder for `image_path`.
-    pub fn image_path<S: Into<String>>(mut self, path: String) -> Self {
+    pub fn image_path<S: Into<String>>(mut self, path: S) -> Self {
         self.image_path = Some(path.into());
         self
     }
@@ -342,7 +367,7 @@ impl NewDjmdAlbum {
     }
 
     /// Builder for `search_str`.
-    pub fn search_str<S: Into<String>>(mut self, search_str: String) -> Self {
+    pub fn search_str<S: Into<String>>(mut self, search_str: S) -> Self {
         self.search_str = Some(search_str.into());
         self
     }

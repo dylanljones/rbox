@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! Database records and explicit relationship loading.
+
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -158,6 +160,28 @@ impl ModelDelete for Album {
 }
 
 impl Album {
+    /// Load all rows and their direct relationships using batched queries.
+    /// Base and related rows are read within the same transaction.
+    pub fn all_with_relations(conn: &mut SqliteConnection) -> QueryResult<Vec<AlbumView>> {
+        conn.transaction(|conn| {
+            let rows = Self::all(conn)?;
+            Self::resolve_many(conn, rows)
+        })
+    }
+
+    /// Load a row and its direct relationships in one read transaction.
+    /// Returns a detached snapshot; missing relationship targets remain `None`.
+    pub fn find_with_relations(
+        conn: &mut SqliteConnection,
+        id: i32,
+    ) -> QueryResult<Option<AlbumView>> {
+        conn.transaction(|conn| {
+            Self::find(conn, &id)?
+                .map(|row| row.resolve(conn))
+                .transpose()
+        })
+    }
+
     /// Queries a record from the `album` table by its `name`.
     pub fn find_by_name(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
         Self::query()

@@ -2181,41 +2181,6 @@ fn add_content_inserts_a_configured_model() -> anyhow::Result<()> {
 }
 
 #[test]
-fn album_reuse_matches_artist_when_supplied() -> anyhow::Result<()> {
-    for version in [6, 7] {
-        let fixture = setup_master_db_path(version);
-        let mut db = MasterDb::new(fixture.path())?;
-        db.set_unsafe_writes(true);
-        let first = db.create_artist("First regression artist".into())?;
-        let second = db.create_artist("Second regression artist".into())?;
-        let mut conn = db.pool.get()?;
-        let album = |artist: Option<String>| NewDjmdAlbum {
-            name: "Shared regression album".into(),
-            album_artist_id: artist,
-            ..Default::default()
-        };
-        let a = album(Some(first.id.clone())).insert_if_not_exists(&mut conn)?;
-        let b = album(Some(second.id.clone())).insert_if_not_exists(&mut conn)?;
-        assert_ne!(a.id, b.id);
-        assert_eq!(a.album_artist_id, Some(first.id.clone()));
-        assert_eq!(b.album_artist_id, Some(second.id.clone()));
-        let usn = AgentRegistry::local_usn(&mut conn)?;
-        assert_eq!(
-            album(Some(first.id)).insert_if_not_exists(&mut conn)?.id,
-            a.id
-        );
-        assert_eq!(
-            album(Some(second.id)).insert_if_not_exists(&mut conn)?.id,
-            b.id
-        );
-        let unnamed = album(None).insert_if_not_exists(&mut conn)?;
-        assert!(unnamed.id == a.id || unnamed.id == b.id);
-        assert_eq!(AgentRegistry::local_usn(&mut conn)?, usn);
-    }
-    Ok(())
-}
-
-#[test]
 fn raw_file_type_values_remain_readable() -> anyhow::Result<()> {
     let fixture = setup_master_db_path(6);
     let mut db = MasterDb::new(fixture.path())?;

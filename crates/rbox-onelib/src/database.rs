@@ -25,13 +25,11 @@
 //! ```
 //!
 
-use diesel::Connection;
 use std::ffi::OsStr;
 use std::path::Path;
 
 use rbox_db::{
-    ConnectionOptions, Model, ModelDelete, ModelInsert, ModelList, ModelRelations, ModelTree,
-    ModelUpdate,
+    ConnectionOptions, Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate,
 };
 
 use crate::connection::{create_connection_pool, establish_connection, initialize_schema, DbPool};
@@ -101,21 +99,14 @@ impl OneLibrary {
     /// Returns a detached snapshot; missing relationship targets remain `None`.
     pub fn get_album_with_relations(&self, id: i32) -> Result<Option<AlbumView>> {
         let mut conn = self.pool.get()?;
-        Ok(conn.transaction::<_, diesel::result::Error, _>(|conn| {
-            Album::find(conn, &id)?
-                .map(|row| row.resolve(conn))
-                .transpose()
-        })?)
+        Ok(Album::find_with_relations(&mut conn, id)?)
     }
 
     /// Load all albums and their direct relationships using batched queries.
     /// Base and related rows are read within the same transaction.
     pub fn get_albums_with_relations(&self) -> Result<Vec<AlbumView>> {
         let mut conn = self.pool.get()?;
-        Ok(conn.transaction::<_, diesel::result::Error, _>(|conn| {
-            let rows = Album::all(conn)?;
-            Album::resolve_many(conn, rows)
-        })?)
+        Ok(Album::all_with_relations(&mut conn)?)
     }
 
     /// Queries all records from the `album` table.
@@ -217,21 +208,14 @@ impl OneLibrary {
     /// Returns a detached snapshot; missing relationship targets remain `None`.
     pub fn get_category_with_relations(&self, id: i32) -> Result<Option<CategoryView>> {
         let mut conn = self.pool.get()?;
-        Ok(conn.transaction::<_, diesel::result::Error, _>(|conn| {
-            Category::find(conn, &id)?
-                .map(|row| row.resolve(conn))
-                .transpose()
-        })?)
+        Ok(Category::find_with_relations(&mut conn, id)?)
     }
 
     /// Load all categories and their direct relationships using batched queries.
     /// Base and related rows are read within the same transaction.
     pub fn get_categories_with_relations(&self) -> Result<Vec<CategoryView>> {
         let mut conn = self.pool.get()?;
-        Ok(conn.transaction::<_, diesel::result::Error, _>(|conn| {
-            let rows = Category::all(conn)?;
-            Category::resolve_many(conn, rows)
-        })?)
+        Ok(Category::all_with_relations(&mut conn)?)
     }
 
     /// Queries all records from the `category` table.
@@ -335,21 +319,14 @@ impl OneLibrary {
     /// Returns a detached snapshot; missing relationship targets remain `None`.
     pub fn get_content_with_relations(&self, id: i32) -> Result<Option<ContentView>> {
         let mut conn = self.pool.get()?;
-        Ok(conn.transaction::<_, diesel::result::Error, _>(|conn| {
-            Content::find(conn, &id)?
-                .map(|content| content.resolve(conn))
-                .transpose()
-        })?)
+        Ok(Content::find_with_relations(&mut conn, id)?)
     }
 
     /// Load all tracks and their direct metadata using batched relationship queries.
     /// Content and related rows are read within the same transaction.
     pub fn get_contents_with_relations(&self) -> Result<Vec<ContentView>> {
         let mut conn = self.pool.get()?;
-        Ok(conn.transaction::<_, diesel::result::Error, _>(|conn| {
-            let contents = Content::all(conn)?;
-            Content::resolve_many(conn, contents)
-        })?)
+        Ok(Content::all_with_relations(&mut conn)?)
     }
 
     /// Inserts a new record into the `content` table.
