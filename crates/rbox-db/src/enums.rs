@@ -68,6 +68,12 @@ impl TryFrom<i32> for HistoryType {
     }
 }
 
+impl Into<i32> for HistoryType {
+    fn into(self) -> i32 {
+        self as i32
+    }
+}
+
 diesel_int_enum!(HistoryType);
 
 /// Stored Rekordbox codes for HotCueBanklistType.
@@ -94,6 +100,12 @@ impl TryFrom<i32> for HotCueBanklistType {
     }
 }
 
+impl Into<i32> for HotCueBanklistType {
+    fn into(self) -> i32 {
+        self as i32
+    }
+}
+
 diesel_int_enum!(HotCueBanklistType);
 
 /// Stored Rekordbox codes for MyTagType.
@@ -117,6 +129,12 @@ impl TryFrom<i32> for MyTagType {
             1 => Ok(Self::Folder),
             _ => Err("Invalid value for MyTagType".into()),
         }
+    }
+}
+
+impl Into<i32> for MyTagType {
+    fn into(self) -> i32 {
+        self as i32
     }
 }
 

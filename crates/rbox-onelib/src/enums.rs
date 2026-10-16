@@ -49,4 +49,10 @@ impl TryFrom<i32> for PlaylistType {
     }
 }
 
+impl Into<i32> for PlaylistType {
+    fn into(self) -> i32 {
+        self as i32
+    }
+}
+
 diesel_int_enum!(PlaylistType);

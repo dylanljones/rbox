@@ -43,6 +43,12 @@ impl TryFrom<i32> for Analyzed {
     }
 }
 
+impl Into<i32> for Analyzed {
+    fn into(self) -> i32 {
+        self as i32
+    }
+}
+
 /// Stored Rekordbox codes for PlaylistType.
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default, FromSqlRow, AsExpression)]
@@ -71,6 +77,12 @@ impl TryFrom<i32> for PlaylistType {
     }
 }
 
+impl Into<i32> for PlaylistType {
+    fn into(self) -> i32 {
+        self as i32
+    }
+}
+
 diesel_int_enum!(PlaylistType);
 
 /// Stored Rekordbox codes for RelatedTracksType.
@@ -94,6 +106,12 @@ impl TryFrom<i32> for RelatedTracksType {
             10 => Ok(Self::Folder),
             _ => Err(format!("Invalid value for RelatedTracksType: {}", value)),
         }
+    }
+}
+
+impl Into<i32> for RelatedTracksType {
+    fn into(self) -> i32 {
+        self as i32
     }
 }
 
@@ -124,6 +142,12 @@ impl TryFrom<i32> for SamplerType {
             6 => Ok(Self::Capture),
             _ => Err(format!("Invalid value for SamplerType: {}", value)),
         }
+    }
+}
+
+impl Into<i32> for SamplerType {
+    fn into(self) -> i32 {
+        self as i32
     }
 }
 
