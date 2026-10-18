@@ -91,8 +91,7 @@ impl SectionEntry {
 pub struct Anlz {
     /// Canonical source path; distinct from the audio path stored in PPTH.
     path: std::path::PathBuf,
-    /// Closed immediately before replacing the source. A failed replacement
-    /// leaves this empty until the next operation that needs source bytes.
+    /// Backing file, absent until a newly created handler is saved.
     source: Option<std::fs::File>,
     /// PMAI header from the most recent load or successful source save.
     header: Header,
@@ -424,7 +423,7 @@ impl Anlz {
         Ok(Header::read_be(&mut Cursor::new(bytes))?)
     }
 
-    /// Reopen the original source after a failed attempt to replace it.
+    /// Open the backing file if no handle is available.
     fn source(&mut self) -> Result<&mut std::fs::File> {
         if self.source.is_none() {
             self.source = Some(std::fs::File::open(&self.path)?);
@@ -680,12 +679,13 @@ impl Anlz {
 
     /// Write the current contents to `path`, replacing an existing destination.
     ///
-    /// Writes a complete file through a temporary sibling, preserving section order.
+    /// Assembles a complete file in memory, then writes directly to the destination.
+    /// Buffering keeps in-place saves from overwriting source bytes still needed
+    /// by unread sections. Memory usage grows with the serialized file size.
     /// Sections marked for serialization are encoded from their cached values;
-    /// untouched sections are copied directly from the source, even when cached.
+    /// untouched sections are copied byte-for-byte from the source, even when cached.
     /// Consequently, saving does not validate the payloads of untouched sections.
-    /// Lengths are updated from the output, which is flushed and synced before
-    /// replacing the destination.
+    /// Section order is preserved and lengths are updated from the output.
     ///
     /// If `path` resolves to the original source path, behaves like [`dump`](Self::dump):
     /// adopts the new file, refreshes byte ranges, and clears modification flags.
@@ -694,10 +694,11 @@ impl Anlz {
     /// # Errors
     ///
     /// Returns errors from source reads, serialization, destination creation or
-    /// replacement, inconsistent tag/content pairs, and output exceeding the
+    /// writes, inconsistent tag/content pairs, and output exceeding the
     /// format's 32-bit file length. The destination's parent must already exist.
-    /// Failures before replacement leave the destination and cached edits intact
-    /// so the caller can correct the problem and retry.
+    /// Writes are not atomic: an I/O failure can leave the destination truncated
+    /// or partially written. Callers are responsible for backups and recovery;
+    /// after a failed in-place write, the handler's source ranges may be invalid.
     pub fn dump_copy<P: AsRef<std::path::Path>>(&mut self, path: P) -> Result<()> {
         let path = path.as_ref();
         let destination = Self::output_path(path)?;
@@ -709,10 +710,7 @@ impl Anlz {
         {
             self.source()?;
         }
-        let output_parent = destination
-            .parent()
-            .ok_or_else(|| AnlzError::InvalidOutputPath(destination.clone()))?;
-        let mut output = tempfile::NamedTempFile::new_in(output_parent)?;
+        let mut output = Cursor::new(Vec::new());
         self.header.write_be(&mut output)?;
         output.write_all(&self.header_data)?;
         let mut ranges = Vec::with_capacity(self.sections.len());
@@ -768,25 +766,16 @@ impl Anlz {
             .map_err(|_| AnlzError::OutputTooLarge { size: output_size })?;
         output.seek(SeekFrom::Start(0))?;
         header.write_be(&mut output)?;
-        if let Ok(metadata) = std::fs::metadata(&destination) {
-            output.as_file().set_permissions(metadata.permissions())?;
-        }
-        output.flush()?;
-        output.as_file().sync_all()?;
-        // Release the source before replacement for Windows filesystems that
-        // reject replacing an open file. On failure the source is reopened when
-        // next needed; cached edits and original offsets remain intact.
+        let mut file = std::fs::OpenOptions::new()
+            .read(replace_source)
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&destination)?;
+        file.write_all(output.get_ref())?;
+        file.flush()?;
         if replace_source {
-            self.source.take();
-        }
-        let file = output
-            .persist(&destination)
-            .map_err(|error| AnlzError::Persist {
-                path: destination.clone(),
-                source: error.error,
-            })?;
-        if replace_source {
-            // Commit offsets only after replacement succeeds. Copies to another
+            // Refresh offsets only after writing succeeds. Copies to another
             // path must keep using the original ranges and modification flags.
             self.source = Some(file);
             self.header = header;
@@ -801,8 +790,8 @@ impl Anlz {
 
     /// Save the current contents to the original ANLZ path.
     ///
-    /// Uses [`dump_copy`](Self::dump_copy), including its temporary-file replacement
-    /// and error handling. On success, the output becomes the new backing source;
+    /// Uses [`dump_copy`](Self::dump_copy), including its in-memory buffering and
+    /// non-atomic writes. On success, the output becomes the new backing source;
     /// byte ranges are refreshed and modification flags cleared. Decoded sections
     /// remain cached, and previously unread sections can still be loaded lazily.
     pub fn dump(&mut self) -> Result<()> {
@@ -1881,23 +1870,23 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
-    fn failed_source_replacement_reopens_for_retry() {
+    fn failed_source_open_preserves_edits_for_retry() {
         use std::os::windows::fs::OpenOptionsExt;
         let bytes = file_bytes(&[path_section("/old"), waveform()]);
         let (_dir, mut file) = open(&bytes);
         file.set_path("/new").unwrap();
-        // Allow readers/writers but deny delete sharing, forcing replacement to fail.
+        // Allow readers but deny write sharing, forcing destination opening to fail.
         let lock = std::fs::OpenOptions::new()
             .read(true)
-            .share_mode(3)
+            .share_mode(1)
             .open(&file.path)
             .unwrap();
         assert!(file.dump().is_err());
-        assert!(file.source.is_none());
+        assert!(file.source.is_some());
         assert_eq!(std::fs::read(&file.path).unwrap(), bytes);
         assert!(file.sections[0].potentially_modified);
         drop(lock);
-        // An unloaded read must reopen the old source with its original offsets.
+        // The original source and its offsets remain usable after an open failure.
         assert_eq!(
             file.get_waveform_detail().unwrap().unwrap().data.len(),
             100_000
@@ -1972,7 +1961,7 @@ mod tests {
     }
 
     #[test]
-    fn persistence_failure_can_be_retried() {
+    fn destination_open_failure_can_be_retried() {
         let bytes = file_bytes(&[path_section("/old"), waveform()]);
         let (dir, mut file) = open(&bytes);
         file.set_path("/new").unwrap();
@@ -2080,7 +2069,7 @@ mod tests {
     fn repeated_in_place_saves_refresh_unloaded_offsets() {
         let (_dir, mut file) = open(&file_bytes(&[path_section("/old"), waveform()]));
         file.set_path("/new/longer/path.flac").unwrap();
-        file.dump().unwrap(); // also exercises Windows replacement of an open source
+        file.dump().unwrap();
         assert!(file.sections.iter().all(|s| !s.potentially_modified));
         assert!(file.sections[1].decoded.is_none());
         file.dump_copy(file.path.clone()).unwrap();

@@ -86,14 +86,6 @@ pub enum AnlzError {
     #[error("ANLZ output size {size} exceeds the 32-bit format limit")]
     OutputTooLarge { size: u64 },
 
-    /// Replacing the destination with the completed temporary file failed.
-    #[error("failed to replace {path}: {source}")]
-    Persist {
-        path: PathBuf,
-        #[source]
-        source: std::io::Error,
-    },
-
     /// An internal lazy-loading invariant was violated.
     #[error("invalid ANLZ handler state: {0}")]
     InvalidState(&'static str),

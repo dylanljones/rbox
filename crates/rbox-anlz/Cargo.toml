@@ -19,9 +19,9 @@ default = []
 [dependencies]
 binrw             = { workspace = true }
 modular-bitfield  = { workspace = true }
-tempfile          = { workspace = true }
 thiserror         = { workspace = true }
 
 [dev-dependencies]
 anyhow            = { workspace = true }
+tempfile          = { workspace = true }
 rbox-testing      = { path = "../rbox-testing" }
