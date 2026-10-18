@@ -14,6 +14,9 @@ use std::ops::Range;
 use crate::error::{AnlzError, InvalidFileReason, Result};
 use crate::sections::*;
 
+// identical in all 120 RB6/RB7 demo fixtures. the field meanings are unknown.
+const HEADER_DATA: [u8; 16] = [0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0];
+
 /// One section occurrence in the file's ordered sequence.
 ///
 /// Duplicate tags have separate entries. New entries are decoded and marked
@@ -131,9 +134,7 @@ impl Anlz {
                 size: 28,
                 total_size: 28,
             },
-            // Opaque PMAI extension: identical in all 120 RB6/RB7 demo fixtures.
-            // the field meanings are unknown.
-            header_data: vec![0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+            header_data: HEADER_DATA.to_vec(),
             sections: Vec::new(),
         })
     }
@@ -362,30 +363,6 @@ impl Anlz {
         }
     }
 
-    /// Open an analysis file and index its sections without decoding their payloads.
-    ///
-    /// The path is canonicalized and a file handle is retained for later reads.
-    /// The file-header extension is loaded; section bodies are skipped using their
-    /// declared lengths. Opening does not validate individual payloads.
-    ///
-    /// # AnlzErrors
-    ///
-    /// Returns an error if the file cannot be opened or read, the PMAI header is
-    /// invalid, its declared total size differs from the physical file size, or a
-    /// section has invalid or truncated outer bounds.
-    pub fn load<P: AsRef<std::path::Path>>(path: P) -> Result<Self> {
-        let path = std::fs::canonicalize(path)?;
-        let mut source = std::fs::File::open(&path)?;
-        let (header, header_data, sections) = Self::index(&mut source)?;
-        Ok(Self {
-            path,
-            source: Some(source),
-            header,
-            header_data,
-            sections,
-        })
-    }
-
     /// Scan common headers, checking bounds before seeking over section bodies.
     /// The ordered entries are also the authoritative order used when saving.
     fn index<R: Read + Seek>(source: &mut R) -> Result<(Header, Vec<u8>, Vec<SectionEntry>)> {
@@ -457,32 +434,6 @@ impl Anlz {
             .ok_or(AnlzError::InvalidState("source file was not opened"))
     }
 
-    /// Return the number of top-level sections, excluding the PMAI file header.
-    ///
-    /// Includes duplicate tags, unknown tags, and newly inserted sections.
-    /// This uses the index and does not read or decode payloads.
-    pub fn section_count(&self) -> usize {
-        self.sections.len()
-    }
-
-    /// Read matching sections in file order without marking them modified.
-    /// Other tags remain lazy.
-    pub fn get_sections_by_tag(&mut self, tag: AnlzTag) -> Result<Vec<&Section>> {
-        let indices: Vec<_> = self
-            .sections
-            .iter()
-            .enumerate()
-            .filter_map(|(i, entry)| (entry.tag() == &tag).then_some(i))
-            .collect();
-        for &index in &indices {
-            self.decode(index)?;
-        }
-        Ok(indices
-            .into_iter()
-            .filter_map(|i| self.sections[i].decoded.as_ref())
-            .collect())
-    }
-
     /// Clone the complete file as an editable snapshot, explicitly decoding all sections.
     pub fn get_data(&mut self) -> Result<AnlzData> {
         for index in 0..self.sections.len() {
@@ -549,6 +500,48 @@ impl Anlz {
             })?);
         }
         Ok(())
+    }
+
+    /// Return the number of top-level sections, excluding the PMAI file header.
+    ///
+    /// Includes duplicate tags, unknown tags, and newly inserted sections.
+    /// This uses the index and does not read or decode payloads.
+    pub fn section_count(&self) -> usize {
+        self.sections.len()
+    }
+
+    /// Return whether any section currently has `tag`, without reading payloads.
+    ///
+    /// Uses cached tags when available, so tag edits through mutable section
+    /// access are reflected immediately.
+    pub fn contains(&self, tag: AnlzTag) -> bool {
+        self.sections.iter().any(|s| s.tag() == &tag)
+    }
+
+    /// Return section names in file order, retaining duplicate and unknown tags.
+    ///
+    /// Names use [`AnlzTag::to_string`] (for example, `"BeatGrid"`, not `"PQTZ"`).
+    /// This reads no payloads; the `Result` return type is retained for API compatibility.
+    pub fn get_tags(&self) -> Result<Vec<String>> {
+        Ok(self.sections.iter().map(|s| s.tag().to_string()).collect())
+    }
+
+    /// Read matching sections in file order without marking them modified.
+    /// Other tags remain lazy.
+    pub fn get_sections_by_tag(&mut self, tag: AnlzTag) -> Result<Vec<&Section>> {
+        let indices: Vec<_> = self
+            .sections
+            .iter()
+            .enumerate()
+            .filter_map(|(i, entry)| (entry.tag() == &tag).then_some(i))
+            .collect();
+        for &index in &indices {
+            self.decode(index)?;
+        }
+        Ok(indices
+            .into_iter()
+            .filter_map(|i| self.sections[i].decoded.as_ref())
+            .collect())
     }
 
     /// Borrow the section at a zero-based position in the current file order.
@@ -635,22 +628,6 @@ impl Anlz {
             .collect())
     }
 
-    /// Return whether any section currently has `tag`, without reading payloads.
-    ///
-    /// Uses cached tags when available, so tag edits through mutable section
-    /// access are reflected immediately.
-    pub fn contains(&self, tag: AnlzTag) -> bool {
-        self.sections.iter().any(|s| s.tag() == &tag)
-    }
-
-    /// Return section names in file order, retaining duplicate and unknown tags.
-    ///
-    /// Names use [`AnlzTag::to_string`] (for example, `"BeatGrid"`, not `"PQTZ"`).
-    /// This reads no payloads; the `Result` return type is retained for API compatibility.
-    pub fn get_tags(&self) -> Result<Vec<String>> {
-        Ok(self.sections.iter().map(|s| s.tag().to_string()).collect())
-    }
-
     /// Consume the handler and materialize all sections as owned [`AnlzData`].
     ///
     /// Includes cached edits, decodes every remaining section, and recalculates the
@@ -675,6 +652,30 @@ impl Anlz {
         };
         data.update_total_size();
         Ok(data)
+    }
+
+    /// Open an analysis file and index its sections without decoding their payloads.
+    ///
+    /// The path is canonicalized and a file handle is retained for later reads.
+    /// The file-header extension is loaded; section bodies are skipped using their
+    /// declared lengths. Opening does not validate individual payloads.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the file cannot be opened or read, the PMAI header is
+    /// invalid, its declared total size differs from the physical file size, or a
+    /// section has invalid or truncated outer bounds.
+    pub fn load<P: AsRef<std::path::Path>>(path: P) -> Result<Self> {
+        let path = std::fs::canonicalize(path)?;
+        let mut source = std::fs::File::open(&path)?;
+        let (header, header_data, sections) = Self::index(&mut source)?;
+        Ok(Self {
+            path,
+            source: Some(source),
+            header,
+            header_data,
+            sections,
+        })
     }
 
     /// Write the current contents to `path`, replacing an existing destination.
