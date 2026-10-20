@@ -19,8 +19,8 @@ const HEADER_DATA: [u8; 16] = [0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0];
 
 /// One section occurrence in the file's ordered sequence.
 ///
-/// Duplicate tags have separate entries. New entries are decoded and marked
-/// for serialization; unloaded entries always have a source byte range.
+/// Duplicate tags have separate entries. Entries can be backed by source
+/// ranges, supplied raw bytes, or typed values marked for serialization.
 struct SectionEntry {
     /// Complete section range, including its header, in the current source.
     /// Absent for a newly inserted section until it is saved to that source.
@@ -29,6 +29,8 @@ struct SectionEntry {
     tag: AnlzTag,
     /// Cached section, including any edits made through a mutable getter.
     decoded: Option<Section>,
+    /// Complete caller-supplied section bytes, retained even after shared decoding.
+    raw: Option<Vec<u8>>,
     /// Serialize on save instead of copying source bytes. Set before exposing
     /// mutable access, since subsequent changes to the reference cannot be tracked.
     potentially_modified: bool,
@@ -54,6 +56,11 @@ impl SectionEntry {
 /// The `get_mut_*` methods mark a returned section for serialization, even if the
 /// caller ultimately makes no changes. Edits remain in memory until
 /// [`dump`](Self::dump) or [`dump_copy`](Self::dump_copy) succeeds.
+///
+/// Raw access through [`get_section_bytes`](Self::get_section_bytes) and
+/// [`set_section_bytes`](Self::set_section_bytes) transfers complete sections
+/// without parsing their payloads. Supplied bytes remain verbatim until mutable
+/// typed access requests serialization; shared typed access preserves them.
 ///
 /// Optional getters return `Ok(None)` when no matching section is present.
 /// Typed getters also return `None` if a low-level edit has made a section's tag
@@ -153,13 +160,12 @@ impl Anlz {
     }
 
     fn new_entry(section: Section) -> Result<SectionEntry> {
-        if !section.tag_matches_content() {
-            return Err(AnlzError::TagContentMismatch { tag: section.tag });
-        }
+        section.validate_tag_content()?;
         Ok(SectionEntry {
             original_range: None,
             tag: section.tag.clone(),
             decoded: Some(section),
+            raw: None,
             potentially_modified: true,
         })
     }
@@ -187,10 +193,9 @@ impl Anlz {
     /// Equal-ranked sections retain insertion order. Explicit indexed methods
     /// bypass this policy for lossless editing of unusual files.
     pub fn push_section(&mut self, section: Section) -> Result<()> {
-        if !section.tag_matches_content() {
-            return Err(AnlzError::TagContentMismatch { tag: section.tag });
-        }
-        let index = self.ordered_insertion_index(&section)?;
+        section.validate_tag_content()?;
+        let index =
+            self.ordered_insertion_index(&section.tag, Self::cue_order(&section.content))?;
         self.insert_section(index, section)
     }
 
@@ -281,8 +286,8 @@ impl Anlz {
         })
     }
 
-    fn ordered_insertion_index(&mut self, section: &Section) -> Result<usize> {
-        if section.tag == AnlzTag::Path {
+    fn ordered_insertion_index(&mut self, tag: &AnlzTag, cue_order: Option<u8>) -> Result<usize> {
+        if tag == &AnlzTag::Path {
             // PPTH is first even when the file extension or other tags are unknown.
             return Ok(self
                 .sections
@@ -290,7 +295,7 @@ impl Anlz {
                 .take_while(|entry| entry.tag() == &AnlzTag::Path)
                 .count());
         }
-        let Some(rank) = self.section_rank(&section.tag) else {
+        let Some(rank) = self.section_rank(tag) else {
             return Ok(self.sections.len());
         };
         let mut after = None;
@@ -302,7 +307,7 @@ impl Anlz {
                 return Ok(index);
             }
             if existing_rank == rank {
-                if let Some(cue_order) = Self::cue_order(&section.content) {
+                if let Some(cue_order) = cue_order {
                     self.decode(index)?;
                     if self.sections[index]
                         .decoded
@@ -340,9 +345,7 @@ impl Anlz {
     /// A missing PPTH is inserted first, as with [`set_path`](Self::set_path).
     /// Use indexed methods to control duplicates and exact insertion order.
     pub fn set_section(&mut self, section: Section) -> Result<()> {
-        if !section.tag_matches_content() {
-            return Err(AnlzError::TagContentMismatch { tag: section.tag });
-        }
+        section.validate_tag_content()?;
         let index = match &section.content {
             Content::CueList(value) => {
                 self.cue_index(section.tag.clone(), value.list_type.clone())?
@@ -360,6 +363,121 @@ impl Anlz {
             None if section.tag == AnlzTag::Path => self.insert_section(0, section),
             None => self.push_section(section),
         }
+    }
+
+    /// Return complete section bytes, including the tag and header, by index.
+    ///
+    /// Unmodified sections are copied verbatim from supplied bytes or the backing
+    /// file, even if a shared typed getter cached a decoded value. Typed edits are
+    /// serialized with the same length correction used when saving, so this never
+    /// returns stale source bytes. Does not decode or mark the section modified.
+    /// Returns `Ok(None)` for an out-of-range index.
+    pub fn get_section_bytes(&mut self, index: usize) -> Result<Option<Vec<u8>>> {
+        let Some(entry) = self.sections.get(index) else {
+            return Ok(None);
+        };
+        if entry.potentially_modified {
+            let section = entry.decoded.as_ref().ok_or(AnlzError::InvalidState(
+                "a modified section was not decoded",
+            ))?;
+            section.validate_tag_content()?;
+            let mut output = Cursor::new(Vec::new());
+            section.write_be(&mut output)?;
+            let size = output.get_ref().len() as u64;
+            let size = u32::try_from(size).map_err(|_| AnlzError::OutputTooLarge { size })?;
+            output.seek(SeekFrom::Start(8))?;
+            size.write_be(&mut output)?;
+            return Ok(Some(output.into_inner()));
+        }
+        if let Some(bytes) = &entry.raw {
+            return Ok(Some(bytes.clone()));
+        }
+        let range = entry.original_range.clone().ok_or(AnlzError::InvalidState(
+            "an unchanged section has no source range",
+        ))?;
+        let source = self.source()?;
+        source.seek(SeekFrom::Start(range.start))?;
+        let mut bytes = vec![0; (range.end - range.start) as usize];
+        source.read_exact(&mut bytes)?;
+        Ok(Some(bytes))
+    }
+
+    /// Return complete bytes of the first section with `tag`, or `None` if absent.
+    ///
+    /// Uses the byte-preservation and serialization rules of
+    /// [`get_section_bytes`](Self::get_section_bytes). Use indexed access for duplicates.
+    pub fn get_section_bytes_by_tag(&mut self, tag: AnlzTag) -> Result<Option<Vec<u8>>> {
+        match self.sections.iter().position(|entry| entry.tag() == &tag) {
+            Some(index) => self.get_section_bytes(index),
+            None => Ok(None),
+        }
+    }
+
+    fn raw_entry(bytes: Vec<u8>) -> Result<SectionEntry> {
+        if bytes.len() < 12 {
+            return Err(AnlzError::InvalidSectionValue(
+                "raw section must include its 12-byte header",
+            ));
+        }
+        let header = Self::read_header(&mut Cursor::new(&bytes))?;
+        if header.tag == AnlzTag::File {
+            return Err(AnlzError::InvalidSectionValue(
+                "file header cannot be inserted as a section",
+            ));
+        }
+        if header.size < 12
+            || header.total_size < header.size
+            || u64::from(header.total_size) != bytes.len() as u64
+        {
+            return Err(AnlzError::InvalidSectionValue(
+                "raw section header sizes must match its bytes",
+            ));
+        }
+        Ok(SectionEntry {
+            original_range: None,
+            tag: header.tag,
+            decoded: None,
+            raw: Some(bytes),
+            potentially_modified: false,
+        })
+    }
+
+    /// Insert complete raw section bytes at a zero-based position in file order.
+    ///
+    /// An index equal to [`section_count`](Self::section_count) appends. Existing
+    /// sections, including duplicate tags, retain their relative order. Uses the
+    /// validation and byte-preservation rules of [`set_section_bytes`](Self::set_section_bytes).
+    /// Invalid bytes or an index beyond the end leave the sequence unchanged.
+    pub fn insert_section_bytes(&mut self, index: usize, bytes: Vec<u8>) -> Result<()> {
+        if index > self.sections.len() {
+            return Err(AnlzError::SectionIndexOutOfBounds {
+                index,
+                len: self.sections.len(),
+            });
+        }
+        let entry = Self::raw_entry(bytes)?;
+        self.sections.insert(index, entry);
+        Ok(())
+    }
+
+    /// Replace the first section with the tag embedded in `bytes`, or insert in
+    /// DAT/EXT/2EX order derived from the destination file extension if absent.
+    /// Later duplicates remain untouched. Bytes must contain one complete section,
+    /// including its header, and are saved verbatim without parsing the payload.
+    /// Only the common header and lengths are validated. PPTH is inserted first;
+    /// unknown or unranked tags append. Existing sections are not reordered.
+    /// Cue lists match by tag only, without distinguishing hot and memory lists.
+    /// Use [insert_section_bytes](Self::insert_section_bytes) for duplicates or
+    /// explicit ordering.
+    pub fn set_section_bytes(&mut self, bytes: impl Into<Vec<u8>>) -> Result<()> {
+        let entry = Self::raw_entry(bytes.into())?;
+        if let Some(index) = self.sections.iter().position(|s| s.tag() == entry.tag()) {
+            self.sections[index] = entry;
+        } else {
+            let index = self.ordered_insertion_index(entry.tag(), None)?;
+            self.sections.insert(index, entry);
+        }
+        Ok(())
     }
 
     /// Scan common headers, checking bounds before seeking over section bodies.
@@ -408,6 +526,7 @@ impl Anlz {
                 original_range: Some(offset..end),
                 tag: h.tag,
                 decoded: None,
+                raw: None,
                 potentially_modified: false,
             });
             offset = end;
@@ -458,46 +577,35 @@ impl Anlz {
 
     /// Populate one valid index on success; leave failed decodes uncached.
     fn decode(&mut self, index: usize) -> Result<()> {
-        if self.sections[index].decoded.is_none() {
-            self.source()?;
+        if self.sections[index].decoded.is_some() {
+            return Ok(());
         }
-        let entry = &mut self.sections[index];
-        if entry.decoded.is_none() {
-            let range = entry
-                .original_range
-                .as_ref()
-                .ok_or(AnlzError::InvalidState(
-                    "an unloaded section has no source range",
-                ))?;
-            let offset = range.start;
-            let tag = entry.tag.clone();
-            let result = (|| -> Result<Section> {
-                let source = self
-                    .source
-                    .as_mut()
-                    .ok_or(AnlzError::InvalidState("source file was not opened"))?;
-                source.seek(SeekFrom::Start(range.start))?;
-                let mut bytes = vec![0; (range.end - range.start) as usize];
-                source.read_exact(&mut bytes)?;
-                // Isolate the parser from adjacent sections, including its seeks
-                // and enum backtracking. Drop these raw bytes after decoding.
-                let mut reader = Cursor::new(bytes);
-                let section = Section::read_be(&mut reader)?;
-                if reader.position() != range.end - range.start {
-                    return Err(AnlzError::InvalidFile {
-                        reason: InvalidFileReason::SectionSizeMismatch,
-                        offset,
-                    });
-                }
-                Ok(section)
-            })();
-            entry.decoded = Some(result.map_err(|source| AnlzError::SectionDecode {
-                index,
-                tag,
-                offset,
-                source: Box::new(source),
-            })?);
-        }
+        let offset = self.sections[index]
+            .original_range
+            .as_ref()
+            .map_or(0, |r| r.start);
+        let tag = self.sections[index].tag.clone();
+        let result = (|| -> Result<Section> {
+            let bytes = self
+                .get_section_bytes(index)?
+                .ok_or(AnlzError::InvalidState("section is missing"))?;
+            let len = bytes.len() as u64;
+            let mut reader = Cursor::new(bytes);
+            let section = Section::read_be(&mut reader)?;
+            if reader.position() != len {
+                return Err(AnlzError::InvalidFile {
+                    reason: InvalidFileReason::SectionSizeMismatch,
+                    offset,
+                });
+            }
+            Ok(section)
+        })();
+        self.sections[index].decoded = Some(result.map_err(|source| AnlzError::SectionDecode {
+            index,
+            tag,
+            offset,
+            source: Box::new(source),
+        })?);
         Ok(())
     }
 
@@ -706,7 +814,7 @@ impl Anlz {
         if self
             .sections
             .iter()
-            .any(|entry| !entry.potentially_modified)
+            .any(|entry| !entry.potentially_modified && entry.raw.is_none())
         {
             self.source()?;
         }
@@ -720,12 +828,10 @@ impl Anlz {
                 let section = entry.decoded.as_ref().ok_or(AnlzError::InvalidState(
                     "a modified section was not decoded",
                 ))?;
-                if !section.tag_matches_content() {
-                    return Err(AnlzError::TagContentMismatch {
-                        tag: section.tag.clone(),
-                    });
-                }
+                section.validate_tag_content()?;
                 section.write_be(&mut output)?;
+            } else if let Some(bytes) = &entry.raw {
+                output.write_all(bytes)?;
             } else {
                 let range = entry
                     .original_range
@@ -781,6 +887,7 @@ impl Anlz {
             self.header = header;
             for (entry, range) in self.sections.iter_mut().zip(ranges) {
                 entry.original_range = Some(range);
+                entry.raw = None;
                 entry.potentially_modified = false;
                 entry.tag = entry.tag().clone();
             }
@@ -1223,6 +1330,7 @@ impl Anlz {
                 SectionEntry {
                     original_range: None,
                     tag: AnlzTag::Path,
+                    raw: None,
                     decoded: Some(Section {
                         tag: AnlzTag::Path,
                         content: Content::Path(Path::new(path)),

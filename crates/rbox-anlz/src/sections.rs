@@ -1996,6 +1996,16 @@ impl Section {
             Content::Unknown(..) => matches!(self.tag, AnlzTag::Unknown(_)),
         }
     }
+
+    /// Validate that the tag matches the content type, returning a typed error if not.
+    pub(crate) fn validate_tag_content(&self) -> Result<()> {
+        if !self.tag_matches_content() {
+            return Err(AnlzError::TagContentMismatch {
+                tag: self.tag.clone(),
+            });
+        }
+        Ok(())
+    }
 }
 
 /// ANLZ file contents
