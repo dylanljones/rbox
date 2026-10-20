@@ -2,6 +2,39 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 //! Binary models for ANLZ file headers, sections, and section payloads.
+//!
+//! # Section overview
+//!
+//! Each section is identified by a four-byte tag, represented by [`AnlzTag`].
+//! `PMAI` is the enclosing file container; `PCPT` and `PCP2` are nested cue entries
+//! inside cue lists. The remaining recognized tags describe top-level sections.
+//!
+//! | Tag | `AnlzTag` variant | Purpose |
+//! | --- | --- | --- |
+//! | `PMAI` | [`File`](AnlzTag::File) | File header and container for the analysis sections. |
+//! | `PQTZ` | [`BeatGrid`](AnlzTag::BeatGrid) | Beat positions in milliseconds, beat numbers within bars, and tempo in centi-BPM (1/100 BPM). |
+//! | `PQT2` | [`ExtendedBeatGrid`](AnlzTag::ExtendedBeatGrid) | Additional beat-grid metadata and sub-millisecond timing for the corresponding `PQTZ` beats. |
+//! | `PCOB` | [`CueList`](AnlzTag::CueList) | A list of memory cues and loops, or hot cues and hot loops. |
+//! | `PCO2` | [`ExtendedCueList`](AnlzTag::ExtendedCueList) | An extended cue list supporting additional metadata such as comments and colors. |
+//! | `PCPT` | [`Cue`](AnlzTag::Cue) | A single cue point or loop nested inside a `PCOB` list. |
+//! | `PCP2` | [`ExtendedCue`](AnlzTag::ExtendedCue) | A single cue point or loop with extended metadata, nested inside a `PCO2` list. |
+//! | `PPTH` | [`Path`](AnlzTag::Path) | The audio file path associated with this analysis file. |
+//! | `PVBR` | [`VBR`](AnlzTag::VBR) | A seek index for variable-bitrate audio; some surrounding fields remain uninterpreted. |
+//! | `PVB2` | [`SeekIndex`](AnlzTag::SeekIndex) | A frame seek index for FLAC tracks. |
+//! | `PWAV` | [`WaveformPreview`](AnlzTag::WaveformPreview) | A fixed-width monochrome waveform overview. |
+//! | `PWV2` | [`TinyWaveformPreview`](AnlzTag::TinyWaveformPreview) | A smaller fixed-width monochrome waveform overview, used by the CDJ-900. |
+//! | `PWV3` | [`WaveformDetail`](AnlzTag::WaveformDetail) | A variable-width detailed monochrome waveform, stored in `.EXT` files. |
+//! | `PWV4` | [`WaveformColorPreview`](AnlzTag::WaveformColorPreview) | A fixed-width color waveform overview, stored in `.EXT` files. |
+//! | `PWV5` | [`WaveformColorDetail`](AnlzTag::WaveformColorDetail) | A variable-width detailed color waveform, stored in `.EXT` files. |
+//! | `PWV6` | [`Waveform3BandPreview`](AnlzTag::Waveform3BandPreview) | A fixed-width three-band waveform overview, stored in `.2EX` files. |
+//! | `PWV7` | [`Waveform3BandDetail`](AnlzTag::Waveform3BandDetail) | A variable-width detailed three-band waveform, stored in `.2EX` files. |
+//! | `PWVC` | [`Waveform3BandCalibration`](AnlzTag::Waveform3BandCalibration) | Raw gain values for the low, mid, and high waveform bands in `.2EX` files; numeric scaling is unspecified. |
+//! | `PSSI` | [`SongStructure`](AnlzTag::SongStructure) | Song phrases such as intro, verse, and chorus, with classification metadata, stored in `.EXT` files. |
+//! | `PVDI` | [`VocalDetection`](AnlzTag::VocalDetection) | Raw vocal-detection confidence bytes in `.EXT` files; no time scale or normalization is imposed. |
+//!
+//! Unrecognized tags are represented by [`AnlzTag::Unknown`]. Their raw data is
+//! retained in [`Unknown`], allowing later recognized sections to remain accessible
+//! without interpreting the unknown payload.
 
 #![allow(unused_parens)] // Suppress warnings coming from binrw macros
 
