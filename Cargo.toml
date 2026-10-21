@@ -11,7 +11,6 @@ version = "0.2.0"
 authors = ["Dylan Jones <dylanljones@proton.me>"]
 description = "Library for interacting with the local and export data of Pioneers Rekordbox DJ software"
 license = "GPL-3.0-only"
-license-file = "LICENSE"
 readme = "README.md"
 repository = "https://github.com/dylanljones/rbox"
 keywords = ["rekordbox", "dj", "database", "setting", "anlz"]
