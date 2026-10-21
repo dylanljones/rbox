@@ -24,6 +24,58 @@
 //! > Please make sure to back up your Rekordbox collection before making changes to rekordbox data.
 //! > The backup dialog can be found under "File" > "Library" > "Backup Library"
 //!
+//! ## Sub-crate documentation
+//!
+//! rbox re-exports the following crates. Their documentation covers the underlying APIs in detail.
+//!
+//! | Crate | Purpose |
+//! | --- | --- |
+//! | [`rbox-core`](rbox_core) | Shared track models, paths, library discovery, and options |
+//! | [`rbox-db`](rbox_db) | Database connections, model traits, ordering, and relationships |
+//! | [`rbox-masterdb`](rbox_masterdb) | Rekordbox `master.db`, playlists, and smart lists |
+//! | [`rbox-onelib`](rbox_onelib) | One Library (Device Library Plus) export databases |
+//! | [`rbox-anlz`](rbox_anlz) | Analysis files, waveforms, beat grids, and cues |
+//! | [`rbox-xml`](rbox_xml) | Rekordbox XML libraries |
+//! | [`rbox-setting`](rbox_setting) | Rekordbox and device settings files |
+//!
+//! ## Features
+//!
+//! By default, rbox enables all file and database components (`full`) and builds SQLCipher
+//! with vendored OpenSSL (`bundled-vendored-openssl`). Core models, paths, and library
+//! discovery are always available, including with `default-features = false`.
+//!
+//! | Feature | Effect | Enabled by default |
+//! | --- | --- | --- |
+//! | `full` | Enables `master-db`, `one-library`, `anlz`, `xml`, and `settings` | Yes |
+//! | `master-db` | Enables `masterdb`, shared `db` APIs, and `anlz`; adds master database integration to `one_library` when it is also enabled | Yes, via `full` |
+//! | `one-library` | Enables `one_library` and shared `db` APIs | Yes, via `full` |
+//! | `anlz` | Enables analysis file APIs in `anlz` | Yes, via `full` |
+//! | `xml` | Enables XML library APIs in `xml` | Yes, via `full` |
+//! | `settings` | Enables settings file APIs in `settings` | Yes, via `full` |
+//! | `bundled` | Builds SQLCipher from source without vendoring OpenSSL | No |
+//! | `bundled-vendored-openssl` | Builds both SQLCipher and OpenSSL from source | Yes |
+//! | `pyo3` | Enables Python binding support in core and enabled database components | No |
+//! | `napi` | Enables JavaScript binding support in core and enabled database components | No |
+//!
+//! The SQLCipher build features require `master-db` or `one-library`; they do not enable
+//! either component themselves. With database support enabled and neither build feature
+//! selected, a system SQLCipher installation is required. Binding features also configure
+//! only the components already enabled. `full` does not select a SQLCipher build strategy
+//! or enable binding support.
+//!
+//! Disable the defaults to select only the components and build options you need:
+//!
+//! ```toml
+//! [dependencies]
+//! # Analysis and XML files only; no database dependencies.
+//! rbox = { version = "0.2", default-features = false, features = ["anlz", "xml"] }
+//! ```
+//!
+//! For example, use `features = ["master-db", "bundled-vendored-openssl"]` with defaults
+//! disabled for master database support, its required analysis APIs, and bundled native
+//! dependencies. Cargo features are additive: selecting `bundled` alone does not turn off
+//! the default `bundled-vendored-openssl` feature.
+//!
 //! ## Rekordbox 6/7 database
 //!
 //! rbox can unlock the new Rekordbox `master.db` SQLite database and provides
