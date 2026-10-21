@@ -1,6 +1,3 @@
--- Copyright (C) 2026 Dylan Jones
--- SPDX-License-Identifier: GPL-3.0-only
-
 -- rekordbox's master.db schema
 
 CREATE TABLE `agentNotification` (`ID` BIGINT PRIMARY KEY, `graphic_area` TINYINT(1) DEFAULT 0, `text_area` TINYINT(1) DEFAULT 0, `os_notification` TINYINT(1) DEFAULT 0, `start_datetime` DATETIME DEFAULT NULL, `end_datetime` DATETIME DEFAULT NULL, `display_datetime` DATETIME DEFAULT NULL, `interval` INTEGER DEFAULT 0, `category` VARCHAR(255) DEFAULT NULL, `category_color` VARCHAR(255) DEFAULT NULL, `title` TEXT DEFAULT NULL, `description` TEXT DEFAULT NULL, `url` VARCHAR(255) DEFAULT NULL, `image` VARCHAR(255) DEFAULT NULL, `image_path` VARCHAR(255) DEFAULT NULL, `read_status` INTEGER DEFAULT 0, `last_displayed_datetime` DATETIME DEFAULT NULL, `created_at` DATETIME NOT NULL, `updated_at` DATETIME NOT NULL);

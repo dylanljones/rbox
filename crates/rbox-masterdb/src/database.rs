@@ -41,6 +41,7 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
 use rbox_anlz::{find_anlz_files, Anlz, AnlzFiles, AnlzPaths};
+use rbox_core::models::Track;
 use rbox_core::pathlib::PathExt;
 use rbox_core::{is_rekordbox_running, locate_library, LibraryLocation, RekordboxOptions};
 use rbox_db::{ConnectionOptions, DbPool};
@@ -1157,6 +1158,67 @@ impl MasterDb {
     pub fn get_contents_with_relations(&self) -> Result<Vec<DjmdContentView>> {
         let mut conn = self.pool.get()?;
         Ok(DjmdContent::all_with_relations(&mut conn)?)
+    }
+
+    /// Load all library tracks with resolved metadata names in one read transaction.
+    ///
+    /// Relationships are loaded in batches. Results are detached snapshots in
+    /// database order; missing metadata remains `None`. BPM is in beats per
+    /// minute, length in seconds, and file size in bytes.
+    ///
+    /// # Errors
+    /// Returns database errors or a conversion error for invalid stored metadata.
+    ///
+    /// # Example
+    /// ```no_run
+    /// # fn main() -> rbox_masterdb::error::Result<()> {
+    /// let db = rbox_masterdb::MasterDb::open()?;
+    /// for track in db.get_tracks()? {
+    ///     println!("{}: {:?} by {:?}", track.id, track.title, track.artist);
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn get_tracks(&self) -> Result<Vec<Track>> {
+        self.get_contents_with_relations()?
+            .into_iter()
+            .map(Track::try_from)
+            .collect()
+    }
+
+    /// Load a library track by ID with resolved metadata names.
+    ///
+    /// Returns `None` if the ID is absent. See [`Self::get_tracks`] for units,
+    /// snapshot behavior, and errors.
+    pub fn get_track_by_id(&self, id: &str) -> Result<Option<Track>> {
+        self.get_content_with_relations(id)?
+            .map(Track::try_from)
+            .transpose()
+    }
+
+    /// Load matching library tracks with batched metadata resolution in one read transaction.
+    ///
+    /// Missing IDs are omitted and repeated IDs return a single track. Result
+    /// order follows the database query, not the input IDs. An empty input returns
+    /// an empty vector. See [`Self::get_tracks`] for units and errors.
+    pub fn get_tracks_by_ids(&self, ids: &[&str]) -> Result<Vec<Track>> {
+        let mut conn = self.pool.get()?;
+        DjmdContent::by_ids_with_relations(&mut conn, ids)?
+            .into_iter()
+            .map(Track::try_from)
+            .collect()
+    }
+
+    /// Load a library track by its stored file path with resolved metadata names.
+    ///
+    /// Converts backslashes to Rekordbox's forward slashes without accessing the
+    /// audio file. Otherwise the path must match the stored path exactly.
+    /// Returns `None` if absent. See [`Self::get_tracks`] for units and errors.
+    pub fn get_track_by_path(&self, path: &str) -> Result<Option<Track>> {
+        let path = Path::new(path).to_unix();
+        let mut conn = self.pool.get()?;
+        DjmdContent::find_by_path_with_relations(&mut conn, &path.to_string_lossy())?
+            .map(Track::try_from)
+            .transpose()
     }
 
     /// Retrieves multiple `djmdContent` entries by their unique identifiers.

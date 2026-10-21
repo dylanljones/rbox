@@ -3687,6 +3687,14 @@ export declare class MasterDb {
   getColors(): Array<DjmdColor>
   /** Retrieves a `djmdColor` entry by its unique identifier. */
   getColorById(id: string): DjmdColor | null
+  /** Load detached tracks with resolved names; BPM is unscaled and length is seconds. */
+  getTracks(): Array<Track>
+  /** Load a resolved track by ID, or null when absent. */
+  getTrackById(id: string): Track | null
+  /** Load matching tracks; missing IDs are omitted and duplicates collapsed. */
+  getTracksByIds(ids: Array<string>): Array<Track>
+  /** Load a resolved track by file path, accepting either separator style. */
+  getTrackByPath(path: string): Track | null
   /**
    * Load a detached content snapshot with all supported direct relationships.
    * Related rows are shallow snapshots; changes require explicit model updates.

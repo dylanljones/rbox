@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+// Master database API contracts and conversion of raw and resolved models.
+
 import test from 'ava'
 import { MasterDb } from '../index.js'
 import { cleanupFixtures, fixtureCopy } from './helpers/fixtures.mjs'
@@ -25,6 +27,31 @@ test('raw getters and argument conversion', t => {
     t.true(db.getAlbumById('missing-id') == null)
     t.false('artist' in row)
     t.throws(() => db.getContentById([]), { instanceOf: Error })
+})
+
+test('resolved track helpers expose core models and translate errors', t => {
+    const db = t.context.db
+    const row = db.getContents()[0]
+    row.artistId = db.createArtist('Track helper artist').id
+    row.bpm = 12825
+    delete row.composerId
+    db.updateContent(row)
+    const track = db.getTrackById(row.id)
+    t.is(track.artist, 'Track helper artist')
+    t.is(track.bpm, 128.25)
+    t.true(track.composer == null)
+    t.is(typeof track.path, 'string')
+    t.true(track.fileSize == null || typeof track.fileSize === 'bigint')
+    t.is(db.getTrackByPath(track.path).id, row.id)
+    t.true(db.getTracks().every(item => typeof item.id === 'string'))
+    t.deepEqual(db.getTracksByIds([row.id, 'missing', row.id]).map(item => item.id), [row.id])
+    t.deepEqual(db.getTracksByIds([]), [])
+    t.true(db.getTrackById('missing') == null)
+    t.true(db.getTrackByPath('/missing/track.mp3') == null)
+    t.throws(() => db.getTracksByIds([123]))
+    row.rating = 6
+    db.updateContent(row)
+    t.throws(() => db.getTrackById(row.id), { message: /rating/ })
 })
 
 test('album mutation signatures', t => {

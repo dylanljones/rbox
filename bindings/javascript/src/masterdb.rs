@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! JavaScript bindings for the master database handler and resolved track access.
+
 use chrono::{DateTime, Utc};
 use napi::Result;
 use napi_derive::napi;
@@ -8,6 +10,7 @@ use rbox::masterdb::enums::PlaylistType;
 use rbox::masterdb::{models::*, MasterDb};
 
 use super::anlz::JsAnlzPaths;
+use super::models::Track;
 use super::options::JsRekordboxOptions;
 
 #[napi(object, js_name = "DjmdPlaylistTreeNode")]
@@ -469,6 +472,43 @@ impl JsMasterDb {
     }
 
     // -- Content ----------------------------------------------------------------------------------
+
+    /// Load detached tracks with resolved names; BPM is unscaled and length is seconds.
+    #[napi]
+    pub fn get_tracks(&self) -> Result<Vec<Track>> {
+        self.db
+            .get_tracks()
+            .map(|tracks| tracks.into_iter().map(Into::into).collect())
+            .map_err(crate::util::binding_error)
+    }
+
+    /// Load a resolved track by ID, or null when absent.
+    #[napi]
+    pub fn get_track_by_id(&self, id: String) -> Result<Option<Track>> {
+        self.db
+            .get_track_by_id(&id)
+            .map(|track| track.map(Into::into))
+            .map_err(crate::util::binding_error)
+    }
+
+    /// Load matching tracks; missing IDs are omitted and duplicates collapsed.
+    #[napi]
+    pub fn get_tracks_by_ids(&self, ids: Vec<String>) -> Result<Vec<Track>> {
+        let ids: Vec<&str> = ids.iter().map(String::as_str).collect();
+        self.db
+            .get_tracks_by_ids(&ids)
+            .map(|tracks| tracks.into_iter().map(Into::into).collect())
+            .map_err(crate::util::binding_error)
+    }
+
+    /// Load a resolved track by file path, accepting either separator style.
+    #[napi]
+    pub fn get_track_by_path(&self, path: String) -> Result<Option<Track>> {
+        self.db
+            .get_track_by_path(&path)
+            .map(|track| track.map(Into::into))
+            .map_err(crate::util::binding_error)
+    }
 
     /// Load a detached content snapshot with all supported direct relationships.
     /// Related rows are shallow snapshots; changes require explicit model updates.

@@ -3,9 +3,11 @@
 
 """Database binding contracts, independent of database ordering and persistence logic."""
 
+from pathlib import Path
+
 import pytest
 
-from rbox import MasterDb
+from rbox import MasterDb, MasterDbError, Track
 from rbox.masterdb import models
 
 
@@ -29,6 +31,33 @@ def test_raw_getters(master_db):
     assert row.title == "API title"
     with pytest.raises(TypeError):
         db.get_content_by_id([])
+
+
+def test_resolved_track_helpers(master_db):
+    db = master_db
+    row = db.get_contents()[0]
+    row.artist_id = db.create_artist("Track helper artist").id
+    row.bpm = 12825
+    row.composer_id = None
+    db.update_content(row)
+    track = db.get_track_by_id(row.id)
+    assert isinstance(track, Track)
+    assert track.artist == "Track helper artist"
+    assert track.bpm == 128.25
+    assert track.composer is None
+    assert isinstance(track.path, Path)
+    assert db.get_track_by_path(str(track.path)).id == row.id
+    assert all(isinstance(item, Track) for item in db.get_tracks())
+    assert [item.id for item in db.get_tracks_by_ids([row.id, "missing", row.id])] == [row.id]
+    assert db.get_tracks_by_ids([]) == []
+    assert db.get_track_by_id("missing") is None
+    assert db.get_track_by_path("/missing/track.mp3") is None
+    with pytest.raises(TypeError):
+        db.get_tracks_by_ids([123])
+    row.rating = 6
+    db.update_content(row)
+    with pytest.raises(MasterDbError, match="rating"):
+        db.get_track_by_id(row.id)
 
 
 def test_album_mutation_signatures(master_db):

@@ -478,6 +478,18 @@ impl DjmdContent {
         Self::query().filter(djmdContent::id.eq_any(ids)).load(conn)
     }
 
+    /// Load matching rows and their direct metadata in one read transaction.
+    /// Missing IDs are omitted, duplicates are collapsed, and order is unspecified.
+    pub fn by_ids_with_relations(
+        conn: &mut SqliteConnection,
+        ids: &[&str],
+    ) -> crate::Result<Vec<DjmdContentView>> {
+        conn.transaction::<_, MasterDbError, _>(|conn| {
+            let contents = Self::by_ids(conn, ids)?;
+            Ok(Self::resolve_many(conn, contents)?)
+        })
+    }
+
     /// Queries a record from the `djmdContent` table by its `folder_path`.
     pub fn find_by_path(conn: &mut SqliteConnection, name: &str) -> QueryResult<Option<Self>> {
         Self::query()

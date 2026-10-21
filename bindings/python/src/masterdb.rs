@@ -1,9 +1,12 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! Python bindings for the master database handler and resolved track access.
+
 use chrono::{DateTime, Utc};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyString, PyType};
+use rbox::core::models::Track;
 use rbox::masterdb::enums::PlaylistType;
 use rbox::masterdb::{models::*, MasterDb};
 
@@ -377,6 +380,27 @@ impl PyMasterDb {
     }
 
     // -- Content ----------------------------------------------------------------------------------
+
+    /// Load detached tracks with resolved names; BPM is unscaled and length is seconds.
+    pub fn get_tracks(&self) -> PyResult<Vec<Track>> {
+        self.db.get_tracks().map_err(db_error)
+    }
+
+    /// Load a resolved track by ID, or None when absent.
+    pub fn get_track_by_id(&self, id: &str) -> PyResult<Option<Track>> {
+        self.db.get_track_by_id(id).map_err(db_error)
+    }
+
+    /// Load matching tracks; missing IDs are omitted and duplicates collapsed.
+    pub fn get_tracks_by_ids(&self, ids: Vec<String>) -> PyResult<Vec<Track>> {
+        let ids: Vec<&str> = ids.iter().map(String::as_str).collect();
+        self.db.get_tracks_by_ids(&ids).map_err(db_error)
+    }
+
+    /// Load a resolved track by file path, accepting either separator style.
+    pub fn get_track_by_path(&self, path: &str) -> PyResult<Option<Track>> {
+        self.db.get_track_by_path(path).map_err(db_error)
+    }
 
     /// Load a detached content snapshot with all supported direct relationships.
     /// Related rows are shallow snapshots; changes require explicit model updates.

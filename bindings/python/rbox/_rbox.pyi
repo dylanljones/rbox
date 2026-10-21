@@ -2156,6 +2156,22 @@ class PyMasterDb:
         """Load all rows with their direct relationships using batched queries."""
         ...
 
+    def get_tracks(self) -> List[Track]:
+        """Load detached tracks with resolved names and unscaled BPM."""
+        ...
+
+    def get_track_by_id(self, id: str) -> Optional[Track]:
+        """Load a resolved track by ID, or None when absent."""
+        ...
+
+    def get_tracks_by_ids(self, ids: List[str]) -> List[Track]:
+        """Load matching tracks, omitting missing IDs and collapsing duplicates."""
+        ...
+
+    def get_track_by_path(self, path: str) -> Optional[Track]:
+        """Load a resolved track by path, accepting either separator style."""
+        ...
+
     def get_contents(self) -> List[DjmdContent]:
         """Retrieves all entries from the `djmdContent` table in the database."""
         ...
