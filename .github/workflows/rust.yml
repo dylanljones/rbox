@@ -17,11 +17,46 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  cargo-fmt-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check formatting
+        run: cargo fmt --check
+
   tests:
-    uses: ./.github/workflows/tests.yml
+    needs: cargo-fmt-check
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set Perl environment variables
+        if: runner.os == 'Windows'
+        run: |
+          echo "PERL=$((where.exe perl)[0])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          echo "OPENSSL_SRC_PERL=$((where.exe perl)[0])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - uses: Swatinem/rust-cache@v2
+      - name: Run Rust tests
+        run: cargo test --workspace --exclude rbox-py --exclude rbox-js --lib --bins --tests
+      - name: Run documentation tests
+        run: cargo test --workspace --exclude rbox-py --exclude rbox-js --doc
+
+  check-features:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        features: ['', anlz, xml, settings, 'master-db,bundled-vendored-openssl', 'one-library,bundled-vendored-openssl']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - name: Check facade with isolated features
+        run: cargo check -p rbox --no-default-features --features '${{ matrix.features }}'
 
   publish:
-    needs: tests
+    needs: [tests, check-features]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +66,6 @@ jobs:
       - name: Determine publishable crates and dependency order
         shell: bash
         run: |
-          python3 -m unittest discover -s scripts/tests -p test_publish_order.py
           cargo metadata --no-deps --format-version 1 | python3 scripts/publish_order.py > "$RUNNER_TEMP/publish-plan.tsv"
           cat "$RUNNER_TEMP/publish-plan.tsv"
       - name: Publish crate family in dependency order
