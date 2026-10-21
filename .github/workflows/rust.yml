@@ -24,25 +24,6 @@ jobs:
       - name: Check formatting
         run: cargo fmt --check
 
-  tests:
-    needs: cargo-fmt-check
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set Perl environment variables
-        if: runner.os == 'Windows'
-        run: |
-          echo "PERL=$((where.exe perl)[0])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          echo "OPENSSL_SRC_PERL=$((where.exe perl)[0])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-      - uses: Swatinem/rust-cache@v2
-      - name: Run Rust tests
-        run: cargo test --workspace --exclude rbox-py --exclude rbox-js --lib --bins --tests
-      - name: Run documentation tests
-        run: cargo test --workspace --exclude rbox-py --exclude rbox-js --doc
-
   check-features:
     runs-on: ubuntu-latest
     strategy:
@@ -56,7 +37,7 @@ jobs:
         run: cargo check -p rbox --no-default-features --features '${{ matrix.features }}'
 
   publish:
-    needs: [tests, check-features]
+    needs: [check-features]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

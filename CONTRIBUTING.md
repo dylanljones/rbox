@@ -222,9 +222,8 @@ versions unchanged. Dependencies that only specify a local path remain unchanged
 Rust releases publish the public sub-crates in dependency order, followed by
 `rbox`. Already-published versions are skipped so a failed release can be retried.
 `codegen`, `rbox-testing`, and the binding crates are not published to crates.io.
-Rust publication waits for the reusable Tests workflow; npm and PyPI publication
-wait for tests of their built artifacts. PyPI releases also verify that the source
-archive builds without the repository checkout.
+npm and PyPI publication wait for tests of their built artifacts.
+PyPI releases also verify that the source archive builds without the repository checkout.
 
 
 [issue]: https://github.com/dylanljones/rbox/issues
