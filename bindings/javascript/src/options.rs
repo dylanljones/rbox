@@ -16,19 +16,20 @@ pub struct JsRekordboxOptions {
 impl JsRekordboxOptions {
     #[napi(constructor)]
     pub fn new(db_path: String, analysis_root: String, settings_root: String) -> Result<Self> {
-        let inner = RekordboxOptions::new(db_path, analysis_root, settings_root)?;
+        let inner = RekordboxOptions::new(db_path, analysis_root, settings_root)
+            .map_err(crate::util::binding_error)?;
         Ok(JsRekordboxOptions { inner })
     }
 
     #[napi(factory)]
     pub fn load(path: String) -> Result<Self> {
-        let inner = RekordboxOptions::load(path)?;
+        let inner = RekordboxOptions::load(path).map_err(crate::util::binding_error)?;
         Ok(JsRekordboxOptions { inner })
     }
 
     #[napi(factory)]
     pub fn open() -> Result<Self> {
-        let inner = RekordboxOptions::open()?;
+        let inner = RekordboxOptions::open().map_err(crate::util::binding_error)?;
         Ok(JsRekordboxOptions { inner })
     }
 

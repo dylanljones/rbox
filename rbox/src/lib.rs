@@ -9,7 +9,7 @@
 //!
 //! <br>
 //!
-//! > rbox gives you full control over your Rekordbox data.
+//! > rbox gives you full control of your Rekordbox data.
 //!
 //! <br>
 //!
@@ -24,6 +24,58 @@
 //! > Please make sure to back up your Rekordbox collection before making changes to rekordbox data.
 //! > The backup dialog can be found under "File" > "Library" > "Backup Library"
 //!
+//! ## Sub-crate documentation
+//!
+//! rbox re-exports the following crates. Their documentation covers the underlying APIs in detail.
+//!
+//! | Crate | Purpose |
+//! | --- | --- |
+//! | [`rbox-core`](rbox_core) | Shared track models, paths, library discovery, and options |
+//! | [`rbox-db`](rbox_db) | Database connections, model traits, ordering, and relationships |
+//! | [`rbox-masterdb`](rbox_masterdb) | Rekordbox `master.db`, playlists, and smart lists |
+//! | [`rbox-onelib`](rbox_onelib) | One Library (Device Library Plus) export databases |
+//! | [`rbox-anlz`](rbox_anlz) | Analysis files, waveforms, beat grids, and cues |
+//! | [`rbox-xml`](rbox_xml) | Rekordbox XML libraries |
+//! | [`rbox-setting`](rbox_setting) | Rekordbox and device settings files |
+//!
+//! ## Features
+//!
+//! By default, rbox enables all file and database components (`full`) and builds SQLCipher
+//! with vendored OpenSSL (`bundled-vendored-openssl`). Core models, paths, and library
+//! discovery are always available, including with `default-features = false`.
+//!
+//! | Feature | Effect | Enabled by default |
+//! | --- | --- | --- |
+//! | `full` | Enables `master-db`, `one-library`, `anlz`, `xml`, and `settings` | Yes |
+//! | `master-db` | Enables `masterdb`, shared `db` APIs, and `anlz`; adds master database integration to `one_library` when it is also enabled | Yes, via `full` |
+//! | `one-library` | Enables `one_library` and shared `db` APIs | Yes, via `full` |
+//! | `anlz` | Enables analysis file APIs in `anlz` | Yes, via `full` |
+//! | `xml` | Enables XML library APIs in `xml` | Yes, via `full` |
+//! | `settings` | Enables settings file APIs in `settings` | Yes, via `full` |
+//! | `bundled` | Builds SQLCipher from source without vendoring OpenSSL | No |
+//! | `bundled-vendored-openssl` | Builds both SQLCipher and OpenSSL from source | Yes |
+//! | `pyo3` | Enables Python binding support in core and enabled database components | No |
+//! | `napi` | Enables JavaScript binding support in core and enabled database components | No |
+//!
+//! The SQLCipher build features require `master-db` or `one-library`; they do not enable
+//! either component themselves. With database support enabled and neither build feature
+//! selected, a system SQLCipher installation is required. Binding features also configure
+//! only the components already enabled. `full` does not select a SQLCipher build strategy
+//! or enable binding support.
+//!
+//! Disable the defaults to select only the components and build options you need:
+//!
+//! ```toml
+//! [dependencies]
+//! # Analysis and XML files only; no database dependencies.
+//! rbox = { version = "0.2", default-features = false, features = ["anlz", "xml"] }
+//! ```
+//!
+//! For example, use `features = ["master-db", "bundled-vendored-openssl"]` with defaults
+//! disabled for master database support, its required analysis APIs, and bundled native
+//! dependencies. Cargo features are additive: selecting `bundled` alone does not turn off
+//! the default `bundled-vendored-openssl` feature.
+//!
 //! ## Rekordbox 6/7 database
 //!
 //! rbox can unlock the new Rekordbox `master.db` SQLite database and provides
@@ -34,7 +86,7 @@
 //!
 //! fn main() -> anyhow::Result<()> {
 //!     let mut db = MasterDb::open()?;
-//!     let contents = db.get_content()?;
+//!     let contents = db.get_contents()?;
 //!     for content in contents {
 //!         println!("{:?}", content);
 //!     }
@@ -50,7 +102,7 @@
 //! use rbox::prelude::*;
 //!
 //! fn main() -> anyhow::Result<()> {
-//!     let mut xml = RekordboxXml::load("database.xml");
+//!     let mut xml = RekordboxXml::load("database.xml")?;
 //!     let tracks = xml.get_tracks();
 //!     for track in tracks {
 //!         println!("{:?}", track);
@@ -109,41 +161,50 @@ compile_error!(
     "The 'bundled' or 'bundled-vendored-openssl' features require either 'master-db' or 'one-library' to be enabled"
 );
 
-mod error;
-mod options;
-mod pathlib;
+pub mod error;
 pub mod prelude;
-pub mod util;
+pub use error::{Error, Result};
 
 #[cfg(feature = "anlz")]
-pub mod anlz;
+pub use rbox_anlz as anlz;
+pub use rbox_core as core;
 #[cfg(any(feature = "master-db", feature = "one-library"))]
-pub mod enums;
+pub use rbox_db as db;
 #[cfg(feature = "master-db")]
-pub mod masterdb;
-#[cfg(any(feature = "master-db", feature = "one-library"))]
-pub mod model_traits;
+pub use rbox_masterdb as masterdb;
 #[cfg(feature = "one-library")]
-pub mod one_library;
+pub use rbox_onelib as one_library;
 #[cfg(feature = "settings")]
-pub mod settings;
-pub mod share;
+pub use rbox_setting as settings;
 #[cfg(feature = "xml")]
-pub mod xml;
+pub use rbox_xml as xml;
 
-pub use error::{Error, Result};
-pub use options::RekordboxOptions;
-#[allow(deprecated)]
-pub use pathlib::{NormalizePath, PathExt};
-pub use util::*;
+// Core exports
+pub use core::*;
 
+// anlz exports
 #[cfg(feature = "anlz")]
 pub use anlz::Anlz;
+
+// shared db exports
+#[cfg(any(feature = "master-db", feature = "one-library"))]
+pub use db::{
+    DbConn, DbPool, Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, NodeRef,
+    OrderedModel, TreeNode, TreeSeq,
+};
+
+// masterdb exports
 #[cfg(feature = "master-db")]
-pub use masterdb::MasterDb;
+pub use masterdb::{MasterDb, MasterPlaylistXml, SmartList};
+
+// onelib exports
 #[cfg(feature = "one-library")]
 pub use one_library::OneLibrary;
+
+// settings exports
 #[cfg(feature = "settings")]
 pub use settings::Setting;
+
+// xml exports
 #[cfg(feature = "xml")]
 pub use xml::RekordboxXml;

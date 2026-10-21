@@ -3,15 +3,18 @@
 
 """Database binding contracts, independent of database ordering and persistence logic."""
 
+from pathlib import Path
+
 import pytest
 
-from rbox import MasterDb
+from rbox import MasterDb, MasterDbError, Track
 from rbox.masterdb import models
 
 
 def test_raw_getters(master_db):
     db = master_db
     assert isinstance(db, MasterDb)
+    assert callable(db.add_content)
     rows = db.get_contents()
     assert isinstance(rows, list)
     row = rows[0]
@@ -30,6 +33,33 @@ def test_raw_getters(master_db):
         db.get_content_by_id([])
 
 
+def test_resolved_track_helpers(master_db):
+    db = master_db
+    row = db.get_contents()[0]
+    row.artist_id = db.create_artist("Track helper artist").id
+    row.bpm = 12825
+    row.composer_id = None
+    db.update_content(row)
+    track = db.get_track_by_id(row.id)
+    assert isinstance(track, Track)
+    assert track.artist == "Track helper artist"
+    assert track.bpm == 128.25
+    assert track.composer is None
+    assert isinstance(track.path, Path)
+    assert db.get_track_by_path(str(track.path)).id == row.id
+    assert all(isinstance(item, Track) for item in db.get_tracks())
+    assert [item.id for item in db.get_tracks_by_ids([row.id, "missing", row.id])] == [row.id]
+    assert db.get_tracks_by_ids([]) == []
+    assert db.get_track_by_id("missing") is None
+    assert db.get_track_by_path("/missing/track.mp3") is None
+    with pytest.raises(TypeError):
+        db.get_tracks_by_ids([123])
+    row.rating = 6
+    db.update_content(row)
+    with pytest.raises(MasterDbError, match="rating"):
+        db.get_track_by_id(row.id)
+
+
 def test_album_mutation_signatures(master_db):
     db = master_db
     row = db.create_album("API album", None, None, None)
@@ -45,11 +75,14 @@ def test_content_view(master_db):
     row = db.get_contents()[0]
     artist = db.create_artist("API artist")
     row.artist_id = artist.id
+    album_artist = db.create_artist("API album artist")
+    row.album_id = db.create_album("API content album", album_artist.id, None, None).id
     assert db.update_content(row) is None
     view = db.get_content_with_relations(row.id)
     assert isinstance(view, models.DjmdContentView)
     assert isinstance(view.content, models.DjmdContent)
     assert isinstance(view.artist, models.DjmdArtist)
+    assert view.album_artist.id == album_artist.id
     for field in ("remixer", "original_artist", "composer"):
         assert isinstance(getattr(view, field), (models.DjmdArtist, type(None)))
     for field, model in (

@@ -1,3 +1,1 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2026 Dylan Jones
-# SPDX-License-Identifier: GPL-3.0-only

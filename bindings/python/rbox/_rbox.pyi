@@ -5,7 +5,11 @@
 
 import enum
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from os import PathLike
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+
+from .anlz import AnlzData, AnlzSection
 
 class Error(Exception):
     """The base class of the other exceptions in this module.
@@ -202,6 +206,17 @@ class PlaylistType(enum.IntEnum):
     def __repr__(self) -> str: ...
     def __eq__(self, other: int | PlaylistType) -> bool: ...
     def __ne__(self, other: int | PlaylistType) -> bool: ...
+
+class OneLibraryPlaylistType(enum.IntEnum):
+    List: OneLibraryPlaylistType
+    Folder: OneLibraryPlaylistType
+    SmartList: OneLibraryPlaylistType
+    CloudLibrarySync: OneLibraryPlaylistType
+
+    def __int__(self) -> int: ...
+    def __repr__(self) -> str: ...
+    def __eq__(self, other: int | OneLibraryPlaylistType) -> bool: ...
+    def __ne__(self, other: int | OneLibraryPlaylistType) -> bool: ...
 
 class RelatedTracksType(enum.IntEnum):
     List: RelatedTracksType
@@ -616,6 +631,8 @@ class DjmdContentView:
     def composer(self) -> Optional[DjmdArtist]: ...
     @property
     def album(self) -> Optional[DjmdAlbum]: ...
+    @property
+    def album_artist(self) -> Optional[DjmdArtist]: ...
     @property
     def genre(self) -> Optional[DjmdGenre]: ...
     @property
@@ -1963,6 +1980,10 @@ class PyDjmdPlaylistTreeNode:
     children: List[PyDjmdPlaylistTreeNode]
 
 class PyMasterDb:
+    @classmethod
+    def from_location(cls, location: LibraryLocation) -> "PyMasterDb":
+        """Open a located library, rechecking availability without repeating discovery."""
+        ...
     def __init__(self, path: str) -> "PyMasterDb":
         """Open a Rekordbox database specified by path."""
         ...
@@ -2133,6 +2154,22 @@ class PyMasterDb:
 
     def get_contents_with_relations(self) -> List[DjmdContentView]:
         """Load all rows with their direct relationships using batched queries."""
+        ...
+
+    def get_tracks(self) -> List[Track]:
+        """Load detached tracks with resolved names and unscaled BPM."""
+        ...
+
+    def get_track_by_id(self, id: str) -> Optional[Track]:
+        """Load a resolved track by ID, or None when absent."""
+        ...
+
+    def get_tracks_by_ids(self, ids: List[str]) -> List[Track]:
+        """Load matching tracks, omitting missing IDs and collapsing duplicates."""
+        ...
+
+    def get_track_by_path(self, path: str) -> Optional[Track]:
+        """Load a resolved track by path, accepting either separator style."""
         ...
 
     def get_contents(self) -> List[DjmdContent]:
@@ -3164,7 +3201,7 @@ class Playlist(_RustMutableMapping):
     """The name of the playlist."""
     image_id: Optional[int]
     """Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image)."""
-    attribute: PlaylistType
+    attribute: OneLibraryPlaylistType
     """The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`)."""
     parent_id: int
     """The ID of the parent [`Playlist`], `0` for top-level records."""
@@ -3178,7 +3215,7 @@ class NewPlaylist(_RustMutableMapping):
     """The name of the playlist."""
     image_id: Optional[int]
     """Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image)."""
-    attribute: PlaylistType
+    attribute: OneLibraryPlaylistType
     """The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`)."""
     parent_id: int
     """The ID of the parent [`Playlist`], `0` for top-level records."""
@@ -3830,23 +3867,44 @@ class PyOneLibrary:
         """Deletes a record from the `sort` table by its primary key `id`."""
         ...
 
-# ---- ANLZ  ----------------------------------------------------------------------------------------
+# ---- ANLZ snapshots and handlers ---------------------------------------------------------------
 
 class Beat:
     beat_number: int
     tempo: int
     time: int
+    def __init__(self, beat_number: int, tempo: int, time: int) -> None: ...
 
 class ExtBeat:
-    beat_number: int
+    microseconds: int
+    def __init__(self, microseconds: int) -> None: ...
 
 class BeatGrid:
     beats: List[Beat]
+    header_flags: int
+    def __init__(self, beats: List[Beat], header_flags: int) -> None: ...
+    @staticmethod
+    def new_static_bpm(bpm: float, first_beat_ms: int, end_ms: int) -> BeatGrid: ...
+    def set_static_bpm(self, bpm: float, first_beat_ms: int, end_ms: int) -> None: ...
 
 class ExtendedBeatGrid:
-    version: int
-    bpm: List[Beat]
+    first_beat: Beat
+    last_beat: Beat
+    offset_ms: int
+    offset_flags: int
+    checksum: int
     beats: List[ExtBeat]
+    version: int
+    def __init__(
+        self,
+        first_beat: Beat,
+        last_beat: Beat,
+        offset_ms: int,
+        offset_flags: int,
+        checksum: int,
+        beats: List[ExtBeat],
+        version: int,
+    ) -> None: ...
 
 class AnlzCue:
     hot_cue: int
@@ -3856,6 +3914,26 @@ class AnlzCue:
     cue_type: int
     time: int
     loop_time: int
+    header_size: int
+    u4: int
+    u5: int
+    u6: int
+    u7: int
+    def __init__(
+        self,
+        hot_cue: int,
+        status: int,
+        order_first: int,
+        order_last: int,
+        cue_type: int,
+        time: int,
+        loop_time: int,
+        header_size: int,
+        u4: int,
+        u5: int,
+        u6: int,
+        u7: int,
+    ) -> None: ...
 
 class ExtendedCue:
     hot_cue: int
@@ -3870,63 +3948,117 @@ class ExtendedCue:
     hot_cue_color_red: int
     hot_cue_color_green: int
     hot_cue_color_blue: int
+    header_size: int
+    u3: int
+    u4: int
+    u5: int
+    comment_trailing_nuls: int
+    trailing_data: bytes
+    def __init__(
+        self,
+        hot_cue: int,
+        cue_type: int,
+        time: int,
+        loop_time: int,
+        color: int,
+        loop_numerator: int,
+        loop_denominator: int,
+        comment: str,
+        hot_cue_color_index: int,
+        hot_cue_color_red: int,
+        hot_cue_color_green: int,
+        hot_cue_color_blue: int,
+        header_size: int,
+        u3: int,
+        u4: int,
+        u5: int,
+        comment_trailing_nuls: int,
+        trailing_data: Union[bytes, List[int]],
+    ) -> None: ...
 
 class CueList:
     list_type: int
     cues: List[AnlzCue]
+    memory_count: int
+    def __init__(self, list_type: int, cues: List[AnlzCue], memory_count: int) -> None: ...
 
 class ExtendedCueList:
     list_type: int
     cues: List[ExtendedCue]
+    def __init__(self, list_type: int, cues: List[ExtendedCue]) -> None: ...
 
 class TinyWaveformColumn:
-    unused: int
     height: int
+    unused: int
+    def __init__(self, height: int, unused: int) -> None: ...
 
 class TinyWaveformPreview:
     data: List[TinyWaveformColumn]
+    def __init__(self, data: List[TinyWaveformColumn]) -> None: ...
 
 class WaveformColumn:
     height: int
     whiteness: int
+    def __init__(self, height: int, whiteness: int) -> None: ...
 
 class WaveformPreview:
     data: List[WaveformColumn]
+    def __init__(self, data: List[WaveformColumn]) -> None: ...
 
 class WaveformDetail:
     data: List[WaveformColumn]
+    def __init__(self, data: List[WaveformColumn]) -> None: ...
 
 class WaveformColorPreviewColumn:
     energy_bottom_half_freq: int
     energy_bottom_third_freq: int
     energy_mid_third_freq: int
     energy_top_third_freq: int
+    u1: int
+    u2: int
+    def __init__(
+        self,
+        energy_bottom_half_freq: int,
+        energy_bottom_third_freq: int,
+        energy_mid_third_freq: int,
+        energy_top_third_freq: int,
+        u1: int,
+        u2: int,
+    ) -> None: ...
 
 class WaveformColorPreview:
     data: List[WaveformColorPreviewColumn]
+    def __init__(self, data: List[WaveformColorPreviewColumn]) -> None: ...
 
 class WaveformColorDetailColumn:
-    low_bits: int
-    fine_height_substep: int
-    full_height: int
     red: int
     green: int
     blue: int
     height: int
+    low_bits: int
+    fine_height_substep: int
+    full_height: int
+    def __init__(self, red: int, green: int, blue: int, height: int, low_bits: int) -> None: ...
 
 class WaveformColorDetail:
     data: List[WaveformColorDetailColumn]
+    unknown: int
+    def __init__(self, data: List[WaveformColorDetailColumn], unknown: int) -> None: ...
 
 class Waveform3BandColumn:
     mid: int
     high: int
     low: int
+    def __init__(self, mid: int, high: int, low: int) -> None: ...
 
 class Waveform3BandPreview:
     data: List[Waveform3BandColumn]
+    def __init__(self, data: List[Waveform3BandColumn]) -> None: ...
 
 class Waveform3BandDetail:
     data: List[Waveform3BandColumn]
+    unknown: int
+    def __init__(self, data: List[Waveform3BandColumn], unknown: int) -> None: ...
 
 class Phrase:
     index: int
@@ -3941,44 +4073,95 @@ class Phrase:
     k3: int
     fill: int
     beat_fill: int
+    u1: int
+    u2: int
+    u3: int
+    u4: int
+    u5: int
+    def __init__(
+        self,
+        index: int,
+        beat: int,
+        kind: int,
+        k1: int,
+        k2: int,
+        b: int,
+        beat2: int,
+        beat3: int,
+        beat4: int,
+        k3: int,
+        fill: int,
+        beat_fill: int,
+        u1: int,
+        u2: int,
+        u3: int,
+        u4: int,
+        u5: int,
+    ) -> None: ...
 
 class SongStructureData:
     mood: int
     end_beat: int
     bank: int
     phrases: List[Phrase]
+    u1: int
+    u2: int
+    u3: int
+    u4: int
+    def __init__(
+        self, mood: int, end_beat: int, bank: int, phrases: List[Phrase], u1: int, u2: int, u3: int, u4: int
+    ) -> None: ...
 
 class VBR:
     u1: int
     index: List[int]
     u2: int
+    def __init__(self, u1: int, index: List[int], u2: int) -> None: ...
 
 class SeekPoint:
     sample: int
     offset: int
     frame_samples: int
+    def __init__(self, sample: int, offset: int, frame_samples: int) -> None: ...
 
 class SeekIndex:
     u1: int
     total_samples: int
     entries: List[SeekPoint]
+    def __init__(self, u1: int, total_samples: int, entries: List[SeekPoint]) -> None: ...
 
 class Waveform3BandCalibration:
     low_gain: int
     mid_gain: int
     high_gain: int
+    def __init__(self, low_gain: int, mid_gain: int, high_gain: int) -> None: ...
 
 class VocalDetection:
     u1: int
     u2: int
-    confidence: List[int]
+    confidence: bytes
+    def __init__(self, u1: int, u2: int, confidence: Union[bytes, List[int]]) -> None: ...
+
+class SongStructure:
+    version: int
+    is_encrypted: bool
+    data: SongStructureData
+    def __init__(self, version: int, is_encrypted: bool, data: SongStructureData) -> None: ...
+
+class UnknownSection:
+    code: bytes
+    header_data: bytes
+    content_data: bytes
+    def __init__(
+        self, code: Union[bytes, List[int]], header_data: Union[bytes, List[int]], content_data: Union[bytes, List[int]]
+    ) -> None: ...
 
 class PyAnlz:
     def get_vbr(self) -> Optional[VBR]: ...
     def get_seek_index(self) -> Optional[SeekIndex]: ...
     def get_waveform_3band_calibration(self) -> Optional[Waveform3BandCalibration]: ...
     def get_vocal_detection(self) -> Optional[VocalDetection]: ...
-    def __init__(self, path: str) -> "PyAnlz": ...
+    def __init__(self, path: str) -> None: ...
     def dump_copy(self, path: str) -> None: ...
     def dump(self) -> None: ...
     def contains(self, tag: str) -> bool: ...
@@ -3991,7 +4174,7 @@ class PyAnlz:
     def get_extended_memory_cues(self) -> Optional[ExtendedCueList]: ...
     def get_path(self) -> Optional[str]: ...
     def set_path(self, path: str) -> None: ...
-    def get_vbr_data(self) -> Optional[List[int]]: ...
+    def get_vbr_data(self) -> Optional[bytes]: ...
     def get_tiny_waveform_preview(self) -> Optional[TinyWaveformPreview]: ...
     def get_waveform_preview(self) -> Optional[WaveformPreview]: ...
     def get_waveform_detail(self) -> Optional[WaveformDetail]: ...
@@ -4000,6 +4183,70 @@ class PyAnlz:
     def get_waveform_3band_preview(self) -> Optional[Waveform3BandPreview]: ...
     def get_waveform_3band_detail(self) -> Optional[Waveform3BandDetail]: ...
     def get_song_structure(self) -> Optional[SongStructureData]: ...
+    @staticmethod
+    def new_dat(path: str) -> "PyAnlz": ...
+    @staticmethod
+    def new_ext(path: str) -> "PyAnlz": ...
+    @staticmethod
+    def new_2ex(path: str) -> "PyAnlz": ...
+    @staticmethod
+    def load(path: str) -> "PyAnlz": ...
+    def section_count(self) -> int: ...
+    def get_section(self, index: int) -> Optional[AnlzSection]: ...
+    def get_section_by_tag(self, tag: str) -> Optional[AnlzSection]: ...
+    def get_sections_by_tag(self, tag: str) -> List[AnlzSection]: ...
+    def get_data(self) -> AnlzData: ...
+    def into_data(self) -> AnlzData: ...
+    def set_section(self, section: AnlzSection) -> None: ...
+    def set_section_at(self, index: int, section: AnlzSection) -> None: ...
+    def insert_section(self, index: int, section: AnlzSection) -> None: ...
+    def push_section(self, section: AnlzSection) -> None: ...
+    def remove_section(self, index: int) -> None: ...
+    def remove_section_by_tag(self, tag: str) -> bool: ...
+    def remove_sections_by_tag(self, tag: str) -> int: ...
+    def remove_path(self) -> bool: ...
+    def get_song_structure_section(self) -> Optional[SongStructure]: ...
+    def set_song_structure_data(self, value: SongStructureData) -> None: ...
+    def set_beat_grid(self, value: BeatGrid) -> None: ...
+    def remove_beat_grid(self) -> bool: ...
+    def set_extended_beat_grid(self, value: ExtendedBeatGrid) -> None: ...
+    def remove_extended_beat_grid(self) -> bool: ...
+    def set_cue_list(self, value: CueList) -> None: ...
+    def remove_cue_list(self) -> bool: ...
+    def set_extended_cue_list(self, value: ExtendedCueList) -> None: ...
+    def remove_extended_cue_list(self) -> bool: ...
+    def set_vbr(self, value: VBR) -> None: ...
+    def remove_vbr(self) -> bool: ...
+    def set_seek_index(self, value: SeekIndex) -> None: ...
+    def remove_seek_index(self) -> bool: ...
+    def set_tiny_waveform_preview(self, value: TinyWaveformPreview) -> None: ...
+    def remove_tiny_waveform_preview(self) -> bool: ...
+    def set_waveform_preview(self, value: WaveformPreview) -> None: ...
+    def remove_waveform_preview(self) -> bool: ...
+    def set_waveform_detail(self, value: WaveformDetail) -> None: ...
+    def remove_waveform_detail(self) -> bool: ...
+    def set_waveform_color_preview(self, value: WaveformColorPreview) -> None: ...
+    def remove_waveform_color_preview(self) -> bool: ...
+    def set_waveform_color_detail(self, value: WaveformColorDetail) -> None: ...
+    def remove_waveform_color_detail(self) -> bool: ...
+    def set_waveform_3band_preview(self, value: Waveform3BandPreview) -> None: ...
+    def remove_waveform_3band_preview(self) -> bool: ...
+    def set_waveform_3band_detail(self, value: Waveform3BandDetail) -> None: ...
+    def remove_waveform_3band_detail(self) -> bool: ...
+    def set_waveform_3band_calibration(self, value: Waveform3BandCalibration) -> None: ...
+    def remove_waveform_3band_calibration(self) -> bool: ...
+    def set_song_structure(self, value: SongStructure) -> None: ...
+    def remove_song_structure(self) -> bool: ...
+    def set_vocal_detection(self, value: VocalDetection) -> None: ...
+    def remove_vocal_detection(self) -> bool: ...
+    def set_hot_cues(self, value: CueList) -> None: ...
+    def remove_hot_cues(self) -> bool: ...
+    def set_memory_cues(self, value: CueList) -> None: ...
+    def remove_memory_cues(self) -> bool: ...
+    def set_extended_hot_cues(self, value: ExtendedCueList) -> None: ...
+    def remove_extended_hot_cues(self) -> bool: ...
+    def set_extended_memory_cues(self, value: ExtendedCueList) -> None: ...
+    def remove_extended_memory_cues(self) -> bool: ...
 
 # ---- Settings  ------------------------------------------------------------------------------------
 
@@ -4112,7 +4359,7 @@ class PySetting:
 
 # ---- XML  -----------------------------------------------------------------------------------------
 
-class Tempo(_RustMutableMapping):
+class XmlTempo(_RustMutableMapping):
     inizio: float
     bpm: float
     metro: str
@@ -4120,7 +4367,7 @@ class Tempo(_RustMutableMapping):
 
     def __init__(self, inizio: float, bpm: float, metro: str, battito: int) -> None: ...
 
-class PositionMark(_RustMutableMapping):
+class XmlPositionMark(_RustMutableMapping):
     name: str
     mark_type: int
     num: int
@@ -4129,14 +4376,14 @@ class PositionMark(_RustMutableMapping):
 
     def __init__(self, name: str, mark_type: int, num: int, start: float, end: Optional[float]) -> None: ...
 
-class PlaylistTrack:
+class XmlPlaylistTrack:
     key: str
 
-class Track(_RustMutableMapping):
+class XmlTrack(_RustMutableMapping):
     trackid: str
     location: str
-    tempos: List[Tempo]
-    position_marks: List[PositionMark]
+    tempos: List[XmlTempo]
+    position_marks: List[XmlPositionMark]
     name: Optional[str] = None
     artist: Optional[str] = None
     composer: Optional[str] = None
@@ -4166,34 +4413,42 @@ class Track(_RustMutableMapping):
 
     def __init__(self, track_id: str, location: str) -> None: ...
 
-class PlaylistNode:
+class XmlPlaylistNode:
     name: str
     node_type: int
     key_type: Optional[int]
-    tracks: Optional[List[PlaylistTrack]]
-    nodes: Optional[List[PlaylistNode]]
+    tracks: Optional[List[XmlPlaylistTrack]]
+    nodes: Optional[List[XmlPlaylistNode]]
 
     def __init__(self, node_type: int) -> None: ...
     @classmethod
-    def playlist(cls, name: str, key_type: int) -> "PlaylistNode": ...
+    def playlist(cls, name: str, key_type: int) -> "XmlPlaylistNode": ...
     @classmethod
-    def folder(cls, name: str) -> "PlaylistNode": ...
-    def add_node(self, node: "PlaylistNode") -> None: ...
-    def new_playlist(self, name: str, key_type: int) -> "PlaylistNode": ...
-    def new_folder(self, name: str) -> "PlaylistNode": ...
+    def folder(cls, name: str) -> "XmlPlaylistNode": ...
+    def add_node(self, node: "XmlPlaylistNode") -> None: ...
+    def new_playlist(self, name: str, key_type: int) -> "XmlPlaylistNode": ...
+    def new_folder(self, name: str) -> "XmlPlaylistNode": ...
     def remove_node(self, index: int) -> None: ...
     def clear_nodes(self) -> None: ...
-    def get_child(self, index: int) -> "PlaylistNode": ...
-    def find_child(self, name: str) -> Optional["PlaylistNode"]: ...
-    def get_track(self, index: int) -> PlaylistTrack: ...
+    def get_child(self, index: int) -> "XmlPlaylistNode": ...
+    def find_child(self, name: str) -> Optional["XmlPlaylistNode"]: ...
+    def get_track(self, index: int) -> XmlPlaylistTrack: ...
     def new_track(self, track_key: str) -> None: ...
-    def add_track(self, track: PlaylistTrack) -> None: ...
+    def add_track(self, track: XmlPlaylistTrack) -> None: ...
     def remove_track(self, track_key: str) -> None: ...
     def clear_tracks(self) -> None: ...
 
 class PyRekordboxXml:
-    root_playlist: PlaylistNode
-    tracks: List[Track]
+    def get_version(self) -> str: ...
+    def set_version(self, value: str) -> None: ...
+    def get_product_name(self) -> str: ...
+    def set_product_name(self, value: str) -> None: ...
+    def get_product_version(self) -> str: ...
+    def set_product_version(self, value: str) -> None: ...
+    def get_product_company(self) -> str: ...
+    def set_product_company(self, value: str) -> None: ...
+    root_playlist: XmlPlaylistNode
+    tracks: List[XmlTrack]
 
     def __init__(self, path: str) -> None: ...
     @classmethod
@@ -4201,14 +4456,160 @@ class PyRekordboxXml:
     def to_string(self) -> str: ...
     def dump_copy(self, path: str) -> None: ...
     def dump(self) -> None: ...
-    # def get_tracks(self) -> List[Track]: ...
-    def get_track(self, index: int) -> Optional[Track]: ...
-    def get_track_by_id(self, track_id: str) -> Optional[Track]: ...
-    def get_track_by_location(self, location: str) -> Optional[Track]: ...
-    def get_track_by_key(self, key: str, key_type: int) -> Optional[Track]: ...
-    def add_track(self, track: Track) -> None: ...
-    def new_track(self, track_id: str, location: str) -> Track: ...
-    def update_track(self, track: Track) -> None: ...
+    # def get_tracks(self) -> List[XmlTrack]: ...
+    def get_track(self, index: int) -> Optional[XmlTrack]: ...
+    def get_track_by_id(self, track_id: str) -> Optional[XmlTrack]: ...
+    def get_track_by_location(self, location: str) -> Optional[XmlTrack]: ...
+    def get_track_by_key(self, key: str, key_type: int) -> Optional[XmlTrack]: ...
+    def add_track(self, track: XmlTrack) -> None: ...
+    def new_track(self, track_id: str, location: str) -> XmlTrack: ...
+    def update_track(self, track: XmlTrack) -> None: ...
     def remove_track(self, track_id: str) -> None: ...
     def clear_tracks(self) -> None: ...
-    # def get_playlist_root(self) -> PlaylistNode: ...
+    # def get_playlist_root(self) -> XmlPlaylistNode: ...
+
+# Shared core track models. Paths are exposed as pathlib.Path objects.
+
+class TrackMetadata:
+    path: Path
+    file_type: Optional[int]
+    rating: Optional[int]
+    search_str: Optional[str]
+    tag: Optional[str]
+    title: Optional[str]
+    artist: Optional[str]
+    album: Optional[str]
+    album_artist: Optional[str]
+    genre: Optional[str]
+    bpm: Optional[float]
+    length: Optional[float]
+    track_no: Optional[int]
+    bit_rate: Optional[int]
+    bit_depth: Optional[int]
+    commnt: Optional[str]
+    release_year: Optional[int]
+    remixer: Optional[str]
+    label: Optional[str]
+    org_artist: Optional[str]
+    key: Optional[str]
+    stock_date: Optional[str]
+    file_size: Optional[int]
+    disc_no: Optional[int]
+    composer: Optional[str]
+    subtitle: Optional[str]
+    sample_rate: Optional[int]
+    release_date: Optional[str]
+    date_created: Optional[str]
+    lyricist: Optional[str]
+    isrc: Optional[str]
+    def __init__(self, path: Union[str, PathLike[str]]) -> None: ...
+
+class Track:
+    id: str
+    uuid: str
+    path: Path
+    file_type: Optional[int]
+    rating: Optional[int]
+    search_str: Optional[str]
+    tag: Optional[str]
+    title: Optional[str]
+    artist: Optional[str]
+    album: Optional[str]
+    album_artist: Optional[str]
+    genre: Optional[str]
+    bpm: Optional[float]
+    length: Optional[float]
+    track_no: Optional[int]
+    bit_rate: Optional[int]
+    bit_depth: Optional[int]
+    commnt: Optional[str]
+    release_year: Optional[int]
+    remixer: Optional[str]
+    label: Optional[str]
+    org_artist: Optional[str]
+    key: Optional[str]
+    stock_date: Optional[str]
+    file_size: Optional[int]
+    disc_no: Optional[int]
+    composer: Optional[str]
+    subtitle: Optional[str]
+    sample_rate: Optional[int]
+    release_date: Optional[str]
+    date_created: Optional[str]
+    lyricist: Optional[str]
+    isrc: Optional[str]
+    def __init__(self, path: Union[str, PathLike[str]]) -> None: ...
+    @staticmethod
+    def from_metadata(metadata: TrackMetadata) -> Track: ...
+    def to_metadata(self) -> TrackMetadata: ...
+
+# Deprecated XML compatibility alias.
+Tempo = XmlTempo
+
+# Deprecated XML compatibility alias.
+PositionMark = XmlPositionMark
+
+# Deprecated XML compatibility alias.
+PlaylistTrack = XmlPlaylistTrack
+
+# Deprecated XML compatibility alias.
+PlaylistNode = XmlPlaylistNode
+
+class LocationSource:
+    """Configuration source used to select a library."""
+
+    Settings: LocationSource
+    Options: LocationSource
+    Default: LocationSource
+
+class LibraryLocation:
+    """Read-only snapshot returned by library discovery."""
+
+    @property
+    def db_path(self) -> Path: ...
+    @property
+    def analysis_root(self) -> Path: ...
+    @property
+    def settings_root(self) -> Path: ...
+    @property
+    def source(self) -> LocationSource: ...
+    @property
+    def available(self) -> bool: ...
+
+class ProgramLocation:
+    @property
+    def executable(self) -> Path: ...
+    @property
+    def version(self) -> List[int]: ...
+
+class LookupPaths:
+    def __init__(
+        self,
+        settings_file: Union[str, PathLike[str]],
+        options_file: Union[str, PathLike[str]],
+        default_library_dirs: List[Union[str, PathLike[str]]],
+    ) -> None: ...
+    @classmethod
+    def under(cls, base: Union[str, PathLike[str]]) -> LookupPaths: ...
+    @classmethod
+    def installed(cls) -> LookupPaths: ...
+    def locate(self) -> LibraryLocation: ...
+    @property
+    def settings_file(self) -> Path: ...
+    @settings_file.setter
+    def settings_file(self, value: Union[str, PathLike[str]]) -> None: ...
+    @property
+    def options_file(self) -> Path: ...
+    @options_file.setter
+    def options_file(self, value: Union[str, PathLike[str]]) -> None: ...
+    @property
+    def default_library_dirs(self) -> List[Path]: ...
+    @default_library_dirs.setter
+    def default_library_dirs(self, value: List[Union[str, PathLike[str]]]) -> None: ...
+
+def locate_library() -> LibraryLocation: ...
+def find_programs() -> List[ProgramLocation]: ...
+def find_programs_in(roots: List[Union[str, PathLike[str]]]) -> List[ProgramLocation]: ...
+def app_dir() -> Path: ...
+def default_master_db_path() -> Path: ...
+def master_db_path() -> Path: ...

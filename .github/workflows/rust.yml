@@ -1,77 +1,72 @@
-# This workflow will run the tests and publish the crate to crates.io.
-
 name: Rust
 
 on:
-  # Triggers the workflow when a release is created
   release:
-    types: [ published ]
-  # Allows you to run this workflow manually from the Actions tab
+    types: [published]
   workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: crates-io-publish
+  cancel-in-progress: false
 
 env:
   CARGO_TERM_COLOR: always
-  working-directory: rbox
 
 jobs:
-  cargo-fmt-check:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Check formatting
-        run: cargo fmt --check
-
-#  test:
-#    needs: cargo-fmt-check
-#    strategy:
-#      matrix:
-#        os: ["ubuntu-latest", "windows-latest", "macos-latest"] # "macos-13"
-#    runs-on: ${{ matrix.os }}
-#    continue-on-error: false
-#    defaults:
-#      run:
-#        working-directory: ${{ env.working-directory }}
-#    steps:
-#      - name: Checkout
-#        uses: actions/checkout@v4
-#        with:
-#          fetch-depth: 0
-#
-#      - name: Set Perl environment variables
-#        if: runner.os == 'Windows'
-#        run: |
-#          echo "PERL=$((where.exe perl)[0])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-#          echo "OPENSSL_SRC_PERL=$((where.exe perl)[0])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-#
-#      - name: Rust cache
-#        uses: Swatinem/rust-cache@v2
-#
-#      - name: Build
-#        run: cargo build
-#
-#      - name: Run tests
-#        run: cargo test --lib --bins --tests
+  tests:
+    uses: ./.github/workflows/tests.yml
 
   publish:
-    needs: cargo-fmt-check
+    needs: tests
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    continue-on-error: false
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Publish
-        # if: ${{ startsWith(github.ref, 'refs/tags/') }}
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - name: Install system SQLCipher for standalone crate verification
+        run: sudo apt-get update && sudo apt-get install -y libsqlcipher-dev pkg-config
+      - name: Determine publishable crates and dependency order
+        shell: bash
+        run: |
+          python3 -m unittest discover -s scripts/tests -p test_publish_order.py
+          cargo metadata --no-deps --format-version 1 | python3 scripts/publish_order.py > "$RUNNER_TEMP/publish-plan.tsv"
+          cat "$RUNNER_TEMP/publish-plan.tsv"
+      - name: Publish crate family in dependency order
+        shell: bash
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-        run: cargo publish -p rbox --no-verify
+        run: |
+          index_file=$(mktemp)
+          trap 'rm -f "$index_file"' EXIT
+
+          while IFS=$'\t' read -r crate version; do
+            case ${#crate} in
+              1|2) index_path="${#crate}/$crate" ;;
+              3) index_path="3/${crate:0:1}/$crate" ;;
+              *) index_path="${crate:0:2}/${crate:2:2}/$crate" ;;
+            esac
+            url="https://index.crates.io/${index_path,,}"
+            status=$(curl --silent --show-error --retry 3 --max-time 30 \
+              --output "$index_file" --write-out '%{http_code}' "$url")
+
+            case "$status" in
+              200)
+                entry=$(jq -sc --arg version "$version" 'map(select(.vers == $version)) | first // empty' "$index_file")
+                if [[ -n "$entry" ]]; then
+                  if [[ $(jq -r '.yanked' <<< "$entry") == true ]]; then
+                    echo "::error::$crate $version is yanked; choose a new version"
+                    exit 1
+                  fi
+                  echo "Skipping published $crate $version"
+                  continue
+                fi
+                ;;
+              404) ;; # First release of this crate.
+              *) echo "::error::Registry lookup failed for $crate (HTTP $status)"; exit 1 ;;
+            esac
+
+            cargo publish --registry crates-io -p "$crate"
+          done < "$RUNNER_TEMP/publish-plan.tsv"

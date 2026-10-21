@@ -8,6 +8,39 @@ please use [GitHub Discussions][discussions] instead of opening an issue.
 rbox is tested on Windows, MacOS and Linux, however some features can't be tested in
 the CI setup since it requires a working Rekordbox installation.
 
+## Structure
+
+The project is structured as a Rust workspace. Arrows point toward dependencies;
+arrows between groups summarize dependencies rather than applying to every crate.
+The dashed arrow is enabled by the `master-db` feature of `rbox-onelib`.
+
+```mermaid
+flowchart TD
+    bindings["Python / JavaScript bindings"] --> rbox["rbox"]
+
+    subgraph main_crates["Main crates"]
+        direction LR
+        onelib["rbox-onelib"] -.-> masterdb["rbox-masterdb"]
+        masterdb --> anlz["rbox-anlz"]
+        anlz ~~~ settings["rbox-setting"] ~~~ xml["rbox-xml"]
+    end
+
+    subgraph core_crates["Core crates"]
+        direction LR
+        db["rbox-db"] ~~~ core["rbox-core"]
+    end
+
+    %% Connect groups to preserve their horizontal layout.
+    %% Invisible links above control ordering without implying dependencies.
+    rbox --> main_crates
+    rbox --> core_crates
+    main_crates --> core_crates
+```
+
+Both database handlers depend on `rbox-db` and `rbox-core`; `rbox` also exposes
+these shared crates directly.
+
+
 ## Pre-commit Hooks
 
 We are using the [pre-commit framework] to automatically run a linter and code formatter
@@ -33,36 +66,71 @@ This project uses the [Conventional Commits] specification for commit messages.
 
 ### Type
 
-Must be one of the following:
+Choose the type based on the purpose of the change:
 
-- **feat:** A new feature
-- **fix:** Bug fixes or improvements
-- **perf:** A code change that improves performance
-- **refactor:** Code refactoring
-- **ci:** Changes to CI configuration files and scripts
-- **docs:** Documention changes
-- **build:** Updating Makefile etc, no production code changes
-- **test:** Adding missing tests or correcting existing tests
-- **update** Other configurations updates
+| Type | Use for |
+| --- | --- |
+| `feat` | New functionality or an extension to an existing API |
+| `fix` | Correcting incorrect behavior |
+| `perf` | Improving performance without changing intended behavior |
+| `refactor` | Restructuring production code without adding features or fixing bugs |
+| `docs` | Documentation, docstrings, and examples |
+| `test` | Adding or improving tests, fixtures, or benchmarks |
+| `build` | Build tooling, packaging, dependencies, or Cargo feature configuration |
+| `ci` | GitHub Actions workflows and CI configuration |
+| `chore` | Other maintenance, such as version bumps or repository housekeeping |
+
+A dependency update normally uses `build`;
+a dependency update made to fix a specific bug can use `fix`.
+Tests and documentation accompanying a feature or fix belong under that change's
+type; use `test` or `docs` when they are the main purpose of the commit.
 
 ### Scope (optional)
+Use the affected crate's name without the `rbox-` prefix, or the relevant binding
+or tooling area:
 
-The scope should specify the affected part of the project.
-The following is a list of possible scopes:
+| Scope | Area |
+| --- | --- |
+| `rbox` | Public facade crate, re-exports, and feature forwarding |
+| `core` | Shared utilities, paths, Rekordbox discovery, and options |
+| `db` | Shared database connections, ordering, and relationship infrastructure |
+| `masterdb` | Rekordbox master database handling |
+| `onelib` | OneLibrary / Device Library Plus database handling |
+| `anlz` | Analysis file handling |
+| `xml` | Rekordbox XML database handling |
+| `setting` | MySettings file handling |
+| `derives` | Procedural derive macros |
+| `testing` | Shared test support in `rbox-testing` |
+| `py` | Python bindings and their tests or packaging |
+| `js` | JavaScript bindings and their tests or packaging |
+| `bindings` | Changes shared by both language bindings |
+| `scripts` | Repository maintenance scripts |
+| `deps` | Dependency updates across the workspace |
+| `release` | Version bumps and release tooling |
 
-- **config**: Configuration handling
-- **xml**: Rekordbox XML database handling
-- **db**: Rekordbox v6 database handling
-- **anlz**: ANLZ file handling
-- **setting**: MySettings file handling
-- **binding**: General language binding changes
-- **py**: Python bindings
-- **js**: JavaScript bindings
+Choose one scope that best describes the change. Omit it for broad changes that
+have no clear primary area. The scope describes the affected component, not the
+kind of work: use `test(masterdb)` for master database tests and `ci(js)` for the
+JavaScript workflow. Reserve `db` for shared infrastructure; use `masterdb` or
+`onelib` for a specific database.
 
+Examples:
+
+```text
+feat(anlz): add lazy section loading
+fix(onelib): return a typed error for invalid dates
+refactor(db): extract shared ordering traits
+test(masterdb): cover playlist movement edge cases
+build(deps): update diesel
+ci(js): enable npm trusted publishing
+docs: explain the workspace crate layout
+chore(release): bump the workspace version
+```
 
 ### Subject
 
 Use the summary field to provide a succinct description of the change:
+
 - use the imperative, present tense: "change" not "changed" nor "changes"
 - don't capitalize the first letter
 - no dot (.) at the end
@@ -111,6 +179,53 @@ includes migration instructions.
 Similarly, a Deprecation section should start with "DEPRECATED: " followed by a short description
 of what is deprecated, a blank line, and a detailed description of the deprecation that also
 mentions the recommended update path.
+
+## Tests and releases
+
+Run the Rust workspace tests from the repository root:
+
+```sh
+cargo test --workspace --exclude rbox-py --exclude rbox-js --lib --bins --tests
+```
+
+The bindings have separate API tests in `bindings/python/tests` and
+`bindings/javascript/__test__`. CI runs on pull requests targeting `main`,
+and the Tests workflow can also be started manually on `dev` or another branch.
+Changes to shared crates trigger tests for both bindings.
+
+Use Python 3.10 or later to bump the workspace release version.
+First install the TOML parser:
+
+```sh
+python -m pip install tomlkit
+```
+
+Then preview or apply the version bump:
+
+```sh
+python scripts/bump_version.py 0.1.8 --dry-run
+python scripts/bump_version.py 0.1.8
+```
+
+The script updates workspace metadata, versioned dependencies between workspace
+crates, binding package versions, and existing version references in documentation.
+To bump `rbox-derives` and its versioned dependency requirements separately:
+
+```sh
+python scripts/bump_version.py 0.2.1 --derives --dry-run
+python scripts/bump_version.py 0.2.1 --derives
+```
+
+This leaves the workspace version, other crate versions, and binding package
+versions unchanged. Dependencies that only specify a local path remain unchanged.
+
+Rust releases publish the public sub-crates in dependency order, followed by
+`rbox`. Already-published versions are skipped so a failed release can be retried.
+`codegen`, `rbox-testing`, and the binding crates are not published to crates.io.
+Rust publication waits for the reusable Tests workflow; npm and PyPI publication
+wait for tests of their built artifacts. PyPI releases also verify that the source
+archive builds without the repository checkout.
+
 
 [issue]: https://github.com/dylanljones/rbox/issues
 [pulls]: https://github.com/dylanljones/rbox/pulls

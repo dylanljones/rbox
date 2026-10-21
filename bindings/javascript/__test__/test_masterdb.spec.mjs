@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+// Master database API contracts and conversion of raw and resolved models.
+
 import test from 'ava'
 import { MasterDb } from '../index.js'
 import { cleanupFixtures, fixtureCopy } from './helpers/fixtures.mjs'
@@ -14,6 +16,7 @@ test.beforeEach(t => {
 test('raw getters and argument conversion', t => {
     const db = t.context.db
     t.true(db instanceof MasterDb)
+    t.is(typeof db.addContent, 'function')
     const rows = db.getContents()
     t.true(Array.isArray(rows))
     const row = rows[0]
@@ -24,6 +27,31 @@ test('raw getters and argument conversion', t => {
     t.true(db.getAlbumById('missing-id') == null)
     t.false('artist' in row)
     t.throws(() => db.getContentById([]), { instanceOf: Error })
+})
+
+test('resolved track helpers expose core models and translate errors', t => {
+    const db = t.context.db
+    const row = db.getContents()[0]
+    row.artistId = db.createArtist('Track helper artist').id
+    row.bpm = 12825
+    delete row.composerId
+    db.updateContent(row)
+    const track = db.getTrackById(row.id)
+    t.is(track.artist, 'Track helper artist')
+    t.is(track.bpm, 128.25)
+    t.true(track.composer == null)
+    t.is(typeof track.path, 'string')
+    t.true(track.fileSize == null || typeof track.fileSize === 'bigint')
+    t.is(db.getTrackByPath(track.path).id, row.id)
+    t.true(db.getTracks().every(item => typeof item.id === 'string'))
+    t.deepEqual(db.getTracksByIds([row.id, 'missing', row.id]).map(item => item.id), [row.id])
+    t.deepEqual(db.getTracksByIds([]), [])
+    t.true(db.getTrackById('missing') == null)
+    t.true(db.getTrackByPath('/missing/track.mp3') == null)
+    t.throws(() => db.getTracksByIds([123]))
+    row.rating = 6
+    db.updateContent(row)
+    t.throws(() => db.getTrackById(row.id), { message: /rating/ })
 })
 
 test('album mutation signatures', t => {
@@ -40,10 +68,13 @@ test('content views expose converted rows and optional fields', t => {
     const db = t.context.db
     const row = db.getContents()[0]
     row.artistId = db.createArtist('API artist').id
+    const albumArtist = db.createArtist('API album artist')
+    row.albumId = db.createAlbum('API content album', albumArtist.id, null, null).id
     t.is(typeof db.updateContent(row), 'number')
     const view = db.getContentWithRelations(row.id)
     t.is(typeof view.content.id, 'string')
     t.is(typeof view.artist.name, 'string')
+    t.is(view.albumArtist.id, albumArtist.id)
     for (const field of ['remixer', 'originalArtist', 'composer', 'album', 'genre', 'label', 'key', 'color']) {
         // Optional object properties may be omitted by N-API.
         t.true(view[field] == null || typeof view[field].id === 'string')

@@ -1,0 +1,50 @@
+[package]
+name = "rbox-onelib"
+description = "Rekordbox One Library database handler"
+readme = "README.md"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+license-file.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+publish = true
+
+[features]
+default = ["bundled-vendored-openssl"]
+
+# Enable conversions from master database models.
+master-db = ["dep:rbox-masterdb"]
+
+# Features from rbox-db for SQLCipher support
+bundled = ["rbox-db/bundled", "rbox-masterdb?/bundled"]
+bundled-vendored-openssl = ["rbox-db/bundled-vendored-openssl", "rbox-masterdb?/bundled-vendored-openssl"]
+
+# Features for the bindings
+pyo3 = ["dep:pyo3", "dep:rbox-derives", "rbox-core/pyo3", "rbox-db/pyo3", "rbox-masterdb?/pyo3"]
+napi = ["dep:napi", "dep:napi-derive", "rbox-core/napi", "rbox-db/napi", "rbox-masterdb?/napi"]
+
+[dependencies]
+chrono            = { workspace = true }
+diesel            = { workspace = true, features = ["64-column-tables"] }
+libsqlite3-sys    = { workspace = true }
+thiserror         = { workspace = true }
+serde_json        = { workspace = true }
+pyo3              = { workspace = true, optional = true }
+napi              = { workspace = true, optional = true }
+napi-derive       = { workspace = true, optional = true }
+# uuid              = { workspace = true }
+
+rbox-db           = { path = "../rbox-db", version = "0.2.0", default-features = false }
+rbox-core         = { path = "../rbox-core", version = "0.2.0", default-features = false }
+rbox-derives      = { path = "../rbox-derives", version = "0.2.0", optional = true }
+rbox-masterdb     = { path = "../rbox-masterdb", version = "0.2.0", default-features = false, optional = true }
+
+[dev-dependencies]
+anyhow            = { workspace = true }
+tempfile          = { workspace = true }
+rbox-testing      = { path = "../rbox-testing", features = ["database"] }

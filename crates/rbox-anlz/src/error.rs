@@ -1,0 +1,92 @@
+// Copyright (C) 2026 Dylan Jones
+// SPDX-License-Identifier: GPL-3.0-only
+
+//! Typed errors returned by the ANLZ reader, editor, and writer.
+
+use std::path::PathBuf;
+
+use crate::sections::AnlzTag;
+
+pub type Result<T> = std::result::Result<T, AnlzError>;
+
+/// The structural reason that an ANLZ file is invalid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InvalidFileReason {
+    HeaderOrLength,
+    TruncatedSectionHeader,
+    SectionOffsetOverflow,
+    InvalidSectionBounds,
+    SectionSizeMismatch,
+    BackingFileTruncated,
+}
+
+impl std::fmt::Display for InvalidFileReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::HeaderOrLength => "invalid file header or declared file length",
+            Self::TruncatedSectionHeader => "truncated section header",
+            Self::SectionOffsetOverflow => "section offset overflow",
+            Self::InvalidSectionBounds => "invalid section bounds",
+            Self::SectionSizeMismatch => "section parser did not consume its declared size",
+            Self::BackingFileTruncated => "backing file was truncated",
+        })
+    }
+}
+
+/// Errors returned while reading, modifying, or writing an ANLZ file.
+#[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+pub enum AnlzError {
+    /// A tag input is neither a known descriptive name nor a four-byte ASCII code.
+    #[error("invalid ANLZ tag: {0}")]
+    InvalidTag(String),
+
+    /// An authored section cannot be represented by its declared binary layout.
+    #[error("invalid ANLZ section value: {0}")]
+    InvalidSectionValue(&'static str),
+
+    /// An indexed section edit addressed a position outside the ordered sequence.
+    #[error("section index {index} is out of bounds for {len} sections")]
+    SectionIndexOutOfBounds { index: usize, len: usize },
+
+    /// An underlying filesystem operation failed.
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+
+    /// A binary structure could not be decoded or encoded.
+    #[error(transparent)]
+    Binary(#[from] binrw::error::Error),
+
+    /// The file or a section has invalid outer structure.
+    #[error("invalid ANLZ file at byte {offset}: {reason}")]
+    InvalidFile {
+        reason: InvalidFileReason,
+        offset: u64,
+    },
+
+    /// Decoding a lazily loaded section failed.
+    #[error("failed to decode section {index} ({tag:?}) at byte {offset}: {source}")]
+    SectionDecode {
+        index: usize,
+        tag: AnlzTag,
+        offset: u64,
+        #[source]
+        source: Box<AnlzError>,
+    },
+
+    /// A section's public tag does not describe its content variant.
+    #[error("section tag {tag:?} does not match its content")]
+    TagContentMismatch { tag: AnlzTag },
+
+    /// The requested destination cannot identify an output file.
+    #[error("invalid ANLZ output path: {0}")]
+    InvalidOutputPath(PathBuf),
+
+    /// The serialized file cannot be represented by ANLZ's 32-bit size fields.
+    #[error("ANLZ output size {size} exceeds the 32-bit format limit")]
+    OutputTooLarge { size: u64 },
+
+    /// An internal lazy-loading invariant was violated.
+    #[error("invalid ANLZ handler state: {0}")]
+    InvalidState(&'static str),
+}

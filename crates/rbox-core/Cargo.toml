@@ -1,0 +1,37 @@
+[package]
+name = "rbox-core"
+description = "Core utilities rbox"
+readme = "README.md"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+license-file.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+publish = true
+
+[features]
+default = []
+pyo3 = ["dep:pyo3"]
+napi = ["dep:napi", "dep:napi-derive"]
+
+[dependencies]
+pyo3            = { workspace = true, optional = true }
+napi            = { workspace = true, optional = true }
+napi-derive     = { workspace = true, optional = true }
+image           = { workspace = true }
+sysinfo         = { workspace = true }
+thiserror       = { workspace = true }
+serde           = { workspace = true }
+serde_json      = { workspace = true }
+quick-xml       = { workspace = true }
+uuid            = { workspace = true }
+
+[dev-dependencies]
+rbox-derives    = { path = "../rbox-derives" }
+anyhow          = { workspace = true }
+tempfile        = { workspace = true }

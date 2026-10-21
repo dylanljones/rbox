@@ -80,8 +80,8 @@ function requireNative() {
       try {
         const binding = require('@dylanljones/rbox-js-android-arm64')
         const bindingPackageVersion = require('@dylanljones/rbox-js-android-arm64/package.json').version
-        if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -96,8 +96,8 @@ function requireNative() {
       try {
         const binding = require('@dylanljones/rbox-js-android-arm-eabi')
         const bindingPackageVersion = require('@dylanljones/rbox-js-android-arm-eabi/package.json').version
-        if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -116,8 +116,8 @@ function requireNative() {
       try {
         const binding = require('@dylanljones/rbox-js-win32-x64-msvc')
         const bindingPackageVersion = require('@dylanljones/rbox-js-win32-x64-msvc/package.json').version
-        if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -132,8 +132,8 @@ function requireNative() {
       try {
         const binding = require('@dylanljones/rbox-js-win32-ia32-msvc')
         const bindingPackageVersion = require('@dylanljones/rbox-js-win32-ia32-msvc/package.json').version
-        if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -148,8 +148,8 @@ function requireNative() {
       try {
         const binding = require('@dylanljones/rbox-js-win32-arm64-msvc')
         const bindingPackageVersion = require('@dylanljones/rbox-js-win32-arm64-msvc/package.json').version
-        if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -167,8 +167,8 @@ function requireNative() {
     try {
       const binding = require('@dylanljones/rbox-js-darwin-universal')
       const bindingPackageVersion = require('@dylanljones/rbox-js-darwin-universal/package.json').version
-      if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-        throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+      if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+        throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
       }
       return binding
     } catch (e) {
@@ -183,8 +183,8 @@ function requireNative() {
       try {
         const binding = require('@dylanljones/rbox-js-darwin-x64')
         const bindingPackageVersion = require('@dylanljones/rbox-js-darwin-x64/package.json').version
-        if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -199,8 +199,8 @@ function requireNative() {
       try {
         const binding = require('@dylanljones/rbox-js-darwin-arm64')
         const bindingPackageVersion = require('@dylanljones/rbox-js-darwin-arm64/package.json').version
-        if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -219,8 +219,8 @@ function requireNative() {
       try {
         const binding = require('@dylanljones/rbox-js-freebsd-x64')
         const bindingPackageVersion = require('@dylanljones/rbox-js-freebsd-x64/package.json').version
-        if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -235,8 +235,8 @@ function requireNative() {
       try {
         const binding = require('@dylanljones/rbox-js-freebsd-arm64')
         const bindingPackageVersion = require('@dylanljones/rbox-js-freebsd-arm64/package.json').version
-        if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -256,8 +256,8 @@ function requireNative() {
         try {
           const binding = require('@dylanljones/rbox-js-linux-x64-musl')
           const bindingPackageVersion = require('@dylanljones/rbox-js-linux-x64-musl/package.json').version
-          if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+            throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -272,8 +272,8 @@ function requireNative() {
         try {
           const binding = require('@dylanljones/rbox-js-linux-x64-gnu')
           const bindingPackageVersion = require('@dylanljones/rbox-js-linux-x64-gnu/package.json').version
-          if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+            throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -290,8 +290,8 @@ function requireNative() {
         try {
           const binding = require('@dylanljones/rbox-js-linux-arm64-musl')
           const bindingPackageVersion = require('@dylanljones/rbox-js-linux-arm64-musl/package.json').version
-          if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+            throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -306,8 +306,8 @@ function requireNative() {
         try {
           const binding = require('@dylanljones/rbox-js-linux-arm64-gnu')
           const bindingPackageVersion = require('@dylanljones/rbox-js-linux-arm64-gnu/package.json').version
-          if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+            throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -324,8 +324,8 @@ function requireNative() {
         try {
           const binding = require('@dylanljones/rbox-js-linux-arm-musleabihf')
           const bindingPackageVersion = require('@dylanljones/rbox-js-linux-arm-musleabihf/package.json').version
-          if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+            throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -340,8 +340,8 @@ function requireNative() {
         try {
           const binding = require('@dylanljones/rbox-js-linux-arm-gnueabihf')
           const bindingPackageVersion = require('@dylanljones/rbox-js-linux-arm-gnueabihf/package.json').version
-          if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+            throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -358,8 +358,8 @@ function requireNative() {
         try {
           const binding = require('@dylanljones/rbox-js-linux-riscv64-musl')
           const bindingPackageVersion = require('@dylanljones/rbox-js-linux-riscv64-musl/package.json').version
-          if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+            throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -374,8 +374,8 @@ function requireNative() {
         try {
           const binding = require('@dylanljones/rbox-js-linux-riscv64-gnu')
           const bindingPackageVersion = require('@dylanljones/rbox-js-linux-riscv64-gnu/package.json').version
-          if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+            throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -391,8 +391,8 @@ function requireNative() {
       try {
         const binding = require('@dylanljones/rbox-js-linux-ppc64-gnu')
         const bindingPackageVersion = require('@dylanljones/rbox-js-linux-ppc64-gnu/package.json').version
-        if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -407,8 +407,8 @@ function requireNative() {
       try {
         const binding = require('@dylanljones/rbox-js-linux-s390x-gnu')
         const bindingPackageVersion = require('@dylanljones/rbox-js-linux-s390x-gnu/package.json').version
-        if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -427,8 +427,8 @@ function requireNative() {
       try {
         const binding = require('@dylanljones/rbox-js-openharmony-arm64')
         const bindingPackageVersion = require('@dylanljones/rbox-js-openharmony-arm64/package.json').version
-        if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -443,8 +443,8 @@ function requireNative() {
       try {
         const binding = require('@dylanljones/rbox-js-openharmony-x64')
         const bindingPackageVersion = require('@dylanljones/rbox-js-openharmony-x64/package.json').version
-        if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -459,8 +459,8 @@ function requireNative() {
       try {
         const binding = require('@dylanljones/rbox-js-openharmony-arm')
         const bindingPackageVersion = require('@dylanljones/rbox-js-openharmony-arm/package.json').version
-        if (bindingPackageVersion !== '0.1.7' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.1.7 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.2.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.2.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -516,20 +516,27 @@ module.exports.MyTagType = nativeBinding.MyTagType
 module.exports.PlaylistType = nativeBinding.PlaylistType
 module.exports.RelatedTracksType = nativeBinding.RelatedTracksType
 module.exports.SamplerType = nativeBinding.SamplerType
+module.exports.FileType = nativeBinding.FileType
+module.exports.LocationSource = nativeBinding.LocationSource
+module.exports.HistoryType = nativeBinding.HistoryType
+module.exports.HotCueBanklistType = nativeBinding.HotCueBanklistType
+module.exports.MyTagType = nativeBinding.MyTagType
 module.exports.Anlz = nativeBinding.Anlz
 module.exports.JsAnlz = nativeBinding.JsAnlz
+module.exports.LookupPaths = nativeBinding.LookupPaths
 module.exports.MasterDb = nativeBinding.MasterDb
 module.exports.JsMasterDb = nativeBinding.JsMasterDb
 module.exports.OneLibrary = nativeBinding.OneLibrary
 module.exports.JsOneLibrary = nativeBinding.JsOneLibrary
-module.exports.PlaylistNode = nativeBinding.PlaylistNode
-module.exports.JsPlaylistNode = nativeBinding.JsPlaylistNode
 module.exports.RekordboxOptions = nativeBinding.RekordboxOptions
 module.exports.JsRekordboxOptions = nativeBinding.JsRekordboxOptions
 module.exports.RekordboxXml = nativeBinding.RekordboxXml
 module.exports.JsRekordboxXml = nativeBinding.JsRekordboxXml
 module.exports.Setting = nativeBinding.Setting
 module.exports.JsSetting = nativeBinding.JsSetting
+module.exports.XmlPlaylistNode = nativeBinding.XmlPlaylistNode
+module.exports.JsXmlPlaylistNode = nativeBinding.JsXmlPlaylistNode
+module.exports.appDir = nativeBinding.appDir
 module.exports.AutoCue = nativeBinding.AutoCue
 module.exports.JsAutoCue = nativeBinding.JsAutoCue
 module.exports.AutoCueLevel = nativeBinding.AutoCueLevel
@@ -544,6 +551,8 @@ module.exports.ChannelFaderCurve = nativeBinding.ChannelFaderCurve
 module.exports.JsChannelFaderCurve = nativeBinding.JsChannelFaderCurve
 module.exports.ChannelFaderCurveLongFader = nativeBinding.ChannelFaderCurveLongFader
 module.exports.JsChannelFaderCurveLongFader = nativeBinding.JsChannelFaderCurveLongFader
+module.exports.createTrack = nativeBinding.createTrack
+module.exports.createTrackMetadata = nativeBinding.createTrackMetadata
 module.exports.CrossfaderCurve = nativeBinding.CrossfaderCurve
 module.exports.JsCrossfaderCurve = nativeBinding.JsCrossfaderCurve
 module.exports.CueListType = nativeBinding.CueListType
@@ -552,10 +561,13 @@ module.exports.CueStatus = nativeBinding.CueStatus
 module.exports.JsCueStatus = nativeBinding.JsCueStatus
 module.exports.CueType = nativeBinding.CueType
 module.exports.JsCueType = nativeBinding.JsCueType
+module.exports.defaultMasterDbPath = nativeBinding.defaultMasterDbPath
 module.exports.DiscSlotIllumination = nativeBinding.DiscSlotIllumination
 module.exports.JsDiscSlotIllumination = nativeBinding.JsDiscSlotIllumination
 module.exports.EjectLock = nativeBinding.EjectLock
 module.exports.JsEjectLock = nativeBinding.JsEjectLock
+module.exports.findPrograms = nativeBinding.findPrograms
+module.exports.findProgramsIn = nativeBinding.findProgramsIn
 module.exports.HeadphonesMonoSplit = nativeBinding.HeadphonesMonoSplit
 module.exports.JsHeadphonesMonoSplit = nativeBinding.JsHeadphonesMonoSplit
 module.exports.HeadphonesPreEQ = nativeBinding.HeadphonesPreEQ
@@ -581,6 +593,8 @@ module.exports.Language = nativeBinding.Language
 module.exports.JsLanguage = nativeBinding.JsLanguage
 module.exports.LCDBrightness = nativeBinding.LCDBrightness
 module.exports.JsLCDBrightness = nativeBinding.JsLCDBrightness
+module.exports.locateLibrary = nativeBinding.locateLibrary
+module.exports.masterDbPath = nativeBinding.masterDbPath
 module.exports.MasterTempo = nativeBinding.MasterTempo
 module.exports.JsMasterTempo = nativeBinding.JsMasterTempo
 module.exports.MicLowCut = nativeBinding.MicLowCut
@@ -597,6 +611,7 @@ module.exports.Mood = nativeBinding.Mood
 module.exports.JsMood = nativeBinding.JsMood
 module.exports.NeedleLock = nativeBinding.NeedleLock
 module.exports.JsNeedleLock = nativeBinding.JsNeedleLock
+module.exports.newStaticBeatGrid = nativeBinding.newStaticBeatGrid
 module.exports.OnAirDisplay = nativeBinding.OnAirDisplay
 module.exports.JsOnAirDisplay = nativeBinding.JsOnAirDisplay
 module.exports.optionsJsonPath = nativeBinding.optionsJsonPath
@@ -606,10 +621,6 @@ module.exports.PadButtonBrightness = nativeBinding.PadButtonBrightness
 module.exports.JsPadButtonBrightness = nativeBinding.JsPadButtonBrightness
 module.exports.PhaseMeter = nativeBinding.PhaseMeter
 module.exports.JsPhaseMeter = nativeBinding.JsPhaseMeter
-module.exports.PlaylistKeyType = nativeBinding.PlaylistKeyType
-module.exports.JsPlaylistKeyType = nativeBinding.JsPlaylistKeyType
-module.exports.PlaylistNodeType = nativeBinding.PlaylistNodeType
-module.exports.JsPlaylistNodeType = nativeBinding.JsPlaylistNodeType
 module.exports.PlayMode = nativeBinding.PlayMode
 module.exports.JsPlayMode = nativeBinding.JsPlayMode
 module.exports.Quantize = nativeBinding.Quantize
@@ -618,6 +629,7 @@ module.exports.QuantizeBeatValue = nativeBinding.QuantizeBeatValue
 module.exports.JsQuantizeBeatValue = nativeBinding.JsQuantizeBeatValue
 module.exports.rekordboxAgentAppDir = nativeBinding.rekordboxAgentAppDir
 module.exports.rekordboxAppDir = nativeBinding.rekordboxAppDir
+module.exports.setStaticBeatGrid = nativeBinding.setStaticBeatGrid
 module.exports.SlipFlashing = nativeBinding.SlipFlashing
 module.exports.JsSlipFlashing = nativeBinding.JsSlipFlashing
 module.exports.Sync = nativeBinding.Sync
@@ -630,6 +642,8 @@ module.exports.TempoRange = nativeBinding.TempoRange
 module.exports.JsTempoRange = nativeBinding.JsTempoRange
 module.exports.TimeMode = nativeBinding.TimeMode
 module.exports.JsTimeMode = nativeBinding.JsTimeMode
+module.exports.trackFromMetadata = nativeBinding.trackFromMetadata
+module.exports.trackToMetadata = nativeBinding.trackToMetadata
 module.exports.VinylSpeedAdjust = nativeBinding.VinylSpeedAdjust
 module.exports.JsVinylSpeedAdjust = nativeBinding.JsVinylSpeedAdjust
 module.exports.Waveform = nativeBinding.Waveform
@@ -640,3 +654,13 @@ module.exports.WaveformCurrentPosition = nativeBinding.WaveformCurrentPosition
 module.exports.JsWaveformCurrentPosition = nativeBinding.JsWaveformCurrentPosition
 module.exports.WaveformDivisions = nativeBinding.WaveformDivisions
 module.exports.JsWaveformDivisions = nativeBinding.JsWaveformDivisions
+module.exports.XmlPlaylistKeyType = nativeBinding.XmlPlaylistKeyType
+module.exports.JsXmlPlaylistKeyType = nativeBinding.JsXmlPlaylistKeyType
+module.exports.XmlPlaylistNodeType = nativeBinding.XmlPlaylistNodeType
+module.exports.JsXmlPlaylistNodeType = nativeBinding.JsXmlPlaylistNodeType
+module.exports.Analyzed = nativeBinding.Analyzed
+module.exports.PlaylistType = nativeBinding.PlaylistType
+module.exports.RelatedTracksType = nativeBinding.RelatedTracksType
+module.exports.SamplerType = nativeBinding.SamplerType
+module.exports.OneLibraryPlaylistType = nativeBinding.OneLibraryPlaylistType
+module.exports.PlaylistType = nativeBinding.PlaylistType

@@ -1,6 +1,6 @@
 {
   "name": "rbox-js",
-  "version": "0.1.8",
+  "version": "0.2.0",
   "description": "Javascript library for interacting with the local and export data of Pioneers Rekordbox DJ software",
   "author": "Dylan Jones <dylanljones@proton.me>",
   "keywords": [
@@ -27,7 +27,7 @@
       "universal-apple-darwin"
     ]
   },
-  "license": "GPL-3.0",
+  "license": "GPL-3.0-only",
   "devDependencies": {
     "@napi-rs/cli": "^3.1.5",
     "ava": "^6.0.1"
@@ -45,7 +45,8 @@
     "artifacts": "napi artifacts",
     "build": "napi build --platform --release --js-package-name @dylanljones/rbox-js",
     "build:debug": "napi build --platform",
-    "prepublishOnly": "napi prepublish -t npm --no-gh-release",
+    "prepack": "node scripts/copy-license.cjs",
+    "prepublishOnly": "node scripts/copy-license.cjs && napi prepublish -t npm --no-gh-release",
     "test": "ava --serial",
     "universal": "napi universalize",
     "version": "napi version"

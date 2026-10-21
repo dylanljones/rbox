@@ -6,6 +6,7 @@ on:
   pull_request:
     branches: ["main"]
   workflow_dispatch:
+  workflow_call:
 
 env:
   CARGO_TERM_COLOR: always
@@ -20,40 +21,59 @@ jobs:
     outputs:
       should_skip: ${{ steps.skip_check.outputs.should_skip }}
       paths_result: ${{ steps.skip_check.outputs.paths_result }}
-      run_rs: ${{ !fromJSON(steps.skip_check.outputs.paths_result).rust.should_skip }}
-      run_py: ${{ !fromJSON(steps.skip_check.outputs.paths_result).python.should_skip }}
-      run_js: ${{ !fromJSON(steps.skip_check.outputs.paths_result).javascript.should_skip }}
+      run_rs: ${{ github.event_name != 'pull_request' || !fromJSON(steps.skip_check.outputs.paths_result).rust.should_skip }}
+      run_py: ${{ github.event_name != 'pull_request' || !fromJSON(steps.skip_check.outputs.paths_result).python.should_skip }}
+      run_js: ${{ github.event_name != 'pull_request' || !fromJSON(steps.skip_check.outputs.paths_result).javascript.should_skip }}
     steps:
       - id: skip_check
+        if: github.event_name == 'pull_request'
         uses: fkirc/skip-duplicate-actions@v5
         with:
           paths_filter: |
             rust:
               paths:
                 - 'rbox/**'
+                - 'crates/**'
+                - 'Cargo.toml'
+                - 'Cargo.lock'
+                - 'rust-toolchain.toml'
+                - '.cargo/**'
+                - '.testdata/**'
+                - '.github/workflows/**'
+                - 'scripts/**'
               paths_ignore:
                 - 'rbox/README.md'
             python:
               paths:
                 - 'rbox/**'
+                - 'crates/**'
+                - 'Cargo.toml'
+                - 'Cargo.lock'
+                - 'rust-toolchain.toml'
+                - '.cargo/**'
+                - '.testdata/**'
+                - '.github/workflows/**'
+                - 'scripts/**'
                 - 'bindings/python/**'
               paths_ignore:
                 - 'rbox/README.md'
-                - 'bindings/python/pyproject.toml'
-                - 'bindings/python/requirements.txt'
                 - 'bindings/python/README.md'
             javascript:
               paths:
                 - 'rbox/**'
+                - 'crates/**'
+                - 'Cargo.toml'
+                - 'Cargo.lock'
+                - 'rust-toolchain.toml'
+                - '.cargo/**'
+                - '.testdata/**'
+                - '.github/workflows/**'
+                - 'scripts/**'
                 - 'bindings/javascript/**'
               paths_ignore:
                 - 'rbox/README.md'
-                - 'bindings/javascript/.yarn/**'
-                - 'bindings/javascript/.npmignore'
-                - 'bindings/javascript/.yarnrc.yml'
                 - 'bindings/javascript/README.md'
                 - 'bindings/javascript/rustfmt.toml'
-                - 'bindings/javascript/yarn.lock'
 
   cargo-fmt-check:
     runs-on: ubuntu-latest
@@ -72,7 +92,7 @@ jobs:
     needs:
       - cargo-fmt-check
       - code-change
-    if: needs.code-change.outputs.run_rs == 'true'
+    if: github.event_name != 'pull_request' || needs.code-change.outputs.run_rs == 'true'
     strategy:
       matrix:
         os: ["ubuntu-latest", "windows-latest", "macos-latest"]  # "macos-13"
@@ -80,7 +100,7 @@ jobs:
     continue-on-error: false
     defaults:
       run:
-        working-directory: rbox
+        working-directory: .
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -101,7 +121,24 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Run tests
-        run: cargo test --lib --bins --tests --features bundled-vendored-openssl
+        run: cargo test --workspace --exclude rbox-py --exclude rbox-js --lib --bins --tests
+
+      - name: Run documentation tests
+        run: cargo test --workspace --exclude rbox-py --exclude rbox-js --doc
+
+  check-features:
+    needs: code-change
+    if: github.event_name != 'pull_request' || needs.code-change.outputs.run_rs == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        features: ['', anlz, xml, settings, 'master-db,bundled-vendored-openssl', 'one-library,bundled-vendored-openssl']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - name: Check facade with isolated features
+        run: cargo check -p rbox --no-default-features --features '${{ matrix.features }}'
 
   # -- Python tests --------------------------------------------------------------------------------
 
@@ -109,12 +146,12 @@ jobs:
     needs:
       - code-change
       - cargo-fmt-check
-    if: needs.code-change.outputs.run_py == 'true'
+    if: github.event_name != 'pull_request' || needs.code-change.outputs.run_py == 'true'
     strategy:
       fail-fast: false
       matrix:
         os: [ "ubuntu-latest", "windows-latest", "macos-latest" ]
-        python-version: [ "3.10", "3.14" ]  # check oldest and latest supported version
+        python-version: [ "3.11", "3.15" ]  # oldest/latest supported by the current PyO3
         other-os: [ true ]
     runs-on: ${{ matrix.os }}
     env:
@@ -165,7 +202,7 @@ jobs:
     needs:
       - code-change
       - cargo-fmt-check
-    if: needs.code-change.outputs.run_js == 'true'
+    if: github.event_name != 'pull_request' || needs.code-change.outputs.run_js == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -283,7 +320,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bindings-${{ matrix.settings.target }}
-          path: bindings/javascript/${{ env.APP_NAME }}.*.node
+          path: |
+            bindings/javascript/${{ env.APP_NAME }}.*.node
+            bindings/javascript/index.js
+            bindings/javascript/index.d.ts
           if-no-files-found: error
 
   test-macOS-windows-javascript:

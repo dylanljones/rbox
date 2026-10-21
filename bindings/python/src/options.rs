@@ -13,7 +13,7 @@ fn db_error<E: ToString>(e: E) -> PyErr {
 }
 
 #[derive(Clone)]
-#[pyclass(name = "RekordboxOptions", unsendable)]
+#[pyclass(from_py_object, name = "RekordboxOptions", unsendable)]
 pub struct PyRekordboxOptions {
     pub(crate) inner: RekordboxOptions,
 }

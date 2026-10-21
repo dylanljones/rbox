@@ -1,10 +1,13 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! Python bindings for the master database handler and resolved track access.
+
 use chrono::{DateTime, Utc};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyString, PyType};
-use rbox::enums::PlaylistType;
+use rbox::core::models::Track;
+use rbox::masterdb::enums::PlaylistType;
 use rbox::masterdb::{models::*, MasterDb};
 
 use super::errors::MasterDbError;
@@ -17,7 +20,13 @@ fn db_error<E: ToString>(e: E) -> PyErr {
 }
 
 #[derive(Clone)]
-#[pyclass(name = "DjmdPlaylistTreeNode", unsendable, get_all, set_all)]
+#[pyclass(
+    from_py_object,
+    name = "DjmdPlaylistTreeNode",
+    unsendable,
+    get_all,
+    set_all
+)]
 pub struct PyDjmdPlaylistTreeNode {
     pub id: String,
     pub uuid: String,
@@ -87,6 +96,17 @@ impl PyMasterDb {
     pub fn from_options(_cls: &Bound<'_, PyType>, options: PyRekordboxOptions) -> PyResult<Self> {
         let db = MasterDb::from_options(&options.inner).map_err(db_error)?;
         Ok(PyMasterDb { db })
+    }
+
+    /// Open a selected library without repeating discovery.
+    #[classmethod]
+    pub fn from_location(
+        _cls: &Bound<'_, PyType>,
+        location: crate::locate::PyLibraryLocation,
+    ) -> PyResult<Self> {
+        Ok(Self {
+            db: MasterDb::from_location(&location.into()).map_err(db_error)?,
+        })
     }
 
     /// Open the default Rekordbox `master.db` database.
@@ -361,6 +381,27 @@ impl PyMasterDb {
 
     // -- Content ----------------------------------------------------------------------------------
 
+    /// Load detached tracks with resolved names; BPM is unscaled and length is seconds.
+    pub fn get_tracks(&self) -> PyResult<Vec<Track>> {
+        self.db.get_tracks().map_err(db_error)
+    }
+
+    /// Load a resolved track by ID, or None when absent.
+    pub fn get_track_by_id(&self, id: &str) -> PyResult<Option<Track>> {
+        self.db.get_track_by_id(id).map_err(db_error)
+    }
+
+    /// Load matching tracks; missing IDs are omitted and duplicates collapsed.
+    pub fn get_tracks_by_ids(&self, ids: Vec<String>) -> PyResult<Vec<Track>> {
+        let ids: Vec<&str> = ids.iter().map(String::as_str).collect();
+        self.db.get_tracks_by_ids(&ids).map_err(db_error)
+    }
+
+    /// Load a resolved track by file path, accepting either separator style.
+    pub fn get_track_by_path(&self, path: &str) -> PyResult<Option<Track>> {
+        self.db.get_track_by_path(path).map_err(db_error)
+    }
+
     /// Load a detached content snapshot with all supported direct relationships.
     /// Related rows are shallow snapshots; changes require explicit model updates.
     pub fn get_content_with_relations(&self, id: &str) -> PyResult<Option<DjmdContentView>> {
@@ -431,6 +472,11 @@ impl PyMasterDb {
     pub fn create_content(&mut self, path: &str) -> PyResult<DjmdContent> {
         let model = self.db.create_content(path).map_err(db_error)?;
         Ok(model)
+    }
+
+    /// Inserts a configured content model into the `djmdContent` table.
+    pub fn add_content(&mut self, content: NewDjmdContent) -> PyResult<DjmdContent> {
+        self.db.add_content(content).map_err(db_error)
     }
 
     /// Updates an existing `djmdContent` entry in the database.

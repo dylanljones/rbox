@@ -1,0 +1,29 @@
+[package]
+name = "rbox-setting"
+description = "Rekordbox Setting file handler"
+readme = "README.md"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+license-file.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+publish = true
+
+[features]
+default = []
+
+[dependencies]
+binrw           = { workspace = true }
+crc16           = { workspace = true }
+parse-display   = { workspace = true }
+thiserror       = { workspace = true }
+
+[dev-dependencies]
+anyhow          = { workspace = true }
+rstest          = { workspace = true }
+rbox-testing    = { path = "../rbox-testing" }

@@ -1,22 +1,23 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
-#[path = "../../tests/common/mod.rs"]
-mod common;
-
-use criterion::{criterion_group, Criterion};
-use std::hint::black_box;
+//! Compare lazy and eager ANLZ operations using shared fixtures and temporary outputs.
 
 use binrw::{BinRead, BinWrite};
-use rbox::anlz::sections::AnlzData;
-use rbox::anlz::Anlz;
+use criterion::{criterion_group, Criterion};
 use std::fs::File;
+use std::hint::black_box;
+
+use rbox_testing::data;
+
+use rbox::anlz::sections::AnlzData;
+use rbox::anlz::{self, Anlz};
 
 fn anlz(c: &mut Criterion) {
     let mut group = c.benchmark_group("anlz");
     group.measurement_time(std::time::Duration::from_secs(35));
 
-    let root = common::anlz_dir(6);
+    let root = data::anlz_dir(6);
     let anlz_dir = root.join("e35").join("fa187-3f34-47e2-9880-2b33cb8d1304");
 
     let dat_file = anlz_dir.join("ANLZ0000.DAT");
@@ -49,11 +50,7 @@ fn anlz(c: &mut Criterion) {
     group.bench_function("eager_ext_path", |b| {
         b.iter(|| {
             let data = AnlzData::read(&mut File::open(black_box(&ext_file)).unwrap()).unwrap();
-            black_box(
-                data.sections
-                    .iter()
-                    .find(|s| s.tag == rbox::anlz::AnlzTag::Path),
-            );
+            black_box(data.sections.iter().find(|s| s.tag == anlz::AnlzTag::Path));
         })
     });
     let dir = tempfile::tempdir().unwrap();
@@ -69,7 +66,7 @@ fn anlz(c: &mut Criterion) {
         b.iter(|| {
             let mut data = AnlzData::read(&mut File::open(black_box(&ext_file)).unwrap()).unwrap();
             for section in &mut data.sections {
-                if let rbox::anlz::sections::Content::Path(p) = &mut section.content {
+                if let anlz::sections::Content::Path(p) = &mut section.content {
                     p.set("/Music/benchmark.flac");
                     break;
                 }

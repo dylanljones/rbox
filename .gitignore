@@ -1,15 +1,16 @@
 
 ### -- Project gitignore ---------------------------------------------------------------------- ###
 
-**main.py
 **master-copy.db
 **database-copy.xml
 **database-out.xml
-**main.mjs
-.chglog
 .testdata/.tmp
-diesel.toml
 .tmp*
+
+# mdBook output and generated mdbook-tabs assets
+/docs/book/
+/docs/theme/tabs.css
+/docs/theme/tabs.js
 
 ### -- Rust gitignore ------------------------------------------------------------------------- ###
 
