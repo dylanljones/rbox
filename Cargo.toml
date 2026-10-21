@@ -28,7 +28,7 @@ diesel            = { version = "2.3", features = ["sqlite", "r2d2", "returning_
 dunce             = { version = "1.0" }
 lazy-regex        = { version = "3.4" }
 # Version is pinned for compatibility with sqlcipher
-libsqlite3-sys    = { version = "=0.33", features = ["sqlcipher"] }
+libsqlite3-sys    = { version = "=0.38", features = ["sqlcipher"] }
 modular-bitfield  = { version = "0.13" }
 parse-display     = { version = "0.11" }
 quote             = { version = "1.0" }

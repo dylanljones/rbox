@@ -3,17 +3,17 @@
   "private": true,
   "description": "Development commands for the rbox Rust workspace and bindings",
   "scripts": {
-    "test:rust": "cargo test --workspace --exclude rbox-py --exclude rbox-js --lib --bins --tests",
+    "test:rs": "cargo test --workspace --exclude rbox-py --exclude rbox-js --lib --bins --tests",
     "test:js": "npm run build:js && npm --prefix bindings/javascript test",
     "test:py": "npm run build:py && cd bindings/python && python -m pytest tests",
     "test": "npm run test:rust && npm run test:js && npm run test:py",
 
-    "build:rust": "cargo build --workspace --exclude rbox-py --exclude rbox-js",
+    "build:rs": "cargo build --workspace --exclude rbox-py --exclude rbox-js",
     "build:js": "npm --prefix bindings/javascript run build:debug",
     "build:py": "cd bindings/python && python -m maturin develop --extras test",
     "build": "npm run build:rust && npm run build:js && npm run build:py",
 
-    "build:rust:release": "cargo build --workspace --exclude rbox-py --exclude rbox-js --release",
+    "build:rs:release": "cargo build --workspace --exclude rbox-py --exclude rbox-js --release",
     "build:js:release": "npm --prefix bindings/javascript run build",
     "build:py:release": "cd bindings/python && python -m maturin build --release",
     "build:release": "npm run build:rust:release && npm run build:js:release && npm run build:py:release"
