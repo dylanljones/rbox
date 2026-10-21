@@ -4,6 +4,7 @@ description = "Javascript library for interacting with the local and export data
 version.workspace = true
 authors.workspace = true
 license.workspace = true
+license-file.workspace = true
 keywords.workspace = true
 categories.workspace = true
 repository.workspace = true

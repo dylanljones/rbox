@@ -3,6 +3,8 @@
 
 [project]
 name = 'rbox'
+license = 'GPL-3.0-only'
+# The license text is inherited through Cargo.toml's license-file setting.
 description = "Python library for interacting with the local and export data of Pioneers Rekordbox DJ software"
 authors = [
     {name = "Dylan Jones", email = "dylanljones@proton.me"},
@@ -20,7 +22,6 @@ classifiers = [
     'Programming Language :: Python :: 3.14',
     'Programming Language :: Python :: 3.15',
     'Programming Language :: Rust',
-    'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
     'Operating System :: Microsoft :: Windows',
     'Operating System :: MacOS',
     'Operating System :: POSIX :: Linux',
@@ -48,7 +49,7 @@ Tracker = "https://github.com/dylanljones/rbox/issues"
 # -- Build -----------------------------------------------------------------------------
 
 [build-system]
-requires = ['maturin>=1,<2', 'typing_extensions']
+requires = ['maturin>=1.9.3,<2', 'typing_extensions']
 build-backend = 'maturin'
 
 [tool.maturin]

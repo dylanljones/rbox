@@ -5,6 +5,7 @@ readme = "README.md"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
+license-file.workspace = true
 keywords.workspace = true
 categories.workspace = true
 repository.workspace = true
