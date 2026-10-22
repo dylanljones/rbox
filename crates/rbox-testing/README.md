@@ -3,6 +3,9 @@
 Shared test utilities for the rbox workspace. This crate is unpublished and
 intended for use as a path-only development dependency.
 
+> [!NOTE]
+> This crate is part of [rbox](https://crates.io/crates/rbox), used for testing.
+
 `rbox_testing::data` provides fixture paths and temporary copies using filesystem
 utilities. Fixture-based tests require the repository's `.testdata` directory.
 
@@ -14,5 +17,3 @@ fixture-only consumers do not need them.
 [dev-dependencies]
 rbox-testing = { path = "../rbox-testing", features = ["database"] }
 ```
-
-Part of [rbox](https://crates.io/crates/rbox).
