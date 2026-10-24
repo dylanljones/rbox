@@ -1,5 +1,5 @@
 // Copyright (C) 2026 Dylan Jones
-// SPDX-License-Identifier: MIT AND GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0-only
 
 //! Binary creation profiles, opt-in initialization defaults, and empty index pages.
 //!

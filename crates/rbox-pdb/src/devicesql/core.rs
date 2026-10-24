@@ -1,5 +1,5 @@
 // Copyright (C) 2026 Dylan Jones
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-only
 
 //! Shared page storage, raw-row traversal, resource types, and file publication helpers.
 

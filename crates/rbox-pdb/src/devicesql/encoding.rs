@@ -1,5 +1,5 @@
 // Copyright (C) 2026 Dylan Jones
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-only
 
 //! Binary row layouts, preserved raw string frames, and checked slot fixups.
 

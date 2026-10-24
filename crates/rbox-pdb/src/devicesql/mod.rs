@@ -1,5 +1,5 @@
 // Copyright (C) 2026 Dylan Jones
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-only
 
 //! DeviceSQL storage engine using binary representations.
 //!
