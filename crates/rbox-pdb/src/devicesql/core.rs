@@ -583,7 +583,7 @@ pub(super) fn replace_file(
     // std::fs::rename also handles open Windows destinations, unlike the
     // MoveFileExW-only tempfile persist. keep clears the temporary attribute.
     let (file, temporary_path) = temporary.keep().map_err(|e| e.error)?;
-    let temporary_path = TempPath::from_path(temporary_path);
+    let temporary_path = TempPath::try_from_path(temporary_path)?;
     file.set_permissions(fs::metadata(path)?.permissions())?;
     file.sync_all()?;
     let replacement = SourceFile::new(path.clone(), &file)?;
