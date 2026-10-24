@@ -23,7 +23,9 @@ def test_xml_namespace():
     ):
         assert name in rbxml.__all__
         assert hasattr(rbxml, name)
-        assert not hasattr(rbox, name)
+        if name != "RekordboxXml":
+            assert not hasattr(rbox, name)
+    assert rbox.RekordboxXml is rbxml.RekordboxXml
     assert issubclass(XmlError, rbox.Error)
 
 
