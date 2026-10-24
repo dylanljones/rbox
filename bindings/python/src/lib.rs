@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! Python extension registration and shared utility bindings.
+
 mod anlz;
 mod errors;
 mod locate;
@@ -8,6 +10,7 @@ mod masterdb;
 mod one_library;
 mod options;
 mod settings;
+mod share;
 mod traits;
 mod xml;
 
@@ -46,6 +49,7 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(options_json_path, m)?)?;
     m.add_function(wrap_pyfunction!(rekordbox_app_dir, m)?)?;
     m.add_function(wrap_pyfunction!(is_rekordbox_running, m)?)?;
+    m.add_function(wrap_pyfunction!(share::artwork_dir_usb, m)?)?;
 
     m.add_class::<rbox::core::locate::LocationSource>()?;
     m.add_class::<locate::PyLibraryLocation>()?;

@@ -22,6 +22,7 @@ from ._rbox import (
     XmlTempo,
     XmlTrack,
     app_dir,
+    artwork_dir_usb,
     default_master_db_path,
     find_programs,
     find_programs_in,

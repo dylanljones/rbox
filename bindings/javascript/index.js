@@ -537,6 +537,7 @@ module.exports.JsSetting = nativeBinding.JsSetting
 module.exports.XmlPlaylistNode = nativeBinding.XmlPlaylistNode
 module.exports.JsXmlPlaylistNode = nativeBinding.JsXmlPlaylistNode
 module.exports.appDir = nativeBinding.appDir
+module.exports.artworkDirUsb = nativeBinding.artworkDirUsb
 module.exports.AutoCue = nativeBinding.AutoCue
 module.exports.JsAutoCue = nativeBinding.JsAutoCue
 module.exports.AutoCueLevel = nativeBinding.AutoCueLevel

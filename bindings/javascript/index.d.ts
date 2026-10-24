@@ -4470,6 +4470,17 @@ export type AnlzSection =
 /** Return the platform application-data base directory without checking existence. */
 export declare function appDir(): string
 
+/**
+ * Return the USB artwork directory for an integer artwork ID in 0..=4294967295.
+ *
+ * The directory number is Math.floor(artworkId / 20) + 1, padded to at least five
+ * decimal digits: IDs 1..19 use /PIONEER/Artwork/00001 and 20..39 use 00002.
+ * Zero also formats into 00001, although it normally denotes absent artwork.
+ * The result has no filename or trailing slash. Remove its leading slash before
+ * joining it to the USB volume root. Existing stored artwork paths remain authoritative.
+ */
+export declare function artworkDirUsb(artworkId: number): string
+
 export declare const enum AutoCue {
   Off = 'Off',
   On = 'On'

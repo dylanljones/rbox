@@ -26,7 +26,7 @@ pub use locate::{
 pub use options::RekordboxOptions;
 pub use pathlib::PathExt;
 pub use process::{get_rekordbox_pid, is_rekordbox_running};
-pub use share::{anlz_dir_local, anlz_dir_usb, artwork_dir_local};
+pub use share::{anlz_dir_local, anlz_dir_usb, artwork_dir_local, artwork_dir_usb};
 
 pub mod enums;
 pub mod models;
