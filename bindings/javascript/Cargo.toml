@@ -19,6 +19,7 @@ rbox            = { path = "../../rbox", default-features = false, features = ["
 napi            = { workspace = true}
 napi-derive     = { workspace = true}
 chrono          = { workspace = true }
+uuid            = { workspace = true }
 
 [build-dependencies]
 napi-build = "2.2"
