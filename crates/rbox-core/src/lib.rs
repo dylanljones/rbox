@@ -8,8 +8,10 @@
 //! not modify Rekordbox's preferences.
 
 pub mod artwork;
+pub mod enums;
 pub mod error;
 pub mod locate;
+pub mod models;
 pub mod options;
 pub mod pathlib;
 pub mod process;
@@ -19,17 +21,13 @@ pub mod share;
 #[doc(hidden)]
 pub mod python;
 
+pub use enums::FileType;
 pub use locate::{
     find_programs, find_programs_in, locate_library, options_json_path, rekordbox_agent_app_dir,
     rekordbox_app_dir, LibraryLocation,
 };
+pub use models::{Track, TrackMetadata};
 pub use options::RekordboxOptions;
 pub use pathlib::PathExt;
 pub use process::{get_rekordbox_pid, is_rekordbox_running};
 pub use share::{anlz_dir_local, anlz_dir_usb, artwork_dir_local, artwork_dir_usb};
-
-pub mod enums;
-pub mod models;
-pub use models::{Track, TrackMetadata};
-
-pub use enums::FileType;
