@@ -22,7 +22,7 @@ flowchart TD
         direction LR
         onelib["rbox-onelib"] -.-> masterdb["rbox-masterdb"]
         masterdb --> anlz["rbox-anlz"]
-        anlz ~~~ settings["rbox-setting"] ~~~ xml["rbox-xml"]
+        anlz ~~~ settings["rbox-setting"] ~~~ xml["rbox-xml"] ~~~ pdb["rbox-pdb"]
     end
 
     subgraph core_crates["Core crates"]
@@ -37,8 +37,8 @@ flowchart TD
     main_crates --> core_crates
 ```
 
-Both database handlers depend on `rbox-db` and `rbox-core`; `rbox` also exposes
-these shared crates directly.
+`rbox-masterdb` and `rbox-onelib` depend on `rbox-db` and `rbox-core`; `rbox` also
+exposes these shared crates directly. `rbox-pdb` provides its own DeviceSQL engine.
 
 
 ## Pre-commit Hooks
@@ -96,6 +96,7 @@ or tooling area:
 | `db` | Shared database connections, ordering, and relationship infrastructure |
 | `masterdb` | Rekordbox master database handling |
 | `onelib` | OneLibrary / Device Library Plus database handling |
+| `pdb` | DeviceSQL / Device Library PDB database handling |
 | `anlz` | Analysis file handling |
 | `xml` | Rekordbox XML database handling |
 | `setting` | MySettings file handling |
@@ -111,8 +112,8 @@ or tooling area:
 Choose one scope that best describes the change. Omit it for broad changes that
 have no clear primary area. The scope describes the affected component, not the
 kind of work: use `test(masterdb)` for master database tests and `ci(js)` for the
-JavaScript workflow. Reserve `db` for shared infrastructure; use `masterdb` or
-`onelib` for a specific database.
+JavaScript workflow. Reserve `db` for shared infrastructure; use `masterdb`,
+`onelib`, or `pdb` for a specific database.
 
 Examples:
 
