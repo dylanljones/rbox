@@ -1,17 +1,35 @@
 # Copyright (C) 2026 Dylan Jones
 # SPDX-License-Identifier: GPL-3.0-only
 
+"""Rekordbox XML collections, track and playlist models, and XML errors."""
+
 from pathlib import Path
 from typing import List, Optional, Union
 
 from ._rbox import (
     PyRekordboxXml as _PyRekordboxXml,
+    XmlError,
     XmlPlaylistNode,
     XmlPlaylistTrack,
     XmlPositionMark,
     XmlTempo,
     XmlTrack,
 )
+
+__all__ = [
+    "RekordboxXml",
+    "XmlError",
+    "XmlPlaylistNode",
+    "XmlPlaylistTrack",
+    "XmlPositionMark",
+    "XmlTempo",
+    "XmlTrack",
+    "Track",
+    "Tempo",
+    "PositionMark",
+    "PlaylistTrack",
+    "PlaylistNode",
+]
 
 
 class RekordboxXml:

@@ -49,6 +49,10 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(options_json_path, m)?)?;
     m.add_function(wrap_pyfunction!(rekordbox_app_dir, m)?)?;
     m.add_function(wrap_pyfunction!(is_rekordbox_running, m)?)?;
+    m.add_function(wrap_pyfunction!(share::anlz_dir_usb, m)?)?;
+    m.add_function(wrap_pyfunction!(share::anlz_dir_local, m)?)?;
+    m.add_function(wrap_pyfunction!(share::artwork_dir_local, m)?)?;
+    m.add_function(wrap_pyfunction!(share::image_path_local, m)?)?;
     m.add_function(wrap_pyfunction!(share::artwork_dir_usb, m)?)?;
 
     m.add_class::<rbox::core::locate::LocationSource>()?;

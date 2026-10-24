@@ -4433,6 +4433,26 @@ export interface AnlzData {
   sections: Array<AnlzSection>
 }
 
+/**
+ * Return the local ANLZ directory derived from a track's djmdContent.UUID.
+ *
+ * The UUID is normalized to lowercase hyphenated text and split after three
+ * characters beneath /PIONEER/USBANLZ/. Remove the leading slash before joining
+ * to the analysis/share root, then append the analysis filename. Existing
+ * AnalysisDataPath values remain authoritative. Invalid UUIDs throw InvalidArg.
+ */
+export declare function anlzDirLocal(uuid: string): string
+
+/**
+ * Return the USB ANLZ directory derived from the exported audio path.
+ *
+ * Supply the volume-relative path with a leading slash, for example
+ * /Contents/Artist/Track.flac. Input is hashed without normalization.
+ * Remove the result's leading slash before joining to the USB root, then
+ * append an analysis filename such as ANLZ0000.DAT, ANLZ0000.EXT or ANLZ0000.2EX.
+ */
+export declare function anlzDirUsb(trackPath: string): string
+
 /** Computed PMAI header information in a complete snapshot. */
 export interface AnlzHeader {
   code: Array<number>
@@ -4469,6 +4489,16 @@ export type AnlzSection =
 
 /** Return the platform application-data base directory without checking existence. */
 export declare function appDir(): string
+
+/**
+ * Return the local artwork directory derived from an artwork UUID.
+ *
+ * The UUID is normalized to lowercase hyphenated text and split after three
+ * characters beneath /PIONEER/Artwork/. Remove the leading slash before joining
+ * to the share root. The result has no filename or trailing slash.
+ * Invalid UUIDs throw InvalidArg.
+ */
+export declare function artworkDirLocal(uuid: string): string
 
 /**
  * Return the USB artwork directory for an integer artwork ID in 0..=4294967295.
@@ -4689,6 +4719,15 @@ export declare const enum HotCueColor {
   Off = 'Off',
   On = 'On'
 }
+
+/**
+ * Return the local artwork path, ending in artwork.jpg, for an artwork UUID.
+ *
+ * Uses the same UUID normalization and directory layout as artworkDirLocal.
+ * Remove the leading slash before joining to the share root.
+ * Invalid UUIDs throw InvalidArg.
+ */
+export declare function imagePathLocal(uuid: string): string
 
 export declare function isRekordboxRunning(): boolean
 

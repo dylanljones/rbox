@@ -51,6 +51,22 @@ class SettingError(Exception):
 
 # ---- Utility -------------------------------------------------------------------------------------
 
+def anlz_dir_usb(track_path: str) -> str:
+    """Return the USB ANLZ directory by hashing the exported path as supplied."""
+    ...
+
+def anlz_dir_local(uuid: str) -> str:
+    """Return the local ANLZ directory. Invalid UUIDs raise ValueError."""
+    ...
+
+def artwork_dir_local(uuid: str) -> str:
+    """Return the local artwork directory. Invalid UUIDs raise ValueError."""
+    ...
+
+def image_path_local(uuid: str) -> str:
+    """Return the local artwork.jpg path. Invalid UUIDs raise ValueError."""
+    ...
+
 def artwork_dir_usb(artwork_id: int) -> str:
     """Return the USB artwork directory for an unsigned 32-bit artwork ID."""
     ...
