@@ -17,9 +17,6 @@ pub mod devicesql;
 pub mod error;
 pub mod models;
 
-pub use devicesql::{
-    CreateOptions, DeviceSqlConnection, InitialTable, PageSaveStats, RawRows, ReadStats,
-    RebuildStats, ResourceLimits, ResourceUsage, RowHandle, SaveStats, TrackCreationOptions,
-    Transaction,
-};
+pub use binary::DatabaseKind;
+pub use devicesql::{CreateOptions, DeviceSqlConnection, Transaction};
 pub use error::{Error, Result};

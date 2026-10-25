@@ -53,7 +53,7 @@ pub use artist::{Artist, NewArtist};
 pub use artwork::{Artwork, NewArtwork};
 pub use browse::{BrowseCategory, BrowseColumn, BrowseSort};
 pub use color::{Color, NewColor};
-pub use content::{Content, ContentView, NewContent};
+pub use content::{Content, ContentView, NewContent, TrackCreationOptions};
 pub use genre::{Genre, NewGenre};
 pub use history::{History, HistoryContent, NewHistory, NewHistoryContent};
 pub use key::{Key, NewKey};

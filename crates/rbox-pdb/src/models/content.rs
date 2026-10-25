@@ -20,7 +20,9 @@ use crate::binary::{
     TrackRow, TrackStrings,
 };
 use crate::devicesql::DeviceSqlConnection;
-use crate::{Error, Result, TrackCreationOptions};
+pub use crate::devicesql::TrackCreationOptions;
+
+use crate::{Error, Result};
 
 /// A detached track from the standard database's track table.
 ///
