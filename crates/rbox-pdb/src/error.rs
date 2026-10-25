@@ -13,6 +13,26 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
+    /// An operation requires a library's absent extended database.
+    #[error("this Device Library has no extended database")]
+    MissingExtendedDatabase,
+
+    /// Standard and extended paths resolve to the same file name.
+    #[error("standard and extended database paths refer to the same file: {0}")]
+    AliasedDatabaseFiles(std::path::PathBuf),
+
+    /// A library write failed. Completion refers to the standard-file operation,
+    /// including a successful no-op save, not atomic publication of both files.
+    /// The failing file can also be partially modified after a direct page write.
+    #[error("Device Library {operation} failed for {database:?} (standard completed: {standard_completed}): {source}")]
+    LibraryWrite {
+        operation: &'static str,
+        database: crate::binary::DatabaseKind,
+        standard_completed: bool,
+        #[source]
+        source: Box<Error>,
+    },
+
     /// A value supplied to a model cannot be used for authoring.
     #[error("invalid {field} for {table:?}: {reason}")]
     InvalidModelField {

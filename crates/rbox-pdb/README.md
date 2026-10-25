@@ -16,7 +16,12 @@ Includes lazy reads, typed models, transactional binary edits, and selective pag
 
 - `binary`: on-disk structures and codecs, preserving unknown fields.
 - `devicesql`: storage engine for lazy reads, caching, transactions, binary edits, and file writes.
-- `models`: high-level abstraction layer over `devicesql`, following the masterdb and OneLibrary pattern.
+- `models` + `DeviceLibrary`: high-level abstraction layer over `devicesql`, following the masterdb and OneLibrary pattern.
+
+`DeviceLibrary::new(path)` opens a database directory (usually `PIONEER/rekordbox`).
+Use `DeviceLibrary::create(path, &LibraryCreateOptions::new(date, name, master_db_id))`
+to initialize both files. `save()` replaces changed files, `save_pages()` writes changed
+pages, and `save_as(path)` copies to a new destination. Saving the pair is not atomic.
 
 ## CDJ output tests
 
