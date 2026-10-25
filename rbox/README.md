@@ -71,6 +71,17 @@ To make building easier, there are two optional features for choosing SQLCipher'
   On Windows, a Perl installation such as [Strawberry Perl](https://strawberryperl.com/) is required
   to build OpenSSL.
 
+For example, to enable only One Library support and build both SQLCipher and OpenSSL:
+
+```toml
+rbox = { version = "0.2.0", default-features = false, features = ["one-library", "bundled-vendored-openssl"] }
+```
+
+Replace `bundled-vendored-openssl` with `bundled` to use a system OpenSSL installation.
+Keep `default-features = false`: Cargo features are additive, so enabling `bundled`
+alone does not disable the default vendored OpenSSL build. Omitting both build
+features requires a system SQLCipher installation.
+
 #### Language Bindings
 
 The library can be compiled with bindings for other programming languages.
