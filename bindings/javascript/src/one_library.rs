@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! JavaScript OneLibrary handler and database operations.
+
 use napi::Result;
 use napi_derive::napi;
 use rbox::db::enums::HistoryType;
@@ -13,15 +15,23 @@ pub struct JsOneLibrary {
 
 #[napi]
 impl JsOneLibrary {
-    /// Open a OneLibrary (Device Library Plus) database specified by path.
+    /// Open exportLibrary.db in the supplied directory, usually PIONEER/rekordbox.
     #[napi(constructor)]
-    pub fn new(path: String) -> Result<Self> {
+    pub fn new(directory: String) -> Result<Self> {
         Ok(Self {
-            inner: OneLibrary::new(path.as_str()).map_err(crate::util::binding_error)?,
+            inner: OneLibrary::new(directory.as_str()).map_err(crate::util::binding_error)?,
         })
     }
 
-    /// Open a OneLibrary (Device Library Plus) database specified by path.
+    /// Open an existing OneLibrary database at an explicit file path.
+    #[napi(factory)]
+    pub fn from_path(path: String) -> Result<Self> {
+        Ok(Self {
+            inner: OneLibrary::from_path(path.as_str()).map_err(crate::util::binding_error)?,
+        })
+    }
+
+    /// Create a new OneLibrary database at an explicit file path.
     #[napi(factory)]
     pub fn create(path: String, my_tag_master_dbid: i32) -> Result<Self> {
         Ok(Self {

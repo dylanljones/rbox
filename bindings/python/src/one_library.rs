@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! Python OneLibrary handler and database operations.
+
 use pyo3::prelude::*;
 use pyo3::types::PyType;
 use rbox::db::enums::HistoryType;
@@ -20,10 +22,17 @@ pub struct PyOneLibrary {
 
 #[pymethods]
 impl PyOneLibrary {
-    /// Open a OneLibrary (Device Library Plus) database specified by path.
+    /// Open exportLibrary.db in the supplied directory, usually PIONEER/rekordbox.
     #[new]
-    pub fn new(path: &str) -> PyResult<Self> {
-        let inner = OneLibrary::new(path).map_err(|e| db_error(e))?;
+    pub fn new(directory: &str) -> PyResult<Self> {
+        let inner = OneLibrary::new(directory).map_err(db_error)?;
+        Ok(PyOneLibrary { inner })
+    }
+
+    /// Open an existing OneLibrary database at an explicit file path.
+    #[classmethod]
+    pub fn from_path(_cls: &Bound<'_, PyType>, path: &str) -> PyResult<Self> {
+        let inner = OneLibrary::from_path(path).map_err(db_error)?;
         Ok(PyOneLibrary { inner })
     }
 

@@ -3450,7 +3450,9 @@ export declare const enum LocationSource {
   /** The agent's `db-path` option. */
   Options = 1,
   /** A platform default library location. */
-  Default = 2
+  Default = 2,
+  /** Manual supplied path, not from configuration or defaults. */
+  Manual = 3
 }
 
 /** Database format whose local content identifier is stored in [`Track::id`]. */
@@ -3935,9 +3937,11 @@ export declare class MasterDb {
 export type JsMasterDb = MasterDb
 
 export declare class OneLibrary {
-  /** Open a OneLibrary (Device Library Plus) database specified by path. */
-  constructor(path: string)
-  /** Open a OneLibrary (Device Library Plus) database specified by path. */
+  /** Open exportLibrary.db in the supplied directory, usually PIONEER/rekordbox. */
+  constructor(directory: string)
+  /** Open an existing OneLibrary database at an explicit file path. */
+  static fromPath(path: string): OneLibrary
+  /** Create a new OneLibrary database at an explicit file path. */
   static create(path: string, myTagMasterDbid: number): OneLibrary
   /** Create a new OneLibrary database if it does not exist, otherwise return the existing one. */
   static createIfNotExists(path: string, myTagMasterDbid: number): OneLibrary

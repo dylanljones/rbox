@@ -130,7 +130,8 @@ an easy interface for accessing the data stored in it:
 use rbox::prelude::*;
 
 fn main() -> anyhow::Result<()> {
-    let mut db = OneLibrary::new("exportLibrary.db")?;
+    let mut db = OneLibrary::new("PIONEER/rekordbox")?;
+    // For an explicit file: OneLibrary::from_path("backups/exportLibrary.db")?;
     let contents = db.get_contents()?;
     for content in contents {
         println!("{:?}", content);

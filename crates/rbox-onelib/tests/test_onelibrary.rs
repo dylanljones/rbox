@@ -36,7 +36,7 @@ fn assert_no_content_relations(view: &ContentView) {
 #[test]
 fn test_album_relationships() -> anyhow::Result<()> {
     let fixture = setup_one_library_path();
-    let db = OneLibrary::new(fixture.path())?;
+    let db = OneLibrary::from_path(fixture.path())?;
     let mut conn = establish_connection(fixture.path(), &ConnectionOptions::default())?;
     let artist = NewArtist::new("album artist").insert(&mut conn)?;
     let image = NewImage::new("album image").insert(&mut conn)?;
@@ -159,7 +159,7 @@ fn test_album_relationship_batches() -> anyhow::Result<()> {
 #[test]
 fn test_category_relationships() -> anyhow::Result<()> {
     let fixture = setup_one_library_path();
-    let db = OneLibrary::new(fixture.path())?;
+    let db = OneLibrary::from_path(fixture.path())?;
     let mut conn = establish_connection(fixture.path(), &ConnectionOptions::default())?;
     let item = NewMenuItem::new("resolved menu", 0).insert(&mut conn)?;
     let category = NewCategory::new(item.id).insert(&mut conn)?;
@@ -257,7 +257,7 @@ fn test_category_relationship_batches() -> anyhow::Result<()> {
 #[test]
 fn test_content_relationships() -> anyhow::Result<()> {
     let fixture = setup_one_library_path();
-    let db = OneLibrary::new(fixture.path())?;
+    let db = OneLibrary::from_path(fixture.path())?;
     let mut conn = establish_connection(fixture.path(), &ConnectionOptions::default())?;
     let original = Content::all(&mut conn)?
         .into_iter()
@@ -457,7 +457,64 @@ fn temp_file() -> NamedTempFile {
 #[test]
 fn test_open() -> anyhow::Result<()> {
     let db_path = setup_one_library_path();
-    let _db = OneLibrary::new(db_path.path())?;
+    let _db = OneLibrary::from_path(db_path.path())?;
+    Ok(())
+}
+
+#[test]
+fn test_open_directory_and_explicit_file() -> anyhow::Result<()> {
+    let fixture = setup_one_library_path();
+    let root = tempfile::tempdir()?;
+    let standard = root.path().join("exportLibrary.db");
+    let renamed = root.path().join("backup.db");
+    std::fs::copy(fixture.path(), &standard)?;
+    std::fs::copy(fixture.path(), &renamed)?;
+    let directory_db = OneLibrary::new(root.path())?;
+    let explicit_db = OneLibrary::from_path(&renamed)?;
+    assert_eq!(
+        directory_db.get_contents()?.len(),
+        explicit_db.get_contents()?.len()
+    );
+    assert!(OneLibrary::new(&standard).is_err());
+    assert!(matches!(
+        OneLibrary::from_path(root.path()),
+        Err(rbox_onelib::Error::FileNotFound(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn test_open_missing_database_does_not_create_it() -> anyhow::Result<()> {
+    let root = tempfile::tempdir()?;
+    let expected = root.path().join("exportLibrary.db");
+    for result in [
+        OneLibrary::new(root.path()),
+        OneLibrary::from_path(&expected),
+    ] {
+        assert!(matches!(result, Err(rbox_onelib::Error::FileNotFound(path)) if path == expected));
+    }
+    assert_eq!(std::fs::read_dir(root.path())?.count(), 0);
+    Ok(())
+}
+
+#[test]
+fn test_creation_reopens_explicit_file_path() -> anyhow::Result<()> {
+    let root = tempfile::tempdir()?;
+    let path = root.path().join("custom.db");
+    // Creation currently initializes an existing empty file, as in test_create.
+    std::fs::File::create(&path)?;
+    let created = OneLibrary::create(&path, 42)?;
+    assert_eq!(
+        created.get_first_property()?.unwrap().my_tag_master_dbid,
+        42
+    );
+    drop(created);
+    let reopened = OneLibrary::create_if_not_exists(&path, 99)?;
+    assert_eq!(
+        reopened.get_first_property()?.unwrap().my_tag_master_dbid,
+        42
+    );
+    assert!(!root.path().join("exportLibrary.db").exists());
     Ok(())
 }
 
@@ -491,7 +548,7 @@ fn test_create() -> anyhow::Result<()> {
 #[test]
 fn test_create_album() -> anyhow::Result<()> {
     let db_path = setup_one_library_path();
-    let db = OneLibrary::new(db_path.path())?;
+    let db = OneLibrary::from_path(db_path.path())?;
     let n = db.get_albums()?.len() as i32;
     let model = db.create_album("album1", None, None)?;
     assert_eq!(model.id, n + 1);
@@ -501,7 +558,7 @@ fn test_create_album() -> anyhow::Result<()> {
 #[test]
 fn test_get_albums() -> anyhow::Result<()> {
     let db_path = setup_one_library_path();
-    let db = OneLibrary::new(db_path.path())?;
+    let db = OneLibrary::from_path(db_path.path())?;
 
     let res = db.get_albums()?;
     assert_eq!(res.len(), 0);
@@ -515,7 +572,7 @@ fn test_get_albums() -> anyhow::Result<()> {
 #[test]
 fn test_get_album_by_id() -> anyhow::Result<()> {
     let db_path = setup_one_library_path();
-    let db = OneLibrary::new(db_path.path())?;
+    let db = OneLibrary::from_path(db_path.path())?;
     let model = db.create_album("album1", None, None)?;
     let id = model.id;
 
@@ -530,7 +587,7 @@ fn test_get_album_by_id() -> anyhow::Result<()> {
 #[test]
 fn test_get_album_by_name() -> anyhow::Result<()> {
     let db_path = setup_one_library_path();
-    let db = OneLibrary::new(db_path.path())?;
+    let db = OneLibrary::from_path(db_path.path())?;
     db.create_album("album1", None, None)?;
 
     let res = db.get_album_by_name("album1")?;
@@ -544,7 +601,7 @@ fn test_get_album_by_name() -> anyhow::Result<()> {
 #[test]
 fn test_delete_album() -> anyhow::Result<()> {
     let db_path = setup_one_library_path();
-    let db = OneLibrary::new(db_path.path())?;
+    let db = OneLibrary::from_path(db_path.path())?;
     let model1 = db.create_album("album1", None, None)?;
     let _model2 = db.create_album("album2", None, None)?;
 
@@ -562,7 +619,7 @@ fn test_delete_album() -> anyhow::Result<()> {
 #[test]
 fn test_create_artist() -> anyhow::Result<()> {
     let db_path = setup_one_library_path();
-    let db = OneLibrary::new(db_path.path())?;
+    let db = OneLibrary::from_path(db_path.path())?;
     let n = db.get_artists()?.len() as i32;
     let model = db.create_artist("artist1")?;
     assert_eq!(model.id, n + 1);
@@ -572,7 +629,7 @@ fn test_create_artist() -> anyhow::Result<()> {
 #[test]
 fn test_get_artists() -> anyhow::Result<()> {
     let db_path = setup_one_library_path();
-    let db = OneLibrary::new(db_path.path())?;
+    let db = OneLibrary::from_path(db_path.path())?;
 
     let res = db.get_artists()?;
     assert_eq!(res.len(), 1);
@@ -586,7 +643,7 @@ fn test_get_artists() -> anyhow::Result<()> {
 #[test]
 fn test_get_artist_by_id() -> anyhow::Result<()> {
     let db_path = setup_one_library_path();
-    let db = OneLibrary::new(db_path.path())?;
+    let db = OneLibrary::from_path(db_path.path())?;
     let model = db.create_artist("artist1")?;
     let id = model.id;
 
@@ -601,7 +658,7 @@ fn test_get_artist_by_id() -> anyhow::Result<()> {
 #[test]
 fn test_get_artist_by_name() -> anyhow::Result<()> {
     let db_path = setup_one_library_path();
-    let db = OneLibrary::new(db_path.path())?;
+    let db = OneLibrary::from_path(db_path.path())?;
     db.create_artist("artist1")?;
 
     let res = db.get_artist_by_name("artist1")?;
@@ -615,7 +672,7 @@ fn test_get_artist_by_name() -> anyhow::Result<()> {
 #[test]
 fn test_delete_artist() -> anyhow::Result<()> {
     let db_path = setup_one_library_path();
-    let db = OneLibrary::new(db_path.path())?;
+    let db = OneLibrary::from_path(db_path.path())?;
     let model1 = db.create_artist("artist1")?;
     let _model2 = db.create_artist("artist2")?;
 

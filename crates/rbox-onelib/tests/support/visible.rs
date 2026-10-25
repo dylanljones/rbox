@@ -154,7 +154,7 @@ macro_rules! visible_handler_test {
         fn $test() {
             use rbox_onelib::{database::OneLibrary, models::$model};
             let mut fixture = $setup;
-            let db = OneLibrary::new(fixture.path()).unwrap();
+            let db = OneLibrary::from_path(fixture.path()).unwrap();
             // Remove fixture rows using model operations so no sequence gaps remain.
             let original = $model::all(&mut fixture).unwrap();
             $model::delete_all(&mut fixture, original.iter().map(|row| &row.id).collect()).unwrap();

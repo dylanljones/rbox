@@ -194,7 +194,7 @@ fn one_library_bulk_insert_and_invalid_parents() {
 #[test]
 fn high_level_one_library_positions_are_unambiguous() {
     let fixture = ConnectionFixture::one_library(rbox_onelib::connection::establish_connection);
-    let db = rbox_onelib::database::OneLibrary::new(fixture.path()).unwrap();
+    let db = rbox_onelib::database::OneLibrary::from_path(fixture.path()).unwrap();
     let p = db.create_playlist_folder("parent", None, None).unwrap();
     let a = db.create_playlist("a", Some(p.id), None).unwrap();
     let b = db.create_playlist("b", Some(p.id), Some(0)).unwrap();
@@ -335,7 +335,7 @@ fn handler_playlist_and_membership_moves() {
     use rbox_onelib::{database::OneLibrary, models::*};
     let mut fixture = ConnectionFixture::one_library(rbox_onelib::connection::establish_connection);
     let tracks = fixture.seed_content_ids();
-    let db = OneLibrary::new(fixture.path()).unwrap();
+    let db = OneLibrary::from_path(fixture.path()).unwrap();
     let p = db.create_playlist_folder("source", None, None).unwrap();
     let q = db.create_playlist_folder("target", None, None).unwrap();
     let a = db.create_playlist("a", Some(p.id), None).unwrap();
@@ -380,7 +380,7 @@ fn handler_playlist_and_membership_moves() {
 fn handler_my_tag_moves_and_deletions() {
     use rbox_onelib::{database::OneLibrary, models::MyTag};
     let mut fixture = ConnectionFixture::one_library(rbox_onelib::connection::establish_connection);
-    let db = OneLibrary::new(fixture.path()).unwrap();
+    let db = OneLibrary::from_path(fixture.path()).unwrap();
     let p = db.create_my_tag_folder("source", None, None).unwrap();
     let q = db.create_my_tag_folder("target", None, None).unwrap();
     let a = db.create_my_tag("a", Some(p.id), None).unwrap();
@@ -420,7 +420,7 @@ fn handler_history_membership_compaction() {
     use rbox_onelib::{database::OneLibrary, models::*};
     let mut fixture = ConnectionFixture::one_library(rbox_onelib::connection::establish_connection);
     let tracks = fixture.seed_content_ids();
-    let db = OneLibrary::new(fixture.path()).unwrap();
+    let db = OneLibrary::from_path(fixture.path()).unwrap();
     let history = db
         .create_history("history", rbox_db::enums::HistoryType::List)
         .unwrap();

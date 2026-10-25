@@ -80,7 +80,8 @@ an easy interface for accessing the data stored in it:
 ```javascript
 import { OneLibrary } from 'rbox-js'
 
-const db = new OneLibrary("exportLibrary.db");
+const db = new OneLibrary("PIONEER/rekordbox");
+// For an explicit file: OneLibrary.fromPath("backups/exportLibrary.db");
 const contents = db.getContents();
 for (const content of contents) {
     console.log(content)

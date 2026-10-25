@@ -5,9 +5,29 @@
 
 import pytest
 
-from rbox import OneLibrary
+from rbox import OneLibrary, OneLibraryError
 from rbox.enums import OneLibraryPlaylistType, PlaylistType
 from rbox.one_library import models
+
+
+def test_directory_and_explicit_file_constructors(fixture_copy):
+    path = fixture_copy("one_library")
+    directory_db = OneLibrary(str(path.parent))
+    explicit_db = OneLibrary.from_path(str(path))
+    assert isinstance(explicit_db, OneLibrary)
+    assert len(directory_db.get_contents()) == len(explicit_db.get_contents())
+    with pytest.raises(OneLibraryError):
+        OneLibrary(str(path))
+    with pytest.raises(OneLibraryError):
+        OneLibrary.from_path(str(path.parent))
+
+
+def test_missing_database_constructors(tmp_path):
+    with pytest.raises(OneLibraryError):
+        OneLibrary(str(tmp_path))
+    with pytest.raises(OneLibraryError):
+        OneLibrary.from_path(str(tmp_path / "missing.db"))
+    assert not list(tmp_path.iterdir())
 
 
 def test_playlist_enum_registration(one_library):

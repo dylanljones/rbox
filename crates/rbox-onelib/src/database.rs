@@ -15,7 +15,7 @@
 //! use rbox_onelib::OneLibrary;
 //!
 //! // Open the database
-//! let mut db = OneLibrary::new("exportLibrary.db").unwrap();
+//! let mut db = OneLibrary::new("PIONEER/rekordbox").unwrap();
 //!
 //! // Query all playlists
 //! let playlists = db.get_playlists().unwrap();
@@ -58,21 +58,35 @@ pub struct OneLibrary {
 }
 
 impl OneLibrary {
-    /// Open a OneLibrary (Device Library Plus) database specified by path.
+    /// Open `exportLibrary.db` in the supplied directory.
     ///
-    /// The `path` must be a valid database file.
-    pub fn new<P: AsRef<OsStr>>(path: P) -> Result<Self> {
+    /// Pass the database directory, usually `PIONEER/rekordbox`, not the USB root.
+    /// Use [`Self::from_path`] to open an explicit database filename.
+    pub fn new<P: AsRef<OsStr>>(directory: P) -> Result<Self> {
+        Self::from_path(Path::new(&directory).join("exportLibrary.db"))
+    }
+
+    /// Open an existing OneLibrary database at an explicit file path.
+    ///
+    /// The filename may differ from `exportLibrary.db`. Missing paths and
+    /// directories return [`Error::FileNotFound`]; I/O and connection errors
+    /// propagate. This does not create a database.
+    pub fn from_path<P: AsRef<OsStr>>(path: P) -> Result<Self> {
         let path = Path::new(&path);
-        if !path.exists() {
-            return Err(Error::FileNotFound(path.to_path_buf()));
+        match std::fs::metadata(path) {
+            Ok(metadata) if metadata.is_file() => (),
+            Ok(_) => return Err(Error::FileNotFound(path.to_path_buf())),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                return Err(Error::FileNotFound(path.to_path_buf()));
+            }
+            Err(error) => return Err(error.into()),
         }
-        let url = path.to_str().unwrap();
         Ok(Self {
-            pool: create_connection_pool(url, &ConnectionOptions::default(), 8)?,
+            pool: create_connection_pool(path, &ConnectionOptions::default(), 8)?,
         })
     }
 
-    /// Create a new OneLibrary (Device Library Plus) database.
+    /// Create a new OneLibrary database at an explicit file path.
     pub fn create<P: AsRef<OsStr>>(path: P, my_tag_master_dbid: i32) -> Result<Self> {
         let path = Path::new(&path);
         create(
@@ -80,14 +94,14 @@ impl OneLibrary {
             my_tag_master_dbid,
             &ConnectionOptions::default(),
         )?;
-        Self::new(path)
+        Self::from_path(path)
     }
 
-    /// Create a new OneLibrary database if it does not exist, otherwise return the existing one.
+    /// Create a database at an explicit file path, or open it if it already exists.
     pub fn create_if_not_exists<P: AsRef<OsStr>>(path: P, my_tag_master_dbid: i32) -> Result<Self> {
         let path = Path::new(&path);
         if path.exists() {
-            Self::new(path)
+            Self::from_path(path)
         } else {
             Self::create(path, my_tag_master_dbid)
         }

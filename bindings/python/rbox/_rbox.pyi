@@ -3305,8 +3305,13 @@ class NewSort(_RustMutableMapping):
     """A flag if the item is selected as a sub-column"""
 
 class PyOneLibrary:
-    def __init__(self, path: str) -> "PyOneLibrary":
-        """Open a OneLibrary (Device Library Plus) database specified by path."""
+    def __init__(self, directory: str) -> "PyOneLibrary":
+        """Open exportLibrary.db in the supplied directory, usually PIONEER/rekordbox."""
+        ...
+
+    @classmethod
+    def from_path(cls, path: str) -> "PyOneLibrary":
+        """Open an existing OneLibrary database at an explicit file path."""
         ...
 
     @classmethod

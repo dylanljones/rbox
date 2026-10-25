@@ -44,4 +44,4 @@ def master_db(fixture_copy):
 
 @pytest.fixture
 def one_library(fixture_copy):
-    return OneLibrary(str(fixture_copy("one_library")))
+    return OneLibrary.from_path(str(fixture_copy("one_library")))

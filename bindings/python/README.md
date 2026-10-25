@@ -74,7 +74,8 @@ an easy interface for accessing the data stored in it:
 ```python
 from rbox import OneLibrary
 
-db = OneLibrary("exportLibrary.db")
+db = OneLibrary("PIONEER/rekordbox")
+# For an explicit file: OneLibrary.from_path("backups/exportLibrary.db")
 contents = db.get_contents()
 for content in contents:
     print(content)

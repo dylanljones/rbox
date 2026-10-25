@@ -2,13 +2,31 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import test from 'ava'
+import { existsSync } from 'node:fs'
+import path from 'node:path'
 import { OneLibrary, OneLibraryPlaylistType, PlaylistType } from '../index.js'
-import { cleanupFixtures, fixtureCopy } from './helpers/fixtures.mjs'
+import { cleanupFixtures, fixtureCopy, temporaryPath } from './helpers/fixtures.mjs'
 
 test.afterEach.always(cleanupFixtures)
 
 test.beforeEach(t => {
-    t.context.db = new OneLibrary(fixtureCopy(t, 'oneLibrary'))
+    t.context.db = OneLibrary.fromPath(fixtureCopy(t, 'oneLibrary'))
+})
+
+test('directory and explicit file constructors', t => {
+    const file = temporaryPath(t, 'exportLibrary.db')
+    const db = new OneLibrary(path.dirname(file))
+    t.true(t.context.db instanceof OneLibrary)
+    t.is(db.getContents().length, t.context.db.getContents().length)
+    t.throws(() => new OneLibrary(file), { instanceOf: Error })
+    t.throws(() => OneLibrary.fromPath(path.dirname(file)), { instanceOf: Error })
+})
+
+test('missing database constructors do not create files', t => {
+    const missing = temporaryPath(t, 'missing')
+    t.throws(() => new OneLibrary(missing), { instanceOf: Error })
+    t.throws(() => OneLibrary.fromPath(missing), { instanceOf: Error })
+    t.false(existsSync(missing))
 })
 
 test('database playlist enums have distinct exports', t => {
