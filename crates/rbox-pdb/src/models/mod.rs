@@ -55,13 +55,13 @@ pub use browse::{BrowseCategory, BrowseColumn, BrowseSort};
 pub use color::{Color, NewColor};
 pub use content::{Content, ContentView, NewContent};
 pub use genre::{Genre, NewGenre};
-pub use history::{HistoryEntry, HistoryPlaylist, NewHistoryEntry, NewHistoryPlaylist};
+pub use history::{History, HistoryContent, NewHistory, NewHistoryContent};
 pub use key::{Key, NewKey};
 pub use label::{Label, NewLabel};
-pub use my_tag::{MyTag, NewMyTag, NewTrackMyTag, TrackMyTag};
-pub use playlist::{NewPlaylist, NewPlaylistEntry, Playlist, PlaylistEntry};
+pub use my_tag::{MyTag, MyTagContent, NewMyTag, NewMyTagContent};
+pub use playlist::{NewPlaylist, NewPlaylistContent, Playlist, PlaylistContent};
 pub use property::{DatabaseProperty, ExportProperty};
-pub use recommend_like::{NewRecommendLike, RecommendLike};
+pub use recommend_like::{NewRecommendedLike, RecommendedLike};
 
 use std::collections::HashMap;
 use std::hash::Hash;

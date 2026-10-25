@@ -1,7 +1,7 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
-//! RecommendLike snapshots and explicit DeviceSQL queries and insertions.
+//! RecommendedLike snapshots and explicit DeviceSQL queries and insertions.
 
 use std::io::{Read, Seek};
 
@@ -10,19 +10,19 @@ use crate::binary::{ExtPageType, ExtendedRow, RecommendLikeRow, Row, RowRecord, 
 use crate::devicesql::DeviceSqlConnection;
 use crate::{Error, Result};
 
-/// A detached RecommendLike row in the extended database.
+/// A detached RecommendedLike row in the extended database.
 ///
 /// Public-field edits affect only this snapshot. Unknown data and original framing
 /// remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
 /// No unique row ID or singleton constraint is assumed; repeated rows are retained.
 #[derive(Clone, PartialEq, Eq)]
-pub struct RecommendLike {
+pub struct RecommendedLike {
     /// Raw eight-byte value at 0x00; not interpreted as a timestamp.
     pub unknown_00: u64,
     /// First standard export track ID; no source/target direction is inferred.
-    pub track_id_1: u32,
+    pub content_id_1: u32,
     /// Second standard export track ID.
-    pub track_id_2: u32,
+    pub content_id_2: u32,
     /// Raw word at 0x10.
     pub unknown_10: u32,
     /// Raw word at 0x14; flag semantics are unknown.
@@ -30,19 +30,19 @@ pub struct RecommendLike {
     raw: RowRecord,
 }
 
-impl std::fmt::Debug for RecommendLike {
+impl std::fmt::Debug for RecommendedLike {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("RecommendLike")
+        f.debug_struct("RecommendedLike")
             .field("unknown_00", &self.unknown_00)
-            .field("track_id_1", &self.track_id_1)
-            .field("track_id_2", &self.track_id_2)
+            .field("content_id_1", &self.content_id_1)
+            .field("content_id_2", &self.content_id_2)
             .field("unknown_10", &self.unknown_10)
             .field("unknown_14", &self.unknown_14)
             .finish()
     }
 }
 
-impl RecommendLike {
+impl RecommendedLike {
     /// Database namespace and table containing these rows.
     pub const TABLE: TableKind = TableKind::Extended(ExtPageType::RecommendLike);
 
@@ -62,14 +62,14 @@ impl RecommendLike {
 
     /// Scan rows containing either track ID, retaining physical order and repetitions.
     /// Referenced rows are not loaded or validated.
-    pub fn by_track<R: Read + Seek>(
+    pub fn by_content<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        track_id: &u32,
+        content_id: &u32,
     ) -> Result<Vec<Self>> {
         let mut rows = Vec::new();
         for row in Self::iter(conn)? {
             let row = row?;
-            if row.track_id_1 == *track_id || row.track_id_2 == *track_id {
+            if row.content_id_1 == *content_id || row.content_id_2 == *content_id {
                 rows.push(row);
             }
         }
@@ -82,7 +82,7 @@ impl RecommendLike {
     }
 }
 
-impl TryFrom<RowRecord> for RecommendLike {
+impl TryFrom<RowRecord> for RecommendedLike {
     type Error = Error;
 
     /// Decode the binary fields while retaining the original row window.
@@ -95,8 +95,8 @@ impl TryFrom<RowRecord> for RecommendLike {
         };
         Ok(Self {
             unknown_00: row.unknown_00,
-            track_id_1: row.track_id_1,
-            track_id_2: row.track_id_2,
+            content_id_1: row.track_id_1,
+            content_id_2: row.track_id_2,
             unknown_10: row.unknown_10,
             unknown_14: row.unknown_14,
             raw: record,
@@ -104,7 +104,7 @@ impl TryFrom<RowRecord> for RecommendLike {
     }
 }
 
-/// Insertion input for a fresh RecommendLike row.
+/// Insertion input for a fresh RecommendedLike row.
 ///
 /// Creation semantics are not established. All unknown words must be supplied
 /// explicitly; this input provides binary insertion, not a recommendation generator
@@ -112,31 +112,31 @@ impl TryFrom<RowRecord> for RecommendLike {
 /// are not inferred.
 /// Saving is explicit; insertion commits only to the in-memory connection.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NewRecommendLike {
+pub struct NewRecommendedLike {
     /// Raw eight-byte value at 0x00; not interpreted as a timestamp.
     pub unknown_00: u64,
     /// First standard export track ID; no source/target direction is inferred.
-    pub track_id_1: u32,
+    pub content_id_1: u32,
     /// Second standard export track ID.
-    pub track_id_2: u32,
+    pub content_id_2: u32,
     /// Raw word at 0x10.
     pub unknown_10: u32,
     /// Raw word at 0x14; flag semantics are unknown.
     pub unknown_14: u32,
 }
 
-impl NewRecommendLike {
+impl NewRecommendedLike {
     /// Prepare an insertion with explicit inputs.
     pub fn new(
-        track_id_1: u32,
-        track_id_2: u32,
+        content_id_1: u32,
+        content_id_2: u32,
         unknown_00: u64,
         unknown_10: u32,
         unknown_14: u32,
     ) -> Self {
         Self {
-            track_id_1,
-            track_id_2,
+            content_id_1,
+            content_id_2,
             unknown_00,
             unknown_10,
             unknown_14,
@@ -148,27 +148,27 @@ impl NewRecommendLike {
     pub fn insert<R: Read + Seek>(
         self,
         conn: &mut DeviceSqlConnection<R>,
-    ) -> Result<RecommendLike> {
-        conn.check_kind(RecommendLike::TABLE)?;
+    ) -> Result<RecommendedLike> {
+        conn.check_kind(RecommendedLike::TABLE)?;
         let row = self.to_binary()?;
         let mut tx = conn.transaction();
         let handle = tx.insert(
-            RecommendLike::TABLE,
+            RecommendedLike::TABLE,
             &Row::Extended(ExtendedRow::RecommendLike(row)),
         )?;
-        let model = RecommendLike::try_from(tx.read(&handle)?)?;
+        let model = RecommendedLike::try_from(tx.read(&handle)?)?;
         tx.commit()?;
         Ok(model)
     }
 
     /// Encode fields for an explicit binary transaction; placement is assigned by the engine.
     pub fn to_binary(&self) -> Result<RecommendLikeRow> {
-        validate_nonzero_id(RecommendLike::TABLE, "track_id_1", self.track_id_1)?;
-        validate_nonzero_id(RecommendLike::TABLE, "track_id_2", self.track_id_2)?;
+        validate_nonzero_id(RecommendedLike::TABLE, "content_id_1", self.content_id_1)?;
+        validate_nonzero_id(RecommendedLike::TABLE, "content_id_2", self.content_id_2)?;
         Ok(RecommendLikeRow {
             unknown_00: self.unknown_00,
-            track_id_1: self.track_id_1,
-            track_id_2: self.track_id_2,
+            track_id_1: self.content_id_1,
+            track_id_2: self.content_id_2,
             unknown_10: self.unknown_10,
             unknown_14: self.unknown_14,
         })

@@ -4,7 +4,7 @@
 //! Playlists, folders and their track occurrences in the standard DeviceSQL database.
 //!
 //! [Playlist] and [NewPlaylist] describe playlist-tree nodes in table 7.
-//! [PlaylistEntry] and [NewPlaylistEntry] describe ordered track occurrences
+//! [PlaylistContent] and [NewPlaylistContent] describe ordered track occurrences
 //! in table 8. Queries do not load related rows automatically; repeated tracks
 //! and position ties are retained.
 
@@ -29,9 +29,9 @@ pub struct Playlist {
     /// Parent folder ID; zero denotes the root.
     pub parent_id: u32,
     /// Stored sibling position; gaps and ties are retained.
-    pub position: u32,
+    pub seq: u32,
     /// Raw folder flag; conventionally zero for playlists and nonzero for folders.
-    pub folder_flag: u32,
+    pub attribute: u32,
     /// Decoded display name.
     pub name: String,
     raw: RowRecord,
@@ -42,8 +42,8 @@ impl std::fmt::Debug for Playlist {
         f.debug_struct("Playlist")
             .field("id", &self.id)
             .field("parent_id", &self.parent_id)
-            .field("position", &self.position)
-            .field("folder_flag", &self.folder_flag)
+            .field("seq", &self.seq)
+            .field("attribute", &self.attribute)
             .field("name", &self.name)
             .finish()
     }
@@ -104,13 +104,13 @@ impl Playlist {
                 children.push(row);
             }
         }
-        children.sort_by_key(|row| row.position);
+        children.sort_by_key(|row| row.seq);
         Ok(children)
     }
 
     /// Interpret the conventional nonzero folder flag without changing its raw value.
     pub fn is_folder(&self) -> bool {
-        self.folder_flag != 0
+        self.attribute != 0
     }
 
     /// Original row window, including reserved fields and the source location.
@@ -142,8 +142,8 @@ impl TryFrom<RowRecord> for Playlist {
         Ok(Self {
             id: row.id,
             parent_id: row.parent_id,
-            position: row.position,
-            folder_flag: row.folder_flag,
+            seq: row.position,
+            attribute: row.folder_flag,
             name: row
                 .name
                 .text()
@@ -166,9 +166,9 @@ pub struct NewPlaylist {
     /// Parent folder ID; zero denotes the root.
     pub parent_id: u32,
     /// Explicit sibling position; other nodes are not renumbered.
-    pub position: u32,
+    pub seq: u32,
     /// Raw folder flag; constructors use zero for playlists and one for folders.
-    pub folder_flag: u32,
+    pub attribute: u32,
     /// Display name.
     pub name: String,
     /// Reserved word at 0x04, defaulting to zero.
@@ -177,22 +177,22 @@ pub struct NewPlaylist {
 
 impl NewPlaylist {
     /// Prepare a playlist with an explicit parent and sibling position.
-    pub fn new(id: u32, parent_id: u32, position: u32, name: impl Into<String>) -> Self {
+    pub fn new(id: u32, parent_id: u32, seq: u32, name: impl Into<String>) -> Self {
         Self {
             id,
             parent_id,
-            position,
+            seq,
             name: name.into(),
-            folder_flag: 0,
+            attribute: 0,
             unknown_04: 0,
         }
     }
 
     /// Prepare a folder with an explicit parent and sibling position.
-    pub fn folder(id: u32, parent_id: u32, position: u32, name: impl Into<String>) -> Self {
+    pub fn folder(id: u32, parent_id: u32, seq: u32, name: impl Into<String>) -> Self {
         Self {
-            folder_flag: 1,
-            ..Self::new(id, parent_id, position, name)
+            attribute: 1,
+            ..Self::new(id, parent_id, seq, name)
         }
     }
 
@@ -227,9 +227,9 @@ impl NewPlaylist {
         Ok(PlaylistTreeRow {
             parent_id: self.parent_id,
             unknown_04: self.unknown_04,
-            position: self.position,
+            position: self.seq,
             id: self.id,
-            folder_flag: self.folder_flag,
+            folder_flag: self.attribute,
             name: text(&self.name)?,
         })
     }
@@ -241,27 +241,27 @@ impl NewPlaylist {
 /// position ties are retained. Editing fields changes only this snapshot; tracks
 /// and playlist nodes are not loaded automatically.
 #[derive(Clone, PartialEq, Eq)]
-pub struct PlaylistEntry {
+pub struct PlaylistContent {
     /// Export playlist ID.
     pub playlist_id: u32,
     /// Export track ID, distinct from the source/master content ID.
-    pub track_id: u32,
+    pub content_id: u32,
     /// Stored position, commonly one-based; zero and gaps remain unmodified on reads.
-    pub position: u32,
+    pub seq: u32,
     raw: RowRecord,
 }
 
-impl std::fmt::Debug for PlaylistEntry {
+impl std::fmt::Debug for PlaylistContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("PlaylistEntry")
+        f.debug_struct("PlaylistContent")
             .field("playlist_id", &self.playlist_id)
-            .field("track_id", &self.track_id)
-            .field("position", &self.position)
+            .field("content_id", &self.content_id)
+            .field("seq", &self.seq)
             .finish()
     }
 }
 
-impl PlaylistEntry {
+impl PlaylistContent {
     /// Standard database table containing track occurrences.
     pub const TABLE: TableKind = TableKind::Standard(PageType::PlaylistEntries);
 
@@ -294,7 +294,7 @@ impl PlaylistEntry {
                 entries.push(row);
             }
         }
-        entries.sort_by_key(|row| row.position);
+        entries.sort_by_key(|row| row.seq);
         Ok(entries)
     }
 
@@ -306,7 +306,7 @@ impl PlaylistEntry {
     }
 }
 
-impl TryFrom<RowRecord> for PlaylistEntry {
+impl TryFrom<RowRecord> for PlaylistContent {
     type Error = Error;
 
     /// Decode an entry without discarding its original row window.
@@ -319,8 +319,8 @@ impl TryFrom<RowRecord> for PlaylistEntry {
         };
         Ok(Self {
             playlist_id: row.playlist_id,
-            track_id: row.track_id,
-            position: row.position,
+            content_id: row.track_id,
+            seq: row.position,
             raw: record,
         })
     }
@@ -333,22 +333,22 @@ impl TryFrom<RowRecord> for PlaylistEntry {
 /// resolved. The caller supplies valid references to a playlist and an export track.
 /// Saving, relationship validation and automatic ordering remain separate steps.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NewPlaylistEntry {
+pub struct NewPlaylistContent {
     /// Nonzero export playlist ID; existence and folder status are not inferred.
     pub playlist_id: u32,
     /// Nonzero export track ID.
-    pub track_id: u32,
+    pub content_id: u32,
     /// Explicit position, conventionally one-based; other positions are untouched.
-    pub position: u32,
+    pub seq: u32,
 }
 
-impl NewPlaylistEntry {
+impl NewPlaylistContent {
     /// Prepare an occurrence with an explicit playlist, track and position.
-    pub fn new(playlist_id: u32, track_id: u32, position: u32) -> Self {
+    pub fn new(playlist_id: u32, content_id: u32, seq: u32) -> Self {
         Self {
             playlist_id,
-            track_id,
-            position,
+            content_id,
+            seq,
         }
     }
 
@@ -357,26 +357,26 @@ impl NewPlaylistEntry {
     pub fn insert<R: Read + Seek>(
         self,
         conn: &mut DeviceSqlConnection<R>,
-    ) -> Result<PlaylistEntry> {
-        conn.check_kind(PlaylistEntry::TABLE)?;
+    ) -> Result<PlaylistContent> {
+        conn.check_kind(PlaylistContent::TABLE)?;
         let row = self.to_binary()?;
         let mut tx = conn.transaction();
         let handle = tx.insert(
-            PlaylistEntry::TABLE,
+            PlaylistContent::TABLE,
             &Row::Standard(StandardRow::PlaylistEntry(row)),
         )?;
-        let model = PlaylistEntry::try_from(tx.read(&handle)?)?;
+        let model = PlaylistContent::try_from(tx.read(&handle)?)?;
         tx.commit()?;
         Ok(model)
     }
 
     /// Encode the binary fields for an explicit transaction; placement is assigned by the engine.
     pub fn to_binary(&self) -> Result<PlaylistEntryRow> {
-        validate_nonzero_id(PlaylistEntry::TABLE, "playlist_id", self.playlist_id)?;
-        validate_nonzero_id(PlaylistEntry::TABLE, "track_id", self.track_id)?;
+        validate_nonzero_id(PlaylistContent::TABLE, "playlist_id", self.playlist_id)?;
+        validate_nonzero_id(PlaylistContent::TABLE, "content_id", self.content_id)?;
         Ok(PlaylistEntryRow {
-            position: self.position,
-            track_id: self.track_id,
+            position: self.seq,
+            track_id: self.content_id,
             playlist_id: self.playlist_id,
         })
     }

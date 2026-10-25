@@ -3,8 +3,8 @@
 
 //! History playlists and their track occurrences in the standard DeviceSQL database.
 //!
-//! [HistoryPlaylist] and [NewHistoryPlaylist] describe named histories in table 11.
-//! [HistoryEntry] and [NewHistoryEntry] describe their ordered track occurrences
+//! [History] and [NewHistory] describe named histories in table 11.
+//! [HistoryContent] and [NewHistoryContent] describe their ordered track occurrences
 //! in table 12. History IDs are separate from regular playlist IDs. Queries load
 //! relationships explicitly and retain repeated plays of the same track.
 
@@ -21,7 +21,7 @@ use crate::{Error, Result};
 /// values and framing remain in [`Self::raw_record`]. Queries never load related
 /// tables and reject extended database connections.
 #[derive(Clone, PartialEq, Eq)]
-pub struct HistoryPlaylist {
+pub struct History {
     /// History-playlist ID, in a separate namespace from regular playlists.
     pub id: u32,
 
@@ -30,16 +30,16 @@ pub struct HistoryPlaylist {
     raw: RowRecord,
 }
 
-impl std::fmt::Debug for HistoryPlaylist {
+impl std::fmt::Debug for History {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("HistoryPlaylist")
+        f.debug_struct("History")
             .field("id", &self.id)
             .field("name", &self.name)
             .finish()
     }
 }
 
-impl HistoryPlaylist {
+impl History {
     /// Standard database table containing these rows.
     pub const TABLE: TableKind = TableKind::Standard(PageType::HistoryPlaylists);
 
@@ -94,7 +94,7 @@ impl HistoryPlaylist {
     }
 }
 
-impl TryFrom<RowRecord> for HistoryPlaylist {
+impl TryFrom<RowRecord> for History {
     type Error = Error;
 
     /// Decode a binary row while retaining its complete original read window.
@@ -123,7 +123,7 @@ impl TryFrom<RowRecord> for HistoryPlaylist {
 /// Insertion commits to the connection's in-memory overlay; saving is explicit.
 /// Other tables are not modified.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NewHistoryPlaylist {
+pub struct NewHistory {
     /// Unused, nonzero export history playlist ID.
     pub id: u32,
 
@@ -131,7 +131,7 @@ pub struct NewHistoryPlaylist {
     pub name: String,
 }
 
-impl NewHistoryPlaylist {
+impl NewHistory {
     /// Prepare a new history playlist with explicit identity and display name.
     pub fn new(id: u32, name: impl Into<String>) -> Self {
         Self {
@@ -142,27 +142,24 @@ impl NewHistoryPlaylist {
 
     /// Insert atomically, rejecting duplicate IDs and leaving the connection unchanged on error.
     /// The returned model contains the engine-created row. This does not save to disk.
-    pub fn insert<R: Read + Seek>(
-        self,
-        conn: &mut DeviceSqlConnection<R>,
-    ) -> Result<HistoryPlaylist> {
-        conn.check_kind(HistoryPlaylist::TABLE)?;
+    pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<History> {
+        conn.check_kind(History::TABLE)?;
         let row = self.to_binary()?;
         let mut tx = conn.transaction();
         if tx
-            .index_rows(HistoryPlaylist::TABLE, HistoryPlaylist::read_id)?
+            .index_rows(History::TABLE, History::read_id)?
             .contains_key(&self.id)
         {
             return Err(Error::DuplicateId {
-                table: HistoryPlaylist::TABLE,
+                table: History::TABLE,
                 id: self.id,
             });
         }
         let handle = tx.insert(
-            HistoryPlaylist::TABLE,
+            History::TABLE,
             &Row::Standard(StandardRow::HistoryPlaylist(row)),
         )?;
-        let model = HistoryPlaylist::try_from(tx.read(&handle)?)?;
+        let model = History::try_from(tx.read(&handle)?)?;
         tx.commit()?;
         Ok(model)
     }
@@ -170,7 +167,7 @@ impl NewHistoryPlaylist {
     /// Encode fields for an explicit binary transaction; the engine assigns placement.
     /// Direct binary inserts do not check model-ID uniqueness.
     pub fn to_binary(&self) -> Result<NamedRow> {
-        validate_id(HistoryPlaylist::TABLE, self.id)?;
+        validate_id(History::TABLE, self.id)?;
         Ok(NamedRow {
             id: self.id,
             name: text(&self.name)?,
@@ -184,27 +181,27 @@ impl NewHistoryPlaylist {
 /// position ties are retained. Editing fields changes only this snapshot; tracks
 /// and history playlists are not loaded automatically. No timestamp is inferred.
 #[derive(Clone, PartialEq, Eq)]
-pub struct HistoryEntry {
+pub struct HistoryContent {
     /// History-playlist ID; this does not reference the regular playlist table.
-    pub playlist_id: u32,
+    pub history_id: u32,
     /// Export track ID, distinct from the source/master content ID.
-    pub track_id: u32,
+    pub content_id: u32,
     /// Stored occurrence position; zero and gaps remain unmodified on reads.
-    pub position: u32,
+    pub seq: u32,
     raw: RowRecord,
 }
 
-impl std::fmt::Debug for HistoryEntry {
+impl std::fmt::Debug for HistoryContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("HistoryEntry")
-            .field("playlist_id", &self.playlist_id)
-            .field("track_id", &self.track_id)
-            .field("position", &self.position)
+        f.debug_struct("HistoryContent")
+            .field("history_id", &self.history_id)
+            .field("content_id", &self.content_id)
+            .field("seq", &self.seq)
             .finish()
     }
 }
 
-impl HistoryEntry {
+impl HistoryContent {
     /// Standard database table containing track occurrences.
     pub const TABLE: TableKind = TableKind::Standard(PageType::HistoryEntries);
 
@@ -226,18 +223,18 @@ impl HistoryEntry {
     /// Read a history playlist's occurrences sorted by stored position.
     /// Ties retain physical iteration order, including identical entries.
     /// This scans the entry table and does not load the playlist or referenced tracks.
-    pub fn by_playlist<R: Read + Seek>(
+    pub fn by_history<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        playlist_id: &u32,
+        history_id: &u32,
     ) -> Result<Vec<Self>> {
         let mut entries = Vec::new();
         for row in Self::iter(conn)? {
             let row = row?;
-            if row.playlist_id == *playlist_id {
+            if row.history_id == *history_id {
                 entries.push(row);
             }
         }
-        entries.sort_by_key(|row| row.position);
+        entries.sort_by_key(|row| row.seq);
         Ok(entries)
     }
 
@@ -249,7 +246,7 @@ impl HistoryEntry {
     }
 }
 
-impl TryFrom<RowRecord> for HistoryEntry {
+impl TryFrom<RowRecord> for HistoryContent {
     type Error = Error;
 
     /// Decode an entry without discarding its original row window.
@@ -261,9 +258,9 @@ impl TryFrom<RowRecord> for HistoryEntry {
             return Err(unsupported(&record));
         };
         Ok(Self {
-            playlist_id: row.playlist_id,
-            track_id: row.track_id,
-            position: row.position,
+            history_id: row.playlist_id,
+            content_id: row.track_id,
+            seq: row.position,
             raw: record,
         })
     }
@@ -276,48 +273,51 @@ impl TryFrom<RowRecord> for HistoryEntry {
 /// resolved. The caller supplies valid references to a history playlist and an export track.
 /// Saving, relationship validation and automatic ordering remain separate steps.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NewHistoryEntry {
+pub struct NewHistoryContent {
     /// Nonzero history-playlist ID; existence is not checked.
-    pub playlist_id: u32,
+    pub history_id: u32,
     /// Nonzero export track ID.
-    pub track_id: u32,
+    pub content_id: u32,
     /// Explicit occurrence position; other positions are untouched.
-    pub position: u32,
+    pub seq: u32,
 }
 
-impl NewHistoryEntry {
+impl NewHistoryContent {
     /// Prepare an occurrence with an explicit playlist, track and position.
-    pub fn new(playlist_id: u32, track_id: u32, position: u32) -> Self {
+    pub fn new(history_id: u32, content_id: u32, seq: u32) -> Self {
         Self {
-            playlist_id,
-            track_id,
-            position,
+            history_id,
+            content_id,
+            seq,
         }
     }
 
     /// Insert one occurrence atomically, allowing repeated tracks and position ties.
     /// Returns the engine-created row and commits in memory only; saving is explicit.
-    pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<HistoryEntry> {
-        conn.check_kind(HistoryEntry::TABLE)?;
+    pub fn insert<R: Read + Seek>(
+        self,
+        conn: &mut DeviceSqlConnection<R>,
+    ) -> Result<HistoryContent> {
+        conn.check_kind(HistoryContent::TABLE)?;
         let row = self.to_binary()?;
         let mut tx = conn.transaction();
         let handle = tx.insert(
-            HistoryEntry::TABLE,
+            HistoryContent::TABLE,
             &Row::Standard(StandardRow::HistoryEntry(row)),
         )?;
-        let model = HistoryEntry::try_from(tx.read(&handle)?)?;
+        let model = HistoryContent::try_from(tx.read(&handle)?)?;
         tx.commit()?;
         Ok(model)
     }
 
     /// Encode the binary fields for an explicit transaction; placement is assigned by the engine.
     pub fn to_binary(&self) -> Result<HistoryEntryRow> {
-        validate_nonzero_id(HistoryEntry::TABLE, "playlist_id", self.playlist_id)?;
-        validate_nonzero_id(HistoryEntry::TABLE, "track_id", self.track_id)?;
+        validate_nonzero_id(HistoryContent::TABLE, "history_id", self.history_id)?;
+        validate_nonzero_id(HistoryContent::TABLE, "content_id", self.content_id)?;
         Ok(HistoryEntryRow {
-            position: self.position,
-            track_id: self.track_id,
-            playlist_id: self.playlist_id,
+            position: self.seq,
+            track_id: self.content_id,
+            playlist_id: self.history_id,
         })
     }
 }

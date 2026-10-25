@@ -428,7 +428,7 @@ mod configuration {
     };
     use rbox_pdb::models::{
         BrowseCategory, BrowseColumn, BrowseSort, DatabaseProperty, ExportProperty,
-        NewRecommendLike, RecommendLike,
+        NewRecommendedLike, RecommendedLike,
     };
 
     // Seed binary rows independently of the model API under test.
@@ -635,10 +635,10 @@ mod configuration {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
         let reads = conn.read_stats();
         drop(DatabaseProperty::iter(&mut conn)?);
-        drop(RecommendLike::iter(&mut conn)?);
+        drop(RecommendedLike::iter(&mut conn)?);
         assert_eq!(conn.read_stats(), reads);
         assert!(DatabaseProperty::all(&mut conn)?.is_empty());
-        assert!(RecommendLike::all(&mut conn)?.is_empty());
+        assert!(RecommendedLike::all(&mut conn)?.is_empty());
         let mut options = CreateOptions::extended(0)?;
         let table = options
             .tables
@@ -673,16 +673,16 @@ mod configuration {
         tx.commit()?;
         assert_eq!(model.my_tag_master_db_id, 0);
         for (first, second) in [(10, 20), (20, 10), (10, 20), (10, 10), (30, 40)] {
-            NewRecommendLike::new(first, second, u64::MAX, 0x12345678, 0xabcdef01)
+            NewRecommendedLike::new(first, second, u64::MAX, 0x12345678, 0xabcdef01)
                 .insert(&mut conn)?;
         }
-        assert_eq!(RecommendLike::by_track(&mut conn, &10)?.len(), 4);
-        assert!(RecommendLike::by_track(&mut conn, &99)?.is_empty());
-        let pairs = RecommendLike::all(&mut conn)?;
+        assert_eq!(RecommendedLike::by_content(&mut conn, &10)?.len(), 4);
+        assert!(RecommendedLike::by_content(&mut conn, &99)?.is_empty());
+        let pairs = RecommendedLike::all(&mut conn)?;
         assert_eq!(
             pairs
                 .iter()
-                .map(|p| (p.track_id_1, p.track_id_2))
+                .map(|p| (p.content_id_1, p.content_id_2))
                 .collect::<Vec<_>>(),
             vec![(10, 20), (20, 10), (10, 20), (10, 10), (30, 40)]
         );
@@ -695,7 +695,7 @@ mod configuration {
         conn.write_to(&mut bytes)?;
         let mut reopened =
             DeviceSqlConnection::from_reader(Cursor::new(bytes), DatabaseKind::Extended)?;
-        assert_eq!(RecommendLike::all(&mut reopened)?, pairs);
+        assert_eq!(RecommendedLike::all(&mut reopened)?, pairs);
         assert_eq!(DatabaseProperty::all(&mut reopened)?, properties);
         Ok(())
     }
@@ -771,24 +771,30 @@ mod configuration {
                 assert_eq!(m.my_tag_master_db_id, r.header.my_tag_master_db_id);
             }
         );
-        check!(extended, RecommendLike, Extended, RecommendLike, |m, r| {
-            assert_eq!(
-                (
-                    m.unknown_00,
-                    m.track_id_1,
-                    m.track_id_2,
-                    m.unknown_10,
-                    m.unknown_14
-                ),
-                (
-                    r.unknown_00,
-                    r.track_id_1,
-                    r.track_id_2,
-                    r.unknown_10,
-                    r.unknown_14
-                )
-            );
-        });
+        check!(
+            extended,
+            RecommendedLike,
+            Extended,
+            RecommendLike,
+            |m, r| {
+                assert_eq!(
+                    (
+                        m.unknown_00,
+                        m.content_id_1,
+                        m.content_id_2,
+                        m.unknown_10,
+                        m.unknown_14
+                    ),
+                    (
+                        r.unknown_00,
+                        r.track_id_1,
+                        r.track_id_2,
+                        r.unknown_10,
+                        r.unknown_14
+                    )
+                );
+            }
+        );
         assert_eq!(standard.modified_page_count(), 0);
         assert_eq!(extended.modified_page_count(), 0);
         Ok(())
@@ -831,8 +837,8 @@ mod configuration {
         wrong!(standard, DatabaseProperty);
         wrong!(
             standard,
-            RecommendLike,
-            NewRecommendLike::new(1, 2, 3, 4, 5)
+            RecommendedLike,
+            NewRecommendedLike::new(1, 2, 3, 4, 5)
         );
         assert!(matches!(
             BrowseColumn::find(&mut extended, &1),
@@ -851,7 +857,7 @@ mod configuration {
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            RecommendLike::by_track(&mut standard, &1),
+            RecommendedLike::by_content(&mut standard, &1),
             Err(Error::WrongDatabaseKind { .. })
         ));
         let column = BrowseColumn::try_from(seed_browse(
@@ -880,7 +886,7 @@ mod configuration {
             Err(Error::UnsupportedModelRow { .. })
         ));
         assert!(matches!(
-            RecommendLike::try_from(record),
+            RecommendedLike::try_from(record),
             Err(Error::UnsupportedModelRow { .. })
         ));
         let category = BrowseCategory::try_from(seed_browse(
@@ -901,16 +907,16 @@ mod configuration {
         standard.write_to(&mut before)?;
         let state = (standard.page_count(), standard.modified_page_count());
         assert!(matches!(
-            NewRecommendLike::new(0, 2, 3, 4, 5).insert(&mut extended),
+            NewRecommendedLike::new(0, 2, 3, 4, 5).insert(&mut extended),
             Err(Error::InvalidModelField {
-                field: "track_id_1",
+                field: "content_id_1",
                 ..
             })
         ));
         assert!(matches!(
-            NewRecommendLike::new(1, 0, 3, 4, 5).insert(&mut extended),
+            NewRecommendedLike::new(1, 0, 3, 4, 5).insert(&mut extended),
             Err(Error::InvalidModelField {
-                field: "track_id_2",
+                field: "content_id_2",
                 ..
             })
         ));
@@ -933,10 +939,10 @@ mod configuration {
             ..Default::default()
         })?;
         assert!(matches!(
-            NewRecommendLike::new(1, 2, 3, 4, 5).insert(&mut extended),
+            NewRecommendedLike::new(1, 2, 3, 4, 5).insert(&mut extended),
             Err(Error::DirtyPageLimit { .. })
         ));
-        assert!(RecommendLike::all(&mut extended)?.is_empty());
+        assert!(RecommendedLike::all(&mut extended)?.is_empty());
         assert_eq!(extended.modified_page_count(), 0);
         Ok(())
     }
@@ -1007,33 +1013,29 @@ mod history {
 
     use super::*;
     use rbox_pdb::models::{
-        HistoryEntry, HistoryPlaylist, NewHistoryEntry, NewHistoryPlaylist, NewPlaylist,
-        PlaylistEntry,
+        History, HistoryContent, NewHistory, NewHistoryContent, NewPlaylist, PlaylistContent,
     };
 
     #[test]
     fn history_round_trip_preserves_occurrences_order_and_separate_playlist_ids() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
         let reads = conn.read_stats();
-        drop(HistoryPlaylist::iter(&mut conn)?);
-        drop(HistoryEntry::iter(&mut conn)?);
+        drop(History::iter(&mut conn)?);
+        drop(HistoryContent::iter(&mut conn)?);
         assert_eq!(conn.read_stats(), reads);
-        assert!(HistoryPlaylist::all(&mut conn)?.is_empty());
-        assert!(HistoryPlaylist::find(&mut conn, &1)?.is_none());
-        assert!(HistoryEntry::by_playlist(&mut conn, &1)?.is_empty());
+        assert!(History::all(&mut conn)?.is_empty());
+        assert!(History::find(&mut conn, &1)?.is_none());
+        assert!(HistoryContent::by_history(&mut conn, &1)?.is_empty());
         NewPlaylist::new(1, 0, 1, "Regular playlist").insert(&mut conn)?;
-        let mut detached = NewHistoryPlaylist::new(1, "Session 音楽").insert(&mut conn)?;
+        let mut detached = NewHistory::new(1, "Session 音楽").insert(&mut conn)?;
         detached.name = "Local edit".into();
-        assert_eq!(
-            HistoryPlaylist::find(&mut conn, &1)?.unwrap().name,
-            "Session 音楽"
-        );
+        assert_eq!(History::find(&mut conn, &1)?.unwrap().name, "Session 音楽");
         let reads = conn.read_stats();
-        assert!(HistoryPlaylist::id_exists(&mut conn, &1)?);
-        assert!(!HistoryPlaylist::id_exists(&mut conn, &2)?);
+        assert!(History::id_exists(&mut conn, &1)?);
+        assert!(!History::id_exists(&mut conn, &2)?);
         assert_eq!(conn.read_stats(), reads);
-        NewHistoryPlaylist::new(2, "").insert(&mut conn)?;
-        assert!(HistoryPlaylist::id_exists(&mut conn, &2)?);
+        NewHistory::new(2, "").insert(&mut conn)?;
+        assert!(History::id_exists(&mut conn, &2)?);
         NewContent::new(10, "/Contents/One.wav").insert(&mut conn)?;
         NewContent::new(20, "/Contents/Two.wav").insert(&mut conn)?;
         for (playlist, track, position) in [
@@ -1044,13 +1046,13 @@ mod history {
             (1, 10, 0),
             (2, 20, 1),
         ] {
-            NewHistoryEntry::new(playlist, track, position).insert(&mut conn)?;
+            NewHistoryContent::new(playlist, track, position).insert(&mut conn)?;
         }
-        let ordered = HistoryEntry::by_playlist(&mut conn, &1)?;
+        let ordered = HistoryContent::by_history(&mut conn, &1)?;
         assert_eq!(
             ordered
                 .iter()
-                .map(|e| (e.track_id, e.position))
+                .map(|e| (e.content_id, e.seq))
                 .collect::<Vec<_>>(),
             vec![(10, 0), (20, 4), (10, 4), (10, 4), (10, 30)]
         );
@@ -1058,13 +1060,13 @@ mod history {
             ordered[2].raw_record().slot().slot,
             ordered[3].raw_record().slot().slot
         );
-        assert_eq!(HistoryEntry::by_playlist(&mut conn, &2)?.len(), 1);
-        assert!(HistoryEntry::by_playlist(&mut conn, &99)?.is_empty());
-        assert!(PlaylistEntry::all(&mut conn)?.is_empty());
-        let all = HistoryEntry::all(&mut conn)?;
+        assert_eq!(HistoryContent::by_history(&mut conn, &2)?.len(), 1);
+        assert!(HistoryContent::by_history(&mut conn, &99)?.is_empty());
+        assert!(PlaylistContent::all(&mut conn)?.is_empty());
+        let all = HistoryContent::all(&mut conn)?;
         assert_eq!(
             all.iter()
-                .map(|e| (e.playlist_id, e.track_id, e.position))
+                .map(|e| (e.history_id, e.content_id, e.seq))
                 .collect::<Vec<_>>(),
             vec![
                 (1, 10, 30),
@@ -1080,51 +1082,51 @@ mod history {
             &all[0].raw_record().as_bytes()[..12],
             &[10, 0, 0, 0, 1, 0, 0, 0, 30, 0, 0, 0]
         );
-        let playlists = HistoryPlaylist::all(&mut conn)?;
+        let playlists = History::all(&mut conn)?;
         let mut bytes = Vec::new();
         conn.write_to(&mut bytes)?;
         let mut reopened =
             DeviceSqlConnection::from_reader(Cursor::new(bytes), DatabaseKind::Standard)?;
-        assert_eq!(HistoryPlaylist::all(&mut reopened)?, playlists);
-        assert_eq!(HistoryEntry::all(&mut reopened)?, all);
-        assert_eq!(HistoryEntry::by_playlist(&mut reopened, &1)?, ordered);
+        assert_eq!(History::all(&mut reopened)?, playlists);
+        assert_eq!(HistoryContent::all(&mut reopened)?, all);
+        assert_eq!(HistoryContent::by_history(&mut reopened, &1)?, ordered);
         Ok(())
     }
 
     #[test]
     fn history_insert_errors_preserve_the_connection() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewHistoryPlaylist::new(1, "Original").insert(&mut conn)?;
+        NewHistory::new(1, "Original").insert(&mut conn)?;
         let state = (conn.page_count(), conn.modified_page_count());
         let mut before = Vec::new();
         conn.write_to(&mut before)?;
         assert!(matches!(
-            NewHistoryPlaylist::new(1, "Duplicate").insert(&mut conn),
+            NewHistory::new(1, "Duplicate").insert(&mut conn),
             Err(Error::DuplicateId { id: 1, .. })
         ));
         assert!(matches!(
-            NewHistoryPlaylist::new(0, "Zero").insert(&mut conn),
+            NewHistory::new(0, "Zero").insert(&mut conn),
             Err(Error::InvalidModelField { field: "id", .. })
         ));
         assert!(matches!(
-            NewHistoryPlaylist::new(2, "Bad\0name").insert(&mut conn),
+            NewHistory::new(2, "Bad\0name").insert(&mut conn),
             Err(Error::EmbeddedNul)
         ));
         assert!(matches!(
-            NewHistoryPlaylist::new(2, "x".repeat(5000)).insert(&mut conn),
+            NewHistory::new(2, "x".repeat(5000)).insert(&mut conn),
             Err(Error::NoRowSpace { .. })
         ));
         assert!(matches!(
-            NewHistoryEntry::new(0, 1, 1).insert(&mut conn),
+            NewHistoryContent::new(0, 1, 1).insert(&mut conn),
             Err(Error::InvalidModelField {
-                field: "playlist_id",
+                field: "history_id",
                 ..
             })
         ));
         assert!(matches!(
-            NewHistoryEntry::new(1, 0, 1).insert(&mut conn),
+            NewHistoryContent::new(1, 0, 1).insert(&mut conn),
             Err(Error::InvalidModelField {
-                field: "track_id",
+                field: "content_id",
                 ..
             })
         ));
@@ -1138,16 +1140,16 @@ mod history {
             ..Default::default()
         })?;
         assert!(matches!(
-            NewHistoryPlaylist::new(1, "Limited").insert(&mut limited),
+            NewHistory::new(1, "Limited").insert(&mut limited),
             Err(Error::DirtyPageLimit { .. })
         ));
         assert!(matches!(
-            NewHistoryEntry::new(1, 2, 1).insert(&mut limited),
+            NewHistoryContent::new(1, 2, 1).insert(&mut limited),
             Err(Error::DirtyPageLimit { .. })
         ));
         assert_eq!(limited.modified_page_count(), 0);
-        assert!(HistoryPlaylist::all(&mut limited)?.is_empty());
-        assert!(HistoryEntry::all(&mut limited)?.is_empty());
+        assert!(History::all(&mut limited)?.is_empty());
+        assert!(HistoryContent::all(&mut limited)?.is_empty());
         Ok(())
     }
 
@@ -1155,51 +1157,51 @@ mod history {
     fn history_models_reject_extended_connections_and_regular_playlist_rows() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
         assert!(matches!(
-            HistoryPlaylist::iter(&mut conn),
+            History::iter(&mut conn),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            HistoryPlaylist::all(&mut conn),
+            History::all(&mut conn),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            HistoryPlaylist::find(&mut conn, &1),
+            History::find(&mut conn, &1),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            HistoryPlaylist::id_exists(&mut conn, &1),
+            History::id_exists(&mut conn, &1),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            HistoryEntry::iter(&mut conn),
+            HistoryContent::iter(&mut conn),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            HistoryEntry::all(&mut conn),
+            HistoryContent::all(&mut conn),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            HistoryEntry::by_playlist(&mut conn, &1),
+            HistoryContent::by_history(&mut conn, &1),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            NewHistoryPlaylist::new(1, "Wrong").insert(&mut conn),
+            NewHistory::new(1, "Wrong").insert(&mut conn),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            NewHistoryEntry::new(1, 2, 1).insert(&mut conn),
+            NewHistoryContent::new(1, 2, 1).insert(&mut conn),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert_eq!(conn.modified_page_count(), 0);
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
         let regular = NewPlaylist::new(1, 0, 1, "Regular").insert(&mut conn)?;
-        let entry = rbox_pdb::models::NewPlaylistEntry::new(1, 10, 2).insert(&mut conn)?;
+        let entry = rbox_pdb::models::NewPlaylistContent::new(1, 10, 2).insert(&mut conn)?;
         assert!(matches!(
-            HistoryPlaylist::try_from(regular.raw_record().clone()),
+            History::try_from(regular.raw_record().clone()),
             Err(Error::UnsupportedModelRow { .. })
         ));
         assert!(matches!(
-            HistoryEntry::try_from(entry.raw_record().clone()),
+            HistoryContent::try_from(entry.raw_record().clone()),
             Err(Error::UnsupportedModelRow { .. })
         ));
         Ok(())
@@ -1208,42 +1210,37 @@ mod history {
     #[test]
     fn explicit_history_transactions_and_invalid_text_keep_context() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let mut row = NewHistoryPlaylist::new(1, "Name").to_binary()?;
+        let mut row = NewHistory::new(1, "Name").to_binary()?;
         row.name = DeviceSqlString::parse(&[0x90, 6, 0, 0, 0, 0xd8])?;
         let mut tx = conn.transaction();
         tx.insert(
-            HistoryPlaylist::TABLE,
+            History::TABLE,
             &Row::Standard(StandardRow::HistoryPlaylist(row)),
         )?;
         tx.commit()?;
-        assert!(HistoryPlaylist::id_exists(&mut conn, &1)?);
+        assert!(History::id_exists(&mut conn, &1)?);
         assert!(
-            matches!(HistoryPlaylist::find(&mut conn, &1), Err(Error::ModelText { field: "name", source, .. }) if matches!(*source, Error::InvalidUtf16))
+            matches!(History::find(&mut conn, &1), Err(Error::ModelText { field: "name", source, .. }) if matches!(*source, Error::InvalidUtf16))
         );
         let mut tx = conn.transaction();
         let handle = tx.insert(
-            HistoryEntry::TABLE,
+            HistoryContent::TABLE,
             &Row::Standard(StandardRow::HistoryEntry(
-                NewHistoryEntry::new(1, 20, 9).to_binary()?,
+                NewHistoryContent::new(1, 20, 9).to_binary()?,
             )),
         )?;
-        let model = HistoryEntry::try_from(tx.read(&handle)?)?;
-        assert_eq!(
-            (model.playlist_id, model.track_id, model.position),
-            (1, 20, 9)
-        );
+        let model = HistoryContent::try_from(tx.read(&handle)?)?;
+        assert_eq!((model.history_id, model.content_id, model.seq), (1, 20, 9));
         tx.rollback();
-        assert!(HistoryEntry::all(&mut conn)?.is_empty());
+        assert!(HistoryContent::all(&mut conn)?.is_empty());
         Ok(())
     }
 
     #[test]
     fn native_history_tables_match_binary_rows_including_empty_tables() -> Result<()> {
         let mut conn = demo()?;
-        let raw = conn
-            .iter_raw(HistoryPlaylist::TABLE)?
-            .collect::<Result<Vec<_>>>()?;
-        let models = HistoryPlaylist::all(&mut conn)?;
+        let raw = conn.iter_raw(History::TABLE)?.collect::<Result<Vec<_>>>()?;
+        let models = History::all(&mut conn)?;
         assert_eq!(models.len(), raw.len());
         for (model, record) in models.into_iter().zip(raw) {
             let Row::Standard(StandardRow::HistoryPlaylist(row)) = record.decode()? else {
@@ -1252,19 +1249,19 @@ mod history {
             assert_eq!(model.id, row.id);
             assert_eq!(model.name, row.name.text()?);
             assert_eq!(model.raw_record(), &record);
-            assert_eq!(HistoryPlaylist::find(&mut conn, &model.id)?, Some(model));
+            assert_eq!(History::find(&mut conn, &model.id)?, Some(model));
         }
         let raw = conn
-            .iter_raw(HistoryEntry::TABLE)?
+            .iter_raw(HistoryContent::TABLE)?
             .collect::<Result<Vec<_>>>()?;
-        let models = HistoryEntry::all(&mut conn)?;
+        let models = HistoryContent::all(&mut conn)?;
         assert_eq!(models.len(), raw.len());
         for (model, record) in models.into_iter().zip(raw) {
             let Row::Standard(StandardRow::HistoryEntry(row)) = record.decode()? else {
                 panic!()
             };
             assert_eq!(
-                (model.track_id, model.playlist_id, model.position),
+                (model.content_id, model.history_id, model.seq),
                 (row.track_id, row.playlist_id, row.position)
             );
             assert_eq!(model.raw_record(), &record);
@@ -1279,18 +1276,18 @@ mod tags {
 
     use super::*;
     use rbox_pdb::binary::{ExtendedRow, MyTagHeader};
-    use rbox_pdb::models::{MyTag, NewMyTag, NewTrackMyTag, TrackMyTag};
+    use rbox_pdb::models::{MyTag, MyTagContent, NewMyTag, NewMyTagContent};
 
     #[test]
     fn fresh_tags_and_associations_round_trip_with_explicit_ids_and_positions() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
         let reads = conn.read_stats();
         drop(MyTag::iter(&mut conn)?);
-        drop(TrackMyTag::iter(&mut conn)?);
+        drop(MyTagContent::iter(&mut conn)?);
         assert_eq!(conn.read_stats(), reads);
         assert!(MyTag::all(&mut conn)?.is_empty());
         assert!(MyTag::find(&mut conn, &99)?.is_none());
-        assert!(TrackMyTag::all(&mut conn)?.is_empty());
+        assert!(MyTagContent::all(&mut conn)?.is_empty());
         let category = NewMyTag::category(0xffff_ffff, 0, "Mood").insert(&mut conn)?;
         assert_eq!(category.is_category(), Some(true));
         let mut input = NewMyTag::new(2, category.id, 9, "音楽");
@@ -1337,32 +1334,32 @@ mod tags {
         assert_eq!(MyTag::find(&mut conn, &2)?.unwrap().name, "音楽");
 
         for (track, tag) in [(10, 2), (10, 3), (10, 2), (20, 2)] {
-            NewTrackMyTag::new(track, tag).insert(&mut conn)?;
+            NewMyTagContent::new(track, tag).insert(&mut conn)?;
         }
         assert_eq!(
-            TrackMyTag::by_track(&mut conn, &10)?
+            MyTagContent::by_content(&mut conn, &10)?
                 .iter()
-                .map(|r| r.tag_id)
+                .map(|r| r.my_tag_id)
                 .collect::<Vec<_>>(),
             vec![2, 3, 2]
         );
         assert_eq!(
-            TrackMyTag::by_tag(&mut conn, &2)?
+            MyTagContent::by_my_tag(&mut conn, &2)?
                 .iter()
-                .map(|r| r.track_id)
+                .map(|r| r.content_id)
                 .collect::<Vec<_>>(),
             vec![10, 10, 20]
         );
-        assert!(TrackMyTag::by_track(&mut conn, &99)?.is_empty());
-        assert!(TrackMyTag::by_tag(&mut conn, &99)?.is_empty());
+        assert!(MyTagContent::by_content(&mut conn, &99)?.is_empty());
+        assert!(MyTagContent::by_my_tag(&mut conn, &99)?.is_empty());
         let tags = MyTag::all(&mut conn)?;
-        let links = TrackMyTag::all(&mut conn)?;
+        let links = MyTagContent::all(&mut conn)?;
         let mut bytes = Vec::new();
         conn.write_to(&mut bytes)?;
         let mut reopened =
             DeviceSqlConnection::from_reader(Cursor::new(bytes), DatabaseKind::Extended)?;
         assert_eq!(MyTag::all(&mut reopened)?, tags);
-        assert_eq!(TrackMyTag::all(&mut reopened)?, links);
+        assert_eq!(MyTagContent::all(&mut reopened)?, links);
         Ok(())
     }
 
@@ -1380,7 +1377,7 @@ mod tags {
                 panic!()
             };
             assert_eq!(
-                (model.id, model.parent_id, model.position, model.attribute),
+                (model.id, model.parent_id, model.seq, model.attribute),
                 (
                     row.header.id,
                     row.header.parent_id,
@@ -1394,11 +1391,11 @@ mod tags {
             assert_eq!(MyTag::find(&mut conn, &model.id)?, Some(model));
         }
         let raw = conn
-            .iter_raw(TrackMyTag::TABLE)?
+            .iter_raw(MyTagContent::TABLE)?
             .collect::<Result<Vec<_>>>()?;
         // The demo exports the tag catalog but has no assigned track tags.
         assert!(raw.is_empty());
-        assert!(TrackMyTag::all(&mut conn)?.is_empty());
+        assert!(MyTagContent::all(&mut conn)?.is_empty());
         assert_eq!(conn.modified_page_count(), 0);
         Ok(())
     }
@@ -1428,16 +1425,16 @@ mod tags {
             Err(Error::UnsupportedMutation { .. })
         ));
         assert!(matches!(
-            NewTrackMyTag::new(0, 1).insert(&mut conn),
+            NewMyTagContent::new(0, 1).insert(&mut conn),
             Err(Error::InvalidModelField {
-                field: "track_id",
+                field: "content_id",
                 ..
             })
         ));
         assert!(matches!(
-            NewTrackMyTag::new(1, 0).insert(&mut conn),
+            NewMyTagContent::new(1, 0).insert(&mut conn),
             Err(Error::InvalidModelField {
-                field: "tag_id",
+                field: "my_tag_id",
                 ..
             })
         ));
@@ -1455,12 +1452,12 @@ mod tags {
             Err(Error::DirtyPageLimit { .. })
         ));
         assert!(matches!(
-            NewTrackMyTag::new(1, 2).insert(&mut limited),
+            NewMyTagContent::new(1, 2).insert(&mut limited),
             Err(Error::DirtyPageLimit { .. })
         ));
         assert_eq!(limited.modified_page_count(), 0);
         assert!(MyTag::all(&mut limited)?.is_empty());
-        assert!(TrackMyTag::all(&mut limited)?.is_empty());
+        assert!(MyTagContent::all(&mut limited)?.is_empty());
         Ok(())
     }
 
@@ -1488,19 +1485,19 @@ mod tags {
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            TrackMyTag::iter(&mut conn),
+            MyTagContent::iter(&mut conn),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            TrackMyTag::all(&mut conn),
+            MyTagContent::all(&mut conn),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            TrackMyTag::by_track(&mut conn, &1),
+            MyTagContent::by_content(&mut conn, &1),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            TrackMyTag::by_tag(&mut conn, &1),
+            MyTagContent::by_my_tag(&mut conn, &1),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
@@ -1508,19 +1505,19 @@ mod tags {
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            NewTrackMyTag::new(1, 2).insert(&mut conn),
+            NewMyTagContent::new(1, 2).insert(&mut conn),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert_eq!(conn.modified_page_count(), 0);
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
         let tag = NewMyTag::category(1, 0, "Tag").insert(&mut conn)?;
-        let link = NewTrackMyTag::new(1, 2).insert(&mut conn)?;
+        let link = NewMyTagContent::new(1, 2).insert(&mut conn)?;
         assert!(matches!(
             MyTag::try_from(link.raw_record().clone()),
             Err(Error::UnsupportedModelRow { .. })
         ));
         assert!(matches!(
-            TrackMyTag::try_from(tag.raw_record().clone()),
+            MyTagContent::try_from(tag.raw_record().clone()),
             Err(Error::UnsupportedModelRow { .. })
         ));
         Ok(())
@@ -1538,23 +1535,23 @@ mod tags {
         assert!(
             matches!(MyTag::find(&mut conn, &2), Err(Error::ModelText { field: "name", source, .. }) if matches!(*source, Error::InvalidUtf16))
         );
-        let mut input = NewTrackMyTag::new(7, 2);
+        let mut input = NewMyTagContent::new(7, 2);
         input.unknown_00 = 0xabcdef;
         input.reserved_string_marker = 5;
         input.reserved_tail = [3, 2, 1];
         let row = input.to_binary()?;
         let mut tx = conn.transaction();
         let handle = tx.insert(
-            TrackMyTag::TABLE,
+            MyTagContent::TABLE,
             &Row::Extended(ExtendedRow::TrackMyTag(row.clone())),
         )?;
-        let model = TrackMyTag::try_from(tx.read(&handle)?)?;
+        let model = MyTagContent::try_from(tx.read(&handle)?)?;
         assert_eq!(
             model.raw_record().decode()?,
             Row::Extended(ExtendedRow::TrackMyTag(row))
         );
         tx.rollback();
-        assert!(TrackMyTag::all(&mut conn)?.is_empty());
+        assert!(MyTagContent::all(&mut conn)?.is_empty());
         Ok(())
     }
 }
@@ -1563,26 +1560,26 @@ mod playlists {
     //! Playlist nodes, ordered occurrences, namespace checks and failure behavior.
 
     use super::*;
-    use rbox_pdb::models::{NewPlaylist, NewPlaylistEntry, Playlist, PlaylistEntry};
+    use rbox_pdb::models::{NewPlaylist, NewPlaylistContent, Playlist, PlaylistContent};
 
     #[test]
     fn folders_and_playlists_keep_explicit_positions_flags_and_reserved_values() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
         let before = conn.read_stats();
         drop(Playlist::iter(&mut conn)?);
-        drop(PlaylistEntry::iter(&mut conn)?);
+        drop(PlaylistContent::iter(&mut conn)?);
         assert_eq!(conn.read_stats(), before);
         assert!(Playlist::all(&mut conn)?.is_empty());
         assert!(Playlist::find(&mut conn, &1)?.is_none());
         assert!(Playlist::by_parent(&mut conn, &0)?.is_empty());
-        assert!(PlaylistEntry::all(&mut conn)?.is_empty());
+        assert!(PlaylistContent::all(&mut conn)?.is_empty());
 
         let mut folder = NewPlaylist::folder(1, 0, 50, "音楽 🎵");
-        folder.folder_flag = 0x80;
+        folder.attribute = 0x80;
         folder.unknown_04 = 0xaabbccdd;
         let folder = folder.insert(&mut conn)?;
         assert!(folder.is_folder());
-        assert_eq!(folder.folder_flag, 0x80);
+        assert_eq!(folder.attribute, 0x80);
         assert_eq!(folder.name, "音楽 🎵");
         let Row::Standard(StandardRow::PlaylistTree(row)) = folder.raw_record().decode()? else {
             panic!()
@@ -1637,19 +1634,19 @@ mod playlists {
         NewPlaylist::new(2, 0, 2, "Other").insert(&mut conn)?;
         NewContent::new(10, "/Contents/One.wav").insert(&mut conn)?;
         NewContent::new(20, "/Contents/Two.wav").insert(&mut conn)?;
-        let late = NewPlaylistEntry::new(1, 10, 30).insert(&mut conn)?;
-        let first_tie = NewPlaylistEntry::new(1, 20, 4).insert(&mut conn)?;
-        let second_tie = NewPlaylistEntry::new(1, 10, 4).insert(&mut conn)?;
-        let identical = NewPlaylistEntry::new(1, 10, 4).insert(&mut conn)?;
-        let zero = NewPlaylistEntry::new(1, 10, 0).insert(&mut conn)?;
-        let other = NewPlaylistEntry::new(2, 10, 1).insert(&mut conn)?;
+        let late = NewPlaylistContent::new(1, 10, 30).insert(&mut conn)?;
+        let first_tie = NewPlaylistContent::new(1, 20, 4).insert(&mut conn)?;
+        let second_tie = NewPlaylistContent::new(1, 10, 4).insert(&mut conn)?;
+        let identical = NewPlaylistContent::new(1, 10, 4).insert(&mut conn)?;
+        let zero = NewPlaylistContent::new(1, 10, 0).insert(&mut conn)?;
+        let other = NewPlaylistContent::new(2, 10, 1).insert(&mut conn)?;
         // Later transactions can change touched flags on earlier snapshots.
         // Compare values and occurrence locations, not transient page metadata.
-        let occurrence = |entry: &PlaylistEntry| {
+        let occurrence = |entry: &PlaylistContent| {
             (
                 entry.playlist_id,
-                entry.track_id,
-                entry.position,
+                entry.content_id,
+                entry.seq,
                 entry.raw_record().page(),
                 entry.raw_record().slot().slot,
             )
@@ -1663,22 +1660,22 @@ mod playlists {
             occurrence(&late),
         ];
         assert_eq!(
-            PlaylistEntry::by_playlist(&mut conn, &1)?
+            PlaylistContent::by_playlist(&mut conn, &1)?
                 .iter()
                 .map(occurrence)
                 .collect::<Vec<_>>(),
             expected
         );
         assert_eq!(
-            PlaylistEntry::by_playlist(&mut conn, &2)?
+            PlaylistContent::by_playlist(&mut conn, &2)?
                 .iter()
                 .map(occurrence)
                 .collect::<Vec<_>>(),
             vec![occurrence(&other)]
         );
-        assert!(PlaylistEntry::by_playlist(&mut conn, &999)?.is_empty());
+        assert!(PlaylistContent::by_playlist(&mut conn, &999)?.is_empty());
         assert_eq!(
-            PlaylistEntry::all(&mut conn)?
+            PlaylistContent::all(&mut conn)?
                 .iter()
                 .map(occurrence)
                 .collect::<Vec<_>>(),
@@ -1693,7 +1690,7 @@ mod playlists {
         let mut reopened =
             DeviceSqlConnection::from_reader(Cursor::new(bytes), DatabaseKind::Standard)?;
         assert_eq!(
-            PlaylistEntry::by_playlist(&mut reopened, &1)?
+            PlaylistContent::by_playlist(&mut reopened, &1)?
                 .iter()
                 .map(occurrence)
                 .collect::<Vec<_>>(),
@@ -1728,16 +1725,16 @@ mod playlists {
             Err(Error::NoRowSpace { .. })
         ));
         assert!(matches!(
-            NewPlaylistEntry::new(0, 1, 1).insert(&mut conn),
+            NewPlaylistContent::new(0, 1, 1).insert(&mut conn),
             Err(Error::InvalidModelField {
                 field: "playlist_id",
                 ..
             })
         ));
         assert!(matches!(
-            NewPlaylistEntry::new(1, 0, 1).insert(&mut conn),
+            NewPlaylistContent::new(1, 0, 1).insert(&mut conn),
             Err(Error::InvalidModelField {
-                field: "track_id",
+                field: "content_id",
                 ..
             })
         ));
@@ -1748,7 +1745,7 @@ mod playlists {
         let mut after = Vec::new();
         conn.write_to(&mut after)?;
         assert_eq!(after, before);
-        assert!(PlaylistEntry::all(&mut conn)?.is_empty());
+        assert!(PlaylistContent::all(&mut conn)?.is_empty());
 
         let mut limited = DeviceSqlConnection::create(DatabaseKind::Standard)?;
         limited.set_resource_limits(rbox_pdb::ResourceLimits {
@@ -1760,12 +1757,12 @@ mod playlists {
             Err(Error::DirtyPageLimit { .. })
         ));
         assert!(matches!(
-            NewPlaylistEntry::new(1, 1, 1).insert(&mut limited),
+            NewPlaylistContent::new(1, 1, 1).insert(&mut limited),
             Err(Error::DirtyPageLimit { .. })
         ));
         assert_eq!(limited.modified_page_count(), 0);
         assert!(Playlist::all(&mut limited)?.is_empty());
-        assert!(PlaylistEntry::all(&mut limited)?.is_empty());
+        assert!(PlaylistContent::all(&mut limited)?.is_empty());
         Ok(())
     }
 
@@ -1776,7 +1773,7 @@ mod playlists {
             .iter_raw(Playlist::TABLE)?
             .collect::<Result<Vec<_>>>()?;
         let entries = conn
-            .iter_raw(PlaylistEntry::TABLE)?
+            .iter_raw(PlaylistContent::TABLE)?
             .collect::<Result<Vec<_>>>()?;
         assert!(!nodes.is_empty());
         assert!(!entries.is_empty());
@@ -1787,7 +1784,7 @@ mod playlists {
                 panic!()
             };
             assert_eq!(
-                (model.id, model.parent_id, model.position, model.folder_flag),
+                (model.id, model.parent_id, model.seq, model.attribute),
                 (
                     binary.id,
                     binary.parent_id,
@@ -1799,14 +1796,14 @@ mod playlists {
             assert_eq!(model.raw_record(), &record);
             assert_eq!(Playlist::find(&mut conn, &model.id)?, Some(model));
         }
-        let models = PlaylistEntry::all(&mut conn)?;
+        let models = PlaylistContent::all(&mut conn)?;
         assert_eq!(models.len(), entries.len());
         for (model, record) in models.into_iter().zip(entries) {
             let Row::Standard(StandardRow::PlaylistEntry(binary)) = record.decode()? else {
                 panic!()
             };
             assert_eq!(
-                (model.playlist_id, model.track_id, model.position),
+                (model.playlist_id, model.content_id, model.seq),
                 (binary.playlist_id, binary.track_id, binary.position)
             );
             assert_eq!(model.raw_record(), &record);
@@ -1839,15 +1836,15 @@ mod playlists {
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            PlaylistEntry::iter(&mut conn),
+            PlaylistContent::iter(&mut conn),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            PlaylistEntry::all(&mut conn),
+            PlaylistContent::all(&mut conn),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            PlaylistEntry::by_playlist(&mut conn, &1),
+            PlaylistContent::by_playlist(&mut conn, &1),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
@@ -1855,19 +1852,19 @@ mod playlists {
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            NewPlaylistEntry::new(1, 1, 1).insert(&mut conn),
+            NewPlaylistContent::new(1, 1, 1).insert(&mut conn),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert_eq!(conn.modified_page_count(), 0);
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
         let node = NewPlaylist::new(1, 0, 1, "Node").insert(&mut conn)?;
-        let entry = NewPlaylistEntry::new(1, 1, 1).insert(&mut conn)?;
+        let entry = NewPlaylistContent::new(1, 1, 1).insert(&mut conn)?;
         assert!(matches!(
             Playlist::try_from(entry.raw_record().clone()),
             Err(Error::UnsupportedModelRow { .. })
         ));
         assert!(matches!(
-            PlaylistEntry::try_from(node.raw_record().clone()),
+            PlaylistContent::try_from(node.raw_record().clone()),
             Err(Error::UnsupportedModelRow { .. })
         ));
         Ok(())
@@ -1890,18 +1887,18 @@ mod playlists {
         );
         let mut tx = conn.transaction();
         let handle = tx.insert(
-            PlaylistEntry::TABLE,
+            PlaylistContent::TABLE,
             &Row::Standard(StandardRow::PlaylistEntry(
-                NewPlaylistEntry::new(1, 10, 7).to_binary()?,
+                NewPlaylistContent::new(1, 10, 7).to_binary()?,
             )),
         )?;
-        let staged = PlaylistEntry::try_from(tx.read(&handle)?)?;
+        let staged = PlaylistContent::try_from(tx.read(&handle)?)?;
         assert_eq!(
-            (staged.playlist_id, staged.track_id, staged.position),
+            (staged.playlist_id, staged.content_id, staged.seq),
             (1, 10, 7)
         );
         tx.rollback();
-        assert!(PlaylistEntry::all(&mut conn)?.is_empty());
+        assert!(PlaylistContent::all(&mut conn)?.is_empty());
         Ok(())
     }
 }
@@ -2380,10 +2377,10 @@ fn native_tracks_are_lazy_detached_snapshots_with_original_bytes() -> Result<()>
         let row = track_row(&record)?;
         assert_eq!(model.id, row.header.id);
         assert_eq!(model.title, row.text.title.text()?);
-        assert_eq!(model.file_path, row.text.file_path.text()?);
+        assert_eq!(model.path, row.text.file_path.text()?);
         assert_eq!(model.analysis_path, row.text.analysis_path.text()?);
         assert_eq!(model.bpmx100, row.header.tempo);
-        assert_eq!(model.duration_seconds, row.header.duration);
+        assert_eq!(model.length, row.header.duration);
         assert_eq!(model.raw_record(), &record);
         assert_eq!(model.isrc()?, row.text.isrc.isrc_text()?);
         model.title = "detached edit".into();
@@ -2427,14 +2424,14 @@ fn known_fields_keep_units_unicode_raw_codes_and_source_ids() -> Result<()> {
         (model.id, model.master_content_id, model.master_db_id),
         (42, 1234, 5678)
     );
-    assert_eq!((model.bpmx100, model.duration_seconds), (12850, 321));
+    assert_eq!((model.bpmx100, model.length), (12850, 321));
     assert_eq!((model.sample_rate, model.file_size), (48000, 1234567));
     assert_eq!(
-        (model.audio_format, model.rating, model.artist_id),
+        (model.file_type, model.rating, model.artist_id),
         (65535, 255, 0)
     );
     assert_eq!(model.title, "音楽 🎵");
-    assert_eq!(model.file_path, "/Contents/Mixed Case.wav");
+    assert_eq!(model.path, "/Contents/Mixed Case.wav");
     assert_eq!(model.release_date, "unparsed date");
     assert_eq!(model.isrc()?, "USABC2400001");
     Ok(())
@@ -2599,7 +2596,7 @@ fn fresh_insertions_allocate_rows_and_maintain_counts_without_input_pdbs() -> Re
         input.title = format!("音楽 🎵 {id}");
         input.comment = "Long ASCII comment. ".repeat(10);
         input.bpmx100 = 12850;
-        input.duration_seconds = 321;
+        input.length = 321;
         input.file_size = 1234567;
         input.master_content_id = id + 1000;
         input.master_db_id = 123;
@@ -2608,10 +2605,10 @@ fn fresh_insertions_allocate_rows_and_maintain_counts_without_input_pdbs() -> Re
         let inserted = input.clone().insert(&mut conn)?;
         assert_eq!(inserted.title, input.title);
         assert_eq!(inserted.comment, input.comment);
-        assert_eq!(inserted.filename, format!("Track {id}.flac"));
+        assert_eq!(inserted.file_name, format!("Track {id}.flac"));
         assert_eq!(inserted.analysis_path, input.analysis_path);
         assert_eq!(inserted.isrc()?, input.isrc);
-        assert_eq!((inserted.bpmx100, inserted.duration_seconds), (12850, 321));
+        assert_eq!((inserted.bpmx100, inserted.length), (12850, 321));
         assert_eq!(
             (inserted.master_content_id, inserted.master_db_id),
             (id + 1000, 123)
@@ -2687,10 +2684,7 @@ fn rejected_new_tracks_leave_existing_rows_and_pages_unchanged() -> Result<()> {
     ));
     assert!(matches!(
         NewContent::new(2, "").insert(&mut conn),
-        Err(Error::InvalidModelField {
-            field: "file_path",
-            ..
-        })
+        Err(Error::InvalidModelField { field: "path", .. })
     ));
     let mut invalid = NewContent::new(2, "/Contents/Invalid.wav");
     invalid.title = "embedded\0NUL".into();
@@ -2774,7 +2768,7 @@ fn fresh_tracks_persist_and_support_later_insertions() -> Result<()> {
     let mut reopened = DeviceSqlConnection::open(&path, DatabaseKind::Standard)?;
     assert_eq!(Content::all(&mut reopened)?.len(), 2);
     assert_eq!(
-        Content::find(&mut reopened, &2)?.unwrap().filename,
+        Content::find(&mut reopened, &2)?.unwrap().file_name,
         "Two.wav"
     );
     Ok(())

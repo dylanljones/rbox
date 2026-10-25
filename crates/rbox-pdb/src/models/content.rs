@@ -72,23 +72,23 @@ pub struct Content {
     /// Tempo in BPM multiplied by 100.
     pub bpmx100: u32,
     /// Track duration in seconds.
-    pub duration_seconds: u16,
+    pub length: u16,
     /// Track number within the release.
-    pub track_number: u32,
+    pub track_no: u32,
     /// Disc number.
-    pub disc_number: u16,
+    pub disc_no: u16,
     /// Stored play count.
     pub play_count: u16,
     /// Release year.
-    pub year: u16,
+    pub release_year: u16,
     /// Sample depth in bits per sample.
-    pub sample_depth: u16,
+    pub bit_depth: u16,
     /// Raw color ID, including zero.
     pub color_id: u8,
     /// Raw star rating; unrecognized values are retained.
     pub rating: u8,
     /// Raw audio format code; unrecognized codes are retained.
-    pub audio_format: u16,
+    pub file_type: u16,
     /// Display title.
     pub title: String,
     /// DJ comment.
@@ -112,9 +112,9 @@ pub struct Content {
     /// Analysis-file path, preserving original separators.
     pub analysis_path: String,
     /// Audio basename.
-    pub filename: String,
+    pub file_name: String,
     /// Audio path, preserving original separators.
-    pub file_path: String,
+    pub path: String,
     raw: RowRecord,
 }
 
@@ -271,15 +271,15 @@ impl std::fmt::Debug for Content {
             .field("file_size", &self.file_size)
             .field("bitrate", &self.bitrate)
             .field("bpmx100", &self.bpmx100)
-            .field("duration_seconds", &self.duration_seconds)
-            .field("track_number", &self.track_number)
-            .field("disc_number", &self.disc_number)
+            .field("length", &self.length)
+            .field("track_no", &self.track_no)
+            .field("disc_no", &self.disc_no)
             .field("play_count", &self.play_count)
-            .field("year", &self.year)
-            .field("sample_depth", &self.sample_depth)
+            .field("release_year", &self.release_year)
+            .field("bit_depth", &self.bit_depth)
             .field("color_id", &self.color_id)
             .field("rating", &self.rating)
-            .field("audio_format", &self.audio_format)
+            .field("file_type", &self.file_type)
             .field("title", &self.title)
             .field("comment", &self.comment)
             .field("mix_name", &self.mix_name)
@@ -291,8 +291,8 @@ impl std::fmt::Debug for Content {
             .field("release_date", &self.release_date)
             .field("analysis_date", &self.analysis_date)
             .field("analysis_path", &self.analysis_path)
-            .field("filename", &self.filename)
-            .field("file_path", &self.file_path)
+            .field("file_name", &self.file_name)
+            .field("path", &self.path)
             .finish()
     }
 }
@@ -457,15 +457,15 @@ impl TryFrom<RowRecord> for Content {
             file_size: row.header.file_size,
             bitrate: row.header.bitrate,
             bpmx100: row.header.tempo,
-            duration_seconds: row.header.duration,
-            track_number: row.header.track_number,
-            disc_number: row.header.disc_number,
+            length: row.header.duration,
+            track_no: row.header.track_number,
+            disc_no: row.header.disc_number,
             play_count: row.header.play_count,
-            year: row.header.year,
-            sample_depth: row.header.sample_depth,
+            release_year: row.header.year,
+            bit_depth: row.header.sample_depth,
             color_id: row.header.color_id,
             rating: row.header.rating,
-            audio_format: row.header.audio_format,
+            file_type: row.header.audio_format,
             title: text("title", &row.text.title)?,
             comment: text("comment", &row.text.comment)?,
             mix_name: text("mix_name", &row.text.mix_name)?,
@@ -477,8 +477,8 @@ impl TryFrom<RowRecord> for Content {
             release_date: text("release_date", &row.text.release_date)?,
             analysis_date: text("analysis_date", &row.text.analysis_date)?,
             analysis_path: text("analysis_path", &row.text.analysis_path)?,
-            filename: text("filename", &row.text.filename)?,
-            file_path: text("file_path", &row.text.file_path)?,
+            file_name: text("file_name", &row.text.filename)?,
+            path: text("path", &row.text.file_path)?,
             raw: record,
         })
     }
@@ -546,23 +546,23 @@ pub struct NewContent {
     /// Tempo in BPM multiplied by 100.
     pub bpmx100: u32,
     /// Track duration in seconds.
-    pub duration_seconds: u16,
+    pub length: u16,
     /// Track number within the release.
-    pub track_number: u32,
+    pub track_no: u32,
     /// Disc number.
-    pub disc_number: u16,
+    pub disc_no: u16,
     /// Stored play count.
     pub play_count: u16,
     /// Release year.
-    pub year: u16,
+    pub release_year: u16,
     /// Sample depth in bits per sample.
-    pub sample_depth: u16,
+    pub bit_depth: u16,
     /// Raw color ID, including zero.
     pub color_id: u8,
     /// Raw star rating; unrecognized values are retained.
     pub rating: u8,
     /// Raw audio format code; unrecognized codes are retained.
-    pub audio_format: u16,
+    pub file_type: u16,
     /// Display title.
     pub title: String,
     /// DJ comment.
@@ -586,9 +586,9 @@ pub struct NewContent {
     /// Analysis-file path, preserving original separators.
     pub analysis_path: String,
     /// Audio basename.
-    pub filename: String,
+    pub file_name: String,
     /// Audio path, preserving original separators.
-    pub file_path: String,
+    pub path: String,
     /// ISRC text; empty means absent, otherwise twelve ASCII alphanumeric characters.
     pub isrc: String,
     /// Reserved authoring values; defaults describe a writer policy, not parser invariants.
@@ -598,15 +598,15 @@ pub struct NewContent {
 impl NewContent {
     /// Start a track with an explicit export ID and audio path using forward slashes.
     ///
-    /// The filename is the last slash-separated component of the supplied path.
+    /// The file name is the last slash-separated component of the supplied path.
     /// Other metadata remains zero or empty. Insertion validates the ID and path.
-    pub fn new(id: u32, file_path: impl Into<String>) -> Self {
-        let file_path = file_path.into();
-        let filename = file_path.rsplit('/').next().unwrap_or_default().to_owned();
+    pub fn new(id: u32, path: impl Into<String>) -> Self {
+        let path = path.into();
+        let file_name = path.rsplit('/').next().unwrap_or_default().to_owned();
         Self {
             id,
-            file_path,
-            filename,
+            path,
+            file_name,
             ..Self::default()
         }
     }
@@ -652,10 +652,10 @@ impl NewContent {
                 reason: "export track IDs must be nonzero",
             });
         }
-        if self.file_path.is_empty() {
+        if self.path.is_empty() {
             return Err(Error::InvalidModelField {
                 table: Content::TABLE,
-                field: "file_path",
+                field: "path",
                 reason: "audio path must not be empty",
             });
         }
@@ -681,15 +681,15 @@ impl NewContent {
                 file_size: self.file_size,
                 bitrate: self.bitrate,
                 tempo: self.bpmx100,
-                duration: self.duration_seconds,
-                track_number: self.track_number,
-                disc_number: self.disc_number,
+                duration: self.length,
+                track_number: self.track_no,
+                disc_number: self.disc_no,
                 play_count: self.play_count,
-                year: self.year,
-                sample_depth: self.sample_depth,
+                year: self.release_year,
+                sample_depth: self.bit_depth,
                 color_id: self.color_id,
                 rating: self.rating,
-                audio_format: self.audio_format,
+                audio_format: self.file_type,
             },
             strings: StringOffsets::Far {
                 marker: self.creation.string_marker,
@@ -708,8 +708,8 @@ impl NewContent {
                 release_date: text(&self.release_date)?,
                 analysis_date: text(&self.analysis_date)?,
                 analysis_path: text(&self.analysis_path)?,
-                filename: text(&self.filename)?,
-                file_path: text(&self.file_path)?,
+                filename: text(&self.file_name)?,
+                file_path: text(&self.path)?,
                 unknown_02: text(&self.creation.unknown_strings[0])?,
                 unknown_03: text(&self.creation.unknown_strings[1])?,
                 unknown_04: text(&self.creation.unknown_strings[2])?,
