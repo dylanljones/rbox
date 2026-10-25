@@ -8,7 +8,8 @@ use rbox_devlib::binary::{
     read_index_entries, read_row_directory, read_table_chains, DatabaseKind, FileHeader,
     PageHeaderKind,
 };
-use rbox_devlib::{DeviceSqlConnection, Error, ResourceLimits, Result, SaveStats};
+use rbox_devlib::devicesql::{ResourceLimits, SaveStats};
+use rbox_devlib::{DeviceSqlConnection, Error, Result};
 use rbox_testing::data::{create_temp_dir, export_dir};
 use std::cell::Cell;
 use std::fs::{self, File, OpenOptions};

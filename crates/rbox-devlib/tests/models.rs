@@ -112,7 +112,7 @@ mod album_relations {
         let mut batch =
             DeviceSqlConnection::from_reader(Cursor::new(bytes), DatabaseKind::Standard)?;
         for conn in [&mut single, &mut batch] {
-            conn.set_resource_limits(rbox_devlib::ResourceLimits {
+            conn.set_resource_limits(rbox_devlib::devicesql::ResourceLimits {
                 cached_pages: 0,
                 ..Default::default()
             })?;
@@ -335,7 +335,7 @@ mod content_relations {
         let mut batch =
             DeviceSqlConnection::from_reader(Cursor::new(bytes), DatabaseKind::Standard)?;
         for conn in [&mut single, &mut batch] {
-            conn.set_resource_limits(rbox_devlib::ResourceLimits {
+            conn.set_resource_limits(rbox_devlib::devicesql::ResourceLimits {
                 cached_pages: 0,
                 ..Default::default()
             })?;
@@ -934,7 +934,7 @@ mod configuration {
     #[test]
     fn dirty_page_limits_rollback_recommendation_insertions() -> Result<()> {
         let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
-        extended.set_resource_limits(rbox_devlib::ResourceLimits {
+        extended.set_resource_limits(rbox_devlib::devicesql::ResourceLimits {
             dirty_pages: Some(0),
             ..Default::default()
         })?;
@@ -1135,7 +1135,7 @@ mod history {
         conn.write_to(&mut after)?;
         assert_eq!(after, before);
         let mut limited = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        limited.set_resource_limits(rbox_devlib::ResourceLimits {
+        limited.set_resource_limits(rbox_devlib::devicesql::ResourceLimits {
             dirty_pages: Some(0),
             ..Default::default()
         })?;
@@ -1443,7 +1443,7 @@ mod tags {
         conn.write_to(&mut after)?;
         assert_eq!(after, before);
         let mut limited = DeviceSqlConnection::create(DatabaseKind::Extended)?;
-        limited.set_resource_limits(rbox_devlib::ResourceLimits {
+        limited.set_resource_limits(rbox_devlib::devicesql::ResourceLimits {
             dirty_pages: Some(0),
             ..Default::default()
         })?;
@@ -1748,7 +1748,7 @@ mod playlists {
         assert!(PlaylistContent::all(&mut conn)?.is_empty());
 
         let mut limited = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        limited.set_resource_limits(rbox_devlib::ResourceLimits {
+        limited.set_resource_limits(rbox_devlib::devicesql::ResourceLimits {
             dirty_pages: Some(0),
             ..Default::default()
         })?;

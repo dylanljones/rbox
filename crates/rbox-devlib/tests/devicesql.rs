@@ -5,6 +5,7 @@
 
 use binrw::{BinRead, BinWrite};
 use rbox_devlib::binary::*;
+use rbox_devlib::devicesql::InitialTable;
 use rbox_devlib::*;
 use rbox_testing::data::{create_temp_dir, export_dir, testdata_dir};
 use std::cell::Cell;
