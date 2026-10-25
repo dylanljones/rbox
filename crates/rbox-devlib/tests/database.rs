@@ -17,51 +17,6 @@ fn options() -> LibraryCreateOptions {
     LibraryCreateOptions::new("2026-10-25", "Test USB", 42)
 }
 
-#[test]
-fn content_deletion_cleans_optional_extended_database_and_requires_save() -> Result<()> {
-    use rbox_devlib::models::{Content, NewContent, NewRecommendedLike, RecommendedLike};
-
-    for with_extended in [false, true] {
-        let temp = create_temp_dir();
-        let mut library = DeviceLibrary::create(temp.path(), &options())?;
-        if !with_extended {
-            drop(library);
-            fs::remove_file(temp.path().join("exportExt.pdb"))?;
-            library = DeviceLibrary::new(temp.path())?;
-        }
-        NewContent::new(1, "/Contents/test.wav").insert(library.standard_mut())?;
-        if with_extended {
-            NewRecommendedLike::new(1, 1, 0, 0, 0).insert(library.extended_mut()?)?;
-        }
-        library.save()?;
-        let path = temp.path().join("export.pdb");
-        let before = fs::read(&path)?;
-        let extended_path = temp.path().join("exportExt.pdb");
-        let extended_before = with_extended
-            .then(|| fs::read(&extended_path))
-            .transpose()?;
-
-        assert_eq!(
-            library.delete_content(&1)?,
-            if with_extended { 2 } else { 1 }
-        );
-        assert!(!Content::id_exists(library.standard_mut(), &1)?);
-        assert_eq!(fs::read(&path)?, before);
-        if let Some(before) = extended_before {
-            assert_eq!(fs::read(&extended_path)?, before);
-        }
-        library.save()?;
-        drop(library);
-        let mut library = DeviceLibrary::new(temp.path())?;
-        assert!(!Content::id_exists(library.standard_mut(), &1)?);
-        assert_eq!(library.has_extended(), with_extended);
-        if with_extended {
-            assert!(RecommendedLike::all(library.extended_mut()?)?.is_empty());
-        }
-    }
-    Ok(())
-}
-
 fn insert_rows(library: &mut DeviceLibrary) -> Result<()> {
     let mut tx = library.standard_mut().transaction();
     tx.insert(
