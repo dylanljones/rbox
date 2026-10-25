@@ -49,6 +49,15 @@ The library is organized into modular components that can be enabled individuall
 - `xml`: Support for Rekordbox XML database files
 - `settings`: Support for My-Setting files
 
+To use only selected components, disable the default features and enable the ones
+you need. For example, to use `rbox::anlz`:
+
+```toml
+rbox = { version = "0.2.0", default-features = false, features = ["anlz"] }
+```
+
+Shared core APIs remain available. Add more component names to `features` as needed.
+
 #### SQLCipher Features
 
 The `master-db` and `one-library` features require SQLCipher for working with Rekordbox's
