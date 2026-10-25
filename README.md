@@ -29,18 +29,18 @@ build on. It currently supports the following Rekordbox files:
 - **Rekordbox database**: Query and update the Rekordbox v6/v7 master.db database through a type-safe ORM
 - **One Library**: Read and write Rekordbox One Library (Device Library Plus) export files
 - **Device Library**: Read and write Rekordbox DeviceSql (.pdb) database files
-- **XML database**: Read and write Rekordbox XML database files
 - **Analysis Files**: Read and write ANLZ files containing waveforms, beat grids, hot cues and more
 - **Settings Access**: Read and write My-Setting files
+- **XML database**: Read and write Rekordbox XML database files
 
 | File               | Read | Update | Create |
 |:-------------------|:----:|-------:|-------:|
 | Rekordbox database |  ✓  |     ✓ |     ❌ |
 | One Library        |  ✓  |     ✓ |     ✓ |
 | Device Library     |  ✓  |     ✓ |     ✓ |
-| XML database       |  ✓  |     ✓ |     ✓ |
 | Analysis Files     |  ✓  |     ✓ |     ✓ |
 | Settings Files     |  ✓  |     ✓ |     ✓ |
+| XML database       |  ✓  |     ✓ |     ✓ |
 
 
 > [!TIP]
