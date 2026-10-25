@@ -205,10 +205,10 @@ fn decode_payload(table: TableKind, bytes: &[u8]) -> BinResult<Row> {
 /// ```no_run
 /// use std::fs::File;
 /// use binrw::BinRead;
-/// use rbox_pdb::binary::core::DatabaseKind;
-/// use rbox_pdb::binary::{FileHeader, read_table_chains, read_row_directory, read_row};
+/// use rbox_devlib::binary::core::DatabaseKind;
+/// use rbox_devlib::binary::{FileHeader, read_table_chains, read_row_directory, read_row};
 ///
-/// # fn main() -> rbox_pdb::Result<()> {
+/// # fn main() -> rbox_devlib::Result<()> {
 /// let mut input = File::open("export.pdb")?;
 /// let header = FileHeader::read_le(&mut input)?;
 /// for chain in read_table_chains(&mut input, &header)? {

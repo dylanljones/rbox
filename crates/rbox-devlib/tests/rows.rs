@@ -4,21 +4,21 @@
 //! Bounded row decoding, all known layouts, string offsets, and opaque data preservation.
 
 use binrw::{BinRead, BinWrite, Endian};
-use rbox_pdb::binary::{
+use rbox_devlib::binary::{
     read_row, read_row_directory, AlbumRow, ArtistRow, BrowseCategoryRow, BrowseColumnRow,
     BrowseSortRow, ColorRow, DatabaseKind, DatabasePropertyRow, ExportPropertyRow, ExtPageType,
     ExtendedRow, HistoryEntryRow, KeyRow, MyTagHeader, MyTagRow, NamedRow, PageHeader, PageIndex,
     PageType, PlaylistEntryRow, PlaylistTreeRow, Row, RowDirectory, RowRecord, StandardRow,
     StringOffsets, TableKind, TrackMyTagRow, TrackRow,
 };
-use rbox_pdb::{Error, Result};
+use rbox_devlib::{Error, Result};
 use std::io::{self, Cursor, Read, Seek, SeekFrom};
 
 mod synthetic_variants {
     //! Explicit wire examples for layouts absent from the approved native exports.
 
     use super::*;
-    use rbox_pdb::binary::RecommendLikeRow;
+    use rbox_devlib::binary::RecommendLikeRow;
 
     // Build an independent one-group data page without using the writer under test.
     fn page_file(table: u32, page_no: usize, rows: &[Vec<u8>]) -> Vec<u8> {
@@ -612,13 +612,13 @@ mod layouts {
                         ),
                         (0x60, 0x11223344, 7, 9, 0x55667788)
                     );
-                    check_codec::<rbox_pdb::binary::AlbumHeader>(&bytes[..20])?;
+                    check_codec::<rbox_devlib::binary::AlbumHeader>(&bytes[..20])?;
                     assert_eq!(decoded, Row::Standard(StandardRow::Album(row.clone())));
                     (row.strings, row.name)
                 } else {
                     let row = ArtistRow::parse(&bytes)?;
                     assert_eq!((row.header.index_shift, row.header.id), (0x60, 9));
-                    check_codec::<rbox_pdb::binary::ArtistHeader>(&bytes[..8])?;
+                    check_codec::<rbox_devlib::binary::ArtistHeader>(&bytes[..8])?;
                     assert_eq!(decoded, Row::Standard(StandardRow::Artist(row.clone())));
                     (row.strings, row.name)
                 };
@@ -707,7 +707,7 @@ mod layouts {
             [201, 202, 203, 204, 205, 206]
         );
         assert_eq!((h.color_id, h.rating, h.audio_format), (0xaa, 0xff, 0xffee));
-        check_codec::<rbox_pdb::binary::TrackHeader>(&bytes[..92])?;
+        check_codec::<rbox_devlib::binary::TrackHeader>(&bytes[..92])?;
         let t = &row.text;
         assert_eq!(t.isrc.isrc_text()?, "USABC1234567");
         let frames = [
@@ -763,7 +763,7 @@ mod layouts {
         assert_eq!(row.header.index_shift, 0x20);
         assert_eq!(row.header.unknown_words, [10, 11, 12, 13, 14]);
         assert_eq!(row.header.my_tag_master_db_id, 0x11223344);
-        check_codec::<rbox_pdb::binary::DatabasePropertyHeader>(&bytes[..28])?;
+        check_codec::<rbox_devlib::binary::DatabasePropertyHeader>(&bytes[..28])?;
         assert_eq!(
             row.strings,
             StringOffsets::Near {

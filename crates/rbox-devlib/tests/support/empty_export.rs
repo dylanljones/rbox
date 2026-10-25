@@ -4,12 +4,12 @@
 //! Test-owned creation profiles for the approved empty USB fixture, with no fixture reads.
 //! Browse settings and tag identities belong to this library, not engine defaults.
 
-use rbox_pdb::binary::{
+use rbox_devlib::binary::{
     DeviceSqlString, ExtPageType, ExtendedRow, MyTagHeader, MyTagRow, Row, StandardRow,
     StringEncoding, StringOffsets, TableKind,
 };
-use rbox_pdb::devicesql::{CreateOptions, InitialTable};
-use rbox_pdb::Result;
+use rbox_devlib::devicesql::{CreateOptions, InitialTable};
+use rbox_devlib::Result;
 
 /// Reproduce the fresh USB's standard settings, order, and historical sequences.
 pub fn standard() -> Result<CreateOptions> {

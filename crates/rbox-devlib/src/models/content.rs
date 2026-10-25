@@ -128,9 +128,9 @@ pub struct Content {
 /// resolved. Editing the view does not persist changes or refresh related fields.
 ///
 /// ```
-/// use rbox_pdb::{binary::DatabaseKind, DeviceSqlConnection};
-/// use rbox_pdb::models::{Content, NewArtist, NewContent};
-/// # fn main() -> rbox_pdb::Result<()> {
+/// use rbox_devlib::{binary::DatabaseKind, DeviceSqlConnection};
+/// use rbox_devlib::models::{Content, NewArtist, NewContent};
+/// # fn main() -> rbox_devlib::Result<()> {
 /// let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
 /// let artist = NewArtist::new(1, "Artist").insert(&mut conn)?;
 /// let mut input = NewContent::new(10, "/Contents/Track.wav");
@@ -498,10 +498,10 @@ impl TryFrom<RowRecord> for Content {
 /// save methods to persist. Related rows and audio/ANLZ assets are not created.
 ///
 /// ```
-/// use rbox_pdb::{binary::DatabaseKind, DeviceSqlConnection};
-/// use rbox_pdb::models::NewContent;
+/// use rbox_devlib::{binary::DatabaseKind, DeviceSqlConnection};
+/// use rbox_devlib::models::NewContent;
 ///
-/// # fn main() -> rbox_pdb::Result<()> {
+/// # fn main() -> rbox_devlib::Result<()> {
 /// let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
 /// let mut new = NewContent::new(1, "/Contents/Artist/Track.flac");
 /// new.title = "Track".into();

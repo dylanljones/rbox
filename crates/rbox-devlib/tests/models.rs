@@ -6,19 +6,19 @@
 use std::fs;
 use std::io::Cursor;
 
-use rbox_pdb::binary::{
+use rbox_devlib::binary::{
     DatabaseKind, DeviceSqlString, Row, RowRecord, StandardRow, StringEncoding, TrackRow,
     PAGE_HEADER_SIZE,
 };
-use rbox_pdb::models::{Content, NewContent};
-use rbox_pdb::{CreateOptions, DeviceSqlConnection, Error, Result};
+use rbox_devlib::models::{Content, NewContent};
+use rbox_devlib::{CreateOptions, DeviceSqlConnection, Error, Result};
 use rbox_testing::data::{create_temp_dir, export_dir};
 
 mod album_relations {
     //! Explicit album artist resolution, detached views and batch reuse.
 
     use super::*;
-    use rbox_pdb::models::{Album, Artist, NewAlbum, NewArtist};
+    use rbox_devlib::models::{Album, Artist, NewAlbum, NewArtist};
 
     #[test]
     fn album_views_keep_original_rows_local_edits_and_input_order() -> Result<()> {
@@ -112,7 +112,7 @@ mod album_relations {
         let mut batch =
             DeviceSqlConnection::from_reader(Cursor::new(bytes), DatabaseKind::Standard)?;
         for conn in [&mut single, &mut batch] {
-            conn.set_resource_limits(rbox_pdb::ResourceLimits {
+            conn.set_resource_limits(rbox_devlib::ResourceLimits {
                 cached_pages: 0,
                 ..Default::default()
             })?;
@@ -182,7 +182,7 @@ mod content_relations {
     //! Explicit metadata views, shared targets, missing references and decoding errors.
 
     use super::*;
-    use rbox_pdb::models::{
+    use rbox_devlib::models::{
         Artist, NewAlbum, NewArtist, NewArtwork, NewColor, NewGenre, NewKey, NewLabel,
     };
 
@@ -335,7 +335,7 @@ mod content_relations {
         let mut batch =
             DeviceSqlConnection::from_reader(Cursor::new(bytes), DatabaseKind::Standard)?;
         for conn in [&mut single, &mut batch] {
-            conn.set_resource_limits(rbox_pdb::ResourceLimits {
+            conn.set_resource_limits(rbox_devlib::ResourceLimits {
                 cached_pages: 0,
                 ..Default::default()
             })?;
@@ -423,10 +423,10 @@ mod configuration {
     //! Browse configuration, properties and raw recommendation pairs.
 
     use super::*;
-    use rbox_pdb::binary::{
+    use rbox_devlib::binary::{
         BrowseCategoryRow, BrowseColumnRow, BrowseSortRow, ExtendedRow, RowRecord,
     };
-    use rbox_pdb::models::{
+    use rbox_devlib::models::{
         BrowseCategory, BrowseColumn, BrowseSort, DatabaseProperty, ExportProperty,
         NewRecommendedLike, RecommendedLike,
     };
@@ -469,7 +469,7 @@ mod configuration {
         .into_iter()
         .enumerate()
         {
-            let binary = rbox_pdb::binary::BrowseColumnRow {
+            let binary = rbox_devlib::binary::BrowseColumnRow {
                 id: 100 + index as u16,
                 code: 0x80,
                 name: DeviceSqlString::encode(stored, StringEncoding::Utf16Le)?,
@@ -721,7 +721,7 @@ mod configuration {
             }};
         }
         // Match namespace enum names separately from Row's Standard/Extended variants.
-        use rbox_pdb::binary::{ExtendedRow as Extended, StandardRow as Standard};
+        use rbox_devlib::binary::{ExtendedRow as Extended, StandardRow as Standard};
         check!(standard, BrowseColumn, Standard, BrowseColumn, |m, r| {
             assert_eq!((m.id, m.code), (r.id, r.code));
             assert_eq!(r.name.text()?, format!("\u{fffa}{}\u{fffb}", m.name));
@@ -934,7 +934,7 @@ mod configuration {
     #[test]
     fn dirty_page_limits_rollback_recommendation_insertions() -> Result<()> {
         let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
-        extended.set_resource_limits(rbox_pdb::ResourceLimits {
+        extended.set_resource_limits(rbox_devlib::ResourceLimits {
             dirty_pages: Some(0),
             ..Default::default()
         })?;
@@ -1012,7 +1012,7 @@ mod history {
     //! History tables remain distinct from regular playlists and retain every play.
 
     use super::*;
-    use rbox_pdb::models::{
+    use rbox_devlib::models::{
         History, HistoryContent, NewHistory, NewHistoryContent, NewPlaylist, PlaylistContent,
     };
 
@@ -1135,7 +1135,7 @@ mod history {
         conn.write_to(&mut after)?;
         assert_eq!(after, before);
         let mut limited = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        limited.set_resource_limits(rbox_pdb::ResourceLimits {
+        limited.set_resource_limits(rbox_devlib::ResourceLimits {
             dirty_pages: Some(0),
             ..Default::default()
         })?;
@@ -1195,7 +1195,7 @@ mod history {
         assert_eq!(conn.modified_page_count(), 0);
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
         let regular = NewPlaylist::new(1, 0, 1, "Regular").insert(&mut conn)?;
-        let entry = rbox_pdb::models::NewPlaylistContent::new(1, 10, 2).insert(&mut conn)?;
+        let entry = rbox_devlib::models::NewPlaylistContent::new(1, 10, 2).insert(&mut conn)?;
         assert!(matches!(
             History::try_from(regular.raw_record().clone()),
             Err(Error::UnsupportedModelRow { .. })
@@ -1275,8 +1275,8 @@ mod tags {
     //! Extended tags and cross-database associations, without example dependencies.
 
     use super::*;
-    use rbox_pdb::binary::{ExtendedRow, MyTagHeader};
-    use rbox_pdb::models::{MyTag, MyTagContent, NewMyTag, NewMyTagContent};
+    use rbox_devlib::binary::{ExtendedRow, MyTagHeader};
+    use rbox_devlib::models::{MyTag, MyTagContent, NewMyTag, NewMyTagContent};
 
     #[test]
     fn fresh_tags_and_associations_round_trip_with_explicit_ids_and_positions() -> Result<()> {
@@ -1443,7 +1443,7 @@ mod tags {
         conn.write_to(&mut after)?;
         assert_eq!(after, before);
         let mut limited = DeviceSqlConnection::create(DatabaseKind::Extended)?;
-        limited.set_resource_limits(rbox_pdb::ResourceLimits {
+        limited.set_resource_limits(rbox_devlib::ResourceLimits {
             dirty_pages: Some(0),
             ..Default::default()
         })?;
@@ -1560,7 +1560,7 @@ mod playlists {
     //! Playlist nodes, ordered occurrences, namespace checks and failure behavior.
 
     use super::*;
-    use rbox_pdb::models::{NewPlaylist, NewPlaylistContent, Playlist, PlaylistContent};
+    use rbox_devlib::models::{NewPlaylist, NewPlaylistContent, Playlist, PlaylistContent};
 
     #[test]
     fn folders_and_playlists_keep_explicit_positions_flags_and_reserved_values() -> Result<()> {
@@ -1748,7 +1748,7 @@ mod playlists {
         assert!(PlaylistContent::all(&mut conn)?.is_empty());
 
         let mut limited = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        limited.set_resource_limits(rbox_pdb::ResourceLimits {
+        limited.set_resource_limits(rbox_devlib::ResourceLimits {
             dirty_pages: Some(0),
             ..Default::default()
         })?;
@@ -1907,8 +1907,8 @@ mod catalog {
     //! Shared behavioral checks for the seven catalog model pairs.
 
     use super::*;
-    use rbox_pdb::binary::{AlbumHeader, ArtistHeader, StringOffsets, TableKind};
-    use rbox_pdb::models::{
+    use rbox_devlib::binary::{AlbumHeader, ArtistHeader, StringOffsets, TableKind};
+    use rbox_devlib::models::{
         Album, Artist, Artwork, Color, Genre, Key, Label, NewAlbum, NewArtist, NewArtwork,
         NewColor, NewGenre, NewKey, NewLabel,
     };
@@ -2575,7 +2575,7 @@ fn unknown_track_layout_is_reported_instead_of_skipped() -> Result<()> {
 }
 
 fn property_counts(conn: &mut MemoryConnection) -> Result<Vec<u32>> {
-    use rbox_pdb::binary::{PageType, TableKind};
+    use rbox_devlib::binary::{PageType, TableKind};
     conn.iter_raw(TableKind::Standard(PageType::ExportProperties))?
         .map(|record| {
             let Row::Standard(StandardRow::ExportProperty(row)) = record?.decode()? else {
@@ -2660,7 +2660,7 @@ fn fresh_track_policy_is_explicit_and_overridable() -> Result<()> {
     assert_eq!(row.text.unknown_02.text()?, "opaque");
     assert!(matches!(
         row.strings,
-        rbox_pdb::binary::StringOffsets::Far { marker: 5, .. }
+        rbox_devlib::binary::StringOffsets::Far { marker: 5, .. }
     ));
     assert!(property_counts(&mut conn)?.is_empty());
     Ok(())
@@ -2724,7 +2724,7 @@ fn rejected_new_tracks_leave_existing_rows_and_pages_unchanged() -> Result<()> {
 
 #[test]
 fn property_failure_rolls_back_the_already_staged_track() -> Result<()> {
-    use rbox_pdb::binary::{PageType, TableKind};
+    use rbox_devlib::binary::{PageType, TableKind};
     let options = CreateOptions::standard("2026-10-25", "Rollback")?;
     let mut source = DeviceSqlConnection::create_with_options(DatabaseKind::Standard, &options)?;
     let property = source

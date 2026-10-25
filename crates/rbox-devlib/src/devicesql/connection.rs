@@ -43,9 +43,9 @@ use crate::{Error, Result};
 /// remains separate from structural saved-file validation.
 ///
 /// ```no_run
-/// use rbox_pdb::binary::{DatabaseKind};
-/// use rbox_pdb::devicesql::DeviceSqlConnection;
-/// # fn main() -> rbox_pdb::Result<()> {
+/// use rbox_devlib::binary::{DatabaseKind};
+/// use rbox_devlib::devicesql::DeviceSqlConnection;
+/// # fn main() -> rbox_devlib::Result<()> {
 /// let mut db = DeviceSqlConnection::open("export.pdb", DatabaseKind::Standard)?;
 /// for table in db.header().tables.clone() {
 ///     let kind = db.kind().table_kind(table.table_type);
@@ -353,9 +353,9 @@ impl<R: Read + Seek> DeviceSqlConnection<R> {
     /// Nested transactions and durable database transactions are not supported.
     ///
     /// ```no_run
-    /// use rbox_pdb::binary::{DatabaseKind, PageType, TableKind};
-    /// use rbox_pdb::devicesql::DeviceSqlConnection;
-    /// # fn main() -> rbox_pdb::Result<()> {
+    /// use rbox_devlib::binary::{DatabaseKind, PageType, TableKind};
+    /// use rbox_devlib::devicesql::DeviceSqlConnection;
+    /// # fn main() -> rbox_devlib::Result<()> {
     /// let mut connection = DeviceSqlConnection::open("export.pdb", DatabaseKind::Standard)?;
     /// let mut tx = connection.transaction();
     /// for record in tx.iter_raw(TableKind::Standard(PageType::Tracks))? {
@@ -447,9 +447,9 @@ impl<R: Read + Seek> DeviceSqlConnection<R> {
     /// does not promise crash durability of the directory entry on all systems.
     ///
     /// ```no_run
-    /// use rbox_pdb::binary::{DatabaseKind};
-    /// use rbox_pdb::devicesql::DeviceSqlConnection;
-    /// # fn main() -> rbox_pdb::Result<()> {
+    /// use rbox_devlib::binary::{DatabaseKind};
+    /// use rbox_devlib::devicesql::DeviceSqlConnection;
+    /// # fn main() -> rbox_devlib::Result<()> {
     /// let mut connection = DeviceSqlConnection::open("export.pdb", DatabaseKind::Standard)?;
     /// connection.save_as("export-copy.pdb")?; // Destination must not exist.
     /// # Ok(())
@@ -675,9 +675,9 @@ impl DeviceSqlConnection<Cursor<Vec<u8>>> {
     /// transaction API. Physical-device compatibility is not yet qualified.
     ///
     /// ```no_run
-    /// use rbox_pdb::binary::{DatabaseKind, DeviceSqlString, NamedRow, PageType, Row, StandardRow, StringEncoding, TableKind};
-    /// use rbox_pdb::devicesql::DeviceSqlConnection;
-    /// # fn main() -> rbox_pdb::Result<()> {
+    /// use rbox_devlib::binary::{DatabaseKind, DeviceSqlString, NamedRow, PageType, Row, StandardRow, StringEncoding, TableKind};
+    /// use rbox_devlib::devicesql::DeviceSqlConnection;
+    /// # fn main() -> rbox_devlib::Result<()> {
     /// let mut db = DeviceSqlConnection::create(DatabaseKind::Standard)?;
     /// let mut tx = db.transaction();
     /// tx.insert(TableKind::Standard(PageType::Genres),

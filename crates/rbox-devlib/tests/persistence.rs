@@ -4,11 +4,11 @@
 //! Lossless copies, selective saves, resource limits, conflict detection, and compaction.
 
 use binrw::BinRead;
-use rbox_pdb::binary::{
+use rbox_devlib::binary::{
     read_index_entries, read_row_directory, read_table_chains, DatabaseKind, FileHeader,
     PageHeaderKind,
 };
-use rbox_pdb::{DeviceSqlConnection, Error, ResourceLimits, Result, SaveStats};
+use rbox_devlib::{DeviceSqlConnection, Error, ResourceLimits, Result, SaveStats};
 use rbox_testing::data::{create_temp_dir, export_dir};
 use std::cell::Cell;
 use std::fs::{self, File, OpenOptions};
@@ -614,8 +614,8 @@ mod contents {
     use std::io::{Read, Seek};
 
     use anyhow::{bail, ensure, Result};
-    use rbox_pdb::binary::{DatabaseKind, ExtendedRow, Row, StandardRow, StringOffsets};
-    use rbox_pdb::devicesql::DeviceSqlConnection;
+    use rbox_devlib::binary::{DatabaseKind, ExtendedRow, Row, StandardRow, StringOffsets};
+    use rbox_devlib::devicesql::DeviceSqlConnection;
     #[cfg(test)]
     use rbox_testing::data::export_dir;
 
@@ -630,7 +630,7 @@ mod contents {
             let rows = db
                 .iter_raw(table)?
                 .map(|record| record?.decode())
-                .collect::<rbox_pdb::Result<Vec<_>>>()?;
+                .collect::<rbox_devlib::Result<Vec<_>>>()?;
             ensure!(
                 rows.iter().all(|row| !matches!(
                     row,

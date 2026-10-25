@@ -19,10 +19,10 @@
 //! `WrongDatabaseKind`. Unknown tables remain accessible through binary rows.
 //!
 //! ```
-//! use rbox_pdb::{binary::DatabaseKind, DeviceSqlConnection};
-//! use rbox_pdb::models::{Album, NewAlbum, NewArtist, NewKey};
+//! use rbox_devlib::{binary::DatabaseKind, DeviceSqlConnection};
+//! use rbox_devlib::models::{Album, NewAlbum, NewArtist, NewKey};
 //!
-//! # fn main() -> rbox_pdb::Result<()> {
+//! # fn main() -> rbox_devlib::Result<()> {
 //! let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
 //! let artist = NewArtist::new(1, "Artist").insert(&mut conn)?;
 //! let album = NewAlbum::new(2, artist.id, "Album").insert(&mut conn)?;

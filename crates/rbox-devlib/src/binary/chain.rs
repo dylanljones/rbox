@@ -42,9 +42,9 @@ pub struct TableChain {
 /// ```no_run
 /// use std::fs::File;
 /// use binrw::BinRead;
-/// use rbox_pdb::binary::{read_table_chains, FileHeader};
+/// use rbox_devlib::binary::{read_table_chains, FileHeader};
 ///
-/// # fn main() -> rbox_pdb::Result<()> {
+/// # fn main() -> rbox_devlib::Result<()> {
 /// let mut input = File::open("export.pdb")?;
 /// let header = FileHeader::read_le(&mut input)?;
 /// for chain in read_table_chains(&mut input, &header)? {

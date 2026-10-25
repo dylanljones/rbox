@@ -106,10 +106,10 @@ impl CreateOptions {
     /// Track count is an initial value, not automatically maintained by CRUD.
     ///
     /// ```
-    /// use rbox_pdb::devicesql::{CreateOptions, DeviceSqlConnection};
-    /// use rbox_pdb::binary::DatabaseKind;
+    /// use rbox_devlib::devicesql::{CreateOptions, DeviceSqlConnection};
+    /// use rbox_devlib::binary::DatabaseKind;
     ///
-    /// # fn main() -> rbox_pdb::Result<()> {
+    /// # fn main() -> rbox_devlib::Result<()> {
     /// let options = CreateOptions::standard("2026-10-24", "My USB")?;
     /// let database = DeviceSqlConnection::create_with_options(DatabaseKind::Standard, &options)?;
     /// # Ok(())
@@ -293,10 +293,10 @@ impl CreateOptions {
     /// [`Self::standard`]. This does not create any files or modify existing rows.
     ///
     /// ```
-    /// use rbox_pdb::devicesql::{CreateOptions, DeviceSqlConnection};
-    /// use rbox_pdb::binary::DatabaseKind;
+    /// use rbox_devlib::devicesql::{CreateOptions, DeviceSqlConnection};
+    /// use rbox_devlib::binary::DatabaseKind;
     ///
-    /// # fn main() -> rbox_pdb::Result<()> {
+    /// # fn main() -> rbox_devlib::Result<()> {
     /// let options = CreateOptions::extended(1234)?;
     /// let database = DeviceSqlConnection::create_with_options(DatabaseKind::Extended, &options)?;
     /// # Ok(())

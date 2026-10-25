@@ -3,11 +3,11 @@
 
 //! Shared row construction and decoding for transaction and persistence scenarios.
 
-use rbox_pdb::binary::{
+use rbox_devlib::binary::{
     DatabaseKind, ExtPageType, ExtendedRow, PageType, PlaylistEntryRow, Row, RowRecord,
     StandardRow, TableKind, TrackMyTagRow,
 };
-use rbox_pdb::Result;
+use rbox_devlib::Result;
 
 pub fn decode_rows(records: impl IntoIterator<Item = Result<RowRecord>>) -> Result<Vec<Row>> {
     records.into_iter().map(|record| record?.decode()).collect()

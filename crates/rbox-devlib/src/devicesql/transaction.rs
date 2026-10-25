@@ -389,10 +389,10 @@ impl<R: Read + Seek> Transaction<'_, R> {
     /// No-op updates preserve handles and metadata. ID uniqueness is not enforced.
     ///
     /// ```no_run
-    /// use rbox_pdb::binary::{DatabaseKind, PageType, TableKind};
-    /// use rbox_pdb::devicesql::DeviceSqlConnection;
-    /// use rbox_pdb::binary::{Row, StandardRow};
-    /// # fn main() -> rbox_pdb::Result<()> {
+    /// use rbox_devlib::binary::{DatabaseKind, PageType, TableKind};
+    /// use rbox_devlib::devicesql::DeviceSqlConnection;
+    /// use rbox_devlib::binary::{Row, StandardRow};
+    /// # fn main() -> rbox_devlib::Result<()> {
     /// let mut connection = DeviceSqlConnection::open("export.pdb", DatabaseKind::Standard)?;
     /// let mut tx = connection.transaction();
     /// let table = TableKind::Standard(PageType::Tracks);

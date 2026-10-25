@@ -4,12 +4,12 @@
 //! Table namespaces, linked-page traversal, index entries, and row directories.
 
 use binrw::{BinRead, BinWrite, Endian};
-use rbox_pdb::binary::{
+use rbox_devlib::binary::{
     read_index_entries, read_row_directory, read_table_chains, DatabaseKind, ExtPageType,
     FileHeader, IndexEntry, PackedRowCounts, PageHeader, PageHeaderKind, PageIndex, PageType,
     RowGroup, TableKind, TablePointer,
 };
-use rbox_pdb::{Error, Result};
+use rbox_devlib::{Error, Result};
 use std::io::{self, Cursor, Read, Seek, SeekFrom};
 
 mod table_names {
@@ -91,8 +91,8 @@ mod table_names {
     }
 
     #[test]
-    fn page_type_codecs_match_namespace_conversions_and_preserve_wire_bytes() -> rbox_pdb::Result<()>
-    {
+    fn page_type_codecs_match_namespace_conversions_and_preserve_wire_bytes(
+    ) -> rbox_devlib::Result<()> {
         for code in (0u32..=256).chain([0x8000_0000, u32::MAX]) {
             let mut bytes = vec![0xaa];
             bytes.extend_from_slice(&code.to_le_bytes());

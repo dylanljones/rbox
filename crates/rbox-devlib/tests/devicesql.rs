@@ -4,8 +4,8 @@
 //! Lazy connection reads, database creation, transactions, and row allocation.
 
 use binrw::{BinRead, BinWrite};
-use rbox_pdb::binary::*;
-use rbox_pdb::*;
+use rbox_devlib::binary::*;
+use rbox_devlib::*;
 use rbox_testing::data::{create_temp_dir, export_dir, testdata_dir};
 use std::cell::Cell;
 use std::fs;
@@ -496,26 +496,26 @@ mod creation {
                 DatabaseKind::Standard,
                 19,
                 Row::Standard(StandardRow::ExportProperty(
-                    rbox_pdb::binary::ExportPropertyRow {
+                    rbox_devlib::binary::ExportPropertyRow {
                         subtype: 0x280,
                         index_shift: 0,
                         track_count: 0,
                         unknown_08: 0,
                         background_color: 0,
                         unknown_0a: 0,
-                        date: rbox_pdb::binary::DeviceSqlString::encode(
+                        date: rbox_devlib::binary::DeviceSqlString::encode(
                             "2026-10-23",
-                            rbox_pdb::binary::StringEncoding::ShortAscii,
+                            rbox_devlib::binary::StringEncoding::ShortAscii,
                         )?,
                         separator: 0x1e19,
-                        version: rbox_pdb::binary::DeviceSqlString::encode(
+                        version: rbox_devlib::binary::DeviceSqlString::encode(
                             "1000",
-                            rbox_pdb::binary::StringEncoding::ShortAscii,
+                            rbox_devlib::binary::StringEncoding::ShortAscii,
                         )?,
                         name_padding: Vec::new(),
-                        name: rbox_pdb::binary::DeviceSqlString::encode(
+                        name: rbox_devlib::binary::DeviceSqlString::encode(
                             "New",
-                            rbox_pdb::binary::StringEncoding::ShortAscii,
+                            rbox_devlib::binary::StringEncoding::ShortAscii,
                         )?,
                     },
                 )),
@@ -526,19 +526,19 @@ mod creation {
                 DatabaseKind::Extended,
                 7,
                 Row::Extended(ExtendedRow::DatabaseProperty(
-                    rbox_pdb::binary::DatabasePropertyRow {
-                        header: rbox_pdb::binary::DatabasePropertyHeader {
+                    rbox_devlib::binary::DatabasePropertyRow {
+                        header: rbox_devlib::binary::DatabasePropertyHeader {
                             subtype: 0x700,
                             index_shift: 0,
                             unknown_words: [0; 5],
                             my_tag_master_db_id: 123,
                         },
-                        strings: rbox_pdb::binary::StringOffsets::Near {
+                        strings: rbox_devlib::binary::StringOffsets::Near {
                             marker: 3,
                             offsets: [34, 35, 36, 37, 38],
                         },
                         unknown_strings: std::array::from_fn(|_| {
-                            rbox_pdb::binary::DeviceSqlString::parse(&[3]).unwrap()
+                            rbox_devlib::binary::DeviceSqlString::parse(&[3]).unwrap()
                         }),
                     },
                 )),

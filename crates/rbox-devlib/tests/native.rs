@@ -4,12 +4,12 @@
 //! Native baselines and exact reconstruction using only export/empty and the RBv7 demo.
 
 use binrw::{BinRead, BinWrite};
-use rbox_pdb::binary::{
+use rbox_devlib::binary::{
     read_index_entries, read_row, read_row_directory, read_table_chains, DatabaseKind, ExtPageType,
     ExtendedRow, FileHeader, FileHeaderPrefix, IndexEntry, PageHeader, PageHeaderKind, PageIndex,
     PageType, Row, RowRecord, StandardRow, StringOffsets, TableKind, TrackRow,
 };
-use rbox_pdb::{DeviceSqlConnection, Result};
+use rbox_devlib::{DeviceSqlConnection, Result};
 use rbox_testing::data::{create_temp_dir, export_dir, testdata_dir};
 use std::collections::HashSet;
 use std::fs;
@@ -1105,8 +1105,8 @@ mod empty_usb {
             connection::{ConnectionOptions, OpenMode},
             Model,
         };
+        use rbox_devlib::binary::{ExtPageType, ExtendedRow, Row, TableKind};
         use rbox_masterdb::{enums::MyTagType, establish_connection, DjmdMyTag};
-        use rbox_pdb::binary::{ExtPageType, ExtendedRow, Row, TableKind};
         use rbox_testing::data::{export_dir, setup_master_db_path};
 
         // The fresh empty USB has no matching master.db snapshot. Check ID provenance

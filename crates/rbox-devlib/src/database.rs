@@ -73,8 +73,8 @@ pub struct LibrarySaveStats<T = SaveStats> {
 /// This handler does not copy audio, artwork, or analysis files.
 ///
 /// ```no_run
-/// use rbox_pdb::{DeviceLibrary, LibraryCreateOptions};
-/// # fn main() -> rbox_pdb::Result<()> {
+/// use rbox_devlib::{DeviceLibrary, LibraryCreateOptions};
+/// # fn main() -> rbox_devlib::Result<()> {
 /// let options = LibraryCreateOptions::new("2026-10-25", "My USB", 1);
 /// let mut library = DeviceLibrary::create("output/PIONEER/rekordbox", &options)?;
 /// let stats = library.save()?; // No edits: no writes.

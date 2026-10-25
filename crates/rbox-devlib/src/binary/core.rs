@@ -33,7 +33,7 @@ impl DatabaseKind {
     /// Supply the kind explicitly: the file header cannot reliably distinguish it.
     ///
     /// ```
-    /// use rbox_pdb::binary::core::{DatabaseKind, ExtPageType, PageType, TableKind};
+    /// use rbox_devlib::binary::core::{DatabaseKind, ExtPageType, PageType, TableKind};
     ///
     /// assert_eq!(DatabaseKind::Standard.table_kind(3),
     ///            TableKind::Standard(PageType::Albums));
@@ -727,9 +727,9 @@ impl IndexEntry {
 /// ```no_run
 /// use std::fs::File;
 /// use binrw::BinRead;
-/// use rbox_pdb::binary::{read_index_entries, read_table_chains, FileHeader};
+/// use rbox_devlib::binary::{read_index_entries, read_table_chains, FileHeader};
 ///
-/// # fn main() -> rbox_pdb::Result<()> {
+/// # fn main() -> rbox_devlib::Result<()> {
 /// let mut input = File::open("export.pdb")?;
 /// let header = FileHeader::read_le(&mut input)?;
 /// for chain in read_table_chains(&mut input, &header)? {
@@ -984,9 +984,9 @@ impl RowDirectory {
 /// ```no_run
 /// use std::fs::File;
 /// use binrw::BinRead;
-/// use rbox_pdb::binary::{read_row_directory, read_table_chains, FileHeader};
+/// use rbox_devlib::binary::{read_row_directory, read_table_chains, FileHeader};
 ///
-/// # fn main() -> rbox_pdb::Result<()> {
+/// # fn main() -> rbox_devlib::Result<()> {
 /// let mut input = File::open("exportExt.pdb")?;
 /// let header = FileHeader::read_le(&mut input)?;
 /// for chain in read_table_chains(&mut input, &header)? {

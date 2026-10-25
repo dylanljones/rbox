@@ -1,10 +1,10 @@
-# rbox-pdb
+# rbox-devlib
 
 Read, create, and edit Rekordbox DeviceSQL databases (`export.pdb` and `exportExt.pdb`).
 Includes lazy reads, typed models, transactional binary edits, and selective page writes.
 
 > [!NOTE]
-> This crate is part of [rbox](https://crates.io/crates/rbox) (available through `rbox::pdb` soon).
+> This crate is part of [rbox](https://crates.io/crates/rbox) (available through `rbox::devlib` soon).
 
 > [!WARNING]
 > This crate is still experimental and may contain bugs.

@@ -1,6 +1,6 @@
 [package]
-name = "rbox-pdb"
-description = "Rekordbox DeviceSQL export database handler"
+name = "rbox-devlib"
+description = "Rekordbox Device Library (DeviceSQL) database handler"
 readme = "README.md"
 version.workspace = true
 authors.workspace = true
