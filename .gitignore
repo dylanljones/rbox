@@ -6,6 +6,15 @@
 **database-out.xml
 .testdata/.tmp
 .tmp*
+.output/
+keys.txt
+
+# Development crates
+dev/
+crates/rbox-io
+crates/rbox-dsp
+crates/rbox-library
+crates/rbox-wav
 
 # mdBook output and generated mdbook-tabs assets
 /docs/book/
