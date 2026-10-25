@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from rbox.core import Track, TrackMetadata
+from rbox.core import Track, TrackMetadata, TrackSource
 
 
 @pytest.mark.parametrize("model", [TrackMetadata, Track])
@@ -81,3 +81,45 @@ def test_track_and_xml_track_are_distinct():
     assert Track.__name__ == "Track"
     assert Track is not XmlTrack
     assert LegacyXmlTrack is XmlTrack
+
+
+def test_track_export_metadata_and_source():
+    track = Track("track.mp3")
+    assert track.source == TrackSource.Unknown
+    for field in (
+        "master_content_id",
+        "master_db_id",
+        "artwork_path",
+        "analysis_data_path",
+        "color",
+        "play_count",
+        "hot_cue_auto_load",
+        "delivery_control",
+        "delivery_comment",
+    ):
+        assert getattr(track, field) is None
+    track.id = "7"
+    track.master_content_id = "42"
+    track.master_db_id = "100"
+    track.source = TrackSource.DeviceLib
+    track.artwork_path = "artwork/cover.jpg"
+    track.analysis_data_path = Path("ANLZ/ANLZ0000.DAT")
+    track.color = 3
+    track.play_count = 123
+    track.hot_cue_auto_load = "unknown-setting"
+    track.delivery_control = "on"
+    track.delivery_comment = "Comment"
+    assert track.id != track.master_content_id
+    assert track.master_db_id == "100"
+    assert track.source == TrackSource.DeviceLib
+    assert track.artwork_path == Path("artwork/cover.jpg")
+    assert track.analysis_data_path == Path("ANLZ/ANLZ0000.DAT")
+    assert track.hot_cue_auto_load == "unknown-setting"
+    for field, maximum in [("color", 255), ("play_count", 2**32 - 1)]:
+        for value in (-1, maximum + 1):
+            with pytest.raises(OverflowError):
+                setattr(track, field, value)
+    rebuilt = Track.from_metadata(track.to_metadata())
+    assert rebuilt.source == TrackSource.Unknown
+    assert rebuilt.master_content_id is None
+    assert rebuilt.artwork_path is None

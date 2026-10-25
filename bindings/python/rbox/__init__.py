@@ -23,6 +23,7 @@ from .core import (
     RekordboxOptions,
     Track,
     TrackMetadata,
+    TrackSource,
     anlz_dir_local,
     anlz_dir_usb,
     app_dir,

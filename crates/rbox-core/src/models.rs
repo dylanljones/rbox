@@ -7,6 +7,22 @@
 use pyo3::prelude::*;
 use std::path::Path;
 
+/// Database format whose local content identifier is stored in [`Track::id`].
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, eq, eq_int))]
+#[cfg_attr(feature = "napi", napi_derive::napi)]
+pub enum TrackSource {
+    /// No database identity has been assigned, or the source is unavailable.
+    #[default]
+    Unknown,
+    /// Desktop Rekordbox master database.
+    MasterDb,
+    /// Legacy Device Library (DeviceSQL/PDB).
+    DeviceLib,
+    /// OneLibrary / Device Library Plus.
+    OneLib,
+}
+
 /// Source-neutral track data. Names are resolved to relationships during planning.
 /// Unknown metadata stays `None`; length is seconds,
 /// bitrate is kbps, sample rate is Hz, and file size is bytes.
@@ -63,16 +79,39 @@ impl TrackMetadata {
     }
 }
 
-/// A track in the Rekordbox library.
+/// Shared track metadata and identity from a Rekordbox database.
 ///
-/// This is the same as `TrackMetadata` but with additional fields for the Rekordbox database.
+/// `id` belongs to `source`; the master identifiers retain the originating
+/// desktop library identity when a track is exported. Asset paths retain the
+/// source database's path convention and may require a library root to resolve.
+/// Conversion to [`TrackMetadata`] omits database identity and export metadata.
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all))]
 pub struct Track {
-    /// Unique Rekordbox track ID.
+    /// Local content ID in `source`, empty when no database ID is assigned.
     pub id: String,
+    /// Content ID in the originating master database; independent of the export ID.
+    pub master_content_id: Option<String>,
+    /// Originating master library ID, paired with `master_content_id`.
+    pub master_db_id: Option<String>,
+    /// Database format that owns `id`.
+    pub source: TrackSource,
     /// Unique Rekordbox track UUID.
     pub uuid: String,
+    /// Source artwork path; an exporter assigns the destination artwork path/ID.
+    pub artwork_path: Option<std::path::PathBuf>,
+    /// Source analysis-file path; does not imply that the ANLZ bundle exists.
+    pub analysis_data_path: Option<std::path::PathBuf>,
+    /// Rekordbox color code. Zero is uncolored; unknown byte values are retained.
+    pub color: Option<u8>,
+    /// Number of DJ plays, before any destination-specific range conversion.
+    pub play_count: Option<u32>,
+    /// Source hot-cue auto-load setting, retaining unknown values and casing.
+    pub hot_cue_auto_load: Option<String>,
+    /// Source publication/Kuvo delivery setting, retaining unknown values and casing.
+    pub delivery_control: Option<String>,
+    /// Source publication/Kuvo delivery comment.
+    pub delivery_comment: Option<String>,
     pub path: std::path::PathBuf,
     pub file_type: Option<i32>,
     pub rating: Option<u8>,
@@ -154,6 +193,7 @@ impl From<TrackMetadata> for Track {
             date_created: metadata.date_created,
             lyricist: metadata.lyricist,
             isrc: metadata.isrc,
+            ..Default::default()
         }
     }
 }
@@ -220,7 +260,7 @@ impl Track {
         metadata.into()
     }
 
-    /// Copy the track's metadata, omitting its database identifiers.
+    /// Copy tag metadata, omitting database identifiers and export metadata.
     #[pyo3(name = "to_metadata")]
     fn py_to_metadata(&self) -> TrackMetadata {
         self.clone().into()

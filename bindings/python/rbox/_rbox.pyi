@@ -4524,9 +4524,27 @@ class TrackMetadata:
     isrc: Optional[str]
     def __init__(self, path: Union[str, PathLike[str]]) -> None: ...
 
+class TrackSource:
+    """Database format whose local identifier is stored in Track.id."""
+
+    Unknown: TrackSource
+    MasterDb: TrackSource
+    DeviceLib: TrackSource
+    OneLib: TrackSource
+
 class Track:
     id: str
+    master_content_id: Optional[str]
+    master_db_id: Optional[str]
+    source: TrackSource
     uuid: str
+    artwork_path: Optional[Path]
+    analysis_data_path: Optional[Path]
+    color: Optional[int]
+    play_count: Optional[int]
+    hot_cue_auto_load: Optional[str]
+    delivery_control: Optional[str]
+    delivery_comment: Optional[str]
     path: Path
     file_type: Optional[int]
     rating: Optional[int]

@@ -29,7 +29,7 @@ use crate::error::Error as MasterDbError;
 use crate::schema::{
     djmdAlbum, djmdArtist, djmdColor, djmdContent, djmdGenre, djmdKey, djmdLabel, djmdProperty,
 };
-use rbox_core::{PathExt, Track, TrackMetadata};
+use rbox_core::{PathExt, Track, TrackMetadata, TrackSource};
 use rbox_db::{load_related, Model, ModelInsert, ModelRelations, ModelUpdate};
 
 /// Represents the `djmdContent` table in the Rekordbox database.
@@ -1134,6 +1134,9 @@ impl NewDjmdContent {
 
 /// Convert a resolved view without querying the database. Missing paths become empty paths.
 /// Negative or out-of-range numeric metadata is rejected.
+/// `master_content_id` is the row ID and `source` is `MasterDb`. The owning
+/// library ID cannot be inferred from a content row: `master_db_id` stays `None`.
+/// [`crate::MasterDb::get_tracks`] supplies it from `DjmdProperty`.
 impl TryFrom<&DjmdContentView> for Track {
     type Error = MasterDbError;
 
@@ -1151,7 +1154,34 @@ impl TryFrom<&DjmdContentView> for Track {
         }
         Ok(Self {
             id: input.id.clone(),
+            master_content_id: Some(input.id.clone()),
+            master_db_id: None,
+            source: TrackSource::MasterDb,
             uuid: input.uuid.clone(),
+            artwork_path: input.image_path.as_ref().map(PathBuf::from),
+            analysis_data_path: input.analysis_data_path.as_ref().map(PathBuf::from),
+            color: input
+                .color_id
+                .as_ref()
+                .map(|value| value.parse::<u8>())
+                .transpose()
+                .map_err(|_| {
+                    MasterDbError::InvalidOperation(
+                        "color_id is outside the Track u8 range or is not numeric".into(),
+                    )
+                })?,
+            play_count: input
+                .dj_play_count
+                .map(u32::try_from)
+                .transpose()
+                .map_err(|_| {
+                    MasterDbError::InvalidOperation(
+                        "dj_play_count is outside the Track u32 range".into(),
+                    )
+                })?,
+            hot_cue_auto_load: input.hot_cue_auto_load.clone(),
+            delivery_control: input.delivery_control.clone(),
+            delivery_comment: input.delivery_comment.clone(),
             path: input
                 .folder_path
                 .as_ref()

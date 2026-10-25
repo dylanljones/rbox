@@ -518,6 +518,7 @@ module.exports.RelatedTracksType = nativeBinding.RelatedTracksType
 module.exports.SamplerType = nativeBinding.SamplerType
 module.exports.FileType = nativeBinding.FileType
 module.exports.LocationSource = nativeBinding.LocationSource
+module.exports.TrackSource = nativeBinding.TrackSource
 module.exports.HistoryType = nativeBinding.HistoryType
 module.exports.HotCueBanklistType = nativeBinding.HotCueBanklistType
 module.exports.MyTagType = nativeBinding.MyTagType
