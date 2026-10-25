@@ -35,6 +35,7 @@
 //!
 //! See individual method documentation for details on arguments, return values, and error handling.
 
+use diesel::Connection;
 use dunce;
 use std::collections::HashSet;
 use std::ffi::OsStr;
@@ -44,7 +45,7 @@ use rbox_anlz::{find_anlz_files, Anlz, AnlzFiles, AnlzPaths};
 use rbox_core::models::Track;
 use rbox_core::pathlib::PathExt;
 use rbox_core::{is_rekordbox_running, locate_library, LibraryLocation, RekordboxOptions};
-use rbox_db::{ConnectionOptions, DbPool};
+use rbox_db::{ConnectionOptions, DbConn, DbPool};
 use rbox_db::{Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate, NodeRef};
 
 use crate::connection::create_connection_pool;
@@ -141,7 +142,7 @@ impl MasterDb {
         match std::fs::metadata(&location.db_path) {
             Ok(metadata) if metadata.is_file() => (),
             Ok(_) => {
-                return Err(rbox_core::error::Error::FileNotFound(location.db_path.clone()).into())
+                return Err(rbox_core::error::Error::FileNotFound(location.db_path.clone()).into());
             }
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
                 return Err(rbox_core::error::Error::FileNotFound(location.db_path.clone()).into());
@@ -1165,6 +1166,9 @@ impl MasterDb {
     /// Relationships are loaded in batches. Results are detached snapshots in
     /// database order; missing metadata remains `None`. BPM is in beats per
     /// minute, length in seconds, and file size in bytes.
+    /// Source identity includes `DjmdContent.id` and the owning `DjmdProperty.db_id`.
+    /// If no property row is available, `master_db_id` remains `None`; multiple
+    /// property rows are rejected as ambiguous.
     ///
     /// # Errors
     /// Returns database errors or a conversion error for invalid stored metadata.
@@ -1179,10 +1183,7 @@ impl MasterDb {
     /// # Ok(()) }
     /// ```
     pub fn get_tracks(&self) -> Result<Vec<Track>> {
-        self.get_contents_with_relations()?
-            .into_iter()
-            .map(Track::try_from)
-            .collect()
+        self.read_tracks(|conn| Ok(DjmdContent::all_with_relations(conn)?))
     }
 
     /// Load a library track by ID with resolved metadata names.
@@ -1190,9 +1191,13 @@ impl MasterDb {
     /// Returns `None` if the ID is absent. See [`Self::get_tracks`] for units,
     /// snapshot behavior, and errors.
     pub fn get_track_by_id(&self, id: &str) -> Result<Option<Track>> {
-        self.get_content_with_relations(id)?
-            .map(Track::try_from)
-            .transpose()
+        Ok(self
+            .read_tracks(|conn| {
+                Ok(DjmdContent::find_with_relations(conn, id)?
+                    .into_iter()
+                    .collect())
+            })?
+            .pop())
     }
 
     /// Load matching library tracks with batched metadata resolution in one read transaction.
@@ -1201,11 +1206,7 @@ impl MasterDb {
     /// order follows the database query, not the input IDs. An empty input returns
     /// an empty vector. See [`Self::get_tracks`] for units and errors.
     pub fn get_tracks_by_ids(&self, ids: &[&str]) -> Result<Vec<Track>> {
-        let mut conn = self.pool.get()?;
-        DjmdContent::by_ids_with_relations(&mut conn, ids)?
-            .into_iter()
-            .map(Track::try_from)
-            .collect()
+        self.read_tracks(|conn| DjmdContent::by_ids_with_relations(conn, ids))
     }
 
     /// Load a library track by its stored file path with resolved metadata names.
@@ -1215,10 +1216,47 @@ impl MasterDb {
     /// Returns `None` if absent. See [`Self::get_tracks`] for units and errors.
     pub fn get_track_by_path(&self, path: &str) -> Result<Option<Track>> {
         let path = Path::new(path).to_unix();
+        Ok(self
+            .read_tracks(|conn| {
+                Ok(
+                    DjmdContent::find_by_path_with_relations(conn, &path.to_string_lossy())?
+                        .into_iter()
+                        .collect(),
+                )
+            })?
+            .pop())
+    }
+
+    // Read owning-library identity in the same snapshot as content/relationships.
+    fn read_tracks(
+        &self,
+        load: impl FnOnce(&mut DbConn) -> Result<Vec<DjmdContentView>>,
+    ) -> Result<Vec<Track>> {
         let mut conn = self.pool.get()?;
-        DjmdContent::find_by_path_with_relations(&mut conn, &path.to_string_lossy())?
-            .map(Track::try_from)
-            .transpose()
+        conn.transaction(|conn| {
+            let views = load(conn)?;
+            if views.is_empty() {
+                return Ok(Vec::new());
+            }
+            let properties = DjmdProperty::all(conn)?;
+            let library_id = match properties.as_slice() {
+                [] => None,
+                [property] => Some(&property.db_id).filter(|id| !id.is_empty()),
+                _ => {
+                    return Err(Error::InvalidOperation(
+                        "multiple djmdProperty rows: ambiguous master library identity".into(),
+                    ));
+                }
+            };
+            views
+                .iter()
+                .map(|view| {
+                    let mut track = Track::try_from(view)?;
+                    track.master_db_id = library_id.cloned();
+                    Ok(track)
+                })
+                .collect()
+        })
     }
 
     /// Retrieves multiple `djmdContent` entries by their unique identifiers.

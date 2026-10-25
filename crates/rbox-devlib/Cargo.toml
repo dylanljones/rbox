@@ -1,0 +1,27 @@
+[package]
+name = "rbox-devlib"
+description = "Rekordbox Device Library (DeviceSQL) database handler"
+readme = "README.md"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+publish = false
+
+[dependencies]
+binrw               = { workspace = true }
+thiserror           = { workspace = true }
+tempfile            = { workspace = true }
+
+[dev-dependencies]
+anyhow              = { workspace = true }
+rbox-anlz           = { path = "../rbox-anlz", default-features = false }
+rbox-testing        = { path = "../rbox-testing", default-features = false }
+rbox-core           = { path = "../rbox-core", default-features = false }
+rbox-db             = { path = "../rbox-db", default-features = false }
+rbox-masterdb       = { path = "../rbox-masterdb", default-features = false, features = ["bundled-vendored-openssl"] }

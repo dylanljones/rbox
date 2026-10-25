@@ -26,7 +26,7 @@ pub use locate::{
     find_programs, find_programs_in, locate_library, options_json_path, rekordbox_agent_app_dir,
     rekordbox_app_dir, LibraryLocation,
 };
-pub use models::{Track, TrackMetadata};
+pub use models::{Track, TrackMetadata, TrackSource};
 pub use options::RekordboxOptions;
 pub use pathlib::PathExt;
 pub use process::{get_rekordbox_pid, is_rekordbox_running};

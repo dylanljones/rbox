@@ -69,6 +69,7 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     // Shared track models
     m.add_class::<rbox::core::models::TrackMetadata>()?;
     m.add_class::<rbox::core::models::Track>()?;
+    m.add_class::<rbox::core::TrackSource>()?;
 
     // Rekordbox Options
     m.add_class::<options::PyRekordboxOptions>()?;

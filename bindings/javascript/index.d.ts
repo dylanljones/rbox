@@ -3452,6 +3452,18 @@ export declare const enum LocationSource {
   /** A platform default library location. */
   Default = 2
 }
+
+/** Database format whose local content identifier is stored in [`Track::id`]. */
+export declare const enum TrackSource {
+  /** No database identity has been assigned, or the source is unavailable. */
+  Unknown = 0,
+  /** Desktop Rekordbox master database. */
+  MasterDb = 1,
+  /** Legacy Device Library (DeviceSQL/PDB). */
+  DeviceLib = 2,
+  /** OneLibrary / Device Library Plus. */
+  OneLib = 3
+}
 /** Stored Rekordbox codes for HistoryType. */
 export declare const enum HistoryType {
   List = 0,
@@ -5037,7 +5049,17 @@ export interface TinyWaveformPreview {
 /** Shared track data. BPM is unscaled, length is seconds, fileSize is bytes as bigint. */
 export interface Track {
   id: string
+  masterContentId?: string
+  masterDbId?: string
+  source: TrackSource
   uuid: string
+  artworkPath?: string
+  analysisDataPath?: string
+  color?: number
+  playCount?: number
+  hotCueAutoLoad?: string
+  deliveryControl?: string
+  deliveryComment?: string
   path: string
   fileType?: number
   rating?: number
@@ -5109,7 +5131,7 @@ export interface TrackMetadata {
   isrc?: string
 }
 
-/** Copy metadata, omitting database identifiers. */
+/** Copy tag metadata, omitting database identifiers and export metadata. */
 export declare function trackToMetadata(track: Track): TrackMetadata
 
 /** Opaque section bytes, including the exact four-byte identifier. */
