@@ -141,11 +141,13 @@ fn main() -> anyhow::Result<()> {
 
 ### Device Library (DeviceSQL)
 
+> [!WARNING]
+> DeviceSQL support is experimental and may contain bugs. Back up existing databases
+> and test generated exports on your hardware before relying on them.
+> See the `rbox-devlib` crate for more information.
+
 Rekordbox stores Device Library exports in the binary `export.pdb` database and
 an optional `exportExt.pdb` file under `PIONEER/rekordbox` on the export device.
-The `device-library` feature (included in `full`) exposes the `DeviceLibrary`
-handler and the `rbox::devlib` APIs. This format does not require SQLCipher.
-
 Pass the database directory to `DeviceLibrary::new`. Pages are loaded on demand,
 and typed models provide access to tracks, playlists, artists, and other tables:
 
@@ -166,11 +168,7 @@ fn main() -> anyhow::Result<()> {
 Use `DeviceLibrary::create` with `LibraryCreateOptions` to initialize a new pair
 of database files. Edits stay in memory until explicitly saved: `save()` replaces
 changed files, `save_pages()` writes changed pages, and `save_as(directory)` copies
-the databases to a new destination. Saving both files is not atomic, and the
-handler does not copy audio, artwork, or analysis files.
-
-DeviceSQL support is experimental. See the [rbox-devlib README](../crates/rbox-devlib/README.md)
-for details and hardware testing status.
+the databases to a new destination.
 
 ### Rekordbox ANLZ files
 
