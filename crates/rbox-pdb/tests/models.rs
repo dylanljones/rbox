@@ -1,7 +1,7 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
-//! Application models-old, lazy reads, provenance, ordering, and atomic insertion.
+//! Application models, lazy reads, provenance, ordering, and atomic insertion.
 
 use std::fs;
 use std::io::Cursor;
