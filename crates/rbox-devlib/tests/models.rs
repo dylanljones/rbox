@@ -1,7 +1,7 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
-//! Application models, lazy reads, provenance, ordering, and atomic insertion.
+//! Application models, lazy reads, provenance, ordering, and atomic mutations.
 
 use std::fs;
 use std::io::Cursor;
@@ -13,6 +13,2521 @@ use rbox_devlib::binary::{
 use rbox_devlib::models::{Content, NewContent};
 use rbox_devlib::{CreateOptions, DeviceSqlConnection, Error, Result};
 use rbox_testing::data::{create_temp_dir, export_dir};
+
+// Binary-only fixture for unusual color IDs used by read/relationship tests.
+fn seed_color(
+    conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>,
+    id: u16,
+    name: &str,
+) -> Result<rbox_devlib::models::Color> {
+    use rbox_devlib::{binary::ColorRow, models::Color};
+    let mut tx = conn.transaction();
+    let handle = tx.insert(
+        Color::TABLE,
+        &Row::Standard(StandardRow::Color(ColorRow {
+            id,
+            name: DeviceSqlString::encode(name, StringEncoding::ShortAscii)?,
+            unknown_00: 0,
+            unknown_04: 0,
+            unknown_07: 0,
+        })),
+    )?;
+    let model = Color::try_from(tx.read(&handle)?)?;
+    tx.commit()?;
+    Ok(model)
+}
+
+#[test]
+fn color_updates_preserve_identity_enforce_unique_names_and_roundtrip() -> Result<()> {
+    use rbox_devlib::models::Color;
+    let mut conn = DeviceSqlConnection::create_with_options(
+        DatabaseKind::Standard,
+        &CreateOptions::standard("2026-10-25", "USB")?,
+    )?;
+    let colors = Color::all(&mut conn)?;
+    assert_eq!(colors.len(), 8);
+    let original = colors[0].clone();
+    assert_eq!(original.clone().update(&mut conn)?, original);
+    let mut edited = original.clone();
+    edited.name = colors[1].name.clone();
+    assert!(matches!(
+        edited.update(&mut conn),
+        Err(Error::UniqueConstraintViolation {
+            fields: &["name"],
+            ..
+        })
+    ));
+    let mut edited = original.clone();
+    edited.id = 99;
+    assert!(matches!(
+        edited.update(&mut conn),
+        Err(Error::InvalidModelField { field: "id", .. })
+    ));
+    let mut edited = original.clone();
+    edited.name = "Custom \u{97f3}".repeat(20);
+    let updated = edited.update(&mut conn)?;
+    assert_eq!(original.clone().update(&mut conn)?, updated);
+    let Row::Standard(StandardRow::Color(old)) = original.raw_record().decode()? else {
+        panic!()
+    };
+    let Row::Standard(StandardRow::Color(new)) = updated.raw_record().decode()? else {
+        panic!()
+    };
+    assert_eq!(
+        (old.unknown_00, old.unknown_04, old.unknown_07),
+        (new.unknown_00, new.unknown_04, new.unknown_07)
+    );
+    let mut bytes = Vec::new();
+    conn.write_to(&mut bytes)?;
+    let mut reopened =
+        DeviceSqlConnection::from_reader(Cursor::new(bytes.clone()), DatabaseKind::Standard)?;
+    assert_eq!(
+        Color::find(&mut reopened, &updated.id)?.unwrap().name,
+        updated.name
+    );
+    reopened.set_resource_limits(rbox_devlib::devicesql::ResourceLimits {
+        dirty_pages: Some(0),
+        ..Default::default()
+    })?;
+    let mut edited = updated.clone();
+    edited.name = "Changed".into();
+    assert!(matches!(
+        edited.update(&mut reopened),
+        Err(Error::DirtyPageLimit { .. })
+    ));
+    let mut after = Vec::new();
+    reopened.write_to(&mut after)?;
+    assert_eq!(after, bytes);
+    let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+    assert!(matches!(
+        updated.update(&mut extended),
+        Err(Error::WrongDatabaseKind { .. })
+    ));
+    Ok(())
+}
+
+mod content_mutations {
+    //! Content field mapping and deletion across standard/extended overlays.
+    use super::*;
+    use rbox_devlib::models::{
+        ExportProperty, History, HistoryContent, MyTag, MyTagContent, NewHistory,
+        NewHistoryContent, NewMyTag, NewMyTagContent, NewPlaylist, NewPlaylistContent,
+        NewRecommendedLike, Playlist, PlaylistContent, RecommendedLike,
+    };
+    type Memory = DeviceSqlConnection<Cursor<Vec<u8>>>;
+
+    fn bytes<R: std::io::Read + std::io::Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+    ) -> Result<Vec<u8>> {
+        let mut bytes = Vec::new();
+        conn.write_to(&mut bytes)?;
+        Ok(bytes)
+    }
+
+    fn pair() -> Result<(Memory, Memory)> {
+        let mut standard = DeviceSqlConnection::create_with_options(
+            DatabaseKind::Standard,
+            &CreateOptions::standard("2026-10-25", "Test")?,
+        )?;
+        let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        for id in [1, 2] {
+            NewContent::new(id, format!("/Contents/{id}.wav")).insert(&mut standard)?;
+        }
+        NewPlaylist::new(10, 0, 1, "Playlist").insert(&mut standard)?;
+        NewHistory::new(20, "History").insert(&mut standard)?;
+        NewMyTag::new(30, 0, 0, "Tag").insert(&mut extended)?;
+        for (id, seq) in [(1, 1), (1, 3), (2, 8)] {
+            NewPlaylistContent::new(10, id, seq).insert(&mut standard)?;
+        }
+        for (id, seq) in [(1, 1), (2, 9)] {
+            NewHistoryContent::new(20, id, seq).insert(&mut standard)?;
+        }
+        for id in [1, 1, 2] {
+            NewMyTagContent::new(id, 30).insert(&mut extended)?;
+        }
+        for (a, b) in [(1, 2), (2, 1), (1, 1), (2, 2)] {
+            NewRecommendedLike::new(a, b, 0x1234, 7, 8).insert(&mut extended)?;
+        }
+        Ok((standard, extended))
+    }
+
+    #[test]
+    fn updates_map_all_public_fields_preserve_unknowns_and_follow_relocations() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let mut input = NewContent::new(1, "/Contents/original.wav");
+        input.isrc = "USABC1234567".into();
+        input.creation.content_link = 0x12345678;
+        input.creation.raw_analysis = 0x9876;
+        input.creation.unknown_strings =
+            ["one", "two", "three", "four", "five", "six", "seven"].map(str::to_owned);
+        let original = input.clone().insert(&mut conn)?;
+        let before = bytes(&mut conn)?;
+        assert_eq!(original.clone().update(&mut conn)?, original);
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut edited = original.clone();
+        let mut desired = input;
+        desired.artist_id = 2;
+        edited.artist_id = desired.artist_id;
+        desired.album_id = 3;
+        edited.album_id = desired.album_id;
+        desired.genre_id = 4;
+        edited.genre_id = desired.genre_id;
+        desired.label_id = 5;
+        edited.label_id = desired.label_id;
+        desired.key_id = 6;
+        edited.key_id = desired.key_id;
+        desired.artwork_id = 7;
+        edited.artwork_id = desired.artwork_id;
+        desired.composer_id = 8;
+        edited.composer_id = desired.composer_id;
+        desired.original_artist_id = 9;
+        edited.original_artist_id = desired.original_artist_id;
+        desired.remixer_id = 10;
+        edited.remixer_id = desired.remixer_id;
+        desired.master_content_id = 11;
+        edited.master_content_id = desired.master_content_id;
+        desired.master_db_id = 12;
+        edited.master_db_id = desired.master_db_id;
+        desired.sample_rate = 13;
+        edited.sample_rate = desired.sample_rate;
+        desired.file_size = 14;
+        edited.file_size = desired.file_size;
+        desired.bitrate = 15;
+        edited.bitrate = desired.bitrate;
+        desired.bpmx100 = 16;
+        edited.bpmx100 = desired.bpmx100;
+        desired.length = 17;
+        edited.length = desired.length;
+        desired.track_no = 18;
+        edited.track_no = desired.track_no;
+        desired.disc_no = 19;
+        edited.disc_no = desired.disc_no;
+        desired.play_count = 20;
+        edited.play_count = desired.play_count;
+        desired.release_year = 21;
+        edited.release_year = desired.release_year;
+        desired.bit_depth = 22;
+        edited.bit_depth = desired.bit_depth;
+        desired.color_id = 23;
+        edited.color_id = desired.color_id;
+        desired.rating = 24;
+        edited.rating = desired.rating;
+        desired.file_type = 25;
+        edited.file_type = desired.file_type;
+        desired.title = "title changed".into();
+        edited.title = desired.title.clone();
+        desired.comment = "comment changed".into();
+        edited.comment = desired.comment.clone();
+        desired.mix_name = "mix_name changed".into();
+        edited.mix_name = desired.mix_name.clone();
+        desired.lyricist = "lyricist changed".into();
+        edited.lyricist = desired.lyricist.clone();
+        desired.message = "message changed".into();
+        edited.message = desired.message.clone();
+        desired.publish_track_info = "publish_track_info changed".into();
+        edited.publish_track_info = desired.publish_track_info.clone();
+        desired.hot_cue_auto_load = "hot_cue_auto_load changed".into();
+        edited.hot_cue_auto_load = desired.hot_cue_auto_load.clone();
+        desired.date_added = "date_added changed".into();
+        edited.date_added = desired.date_added.clone();
+        desired.release_date = "release_date changed".into();
+        edited.release_date = desired.release_date.clone();
+        desired.analysis_date = "analysis_date changed".into();
+        edited.analysis_date = desired.analysis_date.clone();
+        desired.analysis_path = "analysis_path changed".into();
+        edited.analysis_path = desired.analysis_path.clone();
+        desired.file_name = "file_name changed".into();
+        edited.file_name = desired.file_name.clone();
+        desired.path = "path changed".into();
+        edited.path = desired.path.clone();
+        desired.title = "Long title ".repeat(80);
+        edited.title = desired.title.clone();
+        let updated = edited.update(&mut conn)?;
+        let Row::Standard(StandardRow::Track(actual)) = updated.raw_record().decode()? else {
+            panic!()
+        };
+        let mut expected = desired.to_binary()?;
+        expected.header.index_shift = actual.header.index_shift; // Placement is engine-owned.
+        assert_eq!(actual.header, expected.header);
+        assert_eq!(actual.text, expected.text);
+        assert_ne!(
+            (
+                original.raw_record().page(),
+                original.raw_record().slot().slot
+            ),
+            (
+                updated.raw_record().page(),
+                updated.raw_record().slot().slot
+            )
+        );
+        assert_eq!(original.clone().update(&mut conn)?, updated);
+        let mut stale = original;
+        stale.comment = "Another edit".into();
+        let updated = stale.update(&mut conn)?;
+        assert_eq!(updated.title, desired.title);
+        assert_eq!(updated.comment, "Another edit");
+        assert_eq!(updated.isrc()?, "USABC1234567");
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Standard,
+        )?;
+        assert_eq!(Content::find(&mut reopened, &1)?, Some(updated));
+        Ok(())
+    }
+
+    #[test]
+    fn deletion_cleans_both_files_and_preserves_parents_survivors_and_sequences() -> Result<()> {
+        let (mut standard, mut extended) = pair()?;
+        let survivor = Content::find(&mut standard, &2)?
+            .unwrap()
+            .raw_record()
+            .decode()?;
+        assert_eq!(
+            Content::delete_with_extended(&mut standard, &mut extended, &1)?,
+            9
+        );
+        assert_eq!(
+            Content::delete_with_extended(&mut standard, &mut extended, &1)?,
+            0
+        );
+        assert!(Content::find(&mut standard, &1)?.is_none());
+        assert_eq!(
+            Content::find(&mut standard, &2)?
+                .unwrap()
+                .raw_record()
+                .decode()?,
+            survivor
+        );
+        assert_eq!(ExportProperty::all(&mut standard)?[0].track_count, 1);
+        let playlists = PlaylistContent::all(&mut standard)?;
+        assert_eq!(playlists.len(), 1);
+        assert_eq!((playlists[0].content_id, playlists[0].seq), (2, 8));
+        let histories = HistoryContent::all(&mut standard)?;
+        assert_eq!(histories.len(), 1);
+        assert_eq!((histories[0].content_id, histories[0].seq), (2, 9));
+        assert!(Playlist::find(&mut standard, &10)?.is_some());
+        assert!(History::find(&mut standard, &20)?.is_some());
+        assert!(MyTag::find(&mut extended, &30)?.is_some());
+        let tags = MyTagContent::all(&mut extended)?;
+        assert_eq!(tags.len(), 1);
+        assert_eq!(tags[0].content_id, 2);
+        let recommendations = RecommendedLike::all(&mut extended)?;
+        assert_eq!(recommendations.len(), 1);
+        assert_eq!(
+            (
+                recommendations[0].content_id_1,
+                recommendations[0].content_id_2
+            ),
+            (2, 2)
+        );
+        let mut standard = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut standard)?),
+            DatabaseKind::Standard,
+        )?;
+        let mut extended = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut extended)?),
+            DatabaseKind::Extended,
+        )?;
+        assert!(Content::find(&mut standard, &1)?.is_none());
+        assert!(MyTagContent::by_content(&mut extended, &1)?.is_empty());
+        assert!(RecommendedLike::by_content(&mut extended, &1)?.is_empty());
+        assert_eq!(
+            Content::delete_with_extended(&mut standard, &mut extended, &2)?,
+            5
+        );
+        assert_eq!(ExportProperty::all(&mut standard)?[0].track_count, 0);
+        Ok(())
+    }
+
+    #[test]
+    fn failures_in_either_file_roll_back_all_staged_cleanup() -> Result<()> {
+        let (mut standard, mut extended) = pair()?;
+        let original_standard = bytes(&mut standard)?;
+        let original_extended = bytes(&mut extended)?;
+        for fail_extended in [false, true] {
+            let mut standard = DeviceSqlConnection::from_reader(
+                Cursor::new(original_standard.clone()),
+                DatabaseKind::Standard,
+            )?;
+            let mut extended = DeviceSqlConnection::from_reader(
+                Cursor::new(original_extended.clone()),
+                DatabaseKind::Extended,
+            )?;
+            let limited = if fail_extended {
+                &mut extended
+            } else {
+                &mut standard
+            };
+            limited.set_resource_limits(rbox_devlib::devicesql::ResourceLimits {
+                dirty_pages: Some(0),
+                ..Default::default()
+            })?;
+            assert!(matches!(
+                Content::delete_with_extended(&mut standard, &mut extended, &1),
+                Err(Error::DirtyPageLimit { .. })
+            ));
+            assert_eq!(bytes(&mut standard)?, original_standard);
+            assert_eq!(bytes(&mut extended)?, original_extended);
+        }
+        // Failure after track and occurrence deletions have been staged.
+        let property = ExportProperty::all(&mut standard)?.remove(0);
+        let raw = property.raw_record();
+        let offset = raw.page().0 as usize * standard.header().prefix.page_size as usize
+            + PAGE_HEADER_SIZE
+            + raw.slot().heap_offset as usize;
+        let mut corrupt = original_standard;
+        corrupt[offset..offset + 2].copy_from_slice(&u16::MAX.to_le_bytes());
+        let mut standard =
+            DeviceSqlConnection::from_reader(Cursor::new(corrupt.clone()), DatabaseKind::Standard)?;
+        assert!(Content::delete_with_extended(&mut standard, &mut extended, &1).is_err());
+        assert_eq!(bytes(&mut standard)?, corrupt);
+        assert_eq!(bytes(&mut extended)?, original_extended);
+        Ok(())
+    }
+
+    #[test]
+    fn update_validation_missing_rows_and_standard_only_delete() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let content = NewContent::new(1, "/Contents/track.wav").insert(&mut conn)?;
+        let before = bytes(&mut conn)?;
+        let mut edited = content.clone();
+        edited.id = 2;
+        assert!(matches!(
+            edited.update(&mut conn),
+            Err(Error::InvalidModelField { field: "id", .. })
+        ));
+        let mut edited = content.clone();
+        edited.path.clear();
+        assert!(matches!(
+            edited.update(&mut conn),
+            Err(Error::InvalidModelField { field: "path", .. })
+        ));
+        let mut edited = content.clone();
+        edited.title = "bad\0title".into();
+        assert!(matches!(edited.update(&mut conn), Err(Error::EmbeddedNul)));
+        let mut edited = content.clone();
+        edited.title = "x".repeat(5000);
+        assert!(matches!(
+            edited.update(&mut conn),
+            Err(Error::NoRowSpace { .. })
+        ));
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut ext = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        assert!(matches!(
+            content.clone().update(&mut ext),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            Content::delete(&mut ext, &1),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            Content::delete(&mut conn, &0),
+            Err(Error::InvalidModelField { .. })
+        ));
+        assert_eq!(Content::delete(&mut conn, &99)?, 0);
+        assert_eq!(Content::delete(&mut conn, &1)?, 1);
+        assert!(matches!(
+            content.update(&mut conn),
+            Err(Error::ModelNotFound { id: 1, .. })
+        ));
+        Ok(())
+    }
+}
+
+#[test]
+fn album_uniqueness_uses_name_and_current_album_artist() -> Result<()> {
+    use rbox_devlib::models::{Album, NewAlbum};
+    let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+    let first = NewAlbum::new(1, 10, "Album").insert(&mut conn)?;
+    let second = NewAlbum::new(2, 20, "Album").insert(&mut conn)?;
+    let other = NewAlbum::new(3, 10, "Other").insert(&mut conn)?;
+    NewAlbum::new(4, 0, "Album").insert(&mut conn)?;
+    for artist in [0, 10, 20] {
+        assert!(matches!(
+            NewAlbum::new(5, artist, "Album").insert(&mut conn),
+            Err(Error::UniqueConstraintViolation {
+                fields: &["name", "artist_id"],
+                ..
+            })
+        ));
+    }
+    first.clone().update(&mut conn)?;
+    let mut before = Vec::new();
+    conn.write_to(&mut before)?;
+    let mut edited = second;
+    edited.artist_id = 10;
+    assert!(matches!(
+        edited.update(&mut conn),
+        Err(Error::UniqueConstraintViolation { .. })
+    ));
+    let mut edited = other;
+    edited.name = "Album".into();
+    assert!(matches!(
+        edited.update(&mut conn),
+        Err(Error::UniqueConstraintViolation { .. })
+    ));
+    let mut after = Vec::new();
+    conn.write_to(&mut after)?;
+    assert_eq!(after, before);
+    // A stale rename must check the current artist, not the snapshot's artist.
+    let mut edited = first.clone();
+    edited.artist_id = 30;
+    edited.update(&mut conn)?;
+    NewAlbum::new(5, 30, "Taken").insert(&mut conn)?;
+    let mut stale = first;
+    stale.name = "Taken".into();
+    assert!(matches!(
+        stale.update(&mut conn),
+        Err(Error::UniqueConstraintViolation { .. })
+    ));
+    assert_eq!(Album::find(&mut conn, &1)?.unwrap().name, "Album");
+    let mut bytes = Vec::new();
+    conn.write_to(&mut bytes)?;
+    let mut reopened =
+        DeviceSqlConnection::from_reader(Cursor::new(bytes), DatabaseKind::Standard)?;
+    assert!(matches!(
+        NewAlbum::new(6, 30, "Album").insert(&mut reopened),
+        Err(Error::UniqueConstraintViolation { .. })
+    ));
+    Album::delete(&mut reopened, &1)?;
+    NewAlbum::new(6, 30, "Album").insert(&mut reopened)?;
+    Ok(())
+}
+
+#[test]
+fn named_models_find_exact_names_without_resolving_relations() -> Result<()> {
+    use rbox_devlib::models::{
+        Album, Artist, Color, Genre, Key, Label, NewAlbum, NewArtist, NewGenre, NewKey, NewLabel,
+    };
+    let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+    macro_rules! check {
+        ($model:ident, $input:expr) => {{
+            assert!($model::find_by_name(&mut conn, "Name")?.is_none());
+            let model = $input.insert(&mut conn)?;
+            assert_eq!(
+                $model::find_by_name(&mut conn, "Name")?.unwrap().id,
+                model.id
+            );
+            assert!($model::find_by_name(&mut conn, "name")?.is_none());
+            assert!($model::find_by_name(&mut conn, "Name ")?.is_none());
+            let mut edited = model;
+            edited.name = "\u{97f3}".into();
+            edited.update(&mut conn)?;
+            assert!($model::find_by_name(&mut conn, "Name")?.is_none());
+            assert!($model::find_by_name(&mut conn, "\u{97f3}")?.is_some());
+            let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+            assert!(matches!(
+                $model::find_by_name(&mut extended, "Name"),
+                Err(Error::WrongDatabaseKind { .. })
+            ));
+        }};
+    }
+    check!(Artist, NewArtist::new(1, "Name"));
+    check!(Genre, NewGenre::new(1, "Name"));
+    check!(Key, NewKey::new(1, 23, "Name"));
+    check!(Label, NewLabel::new(1, "Name"));
+    check!(Album, NewAlbum::new(1, 999, "Name"));
+    NewAlbum::new(2, 1000, "\u{97f3}").insert(&mut conn)?;
+    let first = Album::all(&mut conn)?
+        .into_iter()
+        .find(|a| a.name == "\u{97f3}")
+        .unwrap();
+    assert_eq!(
+        Album::find_by_name(&mut conn, "\u{97f3}")?.unwrap().id,
+        first.id
+    );
+    let mut colors = DeviceSqlConnection::create_with_options(
+        DatabaseKind::Standard,
+        &CreateOptions::standard("2026-10-25", "USB")?,
+    )?;
+    let mut color = Color::all(&mut colors)?.remove(0);
+    color.name = "Custom".into();
+    let color = color.update(&mut colors)?;
+    assert_eq!(
+        Color::find_by_name(&mut colors, "Custom")?.unwrap().id,
+        color.id
+    );
+    assert!(Color::find_by_name(&mut colors, "custom")?.is_none());
+    Ok(())
+}
+
+mod name_constraints {
+    //! Model name constraints compare decoded text and roll back conflicts.
+    use super::*;
+    use rbox_devlib::models::{Artist, Genre, Key, Label, NewArtist, NewGenre, NewKey, NewLabel};
+
+    fn bytes(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>) -> Result<Vec<u8>> {
+        let mut bytes = Vec::new();
+        conn.write_to(&mut bytes)?;
+        Ok(bytes)
+    }
+
+    #[test]
+    fn all_named_models_enforce_unique_names_on_insert_and_rename() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        macro_rules! check {
+            ($model:ident, $new:expr) => {{
+                let new = $new;
+                let first = new(1, "Name").insert(&mut conn)?;
+                let second = new(2, "Other").insert(&mut conn)?;
+                // Self updates and identical names in different tables are valid.
+                first.clone().update(&mut conn)?;
+                let before = bytes(&mut conn)?;
+                assert!(matches!(new(3, "Name").insert(&mut conn),
+                    Err(Error::UniqueConstraintViolation { table, fields: &["name"] }) if table == $model::TABLE));
+                let mut edited = second.clone();
+                edited.name = "Name".into();
+                assert!(matches!(edited.update(&mut conn), Err(Error::UniqueConstraintViolation { .. })));
+                assert_eq!(bytes(&mut conn)?, before);
+                new(3, "name").insert(&mut conn)?;
+                new(4, "Name ").insert(&mut conn)?;
+                new(5, "").insert(&mut conn)?;
+                assert!(matches!(new(6, "").insert(&mut conn), Err(Error::UniqueConstraintViolation { .. })));
+                let mut changed = second.clone();
+                changed.name = "Taken".into();
+                changed.update(&mut conn)?;
+                let mut stale = first.clone();
+                stale.name = "Taken".into();
+                assert!(matches!(stale.update(&mut conn), Err(Error::UniqueConstraintViolation { .. })));
+                $model::delete(&mut conn, &1)?;
+                new(6, "Name").insert(&mut conn)?;
+                let mut reopened = DeviceSqlConnection::from_reader(Cursor::new(bytes(&mut conn)?), DatabaseKind::Standard)?;
+                assert!(matches!(new(7, "Name").insert(&mut reopened), Err(Error::UniqueConstraintViolation { .. })));
+            }};
+        }
+        check!(Artist, |id, name: &str| NewArtist::new(id, name));
+        check!(Genre, |id, name: &str| NewGenre::new(id, name));
+        check!(Key, |id, name: &str| NewKey::new(id, 77, name));
+        check!(Label, |id, name: &str| NewLabel::new(id, name));
+        Ok(())
+    }
+
+    #[test]
+    fn equal_names_conflict_across_binary_string_encodings() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let mut row = NewGenre::new(1, "House").to_binary()?;
+        row.name = DeviceSqlString::encode("House", StringEncoding::Utf16Le)?;
+        let mut tx = conn.transaction();
+        tx.insert(Genre::TABLE, &Row::Standard(StandardRow::Genre(row)))?;
+        tx.commit()?;
+        let before = bytes(&mut conn)?;
+        assert!(matches!(
+            NewGenre::new(2, "House").insert(&mut conn),
+            Err(Error::UniqueConstraintViolation { .. })
+        ));
+        assert_eq!(bytes(&mut conn)?, before);
+        Ok(())
+    }
+}
+
+mod recommendation_deletions {
+    //! Recommendation pair uniqueness and occurrence deletion.
+    use super::*;
+    use rbox_devlib::binary::ExtendedRow;
+    use rbox_devlib::models::{NewRecommendedLike, RecommendedLike};
+
+    fn bytes(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>) -> Result<Vec<u8>> {
+        let mut bytes = Vec::new();
+        conn.write_to(&mut bytes)?;
+        Ok(bytes)
+    }
+
+    #[test]
+    fn rejects_duplicate_pairs_and_allows_reinsertion_after_deletion() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        let first = NewRecommendedLike::new(1, 2, 7, 8, 9).insert(&mut conn)?;
+        let before = bytes(&mut conn)?;
+        for value in [7, 99] {
+            assert!(matches!(
+                NewRecommendedLike::new(1, 2, value, 8, 9).insert(&mut conn),
+                Err(Error::UniqueConstraintViolation {
+                    fields: &["content_id_1", "content_id_2"],
+                    ..
+                })
+            ));
+        }
+        assert_eq!(bytes(&mut conn)?, before);
+        let reverse = NewRecommendedLike::new(2, 1, 17, 18, 19)
+            .insert(&mut conn)?
+            .raw_record()
+            .decode()?;
+        let same = NewRecommendedLike::new(1, 1, 0, 0, 0).insert(&mut conn)?;
+        assert!(matches!(
+            NewRecommendedLike::new(1, 1, 1, 2, 3).insert(&mut conn),
+            Err(Error::UniqueConstraintViolation { .. })
+        ));
+        let mut edited = first.clone();
+        edited.content_id_1 = 99;
+        edited.unknown_00 = 42;
+        assert_eq!(edited.delete(&mut conn)?, 1);
+        assert!(first.delete(&mut conn).is_err());
+        NewRecommendedLike::new(1, 2, 7, 8, 9)
+            .insert(&mut conn)?
+            .delete(&mut conn)?;
+        assert_eq!(same.delete(&mut conn)?, 1);
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Extended,
+        )?;
+        let rows = RecommendedLike::all(&mut reopened)?;
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].raw_record().decode()?, reverse);
+        assert!(matches!(
+            NewRecommendedLike::new(2, 1, 0, 0, 0).insert(&mut reopened),
+            Err(Error::UniqueConstraintViolation { .. })
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn rejects_stale_rows_wrong_namespaces_and_failed_writes() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        let original = NewRecommendedLike::new(1, 2, 7, 8, 9).insert(&mut conn)?;
+        let mut tx = conn.transaction();
+        let handle = tx.locate(
+            RecommendedLike::TABLE,
+            original.raw_record().page(),
+            original.raw_record().slot().slot,
+        )?;
+        tx.update(
+            &handle,
+            &Row::Extended(ExtendedRow::RecommendLike(
+                NewRecommendedLike::new(1, 2, 77, 8, 9).to_binary()?,
+            )),
+        )?;
+        tx.commit()?;
+        let before = bytes(&mut conn)?;
+        assert!(matches!(
+            original.clone().delete(&mut conn),
+            Err(Error::StaleModelRow { .. })
+        ));
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut limited =
+            DeviceSqlConnection::from_reader(Cursor::new(before.clone()), DatabaseKind::Extended)?;
+        limited.set_resource_limits(rbox_devlib::devicesql::ResourceLimits {
+            dirty_pages: Some(0),
+            ..Default::default()
+        })?;
+        let current = RecommendedLike::all(&mut limited)?.remove(0);
+        assert!(matches!(
+            current.delete(&mut limited),
+            Err(Error::DirtyPageLimit { .. })
+        ));
+        assert_eq!(bytes(&mut limited)?, before);
+        let mut standard = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        assert!(matches!(
+            original.delete(&mut standard),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        Ok(())
+    }
+}
+
+mod property_mutations {
+    //! Update-only properties retain occurrence identity and reserved fields.
+    use super::*;
+    use rbox_devlib::binary::ExtendedRow;
+    use rbox_devlib::models::{DatabaseProperty, ExportProperty};
+
+    fn bytes(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>) -> Result<Vec<u8>> {
+        let mut bytes = Vec::new();
+        conn.write_to(&mut bytes)?;
+        Ok(bytes)
+    }
+
+    #[test]
+    fn export_updates_all_fields_and_rejects_stale_count_snapshots() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create_with_options(
+            DatabaseKind::Standard,
+            &CreateOptions::standard("2026-10-25", "USB")?,
+        )?;
+        let original = ExportProperty::all(&mut conn)?.remove(0);
+        let before = bytes(&mut conn)?;
+        original.clone().update(&mut conn)?;
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut edited = original.clone();
+        edited.track_count = 42;
+        edited.background_color = 7;
+        edited.date = "2026-10-26".into();
+        edited.version = "1001".into();
+        edited.name = "My USB".into();
+        let updated = edited.update(&mut conn)?;
+        assert_eq!((updated.track_count, updated.background_color), (42, 7));
+        assert_eq!(
+            (&*updated.date, &*updated.version, &*updated.name),
+            ("2026-10-26", "1001", "My USB")
+        );
+        // Growing the name may relocate the row, leaving the old slot deleted.
+        assert!(original.update(&mut conn).is_err());
+        let before = bytes(&mut conn)?;
+        let mut invalid = updated.clone();
+        invalid.name = "bad\0name".into();
+        assert!(matches!(invalid.update(&mut conn), Err(Error::EmbeddedNul)));
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut reopened =
+            DeviceSqlConnection::from_reader(Cursor::new(before), DatabaseKind::Standard)?;
+        assert_eq!(ExportProperty::all(&mut reopened)?[0], updated);
+        NewContent::new(1, "/Contents/test.wav").insert(&mut reopened)?;
+        assert!(matches!(
+            updated.update(&mut reopened),
+            Err(Error::StaleModelRow { .. })
+        ));
+        assert_eq!(ExportProperty::all(&mut reopened)?[0].track_count, 1);
+        Ok(())
+    }
+
+    #[test]
+    fn database_identity_updates_one_occurrence_and_preserves_reserved_data() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create_with_options(
+            DatabaseKind::Extended,
+            &CreateOptions::extended(42)?,
+        )?;
+        let original = DatabaseProperty::all(&mut conn)?.remove(0);
+        let Row::Extended(ExtendedRow::DatabaseProperty(mut row)) =
+            original.raw_record().decode()?
+        else {
+            panic!()
+        };
+        row.header.unknown_words = [1, 2, 3, 4, 5];
+        let mut tx = conn.transaction();
+        let handle = tx.locate(
+            DatabaseProperty::TABLE,
+            original.raw_record().page(),
+            original.raw_record().slot().slot,
+        )?;
+        tx.update(
+            &handle,
+            &Row::Extended(ExtendedRow::DatabaseProperty(row.clone())),
+        )?;
+        tx.insert(
+            DatabaseProperty::TABLE,
+            &Row::Extended(ExtendedRow::DatabaseProperty(row.clone())),
+        )?;
+        tx.commit()?;
+        let original = DatabaseProperty::all(&mut conn)?.remove(0);
+        let before = bytes(&mut conn)?;
+        original.clone().update(&mut conn)?;
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut edited = original.clone();
+        edited.my_tag_master_db_id = 0;
+        let updated = edited.update(&mut conn)?;
+        let Row::Extended(ExtendedRow::DatabaseProperty(actual)) = updated.raw_record().decode()?
+        else {
+            panic!()
+        };
+        row.header.my_tag_master_db_id = 0;
+        assert_eq!(actual, row);
+        assert!(matches!(
+            original.update(&mut conn),
+            Err(Error::StaleModelRow { .. })
+        ));
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Extended,
+        )?;
+        assert_eq!(
+            DatabaseProperty::all(&mut reopened)?
+                .iter()
+                .map(|r| r.my_tag_master_db_id)
+                .collect::<Vec<_>>(),
+            [0, 42]
+        );
+        let before = bytes(&mut reopened)?;
+        reopened.set_resource_limits(rbox_devlib::devicesql::ResourceLimits {
+            dirty_pages: Some(0),
+            ..Default::default()
+        })?;
+        let mut edited = DatabaseProperty::all(&mut reopened)?.remove(0);
+        edited.my_tag_master_db_id = 99;
+        assert!(matches!(
+            edited.update(&mut reopened),
+            Err(Error::DirtyPageLimit { .. })
+        ));
+        assert_eq!(bytes(&mut reopened)?, before);
+        let mut standard = DeviceSqlConnection::create_with_options(
+            DatabaseKind::Standard,
+            &CreateOptions::standard("date", "name")?,
+        )?;
+        assert!(matches!(
+            updated.update(&mut standard),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            ExportProperty::all(&mut standard)?
+                .remove(0)
+                .update(&mut conn),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        Ok(())
+    }
+}
+
+mod playlist_mutations {
+    //! Playlist hierarchy edits and occurrence deletion preserve unrelated rows.
+    use super::*;
+    use rbox_devlib::models::{NewPlaylist, NewPlaylistContent, Playlist, PlaylistContent};
+
+    fn bytes(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>) -> Result<Vec<u8>> {
+        let mut bytes = Vec::new();
+        conn.write_to(&mut bytes)?;
+        Ok(bytes)
+    }
+
+    #[test]
+    fn edits_validate_parents_preserve_reserved_fields_and_merge_stale_snapshots() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let root = NewPlaylist::folder(1, 0, 0, "Root").insert(&mut conn)?;
+        NewPlaylist::folder(2, 1, 0, "Nested").insert(&mut conn)?;
+        let mut input = NewPlaylist::new(3, 1, 7, "List");
+        input.unknown_04 = 42;
+        let playlist = input.insert(&mut conn)?;
+        let before = bytes(&mut conn)?;
+        playlist.clone().update(&mut conn)?;
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut edited = playlist.clone();
+        edited.name = "Long name".repeat(100);
+        edited.parent_id = 2;
+        edited.seq = 19;
+        let updated = edited.update(&mut conn)?;
+        assert_eq!(playlist.clone().update(&mut conn)?, updated);
+        let Row::Standard(StandardRow::PlaylistTree(row)) = updated.raw_record().decode()? else {
+            panic!()
+        };
+        assert_eq!(row.unknown_04, 42);
+        let before = bytes(&mut conn)?;
+        for parent in [1, 2, 3, 999] {
+            let mut edited = root.clone();
+            edited.parent_id = parent;
+            assert!(edited.update(&mut conn).is_err());
+        }
+        let mut edited = playlist.clone();
+        edited.attribute = 1;
+        assert!(edited.update(&mut conn).is_err());
+        let mut edited = playlist.clone();
+        edited.id = 99;
+        assert!(edited.update(&mut conn).is_err());
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut edited = playlist;
+        edited.name.clear();
+        let updated = edited.update(&mut conn)?;
+        assert_eq!((updated.parent_id, updated.seq), (2, 19));
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Standard,
+        )?;
+        assert!(Playlist::find(&mut reopened, &3)?.unwrap().name.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn cascade_is_atomic_and_keeps_contents_and_other_playlists() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let root = NewPlaylist::folder(1, 0, 0, "Root").insert(&mut conn)?;
+        NewPlaylist::folder(2, 1, 0, "Nested").insert(&mut conn)?;
+        NewPlaylist::new(3, 2, 9, "List").insert(&mut conn)?;
+        NewPlaylist::new(4, 0, 10, "Keep").insert(&mut conn)?;
+        let content = NewContent::new(99, "/Contents/test.wav")
+            .insert(&mut conn)?
+            .raw_record()
+            .decode()?;
+        for playlist in [3, 3, 4] {
+            NewPlaylistContent::new(playlist, 99, 7).insert(&mut conn)?;
+        }
+        let before = bytes(&mut conn)?;
+        let mut limited =
+            DeviceSqlConnection::from_reader(Cursor::new(before.clone()), DatabaseKind::Standard)?;
+        limited.set_resource_limits(rbox_devlib::devicesql::ResourceLimits {
+            dirty_pages: Some(1),
+            ..Default::default()
+        })?;
+        assert!(matches!(
+            Playlist::delete(&mut limited, &1),
+            Err(Error::DirtyPageLimit { .. })
+        ));
+        assert_eq!(bytes(&mut limited)?, before);
+        assert_eq!(Playlist::delete(&mut conn, &1)?, 5);
+        assert_eq!(Playlist::delete(&mut conn, &1)?, 0);
+        assert!(matches!(
+            root.update(&mut conn),
+            Err(Error::ModelNotFound { .. })
+        ));
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Standard,
+        )?;
+        let playlists = Playlist::all(&mut reopened)?;
+        assert_eq!(playlists.len(), 1);
+        assert_eq!((playlists[0].id, playlists[0].seq), (4, 10));
+        let entries = PlaylistContent::all(&mut reopened)?;
+        assert_eq!(entries.len(), 1);
+        assert_eq!((entries[0].playlist_id, entries[0].seq), (4, 7));
+        assert_eq!(
+            Content::find(&mut reopened, &99)?
+                .unwrap()
+                .raw_record()
+                .decode()?,
+            content
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn occurrence_deletion_and_pair_removal_preserve_other_plays() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let first = NewPlaylistContent::new(1, 2, 3).insert(&mut conn)?;
+        for seq in [3, 9] {
+            NewPlaylistContent::new(1, 2, seq).insert(&mut conn)?;
+        }
+        let keep = NewPlaylistContent::new(1, 3, 12).insert(&mut conn)?;
+        let mut edited = first.clone();
+        edited.content_id = 99;
+        assert_eq!(edited.delete(&mut conn)?, 1);
+        assert!(first.delete(&mut conn).is_err());
+        assert_eq!(PlaylistContent::remove(&mut conn, &2, &1)?, 2);
+        assert_eq!(PlaylistContent::remove(&mut conn, &2, &1)?, 0);
+        assert_eq!(PlaylistContent::all(&mut conn)?[0].seq, 12);
+        let mut tx = conn.transaction();
+        let handle = tx.locate(
+            PlaylistContent::TABLE,
+            keep.raw_record().page(),
+            keep.raw_record().slot().slot,
+        )?;
+        tx.update(
+            &handle,
+            &Row::Standard(StandardRow::PlaylistEntry(
+                NewPlaylistContent::new(1, 3, 15).to_binary()?,
+            )),
+        )?;
+        tx.commit()?;
+        let before = bytes(&mut conn)?;
+        assert!(matches!(
+            keep.clone().delete(&mut conn),
+            Err(Error::StaleModelRow { .. })
+        ));
+        assert!(PlaylistContent::remove(&mut conn, &0, &1).is_err());
+        assert!(Playlist::delete(&mut conn, &0).is_err());
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        assert!(matches!(
+            keep.delete(&mut extended),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            Playlist::delete(&mut extended, &1),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            PlaylistContent::remove(&mut extended, &2, &1),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        Ok(())
+    }
+}
+
+mod my_tag_mutations {
+    //! Hierarchy validation, cascading cleanup and duplicate associations.
+    use super::*;
+    use rbox_devlib::binary::ExtendedRow;
+    use rbox_devlib::models::{MyTag, MyTagContent, NewMyTag, NewMyTagContent};
+
+    fn bytes(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>) -> Result<Vec<u8>> {
+        let mut bytes = Vec::new();
+        conn.write_to(&mut bytes)?;
+        Ok(bytes)
+    }
+
+    #[test]
+    fn updates_preserve_reserved_data_and_validate_current_ancestry() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        let category = NewMyTag::category(1, 0, "Category").insert(&mut conn)?;
+        NewMyTag::category(2, 4, "Other").insert(&mut conn)?;
+        let mut input = NewMyTag::new(3, 1, 7, "Tag");
+        input.unknown_04 = 42;
+        let row = input.to_binary()?;
+        let mut tx = conn.transaction();
+        let handle = tx.insert(
+            MyTag::TABLE,
+            &Row::Extended(ExtendedRow::MyTag(row.clone())),
+        )?;
+        let tag = MyTag::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+        let before = bytes(&mut conn)?;
+        tag.clone().update(&mut conn)?;
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut edited = tag.clone();
+        edited.name = "Long tag".repeat(12);
+        edited.parent_id = 2;
+        edited.seq = 19;
+        let updated = edited.update(&mut conn)?;
+        assert_eq!(tag.clone().update(&mut conn)?, updated);
+        let Row::Extended(ExtendedRow::MyTag(updated_row)) = updated.raw_record().decode()? else {
+            panic!()
+        };
+        assert_eq!(updated_row.header.unknown_04, 42);
+        assert_eq!(updated_row.unknown_string, row.unknown_string);
+        assert_eq!((updated.parent_id, updated.seq), (2, 19));
+        for parent in [3, 999] {
+            let mut edited = tag.clone();
+            edited.parent_id = parent;
+            assert!(matches!(
+                edited.update(&mut conn),
+                Err(Error::InvalidModelField {
+                    field: "parent_id",
+                    ..
+                })
+            ));
+        }
+        let mut edited = category.clone();
+        edited.parent_id = 3;
+        assert!(edited.update(&mut conn).is_err());
+        let mut child_category = NewMyTag::category(4, 0, "Child");
+        child_category.parent_id = 1;
+        child_category.insert(&mut conn)?;
+        let before = bytes(&mut conn)?;
+        let mut edited = category.clone();
+        edited.parent_id = 4;
+        assert!(edited.update(&mut conn).is_err());
+        let mut edited = tag.clone();
+        edited.attribute = 1;
+        assert!(edited.update(&mut conn).is_err());
+        let mut edited = tag.clone();
+        edited.id = 5;
+        assert!(edited.update(&mut conn).is_err());
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut edited = tag;
+        edited.name.clear();
+        let updated = edited.update(&mut conn)?;
+        assert_eq!((updated.parent_id, updated.seq), (2, 19));
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Extended,
+        )?;
+        assert!(MyTag::find(&mut reopened, &3)?.unwrap().name.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn category_deletion_cascades_and_rolls_back_on_resource_failure() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        let root = NewMyTag::category(1, 0, "Root").insert(&mut conn)?;
+        let mut nested = NewMyTag::category(2, 0, "Nested");
+        nested.parent_id = 1;
+        nested.insert(&mut conn)?;
+        NewMyTag::new(3, 2, 9, "Tag").insert(&mut conn)?;
+        NewMyTag::category(4, 10, "Keep").insert(&mut conn)?;
+        for tag in [1, 2, 3, 3, 4] {
+            NewMyTagContent::new(99, tag).insert(&mut conn)?;
+        }
+        let before = bytes(&mut conn)?;
+        let mut limited =
+            DeviceSqlConnection::from_reader(Cursor::new(before.clone()), DatabaseKind::Extended)?;
+        limited.set_resource_limits(rbox_devlib::devicesql::ResourceLimits {
+            dirty_pages: Some(1),
+            ..Default::default()
+        })?;
+        assert!(matches!(
+            MyTag::delete(&mut limited, &1),
+            Err(Error::DirtyPageLimit { .. })
+        ));
+        assert_eq!(bytes(&mut limited)?, before);
+        assert_eq!(MyTag::delete(&mut conn, &1)?, 7);
+        assert_eq!(MyTag::delete(&mut conn, &1)?, 0);
+        assert!(matches!(
+            root.update(&mut conn),
+            Err(Error::ModelNotFound { .. })
+        ));
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Extended,
+        )?;
+        let tags = MyTag::all(&mut reopened)?;
+        assert_eq!(tags.len(), 1);
+        assert_eq!((tags[0].id, tags[0].seq), (4, 10));
+        let links = MyTagContent::all(&mut reopened)?;
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0].my_tag_id, 4);
+        Ok(())
+    }
+
+    #[test]
+    fn associations_support_single_occurrences_pair_removal_and_stale_checks() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        let first = NewMyTagContent::new(1, 2).insert(&mut conn)?;
+        for _ in 0..2 {
+            NewMyTagContent::new(1, 2).insert(&mut conn)?;
+        }
+        let keep = NewMyTagContent::new(2, 2).insert(&mut conn)?;
+        let mut edited = first.clone();
+        edited.content_id = 99;
+        assert_eq!(edited.delete(&mut conn)?, 1);
+        assert!(first.delete(&mut conn).is_err());
+        assert_eq!(MyTagContent::remove(&mut conn, &1, &2)?, 2);
+        assert_eq!(MyTagContent::remove(&mut conn, &1, &2)?, 0);
+        let mut tx = conn.transaction();
+        let handle = tx.locate(
+            MyTagContent::TABLE,
+            keep.raw_record().page(),
+            keep.raw_record().slot().slot,
+        )?;
+        tx.update(
+            &handle,
+            &Row::Extended(ExtendedRow::TrackMyTag(
+                NewMyTagContent::new(3, 2).to_binary()?,
+            )),
+        )?;
+        tx.commit()?;
+        let before = bytes(&mut conn)?;
+        assert!(matches!(
+            keep.clone().delete(&mut conn),
+            Err(Error::StaleModelRow { .. })
+        ));
+        assert!(MyTagContent::remove(&mut conn, &0, &2).is_err());
+        assert!(MyTag::delete(&mut conn, &0).is_err());
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut standard = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        assert!(matches!(
+            keep.delete(&mut standard),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            MyTag::delete(&mut standard, &2),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            MyTagContent::remove(&mut standard, &1, &2),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        Ok(())
+    }
+}
+
+mod history_mutations {
+    //! History name edits and deletion of histories or individual occurrences.
+    use super::*;
+    use rbox_devlib::models::{History, HistoryContent, NewHistory, NewHistoryContent};
+
+    fn bytes(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>) -> Result<Vec<u8>> {
+        let mut bytes = Vec::new();
+        conn.write_to(&mut bytes)?;
+        Ok(bytes)
+    }
+
+    #[test]
+    fn history_updates_follow_original_id_and_preserve_unedited_names() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let history = NewHistory::new(1, "Set").insert(&mut conn)?;
+        let before = bytes(&mut conn)?;
+        history.clone().update(&mut conn)?;
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut edited = history.clone();
+        edited.name = "Long set \u{97f3}".repeat(100);
+        let updated = edited.update(&mut conn)?;
+        assert_eq!(history.clone().update(&mut conn)?, updated);
+        let mut edited = history.clone();
+        edited.id = 2;
+        assert!(matches!(
+            edited.update(&mut conn),
+            Err(Error::InvalidModelField { field: "id", .. })
+        ));
+        let before = bytes(&mut conn)?;
+        for name in ["bad\0name".to_owned(), "x".repeat(5000)] {
+            let mut edited = history.clone();
+            edited.name = name;
+            assert!(edited.update(&mut conn).is_err());
+        }
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut edited = history.clone();
+        edited.name.clear();
+        assert!(edited.update(&mut conn)?.name.is_empty());
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Standard,
+        )?;
+        assert!(History::find(&mut reopened, &1)?.unwrap().name.is_empty());
+        assert_eq!(History::delete(&mut reopened, &1)?, 1);
+        assert!(matches!(
+            history.update(&mut reopened),
+            Err(Error::ModelNotFound { .. })
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn deletion_preserves_duplicates_other_histories_and_contents() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        NewHistory::new(1, "First").insert(&mut conn)?;
+        NewHistory::new(2, "Second").insert(&mut conn)?;
+        NewContent::new(1, "/Contents/test.wav").insert(&mut conn)?;
+        let first = NewHistoryContent::new(1, 1, 3).insert(&mut conn)?;
+        NewHistoryContent::new(1, 1, 3).insert(&mut conn)?;
+        NewHistoryContent::new(1, 1, 9).insert(&mut conn)?;
+        NewHistoryContent::new(2, 1, 12).insert(&mut conn)?;
+        let content = Content::find(&mut conn, &1)?
+            .unwrap()
+            .raw_record()
+            .decode()?;
+        let mut edited_snapshot = first.clone();
+        edited_snapshot.history_id = 2;
+        edited_snapshot.seq = 99;
+        assert_eq!(edited_snapshot.delete(&mut conn)?, 1);
+        assert!(first.delete(&mut conn).is_err());
+        assert_eq!(
+            HistoryContent::by_history(&mut conn, &1)?
+                .iter()
+                .map(|r| r.seq)
+                .collect::<Vec<_>>(),
+            [3, 9]
+        );
+        assert_eq!(History::delete(&mut conn, &1)?, 3);
+        assert_eq!(History::delete(&mut conn, &1)?, 0);
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Standard,
+        )?;
+        assert!(History::find(&mut reopened, &1)?.is_none());
+        assert!(History::find(&mut reopened, &2)?.is_some());
+        let entries = HistoryContent::all(&mut reopened)?;
+        assert_eq!(entries.len(), 1);
+        assert_eq!((entries[0].history_id, entries[0].seq), (2, 12));
+        assert_eq!(
+            Content::find(&mut reopened, &1)?
+                .unwrap()
+                .raw_record()
+                .decode()?,
+            content
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn stale_occurrences_wrong_namespaces_and_resource_failures_are_rejected() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let history = NewHistory::new(1, "Set").insert(&mut conn)?;
+        let entry = NewHistoryContent::new(1, 1, 1).insert(&mut conn)?;
+        let mut tx = conn.transaction();
+        let handle = tx.locate(
+            HistoryContent::TABLE,
+            entry.raw_record().page(),
+            entry.raw_record().slot().slot,
+        )?;
+        tx.update(
+            &handle,
+            &Row::Standard(StandardRow::HistoryEntry(
+                NewHistoryContent::new(1, 2, 1).to_binary()?,
+            )),
+        )?;
+        tx.commit()?;
+        let before = bytes(&mut conn)?;
+        assert!(matches!(
+            entry.clone().delete(&mut conn),
+            Err(Error::StaleModelRow { .. })
+        ));
+        assert!(History::delete(&mut conn, &0).is_err());
+        assert_eq!(History::delete(&mut conn, &99)?, 0);
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        assert!(matches!(
+            history.clone().update(&mut extended),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            History::delete(&mut extended, &1),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            entry.delete(&mut extended),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        let mut limited =
+            DeviceSqlConnection::from_reader(Cursor::new(before.clone()), DatabaseKind::Standard)?;
+        // The history page can be staged, but the separate entry page cannot.
+        limited.set_resource_limits(rbox_devlib::devicesql::ResourceLimits {
+            dirty_pages: Some(1),
+            ..Default::default()
+        })?;
+        assert!(matches!(
+            History::delete(&mut limited, &1),
+            Err(Error::DirtyPageLimit { .. })
+        ));
+        assert_eq!(bytes(&mut limited)?, before);
+        Ok(())
+    }
+}
+
+mod key_mutations {
+    //! Key edits, persistence, and atomic content-reference cleanup.
+    use super::*;
+    use rbox_devlib::binary::TrackHeader;
+    use rbox_devlib::models::{ExportProperty, Key, NewKey};
+
+    fn bytes(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>) -> Result<Vec<u8>> {
+        let mut bytes = Vec::new();
+        conn.write_to(&mut bytes)?;
+        Ok(bytes)
+    }
+
+    #[test]
+    fn updates_preserve_frames_and_support_growth_stale_snapshots_and_empty_names() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let mut row = NewKey::new(1, 17, "House").to_binary()?;
+        row.name = DeviceSqlString::encode("House", StringEncoding::Utf16Le)?;
+        let mut tx = conn.transaction();
+        let handle = tx.insert(Key::TABLE, &Row::Standard(StandardRow::Key(row)))?;
+        let key = Key::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+        let before = bytes(&mut conn)?;
+        assert_eq!(key.clone().update(&mut conn)?, key);
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut edited = key.clone();
+        edited.name = "House \u{97f3}".repeat(100);
+        let updated = edited.update(&mut conn)?;
+        assert_ne!(
+            updated.raw_record().slot().slot,
+            key.raw_record().slot().slot
+        );
+        assert_eq!(key.clone().update(&mut conn)?, updated);
+        assert_eq!(updated.secondary_id, 17);
+        let mut secondary_edit = key.clone();
+        secondary_edit.secondary_id = 99;
+        let secondary_updated = secondary_edit.update(&mut conn)?;
+        assert_eq!(secondary_updated.secondary_id, 99);
+        assert_eq!(secondary_updated.name, updated.name);
+        let Row::Standard(StandardRow::Key(previous_row)) = updated.raw_record().decode()? else {
+            panic!()
+        };
+        let Row::Standard(StandardRow::Key(current_row)) =
+            secondary_updated.raw_record().decode()?
+        else {
+            panic!()
+        };
+        assert_eq!(previous_row.name, current_row.name);
+        let mut edited = key;
+        edited.name.clear();
+        let updated = edited.update(&mut conn)?;
+        assert!(updated.name.is_empty());
+        assert_eq!(updated.secondary_id, 99);
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Standard,
+        )?;
+        assert_eq!(Key::find(&mut reopened, &1)?, Some(updated));
+        Ok(())
+    }
+
+    #[test]
+    fn deletion_clears_only_matching_references_and_preserves_counts_and_binary_fields(
+    ) -> Result<()> {
+        let mut conn = DeviceSqlConnection::create_with_options(
+            DatabaseKind::Standard,
+            &CreateOptions::standard("2026-10-25", "Test")?,
+        )?;
+        NewKey::new(1, 17, "House").insert(&mut conn)?;
+        let keep = NewKey::new(2, 29, "Techno").insert(&mut conn)?;
+        let mut expected = Vec::new();
+        for (id, key_id) in [(1, 1), (2, 2), (3, 1), (4, 0)] {
+            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            content.key_id = key_id;
+            content.creation.content_link = 12345;
+            let content = content.insert(&mut conn)?;
+            let Row::Standard(StandardRow::Track(mut row)) = content.raw_record().decode()? else {
+                panic!()
+            };
+            if key_id == 1 {
+                row.header.key_id = 0;
+            }
+            expected.push(Row::Standard(StandardRow::Track(row)));
+        }
+        let properties = ExportProperty::all(&mut conn)?;
+        assert_eq!(Key::delete(&mut conn, &1)?, 3);
+        assert_eq!(Key::delete(&mut conn, &1)?, 0);
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Standard,
+        )?;
+        assert!(Key::find(&mut reopened, &1)?.is_none());
+        assert_eq!(
+            Key::find(&mut reopened, &2)?
+                .unwrap()
+                .raw_record()
+                .decode()?,
+            keep.raw_record().decode()?
+        );
+        assert_eq!(ExportProperty::all(&mut reopened)?, properties);
+        let contents = Content::all(&mut reopened)?;
+        assert_eq!(contents.len(), expected.len());
+        for (content, expected) in contents.iter().zip(expected) {
+            assert_eq!(content.raw_record().decode()?, expected);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_edits_and_failed_reference_cleanup_leave_database_unchanged() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let key = NewKey::new(1, 17, "House").insert(&mut conn)?;
+        let before = bytes(&mut conn)?;
+        let mut edited = key.clone();
+        edited.id = 2;
+        assert!(matches!(
+            edited.update(&mut conn),
+            Err(Error::InvalidModelField { field: "id", .. })
+        ));
+        for name in ["bad\0name".to_owned(), "x".repeat(5000)] {
+            let mut edited = key.clone();
+            edited.name = name;
+            assert!(edited.update(&mut conn).is_err());
+        }
+        assert!(Key::delete(&mut conn, &0).is_err());
+        assert_eq!(Key::delete(&mut conn, &99)?, 0);
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        assert!(matches!(
+            key.clone().update(&mut extended),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            Key::delete(&mut extended, &1),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        let mut records = Vec::new();
+        for id in [1, 2] {
+            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            content.key_id = 1;
+            records.push(content.insert(&mut conn)?);
+        }
+        let record = records[1].raw_record();
+        let offset = record.page().0 as usize * conn.header().prefix.page_size as usize
+            + PAGE_HEADER_SIZE
+            + record.slot().heap_offset as usize
+            + TrackHeader::BINARY_SIZE
+            + size_of::<u16>();
+        let mut before = bytes(&mut conn)?;
+        before[offset..offset + 2].copy_from_slice(&u16::MAX.to_le_bytes());
+        let mut broken =
+            DeviceSqlConnection::from_reader(Cursor::new(before.clone()), DatabaseKind::Standard)?;
+        assert!(Key::delete(&mut broken, &1).is_err());
+        assert_eq!(bytes(&mut broken)?, before);
+        assert_eq!(broken.modified_page_count(), 0);
+        assert_eq!(Key::delete(&mut conn, &1)?, 3);
+        assert!(matches!(
+            key.update(&mut conn),
+            Err(Error::ModelNotFound { id: 1, .. })
+        ));
+        Ok(())
+    }
+}
+
+mod label_mutations {
+    //! Label edits, persistence, and atomic content-reference cleanup.
+    use super::*;
+    use rbox_devlib::binary::TrackHeader;
+    use rbox_devlib::models::{ExportProperty, Label, NewLabel};
+
+    fn bytes(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>) -> Result<Vec<u8>> {
+        let mut bytes = Vec::new();
+        conn.write_to(&mut bytes)?;
+        Ok(bytes)
+    }
+
+    #[test]
+    fn updates_preserve_frames_and_support_growth_stale_snapshots_and_empty_names() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let mut row = NewLabel::new(1, "Label A").to_binary()?;
+        row.name = DeviceSqlString::encode("Label A", StringEncoding::Utf16Le)?;
+        let mut tx = conn.transaction();
+        let handle = tx.insert(Label::TABLE, &Row::Standard(StandardRow::Label(row)))?;
+        let label = Label::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+        let before = bytes(&mut conn)?;
+        assert_eq!(label.clone().update(&mut conn)?, label);
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut edited = label.clone();
+        edited.name = "Label A \u{97f3}".repeat(100);
+        let updated = edited.update(&mut conn)?;
+        assert_ne!(
+            updated.raw_record().slot().slot,
+            label.raw_record().slot().slot
+        );
+        assert_eq!(label.clone().update(&mut conn)?, updated);
+        let mut edited = label;
+        edited.name.clear();
+        let updated = edited.update(&mut conn)?;
+        assert!(updated.name.is_empty());
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Standard,
+        )?;
+        assert_eq!(Label::find(&mut reopened, &1)?, Some(updated));
+        Ok(())
+    }
+
+    #[test]
+    fn deletion_clears_only_matching_references_and_preserves_counts_and_binary_fields(
+    ) -> Result<()> {
+        let mut conn = DeviceSqlConnection::create_with_options(
+            DatabaseKind::Standard,
+            &CreateOptions::standard("2026-10-25", "Test")?,
+        )?;
+        NewLabel::new(1, "Label A").insert(&mut conn)?;
+        let keep = NewLabel::new(2, "Label B").insert(&mut conn)?;
+        let mut expected = Vec::new();
+        for (id, label_id) in [(1, 1), (2, 2), (3, 1), (4, 0)] {
+            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            content.label_id = label_id;
+            content.creation.content_link = 12345;
+            let content = content.insert(&mut conn)?;
+            let Row::Standard(StandardRow::Track(mut row)) = content.raw_record().decode()? else {
+                panic!()
+            };
+            if label_id == 1 {
+                row.header.label_id = 0;
+            }
+            expected.push(Row::Standard(StandardRow::Track(row)));
+        }
+        let properties = ExportProperty::all(&mut conn)?;
+        assert_eq!(Label::delete(&mut conn, &1)?, 3);
+        assert_eq!(Label::delete(&mut conn, &1)?, 0);
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Standard,
+        )?;
+        assert!(Label::find(&mut reopened, &1)?.is_none());
+        assert_eq!(
+            Label::find(&mut reopened, &2)?
+                .unwrap()
+                .raw_record()
+                .decode()?,
+            keep.raw_record().decode()?
+        );
+        assert_eq!(ExportProperty::all(&mut reopened)?, properties);
+        let contents = Content::all(&mut reopened)?;
+        assert_eq!(contents.len(), expected.len());
+        for (content, expected) in contents.iter().zip(expected) {
+            assert_eq!(content.raw_record().decode()?, expected);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_edits_and_failed_reference_cleanup_leave_database_unchanged() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let label = NewLabel::new(1, "Label A").insert(&mut conn)?;
+        let before = bytes(&mut conn)?;
+        let mut edited = label.clone();
+        edited.id = 2;
+        assert!(matches!(
+            edited.update(&mut conn),
+            Err(Error::InvalidModelField { field: "id", .. })
+        ));
+        for name in ["bad\0name".to_owned(), "x".repeat(5000)] {
+            let mut edited = label.clone();
+            edited.name = name;
+            assert!(edited.update(&mut conn).is_err());
+        }
+        assert!(Label::delete(&mut conn, &0).is_err());
+        assert_eq!(Label::delete(&mut conn, &99)?, 0);
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        assert!(matches!(
+            label.clone().update(&mut extended),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            Label::delete(&mut extended, &1),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        let mut records = Vec::new();
+        for id in [1, 2] {
+            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            content.label_id = 1;
+            records.push(content.insert(&mut conn)?);
+        }
+        let record = records[1].raw_record();
+        let offset = record.page().0 as usize * conn.header().prefix.page_size as usize
+            + PAGE_HEADER_SIZE
+            + record.slot().heap_offset as usize
+            + TrackHeader::BINARY_SIZE
+            + size_of::<u16>();
+        let mut before = bytes(&mut conn)?;
+        before[offset..offset + 2].copy_from_slice(&u16::MAX.to_le_bytes());
+        let mut broken =
+            DeviceSqlConnection::from_reader(Cursor::new(before.clone()), DatabaseKind::Standard)?;
+        assert!(Label::delete(&mut broken, &1).is_err());
+        assert_eq!(bytes(&mut broken)?, before);
+        assert_eq!(broken.modified_page_count(), 0);
+        assert_eq!(Label::delete(&mut conn, &1)?, 3);
+        assert!(matches!(
+            label.update(&mut conn),
+            Err(Error::ModelNotFound { id: 1, .. })
+        ));
+        Ok(())
+    }
+}
+
+mod genre_mutations {
+    //! Genre edits, persistence, and atomic content-reference cleanup.
+    use super::*;
+    use rbox_devlib::binary::TrackHeader;
+    use rbox_devlib::models::{ExportProperty, Genre, NewGenre};
+
+    fn bytes(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>) -> Result<Vec<u8>> {
+        let mut bytes = Vec::new();
+        conn.write_to(&mut bytes)?;
+        Ok(bytes)
+    }
+
+    #[test]
+    fn updates_preserve_frames_and_support_growth_stale_snapshots_and_empty_names() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let mut row = NewGenre::new(1, "House").to_binary()?;
+        row.name = DeviceSqlString::encode("House", StringEncoding::Utf16Le)?;
+        let mut tx = conn.transaction();
+        let handle = tx.insert(Genre::TABLE, &Row::Standard(StandardRow::Genre(row)))?;
+        let genre = Genre::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+        let before = bytes(&mut conn)?;
+        assert_eq!(genre.clone().update(&mut conn)?, genre);
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut edited = genre.clone();
+        edited.name = "House \u{97f3}".repeat(100);
+        let updated = edited.update(&mut conn)?;
+        assert_ne!(
+            updated.raw_record().slot().slot,
+            genre.raw_record().slot().slot
+        );
+        assert_eq!(genre.clone().update(&mut conn)?, updated);
+        let mut edited = genre;
+        edited.name.clear();
+        let updated = edited.update(&mut conn)?;
+        assert!(updated.name.is_empty());
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Standard,
+        )?;
+        assert_eq!(Genre::find(&mut reopened, &1)?, Some(updated));
+        Ok(())
+    }
+
+    #[test]
+    fn deletion_clears_only_matching_references_and_preserves_counts_and_binary_fields(
+    ) -> Result<()> {
+        let mut conn = DeviceSqlConnection::create_with_options(
+            DatabaseKind::Standard,
+            &CreateOptions::standard("2026-10-25", "Test")?,
+        )?;
+        NewGenre::new(1, "House").insert(&mut conn)?;
+        let keep = NewGenre::new(2, "Techno").insert(&mut conn)?;
+        let mut expected = Vec::new();
+        for (id, genre_id) in [(1, 1), (2, 2), (3, 1), (4, 0)] {
+            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            content.genre_id = genre_id;
+            content.creation.content_link = 12345;
+            let content = content.insert(&mut conn)?;
+            let Row::Standard(StandardRow::Track(mut row)) = content.raw_record().decode()? else {
+                panic!()
+            };
+            if genre_id == 1 {
+                row.header.genre_id = 0;
+            }
+            expected.push(Row::Standard(StandardRow::Track(row)));
+        }
+        let properties = ExportProperty::all(&mut conn)?;
+        assert_eq!(Genre::delete(&mut conn, &1)?, 3);
+        assert_eq!(Genre::delete(&mut conn, &1)?, 0);
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Standard,
+        )?;
+        assert!(Genre::find(&mut reopened, &1)?.is_none());
+        assert_eq!(
+            Genre::find(&mut reopened, &2)?
+                .unwrap()
+                .raw_record()
+                .decode()?,
+            keep.raw_record().decode()?
+        );
+        assert_eq!(ExportProperty::all(&mut reopened)?, properties);
+        let contents = Content::all(&mut reopened)?;
+        assert_eq!(contents.len(), expected.len());
+        for (content, expected) in contents.iter().zip(expected) {
+            assert_eq!(content.raw_record().decode()?, expected);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_edits_and_failed_reference_cleanup_leave_database_unchanged() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let genre = NewGenre::new(1, "House").insert(&mut conn)?;
+        let before = bytes(&mut conn)?;
+        let mut edited = genre.clone();
+        edited.id = 2;
+        assert!(matches!(
+            edited.update(&mut conn),
+            Err(Error::InvalidModelField { field: "id", .. })
+        ));
+        for name in ["bad\0name".to_owned(), "x".repeat(5000)] {
+            let mut edited = genre.clone();
+            edited.name = name;
+            assert!(edited.update(&mut conn).is_err());
+        }
+        assert!(Genre::delete(&mut conn, &0).is_err());
+        assert_eq!(Genre::delete(&mut conn, &99)?, 0);
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        assert!(matches!(
+            genre.clone().update(&mut extended),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            Genre::delete(&mut extended, &1),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        let mut records = Vec::new();
+        for id in [1, 2] {
+            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            content.genre_id = 1;
+            records.push(content.insert(&mut conn)?);
+        }
+        let record = records[1].raw_record();
+        let offset = record.page().0 as usize * conn.header().prefix.page_size as usize
+            + PAGE_HEADER_SIZE
+            + record.slot().heap_offset as usize
+            + TrackHeader::BINARY_SIZE
+            + size_of::<u16>();
+        let mut before = bytes(&mut conn)?;
+        before[offset..offset + 2].copy_from_slice(&u16::MAX.to_le_bytes());
+        let mut broken =
+            DeviceSqlConnection::from_reader(Cursor::new(before.clone()), DatabaseKind::Standard)?;
+        assert!(Genre::delete(&mut broken, &1).is_err());
+        assert_eq!(bytes(&mut broken)?, before);
+        assert_eq!(broken.modified_page_count(), 0);
+        assert_eq!(Genre::delete(&mut conn, &1)?, 3);
+        assert!(matches!(
+            genre.update(&mut conn),
+            Err(Error::ModelNotFound { id: 1, .. })
+        ));
+        Ok(())
+    }
+}
+
+mod artwork_mutations {
+    //! Artwork path edits and reference cleanup never manipulate image files.
+
+    use super::*;
+    use rbox_devlib::binary::TrackHeader;
+    use rbox_devlib::models::{Artwork, ExportProperty, NewArtwork};
+
+    fn bytes(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>) -> Result<Vec<u8>> {
+        let mut bytes = Vec::new();
+        conn.write_to(&mut bytes)?;
+        Ok(bytes)
+    }
+
+    #[test]
+    fn updates_preserve_frames_handle_growth_and_refresh_stale_snapshots() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let mut row = NewArtwork::new(1, "/Art/original.jpg").to_binary()?;
+        row.name = DeviceSqlString::encode("/Art/original.jpg", StringEncoding::Utf16Le)?;
+        let mut tx = conn.transaction();
+        let handle = tx.insert(Artwork::TABLE, &Row::Standard(StandardRow::Artwork(row)))?;
+        let artwork = Artwork::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+        let before = bytes(&mut conn)?;
+        assert_eq!(artwork.clone().update(&mut conn)?, artwork);
+        assert_eq!(bytes(&mut conn)?, before);
+
+        let mut edited = artwork.clone();
+        edited.path = format!("/Art/{}.jpg", "long-directory/".repeat(80));
+        let updated = edited.update(&mut conn)?;
+        assert_ne!(
+            (
+                updated.raw_record().page(),
+                updated.raw_record().slot().slot
+            ),
+            (
+                artwork.raw_record().page(),
+                artwork.raw_record().slot().slot
+            )
+        );
+        assert_eq!(artwork.clone().update(&mut conn)?, updated);
+        let mut stale = artwork;
+        stale.path = "Art\\cover-\u{97f3}.jpg".into();
+        let updated = stale.update(&mut conn)?;
+        assert_eq!(updated.path, "Art\\cover-\u{97f3}.jpg");
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Standard,
+        )?;
+        assert_eq!(Artwork::find(&mut reopened, &1)?, Some(updated));
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_paths_ids_namespaces_and_resource_failures_are_atomic() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let artwork = NewArtwork::new(1, "/Art/cover.jpg").insert(&mut conn)?;
+        let before = bytes(&mut conn)?;
+        let mut edited = artwork.clone();
+        edited.id = 2;
+        assert!(matches!(
+            edited.update(&mut conn),
+            Err(Error::InvalidModelField { field: "id", .. })
+        ));
+        let mut edited = artwork.clone();
+        edited.path.clear();
+        assert!(matches!(
+            edited.update(&mut conn),
+            Err(Error::InvalidModelField { field: "path", .. })
+        ));
+        let mut edited = artwork.clone();
+        edited.path = "bad\0path".into();
+        assert!(matches!(edited.update(&mut conn), Err(Error::EmbeddedNul)));
+        let mut edited = artwork.clone();
+        edited.path = "x".repeat(5000);
+        assert!(matches!(
+            edited.update(&mut conn),
+            Err(Error::NoRowSpace { .. })
+        ));
+        assert!(matches!(
+            Artwork::delete(&mut conn, &0),
+            Err(Error::InvalidModelField { .. })
+        ));
+        assert_eq!(Artwork::delete(&mut conn, &99)?, 0);
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        assert!(matches!(
+            artwork.clone().update(&mut extended),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            Artwork::delete(&mut extended, &1),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        let mut limited =
+            DeviceSqlConnection::from_reader(Cursor::new(before.clone()), DatabaseKind::Standard)?;
+        limited.set_resource_limits(rbox_devlib::devicesql::ResourceLimits {
+            dirty_pages: Some(0),
+            ..Default::default()
+        })?;
+        let mut edited = artwork.clone();
+        edited.path = "/Art/new.jpg".into();
+        assert!(matches!(
+            edited.update(&mut limited),
+            Err(Error::DirtyPageLimit { .. })
+        ));
+        assert!(matches!(
+            Artwork::delete(&mut limited, &1),
+            Err(Error::DirtyPageLimit { .. })
+        ));
+        assert_eq!(bytes(&mut limited)?, before);
+        assert_eq!(Artwork::delete(&mut conn, &1)?, 1);
+        assert!(matches!(
+            artwork.clone().update(&mut conn),
+            Err(Error::ModelNotFound { id: 1, .. })
+        ));
+        let mut tx = conn.transaction();
+        for _ in 0..2 {
+            tx.insert(
+                Artwork::TABLE,
+                &Row::Standard(StandardRow::Artwork(
+                    NewArtwork::new(1, "/Art/duplicate.jpg").to_binary()?,
+                )),
+            )?;
+        }
+        tx.commit()?;
+        let before = bytes(&mut conn)?;
+        assert!(matches!(
+            artwork.update(&mut conn),
+            Err(Error::DuplicateId { id: 1, .. })
+        ));
+        assert!(matches!(
+            Artwork::delete(&mut conn, &1),
+            Err(Error::DuplicateId { id: 1, .. })
+        ));
+        assert_eq!(bytes(&mut conn)?, before);
+        Ok(())
+    }
+
+    #[test]
+    fn deletion_preserves_image_files_and_clears_only_matching_content_references() -> Result<()> {
+        let dir = create_temp_dir();
+        let image = dir.path().join("cover.jpg");
+        fs::write(&image, b"keep image bytes")?;
+        let options = CreateOptions::standard("2026-10-25", "Test")?;
+        let mut conn = DeviceSqlConnection::create_with_options(DatabaseKind::Standard, &options)?;
+        let artwork = NewArtwork::new(1, image.to_string_lossy()).insert(&mut conn)?;
+        NewArtwork::new(2, "/Art/keep.jpg").insert(&mut conn)?;
+        let mut expected = Vec::new();
+        for (id, artwork_id) in [(1, 1), (2, 2), (3, 1), (4, 0)] {
+            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            content.artwork_id = artwork_id;
+            let model = content.insert(&mut conn)?;
+            let Row::Standard(StandardRow::Track(mut row)) = model.raw_record().decode()? else {
+                panic!()
+            };
+            if artwork_id == 1 {
+                row.header.artwork_id = 0;
+            }
+            expected.push(Row::Standard(StandardRow::Track(row)));
+        }
+        let properties = ExportProperty::all(&mut conn)?;
+        let keep = Artwork::find(&mut conn, &2)?
+            .unwrap()
+            .raw_record()
+            .decode()?;
+        let mut edited = artwork;
+        let new_path = dir.path().join("new.jpg");
+        edited.path = new_path.to_string_lossy().into_owned();
+        edited.update(&mut conn)?;
+        assert!(!new_path.exists());
+        fs::write(&new_path, b"keep replacement image")?;
+        assert_eq!(Artwork::delete(&mut conn, &1)?, 3);
+        assert_eq!(Artwork::delete(&mut conn, &1)?, 0);
+        assert!(Artwork::find(&mut conn, &1)?.is_none());
+        assert_eq!(
+            Artwork::find(&mut conn, &2)?
+                .unwrap()
+                .raw_record()
+                .decode()?,
+            keep
+        );
+        assert_eq!(ExportProperty::all(&mut conn)?, properties);
+        assert_eq!(fs::read(&image)?, b"keep image bytes");
+        assert_eq!(fs::read(&new_path)?, b"keep replacement image");
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Standard,
+        )?;
+        let contents = Content::all(&mut reopened)?;
+        assert_eq!(contents.len(), expected.len());
+        for (content, expected) in contents.into_iter().zip(expected) {
+            assert_eq!(content.raw_record().decode()?, expected);
+        }
+        assert!(Artwork::find(&mut reopened, &1)?.is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn malformed_content_rolls_back_artwork_and_prior_reference_updates() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        NewArtwork::new(1, "/Art/keep.jpg").insert(&mut conn)?;
+        let mut records = Vec::new();
+        for id in [1, 2] {
+            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            content.artwork_id = 1;
+            records.push(content.insert(&mut conn)?);
+        }
+        let record = records[1].raw_record();
+        let offset = record.page().0 as usize * conn.header().prefix.page_size as usize
+            + PAGE_HEADER_SIZE
+            + record.slot().heap_offset as usize
+            + TrackHeader::BINARY_SIZE
+            + size_of::<u16>();
+        let mut before = bytes(&mut conn)?;
+        before[offset..offset + 2].copy_from_slice(&u16::MAX.to_le_bytes());
+        let mut conn =
+            DeviceSqlConnection::from_reader(Cursor::new(before.clone()), DatabaseKind::Standard)?;
+        assert!(Artwork::delete(&mut conn, &1).is_err());
+        assert_eq!(conn.modified_page_count(), 0);
+        assert!(Artwork::find(&mut conn, &1)?.is_some());
+        assert_eq!(Content::find(&mut conn, &1)?.unwrap().artwork_id, 1);
+        assert_eq!(bytes(&mut conn)?, before);
+        Ok(())
+    }
+}
+
+mod artist_mutations {
+    //! Artist mutations preserve binary data and clear all artist roles atomically.
+
+    use super::*;
+    use rbox_devlib::binary::TrackHeader;
+    use rbox_devlib::models::{Album, Artist, ExportProperty, NewAlbum, NewArtist};
+
+    fn bytes(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>) -> Result<Vec<u8>> {
+        let mut bytes = Vec::new();
+        conn.write_to(&mut bytes)?;
+        Ok(bytes)
+    }
+
+    #[test]
+    fn updates_preserve_frames_and_slot_bits_and_resolve_relocated_snapshots() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let mut row = NewArtist::new(1, "Original").to_binary()?;
+        row.name = DeviceSqlString::encode("Original", StringEncoding::Utf16Le)?;
+        row.header.index_shift = 0x0b;
+        let mut tx = conn.transaction();
+        let handle = tx.insert(Artist::TABLE, &Row::Standard(StandardRow::Artist(row)))?;
+        let artist = Artist::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+        let before = bytes(&mut conn)?;
+        assert_eq!(artist.clone().update(&mut conn)?, artist);
+        assert_eq!(bytes(&mut conn)?, before);
+
+        // Intervening low-level changes must survive a model rename.
+        let mut tx = conn.transaction();
+        let raw = artist.raw_record();
+        let handle = tx.locate(Artist::TABLE, raw.page(), raw.slot().slot)?;
+        let Row::Standard(StandardRow::Artist(mut row)) = tx.read(&handle)?.decode()? else {
+            panic!()
+        };
+        row.header.index_shift = (row.header.index_shift & !0x1f) | 0x15;
+        tx.update(&handle, &Row::Standard(StandardRow::Artist(row)))?;
+        tx.commit()?;
+        let mut renamed = artist.clone();
+        renamed.name = "Long artist name ".repeat(70);
+        let renamed = renamed.update(&mut conn)?;
+        assert_ne!(
+            (
+                renamed.raw_record().page(),
+                renamed.raw_record().slot().slot
+            ),
+            (artist.raw_record().page(), artist.raw_record().slot().slot)
+        );
+        let Row::Standard(StandardRow::Artist(row)) = renamed.raw_record().decode()? else {
+            panic!()
+        };
+        assert_eq!(row.header.index_shift & 0x1f, 0x15);
+        // An unchanged stale snapshot preserves the current name.
+        assert_eq!(artist.clone().update(&mut conn)?, renamed);
+        let mut stale = artist;
+        stale.name = "Latest edit".into();
+        let updated = stale.update(&mut conn)?;
+        assert_eq!(updated.name, "Latest edit");
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Standard,
+        )?;
+        assert_eq!(Artist::find(&mut reopened, &1)?, Some(updated));
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_missing_duplicate_and_wrong_namespace_mutations_are_rejected() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let artist = NewArtist::new(1, "Artist").insert(&mut conn)?;
+        let before = bytes(&mut conn)?;
+        let mut edited = artist.clone();
+        edited.id = 2;
+        assert!(matches!(
+            edited.update(&mut conn),
+            Err(Error::InvalidModelField { field: "id", .. })
+        ));
+        let mut edited = artist.clone();
+        edited.name = "bad\0name".into();
+        assert!(matches!(edited.update(&mut conn), Err(Error::EmbeddedNul)));
+        let mut edited = artist.clone();
+        edited.name = "x".repeat(5000);
+        assert!(matches!(
+            edited.update(&mut conn),
+            Err(Error::NoRowSpace { .. })
+        ));
+        assert!(matches!(
+            Artist::delete(&mut conn, &0),
+            Err(Error::InvalidModelField { .. })
+        ));
+        assert_eq!(Artist::delete(&mut conn, &99)?, 0);
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        assert!(matches!(
+            artist.clone().update(&mut extended),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            Artist::delete(&mut extended, &1),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+
+        // Reopening removes the preexisting dirty overlay so the budget applies to this edit.
+        let mut limited =
+            DeviceSqlConnection::from_reader(Cursor::new(before.clone()), DatabaseKind::Standard)?;
+        limited.set_resource_limits(rbox_devlib::devicesql::ResourceLimits {
+            dirty_pages: Some(0),
+            ..Default::default()
+        })?;
+        let mut edited = artist.clone();
+        edited.name = "New".into();
+        assert!(matches!(
+            edited.update(&mut limited),
+            Err(Error::DirtyPageLimit { .. })
+        ));
+        assert!(matches!(
+            Artist::delete(&mut limited, &1),
+            Err(Error::DirtyPageLimit { .. })
+        ));
+        assert_eq!(bytes(&mut limited)?, before);
+
+        assert_eq!(Artist::delete(&mut conn, &1)?, 1);
+        assert!(matches!(
+            artist.clone().update(&mut conn),
+            Err(Error::ModelNotFound { id: 1, .. })
+        ));
+        let mut tx = conn.transaction();
+        for _ in 0..2 {
+            tx.insert(
+                Artist::TABLE,
+                &Row::Standard(StandardRow::Artist(
+                    NewArtist::new(1, "Duplicate").to_binary()?,
+                )),
+            )?;
+        }
+        tx.commit()?;
+        let before = bytes(&mut conn)?;
+        assert!(matches!(
+            artist.update(&mut conn),
+            Err(Error::DuplicateId { id: 1, .. })
+        ));
+        assert!(matches!(
+            Artist::delete(&mut conn, &1),
+            Err(Error::DuplicateId { id: 1, .. })
+        ));
+        assert_eq!(bytes(&mut conn)?, before);
+        Ok(())
+    }
+
+    #[test]
+    fn deletion_clears_all_roles_once_per_row_and_preserves_other_binary_fields() -> Result<()> {
+        let options = CreateOptions::standard("2026-10-25", "Test")?;
+        let mut conn = DeviceSqlConnection::create_with_options(DatabaseKind::Standard, &options)?;
+        NewArtist::new(1, "Delete").insert(&mut conn)?;
+        NewArtist::new(2, "Keep").insert(&mut conn)?;
+        let mut expected_albums = Vec::new();
+        for (id, artist_id) in [(10, 1), (11, 1), (12, 2), (13, 0)] {
+            let mut album = NewAlbum::new(id, artist_id, format!("Album {id}"));
+            album.unknown_04 = 0x12345678;
+            let album = album.insert(&mut conn)?;
+            let Row::Standard(StandardRow::Album(mut row)) = album.raw_record().decode()? else {
+                panic!()
+            };
+            if row.header.artist_id == 1 {
+                row.header.artist_id = 0;
+            }
+            expected_albums.push(Row::Standard(StandardRow::Album(row)));
+        }
+        let mut expected_tracks = Vec::new();
+        for (i, roles) in [
+            [1, 2, 0, 2],
+            [2, 1, 2, 0],
+            [0, 2, 1, 2],
+            [2, 0, 2, 1],
+            [1, 1, 1, 1],
+            [2, 2, 2, 2],
+            [0, 0, 0, 0],
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let mut content = NewContent::new(i as u32 + 1, format!("/Contents/{i}.wav"));
+            [
+                content.artist_id,
+                content.original_artist_id,
+                content.composer_id,
+                content.remixer_id,
+            ] = roles;
+            content.album_id = 10;
+            let content = content.insert(&mut conn)?;
+            let Row::Standard(StandardRow::Track(mut row)) = content.raw_record().decode()? else {
+                panic!()
+            };
+            for reference in [
+                &mut row.header.artist_id,
+                &mut row.header.original_artist_id,
+                &mut row.header.composer_id,
+                &mut row.header.remixer_id,
+            ] {
+                if *reference == 1 {
+                    *reference = 0;
+                }
+            }
+            expected_tracks.push(Row::Standard(StandardRow::Track(row)));
+        }
+        let properties = ExportProperty::all(&mut conn)?;
+        let keep = Artist::find(&mut conn, &2)?
+            .unwrap()
+            .raw_record()
+            .decode()?;
+        assert_eq!(Artist::delete(&mut conn, &1)?, 8); // Artist + two albums + five tracks.
+        assert_eq!(Artist::delete(&mut conn, &1)?, 0);
+        assert!(Artist::find(&mut conn, &1)?.is_none());
+        assert_eq!(
+            Artist::find(&mut conn, &2)?
+                .unwrap()
+                .raw_record()
+                .decode()?,
+            keep
+        );
+        assert_eq!(ExportProperty::all(&mut conn)?, properties);
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Standard,
+        )?;
+        let albums = Album::all(&mut reopened)?;
+        let tracks = Content::all(&mut reopened)?;
+        assert_eq!(albums.len(), expected_albums.len());
+        assert_eq!(tracks.len(), expected_tracks.len());
+        for (album, expected) in albums.into_iter().zip(expected_albums) {
+            assert_eq!(album.raw_record().decode()?, expected);
+        }
+        for (track, expected) in tracks.into_iter().zip(expected_tracks) {
+            assert_eq!(track.raw_record().decode()?, expected);
+        }
+        assert!(Artist::find(&mut reopened, &1)?.is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn malformed_content_rolls_back_artist_album_and_prior_content_changes() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        NewArtist::new(1, "Keep on failure").insert(&mut conn)?;
+        NewAlbum::new(1, 1, "Album").insert(&mut conn)?;
+        let mut records = Vec::new();
+        for id in [1, 2] {
+            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            content.composer_id = 1;
+            records.push(content.insert(&mut conn)?);
+        }
+        let record = records[1].raw_record();
+        let offset = record.page().0 as usize * conn.header().prefix.page_size as usize
+            + PAGE_HEADER_SIZE
+            + record.slot().heap_offset as usize
+            + TrackHeader::BINARY_SIZE
+            + size_of::<u16>();
+        let mut before = bytes(&mut conn)?;
+        before[offset..offset + 2].copy_from_slice(&u16::MAX.to_le_bytes());
+        let mut conn =
+            DeviceSqlConnection::from_reader(Cursor::new(before.clone()), DatabaseKind::Standard)?;
+        assert!(Artist::delete(&mut conn, &1).is_err());
+        assert_eq!(conn.modified_page_count(), 0);
+        assert!(Artist::find(&mut conn, &1)?.is_some());
+        assert_eq!(Album::find(&mut conn, &1)?.unwrap().artist_id, 1);
+        assert_eq!(Content::find(&mut conn, &1)?.unwrap().composer_id, 1);
+        assert_eq!(bytes(&mut conn)?, before);
+        Ok(())
+    }
+}
+
+mod album_mutations {
+    //! Album updates preserve current binary data; deletions clear references atomically.
+
+    use super::*;
+    use rbox_devlib::binary::TrackHeader;
+    use rbox_devlib::models::{Album, ExportProperty, NewAlbum, NewArtist};
+
+    fn bytes(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>) -> Result<Vec<u8>> {
+        let mut bytes = Vec::new();
+        conn.write_to(&mut bytes)?;
+        Ok(bytes)
+    }
+
+    #[test]
+    fn updates_preserve_frames_and_current_reserved_fields_and_resolve_relocations() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let mut binary = NewAlbum::new(1, 0, "Original").to_binary()?;
+        binary.name = DeviceSqlString::encode("Original", StringEncoding::Utf16Le)?;
+        binary.header.unknown_04 = 0x12345678;
+        let mut tx = conn.transaction();
+        let handle = tx.insert(Album::TABLE, &Row::Standard(StandardRow::Album(binary)))?;
+        let album = Album::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+        let before = bytes(&mut conn)?;
+        assert_eq!(album.clone().update(&mut conn)?, album);
+        assert_eq!(bytes(&mut conn)?, before);
+
+        // An artist-only edit preserves the original UTF-16 name frame.
+        let mut artist_edit = album.clone();
+        artist_edit.artist_id = 42;
+        let updated = artist_edit.update(&mut conn)?;
+        let Row::Standard(StandardRow::Album(row)) = updated.raw_record().decode()? else {
+            panic!()
+        };
+        assert_eq!(
+            row.name,
+            DeviceSqlString::encode("Original", StringEncoding::Utf16Le)?
+        );
+
+        // A low-level edit made after the snapshot must survive the model update.
+        let mut row = row;
+        row.header.unknown_10 = 0xabcdef;
+        let mut tx = conn.transaction();
+        let raw = updated.raw_record();
+        let handle = tx.locate(Album::TABLE, raw.page(), raw.slot().slot)?;
+        tx.update(&handle, &Row::Standard(StandardRow::Album(row)))?;
+        tx.commit()?;
+        let mut renamed = album.clone();
+        renamed.name = "Long album name ".repeat(70);
+        let renamed = renamed.update(&mut conn)?;
+        assert_eq!(renamed.artist_id, 42);
+        assert_ne!(
+            (
+                renamed.raw_record().page(),
+                renamed.raw_record().slot().slot
+            ),
+            (album.raw_record().page(), album.raw_record().slot().slot)
+        );
+        let Row::Standard(StandardRow::Album(row)) = renamed.raw_record().decode()? else {
+            panic!()
+        };
+        assert_eq!(
+            (row.header.unknown_04, row.header.unknown_10),
+            (0x12345678, 0xabcdef)
+        );
+
+        // This snapshot still points to the retired slot, but ID lookup finds the new row.
+        let mut stale = album;
+        stale.artist_id = 99;
+        let updated = stale.update(&mut conn)?;
+        assert_eq!(updated.name, renamed.name);
+        assert_eq!(updated.artist_id, 99);
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Standard,
+        )?;
+        assert_eq!(Album::find(&mut reopened, &1)?, Some(updated));
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_updates_and_missing_or_ambiguous_ids_leave_the_database_unchanged() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let album = NewAlbum::new(1, 0, "Album").insert(&mut conn)?;
+        let before = bytes(&mut conn)?;
+        let mut edited = album.clone();
+        edited.id = 2;
+        assert!(matches!(
+            edited.update(&mut conn),
+            Err(Error::InvalidModelField { field: "id", .. })
+        ));
+        let mut edited = album.clone();
+        edited.name = "bad\0name".into();
+        assert!(matches!(edited.update(&mut conn), Err(Error::EmbeddedNul)));
+        let mut edited = album.clone();
+        edited.name = "x".repeat(5000);
+        assert!(matches!(
+            edited.update(&mut conn),
+            Err(Error::NoRowSpace { .. })
+        ));
+        assert_eq!(bytes(&mut conn)?, before);
+
+        let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        assert!(matches!(
+            album.clone().update(&mut extended),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            Album::delete(&mut extended, &1),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            Album::delete(&mut conn, &0),
+            Err(Error::InvalidModelField { .. })
+        ));
+        assert_eq!(Album::delete(&mut conn, &99)?, 0);
+        assert_eq!(Album::delete(&mut conn, &1)?, 1);
+        assert!(matches!(
+            album.clone().update(&mut conn),
+            Err(Error::ModelNotFound { id: 1, .. })
+        ));
+
+        let mut tx = conn.transaction();
+        for _ in 0..2 {
+            tx.insert(
+                Album::TABLE,
+                &Row::Standard(StandardRow::Album(
+                    NewAlbum::new(1, 0, "Duplicate").to_binary()?,
+                )),
+            )?;
+        }
+        tx.commit()?;
+        let before = bytes(&mut conn)?;
+        assert!(matches!(
+            album.update(&mut conn),
+            Err(Error::DuplicateId { id: 1, .. })
+        ));
+        assert!(matches!(
+            Album::delete(&mut conn, &1),
+            Err(Error::DuplicateId { id: 1, .. })
+        ));
+        assert_eq!(bytes(&mut conn)?, before);
+        Ok(())
+    }
+
+    #[test]
+    fn deletion_clears_only_matching_references_and_keeps_counts_and_artists() -> Result<()> {
+        let options = CreateOptions::standard("2026-10-25", "Test")?;
+        let mut conn = DeviceSqlConnection::create_with_options(DatabaseKind::Standard, &options)?;
+        let artist = NewArtist::new(1, "Artist").insert(&mut conn)?;
+        NewAlbum::new(10, artist.id, "Delete").insert(&mut conn)?;
+        let other = NewAlbum::new(20, artist.id, "Keep").insert(&mut conn)?;
+        let mut expected = Vec::new();
+        for (id, album_id) in [(1, 10), (2, 20), (3, 10), (4, 0)] {
+            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            content.album_id = album_id;
+            let model = content.insert(&mut conn)?;
+            let Row::Standard(StandardRow::Track(mut row)) = model.raw_record().decode()? else {
+                panic!()
+            };
+            if album_id == 10 {
+                row.header.album_id = 0;
+            }
+            expected.push(row);
+        }
+        let properties = ExportProperty::all(&mut conn)?;
+        assert_eq!(Album::delete(&mut conn, &10)?, 3);
+        assert_eq!(Album::delete(&mut conn, &10)?, 0);
+        assert!(Album::find(&mut conn, &10)?.is_none());
+        let kept = Album::find(&mut conn, &20)?.unwrap();
+        assert_eq!(kept.raw_record().as_bytes(), other.raw_record().as_bytes());
+        assert_eq!(
+            rbox_devlib::models::Artist::find(&mut conn, &1)?,
+            Some(artist)
+        );
+        assert_eq!(ExportProperty::all(&mut conn)?, properties);
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Standard,
+        )?;
+        let contents = Content::all(&mut reopened)?;
+        assert_eq!(contents.len(), expected.len());
+        for (model, expected) in contents.into_iter().zip(expected) {
+            assert_eq!(
+                model.raw_record().decode()?,
+                Row::Standard(StandardRow::Track(expected))
+            );
+        }
+        assert!(Album::find(&mut reopened, &10)?.is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn deletion_rolls_back_album_and_earlier_reference_updates_on_decode_failure() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        NewAlbum::new(1, 0, "Keep on failure").insert(&mut conn)?;
+        let mut records = Vec::new();
+        for id in [1, 2] {
+            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            content.album_id = 1;
+            records.push(content.insert(&mut conn)?);
+        }
+        let record = records[1].raw_record();
+        let offset = record.page().0 as usize * conn.header().prefix.page_size as usize
+            + PAGE_HEADER_SIZE
+            + record.slot().heap_offset as usize
+            + TrackHeader::BINARY_SIZE
+            + size_of::<u16>(); // Skip the far-offset array's marker.
+        let mut before = bytes(&mut conn)?;
+        // Corrupt the second related track's first string offset, after its valid header.
+        before[offset..offset + 2].copy_from_slice(&u16::MAX.to_le_bytes());
+        let mut conn =
+            DeviceSqlConnection::from_reader(Cursor::new(before.clone()), DatabaseKind::Standard)?;
+        assert!(Album::delete(&mut conn, &1).is_err());
+        assert_eq!(conn.modified_page_count(), 0);
+        assert!(Album::find(&mut conn, &1)?.is_some());
+        assert_eq!(Content::find(&mut conn, &1)?.unwrap().album_id, 1);
+        assert_eq!(bytes(&mut conn)?, before);
+        Ok(())
+    }
+}
 
 mod album_relations {
     //! Explicit album artist resolution, detached views and batch reuse.
@@ -183,7 +2698,7 @@ mod content_relations {
 
     use super::*;
     use rbox_devlib::models::{
-        Artist, NewAlbum, NewArtist, NewArtwork, NewColor, NewGenre, NewKey, NewLabel,
+        Artist, NewAlbum, NewArtist, NewArtwork, NewGenre, NewKey, NewLabel,
     };
 
     #[test]
@@ -202,7 +2717,7 @@ mod content_relations {
         NewGenre::new(11, "Genre").insert(&mut conn)?;
         NewLabel::new(12, "Label").insert(&mut conn)?;
         NewKey::new(13, 23, "Am").insert(&mut conn)?;
-        NewColor::new(255, "Custom color").insert(&mut conn)?;
+        seed_color(&mut conn, 255, "Custom color")?;
         NewArtwork::new(14, "/PIONEER/Artwork/image.jpg").insert(&mut conn)?;
         let mut input = NewContent::new(100, "/Contents/Track.wav");
         input.artist_id = 1;
@@ -450,6 +2965,261 @@ mod configuration {
     }
 
     #[test]
+    fn browse_column_updates_keep_wrapping_and_resolve_growing_labels_by_id() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        for (id, stored) in [(0, "\u{fffa}COLOR\u{fffb}"), (1, "COLOR")] {
+            let column = BrowseColumn::try_from(seed_browse(
+                &mut conn,
+                StandardRow::BrowseColumn(BrowseColumnRow {
+                    id,
+                    code: 0xabcd,
+                    name: DeviceSqlString::encode(stored, StringEncoding::Utf16Le)?,
+                }),
+            )?)?;
+            let mut before = Vec::new();
+            conn.write_to(&mut before)?;
+            assert_eq!(column.clone().update(&mut conn)?, column);
+            let mut after = Vec::new();
+            conn.write_to(&mut after)?;
+            assert_eq!(before, after);
+            let mut edited = column.clone();
+            edited.name = "Long label ".repeat(80);
+            let updated = edited.update(&mut conn)?;
+            assert_eq!(updated.code, 0xabcd);
+            let Row::Standard(StandardRow::BrowseColumn(row)) = updated.raw_record().decode()?
+            else {
+                panic!()
+            };
+            let expected = if id == 0 {
+                format!("\u{fffa}{}\u{fffb}", updated.name)
+            } else {
+                updated.name.clone()
+            };
+            assert_eq!(row.name.text()?, expected);
+            assert_ne!(
+                (column.raw_record().page(), column.raw_record().slot().slot),
+                (
+                    updated.raw_record().page(),
+                    updated.raw_record().slot().slot
+                )
+            );
+            assert_eq!(column.clone().update(&mut conn)?, updated);
+            let mut stale = column;
+            stale.name = "New label".into();
+            assert_eq!(stale.update(&mut conn)?.name, "New label");
+        }
+        let expected = BrowseColumn::all(&mut conn)?;
+        let mut bytes = Vec::new();
+        conn.write_to(&mut bytes)?;
+        let mut reopened =
+            DeviceSqlConnection::from_reader(Cursor::new(bytes), DatabaseKind::Standard)?;
+        assert_eq!(BrowseColumn::all(&mut reopened)?, expected);
+        Ok(())
+    }
+
+    #[test]
+    fn browse_settings_update_exact_occurrences_and_reject_stale_snapshots() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        for _ in 0..2 {
+            seed_browse(
+                &mut conn,
+                StandardRow::BrowseCategory(BrowseCategoryRow {
+                    column_id: 1,
+                    selector: 2,
+                    unknown_04: 0xee,
+                    state: 3,
+                    position: 9,
+                }),
+            )?;
+            seed_browse(
+                &mut conn,
+                StandardRow::BrowseSort(BrowseSortRow {
+                    column_id: 1,
+                    selector: 2,
+                    raw_tail: 0xabcd1234,
+                }),
+            )?;
+        }
+        let categories = BrowseCategory::all(&mut conn)?;
+        let sorts = BrowseSort::all(&mut conn)?;
+        let mut before = Vec::new();
+        conn.write_to(&mut before)?;
+        categories[0].clone().update(&mut conn)?;
+        sorts[0].clone().update(&mut conn)?;
+        let mut after = Vec::new();
+        conn.write_to(&mut after)?;
+        assert_eq!(before, after);
+        let mut category = categories[1].clone();
+        category.state = 1;
+        category.position = 0;
+        let category = category.update(&mut conn)?;
+        assert_eq!(category.unknown_04, 0xee);
+        let mut sort = sorts[1].clone();
+        sort.raw_tail = 0xabcd0001;
+        let sort = sort.update(&mut conn)?;
+        assert_eq!(sort.raw_tail, 0xabcd0001);
+        assert!(matches!(
+            categories[1].clone().update(&mut conn),
+            Err(Error::StaleModelRow { .. })
+        ));
+        assert!(matches!(
+            sorts[1].clone().update(&mut conn),
+            Err(Error::StaleModelRow { .. })
+        ));
+        // Editing one occurrence must not invalidate another identical occurrence.
+        categories[0].clone().update(&mut conn)?;
+        sorts[0].clone().update(&mut conn)?;
+        let expected_categories = BrowseCategory::all(&mut conn)?;
+        let expected_sorts = BrowseSort::all(&mut conn)?;
+        assert_eq!(
+            expected_categories
+                .iter()
+                .map(|r| (r.state, r.position))
+                .collect::<Vec<_>>(),
+            [(3, 9), (1, 0)]
+        );
+        assert_eq!(
+            expected_sorts
+                .iter()
+                .map(|r| r.raw_tail)
+                .collect::<Vec<_>>(),
+            [0xabcd1234, 0xabcd0001]
+        );
+        let mut bytes = Vec::new();
+        conn.write_to(&mut bytes)?;
+        let mut reopened =
+            DeviceSqlConnection::from_reader(Cursor::new(bytes), DatabaseKind::Standard)?;
+        assert_eq!(BrowseCategory::all(&mut reopened)?, expected_categories);
+        assert_eq!(BrowseSort::all(&mut reopened)?, expected_sorts);
+        let mut tx = conn.transaction();
+        let raw = category.raw_record();
+        let handle = tx.locate(raw.table(), raw.page(), raw.slot().slot)?;
+        tx.delete(&handle)?;
+        let raw = sort.raw_record();
+        let handle = tx.locate(raw.table(), raw.page(), raw.slot().slot)?;
+        tx.delete(&handle)?;
+        tx.commit()?;
+        assert!(matches!(
+            category.update(&mut conn),
+            Err(Error::RowNotFound { .. })
+        ));
+        assert!(matches!(
+            sort.update(&mut conn),
+            Err(Error::RowNotFound { .. })
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn browse_updates_reject_identity_changes_wrong_kinds_and_failed_writes() -> Result<()> {
+        let options = CreateOptions::standard("2026-10-25", "Test")?;
+        let mut conn = DeviceSqlConnection::create_with_options(DatabaseKind::Standard, &options)?;
+        let column = BrowseColumn::all(&mut conn)?.remove(0);
+        let category = BrowseCategory::all(&mut conn)?.remove(0);
+        let sort = BrowseSort::all(&mut conn)?.remove(0);
+        let mut changed = column.clone();
+        changed.id ^= 1;
+        assert!(matches!(
+            changed.update(&mut conn),
+            Err(Error::InvalidModelField { field: "id", .. })
+        ));
+        let mut changed = column.clone();
+        changed.code ^= 1;
+        assert!(matches!(
+            changed.update(&mut conn),
+            Err(Error::InvalidModelField { field: "code", .. })
+        ));
+        let mut changed = category.clone();
+        changed.column_id ^= 1;
+        assert!(matches!(
+            changed.update(&mut conn),
+            Err(Error::InvalidModelField { .. })
+        ));
+        let mut changed = category.clone();
+        changed.selector ^= 1;
+        assert!(matches!(
+            changed.update(&mut conn),
+            Err(Error::InvalidModelField { .. })
+        ));
+        let mut changed = sort.clone();
+        changed.column_id ^= 1;
+        assert!(matches!(
+            changed.update(&mut conn),
+            Err(Error::InvalidModelField { .. })
+        ));
+        let mut changed = sort.clone();
+        changed.selector ^= 1;
+        assert!(matches!(
+            changed.update(&mut conn),
+            Err(Error::InvalidModelField { .. })
+        ));
+        let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        assert!(matches!(
+            column.clone().update(&mut extended),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            category.clone().update(&mut extended),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            sort.clone().update(&mut extended),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        let mut before = Vec::new();
+        conn.write_to(&mut before)?;
+        let mut changed = column.clone();
+        changed.name = "bad\0label".into();
+        assert!(matches!(changed.update(&mut conn), Err(Error::EmbeddedNul)));
+        let mut changed = column.clone();
+        changed.name = "x".repeat(5000);
+        assert!(matches!(
+            changed.update(&mut conn),
+            Err(Error::NoRowSpace { .. })
+        ));
+        let mut after = Vec::new();
+        conn.write_to(&mut after)?;
+        assert_eq!(before, after);
+        let mut limited =
+            DeviceSqlConnection::from_reader(Cursor::new(before.clone()), DatabaseKind::Standard)?;
+        limited.set_resource_limits(rbox_devlib::devicesql::ResourceLimits {
+            dirty_pages: Some(0),
+            ..Default::default()
+        })?;
+        let mut changed = column.clone();
+        changed.name = "New".into();
+        assert!(matches!(
+            changed.update(&mut limited),
+            Err(Error::DirtyPageLimit { .. })
+        ));
+        let mut changed = category;
+        changed.state ^= 1;
+        assert!(matches!(
+            changed.update(&mut limited),
+            Err(Error::DirtyPageLimit { .. })
+        ));
+        let mut changed = sort;
+        changed.raw_tail ^= 1;
+        assert!(matches!(
+            changed.update(&mut limited),
+            Err(Error::DirtyPageLimit { .. })
+        ));
+        let mut after = Vec::new();
+        limited.write_to(&mut after)?;
+        assert_eq!(before, after);
+        let raw = column.raw_record();
+        let mut tx = conn.transaction();
+        let handle = tx.locate(raw.table(), raw.page(), raw.slot().slot)?;
+        tx.delete(&handle)?;
+        tx.commit()?;
+        assert!(matches!(
+            column.update(&mut conn),
+            Err(Error::ModelNotFound { .. })
+        ));
+        Ok(())
+    }
+
+    #[test]
     fn browse_labels_use_plain_text_and_preserve_original_binary_framing() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
         for (index, (stored, plain)) in [
@@ -673,8 +3443,16 @@ mod configuration {
         tx.commit()?;
         assert_eq!(model.my_tag_master_db_id, 0);
         for (first, second) in [(10, 20), (20, 10), (10, 20), (10, 10), (30, 40)] {
-            NewRecommendedLike::new(first, second, u64::MAX, 0x12345678, 0xabcdef01)
-                .insert(&mut conn)?;
+            // Existing binary files can contain duplicates even though model
+            // insertion now rejects them. Reads must continue to preserve them.
+            let row = NewRecommendedLike::new(first, second, u64::MAX, 0x12345678, 0xabcdef01)
+                .to_binary()?;
+            let mut tx = conn.transaction();
+            tx.insert(
+                RecommendedLike::TABLE,
+                &Row::Extended(ExtendedRow::RecommendLike(row)),
+            )?;
+            tx.commit()?;
         }
         assert_eq!(RecommendedLike::by_content(&mut conn, &10)?.len(), 4);
         assert!(RecommendedLike::by_content(&mut conn, &99)?.is_empty());
@@ -1910,7 +4688,7 @@ mod catalog {
     use rbox_devlib::binary::{AlbumHeader, ArtistHeader, StringOffsets, TableKind};
     use rbox_devlib::models::{
         Album, Artist, Artwork, Color, Genre, Key, Label, NewAlbum, NewArtist, NewArtwork,
-        NewColor, NewGenre, NewKey, NewLabel,
+        NewGenre, NewKey, NewLabel,
     };
 
     struct Case {
@@ -2027,30 +4805,6 @@ mod catalog {
                     Ok(())
                 },
                 decode: |record| Ok(Key::try_from(record)?.name),
-            },
-            Case {
-                table: Color::TABLE,
-                insert: |conn, id, value| {
-                    Ok(NewColor::new(id as u16, value)
-                        .insert(conn)?
-                        .raw_record()
-                        .clone())
-                },
-                find: |conn, id| {
-                    Ok(Color::find(conn, &(id as u16))?.map(|model| model.raw_record().clone()))
-                },
-                all: |conn| {
-                    Ok(Color::all(conn)?
-                        .into_iter()
-                        .map(|model| model.raw_record().clone())
-                        .collect())
-                },
-                exists: |conn, id| Color::id_exists(conn, &(id as u16)),
-                lazy: |conn| {
-                    drop(Color::iter(conn)?);
-                    Ok(())
-                },
-                decode: |record| Ok(Color::try_from(record)?.name),
             },
             Case {
                 table: Artwork::TABLE,
@@ -2265,11 +5019,19 @@ mod catalog {
 
         let key = NewKey::new(5, 91, "Am").insert(&mut conn)?;
         assert_eq!((key.id, key.secondary_id), (5, 91));
-        let mut color = NewColor::new(0x1234, "Custom color");
+        let mut color = rbox_devlib::binary::ColorRow {
+            id: 0x1234,
+            name: DeviceSqlString::encode("Custom color", StringEncoding::ShortAscii)?,
+            unknown_00: 0,
+            unknown_04: 0,
+            unknown_07: 0,
+        };
         color.unknown_00 = 0xabcdef01;
         color.unknown_04 = 0x78;
         color.unknown_07 = 0x56;
-        color.insert(&mut conn)?;
+        let mut tx = conn.transaction();
+        tx.insert(Color::TABLE, &Row::Standard(StandardRow::Color(color)))?;
+        tx.commit()?;
         let color = Color::find(&mut conn, &0x1234)?.unwrap();
         assert_eq!(color.id, 0x1234);
         let Row::Standard(StandardRow::Color(binary)) = color.raw_record().decode()? else {
@@ -2321,7 +5083,7 @@ mod catalog {
         let genre = NewGenre::new(3, "House").insert(&mut conn)?;
         let label = NewLabel::new(4, "Label").insert(&mut conn)?;
         let key = NewKey::new(5, 23, "Am").insert(&mut conn)?;
-        let color = NewColor::new(6, "Blue").insert(&mut conn)?;
+        let color = seed_color(&mut conn, 6, "Blue")?;
         let artwork = NewArtwork::new(7, "/PIONEER/Artwork/00001/a7.jpg").insert(&mut conn)?;
         let mut track = NewContent::new(8, "/Contents/Track.flac");
         track.artist_id = artist.id;

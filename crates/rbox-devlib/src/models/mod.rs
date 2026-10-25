@@ -5,7 +5,8 @@
 //!
 //! Models are detached snapshots. Reads and insertions use the binary definitions
 //! and engine directly. Content and album relationships are loaded explicitly into
-//! [`ContentView`] and [`AlbumView`]; model updates are deferred.
+//! [`ContentView`] and [`AlbumView`]. Content updates preserve unedited binary data;
+//! [crate::DeviceLibrary::delete_content] cleans known references across both files.
 //! Debug output includes all public fields but omits the stored raw row; use
 //! `raw_record()` to inspect the original binary data explicitly.
 //!
@@ -52,7 +53,7 @@ pub use album::{Album, AlbumView, NewAlbum};
 pub use artist::{Artist, NewArtist};
 pub use artwork::{Artwork, NewArtwork};
 pub use browse::{BrowseCategory, BrowseColumn, BrowseSort};
-pub use color::{Color, NewColor};
+pub use color::Color;
 pub use content::{Content, ContentView, NewContent, TrackCreationOptions};
 pub use genre::{Genre, NewGenre};
 pub use history::{History, HistoryContent, NewHistory, NewHistoryContent};
@@ -74,6 +75,38 @@ use crate::binary::{
 };
 use crate::devicesql::{DeviceSqlConnection, Transaction};
 use crate::{Error, Result};
+
+/// Enforce exact decoded-name equality independently of the stored string encoding.
+/// Updates exclude their own ID; callers validate ID uniqueness separately.
+fn unique_name<R: Read + Seek>(
+    tx: &mut Transaction<'_, R>,
+    table: TableKind,
+    name: &str,
+    exclude_id: Option<u32>,
+) -> Result<()> {
+    for record in tx.iter_raw(table)? {
+        let record = record?;
+        let (id, stored) = match record.decode()? {
+            Row::Standard(StandardRow::Artist(row)) => (row.header.id, row.name),
+            Row::Standard(StandardRow::Genre(row) | StandardRow::Label(row)) => (row.id, row.name),
+            Row::Standard(StandardRow::Key(row)) => (row.id, row.name),
+            Row::Standard(StandardRow::Color(row)) => (u32::from(row.id), row.name),
+            _ => return Err(unsupported(&record)),
+        };
+        if Some(id) != exclude_id
+            && stored
+                .text()
+                .map_err(|source| text_error(&record, "name", source))?
+                == name
+        {
+            return Err(Error::UniqueConstraintViolation {
+                table,
+                fields: &["name"],
+            });
+        }
+    }
+    Ok(())
+}
 
 /// Load each distinct nonzero numeric foreign key once, skipping absent targets.
 /// Sorting makes lookup/error order deterministic; empty sets perform no reads.

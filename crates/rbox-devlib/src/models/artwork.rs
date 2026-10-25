@@ -1,12 +1,12 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
-//! Artwork snapshots and explicit read/insert operations over DeviceSQL.
+//! Artwork snapshots and explicit read, insert, update, and delete operations.
 
 use std::io::{Read, Seek};
 
-use super::{read_fields, text, text_error, unsupported, validate_id};
-use crate::binary::{NamedRow, PageType, Row, RowRecord, StandardRow, TableKind};
+use super::{read_fields, text, text_error, unsupported, validate_id, Content};
+use crate::binary::{NamedRow, PageType, Row, RowRecord, StandardRow, TableKind, TrackHeader};
 use crate::devicesql::DeviceSqlConnection;
 use crate::{Error, Result};
 
@@ -48,7 +48,7 @@ impl Artwork {
             .map(|record| Self::try_from(record?)))
     }
 
-    /// Read all live models-old without loading related tables.
+    /// Read all live artwork references without loading related tables.
     pub fn all<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<Vec<Self>> {
         Self::iter(conn)?.collect()
     }
@@ -73,6 +73,102 @@ impl Artwork {
         Ok(conn
             .index_rows(Self::TABLE, Self::read_id)?
             .contains_key(id))
+    }
+
+    /// Persist an edited image path and return a refreshed artwork snapshot.
+    ///
+    /// Resolves the current row by its original ID; changing `id` is rejected.
+    /// An unchanged path preserves the current path and string frame. Edited paths
+    /// must be nonempty and use last-write-wins. Separators are stored as supplied;
+    /// this does not copy, rename, validate the existence of, or delete image files.
+    /// The engine handles growing paths and row relocation.
+    ///
+    /// Commits to the in-memory overlay or rolls back on error. A deleted artwork
+    /// returns [`Error::ModelNotFound`]. Saving remains explicit.
+    pub fn update<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Self> {
+        conn.check_kind(Self::TABLE)?;
+        let original = Self::try_from(self.raw)?;
+        validate_id(Self::TABLE, self.id)?;
+        if self.id != original.id {
+            return Err(Error::InvalidModelField {
+                table: Self::TABLE,
+                field: "id",
+                reason: "an existing artwork's ID cannot be changed",
+            });
+        }
+        let mut tx = conn.transaction();
+        let location = tx
+            .index_rows(Self::TABLE, Self::read_id)?
+            .get(&original.id)
+            .copied()
+            .ok_or(Error::ModelNotFound {
+                table: Self::TABLE,
+                id: original.id,
+            })?;
+        let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
+        let record = tx.read(&handle)?;
+        let Row::Standard(StandardRow::Artwork(mut row)) = record.decode()? else {
+            return Err(unsupported(&record));
+        };
+        if self.path != original.path {
+            if self.path.is_empty() {
+                return Err(Error::InvalidModelField {
+                    table: Self::TABLE,
+                    field: "path",
+                    reason: "artwork path must not be empty",
+                });
+            }
+            row.name = text(&self.path)?;
+        }
+        let handle = tx.update(&handle, &Row::Standard(StandardRow::Artwork(row)))?;
+        let model = Self::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+        Ok(model)
+    }
+
+    /// Delete an artwork reference and clear matching content references atomically.
+    ///
+    /// Content `artwork_id` values become zero (unassigned); all other fields and
+    /// export track counts remain unchanged. Image files are never deleted.
+    /// Returns the total number of affected rows: one artwork plus cleared content
+    /// references. A missing artwork returns zero without changing dangling
+    /// references; ID zero is rejected.
+    /// Changes remain in memory until explicitly saved. Any error rolls back the
+    /// artwork deletion and all content-reference updates.
+    pub fn delete<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<usize> {
+        conn.check_kind(Self::TABLE)?;
+        validate_id(Self::TABLE, *id)?;
+        let mut tx = conn.transaction();
+        let Some(location) = tx.index_rows(Self::TABLE, Self::read_id)?.get(id).copied() else {
+            return Ok(0);
+        };
+        let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
+        tx.delete(&handle)?;
+
+        let mut locations = Vec::new();
+        for record in tx.iter_raw(Content::TABLE)? {
+            let record = record?;
+            let header: TrackHeader = read_fields(&record)?;
+            if header.subtype != TrackHeader::SUBTYPE {
+                return Err(unsupported(&record));
+            }
+            if header.artwork_id == *id {
+                locations.push((record.page(), record.slot().slot));
+            }
+        }
+        let mut affected = 1usize;
+        for (page, slot) in locations {
+            let handle = tx.locate(Content::TABLE, page, slot)?;
+            let record = tx.read(&handle)?;
+            let Row::Standard(StandardRow::Track(mut row)) = record.decode()? else {
+                return Err(unsupported(&record));
+            };
+            row.header.artwork_id = 0;
+            tx.update(&handle, &Row::Standard(StandardRow::Track(row)))?;
+            affected = affected.checked_add(1).ok_or(Error::MutationOverflow)?;
+        }
+        tx.commit()?;
+        Ok(affected)
     }
 
     /// Original row window and location, unaffected by edits to public fields.

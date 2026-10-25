@@ -7,6 +7,9 @@
 //! [HistoryContent] and [NewHistoryContent] describe their ordered track occurrences
 //! in table 12. History IDs are separate from regular playlist IDs. Queries load
 //! relationships explicitly and retain repeated plays of the same track.
+//! History names can be updated; deleting a history removes its occurrences.
+//! Individual occurrences support deletion but not updates. Mutations commit to
+//! the connection's in-memory overlay; saving remains explicit.
 
 use std::io::{Read, Seek};
 
@@ -19,7 +22,8 @@ use crate::{Error, Result};
 ///
 /// Changing public fields changes only this snapshot. Original bytes, reserved
 /// values and framing remain in [`Self::raw_record`]. Queries never load related
-/// tables and reject extended database connections.
+/// tables and reject extended database connections. Use [`Self::update`] to
+/// persist an edited name.
 #[derive(Clone, PartialEq, Eq)]
 pub struct History {
     /// History-playlist ID, in a separate namespace from regular playlists.
@@ -78,6 +82,84 @@ impl History {
         Ok(conn
             .index_rows(Self::TABLE, Self::read_id)?
             .contains_key(id))
+    }
+
+    /// Persist an edited name and return a refreshed history snapshot.
+    ///
+    /// Resolves the current row by its original ID; changing `id` is rejected.
+    /// An unchanged name preserves the current name and string frame. Edited
+    /// names use last-write-wins and may be empty. The engine handles growing
+    /// names and row relocation. A deleted history returns [`Error::ModelNotFound`].
+    /// Changes commit in memory or roll back on error; saving remains explicit.
+    pub fn update<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Self> {
+        conn.check_kind(Self::TABLE)?;
+        let original = Self::try_from(self.raw)?;
+        validate_id(Self::TABLE, self.id)?;
+        if self.id != original.id {
+            return Err(Error::InvalidModelField {
+                table: Self::TABLE,
+                field: "id",
+                reason: "an existing history's ID cannot be changed",
+            });
+        }
+        let mut tx = conn.transaction();
+        let location = tx
+            .index_rows(Self::TABLE, Self::read_id)?
+            .get(&original.id)
+            .copied()
+            .ok_or(Error::ModelNotFound {
+                table: Self::TABLE,
+                id: original.id,
+            })?;
+        let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
+        let record = tx.read(&handle)?;
+        let Row::Standard(StandardRow::HistoryPlaylist(mut row)) = record.decode()? else {
+            return Err(unsupported(&record));
+        };
+        if self.name != original.name {
+            row.name = text(&self.name)?;
+        }
+        let handle = tx.update(&handle, &Row::Standard(StandardRow::HistoryPlaylist(row)))?;
+        let model = Self::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+        Ok(model)
+    }
+
+    /// Delete a history and all its occurrences in one in-memory transaction.
+    ///
+    /// Returns the number of deleted rows, including the history. A missing ID
+    /// returns zero and leaves dangling entries untouched; zero is rejected.
+    /// Contents, regular playlists, and other histories are unchanged. Any error
+    /// rolls back the whole operation. Saving remains explicit.
+    pub fn delete<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<usize> {
+        conn.check_kind(Self::TABLE)?;
+        validate_id(Self::TABLE, *id)?;
+        let mut tx = conn.transaction();
+        let Some(location) = tx.index_rows(Self::TABLE, Self::read_id)?.get(id).copied() else {
+            return Ok(0);
+        };
+        let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
+        tx.delete(&handle)?;
+        let mut locations = Vec::new();
+        for record in tx.iter_raw(HistoryContent::TABLE)? {
+            let record = record?;
+            let Row::Standard(StandardRow::HistoryEntry(row)) = record.decode()? else {
+                return Err(unsupported(&record));
+            };
+            if row.playlist_id == *id {
+                locations.push((record.page(), record.slot().slot));
+            }
+        }
+        let count = locations
+            .len()
+            .checked_add(1)
+            .ok_or(Error::MutationOverflow)?;
+        for (page, slot) in locations {
+            let handle = tx.locate(HistoryContent::TABLE, page, slot)?;
+            tx.delete(&handle)?;
+        }
+        tx.commit()?;
+        Ok(count)
     }
 
     /// Original row window and location, unaffected by edits to public fields.
@@ -236,6 +318,33 @@ impl HistoryContent {
         }
         entries.sort_by_key(|row| row.seq);
         Ok(entries)
+    }
+
+    /// Delete this single occurrence, preserving repeated plays and sequence gaps.
+    ///
+    /// Uses the original row location and binary values, ignoring public-field
+    /// edits. The history and referenced content are retained. A changed row or
+    /// heap offset returns [`Error::StaleModelRow`]; a missing location returns an
+    /// engine error. Re-fetch after structural edits: identical replacements at
+    /// the same location cannot be distinguished from the original occurrence.
+    /// Commits in memory only and returns one on success; errors roll back.
+    pub fn delete<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<usize> {
+        conn.check_kind(Self::TABLE)?;
+        let mut tx = conn.transaction();
+        let handle = tx.locate(Self::TABLE, self.raw.page(), self.raw.slot().slot)?;
+        let current = tx.read(&handle)?;
+        if current.slot().heap_offset != self.raw.slot().heap_offset
+            || current.decode()? != self.raw.decode()?
+        {
+            return Err(Error::StaleModelRow {
+                table: Self::TABLE,
+                page: self.raw.page(),
+                slot: self.raw.slot().slot,
+            });
+        }
+        tx.delete(&handle)?;
+        tx.commit()?;
+        Ok(1)
     }
 
     /// Original occurrence window and location, unaffected by public-field edits.

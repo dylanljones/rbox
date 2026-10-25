@@ -146,6 +146,25 @@ pub enum Error {
     #[error("duplicate live ID {id} in {table:?}")]
     DuplicateId { table: TableKind, id: u32 },
 
+    /// A model mutation would violate a unique constraint on these fields.
+    #[error("unique constraint failed: {table:?} {fields:?}")]
+    UniqueConstraintViolation {
+        table: TableKind,
+        fields: &'static [&'static str],
+    },
+
+    /// A model update could not find its original ID in the current database.
+    #[error("no model with ID {id} in {table:?}")]
+    ModelNotFound { table: TableKind, id: u32 },
+
+    /// A model without a unique ID no longer matches its original row location.
+    #[error("model row {slot} on page {page:?} in {table:?} changed since it was read")]
+    StaleModelRow {
+        table: TableKind,
+        page: PageIndex,
+        slot: u16,
+    },
+
     /// An underlying stream or filesystem operation failed.
     #[error(transparent)]
     Io(#[from] std::io::Error),

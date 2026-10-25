@@ -14,6 +14,11 @@
 //!
 //! Category and sort rows refer to catalog entries through `column_id`. Resolve
 //! labels explicitly with [`BrowseColumn::find`].
+//! Use each snapshot's `update()` method to commit edits to the in-memory overlay;
+//! saving remains explicit. No model insertion or deletion methods are provided.
+//! Category/sort snapshots have no stable logical ID: reload them after rebuilding
+//! or replacing the database. Updates check their original location and binary
+//! fields, not just `column_id`; identical replacement rows cannot be distinguished.
 //!
 //! # Reading the settings
 //!
@@ -31,9 +36,9 @@
 
 use std::io::{Read, Seek};
 
-use super::{read_fields, text_error, unsupported};
+use super::{read_fields, text, text_error, unsupported};
 use crate::binary::{PageType, Row, RowRecord, StandardRow, TableKind};
-use crate::devicesql::DeviceSqlConnection;
+use crate::devicesql::{DeviceSqlConnection, RowHandle, Transaction};
 use crate::{Error, Result};
 
 /// A predefined browse label from standard table 16, such as ARTIST or BPM.
@@ -112,6 +117,51 @@ impl BrowseColumn {
         Ok(u32::from(read_fields::<u16>(record)?))
     }
 
+    /// Persist an edited plain-text label, preserving its current enclosing markers.
+    ///
+    /// Catalog IDs and codes are fixed; changing them is rejected. The current row
+    /// is resolved by ID, so relocation is supported. An unchanged name preserves
+    /// the current string frame; an edited name uses last-write-wins. Wrapped labels
+    /// retain one outer U+FFFA/U+FFFB pair, and unwrapped labels remain unwrapped.
+    /// Returns a refreshed snapshot. Errors roll back; saving remains explicit.
+    pub fn update<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Self> {
+        conn.check_kind(Self::TABLE)?;
+        let original = Self::try_from(self.raw)?;
+        unchanged(Self::TABLE, "id", self.id, original.id)?;
+        unchanged(Self::TABLE, "code", self.code, original.code)?;
+        let mut tx = conn.transaction();
+        let id = u32::from(original.id);
+        let location = tx
+            .index_rows(Self::TABLE, Self::read_id)?
+            .get(&id)
+            .copied()
+            .ok_or(Error::ModelNotFound {
+                table: Self::TABLE,
+                id,
+            })?;
+        let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
+        let record = tx.read(&handle)?;
+        let Row::Standard(StandardRow::BrowseColumn(mut row)) = record.decode()? else {
+            return Err(unsupported(&record));
+        };
+        if self.name != original.name {
+            let current = row
+                .name
+                .text()
+                .map_err(|source| text_error(&record, "name", source))?;
+            let wrapped = current.starts_with('\u{fffa}') && current.ends_with('\u{fffb}');
+            row.name = text(&if wrapped {
+                format!("\u{fffa}{}\u{fffb}", self.name)
+            } else {
+                self.name
+            })?;
+        }
+        let handle = tx.update(&handle, &Row::Standard(StandardRow::BrowseColumn(row)))?;
+        let model = Self::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+        Ok(model)
+    }
+
     /// Original row window, including reserved fields. Locations are not stable
     /// mutation handles after other database edits.
     pub fn raw_record(&self) -> &RowRecord {
@@ -148,6 +198,37 @@ fn label_text(name: &str) -> &str {
     name.strip_prefix('\u{fffa}')
         .and_then(|inner| inner.strip_suffix('\u{fffb}'))
         .unwrap_or(name)
+}
+
+fn unchanged(table: TableKind, field: &'static str, value: u16, original: u16) -> Result<()> {
+    if value != original {
+        return Err(Error::InvalidModelField {
+            table,
+            field,
+            reason: "browse catalog identity cannot be changed",
+        });
+    }
+    Ok(())
+}
+
+/// Fixed-size settings have no unique key. Check the original occurrence rather
+/// than searching by column ID or comparing the row window's unrelated tail.
+fn settings_handle<R: Read + Seek>(
+    tx: &mut Transaction<'_, R>,
+    original: &RowRecord,
+) -> Result<RowHandle> {
+    let handle = tx.locate(original.table(), original.page(), original.slot().slot)?;
+    let current = tx.read(&handle)?;
+    if current.slot().heap_offset != original.slot().heap_offset
+        || current.decode()? != original.decode()?
+    {
+        return Err(Error::StaleModelRow {
+            table: original.table(),
+            page: original.page(),
+            slot: original.slot().slot,
+        });
+    }
+    Ok(handle)
 }
 
 /// Category menu visibility and order from standard table 17.
@@ -221,6 +302,34 @@ impl BrowseCategory {
             }
         }
         Ok(rows)
+    }
+
+    /// Update this occurrence's state, position and explicit raw attribute byte.
+    ///
+    /// `column_id` and `selector` cannot change. No state coercion or automatic
+    /// reordering is performed. The original location must still contain the same
+    /// binary fields, otherwise the update fails (including concurrent edits).
+    /// Repeated rows remain distinct. Reload snapshots after rebuild/replacement;
+    /// there is no stable row identity. Returns the refreshed snapshot and commits
+    /// atomically to memory; saving remains explicit.
+    pub fn update<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Self> {
+        conn.check_kind(Self::TABLE)?;
+        let original = Self::try_from(self.raw.clone())?;
+        unchanged(Self::TABLE, "column_id", self.column_id, original.column_id)?;
+        unchanged(Self::TABLE, "selector", self.selector, original.selector)?;
+        let mut tx = conn.transaction();
+        let handle = settings_handle(&mut tx, &self.raw)?;
+        let record = tx.read(&handle)?;
+        let Row::Standard(StandardRow::BrowseCategory(mut row)) = record.decode()? else {
+            return Err(unsupported(&record));
+        };
+        row.unknown_04 = self.unknown_04;
+        row.state = self.state;
+        row.position = self.position;
+        let handle = tx.update(&handle, &Row::Standard(StandardRow::BrowseCategory(row)))?;
+        let model = Self::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+        Ok(model)
     }
     /// Original row window, including reserved fields. Locations are not stable
     /// mutation handles after other database edits.
@@ -316,6 +425,32 @@ impl BrowseSort {
         }
         Ok(rows)
     }
+
+    /// Update this occurrence's complete raw tail without interpreting its bits.
+    ///
+    /// `column_id` and `selector` cannot change. The original location must still
+    /// contain the same binary fields, otherwise the update fails. Repeated rows
+    /// remain distinct. Reload snapshots after rebuild/replacement; there is no
+    /// stable row identity. Returns a refreshed snapshot and commits atomically
+    /// to memory; saving remains explicit. See the module's tail-format caveats.
+    pub fn update<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Self> {
+        conn.check_kind(Self::TABLE)?;
+        let original = Self::try_from(self.raw.clone())?;
+        unchanged(Self::TABLE, "column_id", self.column_id, original.column_id)?;
+        unchanged(Self::TABLE, "selector", self.selector, original.selector)?;
+        let mut tx = conn.transaction();
+        let handle = settings_handle(&mut tx, &self.raw)?;
+        let record = tx.read(&handle)?;
+        let Row::Standard(StandardRow::BrowseSort(mut row)) = record.decode()? else {
+            return Err(unsupported(&record));
+        };
+        row.raw_tail = self.raw_tail;
+        let handle = tx.update(&handle, &Row::Standard(StandardRow::BrowseSort(row)))?;
+        let model = Self::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+        Ok(model)
+    }
+
     /// Original row window, including reserved fields. Locations are not stable
     /// mutation handles after other database edits.
     pub fn raw_record(&self) -> &RowRecord {

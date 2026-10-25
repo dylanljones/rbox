@@ -1,7 +1,7 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
-//! RecommendedLike snapshots and explicit DeviceSQL queries and insertions.
+//! RecommendedLike snapshots and explicit DeviceSQL queries, insertions and deletions.
 
 use std::io::{Read, Seek};
 
@@ -14,7 +14,8 @@ use crate::{Error, Result};
 ///
 /// Public-field edits affect only this snapshot. Unknown data and original framing
 /// remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
-/// No unique row ID or singleton constraint is assumed; repeated rows are retained.
+/// Existing repeated rows are retained on reads; model insertion rejects duplicate
+/// ordered content pairs. There is no unique scalar row ID.
 #[derive(Clone, PartialEq, Eq)]
 pub struct RecommendedLike {
     /// Raw eight-byte value at 0x00; not interpreted as a timestamp.
@@ -75,6 +76,32 @@ impl RecommendedLike {
         }
         Ok(rows)
     }
+    /// Delete this original occurrence, ignoring public-field edits.
+    ///
+    /// Other occurrences and referenced contents are retained. Changed binary
+    /// values or heap offsets return [`Error::StaleModelRow`]; missing locations
+    /// return an engine error. Re-fetch after structural edits: an identical
+    /// replacement at the same location cannot be distinguished. Returns one on
+    /// success. Errors roll back; saving remains explicit.
+    pub fn delete<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<usize> {
+        conn.check_kind(Self::TABLE)?;
+        let mut tx = conn.transaction();
+        let handle = tx.locate(Self::TABLE, self.raw.page(), self.raw.slot().slot)?;
+        let current = tx.read(&handle)?;
+        if current.slot().heap_offset != self.raw.slot().heap_offset
+            || current.decode()? != self.raw.decode()?
+        {
+            return Err(Error::StaleModelRow {
+                table: Self::TABLE,
+                page: self.raw.page(),
+                slot: self.raw.slot().slot,
+            });
+        }
+        tx.delete(&handle)?;
+        tx.commit()?;
+        Ok(1)
+    }
+
     /// Original row window, including reserved fields. Locations are not stable
     /// mutation handles after other database edits.
     pub fn raw_record(&self) -> &RowRecord {
@@ -108,8 +135,8 @@ impl TryFrom<RowRecord> for RecommendedLike {
 ///
 /// Creation semantics are not established. All unknown words must be supplied
 /// explicitly; this input provides binary insertion, not a recommendation generator
-/// or a guarantee of player behavior. Track existence, pair direction and uniqueness
-/// are not inferred.
+/// or a guarantee of player behavior. Track existence and pair direction are not
+/// inferred. Model insertion requires a unique ordered content pair.
 /// Saving is explicit; insertion commits only to the in-memory connection.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewRecommendedLike {
@@ -144,7 +171,8 @@ impl NewRecommendedLike {
     }
 
     /// Insert atomically, returning the engine-created row; failures leave the connection unchanged.
-    /// Existing rows are not replaced or deduplicated.
+    /// Rejects an existing `(content_id_1, content_id_2)` pair regardless of its
+    /// unknown values. Reversed pairs remain distinct; symmetry is not assumed.
     pub fn insert<R: Read + Seek>(
         self,
         conn: &mut DeviceSqlConnection<R>,
@@ -152,6 +180,19 @@ impl NewRecommendedLike {
         conn.check_kind(RecommendedLike::TABLE)?;
         let row = self.to_binary()?;
         let mut tx = conn.transaction();
+        for record in tx.iter_raw(RecommendedLike::TABLE)? {
+            let record = record?;
+            let Row::Extended(ExtendedRow::RecommendLike(existing)) = record.decode()? else {
+                return Err(unsupported(&record));
+            };
+            if existing.track_id_1 == self.content_id_1 && existing.track_id_2 == self.content_id_2
+            {
+                return Err(Error::UniqueConstraintViolation {
+                    table: RecommendedLike::TABLE,
+                    fields: &["content_id_1", "content_id_2"],
+                });
+            }
+        }
         let handle = tx.insert(
             RecommendedLike::TABLE,
             &Row::Extended(ExtendedRow::RecommendLike(row)),
@@ -162,6 +203,7 @@ impl NewRecommendedLike {
     }
 
     /// Encode fields for an explicit binary transaction; placement is assigned by the engine.
+    /// Direct binary insertion bypasses the model's pair-uniqueness check.
     pub fn to_binary(&self) -> Result<RecommendLikeRow> {
         validate_nonzero_id(RecommendedLike::TABLE, "content_id_1", self.content_id_1)?;
         validate_nonzero_id(RecommendedLike::TABLE, "content_id_2", self.content_id_2)?;

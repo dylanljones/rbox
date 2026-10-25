@@ -22,9 +22,9 @@
 
 use std::io::{Read, Seek};
 
-use super::{text_error, unsupported};
+use super::{text, text_error, unsupported};
 use crate::binary::{ExtPageType, ExtendedRow, PageType, Row, RowRecord, StandardRow, TableKind};
-use crate::devicesql::DeviceSqlConnection;
+use crate::devicesql::{DeviceSqlConnection, RowHandle, Transaction};
 use crate::{Error, Result};
 
 /// Export metadata from standard table 19, initialized by the standard creation profile.
@@ -78,6 +78,46 @@ impl ExportProperty {
     /// Read all live rows in physical order without sorting or deduplication.
     pub fn all<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<Vec<Self>> {
         Self::iter(conn)?.collect()
+    }
+
+    /// Update this existing occurrence and return its refreshed snapshot.
+    ///
+    /// Only edited fields are encoded; unknown fields and unedited string frames
+    /// are preserved. No date format or track-count recalculation is imposed.
+    /// Content insertions/deletions maintain the count separately; re-fetch this
+    /// snapshot after those operations. With no unique row ID, a changed row or
+    /// heap offset returns [`Error::StaleModelRow`], and a missing location returns
+    /// an engine error. Re-fetch after structural edits. An identical replacement
+    /// at the same location cannot be distinguished from the original occurrence.
+    /// Errors roll back; changes commit in memory and saving remains explicit.
+    pub fn update<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Self> {
+        conn.check_kind(Self::TABLE)?;
+        let original = Self::try_from(self.raw.clone())?;
+        let mut tx = conn.transaction();
+        let handle = property_handle(&mut tx, &self.raw)?;
+        let Row::Standard(StandardRow::ExportProperty(mut row)) = tx.read(&handle)?.decode()?
+        else {
+            return Err(unsupported(&self.raw));
+        };
+        if self.track_count != original.track_count {
+            row.track_count = self.track_count;
+        }
+        if self.background_color != original.background_color {
+            row.background_color = self.background_color;
+        }
+        if self.date != original.date {
+            row.date = text(&self.date)?;
+        }
+        if self.version != original.version {
+            row.version = text(&self.version)?;
+        }
+        if self.name != original.name {
+            row.name = text(&self.name)?;
+        }
+        let handle = tx.update(&handle, &Row::Standard(StandardRow::ExportProperty(row)))?;
+        let model = Self::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+        Ok(model)
     }
 
     /// Original row window, including reserved fields. Locations are not stable
@@ -160,11 +200,52 @@ impl DatabaseProperty {
         Self::iter(conn)?.collect()
     }
 
+    /// Update the source My Tag library identity, preserving all reserved data.
+    ///
+    /// Zero is valid; this does not remap tags or change their associations.
+    /// Targets this original occurrence, with the same stale-row checks as
+    /// [`ExportProperty::update`]. Returns a refreshed snapshot. Errors roll back;
+    /// changes commit in memory and saving remains explicit.
+    pub fn update<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Self> {
+        conn.check_kind(Self::TABLE)?;
+        let mut tx = conn.transaction();
+        let handle = property_handle(&mut tx, &self.raw)?;
+        let Row::Extended(ExtendedRow::DatabaseProperty(mut row)) = tx.read(&handle)?.decode()?
+        else {
+            return Err(unsupported(&self.raw));
+        };
+        row.header.my_tag_master_db_id = self.my_tag_master_db_id;
+        let handle = tx.update(&handle, &Row::Extended(ExtendedRow::DatabaseProperty(row)))?;
+        let model = Self::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+        Ok(model)
+    }
+
     /// Original row window, including reserved fields. Locations are not stable
     /// mutation handles after other database edits.
     pub fn raw_record(&self) -> &RowRecord {
         &self.raw
     }
+}
+
+// Property tables have no unique IDs; compare decoded rows rather than the
+// read window's unrelated trailing bytes before modifying an occurrence.
+fn property_handle<R: Read + Seek>(
+    tx: &mut Transaction<'_, R>,
+    original: &RowRecord,
+) -> Result<RowHandle> {
+    let handle = tx.locate(original.table(), original.page(), original.slot().slot)?;
+    let current = tx.read(&handle)?;
+    if current.slot().heap_offset != original.slot().heap_offset
+        || current.decode()? != original.decode()?
+    {
+        return Err(Error::StaleModelRow {
+            table: original.table(),
+            page: original.page(),
+            slot: original.slot().slot,
+        });
+    }
+    Ok(handle)
 }
 
 impl TryFrom<RowRecord> for DatabaseProperty {

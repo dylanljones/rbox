@@ -265,6 +265,21 @@ impl<R: Read + Seek> Transaction<'_, R> {
     /// An empty commit preserves the connection's caches and original bytes.
     pub fn commit(self) -> Result<()> {
         self.connection.check_source()?;
+        self.publish();
+        Ok(())
+    }
+
+    /// Publish two independent overlays after checking both sources. No fallible
+    /// work remains after validation; disk persistence is deliberately separate.
+    pub(crate) fn commit_with<S: Read + Seek>(self, other: Transaction<'_, S>) -> Result<()> {
+        self.connection.check_source()?;
+        other.connection.check_source()?;
+        self.publish();
+        other.publish();
+        Ok(())
+    }
+
+    fn publish(self) {
         if !self.changes.is_empty() {
             self.connection.input.install(self.changes);
             self.connection.input.grow(self.page_count);
@@ -273,7 +288,6 @@ impl<R: Read + Seek> Transaction<'_, R> {
             self.connection.indexes.clear();
             self.connection.owners.clear();
         }
-        Ok(())
     }
 
     /// Discard this transaction's staged pages. Dropping it has the same effect.

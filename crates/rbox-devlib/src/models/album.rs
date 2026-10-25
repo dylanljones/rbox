@@ -1,15 +1,18 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
-//! Album snapshots and explicit read/insert operations over DeviceSQL.
+//! Album snapshots and explicit read, insert, update, and delete operations.
 
 use std::io::{Read, Seek};
 
-use super::{load_related, read_fields, text, text_error, unsupported, validate_id, Artist};
+use super::{
+    load_related, read_fields, text, text_error, unsupported, validate_id, Artist, Content,
+};
 use crate::binary::{
     AlbumHeader, AlbumRow, PageType, Row, RowRecord, StandardRow, StringOffsets, TableKind,
+    TrackHeader,
 };
-use crate::devicesql::DeviceSqlConnection;
+use crate::devicesql::{DeviceSqlConnection, Transaction};
 use crate::{Error, Result};
 
 /// A detached album from the standard database.
@@ -156,11 +159,132 @@ impl Album {
             .transpose()
     }
 
+    /// Find the first row with an exactly matching, case-sensitive name.
+    /// Albums with different album artists may share a name; this query does
+    /// not filter by artist and returns only the first matching album.
+    /// Scans in physical row order and returns `None` when absent. Existing
+    /// duplicate names return the first match. Related tables are not loaded;
+    /// decoding errors encountered before the match are propagated.
+    pub fn find_by_name<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        name: &str,
+    ) -> Result<Option<Self>> {
+        for model in Self::iter(conn)? {
+            let model = model?;
+            if model.name == name {
+                return Ok(Some(model));
+            }
+        }
+        Ok(None)
+    }
+
     /// Check an ID using the engine index without converting string frames to text.
     pub fn id_exists<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<bool> {
         Ok(conn
             .index_rows(Self::TABLE, Self::read_id)?
             .contains_key(id))
+    }
+
+    /// Persist fields edited since this snapshot was read, returning a refreshed album.
+    /// The resulting `(name, artist_id)` must be unique when either field changes.
+    /// Names use exact, case-sensitive equality; zero is a valid unassigned artist.
+    ///
+    /// Resolves the current row by its original ID; changing `id` is rejected.
+    /// Unedited fields, reserved values and unchanged string frames are preserved
+    /// from the current row. Concurrent edits to the same field use last-write-wins;
+    /// unrelated intervening changes survive. Artist IDs are stored as supplied,
+    /// consistently with insertion; this does not create or resolve an artist.
+    ///
+    /// The entire operation commits to the in-memory overlay or rolls back on error.
+    /// A deleted album returns [`Error::ModelNotFound`]. Saving remains explicit.
+    pub fn update<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Self> {
+        conn.check_kind(Self::TABLE)?;
+        let original = Self::try_from(self.raw)?;
+        validate_id(Self::TABLE, self.id)?;
+        if self.id != original.id {
+            return Err(Error::InvalidModelField {
+                table: Self::TABLE,
+                field: "id",
+                reason: "an existing album's ID cannot be changed",
+            });
+        }
+
+        let mut tx = conn.transaction();
+        let location = tx
+            .index_rows(Self::TABLE, Self::read_id)?
+            .get(&original.id)
+            .copied()
+            .ok_or(Error::ModelNotFound {
+                table: Self::TABLE,
+                id: original.id,
+            })?;
+        let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
+        let record = tx.read(&handle)?;
+        let Row::Standard(StandardRow::Album(mut row)) = record.decode()? else {
+            return Err(unsupported(&record));
+        };
+        if self.artist_id != original.artist_id {
+            row.header.artist_id = self.artist_id;
+        }
+        if self.name != original.name {
+            row.name = text(&self.name)?;
+        }
+        if self.name != original.name || self.artist_id != original.artist_id {
+            unique_album(&mut tx, &row, Some(original.id))?;
+        }
+        let handle = tx.update(&handle, &Row::Standard(StandardRow::Album(row)))?;
+
+        let model = Self::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+
+        Ok(model)
+    }
+
+    /// Delete an album and clear its content references in one transaction.
+    ///
+    /// Matching content rows keep all other fields; their `album_id` becomes zero
+    /// (unassigned). Artists, media files and export track counts are unchanged.
+    /// Returns the total number of affected rows: one album plus cleared content
+    /// references, following OneLibrary's convention. A missing album returns zero
+    /// without modifying dangling references; ID zero is rejected.
+    /// Changes remain in memory until explicitly saved. Any error rolls back both
+    /// the album deletion and all reference updates.
+    pub fn delete<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<usize> {
+        conn.check_kind(Self::TABLE)?;
+        validate_id(Self::TABLE, *id)?;
+        let mut tx = conn.transaction();
+        let Some(location) = tx.index_rows(Self::TABLE, Self::read_id)?.get(id).copied() else {
+            return Ok(0);
+        };
+        let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
+        tx.delete(&handle)?;
+
+        // Scan only fixed prefixes to select references, then decode affected
+        // rows. Unrelated content text is never converted or rewritten.
+        let mut locations = Vec::new();
+        for record in tx.iter_raw(Content::TABLE)? {
+            let record = record?;
+            let header: TrackHeader = read_fields(&record)?;
+            if header.subtype != TrackHeader::SUBTYPE {
+                return Err(unsupported(&record));
+            }
+            if header.album_id == *id {
+                locations.push((record.page(), record.slot().slot));
+            }
+        }
+        let mut affected = 1usize;
+        for (page, slot) in locations {
+            let handle = tx.locate(Content::TABLE, page, slot)?;
+            let record = tx.read(&handle)?;
+            let Row::Standard(StandardRow::Track(mut row)) = record.decode()? else {
+                return Err(unsupported(&record));
+            };
+            row.header.album_id = 0;
+            tx.update(&handle, &Row::Standard(StandardRow::Track(row)))?;
+            affected = affected.checked_add(1).ok_or(Error::MutationOverflow)?;
+        }
+        tx.commit()?;
+        Ok(affected)
     }
 
     /// Original row window and location, unaffected by edits to public fields.
@@ -182,6 +306,35 @@ impl Album {
         }
         Ok(header.id)
     }
+}
+
+/// Compare the final merged row, rather than potentially stale public fields.
+fn unique_album<R: Read + Seek>(
+    tx: &mut Transaction<'_, R>,
+    candidate: &AlbumRow,
+    exclude_id: Option<u32>,
+) -> Result<()> {
+    let name = candidate.name.text()?;
+    for record in tx.iter_raw(Album::TABLE)? {
+        let record = record?;
+        let Row::Standard(StandardRow::Album(row)) = record.decode()? else {
+            return Err(unsupported(&record));
+        };
+        if Some(row.header.id) != exclude_id
+            && row.header.artist_id == candidate.header.artist_id
+            && row
+                .name
+                .text()
+                .map_err(|source| text_error(&record, "name", source))?
+                == name
+        {
+            return Err(Error::UniqueConstraintViolation {
+                table: Album::TABLE,
+                fields: &["name", "artist_id"],
+            });
+        }
+    }
+    Ok(())
 }
 
 impl TryFrom<RowRecord> for Album {
@@ -240,7 +393,8 @@ impl NewAlbum {
         }
     }
 
-    /// Insert atomically, rejecting duplicate IDs and leaving the connection unchanged on error.
+    /// Insert atomically, rejecting duplicate IDs or `(name, artist_id)` pairs.
+    /// Names use exact, case-sensitive text equality; failures leave the connection unchanged.
     /// The returned model contains the engine-created row. This does not save to disk.
     pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Album> {
         conn.check_kind(Album::TABLE)?;
@@ -255,6 +409,7 @@ impl NewAlbum {
                 id: self.id,
             });
         }
+        unique_album(&mut tx, &row, None)?;
         let handle = tx.insert(Album::TABLE, &Row::Standard(StandardRow::Album(row)))?;
         let model = Album::try_from(tx.read(&handle)?)?;
         tx.commit()?;
@@ -262,7 +417,7 @@ impl NewAlbum {
     }
 
     /// Encode fields for an explicit binary transaction; the engine assigns placement.
-    /// Direct binary inserts do not check model-ID uniqueness.
+    /// Direct binary inserts bypass model ID and name/artist uniqueness constraints.
     pub fn to_binary(&self) -> Result<AlbumRow> {
         validate_id(Album::TABLE, self.id)?;
         Ok(AlbumRow {

@@ -1,7 +1,7 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
-//! Content snapshots and explicit read queries over the DeviceSQL engine.
+//! Content snapshots, queries and transactional mutations over DeviceSQL.
 //!
 //! Content is the model name for DeviceSQL tracks, matching masterdb and OneLibrary
 //! terminology. The underlying binary representation remains `TrackRow`.
@@ -12,15 +12,16 @@ use std::io::{Cursor, Read, Seek};
 use binrw::BinRead;
 
 use super::{
-    load_related, text, text_error, unsupported, update_export_count, Album, Artist, Artwork,
-    Color, Genre, Key, Label,
+    load_related, text, text_error, unsupported, update_export_count, validate_id, Album, Artist,
+    Artwork, Color, Genre, HistoryContent, Key, Label, MyTagContent, PlaylistContent,
+    RecommendedLike,
 };
 use crate::binary::{
-    DeviceSqlString, PageType, Row, RowRecord, StandardRow, StringOffsets, TableKind, TrackHeader,
-    TrackRow, TrackStrings,
+    DeviceSqlString, ExtendedRow, PageType, Row, RowRecord, StandardRow, StringOffsets, TableKind,
+    TrackHeader, TrackRow, TrackStrings,
 };
-use crate::devicesql::DeviceSqlConnection;
 pub use crate::devicesql::TrackCreationOptions;
+use crate::devicesql::{DeviceSqlConnection, Transaction};
 
 use crate::{Error, Result};
 
@@ -30,7 +31,7 @@ use crate::{Error, Result};
 /// the binary [`TrackRow`] and uses [`PageType::Tracks`].
 ///
 /// Public fields contain decoded values, like the masterdb/onelib models-old.
-/// Editing a field only changes this snapshot; model updates are not implemented.
+/// Editing a field only changes this snapshot; call [Self::update] to persist edits.
 /// Use [`super::NewContent`] to insert a fresh track without an existing raw row.
 /// IDs, empty strings, date text and paths retain their stored meaning. Unknown
 /// fields and string encodings remain available through [`Self::raw_record`].
@@ -344,6 +345,232 @@ impl Content {
             .contains_key(id))
     }
 
+    /// Persist edited public fields, preserving current unknown data and unedited frames.
+    ///
+    /// Re-resolves the original export ID; changing it is rejected. Only fields
+    /// changed from this snapshot are applied; conflicts on the same field use
+    /// last-write-wins. ISRC, analysis flags, content-link and unknown strings are
+    /// retained from the current binary row. Paths retain supplied separators;
+    /// editing the audio path requires a nonempty value and does not rename files
+    /// or automatically change the basename or analysis path.
+    /// The engine handles relocation. Errors roll back; saving remains explicit.
+    pub fn update<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Self> {
+        conn.check_kind(Self::TABLE)?;
+        let original = Self::try_from(self.raw.clone())?;
+        validate_id(Self::TABLE, self.id)?;
+        if self.id != original.id {
+            return Err(Error::InvalidModelField {
+                table: Self::TABLE,
+                field: "id",
+                reason: "an existing content's ID cannot be changed",
+            });
+        }
+        if self.path != original.path && self.path.is_empty() {
+            return Err(Error::InvalidModelField {
+                table: Self::TABLE,
+                field: "path",
+                reason: "audio path must not be empty",
+            });
+        }
+        let mut tx = conn.transaction();
+        let location = tx
+            .index_rows(Self::TABLE, Self::read_id)?
+            .get(&original.id)
+            .copied()
+            .ok_or(Error::ModelNotFound {
+                table: Self::TABLE,
+                id: original.id,
+            })?;
+        let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
+        let record = tx.read(&handle)?;
+        let Row::Standard(StandardRow::Track(mut row)) = record.decode()? else {
+            return Err(unsupported(&record));
+        };
+        if self.artist_id != original.artist_id {
+            row.header.artist_id = self.artist_id;
+        }
+        if self.album_id != original.album_id {
+            row.header.album_id = self.album_id;
+        }
+        if self.genre_id != original.genre_id {
+            row.header.genre_id = self.genre_id;
+        }
+        if self.label_id != original.label_id {
+            row.header.label_id = self.label_id;
+        }
+        if self.key_id != original.key_id {
+            row.header.key_id = self.key_id;
+        }
+        if self.artwork_id != original.artwork_id {
+            row.header.artwork_id = self.artwork_id;
+        }
+        if self.composer_id != original.composer_id {
+            row.header.composer_id = self.composer_id;
+        }
+        if self.original_artist_id != original.original_artist_id {
+            row.header.original_artist_id = self.original_artist_id;
+        }
+        if self.remixer_id != original.remixer_id {
+            row.header.remixer_id = self.remixer_id;
+        }
+        if self.master_content_id != original.master_content_id {
+            row.header.master_content_id = self.master_content_id;
+        }
+        if self.master_db_id != original.master_db_id {
+            row.header.master_db_id = self.master_db_id;
+        }
+        if self.sample_rate != original.sample_rate {
+            row.header.sample_rate = self.sample_rate;
+        }
+        if self.file_size != original.file_size {
+            row.header.file_size = self.file_size;
+        }
+        if self.bitrate != original.bitrate {
+            row.header.bitrate = self.bitrate;
+        }
+        if self.bpmx100 != original.bpmx100 {
+            row.header.tempo = self.bpmx100;
+        }
+        if self.length != original.length {
+            row.header.duration = self.length;
+        }
+        if self.track_no != original.track_no {
+            row.header.track_number = self.track_no;
+        }
+        if self.disc_no != original.disc_no {
+            row.header.disc_number = self.disc_no;
+        }
+        if self.play_count != original.play_count {
+            row.header.play_count = self.play_count;
+        }
+        if self.release_year != original.release_year {
+            row.header.year = self.release_year;
+        }
+        if self.bit_depth != original.bit_depth {
+            row.header.sample_depth = self.bit_depth;
+        }
+        if self.color_id != original.color_id {
+            row.header.color_id = self.color_id;
+        }
+        if self.rating != original.rating {
+            row.header.rating = self.rating;
+        }
+        if self.file_type != original.file_type {
+            row.header.audio_format = self.file_type;
+        }
+        if self.title != original.title {
+            row.text.title = text(&self.title)?;
+        }
+        if self.comment != original.comment {
+            row.text.comment = text(&self.comment)?;
+        }
+        if self.mix_name != original.mix_name {
+            row.text.mix_name = text(&self.mix_name)?;
+        }
+        if self.lyricist != original.lyricist {
+            row.text.lyricist = text(&self.lyricist)?;
+        }
+        if self.message != original.message {
+            row.text.message = text(&self.message)?;
+        }
+        if self.publish_track_info != original.publish_track_info {
+            row.text.publish_track_info = text(&self.publish_track_info)?;
+        }
+        if self.hot_cue_auto_load != original.hot_cue_auto_load {
+            row.text.hot_cue_auto_load = text(&self.hot_cue_auto_load)?;
+        }
+        if self.date_added != original.date_added {
+            row.text.date_added = text(&self.date_added)?;
+        }
+        if self.release_date != original.release_date {
+            row.text.release_date = text(&self.release_date)?;
+        }
+        if self.analysis_date != original.analysis_date {
+            row.text.analysis_date = text(&self.analysis_date)?;
+        }
+        if self.analysis_path != original.analysis_path {
+            row.text.analysis_path = text(&self.analysis_path)?;
+        }
+        if self.file_name != original.file_name {
+            row.text.filename = text(&self.file_name)?;
+        }
+        if self.path != original.path {
+            row.text.file_path = text(&self.path)?;
+        }
+        let handle = tx.update(&handle, &Row::Standard(StandardRow::Track(row)))?;
+        let model = Self::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+        Ok(model)
+    }
+
+    /// Delete from a standard-only database, including playlist/history occurrences.
+    ///
+    /// For a library with exportExt.pdb, use [Self::delete_with_extended] or
+    /// [crate::DeviceLibrary::delete_content] to also remove tag/recommendation links.
+    /// Updates all existing export-property track counts. Parent playlists/histories,
+    /// catalog rows, media, artwork and ANLZ files remain. Surviving occurrence
+    /// sequence values are preserved (including gaps and ties).
+    /// Returns deleted row count, excluding property-count updates; a missing ID
+    /// returns zero without cleaning dangling links. ID zero is rejected.
+    /// The operation commits atomically in memory; saving remains explicit.
+    pub fn delete<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<usize> {
+        conn.check_kind(Self::TABLE)?;
+        validate_id(Self::TABLE, *id)?;
+        let mut tx = conn.transaction();
+        let count = Self::delete_standard(&mut tx, *id)?;
+        tx.commit()?;
+        Ok(count)
+    }
+
+    /// Delete content and all known occurrences/associations across both databases.
+    ///
+    /// In addition to standard cleanup, deletes every My Tag association and every
+    /// recommendation pair containing the export ID on either side. Unknown tables
+    /// are preserved. Returns the total deleted row count, excluding property updates.
+    /// Both overlays are published only after all fallible operations and source
+    /// checks succeed. Disk saving is still separate and not atomic across files.
+    pub fn delete_with_extended<R: Read + Seek, E: Read + Seek>(
+        standard: &mut DeviceSqlConnection<R>,
+        extended: &mut DeviceSqlConnection<E>,
+        id: &u32,
+    ) -> Result<usize> {
+        standard.check_kind(Self::TABLE)?;
+        extended.check_kind(MyTagContent::TABLE)?;
+        validate_id(Self::TABLE, *id)?;
+        let mut tx = standard.transaction();
+        let mut ext = extended.transaction();
+        let count = Self::delete_standard(&mut tx, *id)?;
+        if count == 0 {
+            return Ok(0);
+        }
+        let mut total = count;
+        for table in [MyTagContent::TABLE, RecommendedLike::TABLE] {
+            total = total
+                .checked_add(delete_content_links(&mut ext, table, *id)?)
+                .ok_or(Error::MutationOverflow)?;
+        }
+        tx.commit_with(ext)?;
+        Ok(total)
+    }
+
+    fn delete_standard<R: Read + Seek>(tx: &mut Transaction<'_, R>, id: u32) -> Result<usize> {
+        let index = tx.index_rows(Self::TABLE, Self::read_id)?;
+        let Some(location) = index.get(&id).copied() else {
+            return Ok(0);
+        };
+        let remaining = u32::try_from(index.len() - 1).map_err(|_| Error::MutationOverflow)?;
+        let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
+        tx.delete(&handle)?;
+        let mut total = 1usize;
+        for table in [PlaylistContent::TABLE, HistoryContent::TABLE] {
+            total = total
+                .checked_add(delete_content_links(tx, table, id)?)
+                .ok_or(Error::MutationOverflow)?;
+        }
+        update_export_count(tx, remaining)?;
+        Ok(total)
+    }
+
     /// Resolve this snapshot's metadata references, including the album artist.
     /// Does not reload the content row; local field edits are retained. Zero and
     /// missing target IDs become `None`, while decoding and index errors propagate.
@@ -424,6 +651,37 @@ impl Content {
         }
         Ok(header.id)
     }
+}
+
+/// Select live occurrences without interpreting their unknown fields, then tombstone
+/// each selected slot. Duplicate associations and both sides of pairs are handled.
+fn delete_content_links<R: Read + Seek>(
+    tx: &mut Transaction<'_, R>,
+    table: TableKind,
+    id: u32,
+) -> Result<usize> {
+    let mut locations = Vec::new();
+    for record in tx.iter_raw(table)? {
+        let record = record?;
+        let matches = match record.decode()? {
+            Row::Standard(StandardRow::PlaylistEntry(row)) => row.track_id == id,
+            Row::Standard(StandardRow::HistoryEntry(row)) => row.track_id == id,
+            Row::Extended(ExtendedRow::TrackMyTag(row)) => row.track_id == id,
+            Row::Extended(ExtendedRow::RecommendLike(row)) => {
+                row.track_id_1 == id || row.track_id_2 == id
+            }
+            _ => return Err(unsupported(&record)),
+        };
+        if matches {
+            locations.push((record.page(), record.slot().slot));
+        }
+    }
+    let count = locations.len();
+    for (page, slot) in locations {
+        let handle = tx.locate(table, page, slot)?;
+        tx.delete(&handle)?;
+    }
+    Ok(count)
 }
 
 impl TryFrom<RowRecord> for Content {

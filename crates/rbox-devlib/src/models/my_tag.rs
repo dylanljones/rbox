@@ -7,7 +7,10 @@
 //! [MyTagContent] and [NewMyTagContent] describe associations in table 4, linking
 //! extended tags to tracks in the accompanying standard database. Queries do not
 //! load related rows automatically and retain repeated associations.
+//! Updates and deletions commit in memory; saving is explicit. Deleting a category
+//! also removes descendants and their associations, without deleting contents.
 
+use std::collections::{HashMap, HashSet};
 use std::io::{Read, Seek};
 
 use super::{read_fields, text, text_error, unsupported, validate_id, validate_nonzero_id};
@@ -15,7 +18,7 @@ use crate::binary::{
     ExtPageType, ExtendedRow, MyTagHeader, MyTagRow, Row, RowRecord, StringOffsets, TableKind,
     TrackMyTagRow,
 };
-use crate::devicesql::DeviceSqlConnection;
+use crate::devicesql::{DeviceSqlConnection, Transaction};
 use crate::{Error, Result};
 
 /// A detached My Tag or category from the extended database.
@@ -115,6 +118,121 @@ impl MyTag {
         }
     }
 
+    /// Persist edited name, parent and position; ID and attribute are immutable.
+    ///
+    /// Unedited fields, reserved values and the second string frame are preserved.
+    /// Edited fields use last-write-wins. A changed nonzero parent must exist and
+    /// be a category; self-parenting and cyclic or broken ancestry are rejected.
+    /// Zero selects the root. Siblings are not renumbered. Commits in memory only;
+    /// errors roll back and saving remains explicit.
+    /// String edits remain subject to the engine's supported allocation layouts;
+    /// unsupported growth returns an error without discarding unknown data.
+    pub fn update<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Self> {
+        conn.check_kind(Self::TABLE)?;
+        let original = Self::try_from(self.raw)?;
+        validate_id(Self::TABLE, self.id)?;
+        for (field, changed) in [
+            ("id", self.id != original.id),
+            ("attribute", self.attribute != original.attribute),
+        ] {
+            if changed {
+                return Err(Error::InvalidModelField {
+                    table: Self::TABLE,
+                    field,
+                    reason: "existing tag identity and category status cannot be changed",
+                });
+            }
+        }
+        let mut tx = conn.transaction();
+        let location = tx
+            .index_rows(Self::TABLE, Self::read_id)?
+            .get(&original.id)
+            .copied()
+            .ok_or(Error::ModelNotFound {
+                table: Self::TABLE,
+                id: original.id,
+            })?;
+        let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
+        let record = tx.read(&handle)?;
+        let Row::Extended(ExtendedRow::MyTag(mut row)) = record.decode()? else {
+            return Err(unsupported(&record));
+        };
+        if self.parent_id != original.parent_id {
+            let headers = tag_headers(&mut tx)?;
+            let mut visited = HashSet::from([original.id]);
+            let mut parent = self.parent_id;
+            while parent != 0 {
+                if !visited.insert(parent) {
+                    return Err(invalid_parent("parent ancestry must not contain a cycle"));
+                }
+                let header = headers
+                    .get(&parent)
+                    .ok_or_else(|| invalid_parent("parent category does not exist"))?;
+                if header.attribute != 1 {
+                    return Err(invalid_parent("parent must be a category"));
+                }
+                parent = header.parent_id;
+            }
+            row.header.parent_id = self.parent_id;
+        }
+        if self.seq != original.seq {
+            row.header.position = self.seq;
+        }
+        if self.name != original.name {
+            row.name = text(&self.name)?;
+        }
+        let handle = tx.update(&handle, &Row::Extended(ExtendedRow::MyTag(row)))?;
+        let model = Self::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+        Ok(model)
+    }
+
+    /// Delete a tag/category, its descendants and all their content associations.
+    ///
+    /// Descendants are followed by parent ID, even in malformed or cyclic trees;
+    /// each row is removed once. Contents and surviving sequence values are untouched.
+    /// Returns the total deleted row count. Missing IDs return zero without cleaning
+    /// dangling associations; zero is rejected. One transaction covers both extended
+    /// tables. Errors roll back; saving remains explicit.
+    pub fn delete<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<usize> {
+        conn.check_kind(Self::TABLE)?;
+        validate_id(Self::TABLE, *id)?;
+        let mut tx = conn.transaction();
+        let index = tx.index_rows(Self::TABLE, Self::read_id)?.clone();
+        if !index.contains_key(id) {
+            return Ok(0);
+        }
+        let headers = tag_headers(&mut tx)?;
+        let mut children: HashMap<u32, Vec<u32>> = HashMap::new();
+        for header in headers.values() {
+            children
+                .entry(header.parent_id)
+                .or_default()
+                .push(header.id);
+        }
+        let mut removed = HashSet::new();
+        let mut pending = vec![*id];
+        while let Some(id) = pending.pop() {
+            if removed.insert(id) {
+                if let Some(ids) = children.get(&id) {
+                    pending.extend(ids);
+                }
+            }
+        }
+        let mut count = remove_associations(&mut tx, |row| removed.contains(&row.tag_id))?;
+        for id in removed {
+            let location = index.get(&id).ok_or(Error::ModelNotFound {
+                table: Self::TABLE,
+                id,
+            })?;
+            let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
+            tx.delete(&handle)?;
+            count = count.checked_add(1).ok_or(Error::MutationOverflow)?;
+        }
+        tx.commit()?;
+        Ok(count)
+    }
+
     /// Original row window, including reserved fields and the second string frame.
     /// Its location is not a stable mutation handle after other database edits.
     pub fn raw_record(&self) -> &RowRecord {
@@ -134,6 +252,51 @@ impl MyTag {
         }
         Ok(header.id)
     }
+}
+
+fn invalid_parent(reason: &'static str) -> Error {
+    Error::InvalidModelField {
+        table: MyTag::TABLE,
+        field: "parent_id",
+        reason,
+    }
+}
+
+fn tag_headers<R: Read + Seek>(tx: &mut Transaction<'_, R>) -> Result<HashMap<u32, MyTagHeader>> {
+    let mut headers = HashMap::new();
+    for record in tx.iter_raw(MyTag::TABLE)? {
+        let record = record?;
+        let id = MyTag::read_id(&record)?;
+        if headers.insert(id, read_fields(&record)?).is_some() {
+            return Err(Error::DuplicateId {
+                table: MyTag::TABLE,
+                id,
+            });
+        }
+    }
+    Ok(headers)
+}
+
+fn remove_associations<R: Read + Seek>(
+    tx: &mut Transaction<'_, R>,
+    matches: impl Fn(&TrackMyTagRow) -> bool,
+) -> Result<usize> {
+    let mut locations = Vec::new();
+    for record in tx.iter_raw(MyTagContent::TABLE)? {
+        let record = record?;
+        let Row::Extended(ExtendedRow::TrackMyTag(row)) = record.decode()? else {
+            return Err(unsupported(&record));
+        };
+        if matches(&row) {
+            locations.push((record.page(), record.slot().slot));
+        }
+    }
+    let count = locations.len();
+    for (page, slot) in locations {
+        let handle = tx.locate(MyTagContent::TABLE, page, slot)?;
+        tx.delete(&handle)?;
+    }
+    Ok(count)
 }
 
 impl TryFrom<RowRecord> for MyTag {
@@ -330,6 +493,52 @@ impl MyTagContent {
             }
         }
         Ok(rows)
+    }
+
+    /// Delete this one original association, ignoring edits to public fields.
+    ///
+    /// Duplicate pairs are retained. Changed binary values or heap offsets return
+    /// [`Error::StaleModelRow`]; missing locations return an engine error. Re-fetch
+    /// after structural edits: an identical replacement at the same location cannot
+    /// be distinguished. Returns one on success; saving remains explicit.
+    pub fn delete<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<usize> {
+        conn.check_kind(Self::TABLE)?;
+        let mut tx = conn.transaction();
+        let handle = tx.locate(Self::TABLE, self.raw.page(), self.raw.slot().slot)?;
+        let current = tx.read(&handle)?;
+        if current.slot().heap_offset != self.raw.slot().heap_offset
+            || current.decode()? != self.raw.decode()?
+        {
+            return Err(Error::StaleModelRow {
+                table: Self::TABLE,
+                page: self.raw.page(),
+                slot: self.raw.slot().slot,
+            });
+        }
+        tx.delete(&handle)?;
+        tx.commit()?;
+        Ok(1)
+    }
+
+    /// Remove every matching content/tag pair, including duplicates.
+    ///
+    /// IDs must be nonzero; referenced rows need not exist, allowing dangling
+    /// associations to be cleaned up. Returns the deleted count. Contents and tags
+    /// are retained. Errors roll back; changes remain in memory until saved.
+    pub fn remove<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        content_id: &u32,
+        my_tag_id: &u32,
+    ) -> Result<usize> {
+        conn.check_kind(Self::TABLE)?;
+        validate_nonzero_id(Self::TABLE, "content_id", *content_id)?;
+        validate_nonzero_id(Self::TABLE, "my_tag_id", *my_tag_id)?;
+        let mut tx = conn.transaction();
+        let count = remove_associations(&mut tx, |row| {
+            row.track_id == *content_id && row.tag_id == *my_tag_id
+        })?;
+        tx.commit()?;
+        Ok(count)
     }
 
     /// Original row window, including reserved fields. Its location is not a stable

@@ -1,11 +1,15 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
-//! Color snapshots and explicit read/insert operations over DeviceSQL.
+//! Color snapshots and explicit queries and updates over DeviceSQL.
+//!
+//! The standard creation profile initializes the eight color labels. Models
+//! update their names without inserting, deleting or reassigning color IDs.
+//! Bare databases have no color rows until supplied through binary creation options.
 
 use std::io::{Read, Seek};
 
-use super::{read_fields, text, text_error, unsupported, validate_id};
+use super::{read_fields, text, text_error, unique_name, unsupported, validate_id};
 use crate::binary::{ColorRow, PageType, Row, RowRecord, StandardRow, TableKind};
 use crate::devicesql::DeviceSqlConnection;
 use crate::{Error, Result};
@@ -14,7 +18,8 @@ use crate::{Error, Result};
 ///
 /// Changing public fields changes only this snapshot. Original bytes, reserved
 /// values and framing remain in [`Self::raw_record`]. Queries never load related
-/// tables and reject extended database connections.
+/// tables and reject extended database connections. Call [`Self::update`] to
+/// persist an edited name; saving remains explicit.
 #[derive(Clone, PartialEq, Eq)]
 pub struct Color {
     /// Export color ID, retaining both bytes of the binary field.
@@ -48,7 +53,7 @@ impl Color {
             .map(|record| Self::try_from(record?)))
     }
 
-    /// Read all live models-old without loading related tables.
+    /// Read all live colors without loading related tables.
     pub fn all<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<Vec<Self>> {
         Self::iter(conn)?.collect()
     }
@@ -68,11 +73,76 @@ impl Color {
             .transpose()
     }
 
+    /// Find the first row with an exactly matching, case-sensitive name.
+    /// Scans in physical row order and returns `None` when absent. Existing
+    /// duplicate names return the first match. Related tables are not loaded;
+    /// decoding errors encountered before the match are propagated.
+    pub fn find_by_name<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        name: &str,
+    ) -> Result<Option<Self>> {
+        for model in Self::iter(conn)? {
+            let model = model?;
+            if model.name == name {
+                return Ok(Some(model));
+            }
+        }
+        Ok(None)
+    }
+
     /// Check an ID using the engine index without converting string frames to text.
     pub fn id_exists<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u16) -> Result<bool> {
         Ok(conn
             .index_rows(Self::TABLE, Self::read_id)?
             .contains_key(&u32::from(*id)))
+    }
+
+    /// Edited names must be unique within this table (exact, case-sensitive equality).
+    /// Persist an edited name and return a refreshed color snapshot.
+    ///
+    /// Resolves the current row by its original ID; changing `id` is rejected.
+    /// An unchanged name preserves the current name and string frame. Edited
+    /// names use last-write-wins and may be empty. The engine handles growing
+    /// names and row relocation. A deleted color returns [`Error::ModelNotFound`].
+    /// Changes commit in memory or roll back on error; saving remains explicit.
+    pub fn update<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Self> {
+        conn.check_kind(Self::TABLE)?;
+        let original = Self::try_from(self.raw)?;
+        validate_id(Self::TABLE, u32::from(self.id))?;
+        if self.id != original.id {
+            return Err(Error::InvalidModelField {
+                table: Self::TABLE,
+                field: "id",
+                reason: "an existing color's ID cannot be changed",
+            });
+        }
+        let mut tx = conn.transaction();
+        let location = tx
+            .index_rows(Self::TABLE, Self::read_id)?
+            .get(&u32::from(original.id))
+            .copied()
+            .ok_or(Error::ModelNotFound {
+                table: Self::TABLE,
+                id: u32::from(original.id),
+            })?;
+        let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
+        let record = tx.read(&handle)?;
+        let Row::Standard(StandardRow::Color(mut row)) = record.decode()? else {
+            return Err(unsupported(&record));
+        };
+        if self.name != original.name {
+            unique_name(
+                &mut tx,
+                Self::TABLE,
+                &self.name,
+                Some(u32::from(original.id)),
+            )?;
+            row.name = text(&self.name)?;
+        }
+        let handle = tx.update(&handle, &Row::Standard(StandardRow::Color(row)))?;
+        let model = Self::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+        Ok(model)
     }
 
     /// Original row window and location, unaffected by edits to public fields.
@@ -108,76 +178,6 @@ impl TryFrom<RowRecord> for Color {
                 .text()
                 .map_err(|source| text_error(&record, "name", source))?,
             raw: record,
-        })
-    }
-}
-
-/// Input for a fresh color, without an existing raw row.
-///
-/// The binary format exposes a 16-bit ID; conventional player colors are 1–8.
-/// Reserved bytes default to an observed zero variant and remain configurable.
-/// Their values are independent of the ID. Creating configuration defaults may
-/// already have populated these IDs.
-/// Insertion commits to the connection's in-memory overlay; saving is explicit.
-/// Other tables are not modified.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NewColor {
-    /// Unused, nonzero export color ID.
-    pub id: u16,
-
-    /// Decoded display name, preserving empty text.
-    pub name: String,
-    /// Reserved word; defaults to the observed zero value.
-    pub unknown_00: u32,
-    /// Independent reserved byte; defaults to the observed zero variant, not the ID.
-    pub unknown_04: u8,
-    /// Reserved byte; defaults to the observed zero value.
-    pub unknown_07: u8,
-}
-
-impl NewColor {
-    /// Prepare a new color with explicit identity and display name.
-    pub fn new(id: u16, name: impl Into<String>) -> Self {
-        Self {
-            id,
-            name: name.into(),
-            unknown_00: 0,
-            unknown_04: 0,
-            unknown_07: 0,
-        }
-    }
-
-    /// Insert atomically, rejecting duplicate IDs and leaving the connection unchanged on error.
-    /// The returned model contains the engine-created row. This does not save to disk.
-    pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Color> {
-        conn.check_kind(Color::TABLE)?;
-        let row = self.to_binary()?;
-        let mut tx = conn.transaction();
-        if tx
-            .index_rows(Color::TABLE, Color::read_id)?
-            .contains_key(&u32::from(self.id))
-        {
-            return Err(Error::DuplicateId {
-                table: Color::TABLE,
-                id: u32::from(self.id),
-            });
-        }
-        let handle = tx.insert(Color::TABLE, &Row::Standard(StandardRow::Color(row)))?;
-        let model = Color::try_from(tx.read(&handle)?)?;
-        tx.commit()?;
-        Ok(model)
-    }
-
-    /// Encode fields for an explicit binary transaction; the engine assigns placement.
-    /// Direct binary inserts do not check model-ID uniqueness.
-    pub fn to_binary(&self) -> Result<ColorRow> {
-        validate_id(Color::TABLE, u32::from(self.id))?;
-        Ok(ColorRow {
-            unknown_00: self.unknown_00,
-            unknown_04: self.unknown_04,
-            id: self.id,
-            unknown_07: self.unknown_07,
-            name: text(&self.name)?,
         })
     }
 }
