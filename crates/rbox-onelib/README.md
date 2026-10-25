@@ -4,7 +4,7 @@ Access Rekordbox One Library (Device Library Plus) export databases through
 the `OneLibrary` handler or use its Diesel schema and row models directly.
 
 > [!NOTE]
-> This crate is part of [rbox](https://crates.io/crates/rbox), available through `rbox::one_library`.
+> This crate is part of [rbox](https://crates.io/crates/rbox), available through `rbox::onelib`.
 
 Includes relationship loading, ordered collection operations, SQLCipher
 connection helpers, and schema initialization for new databases. The optional

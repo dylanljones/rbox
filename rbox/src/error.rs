@@ -33,6 +33,11 @@ pub enum Error {
     #[error(transparent)]
     OneLibrary(#[from] rbox_onelib::error::Error),
 
+    /// Device Library database operation failure.
+    #[cfg(feature = "device-library")]
+    #[error(transparent)]
+    DeviceLibrary(#[from] rbox_devlib::error::Error),
+
     /// Analysis file parsing, editing, or writing failure.
     #[cfg(feature = "anlz")]
     #[error(transparent)]

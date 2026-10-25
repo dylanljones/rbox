@@ -18,10 +18,11 @@ name = "rbox"
 
 [features]
 default = ["full", "bundled-vendored-openssl"]
-full = ["master-db", "one-library", "anlz", "xml", "settings"]
+full = ["master-db", "one-library", "device-library", "anlz", "xml", "settings"]
 
 master-db = ["dep:rbox-masterdb", "dep:rbox-db", "anlz", "rbox-onelib?/master-db"]
 one-library = ["dep:rbox-onelib", "dep:rbox-db"]
+device-library = ["dep:rbox-devlib"]
 anlz = ["dep:rbox-anlz"]
 xml = ["dep:rbox-xml"]
 settings = ["dep:rbox-setting"]
@@ -42,6 +43,7 @@ rbox-core       = { path = "../crates/rbox-core", version = "0.2.0", default-fea
 rbox-db         = { path = "../crates/rbox-db", version = "0.2.0", default-features = false, optional = true }
 rbox-masterdb   = { path = "../crates/rbox-masterdb", version = "0.2.0", default-features = false, optional = true }
 rbox-onelib     = { path = "../crates/rbox-onelib", version = "0.2.0", default-features = false, optional = true }
+rbox-devlib     = { path = "../crates/rbox-devlib", version = "0.2.0", default-features = false, optional = true }
 rbox-anlz       = { path = "../crates/rbox-anlz", version = "0.2.0", default-features = false, optional = true }
 rbox-xml        = { path = "../crates/rbox-xml", version = "0.2.0", default-features = false, optional = true }
 rbox-setting    = { path = "../crates/rbox-setting", version = "0.2.0", default-features = false, optional = true }

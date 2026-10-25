@@ -5,6 +5,8 @@
 
 #[cfg(feature = "anlz")]
 pub use crate::Anlz;
+#[cfg(feature = "device-library")]
+pub use crate::DeviceLibrary;
 #[cfg(feature = "master-db")]
 pub use crate::MasterDb;
 #[cfg(feature = "one-library")]
@@ -19,4 +21,4 @@ pub use rbox_db::{
     Model, ModelDelete, ModelInsert, ModelList, ModelRelations, ModelTree, ModelUpdate,
 };
 // Core exports
-pub use core::*;
+pub use crate::core::*;

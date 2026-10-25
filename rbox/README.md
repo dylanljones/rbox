@@ -21,10 +21,10 @@ It supports the following Rekordbox files:
 
 - **Rekordbox database**: Query and update the Rekordbox v6/v7 master.db database through a type-safe ORM
 - **One Library**: Read and write Rekordbox One Library (Device Library Plus) export files
-- **XML database**: Read and write Rekordbox XML database files
+- **Device Library**: Read and write Rekordbox DeviceSql (.pdb) database files
 - **Analysis Files**: Read and write ANLZ files containing waveforms, beat grids, hot cues and more
 - **Settings Access**: Read and write My-Setting files
-
+- **XML database**: Read and write Rekordbox XML database files
 
 ## 🔧 Installation
 
@@ -44,6 +44,7 @@ The library is organized into modular components that can be enabled individuall
 - `full` (default): Enables all component features
 - `master-db`: Access to the Rekordbox 6/7 master.db database (enables `anlz` feature)
 - `one-library`: Access to the One Library (Device Library Plus) database
+- `device-library`: Access to the Device Library (DeviceSQL) database
 - `anlz`: Support for ANLZ analysis files
 - `xml`: Support for Rekordbox XML database files
 - `settings`: Support for My-Setting files
@@ -78,10 +79,6 @@ These features are used in the bindings and *should not be enabled manually*:
 ### Rekordbox 6/7 database
 
 Rekordbox 6 and 7 use a SQLite database for storing the collection content.
-Unfortunatly, the `master.db` SQLite database is encrypted using
-[SQLCipher][sqlcipher], which means it can't be used without the encryption key.
-However, since your data is stored and used locally, the key must be present on the
-machine running Rekordbox.
 
 rbox can unlock the new Rekordbox `master.db` SQLite database and provides
 an easy interface for accessing and updating the data stored in it.
@@ -122,26 +119,38 @@ fn main() -> anyhow::Result<()> {
 }
 ```
 
-### Rekordbox XML
+### Device Library (DeviceSQL)
 
-The Rekordbox XML database is used for importing (and exporting) Rekordbox collections
-including track metadata and playlists. They can also be used to share playlists
-between two databases.
+Rekordbox stores Device Library exports in the binary `export.pdb` database and
+an optional `exportExt.pdb` file under `PIONEER/rekordbox` on the export device.
+The `device-library` feature (included in `full`) exposes the `DeviceLibrary`
+handler and the `rbox::devlib` APIs. This format does not require SQLCipher.
 
-rbox can read and write Rekordbox XML databases.
+Pass the database directory to `DeviceLibrary::new`. Pages are loaded on demand,
+and typed models provide access to tracks, playlists, artists, and other tables:
 
 ```rust
 use rbox::prelude::*;
+use rbox::devlib::models::Content;
 
 fn main() -> anyhow::Result<()> {
-    let mut xml = RekordboxXml::load("database.xml");
-    let tracks = xml.get_tracks();
-    for track in tracks {
-        println!("{:?}", track);
+    let mut db = DeviceLibrary::new("PIONEER/rekordbox")?;
+    let contents = Content::all(db.standard_mut())?;
+    for content in contents {
+        println!("{:?}", content);
     }
     Ok(())
 }
 ```
+
+Use `DeviceLibrary::create` with `LibraryCreateOptions` to initialize a new pair
+of database files. Edits stay in memory until explicitly saved: `save()` replaces
+changed files, `save_pages()` writes changed pages, and `save_as(directory)` copies
+the databases to a new destination. Saving both files is not atomic, and the
+handler does not copy audio, artwork, or analysis files.
+
+DeviceSQL support is experimental. See the [rbox-devlib README](../crates/rbox-devlib/README.md)
+for details and hardware testing status.
 
 ### Rekordbox ANLZ files
 
@@ -195,6 +204,27 @@ fn main() -> anyhow::Result<()> {
     println!("Quantize: {}", sett.get_quantize()?);
     sett.set_quantize(Quantize::Off)?;
     sett.dump()?;
+    Ok(())
+}
+```
+
+### Rekordbox XML
+
+The Rekordbox XML database is used for importing (and exporting) Rekordbox collections
+including track metadata and playlists. They can also be used to share playlists
+between two databases.
+
+rbox can read and write Rekordbox XML databases.
+
+```rust
+use rbox::prelude::*;
+
+fn main() -> anyhow::Result<()> {
+    let mut xml = RekordboxXml::load("database.xml");
+    let tracks = xml.get_tracks();
+    for track in tracks {
+        println!("{:?}", track);
+    }
     Ok(())
 }
 ```
