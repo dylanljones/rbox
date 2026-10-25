@@ -113,7 +113,6 @@ impl<R: Read + Seek> Transaction<'_, R> {
 
     // Only the model layer supplies scalar ID readers. Indexes belong to this
     // overlay, never the committed connection, and publish only after a full scan.
-    #[allow(dead_code, reason = "Retained for the deferred model layer")]
     pub(crate) fn index_rows(
         &mut self,
         table: TableKind,

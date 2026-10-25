@@ -15,5 +15,5 @@ pub mod transaction;
 
 pub use connection::{DeviceSqlConnection, PageSaveStats, RebuildStats};
 pub use core::{RawRows, ReadStats, ResourceLimits, ResourceUsage, SaveStats};
-pub use creation::{CreateOptions, InitialTable};
+pub use creation::{CreateOptions, InitialTable, TrackCreationOptions};
 pub use transaction::{RowHandle, Transaction};

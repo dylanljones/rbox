@@ -16,6 +16,7 @@ Includes lazy reads, typed models, transactional binary edits, and selective pag
 
 - `binary`: on-disk structures and codecs, preserving unknown fields.
 - `devicesql`: storage engine for lazy reads, caching, transactions, binary edits, and file writes.
+- `models`: high-level abstraction layer over `devicesql`, following the masterdb and OneLibrary pattern.
 
 ## CDJ output tests
 

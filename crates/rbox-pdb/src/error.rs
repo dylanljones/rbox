@@ -13,6 +13,33 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
+    /// A value supplied to a model cannot be used for authoring.
+    #[error("invalid {field} for {table:?}: {reason}")]
+    InvalidModelField {
+        table: TableKind,
+        field: &'static str,
+        reason: &'static str,
+    },
+
+    /// The selected row does not have a supported layout for the requested model.
+    #[error("unsupported model row {slot} on page {page:?} in {table:?}")]
+    UnsupportedModelRow {
+        page: PageIndex,
+        table: TableKind,
+        slot: u16,
+    },
+
+    /// A model field could not be converted from its original string frame.
+    #[error("cannot decode {field} in row {slot} on page {page:?} in {table:?}: {source}")]
+    ModelText {
+        page: PageIndex,
+        table: TableKind,
+        slot: u16,
+        field: &'static str,
+        #[source]
+        source: Box<Error>,
+    },
+
     /// Explicit initialization metadata cannot form a committed new database.
     #[error("invalid DeviceSQL creation options: {reason}")]
     InvalidCreation { reason: &'static str },

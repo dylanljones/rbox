@@ -289,9 +289,8 @@ impl<R: Read + Seek> DeviceSqlConnection<R> {
         )
     }
 
-    // Only the sealed model layer supplies ID schemas: one per table.
+    // Only crate-owned model implementations supply ID schemas: one per table.
     // Build the index completely before publishing it; failed scans are retryable.
-    #[allow(dead_code, reason = "Retained for the deferred model layer")]
     pub(crate) fn index_rows(
         &mut self,
         table: TableKind,
@@ -317,7 +316,7 @@ impl<R: Read + Seek> DeviceSqlConnection<R> {
         }
         Ok(self.indexes.entry(code).or_default())
     }
-    #[allow(dead_code, reason = "Retained for the deferred model layer")]
+
     pub(crate) fn read_indexed_row(
         &mut self,
         table: TableKind,

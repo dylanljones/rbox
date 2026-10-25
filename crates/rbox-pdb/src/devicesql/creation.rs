@@ -27,6 +27,38 @@ pub(super) const INDEX_CAPACITY: u16 = ((PAGE_SIZE
 pub(super) const DATA_PAGE_FLAGS: PageFlags = PageFlags(0x24);
 const INDEX_PAGE_FLAGS: PageFlags = PageFlags(DATA_PAGE_FLAGS.0 | PageFlags::INDEX);
 
+/// Configurable reserved values for authoring a fresh track row.
+///
+/// Defaults use the Baken creation policy already used by the scratch exporter:
+/// CONTENTLINK is `0x000c0700`, the raw analysis word is `0x29`, the string marker
+/// is 3, and reserved strings 2, 3 and 4 contain "1". These are writer choices,
+/// not decoded flag meanings or inferred update counters. No existing PDB is read.
+///
+/// This profile targets exports with existing analysis assets. It neither creates
+/// nor validates ANLZ files, and does not guarantee a player will skip analysis.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TrackCreationOptions {
+    /// Raw CONTENTLINK word; its bit meanings remain unresolved.
+    pub content_link: u32,
+    /// Raw analysis word; do not derive it from guessed bit meanings.
+    pub raw_analysis: u16,
+    /// Marker preceding the far string-offset array.
+    pub string_marker: u16,
+    /// Reserved text slots in order: 2, 3, 4, 8, 9, 13, 18.
+    pub unknown_strings: [String; 7],
+}
+
+impl Default for TrackCreationOptions {
+    fn default() -> Self {
+        Self {
+            content_link: 0x000c0700,
+            raw_analysis: 0x29,
+            string_marker: 3,
+            unknown_strings: ["1", "1", "1", "", "", "", ""].map(str::to_owned),
+        }
+    }
+}
+
 /// Explicit binary inputs for a newly initialized 4096-byte-page database.
 ///
 /// Defaults produce the same bare container as [`super::DeviceSqlConnection::create`].
