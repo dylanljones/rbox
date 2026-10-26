@@ -44,7 +44,8 @@ build on. It currently supports the following Rekordbox files:
 
 
 > [!TIP]
-> This project is still being actively developed and is in early stages, so expect some rough edges and missing features.
+> This project is still being actively developed and is in early stages, so expect some rough edges,
+> API changes in the future and missing features.
 > If you are looking for a more mature and battle-tested library, check the original [pyrekordbox] Python library.
 
 
