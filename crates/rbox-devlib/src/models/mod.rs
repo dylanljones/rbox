@@ -70,9 +70,7 @@ use std::io::{Cursor, Read, Seek};
 
 use binrw::BinRead;
 
-use crate::binary::{
-    DeviceSqlString, PageType, Row, RowRecord, StandardRow, StringEncoding, TableKind,
-};
+use crate::binary::{DeviceSqlString, Row, RowRecord, StandardRow, StringEncoding, TableKind};
 use crate::devicesql::{DeviceSqlConnection, Transaction};
 use crate::{Error, Result};
 
@@ -177,16 +175,7 @@ pub(crate) fn update_export_count<R: Read + Seek>(
     tx: &mut Transaction<'_, R>,
     count: u32,
 ) -> Result<()> {
-    let table = TableKind::Standard(PageType::ExportProperties);
-    let records = tx.iter_raw(table)?.collect::<Result<Vec<_>>>()?;
-    for record in records {
-        let Row::Standard(StandardRow::ExportProperty(mut row)) = record.decode()? else {
-            return Err(unsupported(&record));
-        };
-        row.track_count = count;
-        let handle = tx.locate(table, record.page(), record.slot().slot)?;
-        tx.update(&handle, &Row::Standard(StandardRow::ExportProperty(row)))?;
-    }
+    property::set_export_counts(tx, None, false, count)?;
     Ok(())
 }
 

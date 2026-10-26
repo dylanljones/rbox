@@ -305,7 +305,7 @@ impl HistoryContent {
     /// Read a history playlist's occurrences sorted by stored position.
     /// Ties retain physical iteration order, including identical entries.
     /// This scans the entry table and does not load the playlist or referenced tracks.
-    pub fn by_history<R: Read + Seek>(
+    pub fn by_history_id<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
         history_id: &u32,
     ) -> Result<Vec<Self>> {

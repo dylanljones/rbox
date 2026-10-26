@@ -140,6 +140,51 @@ fn assert_no_content_relations(view: &ContentView) {
 }
 
 #[test]
+fn property_names_are_unique_model_keys() -> anyhow::Result<()> {
+    use diesel::prelude::*;
+    use diesel::result::{DatabaseErrorKind, Error as DieselError};
+    use rbox_onelib::schema::{content, property};
+    let fixture = setup_one_library_path();
+    let mut conn = establish_connection(fixture.path(), &ConnectionOptions::default())?;
+    let original = Property::new("unique property", 1).insert(&mut conn)?;
+    assert!(Property::id_exists(&mut conn, "unique property")?);
+    assert!(!Property::id_exists(&mut conn, "UNIQUE PROPERTY")?);
+    assert!(matches!(
+        original.clone().insert(&mut conn),
+        Err(DieselError::DatabaseError(
+            DatabaseErrorKind::UniqueViolation,
+            _
+        ))
+    ));
+    assert!(Property::insert_all(
+        &mut conn,
+        vec![Property::new("batch property", 1), original.clone()]
+    )
+    .is_err());
+    assert!(!Property::id_exists(&mut conn, "batch property")?);
+    // Native schemas need not contain a SQL UNIQUE constraint. Direct writes can
+    // introduce ambiguity, but models must never silently select/update one copy.
+    diesel::insert_into(property::table)
+        .values(original.clone())
+        .execute(&mut conn)?;
+    assert!(matches!(
+        Property::find(&mut conn, "unique property"),
+        Err(DieselError::DatabaseError(
+            DatabaseErrorKind::UniqueViolation,
+            _
+        ))
+    ));
+    assert!(Property::first(&mut conn).is_err());
+    assert!(Property::set_number_of_contents_all(&mut conn, 123).is_err());
+    let count: i64 = content::table.count().get_result(&mut conn)?;
+    let mut new = NewContent::new("/duplicate-property.wav");
+    new.file_type = Some(1);
+    assert!(new.insert(&mut conn).is_err());
+    assert_eq!(content::table.count().get_result::<i64>(&mut conn)?, count);
+    Ok(())
+}
+
+#[test]
 fn content_count_can_be_set_and_recalculated() -> anyhow::Result<()> {
     let fixture = setup_one_library_path();
     let mut conn = establish_connection(fixture.path(), &ConnectionOptions::default())?;

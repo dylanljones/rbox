@@ -120,6 +120,7 @@ pub struct Content {
     pub file_name: String,
     /// Audio path, preserving original separators.
     pub path: String,
+    isrc_override: Option<String>,
     raw: RowRecord,
 }
 
@@ -298,6 +299,7 @@ impl std::fmt::Debug for Content {
             .field("analysis_path", &self.analysis_path)
             .field("file_name", &self.file_name)
             .field("path", &self.path)
+            .field("isrc", &self.isrc())
             .finish()
     }
 }
@@ -466,7 +468,8 @@ impl Content {
     ///
     /// Re-resolves the original export ID; changing it is rejected. Only fields
     /// changed from this snapshot are applied; conflicts on the same field use
-    /// last-write-wins. ISRC, analysis flags, content-link and unknown strings are
+    /// last-write-wins. ISRC is edited through [`Self::set_isrc`]; otherwise its
+    /// frame is preserved. Analysis flags, content-link and unknown strings are
     /// retained from the current binary row. Paths retain supplied separators;
     /// editing the audio path requires a nonempty value and does not rename files
     /// or automatically change the basename or analysis path.
@@ -614,6 +617,11 @@ impl Content {
         if self.path != original.path {
             row.text.file_path = text(&self.path)?;
         }
+        if let Some(isrc) = &self.isrc_override {
+            if !original.isrc().is_ok_and(|value| value == *isrc) {
+                row.text.isrc = DeviceSqlString::encode_isrc(isrc)?;
+            }
+        }
         let handle = tx.update(&handle, &Row::Standard(StandardRow::Track(row)))?;
         let model = Self::try_from(tx.read(&handle)?)?;
         tx.commit()?;
@@ -739,8 +747,12 @@ impl Content {
         &self.raw
     }
 
-    /// Decode the original ISRC frame, or report an unrecognized encoding.
+    /// Return the edited ISRC, or decode the original frame.
+    /// Unrecognized original encodings return an error until explicitly replaced.
     pub fn isrc(&self) -> Result<String> {
+        if let Some(value) = &self.isrc_override {
+            return Ok(value.clone());
+        }
         let Row::Standard(StandardRow::Track(row)) = self.raw.decode()? else {
             return Err(unsupported(&self.raw));
         };
@@ -748,6 +760,17 @@ impl Content {
             .isrc
             .isrc_text()
             .map_err(|source| text_error(&self.raw, "isrc", source))
+    }
+
+    /// Edit the ISRC in this snapshot; call [`Self::update`] to persist it.
+    /// Accepts twelve ASCII alphanumeric characters, or an empty string to clear.
+    /// Invalid input leaves the snapshot unchanged. Unknown original encodings
+    /// are preserved unless this setter explicitly replaces them.
+    pub fn set_isrc(&mut self, value: impl Into<String>) -> Result<&mut Self> {
+        let value = value.into();
+        DeviceSqlString::encode_isrc(&value)?;
+        self.isrc_override = Some(value);
+        Ok(self)
     }
 
     pub(super) fn read_id(record: &RowRecord) -> Result<u32> {
@@ -860,6 +883,7 @@ impl TryFrom<RowRecord> for Content {
             analysis_path: text("analysis_path", &row.text.analysis_path)?,
             file_name: text("file_name", &row.text.filename)?,
             path: text("path", &row.text.file_path)?,
+            isrc_override: None,
             raw: record,
         })
     }

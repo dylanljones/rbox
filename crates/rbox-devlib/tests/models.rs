@@ -156,6 +156,69 @@ fn content_master_identity_lookup_is_scoped_to_source_library() -> Result<()> {
     Ok(())
 }
 
+#[test]
+fn content_isrc_edits_validate_preserve_unknown_frames_and_roundtrip() -> Result<()> {
+    let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+    let mut input = NewContent::new(1, "/Contents/isrc.wav");
+    input.isrc = "USABC2400001".into();
+    let original = input.insert(&mut conn)?;
+    let mut edited = original.clone();
+    assert!(matches!(
+        edited.set_isrc("invalid"),
+        Err(Error::InvalidIsrc)
+    ));
+    assert_eq!(edited, original);
+    edited.set_isrc("GBAYE6700149")?;
+    assert_eq!(edited.isrc()?, "GBAYE6700149");
+    assert!(format!("{edited:?}").contains("GBAYE6700149"));
+    assert_eq!(
+        rbox_core::Track::try_from(edited.clone().resolve(&mut conn)?)?
+            .isrc
+            .as_deref(),
+        Some("GBAYE6700149")
+    );
+    let edited = edited.update(&mut conn)?;
+    let mut stale = original;
+    stale.title = "Keep newer ISRC".into();
+    assert_eq!(stale.update(&mut conn)?.isrc()?, "GBAYE6700149");
+
+    let Row::Standard(StandardRow::Track(mut row)) = edited.raw_record().decode()? else {
+        panic!()
+    };
+    // Syntactically valid string framing, but not a supported ISRC representation.
+    row.text.isrc = DeviceSqlString::encode("opaque", StringEncoding::LongAscii)?;
+    let opaque = row.text.isrc.clone();
+    let mut tx = conn.transaction();
+    let current = tx.index_rows(Content::TABLE, |record| {
+        let Row::Standard(StandardRow::Track(row)) = record.decode()? else {
+            panic!()
+        };
+        Ok(row.header.id)
+    })?[&1];
+    let handle = tx.locate(Content::TABLE, current.page, current.slot)?;
+    tx.update(&handle, &Row::Standard(StandardRow::Track(row)))?;
+    tx.commit()?;
+    let mut unknown = Content::find(&mut conn, &1)?.unwrap();
+    assert!(unknown.isrc().is_err());
+    unknown.comment = "Unrelated edit".into();
+    let mut unknown = unknown.update(&mut conn)?;
+    let Row::Standard(StandardRow::Track(row)) = unknown.raw_record().decode()? else {
+        panic!()
+    };
+    assert_eq!(row.text.isrc, opaque);
+    unknown.set_isrc("USABC2400002")?;
+    let mut repaired = unknown.update(&mut conn)?;
+    assert_eq!(repaired.isrc()?, "USABC2400002");
+    repaired.set_isrc("")?;
+    repaired.update(&mut conn)?;
+    let mut bytes = Vec::new();
+    conn.write_to(&mut bytes)?;
+    let mut reopened =
+        DeviceSqlConnection::from_reader(Cursor::new(bytes), DatabaseKind::Standard)?;
+    assert_eq!(Content::find(&mut reopened, &1)?.unwrap().isrc()?, "");
+    Ok(())
+}
+
 // Binary-only fixture for unusual color IDs used by read/relationship tests.
 fn seed_color(
     conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>,
@@ -472,7 +535,7 @@ mod content_mutations {
         )?;
         assert!(Content::find(&mut standard, &1)?.is_none());
         assert!(MyTagContent::by_content(&mut extended, &1)?.is_empty());
-        assert!(RecommendedLike::by_content(&mut extended, &1)?.is_empty());
+        assert!(RecommendedLike::by_content_id(&mut extended, &1)?.is_empty());
         assert_eq!(
             Content::delete_with_extended(&mut standard, &mut extended, &2)?,
             5
@@ -920,8 +983,16 @@ fn browse_name_queries_and_first_properties_handle_empty_and_initialized_tables(
     );
     // Multiple properties retain physical order rather than requiring a singleton.
     let property = ExportProperty::first(&mut standard)?.unwrap();
+    let Row::Standard(StandardRow::ExportProperty(mut row)) = property.raw_record().decode()?
+    else {
+        panic!()
+    };
+    row.name = DeviceSqlString::encode("Second USB", StringEncoding::ShortAscii)?;
     let mut tx = standard.transaction();
-    tx.insert(ExportProperty::TABLE, &property.raw_record().decode()?)?;
+    tx.insert(
+        ExportProperty::TABLE,
+        &Row::Standard(StandardRow::ExportProperty(row)),
+    )?;
     tx.commit()?;
     assert_eq!(ExportProperty::all(&mut standard)?.len(), 2);
     assert_eq!(
@@ -955,7 +1026,7 @@ fn browse_name_queries_and_first_properties_handle_empty_and_initialized_tables(
 }
 
 mod property_mutations {
-    //! Update-only properties retain occurrence identity and reserved fields.
+    //! Named export properties and occurrence-based extended metadata preserve reserved fields.
     use super::*;
     use rbox_devlib::binary::ExtendedRow;
     use rbox_devlib::models::{DatabaseProperty, ExportProperty};
@@ -964,6 +1035,103 @@ mod property_mutations {
         let mut bytes = Vec::new();
         conn.write_to(&mut bytes)?;
         Ok(bytes)
+    }
+
+    #[test]
+    fn export_names_are_unique_keys_and_count_helpers_match_onelib() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create_with_options(
+            DatabaseKind::Standard,
+            &CreateOptions::standard("date", "")?,
+        )?;
+        let first = ExportProperty::find(&mut conn, "")?.unwrap();
+        let Row::Standard(StandardRow::ExportProperty(mut row)) = first.raw_record().decode()?
+        else {
+            panic!()
+        };
+        row.name = DeviceSqlString::encode("USB", StringEncoding::ShortAscii)?;
+        let mut tx = conn.transaction();
+        tx.insert(
+            ExportProperty::TABLE,
+            &Row::Standard(StandardRow::ExportProperty(row)),
+        )?;
+        tx.commit()?;
+        assert!(ExportProperty::id_exists(&mut conn, "")?);
+        assert!(ExportProperty::id_exists(&mut conn, "USB")?);
+        assert!(!ExportProperty::id_exists(&mut conn, "usb")?);
+        assert!(ExportProperty::find(&mut conn, "missing")?.is_none());
+        assert_eq!(
+            ExportProperty::set_number_of_contents(&mut conn, "USB", 7)?,
+            1
+        );
+        assert_eq!(
+            ExportProperty::set_number_of_contents(&mut conn, "missing", 7)?,
+            0
+        );
+        assert_eq!(
+            ExportProperty::set_number_of_contents_default(&mut conn, 8)?,
+            1
+        );
+        assert_eq!(ExportProperty::find(&mut conn, "")?.unwrap().track_count, 8);
+        assert_eq!(
+            ExportProperty::find(&mut conn, "USB")?.unwrap().track_count,
+            7
+        );
+        assert_eq!(ExportProperty::set_number_of_contents_all(&mut conn, 9)?, 2);
+        assert!(ExportProperty::all(&mut conn)?
+            .iter()
+            .all(|row| row.track_count == 9));
+        let mut renamed = ExportProperty::find(&mut conn, "USB")?.unwrap();
+        renamed.name = "".into();
+        let before = bytes(&mut conn)?;
+        assert!(matches!(
+            renamed.clone().update(&mut conn),
+            Err(Error::UniqueConstraintViolation { .. })
+        ));
+        assert_eq!(bytes(&mut conn)?, before);
+        renamed.name = "Renamed USB".into();
+        renamed.update(&mut conn)?;
+        assert!(!ExportProperty::id_exists(&mut conn, "USB")?);
+        assert!(ExportProperty::id_exists(&mut conn, "Renamed USB")?);
+
+        // The binary engine can read/write unqualified data; models reject ambiguity.
+        let duplicate = ExportProperty::find(&mut conn, "")?.unwrap();
+        let mut tx = conn.transaction();
+        tx.insert(ExportProperty::TABLE, &duplicate.raw_record().decode()?)?;
+        tx.commit()?;
+        let before = bytes(&mut conn)?;
+        assert!(matches!(
+            ExportProperty::find(&mut conn, ""),
+            Err(Error::UniqueConstraintViolation { .. })
+        ));
+        assert!(matches!(
+            ExportProperty::first(&mut conn),
+            Err(Error::UniqueConstraintViolation { .. })
+        ));
+        assert!(matches!(
+            ExportProperty::set_content_count(&mut conn, 10),
+            Err(Error::UniqueConstraintViolation { .. })
+        ));
+        assert!(matches!(
+            NewContent::new(1, "/Contents/test.wav").insert(&mut conn),
+            Err(Error::UniqueConstraintViolation { .. })
+        ));
+        assert!(!Content::id_exists(&mut conn, &1)?);
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut empty = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        assert_eq!(
+            ExportProperty::set_number_of_contents_default(&mut empty, 1)?,
+            0
+        );
+        assert_eq!(
+            ExportProperty::set_number_of_contents_all(&mut empty, 1)?,
+            0
+        );
+        let mut ext = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        assert!(matches!(
+            ExportProperty::set_number_of_contents_all(&mut ext, 1),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        Ok(())
     }
 
     #[test]
@@ -1503,7 +1671,7 @@ mod history_mutations {
         assert_eq!(edited_snapshot.delete(&mut conn)?, 1);
         assert!(first.delete(&mut conn).is_err());
         assert_eq!(
-            HistoryContent::by_history(&mut conn, &1)?
+            HistoryContent::by_history_id(&mut conn, &1)?
                 .iter()
                 .map(|r| r.seq)
                 .collect::<Vec<_>>(),
@@ -3607,8 +3775,15 @@ mod configuration {
         let handle = tx.locate(record.table(), record.page(), record.slot().slot)?;
         let handle = tx.update(&handle, &binary)?;
         let first = ExportProperty::try_from(tx.read(&handle)?)?;
-        // Readers and count maintenance also tolerate multiple live property rows.
-        tx.insert(ExportProperty::TABLE, &binary)?;
+        // Multiple live properties must have distinct device names.
+        let Row::Standard(StandardRow::ExportProperty(mut second)) = binary.clone() else {
+            panic!()
+        };
+        second.name = DeviceSqlString::encode("Second USB", StringEncoding::ShortAscii)?;
+        tx.insert(
+            ExportProperty::TABLE,
+            &Row::Standard(StandardRow::ExportProperty(second)),
+        )?;
         tx.commit()?;
         assert_eq!((first.track_count, first.background_color), (123, 0x80));
         assert_eq!(first.name, "Library Ã©Å¸Â³Ã¦Â¥Â½");
@@ -3687,8 +3862,8 @@ mod configuration {
             )?;
             tx.commit()?;
         }
-        assert_eq!(RecommendedLike::by_content(&mut conn, &10)?.len(), 4);
-        assert!(RecommendedLike::by_content(&mut conn, &99)?.is_empty());
+        assert_eq!(RecommendedLike::by_content_id(&mut conn, &10)?.len(), 4);
+        assert!(RecommendedLike::by_content_id(&mut conn, &99)?.is_empty());
         let pairs = RecommendedLike::all(&mut conn)?;
         assert_eq!(
             pairs
@@ -3868,7 +4043,7 @@ mod configuration {
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            RecommendedLike::by_content(&mut standard, &1),
+            RecommendedLike::by_content_id(&mut standard, &1),
             Err(Error::WrongDatabaseKind { .. })
         ));
         let column = BrowseColumn::try_from(seed_browse(
@@ -4036,7 +4211,7 @@ mod history {
         assert_eq!(conn.read_stats(), reads);
         assert!(History::all(&mut conn)?.is_empty());
         assert!(History::find(&mut conn, &1)?.is_none());
-        assert!(HistoryContent::by_history(&mut conn, &1)?.is_empty());
+        assert!(HistoryContent::by_history_id(&mut conn, &1)?.is_empty());
         NewPlaylist::new(1, 0, 1, "Regular playlist").insert(&mut conn)?;
         let mut detached = NewHistory::new(1, "Session Ã©Å¸Â³Ã¦Â¥Â½").insert(&mut conn)?;
         detached.name = "Local edit".into();
@@ -4062,7 +4237,7 @@ mod history {
         ] {
             NewHistoryContent::new(playlist, track, position).insert(&mut conn)?;
         }
-        let ordered = HistoryContent::by_history(&mut conn, &1)?;
+        let ordered = HistoryContent::by_history_id(&mut conn, &1)?;
         assert_eq!(
             ordered
                 .iter()
@@ -4074,8 +4249,8 @@ mod history {
             ordered[2].raw_record().slot().slot,
             ordered[3].raw_record().slot().slot
         );
-        assert_eq!(HistoryContent::by_history(&mut conn, &2)?.len(), 1);
-        assert!(HistoryContent::by_history(&mut conn, &99)?.is_empty());
+        assert_eq!(HistoryContent::by_history_id(&mut conn, &2)?.len(), 1);
+        assert!(HistoryContent::by_history_id(&mut conn, &99)?.is_empty());
         assert!(PlaylistContent::all(&mut conn)?.is_empty());
         let all = HistoryContent::all(&mut conn)?;
         assert_eq!(
@@ -4103,7 +4278,7 @@ mod history {
             DeviceSqlConnection::from_reader(Cursor::new(bytes), DatabaseKind::Standard)?;
         assert_eq!(History::all(&mut reopened)?, playlists);
         assert_eq!(HistoryContent::all(&mut reopened)?, all);
-        assert_eq!(HistoryContent::by_history(&mut reopened, &1)?, ordered);
+        assert_eq!(HistoryContent::by_history_id(&mut reopened, &1)?, ordered);
         Ok(())
     }
 
@@ -4195,7 +4370,7 @@ mod history {
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            HistoryContent::by_history(&mut conn, &1),
+            HistoryContent::by_history_id(&mut conn, &1),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(

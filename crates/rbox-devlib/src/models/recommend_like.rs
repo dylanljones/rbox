@@ -63,7 +63,7 @@ impl RecommendedLike {
 
     /// Scan rows containing either track ID, retaining physical order and repetitions.
     /// Referenced rows are not loaded or validated.
-    pub fn by_content<R: Read + Seek>(
+    pub fn by_content_id<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
         content_id: &u32,
     ) -> Result<Vec<Self>> {
@@ -76,6 +76,7 @@ impl RecommendedLike {
         }
         Ok(rows)
     }
+
     /// Delete this original occurrence, ignoring public-field edits.
     ///
     /// Other occurrences and referenced contents are retained. Changed binary
