@@ -36,10 +36,13 @@ pub trait SequenceStore {
     /// Collection identifier; retained as `ParentId` for compatibility with `TreeSeq`.
     type ParentId: ?Sized + PartialEq + Debug;
 
-    /// First stored position, dictated by the database format.
+    /// First stored position, dictated by the model and database format.
     ///
-    /// The main Rekordbox `master.db` database uses 1-based indexing for positions,
-    /// while the One Library database uses 0-based indexing.
+    /// Master database collections conventionally start at one. OneLibrary uses
+    /// zero for playlist/My Tag siblings (also adopted for history siblings), but
+    /// one for playlist/history contents and visible browse settings.
+    /// Implementations must select their own start;
+    /// it cannot be inferred from the connection type.
     const START_SEQ: i32 = 1;
 
     /// Check collection existence and whether it accepts this kind of item.

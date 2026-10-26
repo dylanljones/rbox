@@ -38,7 +38,8 @@ pub struct Category {
     pub id: i32,
     /// A foreign key referencing the [`MenuItem`].
     pub menu_item_id: i32,
-    /// The sequence/order of the category.
+    /// One-based order among visible categories. Hidden rows may retain an old
+    /// position and are excluded from active sequence maintenance.
     pub seq: i32,
     /// A flag if the category is visible.
     pub is_visible: i32,
@@ -208,6 +209,7 @@ impl Category {
 
 impl SequenceStore for Category {
     type ParentId = ();
+    const START_SEQ: i32 = 1;
     fn is_valid_parent(_: &mut SqliteConnection, _: &()) -> QueryResult<bool> {
         Ok(true)
     }

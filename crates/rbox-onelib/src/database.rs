@@ -1028,6 +1028,7 @@ impl OneLibrary {
     }
 
     /// Creates a new record and inserts it into the `playlist_content` table.
+    /// Positions start at one; an omitted position appends.
     pub fn create_playlist_content(
         &self,
         playlist_id: i32,
@@ -1041,6 +1042,7 @@ impl OneLibrary {
     }
 
     /// Moves a playlist content to a new sequence number.
+    /// Positions start at one; an omitted position moves to the end.
     pub fn move_playlist_content(
         &self,
         playlist_id: i32,
@@ -1056,6 +1058,8 @@ impl OneLibrary {
     }
 
     /// Moves multiple playlist contents to a new sequence number.
+    /// The one-based destination is measured after removing the selected entries;
+    /// an omitted position appends, preserving the supplied entry order.
     pub fn move_playlist_contents(
         &self,
         ids: Vec<&(i32, i32)>,

@@ -341,7 +341,15 @@ mod content_mutations {
         NewHistory::new(20, "History").insert(&mut standard)?;
         NewMyTag::new(30, 0, 0, "Tag").insert(&mut extended)?;
         for (id, seq) in [(1, 1), (1, 3), (2, 8)] {
-            NewPlaylistContent::new(10, id, seq).insert(&mut standard)?;
+            // Seed existing binary duplicates to exercise cleanup of imported files.
+            let mut tx = standard.transaction();
+            tx.insert(
+                PlaylistContent::TABLE,
+                &Row::Standard(StandardRow::PlaylistEntry(
+                    NewPlaylistContent::new(10, id, seq).to_binary()?,
+                )),
+            )?;
+            tx.commit()?;
         }
         for (id, seq) in [(1, 1), (2, 9)] {
             NewHistoryContent::new(20, id, seq).insert(&mut standard)?;
@@ -1329,7 +1337,15 @@ mod playlist_mutations {
             .raw_record()
             .decode()?;
         for playlist in [3, 3, 4] {
-            NewPlaylistContent::new(playlist, 99, 7).insert(&mut conn)?;
+            // Include an imported duplicate to verify cascading cleanup removes both.
+            let mut tx = conn.transaction();
+            tx.insert(
+                PlaylistContent::TABLE,
+                &Row::Standard(StandardRow::PlaylistEntry(
+                    NewPlaylistContent::new(playlist, 99, 7).to_binary()?,
+                )),
+            )?;
+            tx.commit()?;
         }
         let before = bytes(&mut conn)?;
         let mut limited =
@@ -1374,7 +1390,15 @@ mod playlist_mutations {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
         let first = NewPlaylistContent::new(1, 2, 3).insert(&mut conn)?;
         for seq in [3, 9] {
-            NewPlaylistContent::new(1, 2, seq).insert(&mut conn)?;
+            // Existing files may contain duplicates created outside the model API.
+            let mut tx = conn.transaction();
+            tx.insert(
+                PlaylistContent::TABLE,
+                &Row::Standard(StandardRow::PlaylistEntry(
+                    NewPlaylistContent::new(1, 2, seq).to_binary()?,
+                )),
+            )?;
+            tx.commit()?;
         }
         let keep = NewPlaylistContent::new(1, 3, 12).insert(&mut conn)?;
         let mut edited = first.clone();
@@ -4751,6 +4775,37 @@ mod playlists {
     use rbox_devlib::models::{NewPlaylist, NewPlaylistContent, Playlist, PlaylistContent};
 
     #[test]
+    fn content_pairs_are_unique_regardless_of_sequence() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let first = NewPlaylistContent::new(1, 10, 1).insert(&mut conn)?;
+        NewPlaylistContent::new(2, 10, 1).insert(&mut conn)?;
+        NewPlaylistContent::new(1, 20, 1).insert(&mut conn)?;
+        let mut before = Vec::new();
+        conn.write_to(&mut before)?;
+        for seq in [1, 99] {
+            assert!(matches!(
+                NewPlaylistContent::new(1, 10, seq).insert(&mut conn),
+                Err(Error::UniqueConstraintViolation { table, fields })
+                    if table == PlaylistContent::TABLE
+                        && fields == &["playlist_id", "content_id"]
+            ));
+        }
+        let mut after = Vec::new();
+        conn.write_to(&mut after)?;
+        assert_eq!(after, before);
+        let mut reopened =
+            DeviceSqlConnection::from_reader(Cursor::new(before), DatabaseKind::Standard)?;
+        assert!(matches!(
+            NewPlaylistContent::new(1, 10, 2).insert(&mut reopened),
+            Err(Error::UniqueConstraintViolation { .. })
+        ));
+        assert_eq!(first.delete(&mut conn)?, 1);
+        NewPlaylistContent::new(1, 10, 2).insert(&mut conn)?;
+        assert_eq!(PlaylistContent::all(&mut conn)?.len(), 3);
+        Ok(())
+    }
+
+    #[test]
     fn folders_and_playlists_keep_explicit_positions_flags_and_reserved_values() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
         let before = conn.read_stats();
@@ -4827,9 +4882,20 @@ mod playlists {
         NewContent::new(20, "/Contents/Two.wav").insert(&mut conn)?;
         let late = NewPlaylistContent::new(1, 10, 30).insert(&mut conn)?;
         let first_tie = NewPlaylistContent::new(1, 20, 4).insert(&mut conn)?;
-        let second_tie = NewPlaylistContent::new(1, 10, 4).insert(&mut conn)?;
-        let identical = NewPlaylistContent::new(1, 10, 4).insert(&mut conn)?;
-        let zero = NewPlaylistContent::new(1, 10, 0).insert(&mut conn)?;
+        // Bypass the model constraint to test lossless reads of existing duplicates.
+        let mut tx = conn.transaction();
+        let mut duplicates = Vec::new();
+        for seq in [4, 4, 0] {
+            let handle = tx.insert(
+                PlaylistContent::TABLE,
+                &Row::Standard(StandardRow::PlaylistEntry(
+                    NewPlaylistContent::new(1, 10, seq).to_binary()?,
+                )),
+            )?;
+            duplicates.push(PlaylistContent::try_from(tx.read(&handle)?)?);
+        }
+        tx.commit()?;
+        let [second_tie, identical, zero]: [PlaylistContent; 3] = duplicates.try_into().unwrap();
         let other = NewPlaylistContent::new(2, 10, 1).insert(&mut conn)?;
         // Later transactions can change touched flags on earlier snapshots.
         // Compare values and occurrence locations, not transient page metadata.

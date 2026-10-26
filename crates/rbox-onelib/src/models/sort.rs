@@ -35,7 +35,8 @@ pub struct Sort {
     pub id: i32,
     /// An optional foreign key referencing the [`MenuItem`].
     pub menu_item_id: i32,
-    /// The sequence/order number of the *visible* items (1-based index)
+    /// One-based order among visible sort options. Hidden rows may retain an old
+    /// position and are excluded from active sequence maintenance.
     pub seq: i32,
     /// A flag if the item is visible in the menu
     pub is_visible: i32,
@@ -139,19 +140,24 @@ impl Sort {
 
 impl SequenceStore for Sort {
     type ParentId = ();
+    const START_SEQ: i32 = 1;
+
     fn is_valid_parent(_: &mut SqliteConnection, _: &()) -> QueryResult<bool> {
         Ok(true)
     }
+
     fn count_children(conn: &mut SqliteConnection, _: &()) -> QueryResult<i32> {
         let count: i64 = Self::filter_is_visible(1).count().get_result(conn)?;
         i32::try_from(count).map_err(|_| ordering_error("Collection too large"))
     }
+
     fn get_seq_numbers(conn: &mut SqliteConnection, _: &()) -> QueryResult<Vec<i32>> {
         Self::filter_is_visible(1)
             .order(sort::seq)
             .select(sort::seq)
             .load(conn)
     }
+
     fn reset_seq(conn: &mut SqliteConnection, _: &()) -> QueryResult<usize> {
         conn.transaction(|conn| {
             let rows: Vec<(i32, i32)> = Self::filter_is_visible(1)
@@ -173,6 +179,7 @@ impl SequenceStore for Sort {
             Ok(count)
         })
     }
+
     fn shift_seq(
         conn: &mut SqliteConnection,
         _: &(),
@@ -188,6 +195,7 @@ impl SequenceStore for Sort {
         .execute(conn)
     }
 }
+
 impl SequenceVisible for Sort {}
 
 /// Represents a new record insertale to the `sort` table.

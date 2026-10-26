@@ -13,6 +13,65 @@ use rbox_db::ordering::SequenceVisible;
 use rbox_db::*;
 
 #[test]
+fn native_export_uses_model_specific_sequence_starts() -> anyhow::Result<()> {
+    use rbox_onelib::models::{Category, MyTag, Playlist, PlaylistContent, Sort};
+    use rbox_onelib::schema::myTag;
+
+    let fixture = rbox_testing::data::setup_one_library_path();
+    let mut conn = rbox_onelib::connection::establish_connection(
+        fixture.path(),
+        &ConnectionOptions::default(),
+    )?;
+    let playlists = Playlist::by_parent_id(&mut conn, 0)?;
+    assert!(!playlists.is_empty());
+    assert_eq!(playlists[0].seq, 0);
+    assert!(Playlist::validate_seq_numbers(&mut conn, &0)?);
+    let playlist = playlists
+        .iter()
+        .find(|row| row.name == "Demo Tracks")
+        .unwrap();
+    let original = PlaylistContent::by_playlist_id(&mut conn, playlist.id)?;
+    assert_eq!(
+        original.iter().map(|row| row.seq).collect::<Vec<_>>(),
+        [1, 2]
+    );
+    assert!(PlaylistContent::validate_seq_numbers(
+        &mut conn,
+        &playlist.id
+    )?);
+    assert_eq!(PlaylistContent::reset_seq(&mut conn, &playlist.id)?, 0);
+    assert_eq!(
+        PlaylistContent::by_playlist_id(&mut conn, playlist.id)?,
+        original
+    );
+
+    // Read only the parent IDs: native tag identities can exceed the signed model range.
+    let parents = myTag::table
+        .select(myTag::parent_id)
+        .distinct()
+        .load::<i32>(&mut conn)?;
+    assert!(!parents.is_empty());
+    for parent in parents {
+        let positions = MyTag::get_seq_numbers(&mut conn, &parent)?;
+        assert_eq!(positions.first(), Some(&0));
+        assert!(MyTag::validate_seq_numbers(&mut conn, &parent)?);
+    }
+    assert_eq!(
+        <Category as SequenceVisible>::get_seq_numbers(&mut conn)?.first(),
+        Some(&1)
+    );
+    assert_eq!(
+        <Sort as SequenceVisible>::get_seq_numbers(&mut conn)?.first(),
+        Some(&1)
+    );
+    assert!(<Category as SequenceVisible>::validate_seq_numbers(
+        &mut conn
+    )?);
+    assert!(<Sort as SequenceVisible>::validate_seq_numbers(&mut conn)?);
+    Ok(())
+}
+
+#[test]
 fn one_library_tree_snapshot_has_stable_sibling_order() {
     use rbox_onelib::models::*;
     use rbox_onelib::schema::playlist;
@@ -105,13 +164,13 @@ fn one_library_association_deletion_and_rollback() {
     }
     let original_playlists = PlaylistContent::all(&mut conn).unwrap();
     let original_histories = HistoryContent::all(&mut conn).unwrap();
-    // Duplicate composite keys fail after opening a slot; neither list may retain a gap.
+    // Duplicate composite keys must leave both lists unchanged.
     assert!(PlaylistContent::new(playlists[0].id, content[2])
-        .seq(0)
+        .seq(1)
         .insert(&mut conn)
         .is_err());
     assert!(HistoryContent::new(histories[0].id, content[2])
-        .seq(0)
+        .seq(1)
         .insert(&mut conn)
         .is_err());
     assert_eq!(PlaylistContent::all(&mut conn).unwrap(), original_playlists);
@@ -224,8 +283,21 @@ visible_matrix!(
 
 #[test]
 fn history_ordering() {
-    use rbox_onelib::models::NewHistory;
+    use rbox_onelib::models::{History, NewHistory};
     let mut conn = ConnectionFixture::one_library(rbox_onelib::connection::establish_connection);
+    let root = NewHistory::folder("root").seq(0).insert(&mut conn).unwrap();
+    assert_eq!(root.seq, 0);
+    let child = NewHistory::history("first")
+        .parent_id(root.id)
+        .seq(0)
+        .insert(&mut conn)
+        .unwrap();
+    let sibling = NewHistory::history("second")
+        .parent_id(root.id)
+        .insert(&mut conn)
+        .unwrap();
+    assert_eq!((child.seq, sibling.seq), (0, 1));
+    History::delete(&mut conn, &root.id).unwrap();
     ordering::tree_matrix::<rbox_onelib::models::History>(
         &mut conn,
         &0,
@@ -293,6 +365,18 @@ fn history_content_ordering() {
     )
     .insert(&mut conn)
     .unwrap();
+    // Source-backed convention: rbxport writes history membership as position + 1.
+    assert_eq!((p.seq, q.seq), (0, 1));
+    let first = HistoryContent::new(p.id, content_ids[0])
+        .insert(&mut conn)
+        .unwrap();
+    assert_eq!(first.seq, 1);
+    assert!(HistoryContent::new(p.id, content_ids[1])
+        .seq(0)
+        .insert(&mut conn)
+        .is_err());
+    assert!(HistoryContent::move_to(&mut conn, &(p.id, content_ids[0]), Some(0)).is_err());
+    HistoryContent::delete(&mut conn, &(p.id, content_ids[0])).unwrap();
     ordering::list_matrix::<HistoryContent>(
         &mut conn,
         &p.id,
@@ -317,6 +401,16 @@ fn playlist_content_ordering() {
     let q = NewPlaylist::new("ordering q", PlaylistType::try_from(0).unwrap())
         .insert(&mut conn)
         .unwrap();
+    let first = PlaylistContent::new(p.id, content_ids[0])
+        .insert(&mut conn)
+        .unwrap();
+    assert_eq!(first.seq, 1);
+    assert!(PlaylistContent::new(p.id, content_ids[1])
+        .seq(0)
+        .insert(&mut conn)
+        .is_err());
+    assert!(PlaylistContent::move_to(&mut conn, &(p.id, content_ids[0]), Some(0)).is_err());
+    PlaylistContent::delete(&mut conn, &(p.id, content_ids[0])).unwrap();
     ordering::list_matrix::<PlaylistContent>(
         &mut conn,
         &p.id,
@@ -353,10 +447,10 @@ fn handler_playlist_and_membership_moves() {
     for &id in &tracks[..3] {
         db.create_playlist_content(a.id, id, None).unwrap();
     }
-    db.move_playlist_content(a.id, tracks[2], Some(0)).unwrap();
+    db.move_playlist_content(a.id, tracks[2], Some(1)).unwrap();
     let ids = [(a.id, tracks[0]), (a.id, tracks[1]), (a.id, tracks[2])];
     ordering::assert_order::<PlaylistContent>(&mut fixture, &a.id, &[ids[2], ids[0], ids[1]]);
-    db.move_playlist_contents(vec![&ids[1], &ids[0]], Some(0))
+    db.move_playlist_contents(vec![&ids[1], &ids[0]], Some(1))
         .unwrap();
     ordering::assert_order::<PlaylistContent>(&mut fixture, &a.id, &[ids[1], ids[0], ids[2]]);
     assert!(db

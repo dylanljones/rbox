@@ -1310,6 +1310,7 @@ impl JsOneLibrary {
     }
 
     /// Creates a new record and inserts it into the `playlist_content` table.
+    /// Positions start at one; an omitted position appends.
     #[napi]
     pub fn create_playlist_content(
         &self,
@@ -1325,6 +1326,7 @@ impl JsOneLibrary {
     }
 
     /// Moves a playlist content to a new sequence number.
+    /// Positions start at one; an omitted position moves to the end.
     #[napi]
     pub fn move_playlist_content(
         &self,
@@ -1340,6 +1342,8 @@ impl JsOneLibrary {
     }
 
     /// Moves multiple playlist contents to a new sequence number.
+    /// The one-based destination is measured after removing the selected entries;
+    /// an omitted position appends, preserving the supplied entry order.
     #[napi]
     pub fn move_playlist_contents(
         &self,

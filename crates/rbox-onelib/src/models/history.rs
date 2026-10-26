@@ -45,7 +45,8 @@ use rbox_db::{
 pub struct History {
     /// A unique identifier for the entry.
     pub id: i32,
-    /// The sequence/order number of the history (1-based index)
+    /// Zero-based sibling position, following the other OneLibrary tree models.
+    /// This convention is inferred; populated native history exports are still needed.
     pub seq: i32,
     /// The name of the history.
     pub name: String,
@@ -74,10 +75,6 @@ impl Model for History {
 }
 
 impl ModelDelete for History {
-    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
-        delete_tree_batch::<Self>(conn, ids)
-    }
-
     fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
         conn.transaction(|conn| {
             // Vec of all deleted ids
@@ -110,6 +107,10 @@ impl ModelDelete for History {
 
             Ok(deleted_ids.len())
         })
+    }
+
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
+        delete_tree_batch::<Self>(conn, ids)
     }
 }
 
@@ -200,7 +201,8 @@ impl History {
 
 impl TreeSeq for History {
     type ParentId = i32;
-    const START_SEQ: i32 = 1;
+    const START_SEQ: i32 = 0;
+
     fn is_valid_parent(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
@@ -350,7 +352,7 @@ impl NewHistory {
         }
     }
 
-    /// Set the insertion position among siblings; one inserts first.
+    /// Set the insertion position among siblings; zero inserts first.
     pub fn seq(mut self, seq: i32) -> Self {
         self.seq = Some(seq);
         self
@@ -386,7 +388,8 @@ pub struct HistoryContent {
     pub history_id: i32,
     /// The ID of the associated [`Content`].
     pub content_id: i32,
-    /// Position within the history, starting at zero. Before insertion, `-1` requests append.
+    /// Position within the history, starting at one. Before insertion, `-1` requests append.
+    /// Matches rbxport's history writer; populated native fixtures are still needed.
     pub seq: i32,
 }
 
@@ -480,7 +483,7 @@ impl HistoryContent {
         }
     }
 
-    /// Set the stored position; zero is the first entry and -1 requests append on insertion.
+    /// Set the stored position; one is the first entry and -1 requests append on insertion.
     pub fn seq(mut self, seq: i32) -> Self {
         self.seq = seq;
         self
@@ -575,7 +578,8 @@ impl HistoryContent {
 
 impl TreeSeq for HistoryContent {
     type ParentId = i32;
-    const START_SEQ: i32 = 0;
+    const START_SEQ: i32 = 1;
+
     fn is_valid_parent(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,

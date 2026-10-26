@@ -7,6 +7,8 @@
 //! [PlaylistContent] and [NewPlaylistContent] describe ordered track occurrences
 //! in table 8. Queries do not load related rows automatically; repeated tracks
 //! and position ties are retained.
+//! Model insertions require unique `(playlist_id, content_id)` pairs; existing
+//! duplicate binary rows remain readable for inspection and cleanup.
 //! Updates validate changed parents. Deleting a folder removes its descendants
 //! and their entries, while contents remain intact. Mutations commit in memory;
 //! saving is explicit and surviving sequence values are not renumbered.
@@ -540,8 +542,9 @@ impl TryFrom<RowRecord> for PlaylistContent {
 
 /// Input for a fresh playlist occurrence, without a synthetic ID or source row.
 ///
-/// Positions are explicit; insertion never shifts other entries or deduplicates
-/// tracks. Nonzero playlist/track IDs are required, but referenced rows are not
+/// Positions are explicit; insertion never shifts other entries and rejects an
+/// existing `(playlist_id, content_id)` pair, regardless of position.
+/// Nonzero playlist/track IDs are required, but referenced rows are not
 /// resolved. The caller supplies valid references to a playlist and an export track.
 /// Saving, relationship validation and automatic ordering remain separate steps.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -564,7 +567,8 @@ impl NewPlaylistContent {
         }
     }
 
-    /// Insert one occurrence atomically, allowing repeated tracks and position ties.
+    /// Insert atomically, requiring a unique `(playlist_id, content_id)` pair.
+    /// The same content may appear in different playlists; position ties are allowed.
     /// Returns the engine-created row and commits in memory only; saving is explicit.
     pub fn insert<R: Read + Seek>(
         self,
@@ -573,6 +577,16 @@ impl NewPlaylistContent {
         conn.check_kind(PlaylistContent::TABLE)?;
         let row = self.to_binary()?;
         let mut tx = conn.transaction();
+        for record in tx.iter_raw(PlaylistContent::TABLE)? {
+            let record = record?;
+            let existing = read_fields::<PlaylistEntryRow>(&record)?;
+            if existing.playlist_id == self.playlist_id && existing.track_id == self.content_id {
+                return Err(Error::UniqueConstraintViolation {
+                    table: PlaylistContent::TABLE,
+                    fields: &["playlist_id", "content_id"],
+                });
+            }
+        }
         let handle = tx.insert(
             PlaylistContent::TABLE,
             &Row::Standard(StandardRow::PlaylistEntry(row)),
@@ -583,6 +597,7 @@ impl NewPlaylistContent {
     }
 
     /// Encode the binary fields for an explicit transaction; placement is assigned by the engine.
+    /// Direct binary insertion bypasses the model's pair-uniqueness check.
     pub fn to_binary(&self) -> Result<PlaylistEntryRow> {
         validate_nonzero_id(PlaylistContent::TABLE, "playlist_id", self.playlist_id)?;
         validate_nonzero_id(PlaylistContent::TABLE, "content_id", self.content_id)?;

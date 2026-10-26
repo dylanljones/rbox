@@ -33,7 +33,8 @@ use rbox_db::Model;
 pub struct HotCueBankList {
     /// The unique identifier of the hot cue bank list.
     pub id: i32,
-    /// The sequence/order number of the hot cue bank list (1-based index).
+    /// Stored sibling position. The starting index is not yet verified against
+    /// populated native exports; values are preserved without normalization.
     pub seq: i32,
     /// The name of the hot cue bank list.
     pub name: Option<String>,
@@ -82,7 +83,8 @@ pub struct HotCueBankListCue {
     pub hot_cue_bank_list_id: i32,
     /// The unique identifier of the cue.
     pub cue_id: i32,
-    /// The sequence/order number of the hot cue bank list cue (1-based index).
+    /// Stored position within the bank. The starting index is not yet verified
+    /// against populated native exports; values are preserved without normalization.
     pub seq: i32,
 }
 

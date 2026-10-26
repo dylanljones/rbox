@@ -249,6 +249,7 @@ impl Playlist {
 impl TreeSeq for Playlist {
     type ParentId = i32;
     const START_SEQ: i32 = 0;
+
     fn is_valid_parent(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
@@ -448,7 +449,7 @@ pub struct PlaylistContent {
     pub playlist_id: i32,
     /// The ID of the associated [`Content`].
     pub content_id: i32,
-    /// Position within the playlist, starting at zero. Before insertion, `-1` requests append.
+    /// Position within the playlist, starting at one. Before insertion, `-1` requests append.
     pub seq: i32,
 }
 
@@ -545,7 +546,7 @@ impl PlaylistContent {
         }
     }
 
-    /// Set the stored position; zero is the first entry and -1 requests append on insertion.
+    /// Set the stored position; one is the first entry and -1 requests append on insertion.
     pub fn seq(mut self, seq: i32) -> Self {
         self.seq = seq;
         self
@@ -645,7 +646,8 @@ impl PlaylistContent {
 
 impl TreeSeq for PlaylistContent {
     type ParentId = i32;
-    const START_SEQ: i32 = 0;
+    const START_SEQ: i32 = 1;
+
     fn is_valid_parent(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
