@@ -21,6 +21,7 @@ pub use connection::{
     create_connection_pool, establish_connection, initialize_schema, DbConn, DbPool,
 };
 pub use database::OneLibrary;
+pub use enums::*;
 pub use error::{Error, Result};
 pub use models::*;
 

@@ -6,7 +6,7 @@
 use crate::models::Track;
 use napi::Result;
 use napi_derive::napi;
-use rbox::db::enums::HistoryType;
+use rbox::core::HistoryType;
 use rbox::one_library::{models::*, OneLibrary};
 
 #[napi(js_name = "OneLibrary")]

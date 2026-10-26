@@ -9,7 +9,6 @@ from ._rbox import (
     HotCueBanklistType,
     MyTagType,
     PlaylistType,
-    OneLibraryPlaylistType,
     RelatedTracksType,
     SamplerType,
 )

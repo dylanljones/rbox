@@ -6,6 +6,8 @@
 //! This crate supplies the filesystem and process information needed to find a
 //! local Rekordbox installation. It does not open or decrypt databases and does
 //! not modify Rekordbox's preferences.
+//! Shared enum codes are always available; the optional `diesel` feature adds
+//! Diesel integer serialization and query support without enabling a database handler.
 
 pub mod artwork;
 pub mod enums;
@@ -21,7 +23,10 @@ pub mod share;
 #[doc(hidden)]
 pub mod python;
 
-pub use enums::FileType;
+pub use enums::{
+    Analyzed, FileType, HistoryType, HotCueBanklistType, MyTagType, PlaylistType,
+    RelatedTracksType, SamplerType,
+};
 pub use locate::{
     find_programs, find_programs_in, locate_library, options_json_path, rekordbox_agent_app_dir,
     rekordbox_app_dir, LibraryLocation,

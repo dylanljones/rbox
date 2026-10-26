@@ -165,13 +165,13 @@ fn masterdb_updates_and_bulk_rollback(#[case] version: usize) {
         conn,
         DjmdHistory,
         NewDjmdHistory,
-        rbox_db::enums::HistoryType::List
+        rbox_masterdb::HistoryType::List
     );
     master_tree_updates!(
         conn,
         DjmdMyTag,
         NewDjmdMyTag,
-        rbox_db::enums::MyTagType::List
+        rbox_masterdb::MyTagType::List
     );
     master_tree_updates!(
         conn,
@@ -314,13 +314,13 @@ fn djmd_song_history_ordering(#[case] version: usize) {
     assert_eq!(content_ids.len(), 6);
     let p = NewDjmdHistory::new(
         "ordering p",
-        rbox_db::enums::HistoryType::try_from(0).unwrap(),
+        rbox_masterdb::HistoryType::try_from(0).unwrap(),
     )
     .insert(&mut conn)
     .unwrap();
     let q = NewDjmdHistory::new(
         "ordering q",
-        rbox_db::enums::HistoryType::try_from(0).unwrap(),
+        rbox_masterdb::HistoryType::try_from(0).unwrap(),
     )
     .insert(&mut conn)
     .unwrap();
@@ -386,18 +386,12 @@ fn djmd_song_my_tag_ordering(#[case] version: usize) {
         .map(|r| r.id)
         .collect();
     assert_eq!(content_ids.len(), 6);
-    let p = NewDjmdMyTag::new(
-        "ordering p",
-        rbox_db::enums::MyTagType::try_from(0).unwrap(),
-    )
-    .insert(&mut conn)
-    .unwrap();
-    let q = NewDjmdMyTag::new(
-        "ordering q",
-        rbox_db::enums::MyTagType::try_from(0).unwrap(),
-    )
-    .insert(&mut conn)
-    .unwrap();
+    let p = NewDjmdMyTag::new("ordering p", rbox_masterdb::MyTagType::try_from(0).unwrap())
+        .insert(&mut conn)
+        .unwrap();
+    let q = NewDjmdMyTag::new("ordering q", rbox_masterdb::MyTagType::try_from(0).unwrap())
+        .insert(&mut conn)
+        .unwrap();
     ordering::list_matrix::<DjmdSongMyTag>(
         &mut conn,
         &p.id,

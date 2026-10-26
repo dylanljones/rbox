@@ -147,7 +147,7 @@ fn one_library_association_deletion_and_rollback() {
         .collect::<Vec<_>>();
     let histories = (0..3)
         .map(|i| {
-            NewHistory::new(format!("h{i}"), rbox_db::enums::HistoryType::List)
+            NewHistory::new(format!("h{i}"), rbox_onelib::HistoryType::List)
                 .insert(&mut conn)
                 .unwrap()
         })
@@ -246,8 +246,8 @@ fn one_library_bulk_insert_and_invalid_parents() {
     use rbox_onelib::{enums::PlaylistType, models::*};
     let mut conn = ConnectionFixture::one_library(rbox_onelib::connection::establish_connection);
     one_tree_updates!(conn, Playlist, NewPlaylist, PlaylistType::List);
-    one_tree_updates!(conn, History, NewHistory, rbox_db::enums::HistoryType::List);
-    one_tree_updates!(conn, MyTag, NewMyTag, rbox_db::enums::MyTagType::List);
+    one_tree_updates!(conn, History, NewHistory, rbox_onelib::HistoryType::List);
+    one_tree_updates!(conn, MyTag, NewMyTag, rbox_onelib::MyTagType::List);
 }
 
 #[test]
@@ -353,18 +353,12 @@ fn history_content_ordering() {
     use rbox_onelib::models::*;
     let mut conn = ConnectionFixture::one_library(rbox_onelib::connection::establish_connection);
     let content_ids = conn.seed_content_ids();
-    let p = NewHistory::new(
-        "ordering p",
-        rbox_db::enums::HistoryType::try_from(0).unwrap(),
-    )
-    .insert(&mut conn)
-    .unwrap();
-    let q = NewHistory::new(
-        "ordering q",
-        rbox_db::enums::HistoryType::try_from(0).unwrap(),
-    )
-    .insert(&mut conn)
-    .unwrap();
+    let p = NewHistory::new("ordering p", rbox_onelib::HistoryType::try_from(0).unwrap())
+        .insert(&mut conn)
+        .unwrap();
+    let q = NewHistory::new("ordering q", rbox_onelib::HistoryType::try_from(0).unwrap())
+        .insert(&mut conn)
+        .unwrap();
     // Source-backed convention: rbxport writes history membership as position + 1.
     assert_eq!((p.seq, q.seq), (0, 1));
     let first = HistoryContent::new(p.id, content_ids[0])
@@ -516,7 +510,7 @@ fn handler_history_membership_compaction() {
     let tracks = fixture.seed_content_ids();
     let db = OneLibrary::from_path(fixture.path()).unwrap();
     let history = db
-        .create_history("history", rbox_db::enums::HistoryType::List)
+        .create_history("history", rbox_onelib::HistoryType::List)
         .unwrap();
     for &id in &tracks[..3] {
         db.create_history_content(history.id, id).unwrap();

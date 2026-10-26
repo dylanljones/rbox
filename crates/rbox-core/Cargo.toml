@@ -15,10 +15,13 @@ publish = true
 
 [features]
 default = []
+# SQLite integer conversions for shared enums; not needed by binary handlers.
+diesel = ["dep:diesel"]
 pyo3 = ["dep:pyo3"]
 napi = ["dep:napi", "dep:napi-derive"]
 
 [dependencies]
+diesel              = { workspace = true, optional = true }
 pyo3                = { workspace = true, optional = true }
 napi                = { workspace = true, optional = true }
 napi-derive         = { workspace = true, optional = true }

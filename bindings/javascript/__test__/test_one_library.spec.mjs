@@ -4,7 +4,7 @@
 import test from 'ava'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
-import { OneLibrary, OneLibraryPlaylistType, PlaylistType } from '../index.js'
+import { OneLibrary, PlaylistType } from '../index.js'
 import { cleanupFixtures, fixtureCopy, temporaryPath } from './helpers/fixtures.mjs'
 
 test.afterEach.always(cleanupFixtures)
@@ -29,10 +29,10 @@ test('missing database constructors do not create files', t => {
     t.false(existsSync(missing))
 })
 
-test('database playlist enums have distinct exports', t => {
-    t.not(OneLibraryPlaylistType, PlaylistType)
+test('OneLibrary uses the shared playlist enum', t => {
+    t.not(PlaylistType)
     const row = t.context.db.createPlaylist('enum API', null, null)
-    t.is(row.attribute, OneLibraryPlaylistType.List)
+    t.is(row.attribute, PlaylistType.List)
 })
 
 test('raw getters and argument conversion', t => {

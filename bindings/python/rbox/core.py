@@ -12,13 +12,20 @@ This namespace exposes the Python bindings for ``rbox::core``. For example::
 """
 
 from ._rbox import (
+    Analyzed,
     FileType,
+    HistoryType,
+    HotCueBanklistType,
     LibraryLocation,
     LocationSource,
     LookupPaths,
+    MyTagType,
     OptionsError,
+    PlaylistType,
     ProgramLocation,
     RekordboxOptions,
+    RelatedTracksType,
+    SamplerType,
     Track,
     TrackMetadata,
     TrackSource,
@@ -40,7 +47,14 @@ from ._rbox import (
 )
 
 __all__ = [
+    "Analyzed",
+    "RelatedTracksType",
+    "SamplerType",
     "FileType",
+    "HistoryType",
+    "HotCueBanklistType",
+    "MyTagType",
+    "PlaylistType",
     "LibraryLocation",
     "LocationSource",
     "LookupPaths",

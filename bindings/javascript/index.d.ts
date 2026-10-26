@@ -3428,6 +3428,14 @@ export interface UuidIDMap {
   /** The current ID in the mapping. */
   currentId: string
 }
+/** Stored Rekordbox codes for Analyzed. */
+export declare const enum Analyzed {
+  NotAnalyzed = 0,
+  Standard = 105,
+  Advanced = 121,
+  Locked = 233
+}
+
 /** Known Rekordbox file type codes; use raw integers to retain unknown values. */
 export declare const enum FileType {
   /** Content that rekordbox could not read; this is a known on-disk code. */
@@ -3443,6 +3451,18 @@ export declare const enum FileType {
   StreamApple = 26
 }
 
+/** Stored Rekordbox codes for HistoryType. */
+export declare const enum HistoryType {
+  List = 0,
+  Folder = 1
+}
+
+/** Stored Rekordbox codes for HotCueBanklistType. */
+export declare const enum HotCueBanklistType {
+  List = 0,
+  Folder = 1
+}
+
 /** Where the selected library path came from. */
 export declare const enum LocationSource {
   /** The `masterDbDirectory` application setting. */
@@ -3453,6 +3473,37 @@ export declare const enum LocationSource {
   Default = 2,
   /** Manual supplied path, not from configuration or defaults. */
   Manual = 3
+}
+
+/** Stored Rekordbox codes for MyTagType. */
+export declare const enum MyTagType {
+  List = 0,
+  Folder = 1
+}
+
+/**
+ * Shared master database and OneLibrary playlist codes. DeviceSQL only uses the list/folder distinction;
+ * these variants do not imply support for exporting smart or cloud playlists.
+ */
+export declare const enum PlaylistType {
+  List = 0,
+  Folder = 1,
+  SmartList = 4,
+  CloudLibrarySync = -128
+}
+
+/** Stored Rekordbox codes for RelatedTracksType. */
+export declare const enum RelatedTracksType {
+  List = 11,
+  Folder = 10
+}
+
+/** Stored Rekordbox codes for SamplerType. */
+export declare const enum SamplerType {
+  List = 2,
+  Folder = 3,
+  All = 5,
+  Capture = 6
 }
 
 /** Database format whose local content identifier is stored in [`Track::id`]. */
@@ -5390,14 +5441,6 @@ export interface AgentRegistry {
   text1?: string
   /** An optional string field for extended text data. */
   text2?: string
-}
-
-/** Stored Rekordbox codes for Analyzed. */
-export declare const enum Analyzed {
-  NotAnalyzed = 0,
-  Standard = 105,
-  Advanced = 121,
-  Locked = 233
 }
 
 /**
@@ -7694,28 +7737,6 @@ export interface NewDjmdSongSampler {
   trackNo?: number
 }
 
-/** Stored Rekordbox codes for PlaylistType. */
-export declare const enum PlaylistType {
-  List = 0,
-  Folder = 1,
-  SmartList = 4,
-  CloudLibrarySync = -128
-}
-
-/** Stored Rekordbox codes for RelatedTracksType. */
-export declare const enum RelatedTracksType {
-  List = 11,
-  Folder = 10
-}
-
-/** Stored Rekordbox codes for SamplerType. */
-export declare const enum SamplerType {
-  List = 2,
-  Folder = 3,
-  All = 5,
-  Capture = 6
-}
-
 /**
  * Represents the `settingFile` table in the Rekordbox database.
  *
@@ -8666,7 +8687,7 @@ export interface NewPlaylist {
   /** Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image). */
   imageId?: number
   /** The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`). */
-  attribute: OneLibraryPlaylistType
+  attribute: PlaylistType
   /** The ID of the parent [`Playlist`], `0` for top-level records. */
   parentId: number
 }
@@ -8693,14 +8714,6 @@ export interface NewSort {
   isVisible: number
   /** A flag if the item is selected as a sub-column */
   isSelectedAsSubColumn: number
-}
-
-/** Stored Rekordbox codes for PlaylistType. */
-export declare const enum OneLibraryPlaylistType {
-  List = 0,
-  Folder = 1,
-  SmartList = 4,
-  CloudLibrarySync = -128
 }
 
 export interface OriginalArtist {
@@ -8733,7 +8746,7 @@ export interface Playlist {
   /** Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image). */
   imageId?: number
   /** The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`). */
-  attribute: OneLibraryPlaylistType
+  attribute: PlaylistType
   /** The ID of the parent [`Playlist`], `0` for top-level records. */
   parentId: number
 }

@@ -6,7 +6,7 @@
 import pytest
 
 from rbox import OneLibrary, OneLibraryError
-from rbox.enums import OneLibraryPlaylistType, PlaylistType
+from rbox.enums import PlaylistType
 from rbox.one_library import models
 
 
@@ -31,10 +31,9 @@ def test_missing_database_constructors(tmp_path):
 
 
 def test_playlist_enum_registration(one_library):
-    assert OneLibraryPlaylistType is not PlaylistType
     playlist = one_library.create_playlist("enum API", None, None)
-    assert isinstance(playlist.attribute, OneLibraryPlaylistType)
-    assert playlist.attribute == OneLibraryPlaylistType.List
+    assert isinstance(playlist.attribute, PlaylistType)
+    assert playlist.attribute == PlaylistType.List
 
 
 def test_raw_getters(one_library):

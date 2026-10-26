@@ -76,14 +76,13 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
 
     // Database enums
     m.add_class::<rbox::core::FileType>()?;
-    m.add_class::<rbox::masterdb::enums::Analyzed>()?;
-    m.add_class::<rbox::db::enums::HistoryType>()?;
-    m.add_class::<rbox::db::enums::HotCueBanklistType>()?;
-    m.add_class::<rbox::db::enums::MyTagType>()?;
-    m.add_class::<rbox::masterdb::enums::PlaylistType>()?;
-    m.add_class::<rbox::one_library::enums::PlaylistType>()?;
-    m.add_class::<rbox::masterdb::enums::RelatedTracksType>()?;
-    m.add_class::<rbox::masterdb::enums::SamplerType>()?;
+    m.add_class::<rbox::core::Analyzed>()?;
+    m.add_class::<rbox::core::HistoryType>()?;
+    m.add_class::<rbox::core::HotCueBanklistType>()?;
+    m.add_class::<rbox::core::MyTagType>()?;
+    m.add_class::<rbox::core::PlaylistType>()?;
+    m.add_class::<rbox::core::RelatedTracksType>()?;
+    m.add_class::<rbox::core::SamplerType>()?;
 
     // Master-db
     m.add_class::<masterdb::PyMasterDb>()?;
