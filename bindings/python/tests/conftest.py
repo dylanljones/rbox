@@ -3,12 +3,16 @@
 
 """Shared fixture copies for binding API tests; Rust tests cover data semantics."""
 
+import os
 import shutil
 from pathlib import Path
 
 import pytest
 
 from rbox import MasterDb, OneLibrary
+
+# Set before fixtures open connections; preserve explicit diagnostic overrides.
+os.environ.setdefault("RBOX_SQLCIPHER_LOG_LEVEL", "ERROR")
 
 TESTDATA = Path(__file__).resolve().parents[3] / ".testdata"
 DEMO = TESTDATA / "RBv6" / "demo"

@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! Export properties and transactional content-count maintenance.
+
 use chrono::Utc;
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
@@ -102,7 +104,7 @@ impl Property {
     pub fn set_content_count(conn: &mut SqliteConnection, count: u32) -> QueryResult<()> {
         let count = i32::try_from(count)
             .map_err(|error| diesel::result::Error::QueryBuilderError(Box::new(error)))?;
-        Self::set_number_of_contents_default(conn, count)?;
+        Self::set_number_of_contents_all(conn, count)?;
         Ok(())
     }
 
@@ -114,7 +116,7 @@ impl Property {
             let count: i64 = content::table.count().get_result(conn)?;
             let count = i32::try_from(count)
                 .map_err(|error| diesel::result::Error::QueryBuilderError(Box::new(error)))?;
-            Self::set_number_of_contents_default(conn, count)?;
+            Self::set_number_of_contents_all(conn, count)?;
             Ok(count as u32)
         })
     }
@@ -150,12 +152,16 @@ impl Property {
         conn: &mut SqliteConnection,
         number_of_contents: i32,
     ) -> QueryResult<usize> {
-        diesel::sql_query(
-            r#"UPDATE property SET number_of_contents =?
-            WHERE device_name = (SELECT device_name FROM property LIMIT 1)"#,
-        )
-        .bind::<diesel::sql_types::Integer, _>(number_of_contents)
-        .execute(conn)
+        conn.transaction(|conn| {
+            let name = property::table
+                .select(property::device_name)
+                .first::<String>(conn)
+                .optional()?;
+            match name {
+                Some(name) => Self::set_number_of_contents(conn, &name, number_of_contents),
+                None => Ok(0),
+            }
+        })
     }
 
     /// Set the `number_of_contents` field of all records in the `property` table.

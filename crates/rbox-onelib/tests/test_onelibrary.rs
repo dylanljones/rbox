@@ -53,6 +53,31 @@ fn content_count_can_be_set_and_recalculated() -> anyhow::Result<()> {
 }
 
 #[test]
+fn default_content_count_setter_updates_one_property_and_handles_empty_table() -> anyhow::Result<()>
+{
+    let fixture = setup_one_library_path();
+    let mut conn = establish_connection(fixture.path(), &ConnectionOptions::default())?;
+    Property::new("Additional property", 0).insert(&mut conn)?;
+    Property::set_number_of_contents_all(&mut conn, 0)?;
+    assert_eq!(Property::set_number_of_contents_default(&mut conn, 123)?, 1);
+    let rows = Property::all(&mut conn)?;
+    assert_eq!(
+        rows.iter()
+            .filter(|row| row.number_of_contents == 123)
+            .count(),
+        1
+    );
+    for row in rows {
+        Property::delete(&mut conn, &row.device_name)?;
+    }
+    assert_eq!(Property::set_number_of_contents_default(&mut conn, 123)?, 0);
+    Property::set_content_count(&mut conn, 123)?;
+    Property::update_content_count(&mut conn)?;
+    assert!(Property::all(&mut conn)?.is_empty());
+    Ok(())
+}
+
+#[test]
 fn content_mutations_maintain_counts_and_rollback_when_properties_fail() -> anyhow::Result<()> {
     fn new_content(path: &str) -> NewContent {
         let mut content = NewContent::new(path);

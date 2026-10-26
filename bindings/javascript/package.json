@@ -32,12 +32,6 @@
     "@napi-rs/cli": "^3.1.5",
     "ava": "^6.0.1"
   },
-  "ava": {
-    "timeout": "3m",
-    "files": [
-      "./__test__/*.mjs"
-    ]
-  },
   "engines": {
     "node": ">= 10"
   },

@@ -3937,6 +3937,14 @@ export declare class MasterDb {
 export type JsMasterDb = MasterDb
 
 export declare class OneLibrary {
+  /** Load shared tracks with resolved names, including album artists. */
+  getTracks(): Array<Track>
+  /** Load a shared track by its numeric OneLibrary ID, or null if absent. */
+  getTrackById(id: number): Track | null
+  /** Load matching tracks in ID order, omitting missing and duplicate IDs. */
+  getTracksByIds(ids: Array<number>): Array<Track>
+  /** Load a shared track by stored path, accepting either separator style. */
+  getTrackByPath(path: string): Track | null
   /** Open exportLibrary.db in the supplied directory, usually PIONEER/rekordbox. */
   constructor(directory: string)
   /** Open an existing OneLibrary database at an explicit file path. */
@@ -5052,9 +5060,9 @@ export interface TinyWaveformPreview {
 
 /** Shared track data. BPM is unscaled, length is seconds, fileSize is bytes as bigint. */
 export interface Track {
-  id: string
-  masterContentId?: string
-  masterDbId?: string
+  id?: number
+  masterContentId?: number
+  masterDbId?: number
   source: TrackSource
   uuid: string
   artworkPath?: string
@@ -7981,7 +7989,7 @@ export interface Content {
   isKuvoDeliverStatusOn?: number
   /** A kuvo delivery comment */
   kuvoDeliveryComment?: string
-  /** The masterdb ID */
+  /** Master-library ID in signed storage form; see the struct's identity note. */
   masterDbId?: number
   /** The ID of the contnent in the masterdb */
   masterContentId?: number
@@ -8005,7 +8013,7 @@ export interface Content {
  * Track snapshot with all supported direct metadata relationships resolved.
  *
  * Field access performs no queries, and editing this view does not persist changes.
- * Related records are plain rows without recursive expansion. `None` means an
+ * Related records are plain rows; the album's artist is also resolved. `None` means an
  * absent foreign key or a missing target; the content row retains the original key.
  */
 export interface ContentView {
@@ -8023,6 +8031,8 @@ export interface ContentView {
   lyricist?: Artist
   /** Associated album. */
   album?: Album
+  /** Artist referenced by the album, independently of the content's main artist. */
+  albumArtist?: Artist
   /** Associated genre. */
   genre?: Genre
   /** Associated label. */
@@ -8416,6 +8426,10 @@ export interface NewColor {
  *
  * Implements the builder pattern for optional values of the new record.
  *
+ * `master_db_id` uses the same signed representation as [`Content`]: unsigned
+ * IDs above `i32::MAX` are stored as `unsigned_id - 2^32`. Conversion from
+ * [`Track`] preserves all 32 bits when constructing this field.
+ *
  * # Examples
  * ```rust
  * use rbox_onelib::models::NewContent;
@@ -8495,7 +8509,7 @@ export interface NewContent {
   isKuvoDeliverStatusOn?: number
   /** A kuvo delivery comment */
   kuvoDeliveryComment?: string
-  /** The masterdb ID */
+  /** Master-library ID in signed storage form; see the struct's identity note. */
   masterDbId?: number
   /** The ID of the contnent in the masterdb */
   masterContentId?: number
