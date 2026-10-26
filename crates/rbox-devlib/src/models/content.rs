@@ -13,6 +13,7 @@ use binrw::BinRead;
 use rbox_core::{PathExt, Track, TrackSource};
 use std::path::PathBuf;
 
+use super::playlist::remove_associations;
 use super::{
     load_related, text, text_error, unsupported, update_export_count, validate_id, Album, Artist,
     Artwork, Color, Genre, HistoryContent, Key, Label, MyTagContent, PlaylistContent,
@@ -633,8 +634,8 @@ impl Content {
     /// For a library with exportExt.pdb, use [Self::delete_with_extended] or
     /// [crate::DeviceLibrary::delete_content] to also remove tag/recommendation links.
     /// Updates all existing export-property track counts. Parent playlists/histories,
-    /// catalog rows, media, artwork and ANLZ files remain. Surviving occurrence
-    /// sequence values are preserved (including gaps and ties).
+    /// catalog rows, media, artwork and ANLZ files remain. Affected playlists are
+    /// renumbered from one; history sequence values are preserved.
     /// Returns deleted row count, excluding property-count updates; a missing ID
     /// returns zero without cleaning dangling links. ID zero is rejected.
     /// The operation commits atomically in memory; saving remains explicit.
@@ -804,6 +805,9 @@ fn delete_content_links<R: Read + Seek>(
     table: TableKind,
     id: u32,
 ) -> Result<usize> {
+    if table == PlaylistContent::TABLE {
+        return remove_associations(tx, |row| row.track_id == id);
+    }
     let mut locations = Vec::new();
     for record in tx.iter_raw(table)? {
         let record = record?;

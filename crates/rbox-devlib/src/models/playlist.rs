@@ -11,17 +11,48 @@
 //! duplicate binary rows remain readable for inspection and cleanup.
 //! Updates validate changed parents. Deleting a folder removes its descendants
 //! and their entries, while contents remain intact. Mutations commit in memory;
-//! saving is explicit and surviving sequence values are not renumbered.
+//! saving is explicit. Ordered mutations normalize affected sibling lists from zero
+//! and playlist contents from one, writing only changed rows. Reads retain gaps/ties.
+//!
+//! ```
+//! use rbox_devlib::{DatabaseKind, DeviceSqlConnection};
+//! use rbox_devlib::models::{NewContent, NewPlaylist, NewPlaylistContent, Playlist};
+//!
+//! # fn main() -> rbox_devlib::Result<()> {
+//! let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+//! NewPlaylist::folder(1, "Sets").insert(&mut conn)?;
+//! NewPlaylist::playlist(2, "Warmup").parent_id(1).insert(&mut conn)?;
+//! NewContent::new(10, "/Contents/track.wav").insert(&mut conn)?;
+//! NewPlaylistContent::new(2, 10, None).insert(&mut conn)?;
+//! assert_eq!(Playlist::get_contents(&mut conn, &2)?[0].id, 10);
+//! Playlist::move_to(&mut conn, &2, Some(&0), Some(0))?;
+//! // Changes are in memory; save the connection explicitly when ready.
+//! # Ok(())
+//! # }
+//! ```
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::io::{Read, Seek};
 
-use super::{read_fields, text, text_error, unsupported, validate_id, validate_nonzero_id};
+use super::ordering::{Change, Position};
+use super::{
+    ordering, read_fields, text, text_error, unsupported, validate_id, validate_nonzero_id, Content,
+};
 use crate::binary::{
     PageType, PlaylistEntryRow, PlaylistTreeRow, Row, RowRecord, StandardRow, TableKind,
+    TrackHeader,
 };
 use crate::devicesql::{DeviceSqlConnection, Transaction};
 use crate::{Error, Result};
+
+/// Detached playlist tree node. Editing this snapshot does not persist changes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlaylistTreeNode {
+    /// The playlist or folder and its original binary row.
+    pub playlist: Playlist,
+    /// Immediate children in sibling order.
+    pub children: Vec<PlaylistTreeNode>,
+}
 
 /// A detached playlist or folder in the standard database's playlist tree.
 ///
@@ -58,6 +89,8 @@ impl std::fmt::Debug for Playlist {
 impl Playlist {
     /// Standard database table containing playlist and folder nodes.
     pub const TABLE: TableKind = TableKind::Standard(PageType::PlaylistTree);
+    /// First sibling position within each parent, including the root.
+    pub const START_SEQ: u32 = 0;
 
     /// Stream live nodes in page-chain and slot order, decoding on demand.
     /// Creating the iterator does not read pages; malformed rows are not skipped.
@@ -114,6 +147,232 @@ impl Playlist {
         Ok(children)
     }
 
+    /// Read immediate children in sequence order; zero identifies the root.
+    pub fn by_parent_id<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        parent_id: &u32,
+    ) -> Result<Vec<Self>> {
+        Self::by_parent(conn, parent_id)
+    }
+
+    /// Return the stored flag; the root sentinel is treated as a folder.
+    pub fn get_attribute<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        id: &u32,
+    ) -> Result<Option<u32>> {
+        conn.check_kind(Self::TABLE)?;
+        if *id == 0 {
+            return Ok(Some(1));
+        }
+        Ok(Self::find(conn, id)?.map(|p| p.attribute))
+    }
+
+    /// Check whether an existing node is a regular playlist.
+    pub fn is_playlist<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        id: &u32,
+    ) -> Result<bool> {
+        Ok(Self::get_attribute(conn, id)? == Some(0))
+    }
+
+    /// Read contents in playlist order. Missing content references are errors;
+    /// repeated occurrences in imported binary data remain repeated in the result.
+    pub fn get_contents<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        id: &u32,
+    ) -> Result<Vec<Content>> {
+        let entries = PlaylistContent::by_playlist_id(conn, id)?;
+        let mut ids: Vec<_> = entries.iter().map(|e| e.content_id).collect();
+        ids.sort_unstable();
+        ids.dedup();
+        let contents: HashMap<_, _> = Content::by_ids(conn, &ids)?
+            .into_iter()
+            .map(|c| (c.id, c))
+            .collect();
+        entries
+            .into_iter()
+            .map(|e| {
+                contents
+                    .get(&e.content_id)
+                    .cloned()
+                    .ok_or(Error::ModelNotFound {
+                        table: Content::TABLE,
+                        id: e.content_id,
+                    })
+            })
+            .collect()
+    }
+
+    /// Find a node by exact path components. Empty, missing and ambiguous paths return `None`.
+    /// Malformed tree ancestry or duplicate IDs return an error.
+    pub fn find_by_path<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        path: &[&str],
+    ) -> Result<Option<Self>> {
+        let rows = Self::all(conn)?;
+        validate_nodes(&rows)?;
+        let mut parents = HashSet::from([0]);
+        for name in path {
+            parents = rows
+                .iter()
+                .filter(|r| parents.contains(&r.parent_id) && r.name == *name)
+                .map(|r| r.id)
+                .collect();
+            if parents.is_empty() {
+                return Ok(None);
+            }
+        }
+        if path.is_empty() || parents.len() != 1 {
+            return Ok(None);
+        }
+        Ok(rows.into_iter().find(|r| parents.contains(&r.id)))
+    }
+
+    /// Build a detached tree. Rejects duplicate IDs, missing/non-folder parents and
+    /// cycles rather than silently dropping unreachable nodes. No contents are loaded.
+    pub fn tree<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+    ) -> Result<Vec<PlaylistTreeNode>> {
+        let rows = Self::all(conn)?;
+        validate_nodes(&rows)?;
+        // Build bottom-up without recursive traversal of untrusted ancestry.
+        let mut depths = HashMap::from([(0, 0usize)]);
+        let parents: HashMap<_, _> = rows.iter().map(|r| (r.id, r.parent_id)).collect();
+        for row in &rows {
+            let mut chain = Vec::new();
+            let mut parent = row.id;
+            while !depths.contains_key(&parent) {
+                chain.push(parent);
+                parent = parents[&parent];
+            }
+            let mut depth = depths[&parent];
+            for id in chain.into_iter().rev() {
+                depth += 1;
+                depths.insert(id, depth);
+            }
+        }
+        let mut rows = rows;
+        rows.sort_by_key(|r| std::cmp::Reverse(depths[&r.id]));
+        let mut groups: HashMap<u32, Vec<PlaylistTreeNode>> = HashMap::new();
+        for row in rows {
+            let mut children = groups.remove(&row.id).unwrap_or_default();
+            children.sort_by_key(|n| n.playlist.seq);
+            groups
+                .entry(row.parent_id)
+                .or_default()
+                .push(PlaylistTreeNode {
+                    playlist: row,
+                    children,
+                });
+        }
+        let mut roots = groups.remove(&0).unwrap_or_default();
+        roots.sort_by_key(|n| n.playlist.seq);
+        Ok(roots)
+    }
+
+    /// Rename an existing node, preserving its hierarchy, sequence and reserved data.
+    pub fn rename<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        id: &u32,
+        name: &str,
+    ) -> Result<usize> {
+        let mut row = Self::find(conn, id)?.ok_or(Error::ModelNotFound {
+            table: Self::TABLE,
+            id: *id,
+        })?;
+        row.name = name.into();
+        row.update(conn)?;
+        Ok(1)
+    }
+
+    /// Count immediate children without decoding names.
+    pub fn count_children<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        parent: &u32,
+    ) -> Result<usize> {
+        Ok(Self::get_seq_numbers(conn, parent)?.len())
+    }
+
+    /// Read stored sibling positions in ascending order without decoding names.
+    pub fn get_seq_numbers<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        parent: &u32,
+    ) -> Result<Vec<u32>> {
+        let mut positions = Vec::new();
+        for record in conn.iter_raw(Self::TABLE)? {
+            let row = read_fields::<PlaylistTreeRow>(&record?)?;
+            if row.parent_id == *parent {
+                positions.push(row.position);
+            }
+        }
+        positions.sort_unstable();
+        Ok(positions)
+    }
+
+    /// Check contiguous zero-based sibling positions without changing the database.
+    pub fn validate_seq_numbers<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        parent: &u32,
+    ) -> Result<bool> {
+        Ok(ordering::valid(
+            &Self::get_seq_numbers(conn, parent)?,
+            Self::START_SEQ,
+        ))
+    }
+
+    /// Normalize one sibling list in stable sequence/physical order. Returns changed rows.
+    pub fn reset_seq<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        parent: &u32,
+    ) -> Result<usize> {
+        let mut tx = conn.transaction();
+        let rows = node_rows(&mut tx)?;
+        validate_parent(&rows, *parent, &[])?;
+        let changes = ordering::renumber(&node_positions(&rows), *parent, Self::START_SEQ)?;
+        write_nodes(&mut tx, &rows, &changes)?;
+        tx.commit()?;
+        Ok(changes.len())
+    }
+
+    /// Move one node. `None` keeps the parent or appends within the destination.
+    /// Positions are zero-based final positions; cycles and invalid folders are rejected.
+    /// Returns one if the selected node changed parent/position, otherwise zero.
+    pub fn move_to<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        id: &u32,
+        parent: Option<&u32>,
+        seq: Option<u32>,
+    ) -> Result<usize> {
+        let mut tx = conn.transaction();
+        let rows = node_rows(&mut tx)?;
+        let index = node_index(&rows, *id)?;
+        let count = move_nodes(
+            &mut tx,
+            &rows,
+            &[*id],
+            parent.copied().unwrap_or(rows[index].1.parent_id),
+            seq,
+        )?;
+        tx.commit()?;
+        Ok(count)
+    }
+
+    /// Move distinct nodes as a block in caller order. The destination is measured
+    /// after removing selected siblings; `None` appends. The whole batch is atomic.
+    /// Returns changed selected nodes, excluding shifts of unselected siblings.
+    pub fn move_all_to<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        ids: &[u32],
+        parent: &u32,
+        seq: Option<u32>,
+    ) -> Result<usize> {
+        let mut tx = conn.transaction();
+        let rows = node_rows(&mut tx)?;
+        let count = move_nodes(&mut tx, &rows, ids, *parent, seq)?;
+        tx.commit()?;
+        Ok(count)
+    }
+
     /// Interpret the conventional nonzero folder flag without changing its raw value.
     pub fn is_folder(&self) -> bool {
         self.attribute != 0
@@ -124,7 +383,8 @@ impl Playlist {
     /// Unedited fields, reserved values and the name frame are preserved.
     /// Edited fields use last-write-wins. A changed nonzero parent must exist and
     /// be a folder; self-parenting and cyclic or broken ancestry are rejected.
-    /// Zero selects the root. Siblings are not renumbered. Commits in memory only;
+    /// Zero selects the root. Changed parent/position fields trigger an ordered move;
+    /// changing only the parent appends there. Commits in memory only;
     /// errors roll back and saving remains explicit.
     /// String edits remain subject to the engine's supported allocation layouts;
     /// unsupported growth returns an error without discarding unknown data.
@@ -145,6 +405,22 @@ impl Playlist {
             }
         }
         let mut tx = conn.transaction();
+        if self.parent_id != original.parent_id || self.seq != original.seq {
+            let rows = node_rows(&mut tx)?;
+            let index = node_index(&rows, original.id)?;
+            let parent = if self.parent_id != original.parent_id {
+                self.parent_id
+            } else {
+                rows[index].1.parent_id
+            };
+            move_nodes(
+                &mut tx,
+                &rows,
+                &[original.id],
+                parent,
+                (self.seq != original.seq).then_some(self.seq),
+            )?;
+        }
         let location = tx
             .index_rows(Self::TABLE, Self::read_id)?
             .get(&original.id)
@@ -158,27 +434,6 @@ impl Playlist {
         let Row::Standard(StandardRow::PlaylistTree(mut row)) = record.decode()? else {
             return Err(unsupported(&record));
         };
-        if self.parent_id != original.parent_id {
-            let headers = playlist_rows(&mut tx)?;
-            let mut visited = HashSet::from([original.id]);
-            let mut parent = self.parent_id;
-            while parent != 0 {
-                if !visited.insert(parent) {
-                    return Err(invalid_parent("parent ancestry must not contain a cycle"));
-                }
-                let header = headers
-                    .get(&parent)
-                    .ok_or_else(|| invalid_parent("parent folder does not exist"))?;
-                if header.folder_flag == 0 {
-                    return Err(invalid_parent("parent must be a folder"));
-                }
-                parent = header.parent_id;
-            }
-            row.parent_id = self.parent_id;
-        }
-        if self.seq != original.seq {
-            row.position = self.seq;
-        }
         if self.name != original.name {
             row.name = text(&self.name)?;
         }
@@ -191,17 +446,53 @@ impl Playlist {
     /// Delete a playlist/folder, its descendants and all their content associations.
     ///
     /// Descendants are followed by parent ID, even in malformed or cyclic trees;
-    /// each row is removed once. Contents and surviving sequence values are untouched.
+    /// each row is removed once. Contents remain intact; surviving siblings are renumbered.
     /// Returns the total deleted row count. Missing IDs return zero without cleaning
     /// dangling associations; zero is rejected. One transaction covers both standard
     /// tables. Errors roll back; saving remains explicit.
     pub fn delete<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<usize> {
+        Self::delete_nodes(conn, &[*id], false)
+    }
+
+    /// Delete selected subtrees atomically, counting overlapping descendants once.
+    /// Duplicate input IDs or missing nodes reject the batch. Returns all deleted rows,
+    /// including content associations, but excluding sibling sequence updates.
+    pub fn delete_all<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        ids: &[u32],
+    ) -> Result<usize> {
+        Self::delete_nodes(conn, ids, true)
+    }
+
+    fn delete_nodes<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        ids: &[u32],
+        strict: bool,
+    ) -> Result<usize> {
         conn.check_kind(Self::TABLE)?;
-        validate_id(Self::TABLE, *id)?;
+        let mut seen = HashSet::new();
+        for &id in ids {
+            validate_id(Self::TABLE, id)?;
+            if !seen.insert(id) {
+                return Err(ordering::invalid(
+                    Self::TABLE,
+                    "id",
+                    "duplicate deletion identity",
+                ));
+            }
+        }
         let mut tx = conn.transaction();
         let index = tx.index_rows(Self::TABLE, Self::read_id)?.clone();
-        if !index.contains_key(id) {
-            return Ok(0);
+        for id in ids {
+            if !index.contains_key(id) {
+                if strict {
+                    return Err(Error::ModelNotFound {
+                        table: Self::TABLE,
+                        id: *id,
+                    });
+                }
+                return Ok(0);
+            }
         }
         let headers = playlist_rows(&mut tx)?;
         let mut children: HashMap<u32, Vec<u32>> = HashMap::new();
@@ -212,7 +503,7 @@ impl Playlist {
                 .push(header.id);
         }
         let mut removed = HashSet::new();
-        let mut pending = vec![*id];
+        let mut pending = ids.to_vec();
         while let Some(id) = pending.pop() {
             if removed.insert(id) {
                 if let Some(ids) = children.get(&id) {
@@ -220,6 +511,11 @@ impl Playlist {
                 }
             }
         }
+        let parents: BTreeSet<_> = removed
+            .iter()
+            .map(|id| headers[id].parent_id)
+            .filter(|parent| !removed.contains(parent))
+            .collect();
         let mut count = remove_associations(&mut tx, |row| removed.contains(&row.playlist_id))?;
         for id in removed {
             let location = index.get(&id).ok_or(Error::ModelNotFound {
@@ -229,6 +525,15 @@ impl Playlist {
             let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
             tx.delete(&handle)?;
             count = count.checked_add(1).ok_or(Error::MutationOverflow)?;
+        }
+        let rows = node_rows(&mut tx)?;
+        let positions = node_positions(&rows);
+        for parent in parents {
+            write_nodes(
+                &mut tx,
+                &rows,
+                &ordering::renumber(&positions, parent, Self::START_SEQ)?,
+            )?;
         }
         tx.commit()?;
         Ok(count)
@@ -274,11 +579,12 @@ fn playlist_rows<R: Read + Seek>(
     Ok(headers)
 }
 
-fn remove_associations<R: Read + Seek>(
+pub(super) fn remove_associations<R: Read + Seek>(
     tx: &mut Transaction<'_, R>,
     matches: impl Fn(&PlaylistEntryRow) -> bool,
 ) -> Result<usize> {
     let mut locations = Vec::new();
+    let mut parents = BTreeSet::new();
     for record in tx.iter_raw(PlaylistContent::TABLE)? {
         let record = record?;
         let Row::Standard(StandardRow::PlaylistEntry(row)) = record.decode()? else {
@@ -286,12 +592,250 @@ fn remove_associations<R: Read + Seek>(
         };
         if matches(&row) {
             locations.push((record.page(), record.slot().slot));
+            parents.insert(row.playlist_id);
         }
     }
     let count = locations.len();
     for (page, slot) in locations {
         let handle = tx.locate(PlaylistContent::TABLE, page, slot)?;
         tx.delete(&handle)?;
+    }
+    reset_entries(tx, &parents)?;
+    Ok(count)
+}
+
+type NodeRows = Vec<(RowRecord, PlaylistTreeRow)>;
+type EntryRows = Vec<(RowRecord, PlaylistEntryRow)>;
+
+fn node_rows<R: Read + Seek>(tx: &mut Transaction<'_, R>) -> Result<NodeRows> {
+    let mut ids = HashSet::new();
+    tx.iter_raw(Playlist::TABLE)?
+        .map(|record| {
+            let record = record?;
+            let row = read_fields::<PlaylistTreeRow>(&record)?;
+            validate_id(Playlist::TABLE, row.id)?;
+            if !ids.insert(row.id) {
+                return Err(Error::DuplicateId {
+                    table: Playlist::TABLE,
+                    id: row.id,
+                });
+            }
+            Ok((record, row))
+        })
+        .collect()
+}
+
+fn entry_rows<R: Read + Seek>(tx: &mut Transaction<'_, R>) -> Result<EntryRows> {
+    tx.iter_raw(PlaylistContent::TABLE)?
+        .map(|record| {
+            let record = record?;
+            let row = read_fields::<PlaylistEntryRow>(&record)?;
+            Ok((record, row))
+        })
+        .collect()
+}
+
+fn node_positions(rows: &NodeRows) -> Vec<Position> {
+    rows.iter()
+        .map(|(_, r)| Position {
+            parent: r.parent_id,
+            seq: r.position,
+        })
+        .collect()
+}
+
+fn entry_positions(rows: &EntryRows) -> Vec<Position> {
+    rows.iter()
+        .map(|(_, r)| Position {
+            parent: r.playlist_id,
+            seq: r.position,
+        })
+        .collect()
+}
+
+fn node_index(rows: &NodeRows, id: u32) -> Result<usize> {
+    rows.iter()
+        .position(|(_, r)| r.id == id)
+        .ok_or(Error::ModelNotFound {
+            table: Playlist::TABLE,
+            id,
+        })
+}
+
+fn pair_conflict() -> Error {
+    Error::UniqueConstraintViolation {
+        table: PlaylistContent::TABLE,
+        fields: &["playlist_id", "content_id"],
+    }
+}
+
+fn entry_index(rows: &EntryRows, id: (u32, u32)) -> Result<usize> {
+    let mut found = None;
+    for (index, (_, row)) in rows.iter().enumerate() {
+        if (row.playlist_id, row.track_id) == id {
+            if found.replace(index).is_some() {
+                return Err(pair_conflict());
+            }
+        }
+    }
+    found.ok_or(Error::ModelPairNotFound {
+        table: PlaylistContent::TABLE,
+        id,
+    })
+}
+
+fn unique_entries(rows: &EntryRows, parent: u32) -> Result<()> {
+    let mut ids = HashSet::new();
+    for (_, row) in rows.iter().filter(|(_, r)| r.playlist_id == parent) {
+        if !ids.insert(row.track_id) {
+            return Err(pair_conflict());
+        }
+    }
+    Ok(())
+}
+
+fn validate_parent(rows: &NodeRows, mut parent: u32, forbidden: &[u32]) -> Result<()> {
+    let lookup: HashMap<_, _> = rows.iter().map(|(_, r)| (r.id, r)).collect();
+    let mut visited: HashSet<_> = forbidden.iter().copied().collect();
+    while parent != 0 {
+        if !visited.insert(parent) {
+            return Err(invalid_parent("parent ancestry must not contain a cycle"));
+        }
+        let node = lookup
+            .get(&parent)
+            .ok_or_else(|| invalid_parent("parent folder does not exist"))?;
+        if node.folder_flag == 0 {
+            return Err(invalid_parent("parent must be a folder"));
+        }
+        parent = node.parent_id;
+    }
+    Ok(())
+}
+
+fn validate_nodes(rows: &[Playlist]) -> Result<()> {
+    let mut nodes = HashMap::new();
+    for row in rows {
+        validate_id(Playlist::TABLE, row.id)?;
+        if nodes.insert(row.id, row).is_some() {
+            return Err(Error::DuplicateId {
+                table: Playlist::TABLE,
+                id: row.id,
+            });
+        }
+    }
+    let mut completed = HashSet::from([0]);
+    for row in rows {
+        let mut current = row.id;
+        let mut path = HashSet::new();
+        while !completed.contains(&current) {
+            if !path.insert(current) {
+                return Err(invalid_parent("parent ancestry must not contain a cycle"));
+            }
+            let node = nodes[&current];
+            current = node.parent_id;
+            if current != 0 {
+                let parent = nodes
+                    .get(&current)
+                    .ok_or_else(|| invalid_parent("parent folder does not exist"))?;
+                if !parent.is_folder() {
+                    return Err(invalid_parent("parent must be a folder"));
+                }
+            }
+        }
+        completed.extend(path);
+    }
+    Ok(())
+}
+
+fn validate_playlist<R: Read + Seek>(tx: &mut Transaction<'_, R>, id: u32) -> Result<()> {
+    let rows = node_rows(tx)?;
+    let index = node_index(&rows, id)?;
+    if rows[index].1.folder_flag != 0 {
+        return Err(ordering::invalid(
+            PlaylistContent::TABLE,
+            "playlist_id",
+            "contents require a regular playlist",
+        ));
+    }
+    validate_parent(&rows, rows[index].1.parent_id, &[id])
+}
+
+fn write_nodes<R: Read + Seek>(
+    tx: &mut Transaction<'_, R>,
+    rows: &NodeRows,
+    changes: &[Change],
+) -> Result<()> {
+    for change in changes {
+        let (record, original) = &rows[change.index];
+        let mut row = original.clone();
+        row.parent_id = change.parent;
+        row.position = change.seq;
+        let handle = tx.locate(Playlist::TABLE, record.page(), record.slot().slot)?;
+        tx.update(&handle, &Row::Standard(StandardRow::PlaylistTree(row)))?;
+    }
+    Ok(())
+}
+
+fn write_entries<R: Read + Seek>(
+    tx: &mut Transaction<'_, R>,
+    rows: &EntryRows,
+    changes: &[Change],
+) -> Result<()> {
+    for change in changes {
+        let (record, original) = &rows[change.index];
+        let mut row = original.clone();
+        row.position = change.seq;
+        let handle = tx.locate(PlaylistContent::TABLE, record.page(), record.slot().slot)?;
+        tx.update(&handle, &Row::Standard(StandardRow::PlaylistEntry(row)))?;
+    }
+    Ok(())
+}
+
+fn move_nodes<R: Read + Seek>(
+    tx: &mut Transaction<'_, R>,
+    rows: &NodeRows,
+    ids: &[u32],
+    parent: u32,
+    seq: Option<u32>,
+) -> Result<usize> {
+    if ids.is_empty() {
+        return Ok(0);
+    }
+    let selected = ids
+        .iter()
+        .map(|&id| node_index(rows, id))
+        .collect::<Result<Vec<_>>>()?;
+    validate_parent(rows, parent, ids)?;
+    let changes = ordering::move_rows(
+        Playlist::TABLE,
+        &node_positions(rows),
+        &selected,
+        parent,
+        seq,
+        Playlist::START_SEQ,
+    )?;
+    let moved = changes
+        .iter()
+        .filter(|c| selected.contains(&c.index))
+        .count();
+    write_nodes(tx, rows, &changes)?;
+    Ok(moved)
+}
+
+fn reset_entries<R: Read + Seek>(
+    tx: &mut Transaction<'_, R>,
+    parents: &BTreeSet<u32>,
+) -> Result<usize> {
+    if parents.is_empty() {
+        return Ok(0);
+    }
+    let rows = entry_rows(tx)?;
+    let positions = entry_positions(&rows);
+    let mut count = 0;
+    for &parent in parents {
+        let changes = ordering::renumber(&positions, parent, PlaylistContent::START_SEQ)?;
+        count += changes.len();
+        write_entries(tx, &rows, &changes)?;
     }
     Ok(count)
 }
@@ -323,9 +867,8 @@ impl TryFrom<RowRecord> for Playlist {
 
 /// Input for a fresh playlist or folder; no existing raw row is needed.
 ///
-/// IDs and sibling positions are explicit. The reserved word defaults to the
-/// observed zero authoring value and remains configurable. Parent IDs are stored
-/// as supplied; hierarchy validation, traversal and automatic ordering are deferred.
+/// IDs are explicit. Model insertion validates the parent and maintains sibling
+/// ordering; `None` appends. The reserved word defaults to zero and remains configurable.
 /// Insertion commits in memory only and does not create entries or save to disk.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewPlaylist {
@@ -333,8 +876,8 @@ pub struct NewPlaylist {
     pub id: u32,
     /// Parent folder ID; zero denotes the root.
     pub parent_id: u32,
-    /// Explicit sibling position; other nodes are not renumbered.
-    pub seq: u32,
+    /// Zero-based insertion position; `None` appends after the last sibling.
+    pub seq: Option<u32>,
     /// Raw folder flag; constructors use zero for playlists and one for folders.
     pub attribute: u32,
     /// Display name.
@@ -344,31 +887,45 @@ pub struct NewPlaylist {
 }
 
 impl NewPlaylist {
-    /// Prepare a playlist with an explicit parent and sibling position.
-    pub fn new(id: u32, parent_id: u32, seq: u32, name: impl Into<String>) -> Self {
+    /// Prepare a playlist with an explicit parent; use `None` for the position to append.
+    pub fn new(id: u32, name: impl Into<String>, attribute: u32) -> Self {
         Self {
             id,
-            parent_id,
-            seq,
+            parent_id: 0,
+            seq: None,
             name: name.into(),
-            attribute: 0,
+            attribute,
             unknown_04: 0,
         }
     }
 
-    /// Prepare a folder with an explicit parent and sibling position.
-    pub fn folder(id: u32, parent_id: u32, seq: u32, name: impl Into<String>) -> Self {
-        Self {
-            attribute: 1,
-            ..Self::new(id, parent_id, seq, name)
-        }
+    /// Prepare a regular playlist with an explicit ID and name.
+    pub fn playlist(id: u32, name: impl Into<String>) -> Self {
+        Self::new(id, name, 0)
+    }
+
+    /// Prepare a folder with an explicit ID and name.
+    pub fn folder(id: u32, name: impl Into<String>) -> Self {
+        Self::new(id, name, 1)
+    }
+
+    /// Set the insertion position among siblings; zero inserts first.
+    pub fn seq(mut self, seq: u32) -> Self {
+        self.seq = Some(seq);
+        self
+    }
+
+    /// Builder for `parent_id`.
+    pub fn parent_id(mut self, id: u32) -> Self {
+        self.parent_id = id;
+        self
     }
 
     /// Insert atomically, rejecting duplicate IDs and returning the engine-created row.
     /// Failures leave the connection unchanged; saving is explicit.
     pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Playlist> {
         conn.check_kind(Playlist::TABLE)?;
-        let row = self.to_binary()?;
+        let mut row = self.to_binary()?;
         let mut tx = conn.transaction();
         if tx
             .index_rows(Playlist::TABLE, Playlist::read_id)?
@@ -379,6 +936,17 @@ impl NewPlaylist {
                 id: self.id,
             });
         }
+        let rows = node_rows(&mut tx)?;
+        validate_parent(&rows, self.parent_id, &[self.id])?;
+        let (position, changes) = ordering::insert(
+            Playlist::TABLE,
+            &node_positions(&rows),
+            self.parent_id,
+            self.seq,
+            Playlist::START_SEQ,
+        )?;
+        write_nodes(&mut tx, &rows, &changes)?;
+        row.position = position;
         let handle = tx.insert(
             Playlist::TABLE,
             &Row::Standard(StandardRow::PlaylistTree(row)),
@@ -389,13 +957,14 @@ impl NewPlaylist {
     }
 
     /// Encode fields for an explicit binary transaction; the engine assigns placement.
-    /// Direct binary insertions do not check model-ID uniqueness.
+    /// Direct binary insertions bypass uniqueness, parent and ordering checks.
+    /// An omitted position encodes zero; append requires model insertion.
     pub fn to_binary(&self) -> Result<PlaylistTreeRow> {
         validate_id(Playlist::TABLE, self.id)?;
         Ok(PlaylistTreeRow {
             parent_id: self.parent_id,
             unknown_04: self.unknown_04,
-            position: self.seq,
+            position: self.seq.unwrap_or(Playlist::START_SEQ),
             id: self.id,
             folder_flag: self.attribute,
             name: text(&self.name)?,
@@ -432,6 +1001,8 @@ impl std::fmt::Debug for PlaylistContent {
 impl PlaylistContent {
     /// Standard database table containing track occurrences.
     pub const TABLE: TableKind = TableKind::Standard(PageType::PlaylistEntries);
+    /// First content position within a playlist.
+    pub const START_SEQ: u32 = 1;
 
     /// Stream live occurrences in physical page-chain and slot order.
     /// Creating the iterator reads no pages. No deduplication or sorting occurs.
@@ -466,12 +1037,229 @@ impl PlaylistContent {
         Ok(entries)
     }
 
+    /// Read entries in sequence order, retaining imported ties and duplicates.
+    pub fn by_playlist_id<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        id: &u32,
+    ) -> Result<Vec<Self>> {
+        Self::by_playlist(conn, id)
+    }
+
+    /// Read every association for a content ID, ordered by playlist then sequence.
+    pub fn by_content_id<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        id: &u32,
+    ) -> Result<Vec<Self>> {
+        let mut rows = Self::all(conn)?;
+        rows.retain(|r| r.content_id == *id);
+        rows.sort_by_key(|r| (r.playlist_id, r.seq));
+        Ok(rows)
+    }
+
+    /// Find a unique `(playlist_id, content_id)` pair. Imported duplicates are errors.
+    pub fn find<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        id: &(u32, u32),
+    ) -> Result<Option<Self>> {
+        let mut found = None;
+        for row in Self::iter(conn)? {
+            let row = row?;
+            if (row.playlist_id, row.content_id) == *id {
+                if found.is_some() {
+                    return Err(pair_conflict());
+                }
+                found = Some(row);
+            }
+        }
+        Ok(found)
+    }
+
+    /// Check whether the unique playlist/content pair exists.
+    pub fn id_exists<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        id: &(u32, u32),
+    ) -> Result<bool> {
+        Ok(Self::find(conn, id)?.is_some())
+    }
+
+    /// Count live entries for a playlist without loading contents.
+    pub fn count<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<usize> {
+        Ok(Self::get_seq_numbers(conn, id)?.len())
+    }
+
+    /// Read the stored entry positions in ascending order.
+    pub fn get_seq_numbers<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        id: &u32,
+    ) -> Result<Vec<u32>> {
+        Ok(Self::by_playlist_id(conn, id)?
+            .iter()
+            .map(|r| r.seq)
+            .collect())
+    }
+
+    /// Check contiguous one-based positions without changing imported values.
+    pub fn validate_seq_numbers<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        id: &u32,
+    ) -> Result<bool> {
+        Ok(ordering::valid(
+            &Self::get_seq_numbers(conn, id)?,
+            Self::START_SEQ,
+        ))
+    }
+
+    /// Normalize positions in sequence/physical order, preserving all occurrences.
+    /// Returns the number of changed rows. Duplicate pairs remain readable/repairable.
+    pub fn reset_seq<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<usize> {
+        let mut tx = conn.transaction();
+        validate_playlist(&mut tx, *id)?;
+        let count = reset_entries(&mut tx, &BTreeSet::from([*id]))?;
+        tx.commit()?;
+        Ok(count)
+    }
+
+    /// Move a unique pair within its playlist. Positions start at one; `None` appends.
+    /// Returns one if its position changed, otherwise zero.
+    pub fn move_to<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        id: &(u32, u32),
+        seq: Option<u32>,
+    ) -> Result<usize> {
+        Self::move_all_to(conn, &[*id], seq)
+    }
+
+    /// Move unique pairs from one playlist as a block in caller order. The destination
+    /// is its first final position after removing selected entries; `None` appends.
+    /// Returns changed selected entries, excluding shifts of unselected entries.
+    pub fn move_all_to<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        ids: &[(u32, u32)],
+        seq: Option<u32>,
+    ) -> Result<usize> {
+        conn.check_kind(Self::TABLE)?;
+        if ids.is_empty() {
+            return Ok(0);
+        }
+        let parent = ids[0].0;
+        if ids.iter().any(|id| id.0 != parent) {
+            return Err(ordering::invalid(
+                Self::TABLE,
+                "playlist_id",
+                "list moves require a single playlist",
+            ));
+        }
+        let mut tx = conn.transaction();
+        validate_playlist(&mut tx, parent)?;
+        let rows = entry_rows(&mut tx)?;
+        unique_entries(&rows, parent)?;
+        let selected = ids
+            .iter()
+            .map(|id| entry_index(&rows, *id))
+            .collect::<Result<Vec<_>>>()?;
+        let changes = ordering::move_rows(
+            Self::TABLE,
+            &entry_positions(&rows),
+            &selected,
+            parent,
+            seq,
+            Self::START_SEQ,
+        )?;
+        let moved = changes
+            .iter()
+            .filter(|c| selected.contains(&c.index))
+            .count();
+        write_entries(&mut tx, &rows, &changes)?;
+        tx.commit()?;
+        Ok(moved)
+    }
+
+    /// Delete a unique pair, then close the gap. Missing pairs return zero.
+    pub fn delete_by_id<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        id: &(u32, u32),
+    ) -> Result<usize> {
+        match Self::find(conn, id)? {
+            Some(row) => row.delete(conn),
+            None => Ok(0),
+        }
+    }
+
+    /// Delete distinct pairs atomically; missing or ambiguous pairs reject the batch.
+    pub fn delete_all<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        ids: &[(u32, u32)],
+    ) -> Result<usize> {
+        let mut tx = conn.transaction();
+        let rows = entry_rows(&mut tx)?;
+        let mut selected = HashSet::new();
+        for &id in ids {
+            if !selected.insert(entry_index(&rows, id)?) {
+                return Err(ordering::invalid(
+                    Self::TABLE,
+                    "id",
+                    "duplicate deletion identity",
+                ));
+            }
+        }
+        let parents = selected.iter().map(|&i| rows[i].1.playlist_id).collect();
+        for &i in &selected {
+            let record = &rows[i].0;
+            let handle = tx.locate(Self::TABLE, record.page(), record.slot().slot)?;
+            tx.delete(&handle)?;
+        }
+        reset_entries(&mut tx, &parents)?;
+        tx.commit()?;
+        Ok(selected.len())
+    }
+
+    /// Remove all entries of a playlist, retaining the playlist and contents.
+    pub fn delete_by_playlist_id<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        id: &u32,
+    ) -> Result<usize> {
+        Self::delete_by_playlist_ids(conn, &[*id])
+    }
+
+    /// Remove all entries of the given playlists atomically; missing IDs are ignored.
+    pub fn delete_by_playlist_ids<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        ids: &[u32],
+    ) -> Result<usize> {
+        let ids: HashSet<_> = ids.iter().copied().collect();
+        let mut tx = conn.transaction();
+        let count = remove_associations(&mut tx, |r| ids.contains(&r.playlist_id))?;
+        tx.commit()?;
+        Ok(count)
+    }
+
+    /// Remove every occurrence of a content ID and compact affected playlists.
+    pub fn delete_by_content_id<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        id: &u32,
+    ) -> Result<usize> {
+        Self::delete_by_content_ids(conn, &[*id])
+    }
+
+    /// Remove all occurrences of these content IDs atomically and compact affected lists.
+    pub fn delete_by_content_ids<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        ids: &[u32],
+    ) -> Result<usize> {
+        let ids: HashSet<_> = ids.iter().copied().collect();
+        let mut tx = conn.transaction();
+        let count = remove_associations(&mut tx, |r| ids.contains(&r.track_id))?;
+        tx.commit()?;
+        Ok(count)
+    }
+
     /// Delete this one original association, ignoring edits to public fields.
     ///
     /// Duplicate pairs are retained. Changed binary values or heap offsets return
     /// [`Error::StaleModelRow`]; missing locations return an engine error. Re-fetch
     /// after structural edits: an identical replacement at the same location cannot
-    /// be distinguished. Returns one on success; saving remains explicit.
+    /// be distinguished. Remaining positions are normalized from one.
+    /// Returns one on success; saving remains explicit.
     pub fn delete<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<usize> {
         conn.check_kind(Self::TABLE)?;
         let mut tx = conn.transaction();
@@ -487,6 +1275,8 @@ impl PlaylistContent {
             });
         }
         tx.delete(&handle)?;
+        let original = Self::try_from(self.raw)?;
+        reset_entries(&mut tx, &BTreeSet::from([original.playlist_id]))?;
         tx.commit()?;
         Ok(1)
     }
@@ -542,40 +1332,37 @@ impl TryFrom<RowRecord> for PlaylistContent {
 
 /// Input for a fresh playlist occurrence, without a synthetic ID or source row.
 ///
-/// Positions are explicit; insertion never shifts other entries and rejects an
-/// existing `(playlist_id, content_id)` pair, regardless of position.
-/// Nonzero playlist/track IDs are required, but referenced rows are not
-/// resolved. The caller supplies valid references to a playlist and an export track.
-/// Saving, relationship validation and automatic ordering remain separate steps.
+/// Insertion validates the playlist and content, rejects duplicate pairs, and
+/// maintains one-based positions. `None` appends. Saving remains explicit.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewPlaylistContent {
-    /// Nonzero export playlist ID; existence and folder status are not inferred.
+    /// Existing regular playlist ID.
     pub playlist_id: u32,
     /// Nonzero export track ID.
     pub content_id: u32,
-    /// Explicit position, conventionally one-based; other positions are untouched.
-    pub seq: u32,
+    /// One-based insertion position; `None` appends.
+    pub seq: Option<u32>,
 }
 
 impl NewPlaylistContent {
-    /// Prepare an occurrence with an explicit playlist, track and position.
-    pub fn new(playlist_id: u32, content_id: u32, seq: u32) -> Self {
+    /// Prepare an occurrence with explicit playlist/track IDs; `None` appends.
+    pub fn new(playlist_id: u32, content_id: u32, seq: impl Into<Option<u32>>) -> Self {
         Self {
             playlist_id,
             content_id,
-            seq,
+            seq: seq.into(),
         }
     }
 
     /// Insert atomically, requiring a unique `(playlist_id, content_id)` pair.
-    /// The same content may appear in different playlists; position ties are allowed.
+    /// The same content may appear in different playlists. Affected positions are normalized.
     /// Returns the engine-created row and commits in memory only; saving is explicit.
     pub fn insert<R: Read + Seek>(
         self,
         conn: &mut DeviceSqlConnection<R>,
     ) -> Result<PlaylistContent> {
         conn.check_kind(PlaylistContent::TABLE)?;
-        let row = self.to_binary()?;
+        let mut row = self.to_binary()?;
         let mut tx = conn.transaction();
         for record in tx.iter_raw(PlaylistContent::TABLE)? {
             let record = record?;
@@ -587,6 +1374,29 @@ impl NewPlaylistContent {
                 });
             }
         }
+        validate_playlist(&mut tx, self.playlist_id)?;
+        if !tx
+            .index_rows(Content::TABLE, |record| {
+                Ok(read_fields::<TrackHeader>(record)?.id)
+            })?
+            .contains_key(&self.content_id)
+        {
+            return Err(Error::ModelNotFound {
+                table: Content::TABLE,
+                id: self.content_id,
+            });
+        }
+        let rows = entry_rows(&mut tx)?;
+        unique_entries(&rows, self.playlist_id)?;
+        let (seq, changes) = ordering::insert(
+            PlaylistContent::TABLE,
+            &entry_positions(&rows),
+            self.playlist_id,
+            self.seq,
+            PlaylistContent::START_SEQ,
+        )?;
+        write_entries(&mut tx, &rows, &changes)?;
+        row.position = seq;
         let handle = tx.insert(
             PlaylistContent::TABLE,
             &Row::Standard(StandardRow::PlaylistEntry(row)),
@@ -597,12 +1407,13 @@ impl NewPlaylistContent {
     }
 
     /// Encode the binary fields for an explicit transaction; placement is assigned by the engine.
-    /// Direct binary insertion bypasses the model's pair-uniqueness check.
+    /// Direct binary insertion bypasses uniqueness, reference and ordering checks.
+    /// An omitted position encodes one; append requires model insertion.
     pub fn to_binary(&self) -> Result<PlaylistEntryRow> {
         validate_nonzero_id(PlaylistContent::TABLE, "playlist_id", self.playlist_id)?;
         validate_nonzero_id(PlaylistContent::TABLE, "content_id", self.content_id)?;
         Ok(PlaylistEntryRow {
-            position: self.seq,
+            position: self.seq.unwrap_or(PlaylistContent::START_SEQ),
             track_id: self.content_id,
             playlist_id: self.playlist_id,
         })

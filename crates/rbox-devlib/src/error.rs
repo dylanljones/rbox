@@ -157,6 +157,10 @@ pub enum Error {
     #[error("no model with ID {id} in {table:?}")]
     ModelNotFound { table: TableKind, id: u32 },
 
+    /// A composite-key lookup could not find the requested association.
+    #[error("no model with pair {id:?} in {table:?}")]
+    ModelPairNotFound { table: TableKind, id: (u32, u32) },
+
     /// A model without a unique ID no longer matches its original row location.
     #[error("model row {slot} on page {page:?} in {table:?} changed since it was read")]
     StaleModelRow {

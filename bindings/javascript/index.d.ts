@@ -4212,11 +4212,21 @@ export declare class OneLibrary {
   deletePlaylist(id: number): number
   /** Deletes multiple records from the `playlist` table by its primary keys `id`. */
   deletePlaylists(ids: Array<number>): number
-  /** Creates a new record and inserts it into the `playlist_content` table. */
+  /**
+   * Creates a new record and inserts it into the `playlist_content` table.
+   * Positions start at one; an omitted position appends.
+   */
   createPlaylistContent(playlistId: number, contentId: number, seq?: number | undefined | null): PlaylistContent
-  /** Moves a playlist content to a new sequence number. */
+  /**
+   * Moves a playlist content to a new sequence number.
+   * Positions start at one; an omitted position moves to the end.
+   */
   movePlaylistContent(playlistId: number, contentId: number, seq?: number | undefined | null): number
-  /** Moves multiple playlist contents to a new sequence number. */
+  /**
+   * Moves multiple playlist contents to a new sequence number.
+   * The one-based destination is measured after removing the selected entries;
+   * an omitted position appends, preserving the supplied entry order.
+   */
   movePlaylistContents(ids: Array<[number, number]>, startSeq?: number | undefined | null): number
   /** Deletes a record from the `playlist_content` table by its primary key. */
   deletePlaylistContent(playlistId: number, contentId: number): number
@@ -7864,7 +7874,10 @@ export interface Category {
   id: number
   /** A foreign key referencing the [`MenuItem`]. */
   menuItemId: number
-  /** The sequence/order of the category. */
+  /**
+   * One-based order among visible categories. Hidden rows may retain an old
+   * position and are excluded from active sequence maintenance.
+   */
   seq: number
   /** A flag if the category is visible. */
   isVisible: number
@@ -8166,7 +8179,10 @@ export interface Genre {
 export interface History {
   /** A unique identifier for the entry. */
   id: number
-  /** The sequence/order number of the history (1-based index) */
+  /**
+   * Zero-based sibling position, following the other OneLibrary tree models.
+   * This convention is inferred; populated native history exports are still needed.
+   */
   seq: number
   /** The name of the history. */
   name: string
@@ -8192,7 +8208,10 @@ export interface HistoryContent {
   historyId: number
   /** The ID of the associated [`Content`]. */
   contentId: number
-  /** Position within the history, starting at zero. Before insertion, `-1` requests append. */
+  /**
+   * Position within the history, starting at one. Before insertion, `-1` requests append.
+   * Matches rbxport's history writer; populated native fixtures are still needed.
+   */
   seq: number
 }
 
@@ -8208,7 +8227,10 @@ export interface HistoryContent {
 export interface HotCueBankList {
   /** The unique identifier of the hot cue bank list. */
   id: number
-  /** The sequence/order number of the hot cue bank list (1-based index). */
+  /**
+   * Stored sibling position. The starting index is not yet verified against
+   * populated native exports; values are preserved without normalization.
+   */
   seq: number
   /** The name of the hot cue bank list. */
   name?: string
@@ -8234,7 +8256,10 @@ export interface HotCueBankListCue {
   hotCueBankListId: number
   /** The unique identifier of the cue. */
   cueId: number
-  /** The sequence/order number of the hot cue bank list cue (1-based index). */
+  /**
+   * Stored position within the bank. The starting index is not yet verified
+   * against populated native exports; values are preserved without normalization.
+   */
   seq: number
 }
 
@@ -8731,7 +8756,7 @@ export interface PlaylistContent {
   playlistId: number
   /** The ID of the associated [`Content`]. */
   contentId: number
-  /** Position within the playlist, starting at zero. Before insertion, `-1` requests append. */
+  /** Position within the playlist, starting at one. Before insertion, `-1` requests append. */
   seq: number
 }
 
@@ -8803,7 +8828,10 @@ export interface Sort {
   id: number
   /** An optional foreign key referencing the [`MenuItem`]. */
   menuItemId: number
-  /** The sequence/order number of the *visible* items (1-based index) */
+  /**
+   * One-based order among visible sort options. Hidden rows may retain an old
+   * position and are excluded from active sequence maintenance.
+   */
   seq: number
   /** A flag if the item is visible in the menu */
   isVisible: number

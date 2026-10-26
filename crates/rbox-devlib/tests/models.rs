@@ -337,7 +337,9 @@ mod content_mutations {
         for id in [1, 2] {
             NewContent::new(id, format!("/Contents/{id}.wav")).insert(&mut standard)?;
         }
-        NewPlaylist::new(10, 0, 1, "Playlist").insert(&mut standard)?;
+        NewPlaylist::playlist(10, "Playlist")
+            .seq(0)
+            .insert(&mut standard)?;
         NewHistory::new(20, "History").insert(&mut standard)?;
         NewMyTag::new(30, 0, 0, "Tag").insert(&mut extended)?;
         for (id, seq) in [(1, 1), (1, 3), (2, 8)] {
@@ -513,7 +515,7 @@ mod content_mutations {
         assert_eq!(ExportProperty::all(&mut standard)?[0].track_count, 1);
         let playlists = PlaylistContent::all(&mut standard)?;
         assert_eq!(playlists.len(), 1);
-        assert_eq!((playlists[0].content_id, playlists[0].seq), (2, 8));
+        assert_eq!((playlists[0].content_id, playlists[0].seq), (2, 1));
         let histories = HistoryContent::all(&mut standard)?;
         assert_eq!(histories.len(), 1);
         assert_eq!((histories[0].content_id, histories[0].seq), (2, 9));
@@ -1282,9 +1284,12 @@ mod playlist_mutations {
     #[test]
     fn edits_validate_parents_preserve_reserved_fields_and_merge_stale_snapshots() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let root = NewPlaylist::folder(1, 0, 0, "Root").insert(&mut conn)?;
-        NewPlaylist::folder(2, 1, 0, "Nested").insert(&mut conn)?;
-        let mut input = NewPlaylist::new(3, 1, 7, "List");
+        let root = NewPlaylist::folder(1, "Root").seq(0).insert(&mut conn)?;
+        NewPlaylist::folder(2, "Nested")
+            .parent_id(1)
+            .seq(0)
+            .insert(&mut conn)?;
+        let mut input = NewPlaylist::playlist(3, "List").parent_id(1).seq(1);
         input.unknown_04 = 42;
         let playlist = input.insert(&mut conn)?;
         let before = bytes(&mut conn)?;
@@ -1293,7 +1298,7 @@ mod playlist_mutations {
         let mut edited = playlist.clone();
         edited.name = "Long name".repeat(100);
         edited.parent_id = 2;
-        edited.seq = 19;
+        edited.seq = 0;
         let updated = edited.update(&mut conn)?;
         assert_eq!(playlist.clone().update(&mut conn)?, updated);
         let Row::Standard(StandardRow::PlaylistTree(row)) = updated.raw_record().decode()? else {
@@ -1316,7 +1321,7 @@ mod playlist_mutations {
         let mut edited = playlist;
         edited.name.clear();
         let updated = edited.update(&mut conn)?;
-        assert_eq!((updated.parent_id, updated.seq), (2, 19));
+        assert_eq!((updated.parent_id, updated.seq), (2, 0));
         let mut reopened = DeviceSqlConnection::from_reader(
             Cursor::new(bytes(&mut conn)?),
             DatabaseKind::Standard,
@@ -1328,10 +1333,16 @@ mod playlist_mutations {
     #[test]
     fn cascade_is_atomic_and_keeps_contents_and_other_playlists() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let root = NewPlaylist::folder(1, 0, 0, "Root").insert(&mut conn)?;
-        NewPlaylist::folder(2, 1, 0, "Nested").insert(&mut conn)?;
-        NewPlaylist::new(3, 2, 9, "List").insert(&mut conn)?;
-        NewPlaylist::new(4, 0, 10, "Keep").insert(&mut conn)?;
+        let root = NewPlaylist::folder(1, "Root").seq(0).insert(&mut conn)?;
+        NewPlaylist::folder(2, "Nested")
+            .parent_id(1)
+            .seq(0)
+            .insert(&mut conn)?;
+        NewPlaylist::playlist(3, "List")
+            .parent_id(2)
+            .seq(0)
+            .insert(&mut conn)?;
+        NewPlaylist::playlist(4, "Keep").seq(1).insert(&mut conn)?;
         let content = NewContent::new(99, "/Contents/test.wav")
             .insert(&mut conn)?
             .raw_record()
@@ -1371,7 +1382,7 @@ mod playlist_mutations {
         )?;
         let playlists = Playlist::all(&mut reopened)?;
         assert_eq!(playlists.len(), 1);
-        assert_eq!((playlists[0].id, playlists[0].seq), (4, 10));
+        assert_eq!((playlists[0].id, playlists[0].seq), (4, 0));
         let entries = PlaylistContent::all(&mut reopened)?;
         assert_eq!(entries.len(), 1);
         assert_eq!((entries[0].playlist_id, entries[0].seq), (4, 7));
@@ -1388,7 +1399,11 @@ mod playlist_mutations {
     #[test]
     fn occurrence_deletion_and_pair_removal_preserve_other_plays() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let first = NewPlaylistContent::new(1, 2, 3).insert(&mut conn)?;
+        NewPlaylist::playlist(1, "List").insert(&mut conn)?;
+        NewContent::new(2, "/2.wav").insert(&mut conn)?;
+        NewContent::new(3, "/3.wav").insert(&mut conn)?;
+        let first = NewPlaylistContent::new(1, 2, 1).insert(&mut conn)?;
+        NewPlaylistContent::new(1, 3, 2).insert(&mut conn)?;
         for seq in [3, 9] {
             // Existing files may contain duplicates created outside the model API.
             let mut tx = conn.transaction();
@@ -1400,14 +1415,14 @@ mod playlist_mutations {
             )?;
             tx.commit()?;
         }
-        let keep = NewPlaylistContent::new(1, 3, 12).insert(&mut conn)?;
         let mut edited = first.clone();
         edited.content_id = 99;
         assert_eq!(edited.delete(&mut conn)?, 1);
         assert!(first.delete(&mut conn).is_err());
         assert_eq!(PlaylistContent::remove(&mut conn, &2, &1)?, 2);
         assert_eq!(PlaylistContent::remove(&mut conn, &2, &1)?, 0);
-        assert_eq!(PlaylistContent::all(&mut conn)?[0].seq, 12);
+        assert_eq!(PlaylistContent::all(&mut conn)?[0].seq, 1);
+        let keep = PlaylistContent::find(&mut conn, &(1, 3))?.unwrap();
         let mut tx = conn.transaction();
         let handle = tx.locate(
             PlaylistContent::TABLE,
@@ -4235,7 +4250,9 @@ mod history {
         assert!(History::all(&mut conn)?.is_empty());
         assert!(History::find(&mut conn, &1)?.is_none());
         assert!(HistoryContent::by_history_id(&mut conn, &1)?.is_empty());
-        NewPlaylist::new(1, 0, 1, "Regular playlist").insert(&mut conn)?;
+        NewPlaylist::playlist(1, "Regular playlist")
+            .seq(0)
+            .insert(&mut conn)?;
         let mut detached = NewHistory::new(1, "Session Ã©Å¸Â³Ã¦Â¥Â½").insert(&mut conn)?;
         detached.name = "Local edit".into();
         assert_eq!(
@@ -4406,8 +4423,11 @@ mod history {
         ));
         assert_eq!(conn.modified_page_count(), 0);
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let regular = NewPlaylist::new(1, 0, 1, "Regular").insert(&mut conn)?;
-        let entry = rbox_devlib::models::NewPlaylistContent::new(1, 10, 2).insert(&mut conn)?;
+        let regular = NewPlaylist::playlist(1, "Regular")
+            .seq(0)
+            .insert(&mut conn)?;
+        NewContent::new(10, "/test.wav").insert(&mut conn)?;
+        let entry = rbox_devlib::models::NewPlaylistContent::new(1, 10, 1).insert(&mut conn)?;
         assert!(matches!(
             History::try_from(regular.raw_record().clone()),
             Err(Error::UnsupportedModelRow { .. })
@@ -4774,12 +4794,408 @@ mod playlists {
     use super::*;
     use rbox_devlib::models::{NewPlaylist, NewPlaylistContent, Playlist, PlaylistContent};
 
+    fn bytes(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>) -> Result<Vec<u8>> {
+        let mut bytes = Vec::new();
+        conn.write_to(&mut bytes)?;
+        Ok(bytes)
+    }
+
+    fn children(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>, parent: u32) -> Result<Vec<u32>> {
+        Ok(Playlist::by_parent_id(conn, &parent)?
+            .iter()
+            .map(|p| p.id)
+            .collect())
+    }
+
+    fn contents(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>, parent: u32) -> Result<Vec<u32>> {
+        Ok(PlaylistContent::by_playlist_id(conn, &parent)?
+            .iter()
+            .map(|p| p.content_id)
+            .collect())
+    }
+
+    #[test]
+    fn ordered_tree_insertions_moves_queries_and_bulk_deletion() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        NewPlaylist::folder(1, "Root").insert(&mut conn)?;
+        NewPlaylist::folder(2, "Other").insert(&mut conn)?;
+        NewPlaylist::folder(3, "Nested")
+            .parent_id(1)
+            .insert(&mut conn)?;
+        NewPlaylist::playlist(4, "Last")
+            .parent_id(1)
+            .insert(&mut conn)?;
+        let mut input = NewPlaylist::playlist(5, "Middle").parent_id(1).seq(1);
+        input.unknown_04 = 0xaabbccdd;
+        input.insert(&mut conn)?;
+        assert_eq!(children(&mut conn, 1)?, [3, 5, 4]);
+        assert_eq!(Playlist::count_children(&mut conn, &1)?, 3);
+        assert_eq!(Playlist::get_seq_numbers(&mut conn, &1)?, [0, 1, 2]);
+        assert!(Playlist::validate_seq_numbers(&mut conn, &1)?);
+        assert!(Playlist::is_playlist(&mut conn, &5)?);
+        assert!(!Playlist::is_playlist(&mut conn, &1)?);
+        assert_eq!(Playlist::get_attribute(&mut conn, &0)?, Some(1));
+        assert_eq!(Playlist::get_attribute(&mut conn, &99)?, None);
+        assert_eq!(
+            Playlist::find_by_path(&mut conn, &["Root", "Middle"])?
+                .unwrap()
+                .id,
+            5
+        );
+        assert!(Playlist::find_by_path(&mut conn, &[])?.is_none());
+        assert!(Playlist::find_by_path(&mut conn, &["Missing"])?.is_none());
+        let tree = Playlist::tree(&mut conn)?;
+        assert_eq!(
+            tree.iter().map(|n| n.playlist.id).collect::<Vec<_>>(),
+            [1, 2]
+        );
+        assert_eq!(
+            tree[0]
+                .children
+                .iter()
+                .map(|n| n.playlist.id)
+                .collect::<Vec<_>>(),
+            [3, 5, 4]
+        );
+        assert_eq!(Playlist::move_to(&mut conn, &4, None, Some(0))?, 1);
+        assert_eq!(children(&mut conn, 1)?, [4, 3, 5]);
+        assert_eq!(Playlist::move_all_to(&mut conn, &[5, 4], &2, None)?, 2);
+        assert_eq!(children(&mut conn, 1)?, [3]);
+        assert_eq!(children(&mut conn, 2)?, [5, 4]);
+        assert_eq!(Playlist::get_seq_numbers(&mut conn, &2)?, [0, 1]);
+        assert_eq!(Playlist::rename(&mut conn, &5, "Renamed")?, 1);
+        let row = Playlist::find(&mut conn, &5)?.unwrap();
+        let Row::Standard(StandardRow::PlaylistTree(binary)) = row.raw_record().decode()? else {
+            panic!()
+        };
+        assert_eq!(binary.unknown_04, 0xaabbccdd);
+        assert_eq!(
+            (row.parent_id, row.seq, row.name.as_str()),
+            (2, 0, "Renamed")
+        );
+        // Moving an ancestor and its descendant to another folder flattens the selection.
+        assert_eq!(Playlist::move_all_to(&mut conn, &[1, 3], &2, None)?, 2);
+        assert_eq!(children(&mut conn, 0)?, [2]);
+        assert!(children(&mut conn, 1)?.is_empty());
+        assert_eq!(children(&mut conn, 2)?, [5, 4, 1, 3]);
+        assert_eq!(Playlist::delete_all(&mut conn, &[2, 3])?, 5);
+        assert!(Playlist::all(&mut conn)?.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_tree_mutations_are_atomic_and_paths_report_ambiguity() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        NewPlaylist::folder(1, "Root").insert(&mut conn)?;
+        NewPlaylist::folder(2, "Nested")
+            .parent_id(1)
+            .insert(&mut conn)?;
+        NewPlaylist::playlist(3, "List")
+            .parent_id(1)
+            .insert(&mut conn)?;
+        NewPlaylist::playlist(4, "List")
+            .parent_id(1)
+            .insert(&mut conn)?;
+        assert!(Playlist::find_by_path(&mut conn, &["Root", "List"])?.is_none());
+        let before = bytes(&mut conn)?;
+        assert!(Playlist::move_to(&mut conn, &1, Some(&2), None).is_err());
+        assert!(Playlist::move_to(&mut conn, &2, Some(&3), None).is_err());
+        assert!(Playlist::move_to(&mut conn, &2, Some(&99), None).is_err());
+        assert!(Playlist::move_to(&mut conn, &2, None, Some(99)).is_err());
+        assert!(Playlist::move_all_to(&mut conn, &[2, 2], &0, None).is_err());
+        assert!(Playlist::delete_all(&mut conn, &[2, 99]).is_err());
+        assert!(Playlist::delete_all(&mut conn, &[2, 2]).is_err());
+        assert!(NewPlaylist::playlist(5, "Invalid")
+            .parent_id(3)
+            .insert(&mut conn)
+            .is_err());
+        assert!(NewPlaylist::playlist(5, "Cycle")
+            .parent_id(5)
+            .insert(&mut conn)
+            .is_err());
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut conn =
+            DeviceSqlConnection::from_reader(Cursor::new(before.clone()), DatabaseKind::Standard)?;
+        assert_eq!(Playlist::move_to(&mut conn, &2, None, Some(0))?, 0);
+        assert_eq!(Playlist::reset_seq(&mut conn, &1)?, 0);
+        assert_eq!(conn.modified_page_count(), 0);
+        assert_eq!(bytes(&mut conn)?, before);
+        raw_node(
+            &mut conn,
+            NewPlaylist::folder(9, "Cycle").parent_id(9).seq(0),
+        )?;
+        assert!(Playlist::tree(&mut conn).is_err());
+        assert!(Playlist::find_by_path(&mut conn, &["Cycle"]).is_err());
+        assert_eq!(Playlist::delete(&mut conn, &9)?, 1);
+        raw_node(
+            &mut conn,
+            NewPlaylist::playlist(9, "Orphan").parent_id(99).seq(0),
+        )?;
+        assert!(Playlist::tree(&mut conn).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn ordered_contents_queries_moves_and_bulk_deletion() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        for id in [1, 2] {
+            NewPlaylist::playlist(id, "List").insert(&mut conn)?;
+        }
+        for id in 10..14 {
+            NewContent::new(id, format!("/{id}.wav")).insert(&mut conn)?;
+        }
+        for id in [10, 11, 12] {
+            NewPlaylistContent::new(1, id, None).insert(&mut conn)?;
+        }
+        NewPlaylistContent::new(1, 13, 2).insert(&mut conn)?;
+        NewPlaylistContent::new(2, 10, None).insert(&mut conn)?;
+        assert_eq!(contents(&mut conn, 1)?, [10, 13, 11, 12]);
+        assert_eq!(PlaylistContent::count(&mut conn, &1)?, 4);
+        assert_eq!(
+            PlaylistContent::get_seq_numbers(&mut conn, &1)?,
+            [1, 2, 3, 4]
+        );
+        assert!(PlaylistContent::validate_seq_numbers(&mut conn, &1)?);
+        assert!(PlaylistContent::id_exists(&mut conn, &(1, 13))?);
+        assert!(!PlaylistContent::id_exists(&mut conn, &(1, 99))?);
+        assert_eq!(PlaylistContent::by_content_id(&mut conn, &10)?.len(), 2);
+        assert_eq!(
+            Playlist::get_contents(&mut conn, &1)?
+                .iter()
+                .map(|c| c.id)
+                .collect::<Vec<_>>(),
+            [10, 13, 11, 12]
+        );
+        assert_eq!(PlaylistContent::move_to(&mut conn, &(1, 12), Some(1))?, 1);
+        assert_eq!(contents(&mut conn, 1)?, [12, 10, 13, 11]);
+        assert_eq!(
+            PlaylistContent::move_all_to(&mut conn, &[(1, 11), (1, 13)], Some(2))?,
+            1
+        );
+        assert_eq!(contents(&mut conn, 1)?, [12, 11, 13, 10]);
+        assert_eq!(PlaylistContent::move_to(&mut conn, &(1, 12), None)?, 1);
+        assert_eq!(contents(&mut conn, 1)?, [11, 13, 10, 12]);
+        let before = bytes(&mut conn)?;
+        assert!(PlaylistContent::move_to(&mut conn, &(1, 11), Some(0)).is_err());
+        assert!(PlaylistContent::move_to(&mut conn, &(1, 11), Some(5)).is_err());
+        assert!(PlaylistContent::move_all_to(&mut conn, &[(1, 11), (2, 10)], None).is_err());
+        assert!(PlaylistContent::move_all_to(&mut conn, &[(1, 11), (1, 11)], None).is_err());
+        assert!(PlaylistContent::delete_all(&mut conn, &[(1, 11), (1, 99)]).is_err());
+        assert!(PlaylistContent::delete_all(&mut conn, &[(1, 11), (1, 11)]).is_err());
+        assert!(NewPlaylistContent::new(1, 99, None)
+            .insert(&mut conn)
+            .is_err());
+        assert!(NewPlaylistContent::new(99, 10, None)
+            .insert(&mut conn)
+            .is_err());
+        assert_eq!(bytes(&mut conn)?, before);
+        assert_eq!(
+            PlaylistContent::delete_all(&mut conn, &[(1, 13), (2, 10)])?,
+            2
+        );
+        assert_eq!(PlaylistContent::delete_by_id(&mut conn, &(1, 99))?, 0);
+        assert_eq!(PlaylistContent::delete_by_id(&mut conn, &(1, 11))?, 1);
+        assert_eq!(contents(&mut conn, 1)?, [10, 12]);
+        assert_eq!(PlaylistContent::get_seq_numbers(&mut conn, &1)?, [1, 2]);
+        for id in [10, 11] {
+            NewPlaylistContent::new(2, id, None).insert(&mut conn)?;
+        }
+        assert_eq!(PlaylistContent::delete_by_content_id(&mut conn, &10)?, 2);
+        assert_eq!(
+            PlaylistContent::delete_by_content_ids(&mut conn, &[12, 999])?,
+            1
+        );
+        assert_eq!(PlaylistContent::delete_by_playlist_id(&mut conn, &2)?, 1);
+        assert_eq!(
+            PlaylistContent::delete_by_playlist_ids(&mut conn, &[1, 2, 999])?,
+            0
+        );
+        assert_eq!(Playlist::all(&mut conn)?.len(), 2);
+        assert_eq!(Content::all(&mut conn)?.len(), 4);
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Standard,
+        )?;
+        assert!(PlaylistContent::all(&mut reopened)?.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn imported_positions_can_be_reset_without_losing_duplicate_occurrences() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        raw_node(&mut conn, NewPlaylist::playlist(1, "Later").seq(9))?;
+        raw_node(&mut conn, NewPlaylist::playlist(2, "Earlier").seq(4))?;
+        raw_node(&mut conn, NewPlaylist::playlist(3, "Tied").seq(4))?;
+        assert!(!Playlist::validate_seq_numbers(&mut conn, &0)?);
+        assert_eq!(Playlist::reset_seq(&mut conn, &0)?, 3);
+        assert_eq!(children(&mut conn, 0)?, [2, 3, 1]);
+        assert!(Playlist::validate_seq_numbers(&mut conn, &0)?);
+        for (id, seq) in [(10, 9), (10, 0), (20, 0)] {
+            raw_entry(&mut conn, NewPlaylistContent::new(1, id, seq))?;
+        }
+        assert!(!PlaylistContent::validate_seq_numbers(&mut conn, &1)?);
+        assert_eq!(PlaylistContent::reset_seq(&mut conn, &1)?, 3);
+        assert_eq!(contents(&mut conn, 1)?, [10, 20, 10]);
+        assert!(PlaylistContent::validate_seq_numbers(&mut conn, &1)?);
+        assert!(matches!(
+            PlaylistContent::find(&mut conn, &(1, 10)),
+            Err(Error::UniqueConstraintViolation { .. })
+        ));
+        assert!(matches!(
+            PlaylistContent::move_to(&mut conn, &(1, 20), Some(1)),
+            Err(Error::UniqueConstraintViolation { .. })
+        ));
+        assert_eq!(PlaylistContent::remove(&mut conn, &10, &1)?, 2);
+        assert_eq!(PlaylistContent::get_seq_numbers(&mut conn, &1)?, [1]);
+        Ok(())
+    }
+
+    #[test]
+    fn multi_page_moves_rollback_on_resource_limits_and_preserve_other_tables() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        NewPlaylist::playlist(1, "List").insert(&mut conn)?;
+        NewContent::new(1, "/keep.wav").insert(&mut conn)?;
+        let content = Content::find(&mut conn, &1)?.unwrap();
+        let mut tx = conn.transaction();
+        // Binary setup isolates ordering from content insertion and allocation costs.
+        for id in 1..=600 {
+            tx.insert(
+                PlaylistContent::TABLE,
+                &Row::Standard(StandardRow::PlaylistEntry(
+                    NewPlaylistContent::new(1, id, id).to_binary()?,
+                )),
+            )?;
+        }
+        tx.commit()?;
+        let original = bytes(&mut conn)?;
+        let mut conn = DeviceSqlConnection::from_reader(
+            Cursor::new(original.clone()),
+            DatabaseKind::Standard,
+        )?;
+        assert_eq!(PlaylistContent::move_to(&mut conn, &(1, 1), Some(1))?, 0);
+        assert_eq!(PlaylistContent::reset_seq(&mut conn, &1)?, 0);
+        assert_eq!(conn.modified_page_count(), 0);
+        assert_eq!(bytes(&mut conn)?, original);
+        conn.set_resource_limits(rbox_devlib::devicesql::ResourceLimits {
+            dirty_pages: Some(1),
+            ..Default::default()
+        })?;
+        assert!(matches!(
+            PlaylistContent::move_to(&mut conn, &(1, 600), Some(1)),
+            Err(Error::DirtyPageLimit { .. })
+        ));
+        assert_eq!(conn.modified_page_count(), 0);
+        assert_eq!(bytes(&mut conn)?, original);
+        conn.set_resource_limits(Default::default())?;
+        assert_eq!(PlaylistContent::move_to(&mut conn, &(1, 600), Some(1))?, 1);
+        assert!(conn.modified_page_count() > 1);
+        let saved = bytes(&mut conn)?;
+        let mut reopened =
+            DeviceSqlConnection::from_reader(Cursor::new(saved.clone()), DatabaseKind::Standard)?;
+        assert_eq!(
+            contents(&mut reopened, 1)?,
+            std::iter::once(600).chain(1..600).collect::<Vec<_>>()
+        );
+        assert!(PlaylistContent::validate_seq_numbers(&mut reopened, &1)?);
+        assert_eq!(
+            Content::find(&mut reopened, &1)?
+                .unwrap()
+                .raw_record()
+                .decode()?,
+            content.raw_record().decode()?
+        );
+        let entry_pages: std::collections::HashSet<_> = PlaylistContent::all(&mut reopened)?
+            .iter()
+            .map(|r| r.raw_record().page())
+            .collect();
+        assert!(entry_pages.len() > 1);
+        // Sequence edits must not rewrite unrelated content pages.
+        let content_page = content.raw_record().page().0 as usize;
+        let page_size = reopened.header().prefix.page_size as usize;
+        assert_eq!(
+            &saved[content_page * page_size..(content_page + 1) * page_size],
+            &original[content_page * page_size..(content_page + 1) * page_size]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn ordering_helpers_reject_the_extended_database() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        assert!(matches!(
+            Playlist::tree(&mut conn),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            Playlist::get_attribute(&mut conn, &0),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            Playlist::reset_seq(&mut conn, &0),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            Playlist::move_all_to(&mut conn, &[], &0, None),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            Playlist::delete_all(&mut conn, &[]),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            PlaylistContent::move_all_to(&mut conn, &[], None),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            PlaylistContent::delete_all(&mut conn, &[]),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            PlaylistContent::delete_by_content_ids(&mut conn, &[]),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert_eq!(conn.modified_page_count(), 0);
+        Ok(())
+    }
+
+    fn raw_node(
+        conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>,
+        input: NewPlaylist,
+    ) -> Result<Playlist> {
+        let mut tx = conn.transaction();
+        let handle = tx.insert(
+            Playlist::TABLE,
+            &Row::Standard(StandardRow::PlaylistTree(input.to_binary()?)),
+        )?;
+        let row = Playlist::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+        Ok(row)
+    }
+
+    fn raw_entry(
+        conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>,
+        input: NewPlaylistContent,
+    ) -> Result<PlaylistContent> {
+        let mut tx = conn.transaction();
+        let handle = tx.insert(
+            PlaylistContent::TABLE,
+            &Row::Standard(StandardRow::PlaylistEntry(input.to_binary()?)),
+        )?;
+        let row = PlaylistContent::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+        Ok(row)
+    }
+
     #[test]
     fn content_pairs_are_unique_regardless_of_sequence() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        NewPlaylist::playlist(1, "First").insert(&mut conn)?;
+        NewPlaylist::playlist(2, "Second").insert(&mut conn)?;
+        NewContent::new(10, "/10.wav").insert(&mut conn)?;
+        NewContent::new(20, "/20.wav").insert(&mut conn)?;
         let first = NewPlaylistContent::new(1, 10, 1).insert(&mut conn)?;
         NewPlaylistContent::new(2, 10, 1).insert(&mut conn)?;
-        NewPlaylistContent::new(1, 20, 1).insert(&mut conn)?;
+        NewPlaylistContent::new(1, 20, 2).insert(&mut conn)?;
         let mut before = Vec::new();
         conn.write_to(&mut before)?;
         for seq in [1, 99] {
@@ -4817,10 +5233,10 @@ mod playlists {
         assert!(Playlist::by_parent(&mut conn, &0)?.is_empty());
         assert!(PlaylistContent::all(&mut conn)?.is_empty());
 
-        let mut folder = NewPlaylist::folder(1, 0, 50, "Ã©Å¸Â³Ã¦Â¥Â½ Ã°Å¸Å½Âµ");
+        let mut folder = NewPlaylist::folder(1, "Ã©Å¸Â³Ã¦Â¥Â½ Ã°Å¸Å½Âµ").seq(50);
         folder.attribute = 0x80;
         folder.unknown_04 = 0xaabbccdd;
-        let folder = folder.insert(&mut conn)?;
+        let folder = raw_node(&mut conn, folder)?;
         assert!(folder.is_folder());
         assert_eq!(folder.attribute, 0x80);
         assert_eq!(folder.name, "Ã©Å¸Â³Ã¦Â¥Â½ Ã°Å¸Å½Âµ");
@@ -4828,10 +5244,19 @@ mod playlists {
             panic!()
         };
         assert_eq!(row.unknown_04, 0xaabbccdd);
-        let later = NewPlaylist::new(2, 1, 20, "Later").insert(&mut conn)?;
-        NewPlaylist::new(3, 1, 4, "Earlier").insert(&mut conn)?;
-        NewPlaylist::new(4, 1, 4, "Tied").insert(&mut conn)?;
-        NewPlaylist::new(5, 0, 1, "Root playlist").insert(&mut conn)?;
+        let later = raw_node(
+            &mut conn,
+            NewPlaylist::playlist(2, "Later").parent_id(1).seq(20),
+        )?;
+        raw_node(
+            &mut conn,
+            NewPlaylist::playlist(3, "Earlier").parent_id(1).seq(4),
+        )?;
+        raw_node(
+            &mut conn,
+            NewPlaylist::playlist(4, "Tied").parent_id(1).seq(4),
+        )?;
+        raw_node(&mut conn, NewPlaylist::playlist(5, "Root playlist").seq(1))?;
         assert!(!later.is_folder());
         assert_eq!(
             Playlist::by_parent(&mut conn, &1)?
@@ -4876,12 +5301,14 @@ mod playlists {
     #[test]
     fn repeated_occurrences_and_position_ties_survive_save_and_reopen() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewPlaylist::new(1, 0, 1, "Playlist").insert(&mut conn)?;
-        NewPlaylist::new(2, 0, 2, "Other").insert(&mut conn)?;
+        NewPlaylist::playlist(1, "Playlist")
+            .seq(0)
+            .insert(&mut conn)?;
+        NewPlaylist::playlist(2, "Other").seq(1).insert(&mut conn)?;
         NewContent::new(10, "/Contents/One.wav").insert(&mut conn)?;
         NewContent::new(20, "/Contents/Two.wav").insert(&mut conn)?;
-        let late = NewPlaylistContent::new(1, 10, 30).insert(&mut conn)?;
-        let first_tie = NewPlaylistContent::new(1, 20, 4).insert(&mut conn)?;
+        let late = raw_entry(&mut conn, NewPlaylistContent::new(1, 10, 30))?;
+        let first_tie = raw_entry(&mut conn, NewPlaylistContent::new(1, 20, 4))?;
         // Bypass the model constraint to test lossless reads of existing duplicates.
         let mut tx = conn.transaction();
         let mut duplicates = Vec::new();
@@ -4960,25 +5387,31 @@ mod playlists {
     #[test]
     fn rejected_playlist_insertions_leave_existing_pages_unchanged() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewPlaylist::new(1, 0, 1, "Original").insert(&mut conn)?;
+        NewPlaylist::playlist(1, "Original")
+            .seq(0)
+            .insert(&mut conn)?;
         let mut before = Vec::new();
         conn.write_to(&mut before)?;
         let pages = conn.page_count();
         let dirty = conn.modified_page_count();
         assert!(matches!(
-            NewPlaylist::folder(1, 0, 2, "Duplicate").insert(&mut conn),
+            NewPlaylist::folder(1, "Duplicate").seq(2).insert(&mut conn),
             Err(Error::DuplicateId { id: 1, .. })
         ));
         assert!(matches!(
-            NewPlaylist::new(0, 0, 1, "Zero").insert(&mut conn),
+            NewPlaylist::playlist(0, "Zero").seq(1).insert(&mut conn),
             Err(Error::InvalidModelField { field: "id", .. })
         ));
         assert!(matches!(
-            NewPlaylist::new(2, 0, 1, "Bad\0name").insert(&mut conn),
+            NewPlaylist::playlist(2, "Bad\0name")
+                .seq(1)
+                .insert(&mut conn),
             Err(Error::EmbeddedNul)
         ));
         assert!(matches!(
-            NewPlaylist::new(2, 0, 1, "x".repeat(5000)).insert(&mut conn),
+            NewPlaylist::playlist(2, "x".repeat(5000))
+                .seq(1)
+                .insert(&mut conn),
             Err(Error::NoRowSpace { .. })
         ));
         assert!(matches!(
@@ -5005,20 +5438,28 @@ mod playlists {
         assert!(PlaylistContent::all(&mut conn)?.is_empty());
 
         let mut limited = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        NewPlaylist::playlist(2, "Existing").insert(&mut limited)?;
+        NewContent::new(1, "/test.wav").insert(&mut limited)?;
+        let mut saved = Vec::new();
+        limited.write_to(&mut saved)?;
+        let mut limited =
+            DeviceSqlConnection::from_reader(Cursor::new(saved), DatabaseKind::Standard)?;
         limited.set_resource_limits(rbox_devlib::devicesql::ResourceLimits {
             dirty_pages: Some(0),
             ..Default::default()
         })?;
         assert!(matches!(
-            NewPlaylist::new(1, 0, 1, "Limited").insert(&mut limited),
+            NewPlaylist::playlist(1, "Limited")
+                .seq(0)
+                .insert(&mut limited),
             Err(Error::DirtyPageLimit { .. })
         ));
         assert!(matches!(
-            NewPlaylistContent::new(1, 1, 1).insert(&mut limited),
+            NewPlaylistContent::new(2, 1, 1).insert(&mut limited),
             Err(Error::DirtyPageLimit { .. })
         ));
         assert_eq!(limited.modified_page_count(), 0);
-        assert!(Playlist::all(&mut limited)?.is_empty());
+        assert_eq!(Playlist::all(&mut limited)?.len(), 1);
         assert!(PlaylistContent::all(&mut limited)?.is_empty());
         Ok(())
     }
@@ -5105,7 +5546,9 @@ mod playlists {
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            NewPlaylist::new(1, 0, 1, "Wrong namespace").insert(&mut conn),
+            NewPlaylist::playlist(1, "Wrong namespace")
+                .seq(1)
+                .insert(&mut conn),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
@@ -5114,7 +5557,8 @@ mod playlists {
         ));
         assert_eq!(conn.modified_page_count(), 0);
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let node = NewPlaylist::new(1, 0, 1, "Node").insert(&mut conn)?;
+        let node = NewPlaylist::playlist(1, "Node").seq(0).insert(&mut conn)?;
+        NewContent::new(1, "/test.wav").insert(&mut conn)?;
         let entry = NewPlaylistContent::new(1, 1, 1).insert(&mut conn)?;
         assert!(matches!(
             Playlist::try_from(entry.raw_record().clone()),
@@ -5130,7 +5574,7 @@ mod playlists {
     #[test]
     fn binary_transactions_remain_explicit_and_bad_name_text_is_contextual() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let mut row = NewPlaylist::new(1, 0, 1, "Name").to_binary()?;
+        let mut row = NewPlaylist::playlist(1, "Name").seq(1).to_binary()?;
         row.name = DeviceSqlString::parse(&[0x90, 6, 0, 0, 0, 0xd8])?;
         let mut tx = conn.transaction();
         tx.insert(

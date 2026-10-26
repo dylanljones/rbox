@@ -256,6 +256,7 @@ impl TreeSeq for Playlist {
     ) -> QueryResult<bool> {
         Self::is_folder(conn, *parent_id)
     }
+
     fn count_children(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<i32> {
         let count: i64 = playlist::table
             .filter(playlist::parent_id.eq(parent_id))
@@ -263,6 +264,7 @@ impl TreeSeq for Playlist {
             .get_result(conn)?;
         i32::try_from(count).map_err(|_| ordering_error("Collection too large"))
     }
+
     fn get_seq_numbers(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
@@ -273,9 +275,11 @@ impl TreeSeq for Playlist {
             .select(playlist::seq)
             .load(conn)
     }
+
     fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<usize> {
         <Self as OrderedModel>::renumber(conn, parent_id)
     }
+
     fn shift_seq(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
@@ -297,12 +301,15 @@ impl OrderedModel for Playlist {
     fn order_id(&self) -> i32 {
         self.id
     }
+
     fn order_parent(&self) -> &Self::ParentId {
         &self.parent_id
     }
+
     fn order_position(&self) -> i32 {
         self.seq
     }
+
     fn ordered(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<Vec<Self>> {
         playlist::table
             .filter(playlist::parent_id.eq(parent_id))
@@ -310,6 +317,7 @@ impl OrderedModel for Playlist {
             .select(Self::as_select())
             .load(conn)
     }
+
     fn write_order(
         conn: &mut SqliteConnection,
         changes: &[(&Self, &Self::ParentId, i32)],
