@@ -8740,6 +8740,10 @@ export interface PlaylistContent {
  *
  * This struct maps to the `property` table in the One Library export database.
  * It stores information about the device(s) and the export library.
+ * The exact `device_name` is a unique model key, including an empty name.
+ * Native tables do not necessarily enforce this in SQL, so model operations
+ * reject duplicate names transactionally. `update` targets the current name;
+ * changing a snapshot's name does not rename its original row.
  */
 export interface Property {
   /** The name of the device ('' by default) */
