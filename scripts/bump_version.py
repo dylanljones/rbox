@@ -9,9 +9,9 @@ are visited, so build outputs, environments, and node_modules are excluded.
 """
 
 import argparse
-from pathlib import Path
 import re
 import subprocess
+from pathlib import Path
 
 try:
     import tomlkit
