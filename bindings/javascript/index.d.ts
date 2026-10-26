@@ -8686,7 +8686,7 @@ export interface NewPlaylist {
   name: string
   /** Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image). */
   imageId?: number
-  /** The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`). */
+  /** The type to insert: only [`PlaylistType::List`] and [`PlaylistType::Folder`] are supported. */
   attribute: PlaylistType
   /** The ID of the parent [`Playlist`], `0` for top-level records. */
   parentId: number
