@@ -16,6 +16,8 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::io::{Read, Seek};
 
+use rbox_core::MyTagType;
+
 use super::ordering::{Change, Position};
 use super::{
     ordering, read_fields, text, text_error, unsupported, validate_id, validate_nonzero_id,
@@ -41,8 +43,8 @@ pub struct MyTag {
     pub seq: u32,
     /// Decoded display name.
     pub name: String,
-    /// Raw attribute: zero for a tag, one for a category; other values are retained.
-    pub attribute: u8,
+    /// Tag or category type; unknown binary attributes are rejected by this model.
+    pub attribute: MyTagType,
     raw: RowRecord,
 }
 
@@ -212,13 +214,9 @@ impl MyTag {
         Ok(count)
     }
 
-    /// Known category status, or `None` for an unknown raw attribute.
-    pub fn is_category(&self) -> Option<bool> {
-        match self.attribute {
-            0 => Some(false),
-            1 => Some(true),
-            _ => None,
-        }
+    /// Whether this node is a category.
+    pub fn is_category(&self) -> bool {
+        self.attribute == MyTagType::Folder
     }
 
     /// Persist edited name, parent and position; ID and attribute are immutable.
@@ -454,7 +452,7 @@ fn validate_parent(rows: &TagRows, mut parent: u32, forbidden: &[u32]) -> Result
         let header = headers
             .get(&parent)
             .ok_or_else(|| invalid_parent("parent category does not exist"))?;
-        if header.attribute != 1 {
+        if header.attribute != MyTagType::Folder as u8 {
             return Err(invalid_parent("parent must be a category"));
         }
         parent = header.parent_id;
@@ -569,7 +567,8 @@ impl TryFrom<RowRecord> for MyTag {
             id: row.header.id,
             parent_id: row.header.parent_id,
             seq: row.header.position,
-            attribute: row.header.attribute,
+            attribute: MyTagType::try_from(i32::from(row.header.attribute))
+                .map_err(|_| ordering::invalid(Self::TABLE, "attribute", "unknown My Tag type"))?,
             name: row
                 .name
                 .text()
@@ -606,8 +605,8 @@ pub struct NewMyTag {
     pub seq: Option<u32>,
     /// Display name.
     pub name: String,
-    /// Raw attribute; constructors use zero for tags and one for categories.
-    pub attribute: u8,
+    /// Tag (List) or category (Folder).
+    pub attribute: MyTagType,
     /// Reserved word at 0x04, defaulting to zero.
     pub unknown_04: u32,
     /// Reserved word at 0x08, defaulting to zero.
@@ -619,8 +618,8 @@ pub struct NewMyTag {
 }
 
 impl NewMyTag {
-    /// Prepare a root node with an explicit ID, name and raw attribute; defaults to append.
-    pub fn new(id: u32, name: impl Into<String>, attribute: u8) -> Self {
+    /// Prepare a root node with an explicit ID, name and type; defaults to append.
+    pub fn new(id: u32, name: impl Into<String>, attribute: MyTagType) -> Self {
         Self {
             id,
             parent_id: 0,
@@ -636,12 +635,12 @@ impl NewMyTag {
 
     /// Prepare a tag with an explicit ID and name.
     pub fn tag(id: u32, name: impl Into<String>) -> Self {
-        Self::new(id, name, 0)
+        Self::new(id, name, MyTagType::List)
     }
 
     /// Prepare a category (folder) with an explicit ID and name.
     pub fn folder(id: u32, name: impl Into<String>) -> Self {
-        Self::new(id, name, 1)
+        Self::new(id, name, MyTagType::Folder)
     }
 
     /// Set the insertion position among siblings, starting at [`MyTag::START_SEQ`].
@@ -703,7 +702,7 @@ impl NewMyTag {
                 id: self.id,
                 unknown_18: self.unknown_18,
                 unknown_1a: self.unknown_1a,
-                attribute: self.attribute,
+                attribute: self.attribute as u8,
             },
             strings: StringOffsets::Near {
                 marker: 3,

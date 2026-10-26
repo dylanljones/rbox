@@ -16,10 +16,12 @@
 pub mod binary;
 pub mod database;
 pub mod devicesql;
+pub mod enums;
 pub mod error;
 pub mod models;
 
 pub use binary::DatabaseKind;
 pub use database::{DeviceLibrary, LibraryCreateOptions, LibrarySaveStats};
 pub use devicesql::{CreateOptions, DeviceSqlConnection, Transaction};
+pub use enums::*;
 pub use error::{Error, Result};

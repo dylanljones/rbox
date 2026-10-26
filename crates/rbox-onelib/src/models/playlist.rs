@@ -383,6 +383,10 @@ impl ModelInsert for NewPlaylist {
 
 impl NewPlaylist {
     /// Creates a new playlist record with the required fields.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `attribute` is neither [`PlaylistType::List`] nor [`PlaylistType::Folder`].
     pub fn new<S: Into<String>>(name: S, attribute: PlaylistType) -> Self {
         if !(attribute == PlaylistType::List || attribute == PlaylistType::Folder) {
             panic!("Invalid playlist type: {:?}", attribute);

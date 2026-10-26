@@ -34,6 +34,8 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::io::{Read, Seek};
 
+use rbox_core::PlaylistType;
+
 use super::ordering::{Change, Position};
 use super::{
     ordering, read_fields, text, text_error, unsupported, validate_id, validate_nonzero_id, Content,
@@ -56,7 +58,7 @@ pub struct PlaylistTreeNode {
 
 /// A detached playlist or folder in the standard database's playlist tree.
 ///
-/// IDs, positions and folder flags retain their stored values. Reads do not
+/// IDs and positions retain their stored values. Reads reject unknown folder flags and do not
 /// traverse parents or load entries. Editing fields changes only this snapshot;
 /// original bytes remain available through [`Self::raw_record`].
 #[derive(Clone, PartialEq, Eq)]
@@ -67,8 +69,8 @@ pub struct Playlist {
     pub parent_id: u32,
     /// Stored sibling position; gaps and ties are retained.
     pub seq: u32,
-    /// Raw folder flag; conventionally zero for playlists and nonzero for folders.
-    pub attribute: u32,
+    /// Regular playlist or folder; other binary flags are rejected by this model.
+    pub attribute: PlaylistType,
     /// Decoded display name.
     pub name: String,
     raw: RowRecord,
@@ -147,14 +149,14 @@ impl Playlist {
         Ok(children)
     }
 
-    /// Return the stored flag; the root sentinel is treated as a folder.
+    /// Return the node type; the root sentinel is treated as a folder.
     pub fn get_attribute<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
         id: &u32,
-    ) -> Result<Option<u32>> {
+    ) -> Result<Option<PlaylistType>> {
         conn.check_kind(Self::TABLE)?;
         if *id == 0 {
-            return Ok(Some(1));
+            return Ok(Some(PlaylistType::Folder));
         }
         Ok(Self::find(conn, id)?.map(|p| p.attribute))
     }
@@ -164,7 +166,7 @@ impl Playlist {
         conn: &mut DeviceSqlConnection<R>,
         id: &u32,
     ) -> Result<bool> {
-        Ok(Self::get_attribute(conn, id)? == Some(0))
+        Ok(Self::get_attribute(conn, id)? == Some(PlaylistType::List))
     }
 
     /// Read contents in playlist order. Missing content references are errors;
@@ -365,9 +367,9 @@ impl Playlist {
         Ok(count)
     }
 
-    /// Interpret the conventional nonzero folder flag without changing its raw value.
+    /// Whether this node is a folder.
     pub fn is_folder(&self) -> bool {
-        self.attribute != 0
+        self.attribute == PlaylistType::Folder
     }
 
     /// Persist edited name, parent and position; ID and attribute are immutable.
@@ -696,7 +698,7 @@ fn validate_parent(rows: &NodeRows, mut parent: u32, forbidden: &[u32]) -> Resul
         let node = lookup
             .get(&parent)
             .ok_or_else(|| invalid_parent("parent folder does not exist"))?;
-        if node.folder_flag == 0 {
+        if playlist_type(node.folder_flag)? != PlaylistType::Folder {
             return Err(invalid_parent("parent must be a folder"));
         }
         parent = node.parent_id;
@@ -742,7 +744,7 @@ fn validate_nodes(rows: &[Playlist]) -> Result<()> {
 fn validate_playlist<R: Read + Seek>(tx: &mut Transaction<'_, R>, id: u32) -> Result<()> {
     let rows = node_rows(tx)?;
     let index = node_index(&rows, id)?;
-    if rows[index].1.folder_flag != 0 {
+    if playlist_type(rows[index].1.folder_flag)? != PlaylistType::List {
         return Err(ordering::invalid(
             PlaylistContent::TABLE,
             "playlist_id",
@@ -832,6 +834,18 @@ fn reset_entries<R: Read + Seek>(
     Ok(count)
 }
 
+fn playlist_type(value: u32) -> Result<PlaylistType> {
+    match value {
+        0 => Ok(PlaylistType::List),
+        1 => Ok(PlaylistType::Folder),
+        _ => Err(ordering::invalid(
+            Playlist::TABLE,
+            "attribute",
+            "DeviceSQL supports only regular playlists and folders",
+        )),
+    }
+}
+
 impl TryFrom<RowRecord> for Playlist {
     type Error = Error;
 
@@ -847,7 +861,7 @@ impl TryFrom<RowRecord> for Playlist {
             id: row.id,
             parent_id: row.parent_id,
             seq: row.position,
-            attribute: row.folder_flag,
+            attribute: playlist_type(row.folder_flag)?,
             name: row
                 .name
                 .text()
@@ -870,8 +884,8 @@ pub struct NewPlaylist {
     pub parent_id: u32,
     /// Zero-based insertion position; `None` appends after the last sibling.
     pub seq: Option<u32>,
-    /// Raw folder flag; constructors use zero for playlists and one for folders.
-    pub attribute: u32,
+    /// Node type; only List and Folder can be encoded for DeviceSQL.
+    pub attribute: PlaylistType,
     /// Display name.
     pub name: String,
     /// Reserved word at 0x04, defaulting to zero.
@@ -879,8 +893,16 @@ pub struct NewPlaylist {
 }
 
 impl NewPlaylist {
-    /// Prepare a playlist with an explicit parent; use `None` for the position to append.
-    pub fn new(id: u32, name: impl Into<String>, attribute: u32) -> Self {
+    /// Prepare a root node; insertion appends by default.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `attribute` is neither [`PlaylistType::List`] nor [`PlaylistType::Folder`].
+    pub fn new(id: u32, name: impl Into<String>, attribute: PlaylistType) -> Self {
+        if !(attribute == PlaylistType::List || attribute == PlaylistType::Folder) {
+            panic!("Invalid playlist type: {:?}", attribute);
+        }
+
         Self {
             id,
             parent_id: 0,
@@ -893,12 +915,12 @@ impl NewPlaylist {
 
     /// Prepare a regular playlist with an explicit ID and name.
     pub fn playlist(id: u32, name: impl Into<String>) -> Self {
-        Self::new(id, name, 0)
+        Self::new(id, name, PlaylistType::List)
     }
 
     /// Prepare a folder with an explicit ID and name.
     pub fn folder(id: u32, name: impl Into<String>) -> Self {
-        Self::new(id, name, 1)
+        Self::new(id, name, PlaylistType::Folder)
     }
 
     /// Set the insertion position among siblings; zero inserts first.
@@ -958,7 +980,17 @@ impl NewPlaylist {
             unknown_04: self.unknown_04,
             position: self.seq.unwrap_or(Playlist::START_SEQ),
             id: self.id,
-            folder_flag: self.attribute,
+            folder_flag: match self.attribute {
+                PlaylistType::List => 0,
+                PlaylistType::Folder => 1,
+                _ => {
+                    return Err(ordering::invalid(
+                        Playlist::TABLE,
+                        "attribute",
+                        "DeviceSQL supports only regular playlists and folders",
+                    ))
+                }
+            },
             name: text(&self.name)?,
         })
     }

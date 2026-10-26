@@ -18,6 +18,8 @@
 //! models have no insertion inputs; creation profiles initialize their rows.
 //! Tables retain their standard or extended database namespace. Using the wrong connection returns
 //! `WrongDatabaseKind`. Unknown tables remain accessible through binary rows.
+//! Playlist and My Tag attributes use shared enums. Unknown attribute values are
+//! rejected when decoding these models but remain readable through the binary engine.
 //!
 //! ```
 //! use rbox_devlib::{binary::DatabaseKind, DeviceSqlConnection};

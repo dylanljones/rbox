@@ -11,8 +11,119 @@ use rbox_devlib::binary::{
     PAGE_HEADER_SIZE,
 };
 use rbox_devlib::models::{Content, NewContent};
-use rbox_devlib::{CreateOptions, DeviceSqlConnection, Error, Result};
+use rbox_devlib::{CreateOptions, DeviceSqlConnection, Error, MyTagType, PlaylistType, Result};
 use rbox_testing::data::{create_temp_dir, export_dir};
+
+#[test]
+fn unknown_tree_attributes_remain_binary_only() -> Result<()> {
+    use rbox_devlib::binary::ExtendedRow;
+    use rbox_devlib::models::{MyTag, NewMyTag, NewPlaylist, Playlist};
+
+    for flag in [4, 0x80, u32::MAX] {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        let mut row = NewPlaylist::playlist(1, "Unknown").to_binary()?;
+        row.folder_flag = flag;
+        let mut tx = conn.transaction();
+        let handle = tx.insert(
+            Playlist::TABLE,
+            &Row::Standard(StandardRow::PlaylistTree(row)),
+        )?;
+        let record = tx.read(&handle)?;
+        tx.commit()?;
+        let Row::Standard(StandardRow::PlaylistTree(binary)) = record.decode()? else {
+            panic!("expected playlist row");
+        };
+        assert_eq!(binary.folder_flag, flag);
+        assert!(matches!(
+            Playlist::try_from(record),
+            Err(Error::InvalidModelField {
+                field: "attribute",
+                ..
+            })
+        ));
+        assert!(matches!(
+            Playlist::find(&mut conn, &1),
+            Err(Error::InvalidModelField {
+                field: "attribute",
+                ..
+            })
+        ));
+        assert!(NewPlaylist::playlist(2, "Child")
+            .parent_id(1)
+            .insert(&mut conn)
+            .is_err());
+    }
+
+    let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+    let mut row = NewMyTag::tag(1, "Unknown").to_binary()?;
+    row.header.attribute = 0x80;
+    let mut tx = conn.transaction();
+    let handle = tx.insert(MyTag::TABLE, &Row::Extended(ExtendedRow::MyTag(row)))?;
+    let record = tx.read(&handle)?;
+    tx.commit()?;
+    let Row::Extended(ExtendedRow::MyTag(binary)) = record.decode()? else {
+        panic!("expected My Tag row");
+    };
+    assert_eq!(binary.header.attribute, 0x80);
+    assert!(matches!(
+        MyTag::try_from(record),
+        Err(Error::InvalidModelField {
+            field: "attribute",
+            ..
+        })
+    ));
+    assert!(matches!(
+        MyTag::find(&mut conn, &1),
+        Err(Error::InvalidModelField {
+            field: "attribute",
+            ..
+        })
+    ));
+    Ok(())
+}
+
+#[test]
+fn unsupported_playlist_types_cannot_be_written_by_models() -> Result<()> {
+    use rbox_devlib::models::{NewPlaylist, Playlist};
+
+    let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+    let dirty = conn.modified_page_count();
+    for attribute in [PlaylistType::SmartList, PlaylistType::CloudLibrarySync] {
+        let panic = std::panic::catch_unwind(|| NewPlaylist::new(1, "Unsupported", attribute))
+            .expect_err("unsupported playlist types must panic during construction");
+        assert_eq!(
+            panic.downcast_ref::<String>().map(String::as_str),
+            Some(format!("Invalid playlist type: {attribute:?}").as_str())
+        );
+
+        // Public fields can still be changed after construction; encoding must validate them.
+        let mut input = NewPlaylist::playlist(1, "Unsupported");
+        input.attribute = attribute;
+        assert!(matches!(
+            input.to_binary(),
+            Err(Error::InvalidModelField {
+                field: "attribute",
+                ..
+            })
+        ));
+        assert!(matches!(
+            input.insert(&mut conn),
+            Err(Error::InvalidModelField {
+                field: "attribute",
+                ..
+            })
+        ));
+        assert_eq!(conn.modified_page_count(), dirty);
+        assert!(Playlist::all(&mut conn)?.is_empty());
+    }
+    let playlist = NewPlaylist::new(1, "Playlist", PlaylistType::List).insert(&mut conn)?;
+    assert_eq!(playlist.attribute, PlaylistType::List);
+    assert_eq!(
+        Playlist::get_attribute(&mut conn, &1)?,
+        Some(PlaylistType::List)
+    );
+    Ok(())
+}
 
 #[test]
 fn content_lookup_helpers_follow_live_rows() -> Result<()> {
@@ -1312,7 +1423,7 @@ mod playlist_mutations {
             assert!(edited.update(&mut conn).is_err());
         }
         let mut edited = playlist.clone();
-        edited.attribute = 1;
+        edited.attribute = PlaylistType::Folder;
         assert!(edited.update(&mut conn).is_err());
         let mut edited = playlist.clone();
         edited.id = 99;
@@ -1484,12 +1595,15 @@ mod my_tag_mutations {
     fn builders_and_ordered_mutations_maintain_each_sibling_list() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
         let root = NewMyTag::folder(1, "Source");
-        assert_eq!((root.parent_id, root.seq, root.attribute), (0, None, 1));
+        assert_eq!(
+            (root.parent_id, root.seq, root.attribute),
+            (0, None, MyTagType::Folder)
+        );
         root.insert(&mut conn)?;
         NewMyTag::folder(2, "Destination").insert(&mut conn)?;
         NewMyTag::tag(10, "First").parent_id(1).insert(&mut conn)?;
         NewMyTag::tag(11, "Last").parent_id(1).insert(&mut conn)?;
-        NewMyTag::new(12, "Middle", 0)
+        NewMyTag::new(12, "Middle", MyTagType::List)
             .parent_id(1)
             .seq(1)
             .insert(&mut conn)?;
@@ -1530,7 +1644,11 @@ mod my_tag_mutations {
             .parent_id(1)
             .insert(&mut conn)?;
         NewMyTag::tag(3, "Tag").parent_id(1).insert(&mut conn)?;
-        NewMyTag::new(4, "Unknown", 0x80).insert(&mut conn)?;
+        let mut unknown = NewMyTag::tag(4, "Unknown").to_binary()?;
+        unknown.header.attribute = 0x80;
+        let mut tx = conn.transaction();
+        tx.insert(MyTag::TABLE, &Row::Extended(ExtendedRow::MyTag(unknown)))?;
+        tx.commit()?;
         let before = bytes(&mut conn)?;
         for parent in [2, 3, 4, 99] {
             assert!(MyTag::move_to(&mut conn, &1, Some(&parent), None).is_err());
@@ -1584,7 +1702,7 @@ mod my_tag_mutations {
     #[test]
     fn reset_preserves_imported_ties_and_binary_reserved_fields() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
-        let mut input = NewMyTag::new(1, "Reserved fields", 0x80)
+        let mut input = NewMyTag::new(1, "Reserved fields", MyTagType::List)
             .seq(9)
             .to_binary()?;
         input.header.unknown_04 = 0x12345678;
@@ -1726,7 +1844,7 @@ mod my_tag_mutations {
         edited.parent_id = 4;
         assert!(edited.update(&mut conn).is_err());
         let mut edited = tag.clone();
-        edited.attribute = 1;
+        edited.attribute = MyTagType::Folder;
         assert!(edited.update(&mut conn).is_err());
         let mut edited = tag.clone();
         edited.id = 5;
@@ -4735,7 +4853,7 @@ mod tags {
         let category = NewMyTag::folder(0xffff_ffff, "Mood")
             .seq(0)
             .insert(&mut conn)?;
-        assert_eq!(category.is_category(), Some(true));
+        assert!(category.is_category());
         let mut input = NewMyTag::tag(2, "Ã©Å¸Â³Ã¦Â¥Â½")
             .parent_id(category.id)
             .seq(9);
@@ -4744,7 +4862,7 @@ mod tags {
         input.unknown_18 = 17;
         input.unknown_1a = 5;
         let tag = raw_tag(&mut conn, input)?;
-        assert_eq!(tag.is_category(), Some(false));
+        assert!(!tag.is_category());
         let Row::Extended(ExtendedRow::MyTag(row)) = tag.raw_record().decode()? else {
             panic!()
         };
@@ -4759,11 +4877,10 @@ mod tags {
         );
         assert_eq!(row.header.subtype, MyTagHeader::NEAR_SUBTYPE);
         assert_eq!(row.unknown_string.text()?, "");
-        let mut unknown = NewMyTag::tag(3, "Unknown attribute")
+        let second = NewMyTag::new(3, "Second tag", MyTagType::List)
             .parent_id(category.id)
             .seq(1);
-        unknown.attribute = 0x80;
-        assert_eq!(raw_tag(&mut conn, unknown)?.is_category(), None);
+        assert!(!raw_tag(&mut conn, second)?.is_category());
         raw_tag(
             &mut conn,
             NewMyTag::tag(4, "Tied").parent_id(category.id).seq(1),
@@ -4830,7 +4947,7 @@ mod tags {
                 panic!()
             };
             assert_eq!(
-                (model.id, model.parent_id, model.seq, model.attribute),
+                (model.id, model.parent_id, model.seq, model.attribute as u8),
                 (
                     row.header.id,
                     row.header.parent_id,
@@ -4839,7 +4956,7 @@ mod tags {
                 )
             );
             assert_eq!(model.name, row.name.text()?);
-            assert_eq!(model.is_category(), row.header.is_category());
+            assert_eq!(Some(model.is_category()), row.header.is_category());
             assert_eq!(model.raw_record(), record);
             assert_eq!(MyTag::find(&mut conn, &model.id)?, Some(model));
         }
@@ -5061,7 +5178,10 @@ mod playlists {
         assert!(Playlist::validate_seq_numbers(&mut conn, &1)?);
         assert!(Playlist::is_playlist(&mut conn, &5)?);
         assert!(!Playlist::is_playlist(&mut conn, &1)?);
-        assert_eq!(Playlist::get_attribute(&mut conn, &0)?, Some(1));
+        assert_eq!(
+            Playlist::get_attribute(&mut conn, &0)?,
+            Some(PlaylistType::Folder)
+        );
         assert_eq!(Playlist::get_attribute(&mut conn, &99)?, None);
         assert_eq!(
             Playlist::find_by_path(&mut conn, &["Root", "Middle"])?
@@ -5461,11 +5581,10 @@ mod playlists {
         assert!(PlaylistContent::all(&mut conn)?.is_empty());
 
         let mut folder = NewPlaylist::folder(1, "Ã©Å¸Â³Ã¦Â¥Â½ Ã°Å¸Å½Âµ").seq(50);
-        folder.attribute = 0x80;
         folder.unknown_04 = 0xaabbccdd;
         let folder = raw_node(&mut conn, folder)?;
         assert!(folder.is_folder());
-        assert_eq!(folder.attribute, 0x80);
+        assert_eq!(folder.attribute, PlaylistType::Folder);
         assert_eq!(folder.name, "Ã©Å¸Â³Ã¦Â¥Â½ Ã°Å¸Å½Âµ");
         let Row::Standard(StandardRow::PlaylistTree(row)) = folder.raw_record().decode()? else {
             panic!()
@@ -5709,7 +5828,7 @@ mod playlists {
                 panic!()
             };
             assert_eq!(
-                (model.id, model.parent_id, model.seq, model.attribute),
+                (model.id, model.parent_id, model.seq, model.attribute as u32),
                 (
                     binary.id,
                     binary.parent_id,
