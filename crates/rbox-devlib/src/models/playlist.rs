@@ -132,7 +132,7 @@ impl Playlist {
     /// Read immediate children sorted by stored sibling position; use zero for root.
     /// Ties retain physical iteration order. This scans the tree table and does not
     /// verify the parent exists, recurse, renumber positions or repair cycles.
-    pub fn by_parent<R: Read + Seek>(
+    pub fn by_parent_id<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
         parent_id: &u32,
     ) -> Result<Vec<Self>> {
@@ -145,14 +145,6 @@ impl Playlist {
         }
         children.sort_by_key(|row| row.seq);
         Ok(children)
-    }
-
-    /// Read immediate children in sequence order; zero identifies the root.
-    pub fn by_parent_id<R: Read + Seek>(
-        conn: &mut DeviceSqlConnection<R>,
-        parent_id: &u32,
-    ) -> Result<Vec<Self>> {
-        Self::by_parent(conn, parent_id)
     }
 
     /// Return the stored flag; the root sentinel is treated as a folder.
@@ -1022,7 +1014,7 @@ impl PlaylistContent {
     /// Read a playlist's occurrences sorted by stored position.
     /// Ties retain physical iteration order, including identical entries.
     /// This scans the entry table and does not load the playlist or referenced tracks.
-    pub fn by_playlist<R: Read + Seek>(
+    pub fn by_playlist_id<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
         playlist_id: &u32,
     ) -> Result<Vec<Self>> {
@@ -1035,14 +1027,6 @@ impl PlaylistContent {
         }
         entries.sort_by_key(|row| row.seq);
         Ok(entries)
-    }
-
-    /// Read entries in sequence order, retaining imported ties and duplicates.
-    pub fn by_playlist_id<R: Read + Seek>(
-        conn: &mut DeviceSqlConnection<R>,
-        id: &u32,
-    ) -> Result<Vec<Self>> {
-        Self::by_playlist(conn, id)
     }
 
     /// Read every association for a content ID, ordered by playlist then sequence.

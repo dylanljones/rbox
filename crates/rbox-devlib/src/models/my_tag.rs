@@ -9,11 +9,17 @@
 //! load related rows automatically and retain repeated associations.
 //! Updates and deletions commit in memory; saving is explicit. Deleting a category
 //! also removes descendants and their associations, without deleting contents.
+//! Insertions, moves and deletions maintain sibling positions from [`MyTag::START_SEQ`].
+//! Reads retain imported gaps and ties; ordered mutations normalize affected lists.
+//! Only changed rows are written. Content associations have no sequence.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::io::{Read, Seek};
 
-use super::{read_fields, text, text_error, unsupported, validate_id, validate_nonzero_id};
+use super::ordering::{Change, Position};
+use super::{
+    ordering, read_fields, text, text_error, unsupported, validate_id, validate_nonzero_id,
+};
 use crate::binary::{
     ExtPageType, ExtendedRow, MyTagHeader, MyTagRow, Row, RowRecord, StringOffsets, TableKind,
     TrackMyTagRow,
@@ -55,6 +61,8 @@ impl std::fmt::Debug for MyTag {
 impl MyTag {
     /// Extended database table containing tags and categories.
     pub const TABLE: TableKind = TableKind::Extended(ExtPageType::MyTags);
+    /// First sibling position within a category or the root.
+    pub const START_SEQ: u32 = 0;
 
     /// Stream live rows in physical order. Creating the iterator reads no pages.
     pub fn iter<R: Read + Seek>(
@@ -94,7 +102,7 @@ impl MyTag {
     /// Read immediate children sorted by stored position; zero selects roots.
     /// This scans the table. Ties retain physical order; hierarchy validation and
     /// recursive traversal are not performed.
-    pub fn by_parent<R: Read + Seek>(
+    pub fn by_parent_id<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
         parent_id: &u32,
     ) -> Result<Vec<Self>> {
@@ -107,6 +115,101 @@ impl MyTag {
         }
         children.sort_by_key(|row| row.seq);
         Ok(children)
+    }
+
+    /// Count immediate children without decoding names.
+    pub fn count_children<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        parent: &u32,
+    ) -> Result<usize> {
+        Ok(Self::get_seq_numbers(conn, parent)?.len())
+    }
+
+    /// Read sibling positions in ascending order without decoding names.
+    pub fn get_seq_numbers<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        parent: &u32,
+    ) -> Result<Vec<u32>> {
+        let mut positions = Vec::new();
+        for record in conn.iter_raw(Self::TABLE)? {
+            let record = record?;
+            Self::read_id(&record)?;
+            let header = read_fields::<MyTagHeader>(&record)?;
+            if header.parent_id == *parent {
+                positions.push(header.position);
+            }
+        }
+        positions.sort_unstable();
+        Ok(positions)
+    }
+
+    /// Check contiguous sibling positions starting at [`Self::START_SEQ`].
+    pub fn validate_seq_numbers<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        parent: &u32,
+    ) -> Result<bool> {
+        Ok(ordering::valid(
+            &Self::get_seq_numbers(conn, parent)?,
+            Self::START_SEQ,
+        ))
+    }
+
+    /// Normalize siblings in stable sequence/physical order. Returns changed rows.
+    /// The parent must be a category with valid ancestry, or zero for the root.
+    pub fn reset_seq<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        parent: &u32,
+    ) -> Result<usize> {
+        let mut tx = conn.transaction();
+        let rows = tag_rows(&mut tx)?;
+        validate_parent(&rows, *parent, &[])?;
+        let changes = ordering::renumber(&tag_positions(&rows), *parent, Self::START_SEQ)?;
+        write_tags(&mut tx, &rows, &changes)?;
+        tx.commit()?;
+        Ok(changes.len())
+    }
+
+    /// Move a tag/category transactionally. `None` keeps the parent or appends there.
+    /// Positions start at [`Self::START_SEQ`]; cycles and invalid parents are rejected.
+    /// Returns one if the selected node changed parent/position, otherwise zero.
+    pub fn move_to<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        id: &u32,
+        parent: Option<&u32>,
+        seq: Option<u32>,
+    ) -> Result<usize> {
+        let mut tx = conn.transaction();
+        let rows = tag_rows(&mut tx)?;
+        let index = tag_index(&rows, *id)?;
+        let count = move_tags(
+            &mut tx,
+            &rows,
+            &[*id],
+            parent.copied().unwrap_or(rows[index].1.parent_id),
+            seq,
+        )?;
+        tx.commit()?;
+        Ok(count)
+    }
+
+    /// Move distinct nodes as a block in caller order, atomically. The destination
+    /// is the first final position after removing the selection; `None` appends.
+    /// Returns changed selected nodes, excluding shifts of unselected siblings.
+    pub fn move_all_to<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        ids: &[u32],
+        parent: &u32,
+        seq: Option<u32>,
+    ) -> Result<usize> {
+        conn.check_kind(Self::TABLE)?;
+        if ids.is_empty() {
+            return Ok(0);
+        }
+        let mut tx = conn.transaction();
+        let rows = tag_rows(&mut tx)?;
+        let count = move_tags(&mut tx, &rows, ids, *parent, seq)?;
+        tx.commit()?;
+        Ok(count)
     }
 
     /// Known category status, or `None` for an unknown raw attribute.
@@ -123,8 +226,8 @@ impl MyTag {
     /// Unedited fields, reserved values and the second string frame are preserved.
     /// Edited fields use last-write-wins. A changed nonzero parent must exist and
     /// be a category; self-parenting and cyclic or broken ancestry are rejected.
-    /// Zero selects the root. Siblings are not renumbered. Commits in memory only;
-    /// errors roll back and saving remains explicit.
+    /// Zero selects the root. Changed parent/position fields trigger an ordered move;
+    /// changing only the parent appends there. Errors roll back; saving is explicit.
     /// String edits remain subject to the engine's supported allocation layouts;
     /// unsupported growth returns an error without discarding unknown data.
     pub fn update<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Self> {
@@ -144,6 +247,22 @@ impl MyTag {
             }
         }
         let mut tx = conn.transaction();
+        if self.parent_id != original.parent_id || self.seq != original.seq {
+            let rows = tag_rows(&mut tx)?;
+            let index = tag_index(&rows, original.id)?;
+            let parent = if self.parent_id != original.parent_id {
+                self.parent_id
+            } else {
+                rows[index].1.parent_id
+            };
+            move_tags(
+                &mut tx,
+                &rows,
+                &[original.id],
+                parent,
+                (self.seq != original.seq).then_some(self.seq),
+            )?;
+        }
         let location = tx
             .index_rows(Self::TABLE, Self::read_id)?
             .get(&original.id)
@@ -157,27 +276,6 @@ impl MyTag {
         let Row::Extended(ExtendedRow::MyTag(mut row)) = record.decode()? else {
             return Err(unsupported(&record));
         };
-        if self.parent_id != original.parent_id {
-            let headers = tag_headers(&mut tx)?;
-            let mut visited = HashSet::from([original.id]);
-            let mut parent = self.parent_id;
-            while parent != 0 {
-                if !visited.insert(parent) {
-                    return Err(invalid_parent("parent ancestry must not contain a cycle"));
-                }
-                let header = headers
-                    .get(&parent)
-                    .ok_or_else(|| invalid_parent("parent category does not exist"))?;
-                if header.attribute != 1 {
-                    return Err(invalid_parent("parent must be a category"));
-                }
-                parent = header.parent_id;
-            }
-            row.header.parent_id = self.parent_id;
-        }
-        if self.seq != original.seq {
-            row.header.position = self.seq;
-        }
         if self.name != original.name {
             row.name = text(&self.name)?;
         }
@@ -190,17 +288,56 @@ impl MyTag {
     /// Delete a tag/category, its descendants and all their content associations.
     ///
     /// Descendants are followed by parent ID, even in malformed or cyclic trees;
-    /// each row is removed once. Contents and surviving sequence values are untouched.
+    /// each row is removed once. Contents remain; surviving sibling lists are normalized.
     /// Returns the total deleted row count. Missing IDs return zero without cleaning
     /// dangling associations; zero is rejected. One transaction covers both extended
     /// tables. Errors roll back; saving remains explicit.
     pub fn delete<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<usize> {
+        Self::delete_nodes(conn, &[*id], false)
+    }
+
+    /// Delete selected subtrees atomically, counting overlapping descendants once.
+    /// Duplicate input IDs or missing nodes reject the batch. Returns deleted nodes
+    /// and associations, excluding sibling sequence updates.
+    pub fn delete_all<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        ids: &[u32],
+    ) -> Result<usize> {
+        Self::delete_nodes(conn, ids, true)
+    }
+
+    fn delete_nodes<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        ids: &[u32],
+        strict: bool,
+    ) -> Result<usize> {
         conn.check_kind(Self::TABLE)?;
-        validate_id(Self::TABLE, *id)?;
+        if ids.is_empty() {
+            return Ok(0);
+        }
+        let mut seen = HashSet::new();
+        for &id in ids {
+            validate_id(Self::TABLE, id)?;
+            if !seen.insert(id) {
+                return Err(ordering::invalid(
+                    Self::TABLE,
+                    "id",
+                    "duplicate deletion identity",
+                ));
+            }
+        }
         let mut tx = conn.transaction();
         let index = tx.index_rows(Self::TABLE, Self::read_id)?.clone();
-        if !index.contains_key(id) {
-            return Ok(0);
+        for id in ids {
+            if !index.contains_key(id) {
+                if strict {
+                    return Err(Error::ModelNotFound {
+                        table: Self::TABLE,
+                        id: *id,
+                    });
+                }
+                return Ok(0);
+            }
         }
         let headers = tag_headers(&mut tx)?;
         let mut children: HashMap<u32, Vec<u32>> = HashMap::new();
@@ -211,7 +348,7 @@ impl MyTag {
                 .push(header.id);
         }
         let mut removed = HashSet::new();
-        let mut pending = vec![*id];
+        let mut pending = ids.to_vec();
         while let Some(id) = pending.pop() {
             if removed.insert(id) {
                 if let Some(ids) = children.get(&id) {
@@ -219,6 +356,11 @@ impl MyTag {
                 }
             }
         }
+        let parents: BTreeSet<_> = removed
+            .iter()
+            .map(|id| headers[id].parent_id)
+            .filter(|parent| !removed.contains(parent))
+            .collect();
         let mut count = remove_associations(&mut tx, |row| removed.contains(&row.tag_id))?;
         for id in removed {
             let location = index.get(&id).ok_or(Error::ModelNotFound {
@@ -228,6 +370,15 @@ impl MyTag {
             let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
             tx.delete(&handle)?;
             count = count.checked_add(1).ok_or(Error::MutationOverflow)?;
+        }
+        let rows = tag_rows(&mut tx)?;
+        let positions = tag_positions(&rows);
+        for parent in parents {
+            write_tags(
+                &mut tx,
+                &rows,
+                &ordering::renumber(&positions, parent, Self::START_SEQ)?,
+            )?;
         }
         tx.commit()?;
         Ok(count)
@@ -252,6 +403,110 @@ impl MyTag {
         }
         Ok(header.id)
     }
+}
+
+type TagRows = Vec<(RowRecord, MyTagHeader)>;
+
+fn tag_rows<R: Read + Seek>(tx: &mut Transaction<'_, R>) -> Result<TagRows> {
+    let mut ids = HashSet::new();
+    tx.iter_raw(MyTag::TABLE)?
+        .map(|record| {
+            let record = record?;
+            let id = MyTag::read_id(&record)?;
+            validate_id(MyTag::TABLE, id)?;
+            if !ids.insert(id) {
+                return Err(Error::DuplicateId {
+                    table: MyTag::TABLE,
+                    id,
+                });
+            }
+            let header = read_fields(&record)?;
+            Ok((record, header))
+        })
+        .collect()
+}
+
+fn tag_positions(rows: &TagRows) -> Vec<Position> {
+    rows.iter()
+        .map(|(_, h)| Position {
+            parent: h.parent_id,
+            seq: h.position,
+        })
+        .collect()
+}
+
+fn tag_index(rows: &TagRows, id: u32) -> Result<usize> {
+    rows.iter()
+        .position(|(_, h)| h.id == id)
+        .ok_or(Error::ModelNotFound {
+            table: MyTag::TABLE,
+            id,
+        })
+}
+
+fn validate_parent(rows: &TagRows, mut parent: u32, forbidden: &[u32]) -> Result<()> {
+    let headers: HashMap<_, _> = rows.iter().map(|(_, h)| (h.id, h)).collect();
+    let mut visited: HashSet<_> = forbidden.iter().copied().collect();
+    while parent != 0 {
+        if !visited.insert(parent) {
+            return Err(invalid_parent("parent ancestry must not contain a cycle"));
+        }
+        let header = headers
+            .get(&parent)
+            .ok_or_else(|| invalid_parent("parent category does not exist"))?;
+        if header.attribute != 1 {
+            return Err(invalid_parent("parent must be a category"));
+        }
+        parent = header.parent_id;
+    }
+    Ok(())
+}
+
+fn write_tags<R: Read + Seek>(
+    tx: &mut Transaction<'_, R>,
+    rows: &TagRows,
+    changes: &[Change],
+) -> Result<()> {
+    for change in changes {
+        let record = &rows[change.index].0;
+        let handle = tx.locate(MyTag::TABLE, record.page(), record.slot().slot)?;
+        let current = tx.read(&handle)?;
+        let Row::Extended(ExtendedRow::MyTag(mut row)) = current.decode()? else {
+            return Err(unsupported(&current));
+        };
+        row.header.parent_id = change.parent;
+        row.header.position = change.seq;
+        tx.update(&handle, &Row::Extended(ExtendedRow::MyTag(row)))?;
+    }
+    Ok(())
+}
+
+fn move_tags<R: Read + Seek>(
+    tx: &mut Transaction<'_, R>,
+    rows: &TagRows,
+    ids: &[u32],
+    parent: u32,
+    seq: Option<u32>,
+) -> Result<usize> {
+    let selected = ids
+        .iter()
+        .map(|&id| tag_index(rows, id))
+        .collect::<Result<Vec<_>>>()?;
+    validate_parent(rows, parent, ids)?;
+    let changes = ordering::move_rows(
+        MyTag::TABLE,
+        &tag_positions(rows),
+        &selected,
+        parent,
+        seq,
+        MyTag::START_SEQ,
+    )?;
+    let moved = changes
+        .iter()
+        .filter(|c| selected.contains(&c.index))
+        .count();
+    write_tags(tx, rows, &changes)?;
+    Ok(moved)
 }
 
 fn invalid_parent(reason: &'static str) -> Error {
@@ -324,20 +579,31 @@ impl TryFrom<RowRecord> for MyTag {
     }
 }
 
-/// Input for a fresh My Tag/category, with explicit ID and zero-based position.
+/// Input for a fresh My Tag/category, with an explicit ID and optional position.
 ///
 /// The default reserved values are zero, with an empty second string frame, as in
 /// the established writer profile. Near-offset encoding is used; the engine rejects
-/// strings that cannot fit that layout. Parent existence and category status are
-/// not validated. Insertion commits in memory only; saving remains explicit.
+/// strings that cannot fit that layout. Insertion validates category ancestry and
+/// maintains sibling ordering. Saving remains explicit.
+///
+/// ```
+/// use rbox_devlib::{DatabaseKind, DeviceSqlConnection};
+/// use rbox_devlib::models::NewMyTag;
+/// # fn main() -> rbox_devlib::Result<()> {
+/// let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+/// NewMyTag::folder(1, "Mood").insert(&mut conn)?;
+/// NewMyTag::tag(2, "Energetic").parent_id(1).seq(0).insert(&mut conn)?;
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewMyTag {
     /// Unused, nonzero export tag/category ID.
     pub id: u32,
     /// Parent category ID; zero denotes a root.
     pub parent_id: u32,
-    /// Explicit zero-based position; other rows are not renumbered.
-    pub seq: u32,
+    /// Insertion position starting at [`MyTag::START_SEQ`]; `None` appends.
+    pub seq: Option<u32>,
     /// Display name.
     pub name: String,
     /// Raw attribute; constructors use zero for tags and one for categories.
@@ -353,14 +619,14 @@ pub struct NewMyTag {
 }
 
 impl NewMyTag {
-    /// Prepare a tag with an explicit parent and position.
-    pub fn new(id: u32, parent_id: u32, seq: u32, name: impl Into<String>) -> Self {
+    /// Prepare a root node with an explicit ID, name and raw attribute; defaults to append.
+    pub fn new(id: u32, name: impl Into<String>, attribute: u8) -> Self {
         Self {
             id,
-            parent_id,
-            seq,
+            parent_id: 0,
+            seq: None,
             name: name.into(),
-            attribute: 0,
+            attribute,
             unknown_04: 0,
             unknown_08: 0,
             unknown_18: 0,
@@ -368,18 +634,32 @@ impl NewMyTag {
         }
     }
 
-    /// Prepare a root category with an explicit position.
-    pub fn category(id: u32, seq: u32, name: impl Into<String>) -> Self {
-        Self {
-            attribute: 1,
-            ..Self::new(id, 0, seq, name)
-        }
+    /// Prepare a tag with an explicit ID and name.
+    pub fn tag(id: u32, name: impl Into<String>) -> Self {
+        Self::new(id, name, 0)
+    }
+
+    /// Prepare a category (folder) with an explicit ID and name.
+    pub fn folder(id: u32, name: impl Into<String>) -> Self {
+        Self::new(id, name, 1)
+    }
+
+    /// Set the insertion position among siblings, starting at [`MyTag::START_SEQ`].
+    pub fn seq(mut self, seq: u32) -> Self {
+        self.seq = Some(seq);
+        self
+    }
+
+    /// Set the parent category; zero selects the root.
+    pub fn parent_id(mut self, id: u32) -> Self {
+        self.parent_id = id;
+        self
     }
 
     /// Insert atomically, rejecting duplicate IDs. Errors leave the connection unchanged.
     pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<MyTag> {
         conn.check_kind(MyTag::TABLE)?;
-        let row = self.to_binary()?;
+        let mut row = self.to_binary()?;
         let mut tx = conn.transaction();
         if tx
             .index_rows(MyTag::TABLE, MyTag::read_id)?
@@ -390,6 +670,17 @@ impl NewMyTag {
                 id: self.id,
             });
         }
+        let rows = tag_rows(&mut tx)?;
+        validate_parent(&rows, self.parent_id, &[self.id])?;
+        let (position, changes) = ordering::insert(
+            MyTag::TABLE,
+            &tag_positions(&rows),
+            self.parent_id,
+            self.seq,
+            MyTag::START_SEQ,
+        )?;
+        write_tags(&mut tx, &rows, &changes)?;
+        row.header.position = position;
         let handle = tx.insert(MyTag::TABLE, &Row::Extended(ExtendedRow::MyTag(row)))?;
         let model = MyTag::try_from(tx.read(&handle)?)?;
         tx.commit()?;
@@ -397,7 +688,8 @@ impl NewMyTag {
     }
 
     /// Encode fields for an explicit binary transaction; the engine assigns offsets and slots.
-    /// Direct binary insertion does not check model-ID uniqueness.
+    /// Direct binary insertion bypasses uniqueness, ancestry and ordering checks.
+    /// An omitted position encodes [`MyTag::START_SEQ`]; append requires model insertion.
     pub fn to_binary(&self) -> Result<MyTagRow> {
         validate_id(MyTag::TABLE, self.id)?;
         Ok(MyTagRow {
@@ -407,7 +699,7 @@ impl NewMyTag {
                 unknown_04: self.unknown_04,
                 unknown_08: self.unknown_08,
                 parent_id: self.parent_id,
-                position: self.seq,
+                position: self.seq.unwrap_or(MyTag::START_SEQ),
                 id: self.id,
                 unknown_18: self.unknown_18,
                 unknown_1a: self.unknown_1a,
@@ -465,7 +757,7 @@ impl MyTagContent {
 
     /// Scan associations for an export track ID, retaining physical order and duplicates.
     /// The track in the separate standard database is not loaded or validated.
-    pub fn by_content<R: Read + Seek>(
+    pub fn by_content_id<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
         content_id: &u32,
     ) -> Result<Vec<Self>> {
@@ -481,7 +773,7 @@ impl MyTagContent {
 
     /// Scan associations for a tag ID, retaining physical order and duplicates.
     /// The tag row is not loaded or validated.
-    pub fn by_my_tag<R: Read + Seek>(
+    pub fn by_my_tag_id<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
         my_tag_id: &u32,
     ) -> Result<Vec<Self>> {

@@ -341,7 +341,7 @@ mod content_mutations {
             .seq(0)
             .insert(&mut standard)?;
         NewHistory::new(20, "History").insert(&mut standard)?;
-        NewMyTag::new(30, 0, 0, "Tag").insert(&mut extended)?;
+        NewMyTag::tag(30, "Tag").seq(0).insert(&mut extended)?;
         for (id, seq) in [(1, 1), (1, 3), (2, 8)] {
             // Seed existing binary duplicates to exercise cleanup of imported files.
             let mut tx = standard.transaction();
@@ -543,7 +543,7 @@ mod content_mutations {
             DatabaseKind::Extended,
         )?;
         assert!(Content::find(&mut standard, &1)?.is_none());
-        assert!(MyTagContent::by_content(&mut extended, &1)?.is_empty());
+        assert!(MyTagContent::by_content_id(&mut extended, &1)?.is_empty());
         assert!(RecommendedLike::by_content_id(&mut extended, &1)?.is_empty());
         assert_eq!(
             Content::delete_with_extended(&mut standard, &mut extended, &2)?,
@@ -1473,12 +1473,213 @@ mod my_tag_mutations {
         Ok(bytes)
     }
 
+    fn children(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>, parent: u32) -> Result<Vec<u32>> {
+        Ok(MyTag::by_parent_id(conn, &parent)?
+            .iter()
+            .map(|tag| tag.id)
+            .collect())
+    }
+
+    #[test]
+    fn builders_and_ordered_mutations_maintain_each_sibling_list() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        let root = NewMyTag::folder(1, "Source");
+        assert_eq!((root.parent_id, root.seq, root.attribute), (0, None, 1));
+        root.insert(&mut conn)?;
+        NewMyTag::folder(2, "Destination").insert(&mut conn)?;
+        NewMyTag::tag(10, "First").parent_id(1).insert(&mut conn)?;
+        NewMyTag::tag(11, "Last").parent_id(1).insert(&mut conn)?;
+        NewMyTag::new(12, "Middle", 0)
+            .parent_id(1)
+            .seq(1)
+            .insert(&mut conn)?;
+        assert_eq!(children(&mut conn, 1)?, [10, 12, 11]);
+        assert_eq!(MyTag::count_children(&mut conn, &1)?, 3);
+        assert_eq!(MyTag::get_seq_numbers(&mut conn, &1)?, [0, 1, 2]);
+        assert!(MyTag::validate_seq_numbers(&mut conn, &1)?);
+        assert_eq!(MyTag::move_to(&mut conn, &11, None, Some(0))?, 1);
+        assert_eq!(children(&mut conn, 1)?, [11, 10, 12]);
+        assert_eq!(MyTag::move_all_to(&mut conn, &[12, 11], &2, None)?, 2);
+        assert_eq!(children(&mut conn, 1)?, [10]);
+        assert_eq!(children(&mut conn, 2)?, [12, 11]);
+        assert_eq!(MyTag::get_seq_numbers(&mut conn, &2)?, [0, 1]);
+        let mut edited = MyTag::find(&mut conn, &10)?.unwrap();
+        edited.parent_id = 2; // An unchanged seq means append when changing parents.
+        assert_eq!(edited.update(&mut conn)?.seq, 2);
+        assert!(children(&mut conn, 1)?.is_empty());
+        let mut edited = MyTag::find(&mut conn, &10)?.unwrap();
+        edited.seq = 0;
+        edited.update(&mut conn)?;
+        assert_eq!(children(&mut conn, 2)?, [10, 12, 11]);
+        NewMyTagContent::new(99, 12).insert(&mut conn)?;
+        assert_eq!(MyTag::delete_all(&mut conn, &[12, 1])?, 3);
+        assert_eq!(children(&mut conn, 0)?, [2]);
+        assert_eq!(children(&mut conn, 2)?, [10, 11]);
+        assert_eq!(MyTag::get_seq_numbers(&mut conn, &2)?, [0, 1]);
+        assert!(MyTagContent::all(&mut conn)?.is_empty());
+        assert_eq!(MyTag::delete_all(&mut conn, &[2, 10])?, 3);
+        assert!(MyTag::all(&mut conn)?.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_ordering_rolls_back_and_noop_moves_leave_pages_clean() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        NewMyTag::folder(1, "Root").insert(&mut conn)?;
+        NewMyTag::folder(2, "Nested")
+            .parent_id(1)
+            .insert(&mut conn)?;
+        NewMyTag::tag(3, "Tag").parent_id(1).insert(&mut conn)?;
+        NewMyTag::new(4, "Unknown", 0x80).insert(&mut conn)?;
+        let before = bytes(&mut conn)?;
+        for parent in [2, 3, 4, 99] {
+            assert!(MyTag::move_to(&mut conn, &1, Some(&parent), None).is_err());
+        }
+        for parent in [3, 4, 5, 99] {
+            assert!(NewMyTag::tag(5, "Invalid")
+                .parent_id(parent)
+                .insert(&mut conn)
+                .is_err());
+        }
+        assert!(NewMyTag::tag(5, "Invalid")
+            .seq(99)
+            .insert(&mut conn)
+            .is_err());
+        assert!(MyTag::move_to(&mut conn, &2, None, Some(99)).is_err());
+        assert!(MyTag::move_all_to(&mut conn, &[2, 2], &0, None).is_err());
+        assert!(MyTag::move_all_to(&mut conn, &[2, 99], &0, None).is_err());
+        assert!(MyTag::delete_all(&mut conn, &[2, 99]).is_err());
+        assert!(MyTag::delete_all(&mut conn, &[2, 2]).is_err());
+        assert!(MyTag::reset_seq(&mut conn, &3).is_err());
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut conn =
+            DeviceSqlConnection::from_reader(Cursor::new(before.clone()), DatabaseKind::Extended)?;
+        assert_eq!(MyTag::move_to(&mut conn, &2, None, Some(0))?, 0);
+        assert_eq!(MyTag::move_all_to(&mut conn, &[2, 3], &1, Some(0))?, 0);
+        assert_eq!(MyTag::move_all_to(&mut conn, &[], &0, None)?, 0);
+        assert_eq!(MyTag::reset_seq(&mut conn, &1)?, 0);
+        assert_eq!(MyTag::delete_all(&mut conn, &[])?, 0);
+        assert_eq!(conn.modified_page_count(), 0);
+        assert_eq!(bytes(&mut conn)?, before);
+        let mut standard = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+        assert!(matches!(
+            MyTag::move_all_to(&mut standard, &[], &0, None),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            MyTag::reset_seq(&mut standard, &0),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            MyTag::delete_all(&mut standard, &[]),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        assert!(matches!(
+            MyTag::count_children(&mut standard, &0),
+            Err(Error::WrongDatabaseKind { .. })
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn reset_preserves_imported_ties_and_binary_reserved_fields() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        let mut input = NewMyTag::new(1, "Reserved fields", 0x80)
+            .seq(9)
+            .to_binary()?;
+        input.header.unknown_04 = 0x12345678;
+        input.header.unknown_08 = 42;
+        input.header.unknown_18 = 17;
+        input.header.unknown_1a = 5;
+        let mut tx = conn.transaction();
+        tx.insert(MyTag::TABLE, &Row::Extended(ExtendedRow::MyTag(input)))?;
+        for id in [2, 3] {
+            tx.insert(
+                MyTag::TABLE,
+                &Row::Extended(ExtendedRow::MyTag(
+                    NewMyTag::tag(id, "Tied").seq(4).to_binary()?,
+                )),
+            )?;
+        }
+        tx.commit()?;
+        let original = MyTag::find(&mut conn, &1)?.unwrap().raw_record().decode()?;
+        assert!(!MyTag::validate_seq_numbers(&mut conn, &0)?);
+        assert_eq!(MyTag::reset_seq(&mut conn, &0)?, 3);
+        assert_eq!(children(&mut conn, 0)?, [2, 3, 1]);
+        assert!(MyTag::validate_seq_numbers(&mut conn, &0)?);
+        let Row::Extended(ExtendedRow::MyTag(mut updated)) =
+            MyTag::find(&mut conn, &1)?.unwrap().raw_record().decode()?
+        else {
+            panic!()
+        };
+        updated.header.position = 9;
+        assert_eq!(Row::Extended(ExtendedRow::MyTag(updated)), original);
+        let mut reopened = DeviceSqlConnection::from_reader(
+            Cursor::new(bytes(&mut conn)?),
+            DatabaseKind::Extended,
+        )?;
+        assert_eq!(children(&mut reopened, 0)?, [2, 3, 1]);
+        assert_eq!(MyTag::get_seq_numbers(&mut reopened, &0)?, [0, 1, 2]);
+        Ok(())
+    }
+
+    #[test]
+    fn multi_page_ordering_rolls_back_and_does_not_rewrite_associations() -> Result<()> {
+        let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+        let association = NewMyTagContent::new(99, 1).insert(&mut conn)?;
+        let mut tx = conn.transaction();
+        for id in 1..=200 {
+            tx.insert(
+                MyTag::TABLE,
+                &Row::Extended(ExtendedRow::MyTag(
+                    NewMyTag::tag(id, "Tag").seq(id - 1).to_binary()?,
+                )),
+            )?;
+        }
+        tx.commit()?;
+        let before = bytes(&mut conn)?;
+        let mut conn =
+            DeviceSqlConnection::from_reader(Cursor::new(before.clone()), DatabaseKind::Extended)?;
+        conn.set_resource_limits(rbox_devlib::devicesql::ResourceLimits {
+            dirty_pages: Some(1),
+            ..Default::default()
+        })?;
+        assert!(matches!(
+            MyTag::move_to(&mut conn, &200, None, Some(0)),
+            Err(Error::DirtyPageLimit { .. })
+        ));
+        assert!(matches!(
+            NewMyTag::tag(201, "First").seq(0).insert(&mut conn),
+            Err(Error::DirtyPageLimit { .. })
+        ));
+        assert_eq!(conn.modified_page_count(), 0);
+        assert_eq!(bytes(&mut conn)?, before);
+        conn.set_resource_limits(Default::default())?;
+        assert_eq!(MyTag::move_to(&mut conn, &200, None, Some(0))?, 1);
+        assert!(conn.modified_page_count() > 1);
+        let saved = bytes(&mut conn)?;
+        let page_size = conn.header().prefix.page_size as usize;
+        let start = association.raw_record().page().0 as usize * page_size;
+        assert_eq!(
+            &saved[start..start + page_size],
+            &before[start..start + page_size]
+        );
+        let mut reopened =
+            DeviceSqlConnection::from_reader(Cursor::new(saved), DatabaseKind::Extended)?;
+        assert_eq!(
+            children(&mut reopened, 0)?,
+            std::iter::once(200).chain(1..200).collect::<Vec<_>>()
+        );
+        assert!(MyTag::validate_seq_numbers(&mut reopened, &0)?);
+        Ok(())
+    }
+
     #[test]
     fn updates_preserve_reserved_data_and_validate_current_ancestry() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
-        let category = NewMyTag::category(1, 0, "Category").insert(&mut conn)?;
-        NewMyTag::category(2, 4, "Other").insert(&mut conn)?;
-        let mut input = NewMyTag::new(3, 1, 7, "Tag");
+        let category = NewMyTag::folder(1, "Category").seq(0).insert(&mut conn)?;
+        NewMyTag::folder(2, "Other").insert(&mut conn)?;
+        let mut input = NewMyTag::tag(3, "Tag").parent_id(1).seq(7);
         input.unknown_04 = 42;
         let row = input.to_binary()?;
         let mut tx = conn.transaction();
@@ -1494,7 +1695,7 @@ mod my_tag_mutations {
         let mut edited = tag.clone();
         edited.name = "Long tag".repeat(12);
         edited.parent_id = 2;
-        edited.seq = 19;
+        edited.seq = 0;
         let updated = edited.update(&mut conn)?;
         assert_eq!(tag.clone().update(&mut conn)?, updated);
         let Row::Extended(ExtendedRow::MyTag(updated_row)) = updated.raw_record().decode()? else {
@@ -1502,7 +1703,7 @@ mod my_tag_mutations {
         };
         assert_eq!(updated_row.header.unknown_04, 42);
         assert_eq!(updated_row.unknown_string, row.unknown_string);
-        assert_eq!((updated.parent_id, updated.seq), (2, 19));
+        assert_eq!((updated.parent_id, updated.seq), (2, 0));
         for parent in [3, 999] {
             let mut edited = tag.clone();
             edited.parent_id = parent;
@@ -1517,7 +1718,7 @@ mod my_tag_mutations {
         let mut edited = category.clone();
         edited.parent_id = 3;
         assert!(edited.update(&mut conn).is_err());
-        let mut child_category = NewMyTag::category(4, 0, "Child");
+        let mut child_category = NewMyTag::folder(4, "Child").seq(0);
         child_category.parent_id = 1;
         child_category.insert(&mut conn)?;
         let before = bytes(&mut conn)?;
@@ -1534,7 +1735,7 @@ mod my_tag_mutations {
         let mut edited = tag;
         edited.name.clear();
         let updated = edited.update(&mut conn)?;
-        assert_eq!((updated.parent_id, updated.seq), (2, 19));
+        assert_eq!((updated.parent_id, updated.seq), (2, 0));
         let mut reopened = DeviceSqlConnection::from_reader(
             Cursor::new(bytes(&mut conn)?),
             DatabaseKind::Extended,
@@ -1546,12 +1747,12 @@ mod my_tag_mutations {
     #[test]
     fn category_deletion_cascades_and_rolls_back_on_resource_failure() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
-        let root = NewMyTag::category(1, 0, "Root").insert(&mut conn)?;
-        let mut nested = NewMyTag::category(2, 0, "Nested");
+        let root = NewMyTag::folder(1, "Root").seq(0).insert(&mut conn)?;
+        let mut nested = NewMyTag::folder(2, "Nested").seq(0);
         nested.parent_id = 1;
         nested.insert(&mut conn)?;
-        NewMyTag::new(3, 2, 9, "Tag").insert(&mut conn)?;
-        NewMyTag::category(4, 10, "Keep").insert(&mut conn)?;
+        NewMyTag::tag(3, "Tag").parent_id(2).insert(&mut conn)?;
+        NewMyTag::folder(4, "Keep").insert(&mut conn)?;
         for tag in [1, 2, 3, 3, 4] {
             NewMyTagContent::new(99, tag).insert(&mut conn)?;
         }
@@ -1579,7 +1780,7 @@ mod my_tag_mutations {
         )?;
         let tags = MyTag::all(&mut reopened)?;
         assert_eq!(tags.len(), 1);
-        assert_eq!((tags[0].id, tags[0].seq), (4, 10));
+        assert_eq!((tags[0].id, tags[0].seq), (4, 0));
         let links = MyTagContent::all(&mut reopened)?;
         assert_eq!(links.len(), 1);
         assert_eq!(links[0].my_tag_id, 4);
@@ -4510,6 +4711,17 @@ mod tags {
     use rbox_devlib::binary::{ExtendedRow, MyTagHeader};
     use rbox_devlib::models::{MyTag, MyTagContent, NewMyTag, NewMyTagContent};
 
+    fn raw_tag(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>, input: NewMyTag) -> Result<MyTag> {
+        let mut tx = conn.transaction();
+        let handle = tx.insert(
+            MyTag::TABLE,
+            &Row::Extended(ExtendedRow::MyTag(input.to_binary()?)),
+        )?;
+        let model = MyTag::try_from(tx.read(&handle)?)?;
+        tx.commit()?;
+        Ok(model)
+    }
+
     #[test]
     fn fresh_tags_and_associations_round_trip_with_explicit_ids_and_positions() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
@@ -4520,14 +4732,18 @@ mod tags {
         assert!(MyTag::all(&mut conn)?.is_empty());
         assert!(MyTag::find(&mut conn, &99)?.is_none());
         assert!(MyTagContent::all(&mut conn)?.is_empty());
-        let category = NewMyTag::category(0xffff_ffff, 0, "Mood").insert(&mut conn)?;
+        let category = NewMyTag::folder(0xffff_ffff, "Mood")
+            .seq(0)
+            .insert(&mut conn)?;
         assert_eq!(category.is_category(), Some(true));
-        let mut input = NewMyTag::new(2, category.id, 9, "Ã©Å¸Â³Ã¦Â¥Â½");
+        let mut input = NewMyTag::tag(2, "Ã©Å¸Â³Ã¦Â¥Â½")
+            .parent_id(category.id)
+            .seq(9);
         input.unknown_04 = 0x12345678;
         input.unknown_08 = 32;
         input.unknown_18 = 17;
         input.unknown_1a = 5;
-        let tag = input.insert(&mut conn)?;
+        let tag = raw_tag(&mut conn, input)?;
         assert_eq!(tag.is_category(), Some(false));
         let Row::Extended(ExtendedRow::MyTag(row)) = tag.raw_record().decode()? else {
             panic!()
@@ -4543,19 +4759,24 @@ mod tags {
         );
         assert_eq!(row.header.subtype, MyTagHeader::NEAR_SUBTYPE);
         assert_eq!(row.unknown_string.text()?, "");
-        let mut unknown = NewMyTag::new(3, category.id, 1, "Unknown attribute");
+        let mut unknown = NewMyTag::tag(3, "Unknown attribute")
+            .parent_id(category.id)
+            .seq(1);
         unknown.attribute = 0x80;
-        assert_eq!(unknown.insert(&mut conn)?.is_category(), None);
-        NewMyTag::new(4, category.id, 1, "Tied").insert(&mut conn)?;
+        assert_eq!(raw_tag(&mut conn, unknown)?.is_category(), None);
+        raw_tag(
+            &mut conn,
+            NewMyTag::tag(4, "Tied").parent_id(category.id).seq(1),
+        )?;
         assert_eq!(
-            MyTag::by_parent(&mut conn, &category.id)?
+            MyTag::by_parent_id(&mut conn, &category.id)?
                 .iter()
                 .map(|t| t.id)
                 .collect::<Vec<_>>(),
             vec![3, 4, 2]
         );
-        assert_eq!(MyTag::by_parent(&mut conn, &0)?.len(), 1);
-        assert!(MyTag::by_parent(&mut conn, &99)?.is_empty());
+        assert_eq!(MyTag::by_parent_id(&mut conn, &0)?.len(), 1);
+        assert!(MyTag::by_parent_id(&mut conn, &99)?.is_empty());
         assert_eq!(MyTag::find(&mut conn, &2)?.unwrap().name, "Ã©Å¸Â³Ã¦Â¥Â½");
         let reads = conn.read_stats();
         assert!(MyTag::id_exists(&mut conn, &2)?);
@@ -4569,21 +4790,21 @@ mod tags {
             NewMyTagContent::new(track, tag).insert(&mut conn)?;
         }
         assert_eq!(
-            MyTagContent::by_content(&mut conn, &10)?
+            MyTagContent::by_content_id(&mut conn, &10)?
                 .iter()
                 .map(|r| r.my_tag_id)
                 .collect::<Vec<_>>(),
             vec![2, 3, 2]
         );
         assert_eq!(
-            MyTagContent::by_my_tag(&mut conn, &2)?
+            MyTagContent::by_my_tag_id(&mut conn, &2)?
                 .iter()
                 .map(|r| r.content_id)
                 .collect::<Vec<_>>(),
             vec![10, 10, 20]
         );
-        assert!(MyTagContent::by_content(&mut conn, &99)?.is_empty());
-        assert!(MyTagContent::by_my_tag(&mut conn, &99)?.is_empty());
+        assert!(MyTagContent::by_content_id(&mut conn, &99)?.is_empty());
+        assert!(MyTagContent::by_my_tag_id(&mut conn, &99)?.is_empty());
         let tags = MyTag::all(&mut conn)?;
         let links = MyTagContent::all(&mut conn)?;
         let mut bytes = Vec::new();
@@ -4635,25 +4856,31 @@ mod tags {
     #[test]
     fn invalid_tag_inputs_and_allocation_failures_do_not_publish_changes() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
-        NewMyTag::category(1, 0, "Original").insert(&mut conn)?;
+        NewMyTag::folder(1, "Original").seq(0).insert(&mut conn)?;
         let mut before = Vec::new();
         conn.write_to(&mut before)?;
         let state = (conn.page_count(), conn.modified_page_count());
         assert!(matches!(
-            NewMyTag::category(1, 0, "Duplicate").insert(&mut conn),
+            NewMyTag::folder(1, "Duplicate").seq(0).insert(&mut conn),
             Err(Error::DuplicateId { id: 1, .. })
         ));
         assert!(matches!(
-            NewMyTag::category(0, 0, "Zero").insert(&mut conn),
+            NewMyTag::folder(0, "Zero").seq(0).insert(&mut conn),
             Err(Error::InvalidModelField { field: "id", .. })
         ));
         assert!(matches!(
-            NewMyTag::new(2, 1, 0, "Bad\0name").insert(&mut conn),
+            NewMyTag::tag(2, "Bad\0name")
+                .parent_id(1)
+                .seq(0)
+                .insert(&mut conn),
             Err(Error::EmbeddedNul)
         ));
         // The second string offset exceeds the qualified near-layout range.
         assert!(matches!(
-            NewMyTag::new(2, 1, 0, "x".repeat(300)).insert(&mut conn),
+            NewMyTag::tag(2, "x".repeat(300))
+                .parent_id(1)
+                .seq(0)
+                .insert(&mut conn),
             Err(Error::UnsupportedMutation { .. })
         ));
         assert!(matches!(
@@ -4680,7 +4907,7 @@ mod tags {
             ..Default::default()
         })?;
         assert!(matches!(
-            NewMyTag::category(1, 0, "Limited").insert(&mut limited),
+            NewMyTag::folder(1, "Limited").seq(0).insert(&mut limited),
             Err(Error::DirtyPageLimit { .. })
         ));
         assert!(matches!(
@@ -4713,7 +4940,7 @@ mod tags {
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            MyTag::by_parent(&mut conn, &0),
+            MyTag::by_parent_id(&mut conn, &0),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
@@ -4725,15 +4952,15 @@ mod tags {
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            MyTagContent::by_content(&mut conn, &1),
+            MyTagContent::by_content_id(&mut conn, &1),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            MyTagContent::by_my_tag(&mut conn, &1),
+            MyTagContent::by_my_tag_id(&mut conn, &1),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            NewMyTag::category(1, 0, "Wrong").insert(&mut conn),
+            NewMyTag::folder(1, "Wrong").seq(0).insert(&mut conn),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
@@ -4742,7 +4969,7 @@ mod tags {
         ));
         assert_eq!(conn.modified_page_count(), 0);
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
-        let tag = NewMyTag::category(1, 0, "Tag").insert(&mut conn)?;
+        let tag = NewMyTag::folder(1, "Tag").seq(0).insert(&mut conn)?;
         let link = NewMyTagContent::new(1, 2).insert(&mut conn)?;
         assert!(matches!(
             MyTag::try_from(link.raw_record().clone()),
@@ -4758,7 +4985,7 @@ mod tags {
     #[test]
     fn binary_transactions_preserve_reserved_values_and_report_bad_tag_text() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
-        let mut row = NewMyTag::new(2, 1, 0, "Name").to_binary()?;
+        let mut row = NewMyTag::tag(2, "Name").parent_id(1).seq(0).to_binary()?;
         row.name = DeviceSqlString::parse(&[0x90, 6, 0, 0, 0, 0xd8])?;
         let mut tx = conn.transaction();
         tx.insert(MyTag::TABLE, &Row::Extended(ExtendedRow::MyTag(row)))?;
@@ -5230,7 +5457,7 @@ mod playlists {
         assert_eq!(conn.read_stats(), before);
         assert!(Playlist::all(&mut conn)?.is_empty());
         assert!(Playlist::find(&mut conn, &1)?.is_none());
-        assert!(Playlist::by_parent(&mut conn, &0)?.is_empty());
+        assert!(Playlist::by_parent_id(&mut conn, &0)?.is_empty());
         assert!(PlaylistContent::all(&mut conn)?.is_empty());
 
         let mut folder = NewPlaylist::folder(1, "Ã©Å¸Â³Ã¦Â¥Â½ Ã°Å¸Å½Âµ").seq(50);
@@ -5259,20 +5486,20 @@ mod playlists {
         raw_node(&mut conn, NewPlaylist::playlist(5, "Root playlist").seq(1))?;
         assert!(!later.is_folder());
         assert_eq!(
-            Playlist::by_parent(&mut conn, &1)?
+            Playlist::by_parent_id(&mut conn, &1)?
                 .iter()
                 .map(|p| p.id)
                 .collect::<Vec<_>>(),
             vec![3, 4, 2]
         );
         assert_eq!(
-            Playlist::by_parent(&mut conn, &0)?
+            Playlist::by_parent_id(&mut conn, &0)?
                 .iter()
                 .map(|p| p.id)
                 .collect::<Vec<_>>(),
             vec![5, 1]
         );
-        assert!(Playlist::by_parent(&mut conn, &999)?.is_empty());
+        assert!(Playlist::by_parent_id(&mut conn, &999)?.is_empty());
         assert_eq!(
             Playlist::all(&mut conn)?
                 .iter()
@@ -5344,20 +5571,20 @@ mod playlists {
             occurrence(&late),
         ];
         assert_eq!(
-            PlaylistContent::by_playlist(&mut conn, &1)?
+            PlaylistContent::by_playlist_id(&mut conn, &1)?
                 .iter()
                 .map(occurrence)
                 .collect::<Vec<_>>(),
             expected
         );
         assert_eq!(
-            PlaylistContent::by_playlist(&mut conn, &2)?
+            PlaylistContent::by_playlist_id(&mut conn, &2)?
                 .iter()
                 .map(occurrence)
                 .collect::<Vec<_>>(),
             vec![occurrence(&other)]
         );
-        assert!(PlaylistContent::by_playlist(&mut conn, &999)?.is_empty());
+        assert!(PlaylistContent::by_playlist_id(&mut conn, &999)?.is_empty());
         assert_eq!(
             PlaylistContent::all(&mut conn)?
                 .iter()
@@ -5374,7 +5601,7 @@ mod playlists {
         let mut reopened =
             DeviceSqlConnection::from_reader(Cursor::new(bytes), DatabaseKind::Standard)?;
         assert_eq!(
-            PlaylistContent::by_playlist(&mut reopened, &1)?
+            PlaylistContent::by_playlist_id(&mut reopened, &1)?
                 .iter()
                 .map(occurrence)
                 .collect::<Vec<_>>(),
@@ -5530,7 +5757,7 @@ mod playlists {
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            Playlist::by_parent(&mut conn, &0),
+            Playlist::by_parent_id(&mut conn, &0),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
@@ -5542,7 +5769,7 @@ mod playlists {
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            PlaylistContent::by_playlist(&mut conn, &1),
+            PlaylistContent::by_playlist_id(&mut conn, &1),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
