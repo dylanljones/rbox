@@ -53,8 +53,8 @@ def test_resolved_track_helpers(master_db):
     assert track.bpm == 128.25
     assert track.composer is None
     assert isinstance(track.path, Path)
-    assert track.master_content_id == row.id
-    assert track.master_db_id == db.get_properties()[0].db_id
+    assert track.master_content_id == int(row.id)
+    assert track.master_db_id == int(db.get_properties()[0].db_id)
     assert track.source == TrackSource.MasterDb
     assert track.artwork_path == Path(row.image_path)
     assert track.analysis_data_path == Path(row.analysis_data_path)

@@ -90,6 +90,32 @@ impl BrowseColumn {
         Self::iter(conn)?.collect()
     }
 
+    /// Find the first exact, case-sensitive match for a plain-text display label.
+    /// Matches the decoded `name`, without its enclosing U+FFFA/U+FFFB markers.
+    /// Scans physical row order, loading no related tables. Missing names return
+    /// `None`; decoding errors encountered before a match are propagated.
+    pub fn find_by_name<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        name: &str,
+    ) -> Result<Option<Self>> {
+        for model in Self::iter(conn)? {
+            let model = model?;
+            if model.name == name {
+                return Ok(Some(model));
+            }
+        }
+        Ok(None)
+    }
+
+    /// Check whether an exact, case-sensitive plain-text display label exists.
+    /// Stops at the first match, with the same errors as [`Self::find_by_name`].
+    pub fn name_exists<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        name: &str,
+    ) -> Result<bool> {
+        Ok(Self::find_by_name(conn, name)?.is_some())
+    }
+
     /// Find a column by its 16-bit ID using the engine index; duplicate IDs are an error.
     pub fn find<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,

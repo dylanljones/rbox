@@ -11,7 +11,7 @@ use pyo3::prelude::*;
 use rbox_derives::PyMutableMapping;
 
 use super::{Date, DateString};
-use crate::schema::property;
+use crate::schema::{content, property};
 use rbox_db::{Model, ModelDelete, ModelInsert, ModelUpdate};
 
 /// Represents the `property` table in the Rekordbox One Library database.
@@ -96,6 +96,29 @@ impl ModelInsert for Property {
 }
 
 impl Property {
+    /// Set the count in every existing property row without changing contents.
+    /// Missing properties are not created. Counts must fit the stored signed
+    /// 32-bit field. The update is persisted by SQLite.
+    pub fn set_content_count(conn: &mut SqliteConnection, count: u32) -> QueryResult<()> {
+        let count = i32::try_from(count)
+            .map_err(|error| diesel::result::Error::QueryBuilderError(Box::new(error)))?;
+        Self::set_number_of_contents_default(conn, count)?;
+        Ok(())
+    }
+
+    /// Count content rows and update all existing properties in one transaction.
+    /// Returns the actual count without loading content models. Missing properties
+    /// are not created; counts exceeding the stored signed 32-bit field are errors.
+    pub fn update_content_count(conn: &mut SqliteConnection) -> QueryResult<u32> {
+        conn.transaction::<_, diesel::result::Error, _>(|conn| {
+            let count: i64 = content::table.count().get_result(conn)?;
+            let count = i32::try_from(count)
+                .map_err(|error| diesel::result::Error::QueryBuilderError(Box::new(error)))?;
+            Self::set_number_of_contents_default(conn, count)?;
+            Ok(count as u32)
+        })
+    }
+
     /// Creates a new property record with the required fields.
     pub fn new<S: Into<String>>(device_name: S, my_tag_master_dbid: i32) -> Self {
         Self {

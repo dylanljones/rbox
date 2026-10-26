@@ -5,6 +5,7 @@
 
 use pyo3::prelude::*;
 use pyo3::types::PyType;
+use rbox::core::Track;
 use rbox::db::enums::HistoryType;
 use rbox::one_library::{models::*, OneLibrary};
 
@@ -22,6 +23,26 @@ pub struct PyOneLibrary {
 
 #[pymethods]
 impl PyOneLibrary {
+    /// Load shared tracks with resolved names, including album artists.
+    pub fn get_tracks(&self) -> PyResult<Vec<Track>> {
+        self.inner.get_tracks().map_err(db_error)
+    }
+
+    /// Load a shared track by its numeric OneLibrary ID, or None if absent.
+    pub fn get_track_by_id(&self, id: i32) -> PyResult<Option<Track>> {
+        self.inner.get_track_by_id(id).map_err(db_error)
+    }
+
+    /// Load matching tracks in ID order, omitting missing and duplicate IDs.
+    pub fn get_tracks_by_ids(&self, ids: Vec<i32>) -> PyResult<Vec<Track>> {
+        self.inner.get_tracks_by_ids(&ids).map_err(db_error)
+    }
+
+    /// Load a shared track by stored path, accepting either separator style.
+    pub fn get_track_by_path(&self, path: &str) -> PyResult<Option<Track>> {
+        self.inner.get_track_by_path(path).map_err(db_error)
+    }
+
     /// Open exportLibrary.db in the supplied directory, usually PIONEER/rekordbox.
     #[new]
     pub fn new(directory: &str) -> PyResult<Self> {

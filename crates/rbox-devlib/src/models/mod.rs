@@ -173,7 +173,10 @@ fn text(value: &str) -> Result<DeviceSqlString> {
 }
 
 /// Update existing export-property rows inside the caller's transaction.
-fn update_export_count<R: Read + Seek>(tx: &mut Transaction<'_, R>, count: u32) -> Result<()> {
+pub(crate) fn update_export_count<R: Read + Seek>(
+    tx: &mut Transaction<'_, R>,
+    count: u32,
+) -> Result<()> {
     let table = TableKind::Standard(PageType::ExportProperties);
     let records = tx.iter_raw(table)?.collect::<Result<Vec<_>>>()?;
     for record in records {

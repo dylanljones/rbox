@@ -11,7 +11,7 @@ use std::sync::{
 };
 use tempfile::NamedTempFile;
 
-use rbox_db::{Model, ModelInsert, ModelRelations};
+use rbox_db::{Model, ModelDelete, ModelInsert, ModelRelations};
 use rbox_onelib::connection::{establish_connection, ConnectionOptions};
 use rbox_onelib::database::OneLibrary;
 use rbox_onelib::models::*;
@@ -29,6 +29,78 @@ fn assert_no_content_relations(view: &ContentView) {
     assert!(view.key.is_none());
     assert!(view.color.is_none());
     assert!(view.image.is_none());
+}
+
+#[test]
+fn content_count_can_be_set_and_recalculated() -> anyhow::Result<()> {
+    let fixture = setup_one_library_path();
+    let mut conn = establish_connection(fixture.path(), &ConnectionOptions::default())?;
+    Property::new("Additional count property", 0).insert(&mut conn)?;
+    let count = u32::try_from(Content::all(&mut conn)?.len())?;
+    Property::set_content_count(&mut conn, 123)?;
+    assert!(Property::all(&mut conn)?
+        .iter()
+        .all(|p| p.number_of_contents == 123));
+    assert!(Property::set_content_count(&mut conn, u32::MAX).is_err());
+    assert!(Property::all(&mut conn)?
+        .iter()
+        .all(|p| p.number_of_contents == 123));
+    assert_eq!(Property::update_content_count(&mut conn)?, count);
+    assert!(Property::all(&mut conn)?
+        .iter()
+        .all(|p| p.number_of_contents == count as i32));
+    Ok(())
+}
+
+#[test]
+fn content_mutations_maintain_counts_and_rollback_when_properties_fail() -> anyhow::Result<()> {
+    fn new_content(path: &str) -> NewContent {
+        let mut content = NewContent::new(path);
+        content.file_type = Some(1);
+        content
+    }
+    let fixture = setup_one_library_path();
+    let mut conn = establish_connection(fixture.path(), &ConnectionOptions::default())?;
+    Property::new("Count mutation test", 0).insert(&mut conn)?;
+    let baseline = Content::all(&mut conn)?.len();
+    let first = new_content("/count-test/one.wav").insert(&mut conn)?;
+    assert!(Property::all(&mut conn)?
+        .iter()
+        .all(|p| p.number_of_contents as usize == baseline + 1));
+    let batch = NewContent::insert_all(
+        &mut conn,
+        vec![
+            new_content("/count-test/two.wav"),
+            new_content("/count-test/three.wav"),
+        ],
+    )?;
+    assert!(Property::all(&mut conn)?
+        .iter()
+        .all(|p| p.number_of_contents as usize == baseline + 3));
+    diesel::sql_query("CREATE TEMP TRIGGER reject_count BEFORE UPDATE OF numberOfContents ON property BEGIN SELECT RAISE(ABORT, 'count failure'); END").execute(&mut conn)?;
+    let before = Content::all(&mut conn)?;
+    assert!(new_content("/count-test/fail.wav")
+        .insert(&mut conn)
+        .is_err());
+    assert!(
+        NewContent::insert_all(&mut conn, vec![new_content("/count-test/fail-batch.wav")]).is_err()
+    );
+    assert!(Content::delete(&mut conn, &first.id).is_err());
+    assert!(Content::delete_all(&mut conn, batch.iter().map(|c| &c.id).collect()).is_err());
+    assert_eq!(Content::all(&mut conn)?, before);
+    assert!(Property::all(&mut conn)?
+        .iter()
+        .all(|p| p.number_of_contents as usize == baseline + 3));
+    diesel::sql_query("DROP TRIGGER reject_count").execute(&mut conn)?;
+    Content::delete(&mut conn, &first.id)?;
+    assert!(Property::all(&mut conn)?
+        .iter()
+        .all(|p| p.number_of_contents as usize == baseline + 2));
+    Content::delete_all(&mut conn, batch.iter().map(|c| &c.id).collect())?;
+    assert!(Property::all(&mut conn)?
+        .iter()
+        .all(|p| p.number_of_contents as usize == baseline));
+    Ok(())
 }
 
 // -- Resolved album relationships --------------------------------------------------------------
@@ -686,5 +758,240 @@ fn test_delete_artist() -> anyhow::Result<()> {
     // Delete existing artist and check references
     db.delete_artist(1)?;
     // todo!!!
+    Ok(())
+}
+
+#[test]
+fn shared_track_conversions_preserve_metadata_and_resolved_names() -> anyhow::Result<()> {
+    use rbox_core::{Track, TrackSource};
+    let fixture = setup_one_library_path();
+    let mut conn = establish_connection(fixture.path(), &ConnectionOptions::default())?;
+    let artist = NewArtist::new("Mapping artist").insert(&mut conn)?;
+    let image = NewImage::new("/art.jpg").insert(&mut conn)?;
+    let mut track = Track::new(r"/Contents/Artist\track.wav");
+    track.id = Some(999);
+    track.title = Some("Mapping track".into());
+    track.search_str = Some("search title".into());
+    track.file_type = Some(11);
+    track.file_size = Some(123456);
+    track.bpm = Some(123.456);
+    track.length = Some(123.6);
+    track.rating = Some(5);
+    track.master_content_id = Some(123);
+    track.master_db_id = Some(456);
+    track.date_created = Some("2026-01-02".into());
+    track.stock_date = Some("2026-02-03".into());
+    track.analysis_data_path = Some(r"/PIONEER\USBANLZ/ANLZ0000.DAT".into());
+    track.hot_cue_auto_load = Some("On".into());
+    track.delivery_control = Some("7".into());
+    track.artist = Some("not automatically resolved".into());
+    let mut new = NewContent::try_from(&track)?;
+    assert_eq!(new.path, "/Contents/Artist/track.wav");
+    assert_eq!(new.file_name.as_deref(), Some("track.wav"));
+    assert_eq!(new.bpmx100, Some(12346));
+    assert_eq!(new.length, Some(124));
+    assert_eq!(new.artist_id, None);
+    assert_eq!(new.image_id, None);
+    assert_eq!(new.is_hot_cue_auto_load_on, Some(1));
+    new.artist_id = Some(artist.id);
+    new.lyricist_id = Some(artist.id);
+    new.image_id = Some(image.id);
+    let view = new.insert(&mut conn)?.resolve(&mut conn)?;
+    let mapped = Track::try_from(&view)?;
+    assert_eq!(mapped.source, TrackSource::OneLib);
+    assert_eq!(mapped.artist.as_deref(), Some("Mapping artist"));
+    assert_eq!(mapped.lyricist.as_deref(), Some("Mapping artist"));
+    assert_eq!(mapped.artwork_path, Some("/art.jpg".into()));
+    assert_eq!(mapped.date_created, track.date_created);
+    assert_eq!(mapped.stock_date, track.stock_date);
+    assert_eq!(mapped.master_db_id, track.master_db_id);
+    assert_eq!(mapped.title, track.title);
+    assert_eq!(mapped.search_str, track.search_str);
+    assert_eq!(mapped.bpm, Some(123.46));
+    assert_eq!(mapped.length, Some(124.0));
+    assert_eq!(mapped.hot_cue_auto_load.as_deref(), Some("1"));
+    assert_eq!(mapped.delivery_control.as_deref(), Some("7"));
+    assert_eq!(
+        mapped.analysis_data_path,
+        Some("/PIONEER/USBANLZ/ANLZ0000.DAT".into())
+    );
+    assert!(mapped.album.is_none());
+    assert!(mapped.album_artist.is_none());
+    let back = NewContent::try_from(mapped)?;
+    assert_eq!(back.file_size, Some(123456));
+    assert_eq!(back.is_kuvo_deliver_status_on, Some(7));
+    assert_eq!(Track::try_from(view)?.source, TrackSource::OneLib);
+    Ok(())
+}
+
+#[test]
+fn shared_track_conversions_reject_invalid_values() -> anyhow::Result<()> {
+    use rbox_core::Track;
+    let track = Track::new("/Contents/track.wav");
+    for value in [f64::NAN, f64::INFINITY, -1.0, f64::from(i32::MAX)] {
+        let mut input = track.clone();
+        input.bpm = Some(value);
+        assert!(NewContent::try_from(input).is_err());
+    }
+    let mut input = track.clone();
+    input.length = Some(f64::from(i32::MAX) + 1.0);
+    assert!(NewContent::try_from(input).is_err());
+    let mut input = track.clone();
+    input.file_size = Some(i32::MAX as u64 + 1);
+    assert!(NewContent::try_from(input).is_err());
+    let mut input = track.clone();
+    input.rating = Some(6);
+    assert!(NewContent::try_from(input).is_err());
+    let mut input = track.clone();
+    input.master_content_id = Some(u32::MAX);
+    assert!(NewContent::try_from(input).is_err());
+    let mut input = track.clone();
+    input.stock_date = Some("not a date".into());
+    assert!(NewContent::try_from(input).is_err());
+    let mut input = track.clone();
+    input.hot_cue_auto_load = Some("unknown".into());
+    assert!(NewContent::try_from(input).is_err());
+    let fixture = setup_one_library_path();
+    let mut conn = establish_connection(fixture.path(), &ConnectionOptions::default())?;
+    let view = NewContent::try_from(track)?
+        .insert(&mut conn)?
+        .resolve(&mut conn)?;
+    assert!(Track::try_from(&view)?.rating.is_none());
+    let mut invalid = view.clone();
+    invalid.content.file_size = Some(-1);
+    assert!(Track::try_from(invalid).is_err());
+    let mut invalid = view.clone();
+    invalid.content.bit_depth = Some(65536);
+    assert!(Track::try_from(invalid).is_err());
+    let mut invalid = view.clone();
+    invalid.content.rating = Some(6);
+    assert!(Track::try_from(invalid).is_err());
+    let mut invalid = view;
+    invalid.content.color_id = Some(256);
+    assert!(Track::try_from(invalid).is_err());
+    Ok(())
+}
+
+#[test]
+fn content_album_artist_resolves_independently_and_handles_missing_targets() -> anyhow::Result<()> {
+    use rbox_core::Track;
+    let fixture = setup_one_library_path();
+    let mut conn = establish_connection(fixture.path(), &ConnectionOptions::default())?;
+    let artist = NewArtist::new("Content artist").insert(&mut conn)?;
+    let album_artist = NewArtist::new("Album artist").insert(&mut conn)?;
+    let album = NewAlbum::new("Album artist test")
+        .artist_id(album_artist.id)
+        .insert(&mut conn)?;
+    let no_artist = NewAlbum::new("No artist").insert(&mut conn)?;
+    let mut new = NewContent::new("/Contents/album-artist.wav");
+    new.file_type = Some(11);
+    new.artist_id = Some(artist.id);
+    new.album_id = Some(album.id);
+    let row = new.insert(&mut conn)?;
+    let view = row.clone().resolve(&mut conn)?;
+    assert_eq!(view.artist, Some(artist));
+    assert_eq!(view.album_artist, Some(album_artist.clone()));
+    assert_eq!(
+        Track::try_from(view)?.album_artist.as_deref(),
+        Some("Album artist")
+    );
+    let mut missing_album = row.clone();
+    missing_album.album_id = Some(i32::MAX);
+    let mut absent_album = row.clone();
+    absent_album.album_id = None;
+    let mut absent_artist = row.clone();
+    absent_artist.album_id = Some(no_artist.id);
+    let views = Content::resolve_many(
+        &mut conn,
+        vec![
+            row.clone(),
+            missing_album,
+            absent_album,
+            absent_artist,
+            row.clone(),
+        ],
+    )?;
+    assert_eq!(views[0].album_artist, Some(album_artist.clone()));
+    assert_eq!(views[4], views[0]);
+    for view in &views[1..4] {
+        assert!(view.album_artist.is_none());
+        assert!(view.artist.is_some());
+    }
+    // Simulate a dangling artist reference without modifying a source fixture.
+    diesel::sql_query("DELETE FROM artist WHERE artist_id = ?")
+        .bind::<diesel::sql_types::Integer, _>(album_artist.id)
+        .execute(&mut conn)?;
+    let view = row.resolve(&mut conn)?;
+    assert!(view.album.is_some());
+    assert!(view.album_artist.is_none());
+    assert!(view.artist.is_some());
+    Ok(())
+}
+
+#[test]
+fn shared_track_handler_queries() -> anyhow::Result<()> {
+    use rbox_core::TrackSource;
+    let fixture = setup_one_library_path();
+    let db = OneLibrary::from_path(fixture.path())?;
+    let mut conn = establish_connection(fixture.path(), &ConnectionOptions::default())?;
+    let artist = NewArtist::new("Handler album artist").insert(&mut conn)?;
+    let album = NewAlbum::new("Handler album")
+        .artist_id(artist.id)
+        .insert(&mut conn)?;
+    let mut new = NewContent::new("/Contents/handler/track.wav");
+    new.file_type = Some(11);
+    new.album_id = Some(album.id);
+    new.bpmx100 = Some(12345);
+    let content = new.insert(&mut conn)?;
+    let track = db.get_track_by_id(content.id)?.unwrap();
+    assert_eq!(track.id, Some(content.id as u32));
+    assert_eq!(track.source, TrackSource::OneLib);
+    assert_eq!(track.album_artist.as_deref(), Some("Handler album artist"));
+    assert_eq!(track.bpm, Some(123.45));
+    assert_eq!(
+        db.get_track_by_path(r"\Contents\handler\track.wav")?
+            .unwrap()
+            .id,
+        track.id
+    );
+    assert!(db.get_track_by_id(i32::MAX)?.is_none());
+    assert!(db.get_track_by_path("/not-present.wav")?.is_none());
+    assert!(db.get_tracks_by_ids(&[])?.is_empty());
+    let mut ids = vec![content.id; 1001];
+    ids.extend(1_000_000..1_001_001);
+    let found = db.get_tracks_by_ids(&ids)?;
+    assert_eq!(found.len(), 1);
+    assert_eq!(found[0].id, track.id);
+    assert!(db.get_tracks()?.iter().any(|row| row.id == track.id));
+    diesel::sql_query("UPDATE content SET rating = 6 WHERE content_id = ?")
+        .bind::<diesel::sql_types::Integer, _>(content.id)
+        .execute(&mut conn)?;
+    assert!(db.get_track_by_id(content.id).is_err());
+    assert!(db.get_track_by_path(&content.path).is_err());
+    assert!(db.get_tracks_by_ids(&[content.id]).is_err());
+    assert!(db.get_tracks().is_err());
+    Ok(())
+}
+
+#[test]
+fn shared_track_master_library_id_preserves_unsigned_identity() -> anyhow::Result<()> {
+    use rbox_core::Track;
+    let fixture = setup_one_library_path();
+    let mut conn = establish_connection(fixture.path(), &ConnectionOptions::default())?;
+    for (unsigned, signed) in [
+        (0u32, 0),
+        (2147483647u32, i32::MAX),
+        (2147483648u32, i32::MIN),
+        (3499321917u32, -795645379),
+        (4294967295u32, -1),
+    ] {
+        let mut track = Track::new("/Contents/identity.wav");
+        track.master_db_id = Some(unsigned);
+        let new = NewContent::try_from(&track)?;
+        assert_eq!(new.master_db_id, Some(signed));
+        let view = new.insert(&mut conn)?.resolve(&mut conn)?;
+        assert_eq!(Track::try_from(view)?.master_db_id, Some(unsigned));
+    }
+
     Ok(())
 }

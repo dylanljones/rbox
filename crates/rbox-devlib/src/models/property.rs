@@ -22,7 +22,7 @@
 
 use std::io::{Read, Seek};
 
-use super::{text, text_error, unsupported};
+use super::{text, text_error, unsupported, update_export_count, Content};
 use crate::binary::{ExtPageType, ExtendedRow, PageType, Row, RowRecord, StandardRow, TableKind};
 use crate::devicesql::{DeviceSqlConnection, RowHandle, Transaction};
 use crate::{Error, Result};
@@ -63,6 +63,35 @@ impl std::fmt::Debug for ExportProperty {
 }
 
 impl ExportProperty {
+    /// Set the count in every existing export-property row atomically.
+    /// Does not change contents or create missing properties. Changes remain in
+    /// memory until explicitly saved.
+    pub fn set_content_count<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        count: u32,
+    ) -> Result<()> {
+        conn.check_kind(Self::TABLE)?;
+        let mut tx = conn.transaction();
+        update_export_count(&mut tx, count)?;
+        tx.commit()
+    }
+
+    /// Count live content rows and update all existing export properties in one
+    /// transaction. Returns the actual count without decoding track strings.
+    /// Missing properties are not created. Saving remains explicit.
+    pub fn update_content_count<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<u32> {
+        conn.check_kind(Self::TABLE)?;
+        let mut tx = conn.transaction();
+        let mut count = 0u32;
+        for record in tx.iter_raw(Content::TABLE)? {
+            record?;
+            count = count.checked_add(1).ok_or(Error::MutationOverflow)?;
+        }
+        update_export_count(&mut tx, count)?;
+        tx.commit()?;
+        Ok(count)
+    }
+
     /// Database namespace and table containing these rows.
     pub const TABLE: TableKind = TableKind::Standard(PageType::ExportProperties);
 
@@ -73,6 +102,13 @@ impl ExportProperty {
         Ok(conn
             .iter_raw(Self::TABLE)?
             .map(|record| Self::try_from(record?)))
+    }
+
+    /// Read the first live row in physical order, or `None` if the table is empty.
+    /// Does not assume a singleton or decode subsequent rows. Errors from the
+    /// first row are propagated; malformed rows are never skipped.
+    pub fn first<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<Option<Self>> {
+        Self::iter(conn)?.next().transpose()
     }
 
     /// Read all live rows in physical order without sorting or deduplication.
@@ -193,6 +229,13 @@ impl DatabaseProperty {
         Ok(conn
             .iter_raw(Self::TABLE)?
             .map(|record| Self::try_from(record?)))
+    }
+
+    /// Read the first live row in physical order, or `None` if the table is empty.
+    /// Does not assume a singleton or decode subsequent rows. Errors from the
+    /// first row are propagated; malformed rows are never skipped.
+    pub fn first<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<Option<Self>> {
+        Self::iter(conn)?.next().transpose()
     }
 
     /// Read all live rows in physical order without sorting or deduplication.

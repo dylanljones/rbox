@@ -88,12 +88,12 @@ impl TrackMetadata {
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all))]
 pub struct Track {
-    /// Local content ID in `source`, empty when no database ID is assigned.
-    pub id: String,
+    /// Local content ID in `source`, `None` when no database ID is assigned.
+    pub id: Option<u32>,
     /// Content ID in the originating master database; independent of the export ID.
-    pub master_content_id: Option<String>,
+    pub master_content_id: Option<u32>,
     /// Originating master library ID, paired with `master_content_id`.
-    pub master_db_id: Option<String>,
+    pub master_db_id: Option<u32>,
     /// Database format that owns `id`.
     pub source: TrackSource,
     /// Unique Rekordbox track UUID.
@@ -160,7 +160,7 @@ impl Track {
 impl From<TrackMetadata> for Track {
     fn from(metadata: TrackMetadata) -> Self {
         Self {
-            id: String::new(),
+            id: None,
             uuid: String::new(),
             path: metadata.path,
             file_type: metadata.file_type,

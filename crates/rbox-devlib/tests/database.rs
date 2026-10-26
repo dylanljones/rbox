@@ -17,6 +17,49 @@ fn options() -> LibraryCreateOptions {
     LibraryCreateOptions::new("2026-10-25", "Test USB", 42)
 }
 
+#[test]
+fn content_count_can_be_set_and_recalculated_without_saving_implicitly() -> Result<()> {
+    use rbox_devlib::models::{ExportProperty, NewContent};
+    let temp = create_temp_dir();
+    let mut library = DeviceLibrary::create(temp.path(), &options())?;
+    let path = temp.path().join("export.pdb");
+    let before = fs::read(&path)?;
+    ExportProperty::set_content_count(library.standard_mut(), 99)?;
+    assert_eq!(
+        ExportProperty::first(library.standard_mut())?
+            .unwrap()
+            .track_count,
+        99
+    );
+    assert_eq!(
+        ExportProperty::update_content_count(library.standard_mut())?,
+        0
+    );
+    NewContent::new(1, "/Contents/test.wav").insert(library.standard_mut())?;
+    ExportProperty::set_content_count(library.standard_mut(), 99)?;
+    assert_eq!(
+        ExportProperty::update_content_count(library.standard_mut())?,
+        1
+    );
+    assert_eq!(
+        ExportProperty::first(library.standard_mut())?
+            .unwrap()
+            .track_count,
+        1
+    );
+    assert_eq!(fs::read(&path)?, before);
+    library.save()?;
+    drop(library);
+    let mut library = DeviceLibrary::new(temp.path())?;
+    assert_eq!(
+        ExportProperty::first(library.standard_mut())?
+            .unwrap()
+            .track_count,
+        1
+    );
+    Ok(())
+}
+
 fn insert_rows(library: &mut DeviceLibrary) -> Result<()> {
     let mut tx = library.standard_mut().transaction();
     tx.insert(

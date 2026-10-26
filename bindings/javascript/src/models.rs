@@ -190,9 +190,9 @@ impl TryFrom<TrackMetadata> for CoreTrackMetadata {
 /// Shared track data. BPM is unscaled, length is seconds, fileSize is bytes as bigint.
 #[napi(object)]
 pub struct Track {
-    pub id: String,
-    pub master_content_id: Option<String>,
-    pub master_db_id: Option<String>,
+    pub id: Option<f64>,
+    pub master_content_id: Option<f64>,
+    pub master_db_id: Option<f64>,
     pub source: TrackSource,
     pub uuid: String,
     pub artwork_path: Option<String>,
@@ -238,9 +238,9 @@ pub struct Track {
 impl From<CoreTrack> for Track {
     fn from(value: CoreTrack) -> Self {
         Self {
-            id: value.id,
-            master_content_id: value.master_content_id,
-            master_db_id: value.master_db_id,
+            id: value.id.map(f64::from),
+            master_content_id: value.master_content_id.map(f64::from),
+            master_db_id: value.master_db_id.map(f64::from),
             source: value.source,
             uuid: value.uuid,
             artwork_path: value.artwork_path.map(|p| p.to_string_lossy().into_owned()),
@@ -291,9 +291,18 @@ impl TryFrom<Track> for CoreTrack {
     type Error = Error;
     fn try_from(value: Track) -> Result<Self> {
         Ok(Self {
-            id: value.id,
-            master_content_id: value.master_content_id,
-            master_db_id: value.master_db_id,
+            id: value
+                .id
+                .map(|n| unsigned(n, u32::MAX as f64, "id"))
+                .transpose()?,
+            master_content_id: value
+                .master_content_id
+                .map(|n| unsigned(n, u32::MAX as f64, "master_content_id"))
+                .transpose()?,
+            master_db_id: value
+                .master_db_id
+                .map(|n| unsigned(n, u32::MAX as f64, "master_db_id"))
+                .transpose()?,
             source: value.source,
             uuid: value.uuid,
             artwork_path: value.artwork_path.map(Into::into),

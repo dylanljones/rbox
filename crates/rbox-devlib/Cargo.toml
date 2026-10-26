@@ -11,17 +11,17 @@ categories.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
-publish = false
+publish = true
 
 [dependencies]
 binrw               = { workspace = true }
 thiserror           = { workspace = true }
 tempfile            = { workspace = true }
+rbox-core           = { path = "../rbox-core", version = "0.2.0", default-features = false }
 
 [dev-dependencies]
 anyhow              = { workspace = true }
 rbox-anlz           = { path = "../rbox-anlz", default-features = false }
 rbox-testing        = { path = "../rbox-testing", default-features = false }
-rbox-core           = { path = "../rbox-core", default-features = false }
 rbox-db             = { path = "../rbox-db", default-features = false }
 rbox-masterdb       = { path = "../rbox-masterdb", default-features = false, features = ["bundled-vendored-openssl"] }

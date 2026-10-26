@@ -2796,6 +2796,8 @@ class ContentView:
     @property
     def album(self) -> Optional[Album]: ...
     @property
+    def album_artist(self) -> Optional[Artist]: ...
+    @property
     def genre(self) -> Optional[Genre]: ...
     @property
     def label(self) -> Optional[Label]: ...
@@ -3305,6 +3307,16 @@ class NewSort(_RustMutableMapping):
     """A flag if the item is selected as a sub-column"""
 
 class PyOneLibrary:
+    def get_tracks(self) -> List[Track]:
+        """Load shared tracks with resolved names and unsigned numeric IDs."""
+        ...
+
+    def get_track_by_id(self, id: int) -> Optional[Track]: ...
+    def get_tracks_by_ids(self, ids: List[int]) -> List[Track]:
+        """Load tracks in ID order, omitting missing and duplicate IDs."""
+        ...
+
+    def get_track_by_path(self, path: str) -> Optional[Track]: ...
     def __init__(self, directory: str) -> "PyOneLibrary":
         """Open exportLibrary.db in the supplied directory, usually PIONEER/rekordbox."""
         ...
@@ -4538,9 +4550,9 @@ class TrackSource:
     OneLib: TrackSource
 
 class Track:
-    id: str
-    master_content_id: Optional[str]
-    master_db_id: Optional[str]
+    id: Optional[int]
+    master_content_id: Optional[int]
+    master_db_id: Optional[int]
     source: TrackSource
     uuid: str
     artwork_path: Optional[Path]

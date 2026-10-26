@@ -10,6 +10,8 @@ use std::collections::HashMap;
 use std::io::{Cursor, Read, Seek};
 
 use binrw::BinRead;
+use rbox_core::{PathExt, Track, TrackSource};
+use std::path::PathBuf;
 
 use super::{
     load_related, text, text_error, unsupported, update_export_count, validate_id, Album, Artist,
@@ -32,7 +34,7 @@ use crate::{Error, Result};
 ///
 /// Public fields contain decoded values, like the masterdb/onelib models-old.
 /// Editing a field only changes this snapshot; call [Self::update] to persist edits.
-/// Use [`super::NewContent`] to insert a fresh track without an existing raw row.
+/// Use [`NewContent`] to insert a fresh track without an existing raw row.
 /// IDs, empty strings, date text and paths retain their stored meaning. Unknown
 /// fields and string encodings remain available through [`Self::raw_record`].
 /// ISRC decoding is explicit because its frame can have an unknown encoding.
@@ -979,5 +981,190 @@ impl NewContent {
                 unknown_18: text(&self.creation.unknown_strings[6])?,
             },
         })
+    }
+}
+
+/// Convert resolved metadata without querying the database or loading assets.
+/// Stored zeroes and empty strings are retained; absent relationships stay `None`.
+/// Analysis dates have no equivalent in `Track` and are not mapped to creation dates.
+/// Unknown ISRC encodings and ratings outside 0..=5 return an error.
+impl TryFrom<&ContentView> for Track {
+    type Error = Error;
+
+    fn try_from(view: &ContentView) -> Result<Self> {
+        let row = &view.content;
+        if row.rating > 5 {
+            return Err(track_mapping_error(
+                "rating",
+                "rating must be between 0 and 5",
+            ));
+        }
+        Ok(Self {
+            id: Some(row.id),
+            source: TrackSource::DeviceLib,
+            master_content_id: (row.master_content_id != 0).then_some(row.master_content_id),
+            master_db_id: (row.master_db_id != 0).then_some(row.master_db_id),
+            path: PathBuf::from(&row.path),
+            file_type: Some(i32::from(row.file_type)),
+            artwork_path: view
+                .artwork
+                .as_ref()
+                .map(|value| PathBuf::from(&value.path)),
+            analysis_data_path: Some(PathBuf::from(&row.analysis_path)),
+            color: Some(row.color_id),
+            play_count: Some(u32::from(row.play_count)),
+            hot_cue_auto_load: Some(row.hot_cue_auto_load.clone()),
+            delivery_control: Some(row.publish_track_info.clone()),
+            delivery_comment: Some(row.message.clone()),
+            title: Some(row.title.clone()),
+            commnt: Some(row.comment.clone()),
+            subtitle: Some(row.mix_name.clone()),
+            lyricist: Some(row.lyricist.clone()),
+            stock_date: Some(row.date_added.clone()),
+            release_date: Some(row.release_date.clone()),
+            isrc: Some(row.isrc()?),
+            rating: Some(row.rating),
+            bpm: Some(f64::from(row.bpmx100) / 100.0),
+            length: Some(f64::from(row.length)),
+            track_no: Some(row.track_no),
+            disc_no: Some(u32::from(row.disc_no)),
+            bit_rate: Some(row.bitrate),
+            bit_depth: Some(row.bit_depth),
+            sample_rate: Some(row.sample_rate),
+            release_year: Some(row.release_year),
+            file_size: Some(u64::from(row.file_size)),
+            artist: view.artist.as_ref().map(|value| value.name.clone()),
+            album: view.album.as_ref().map(|value| value.name.clone()),
+            album_artist: view.album_artist.as_ref().map(|value| value.name.clone()),
+            remixer: view.remixer.as_ref().map(|value| value.name.clone()),
+            org_artist: view
+                .original_artist
+                .as_ref()
+                .map(|value| value.name.clone()),
+            composer: view.composer.as_ref().map(|value| value.name.clone()),
+            genre: view.genre.as_ref().map(|value| value.name.clone()),
+            label: view.label.as_ref().map(|value| value.name.clone()),
+            key: view.key.as_ref().map(|value| value.name.clone()),
+            ..Self::default()
+        })
+    }
+}
+
+impl TryFrom<ContentView> for Track {
+    type Error = Error;
+
+    fn try_from(view: ContentView) -> Result<Self> {
+        Self::try_from(&view)
+    }
+}
+
+fn track_mapping_error(field: &'static str, reason: &'static str) -> Error {
+    Error::InvalidModelField {
+        table: Content::TABLE,
+        field,
+        reason,
+    }
+}
+
+/// Build an insertion row without database access or asset copying.
+///
+/// `Track::id` must be a nonzero u32 export ID; assign a destination ID first when
+/// importing from another library. Absent master IDs use the stored zero sentinel.
+/// Relationship and artwork IDs remain zero: resolve names and assign destination
+/// references before inserting. Paths use Unix separators; the basename is derived
+/// from the audio path. BPM is rounded to hundredths and length to whole seconds.
+/// Missing values use the normal `NewContent` defaults. Unsupported metadata
+/// (UUID, search text, tags and creation date) is omitted, and analysis dates are
+/// not inferred. Reserved binary values use the engine's creation defaults.
+impl TryFrom<&Track> for NewContent {
+    type Error = Error;
+
+    fn try_from(input: &Track) -> Result<Self> {
+        let id = input
+            .id
+            .ok_or_else(|| track_mapping_error("id", "export ID must be assigned"))?;
+        validate_id(Content::TABLE, id)?;
+        let path = input
+            .path
+            .normalize_unix_string()
+            .ok_or_else(|| track_mapping_error("path", "path must be UTF-8"))?;
+        if path.is_empty() {
+            return Err(track_mapping_error("path", "audio path must not be empty"));
+        }
+        let rounded = |field, value: f64, scale: f64, max: f64| -> Result<u32> {
+            let result = (value * scale).round();
+            if !value.is_finite() || value < 0.0 || result > max {
+                return Err(track_mapping_error(
+                    field,
+                    "value must be finite, nonnegative and fit the stored range",
+                ));
+            }
+            Ok(result as u32)
+        };
+        if input.rating.is_some_and(|value| value > 5) {
+            return Err(track_mapping_error(
+                "rating",
+                "rating must be between 0 and 5",
+            ));
+        }
+        let mut row = Self::new(id, path);
+        row.master_content_id = input.master_content_id.unwrap_or_default();
+        row.master_db_id = input.master_db_id.unwrap_or_default();
+        row.file_type = u16::try_from(input.file_type.unwrap_or_default())
+            .map_err(|_| track_mapping_error("file_type", "value exceeds u16 range"))?;
+        row.file_size = u32::try_from(input.file_size.unwrap_or_default())
+            .map_err(|_| track_mapping_error("file_size", "value exceeds u32 range"))?;
+        row.disc_no = u16::try_from(input.disc_no.unwrap_or_default())
+            .map_err(|_| track_mapping_error("disc_no", "value exceeds u16 range"))?;
+        row.play_count = u16::try_from(input.play_count.unwrap_or_default())
+            .map_err(|_| track_mapping_error("play_count", "value exceeds u16 range"))?;
+        row.bpmx100 = rounded(
+            "bpm",
+            input.bpm.unwrap_or_default(),
+            100.0,
+            f64::from(u32::MAX),
+        )?;
+        row.length = rounded(
+            "length",
+            input.length.unwrap_or_default(),
+            1.0,
+            f64::from(u16::MAX),
+        )? as u16;
+        row.rating = input.rating.unwrap_or_default();
+        row.color_id = input.color.unwrap_or_default();
+        row.track_no = input.track_no.unwrap_or_default();
+        row.bitrate = input.bit_rate.unwrap_or_default();
+        row.bit_depth = input.bit_depth.unwrap_or_default();
+        row.sample_rate = input.sample_rate.unwrap_or_default();
+        row.release_year = input.release_year.unwrap_or_default();
+        row.title = input.title.clone().unwrap_or_default();
+        row.comment = input.commnt.clone().unwrap_or_default();
+        row.mix_name = input.subtitle.clone().unwrap_or_default();
+        row.lyricist = input.lyricist.clone().unwrap_or_default();
+        row.date_added = input.stock_date.clone().unwrap_or_default();
+        row.release_date = input.release_date.clone().unwrap_or_default();
+        row.hot_cue_auto_load = input.hot_cue_auto_load.clone().unwrap_or_default();
+        row.publish_track_info = input.delivery_control.clone().unwrap_or_default();
+        row.message = input.delivery_comment.clone().unwrap_or_default();
+        row.analysis_path = input
+            .analysis_data_path
+            .as_ref()
+            .map(|path| {
+                path.normalize_unix_string()
+                    .ok_or_else(|| track_mapping_error("analysis_path", "path must be UTF-8"))
+            })
+            .transpose()?
+            .unwrap_or_default();
+        row.isrc = input.isrc.clone().unwrap_or_default();
+        DeviceSqlString::encode_isrc(&row.isrc)?;
+        Ok(row)
+    }
+}
+
+impl TryFrom<Track> for NewContent {
+    type Error = Error;
+
+    fn try_from(input: Track) -> Result<Self> {
+        Self::try_from(&input)
     }
 }

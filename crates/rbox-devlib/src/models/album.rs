@@ -178,6 +178,14 @@ impl Album {
         Ok(None)
     }
 
+    /// Check whether an exact, case-sensitive name exists, without loading relations.
+    /// Stops at the first match and propagates the same errors as `find_by_name`.
+    pub fn name_exists<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        name: &str,
+    ) -> Result<bool> {
+        Ok(Self::find_by_name(conn, name)?.is_some())
+    }
     /// Check an ID using the engine index without converting string frames to text.
     pub fn id_exists<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<bool> {
         Ok(conn

@@ -25,11 +25,14 @@
 //! ```
 //!
 
+use diesel::Connection;
+use rbox_core::{PathExt, Track};
 use std::ffi::OsStr;
 use std::path::Path;
 
 use rbox_db::{
-    ConnectionOptions, Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate,
+    ConnectionOptions, Model, ModelDelete, ModelInsert, ModelList, ModelRelations, ModelTree,
+    ModelUpdate,
 };
 
 use crate::connection::{create_connection_pool, establish_connection, initialize_schema, DbPool};
@@ -316,6 +319,71 @@ impl OneLibrary {
     }
 
     // -- Content ----------------------------------------------------------------------------------
+
+    /// Load shared tracks with resolved metadata, including album artists.
+    /// Content and relationships share one read transaction. Results are detached
+    /// snapshots; absent metadata stays `None`. BPM is unscaled, duration is seconds,
+    /// and file size is bytes. Source-library IDs come from each content row.
+    /// Database and metadata conversion errors propagate.
+    pub fn get_tracks(&self) -> Result<Vec<Track>> {
+        self.read_tracks(Content::all)
+    }
+
+    /// Load a shared track by its OneLibrary content ID, or `None` if absent.
+    /// See [`Self::get_tracks`] for resolution, units and errors.
+    pub fn get_track_by_id(&self, id: i32) -> Result<Option<Track>> {
+        Ok(self
+            .read_tracks(|conn| Ok(Content::find(conn, &id)?.into_iter().collect()))?
+            .pop())
+    }
+
+    /// Load matching tracks in ascending ID order with batched queries.
+    /// Missing IDs are omitted, repeated IDs occur once, and empty input returns
+    /// an empty vector. See [`Self::get_tracks`] for resolution, units and errors.
+    pub fn get_tracks_by_ids(&self, ids: &[i32]) -> Result<Vec<Track>> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        self.read_tracks(|conn| {
+            let mut ids = ids.to_vec();
+            ids.sort_unstable();
+            ids.dedup();
+            let mut rows = Vec::new();
+            for chunk in ids.chunks(500) {
+                rows.extend(Content::by_ids(conn, chunk)?);
+            }
+            rows.sort_unstable_by_key(|row| row.id);
+            Ok(rows)
+        })
+    }
+
+    /// Load a shared track by its stored path, or `None` if absent.
+    /// Backslashes are converted to forward slashes without accessing the file;
+    /// the path must otherwise match exactly. See [`Self::get_tracks`] for errors.
+    pub fn get_track_by_path(&self, path: &str) -> Result<Option<Track>> {
+        let path = Path::new(path).to_unix();
+        Ok(self
+            .read_tracks(|conn| {
+                Ok(Content::find_by_path(conn, &path.to_string_lossy())?
+                    .into_iter()
+                    .collect())
+            })?
+            .pop())
+    }
+
+    fn read_tracks(
+        &self,
+        load: impl FnOnce(&mut crate::connection::DbConn) -> diesel::QueryResult<Vec<Content>>,
+    ) -> Result<Vec<Track>> {
+        let mut conn = self.pool.get()?;
+        conn.transaction(|conn| {
+            let rows = load(conn)?;
+            Content::resolve_many(conn, rows)?
+                .into_iter()
+                .map(Track::try_from)
+                .collect()
+        })
+    }
 
     /// Queries all records from the `color` table.
     pub fn get_contents(&self) -> Result<Vec<Content>> {

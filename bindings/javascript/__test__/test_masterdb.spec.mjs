@@ -44,8 +44,8 @@ test('resolved track helpers expose core models and translate errors', t => {
     delete row.composerId
     db.updateContent(row)
     const track = db.getTrackById(row.id)
-    t.is(track.masterContentId, row.id)
-    t.is(track.masterDbId, db.getProperties()[0].dbId)
+    t.is(track.masterContentId, Number(row.id))
+    t.is(track.masterDbId, Number(db.getProperties()[0].dbId))
     t.is(track.artworkPath, row.imagePath)
     t.is(track.analysisDataPath, row.analysisDataPath)
     t.is(track.color, 3)

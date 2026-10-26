@@ -3,6 +3,7 @@
 
 //! JavaScript OneLibrary handler and database operations.
 
+use crate::models::Track;
 use napi::Result;
 use napi_derive::napi;
 use rbox::db::enums::HistoryType;
@@ -15,6 +16,42 @@ pub struct JsOneLibrary {
 
 #[napi]
 impl JsOneLibrary {
+    /// Load shared tracks with resolved names, including album artists.
+    #[napi]
+    pub fn get_tracks(&self) -> Result<Vec<Track>> {
+        self.inner
+            .get_tracks()
+            .map(|tracks| tracks.into_iter().map(Into::into).collect())
+            .map_err(crate::util::binding_error)
+    }
+
+    /// Load a shared track by its numeric OneLibrary ID, or null if absent.
+    #[napi]
+    pub fn get_track_by_id(&self, id: i32) -> Result<Option<Track>> {
+        self.inner
+            .get_track_by_id(id)
+            .map(|track| track.map(Into::into))
+            .map_err(crate::util::binding_error)
+    }
+
+    /// Load matching tracks in ID order, omitting missing and duplicate IDs.
+    #[napi]
+    pub fn get_tracks_by_ids(&self, ids: Vec<i32>) -> Result<Vec<Track>> {
+        self.inner
+            .get_tracks_by_ids(&ids)
+            .map(|tracks| tracks.into_iter().map(Into::into).collect())
+            .map_err(crate::util::binding_error)
+    }
+
+    /// Load a shared track by stored path, accepting either separator style.
+    #[napi]
+    pub fn get_track_by_path(&self, path: String) -> Result<Option<Track>> {
+        self.inner
+            .get_track_by_path(&path)
+            .map(|track| track.map(Into::into))
+            .map_err(crate::util::binding_error)
+    }
+
     /// Open exportLibrary.db in the supplied directory, usually PIONEER/rekordbox.
     #[napi(constructor)]
     pub fn new(directory: String) -> Result<Self> {

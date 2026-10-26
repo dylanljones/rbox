@@ -1178,7 +1178,7 @@ impl MasterDb {
     /// # fn main() -> rbox_masterdb::error::Result<()> {
     /// let db = rbox_masterdb::MasterDb::open()?;
     /// for track in db.get_tracks()? {
-    ///     println!("{}: {:?} by {:?}", track.id, track.title, track.artist);
+    ///     println!("{:?}: {:?} by {:?}", track.id, track.title, track.artist);
     /// }
     /// # Ok(()) }
     /// ```
@@ -1252,7 +1252,15 @@ impl MasterDb {
                 .iter()
                 .map(|view| {
                     let mut track = Track::try_from(view)?;
-                    track.master_db_id = library_id.cloned();
+                    track.master_db_id = library_id
+                        .map(|id| {
+                            id.parse::<u32>().map_err(|_| {
+                                Error::InvalidOperation(
+                                    "master library ID must be a decimal u32".into(),
+                                )
+                            })
+                        })
+                        .transpose()?;
                     Ok(track)
                 })
                 .collect()

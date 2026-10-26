@@ -12,8 +12,8 @@ from rbox.core import Track, TrackMetadata, TrackSource
 
 @pytest.mark.parametrize("model", [TrackMetadata, Track])
 def test_constructor_and_properties(model):
-    row = model(Path("music/Über den Wolken.mp3"))
-    assert row.path == Path("music/Über den Wolken.mp3")
+    row = model(Path("music/ÃƒÅ“ber den Wolken.mp3"))
+    assert row.path == Path("music/ÃƒÅ“ber den Wolken.mp3")
     assert row.title is None
     assert row.bpm is None
     row.path = "music/updated.wav"
@@ -40,8 +40,9 @@ def test_metadata_conversion_copies_values():
     metadata.bpm = 127.123456789
     metadata.file_size = 123456
     track = Track.from_metadata(metadata)
-    assert track.id == track.uuid == ""
-    track.id = "42"
+    assert track.id is None
+    assert track.uuid == ""
+    track.id = 42
     track.uuid = "track-uuid"
     track.title = "Edited"
     assert metadata.title is None
@@ -98,9 +99,9 @@ def test_track_export_metadata_and_source():
         "delivery_comment",
     ):
         assert getattr(track, field) is None
-    track.id = "7"
-    track.master_content_id = "42"
-    track.master_db_id = "100"
+    track.id = 7
+    track.master_content_id = 42
+    track.master_db_id = 100
     track.source = TrackSource.DeviceLib
     track.artwork_path = "artwork/cover.jpg"
     track.analysis_data_path = Path("ANLZ/ANLZ0000.DAT")
@@ -110,12 +111,18 @@ def test_track_export_metadata_and_source():
     track.delivery_control = "on"
     track.delivery_comment = "Comment"
     assert track.id != track.master_content_id
-    assert track.master_db_id == "100"
+    assert track.master_db_id == 100
     assert track.source == TrackSource.DeviceLib
     assert track.artwork_path == Path("artwork/cover.jpg")
     assert track.analysis_data_path == Path("ANLZ/ANLZ0000.DAT")
     assert track.hot_cue_auto_load == "unknown-setting"
-    for field, maximum in [("color", 255), ("play_count", 2**32 - 1)]:
+    for field, maximum in [
+        ("color", 255),
+        ("play_count", 2**32 - 1),
+        ("id", 2**32 - 1),
+        ("master_content_id", 2**32 - 1),
+        ("master_db_id", 2**32 - 1),
+    ]:
         for value in (-1, maximum + 1):
             with pytest.raises(OverflowError):
                 setattr(track, field, value)

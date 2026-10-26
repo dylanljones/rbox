@@ -504,7 +504,11 @@ fn named_models_find_exact_names_without_resolving_relations() -> Result<()> {
     macro_rules! check {
         ($model:ident, $input:expr) => {{
             assert!($model::find_by_name(&mut conn, "Name")?.is_none());
+            assert!(!$model::name_exists(&mut conn, "Name")?);
             let model = $input.insert(&mut conn)?;
+            assert!($model::name_exists(&mut conn, "Name")?);
+            assert!(!$model::name_exists(&mut conn, "name")?);
+            assert!(!$model::name_exists(&mut conn, "Name ")?);
             assert_eq!(
                 $model::find_by_name(&mut conn, "Name")?.unwrap().id,
                 model.id
@@ -516,7 +520,13 @@ fn named_models_find_exact_names_without_resolving_relations() -> Result<()> {
             edited.update(&mut conn)?;
             assert!($model::find_by_name(&mut conn, "Name")?.is_none());
             assert!($model::find_by_name(&mut conn, "\u{97f3}")?.is_some());
+            assert!(!$model::name_exists(&mut conn, "Name")?);
+            assert!($model::name_exists(&mut conn, "\u{97f3}")?);
             let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+            assert!(matches!(
+                $model::name_exists(&mut extended, "Name"),
+                Err(Error::WrongDatabaseKind { .. })
+            ));
             assert!(matches!(
                 $model::find_by_name(&mut extended, "Name"),
                 Err(Error::WrongDatabaseKind { .. })
@@ -549,6 +559,9 @@ fn named_models_find_exact_names_without_resolving_relations() -> Result<()> {
         color.id
     );
     assert!(Color::find_by_name(&mut colors, "custom")?.is_none());
+    assert!(Color::name_exists(&mut colors, "Custom")?);
+    assert!(!Color::name_exists(&mut colors, "custom")?);
+    assert!(Album::name_exists(&mut conn, "\u{97f3}")?);
     Ok(())
 }
 
@@ -722,6 +735,81 @@ mod recommendation_deletions {
         ));
         Ok(())
     }
+}
+
+#[test]
+fn browse_name_queries_and_first_properties_handle_empty_and_initialized_tables() -> Result<()> {
+    use rbox_devlib::binary::ExtendedRow;
+    use rbox_devlib::models::{BrowseColumn, DatabaseProperty, ExportProperty};
+    let mut standard = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+    let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+    assert!(BrowseColumn::find_by_name(&mut standard, "COLOR")?.is_none());
+    assert!(!BrowseColumn::name_exists(&mut standard, "COLOR")?);
+    assert!(ExportProperty::first(&mut standard)?.is_none());
+    assert!(DatabaseProperty::first(&mut extended)?.is_none());
+    assert!(matches!(
+        BrowseColumn::name_exists(&mut extended, "COLOR"),
+        Err(Error::WrongDatabaseKind { .. })
+    ));
+    assert!(matches!(
+        ExportProperty::first(&mut extended),
+        Err(Error::WrongDatabaseKind { .. })
+    ));
+    assert!(matches!(
+        DatabaseProperty::first(&mut standard),
+        Err(Error::WrongDatabaseKind { .. })
+    ));
+    let mut standard = DeviceSqlConnection::create_with_options(
+        DatabaseKind::Standard,
+        &CreateOptions::standard("2026-10-26", "USB")?,
+    )?;
+    let color = BrowseColumn::find_by_name(&mut standard, "COLOR")?.unwrap();
+    assert_eq!(color.name, "COLOR");
+    assert!(BrowseColumn::name_exists(&mut standard, "COLOR")?);
+    assert!(!BrowseColumn::name_exists(&mut standard, "color")?);
+    assert!(!BrowseColumn::name_exists(&mut standard, " COLOR")?);
+    assert!(!BrowseColumn::name_exists(
+        &mut standard,
+        "\u{fffa}COLOR\u{fffb}"
+    )?);
+    assert_eq!(
+        ExportProperty::first(&mut standard)?,
+        ExportProperty::all(&mut standard)?.into_iter().next()
+    );
+    // Multiple properties retain physical order rather than requiring a singleton.
+    let property = ExportProperty::first(&mut standard)?.unwrap();
+    let mut tx = standard.transaction();
+    tx.insert(ExportProperty::TABLE, &property.raw_record().decode()?)?;
+    tx.commit()?;
+    assert_eq!(ExportProperty::all(&mut standard)?.len(), 2);
+    assert_eq!(
+        ExportProperty::first(&mut standard)?,
+        ExportProperty::all(&mut standard)?.into_iter().next()
+    );
+    let mut extended = DeviceSqlConnection::create_with_options(
+        DatabaseKind::Extended,
+        &CreateOptions::extended(42)?,
+    )?;
+    let property = DatabaseProperty::first(&mut extended)?.unwrap();
+    let Row::Extended(ExtendedRow::DatabaseProperty(mut row)) = property.raw_record().decode()?
+    else {
+        panic!()
+    };
+    row.header.my_tag_master_db_id = 99;
+    let mut tx = extended.transaction();
+    tx.insert(
+        DatabaseProperty::TABLE,
+        &Row::Extended(ExtendedRow::DatabaseProperty(row)),
+    )?;
+    tx.commit()?;
+    assert_eq!(DatabaseProperty::all(&mut extended)?.len(), 2);
+    assert_eq!(
+        DatabaseProperty::first(&mut extended)?
+            .unwrap()
+            .my_tag_master_db_id,
+        42
+    );
+    Ok(())
 }
 
 mod property_mutations {
@@ -3224,7 +3312,10 @@ mod configuration {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
         for (index, (stored, plain)) in [
             ("\u{fffa}COLOR\u{fffb}", "COLOR"),
-            ("\u{fffa}音楽 🎵\u{fffb}", "音楽 🎵"),
+            (
+                "\u{fffa}Ã©Å¸Â³Ã¦Â¥Â½ Ã°Å¸Å½Âµ\u{fffb}",
+                "Ã©Å¸Â³Ã¦Â¥Â½ Ã°Å¸Å½Âµ",
+            ),
             ("\u{fffa}\u{fffb}", ""),
             ("\u{fffa} COLOR \u{fffb}", " COLOR "),
             ("A\u{fffa}B\u{fffb}C", "A\u{fffa}B\u{fffb}C"),
@@ -3279,14 +3370,14 @@ mod configuration {
             StandardRow::BrowseColumn(BrowseColumnRow {
                 id: u16::MAX,
                 code: 0xabcd,
-                name: DeviceSqlString::encode("音楽", StringEncoding::Utf16Le)?,
+                name: DeviceSqlString::encode("Ã©Å¸Â³Ã¦Â¥Â½", StringEncoding::Utf16Le)?,
             }),
         )?)?;
         assert_eq!((column.id, column.code), (u16::MAX, 0xabcd));
         column.name = "Local edit".into();
         assert_eq!(
             BrowseColumn::find(&mut conn, &u16::MAX)?.unwrap().name,
-            "音楽"
+            "Ã©Å¸Â³Ã¦Â¥Â½"
         );
         let reads = conn.read_stats();
         assert!(BrowseColumn::id_exists(&mut conn, &u16::MAX)?);
@@ -3352,7 +3443,7 @@ mod configuration {
 
     #[test]
     fn initialized_properties_support_binary_updates_and_track_count_maintenance() -> Result<()> {
-        let options = CreateOptions::standard("2026-10-25", "Library 音楽")?;
+        let options = CreateOptions::standard("2026-10-25", "Library Ã©Å¸Â³Ã¦Â¥Â½")?;
         let mut conn = DeviceSqlConnection::create_with_options(DatabaseKind::Standard, &options)?;
         let properties = ExportProperty::all(&mut conn)?;
         assert_eq!(properties.len(), 1);
@@ -3378,7 +3469,7 @@ mod configuration {
         tx.insert(ExportProperty::TABLE, &binary)?;
         tx.commit()?;
         assert_eq!((first.track_count, first.background_color), (123, 0x80));
-        assert_eq!(first.name, "Library 音楽");
+        assert_eq!(first.name, "Library Ã©Å¸Â³Ã¦Â¥Â½");
         let Row::Standard(StandardRow::ExportProperty(row)) = first.raw_record().decode()? else {
             panic!()
         };
@@ -3805,9 +3896,12 @@ mod history {
         assert!(History::find(&mut conn, &1)?.is_none());
         assert!(HistoryContent::by_history(&mut conn, &1)?.is_empty());
         NewPlaylist::new(1, 0, 1, "Regular playlist").insert(&mut conn)?;
-        let mut detached = NewHistory::new(1, "Session 音楽").insert(&mut conn)?;
+        let mut detached = NewHistory::new(1, "Session Ã©Å¸Â³Ã¦Â¥Â½").insert(&mut conn)?;
         detached.name = "Local edit".into();
-        assert_eq!(History::find(&mut conn, &1)?.unwrap().name, "Session 音楽");
+        assert_eq!(
+            History::find(&mut conn, &1)?.unwrap().name,
+            "Session Ã©Å¸Â³Ã¦Â¥Â½"
+        );
         let reads = conn.read_stats();
         assert!(History::id_exists(&mut conn, &1)?);
         assert!(!History::id_exists(&mut conn, &2)?);
@@ -4068,7 +4162,7 @@ mod tags {
         assert!(MyTagContent::all(&mut conn)?.is_empty());
         let category = NewMyTag::category(0xffff_ffff, 0, "Mood").insert(&mut conn)?;
         assert_eq!(category.is_category(), Some(true));
-        let mut input = NewMyTag::new(2, category.id, 9, "音楽");
+        let mut input = NewMyTag::new(2, category.id, 9, "Ã©Å¸Â³Ã¦Â¥Â½");
         input.unknown_04 = 0x12345678;
         input.unknown_08 = 32;
         input.unknown_18 = 17;
@@ -4102,14 +4196,14 @@ mod tags {
         );
         assert_eq!(MyTag::by_parent(&mut conn, &0)?.len(), 1);
         assert!(MyTag::by_parent(&mut conn, &99)?.is_empty());
-        assert_eq!(MyTag::find(&mut conn, &2)?.unwrap().name, "音楽");
+        assert_eq!(MyTag::find(&mut conn, &2)?.unwrap().name, "Ã©Å¸Â³Ã¦Â¥Â½");
         let reads = conn.read_stats();
         assert!(MyTag::id_exists(&mut conn, &2)?);
         assert!(!MyTag::id_exists(&mut conn, &99)?);
         assert_eq!(conn.read_stats(), reads);
         let mut detached = tag;
         detached.name = "Local only".into();
-        assert_eq!(MyTag::find(&mut conn, &2)?.unwrap().name, "音楽");
+        assert_eq!(MyTag::find(&mut conn, &2)?.unwrap().name, "Ã©Å¸Â³Ã¦Â¥Â½");
 
         for (track, tag) in [(10, 2), (10, 3), (10, 2), (20, 2)] {
             NewMyTagContent::new(track, tag).insert(&mut conn)?;
@@ -4352,13 +4446,13 @@ mod playlists {
         assert!(Playlist::by_parent(&mut conn, &0)?.is_empty());
         assert!(PlaylistContent::all(&mut conn)?.is_empty());
 
-        let mut folder = NewPlaylist::folder(1, 0, 50, "音楽 🎵");
+        let mut folder = NewPlaylist::folder(1, 0, 50, "Ã©Å¸Â³Ã¦Â¥Â½ Ã°Å¸Å½Âµ");
         folder.attribute = 0x80;
         folder.unknown_04 = 0xaabbccdd;
         let folder = folder.insert(&mut conn)?;
         assert!(folder.is_folder());
         assert_eq!(folder.attribute, 0x80);
-        assert_eq!(folder.name, "音楽 🎵");
+        assert_eq!(folder.name, "Ã©Å¸Â³Ã¦Â¥Â½ Ã°Å¸Å½Âµ");
         let Row::Standard(StandardRow::PlaylistTree(row)) = folder.raw_record().decode()? else {
             panic!()
         };
@@ -4401,7 +4495,10 @@ mod playlists {
         assert_eq!(conn.read_stats(), reads);
         let mut detached = folder;
         detached.name = "Local edit".into();
-        assert_eq!(Playlist::find(&mut conn, &1)?.unwrap().name, "音楽 🎵");
+        assert_eq!(
+            Playlist::find(&mut conn, &1)?.unwrap().name,
+            "Ã©Å¸Â³Ã¦Â¥Â½ Ã°Å¸Å½Âµ"
+        );
         Ok(())
     }
 
@@ -4836,7 +4933,7 @@ mod catalog {
     #[test]
     fn fresh_catalog_models_round_trip_without_input_databases() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let value = format!("/音楽/{}.jpg", "名".repeat(150));
+        let value = format!("/Ã©Å¸Â³Ã¦Â¥Â½/{}.jpg", "Ã¥ÂÂ".repeat(150));
         for case in cases() {
             let before = conn.read_stats();
             (case.lazy)(&mut conn)?;
@@ -5172,7 +5269,7 @@ fn known_fields_keep_units_unicode_raw_codes_and_source_ids() -> Result<()> {
     row.header.audio_format = 65535;
     row.header.rating = 255;
     row.header.artist_id = 0;
-    row.text.title = DeviceSqlString::encode("音楽 🎵", StringEncoding::Utf16Le)?;
+    row.text.title = DeviceSqlString::encode("Ã©Å¸Â³Ã¦Â¥Â½ Ã°Å¸Å½Âµ", StringEncoding::Utf16Le)?;
     row.text.file_path =
         DeviceSqlString::encode("/Contents/Mixed Case.wav", StringEncoding::ShortAscii)?;
     row.text.release_date = DeviceSqlString::encode("unparsed date", StringEncoding::ShortAscii)?;
@@ -5192,7 +5289,7 @@ fn known_fields_keep_units_unicode_raw_codes_and_source_ids() -> Result<()> {
         (model.file_type, model.rating, model.artist_id),
         (65535, 255, 0)
     );
-    assert_eq!(model.title, "音楽 🎵");
+    assert_eq!(model.title, "Ã©Å¸Â³Ã¦Â¥Â½ Ã°Å¸Å½Âµ");
     assert_eq!(model.path, "/Contents/Mixed Case.wav");
     assert_eq!(model.release_date, "unparsed date");
     assert_eq!(model.isrc()?, "USABC2400001");
@@ -5355,7 +5452,7 @@ fn fresh_insertions_allocate_rows_and_maintain_counts_without_input_pdbs() -> Re
     let original_pages = conn.page_count();
     for id in 1..=24 {
         let mut input = NewContent::new(id, format!("/Contents/Artist/Track {id}.flac"));
-        input.title = format!("音楽 🎵 {id}");
+        input.title = format!("Ã©Å¸Â³Ã¦Â¥Â½ Ã°Å¸Å½Âµ {id}");
         input.comment = "Long ASCII comment. ".repeat(10);
         input.bpmx100 = 12850;
         input.length = 321;
@@ -5388,7 +5485,7 @@ fn fresh_insertions_allocate_rows_and_maintain_counts_without_input_pdbs() -> Re
     assert_eq!(property_counts(&mut reopened)?, vec![24]);
     assert_eq!(
         Content::find(&mut reopened, &24)?.unwrap().title,
-        "音楽 🎵 24"
+        "Ã©Å¸Â³Ã¦Â¥Â½ Ã°Å¸Å½Âµ 24"
     );
     Ok(())
 }
@@ -5548,5 +5645,102 @@ fn new_tracks_can_be_used_in_explicit_binary_transactions() -> Result<()> {
     assert_eq!(Content::try_from(tx.read(&handle)?)?.id, 1);
     tx.rollback();
     assert!(Content::all(&mut conn)?.is_empty());
+    Ok(())
+}
+
+#[test]
+fn shared_track_conversion_resolves_names_and_preserves_metadata() -> Result<()> {
+    use rbox_core::{Track, TrackSource};
+    use rbox_devlib::models::{NewAlbum, NewArtist, NewArtwork};
+    let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+    let artist = NewArtist::new(1, "Artist").insert(&mut conn)?;
+    let album_artist = NewArtist::new(2, "Album artist").insert(&mut conn)?;
+    let album = NewAlbum::new(3, album_artist.id, "Album");
+    let album = album.insert(&mut conn)?;
+    let artwork = NewArtwork::new(4, "/art.jpg").insert(&mut conn)?;
+    let mut input = NewContent::new(10, "/Contents/track.wav");
+    input.artist_id = artist.id;
+    input.album_id = album.id;
+    input.artwork_id = artwork.id;
+    input.master_db_id = 7;
+    input.master_content_id = 123;
+    input.title = "Track".into();
+    input.file_type = 11;
+    input.file_size = u32::MAX;
+    input.bpmx100 = 12835;
+    input.length = 241;
+    input.rating = 5;
+    input.isrc = "USABC2600001".into();
+    input.analysis_path = "/PIONEER/USBANLZ/test/ANLZ0000.DAT".into();
+    input.analysis_date = "2026-10-26".into();
+    let view = input.clone().insert(&mut conn)?.resolve(&mut conn)?;
+    let track = Track::try_from(&view)?;
+    assert_eq!(track.source, TrackSource::DeviceLib);
+    assert_eq!(track.artist.as_deref(), Some("Artist"));
+    assert_eq!(track.album_artist.as_deref(), Some("Album artist"));
+    assert_eq!(track.album.as_deref(), Some("Album"));
+    assert_eq!(track.artwork_path, Some("/art.jpg".into()));
+    assert_eq!(track.master_content_id, Some(123));
+    assert_eq!(track.bpm, Some(128.35));
+    assert_eq!(track.length, Some(241.0));
+    assert!(track.date_created.is_none());
+    assert!(track.genre.is_none());
+    let mapped = NewContent::try_from(track)?;
+    assert_eq!(mapped.id, input.id);
+    assert_eq!(mapped.title, input.title);
+    assert_eq!(mapped.bpmx100, input.bpmx100);
+    assert_eq!(mapped.file_size, input.file_size);
+    assert_eq!(mapped.isrc, input.isrc);
+    assert_eq!(mapped.analysis_path, input.analysis_path);
+    assert_eq!(mapped.master_db_id, input.master_db_id);
+    assert_eq!(mapped.artist_id, 0);
+    assert_eq!(mapped.album_id, 0);
+    assert_eq!(mapped.artwork_id, 0);
+    assert!(mapped.analysis_date.is_empty());
+    assert_eq!(Track::try_from(view)?.id, Some(10));
+    Ok(())
+}
+
+#[test]
+fn shared_track_insertion_checks_ranges_and_normalizes_paths() -> Result<()> {
+    use rbox_core::Track;
+    let mut track = Track::new(r"/Contents/Artist\track.wav");
+    track.id = Some(1);
+    track.bpm = Some(120.126);
+    track.length = Some(12.6);
+    let row = NewContent::try_from(&track)?;
+    assert_eq!(row.path, "/Contents/Artist/track.wav");
+    assert_eq!(row.file_name, "track.wav");
+    assert_eq!(row.bpmx100, 12013);
+    assert_eq!(row.length, 13);
+    for value in [f64::NAN, f64::INFINITY, -1.0, f64::from(u32::MAX)] {
+        let mut invalid = track.clone();
+        invalid.bpm = Some(value);
+        assert!(NewContent::try_from(invalid).is_err());
+    }
+    let mut invalid = track.clone();
+    invalid.length = Some(65536.0);
+    assert!(NewContent::try_from(invalid).is_err());
+    let mut invalid = track.clone();
+    invalid.file_size = Some(u64::from(u32::MAX) + 1);
+    assert!(NewContent::try_from(invalid).is_err());
+    let mut invalid = track.clone();
+    invalid.play_count = Some(65536);
+    assert!(NewContent::try_from(invalid).is_err());
+    let mut invalid = track.clone();
+    invalid.file_type = Some(-1);
+    assert!(NewContent::try_from(invalid).is_err());
+    let mut invalid = track.clone();
+    invalid.rating = Some(6);
+    assert!(NewContent::try_from(invalid).is_err());
+    for id in [None, Some(0)] {
+        let mut invalid = track.clone();
+        invalid.id = id;
+        assert!(NewContent::try_from(invalid).is_err());
+    }
+    let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+    let mut view = row.insert(&mut conn)?.resolve(&mut conn)?;
+    view.content.rating = 6;
+    assert!(Track::try_from(view).is_err());
     Ok(())
 }

@@ -139,3 +139,36 @@ def test_category_view(one_library):
     assert db.get_category_with_relations(2147483647) is None
     with pytest.raises(AttributeError):
         view.menu_item = None
+
+
+def test_shared_track_getters_and_album_artist(one_library):
+    from rbox.core import Track, TrackSource
+
+    db = one_library
+    row = db.get_contents()[0]
+    artist = db.create_artist("Shared track album artist")
+    album = db.create_album("Shared track album", artist.id, None)
+    row.album_id = album.id
+    row.master_db_id = -795645379
+    db.update_content(row)
+    view = db.get_content_with_relations(row.id)
+    assert view.album_artist.id == artist.id
+    track = db.get_track_by_id(row.id)
+    assert isinstance(track, Track)
+    assert track.source == TrackSource.OneLib
+    assert track.id == row.id
+    assert track.master_db_id == 3499321917
+    assert track.master_content_id == row.master_content_id
+    assert track.album_artist == artist.name
+    assert db.get_track_by_path(row.path.replace("/", "\\")).id == row.id
+    assert any(item.id == row.id for item in db.get_tracks())
+    assert [item.id for item in db.get_tracks_by_ids([row.id, row.id, 2147483647])] == [row.id]
+    assert db.get_tracks_by_ids([]) == []
+    assert db.get_track_by_id(2147483647) is None
+    assert db.get_track_by_path("/missing-track.wav") is None
+    with pytest.raises(TypeError):
+        db.get_track_by_id("not an integer")
+    row.rating = 6
+    db.update_content(row)
+    with pytest.raises(OneLibraryError):
+        db.get_track_by_id(row.id)
