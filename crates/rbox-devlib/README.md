@@ -23,20 +23,28 @@ Use `DeviceLibrary::create(path, &LibraryCreateOptions::new(date, name, master_d
 to initialize both files. `save()` replaces changed files, `save_pages()` writes changed
 pages, and `save_as(path)` copies to a new destination. Saving the pair is not atomic.
 
-## CDJ output tests
+## Device tests
 
-CDJ model families that read Device Library exports.
+Device model families that read Device Library exports.
 Unchecked means untested, not incompatible.
 
-- [ ] CDJ-350
-- [ ] CDJ-850
-- [ ] CDJ-900
-- [ ] CDJ-900NXS
-- [ ] CDJ-2000
-- [x] CDJ-2000NXS
-- [ ] CDJ-2000NXS2
 - [ ] CDJ-3000 (see [CDJ-3000 firmware note][firmware])
-
+- [ ] CDJ-2000NXS2
+- [x] CDJ-2000NXS
+- [ ] CDJ-2000
+- [ ] CDJ-900NXS
+- [ ] CDJ-900
+- [ ] CDJ-850
+- [ ] CDJ-350
+- [ ] XDJ-1000MK2
+- [ ] XDJ-1000
+- [ ] XDJ-700
+- [ ] XDJ-XZ
+- [ ] XDJ-RX3
+- [ ] XDJ-RX2
+- [ ] XDJ-RX
+- [ ] XDJ-RR
+- [ ] XDJ-R1
 
 Community testing on additional hardware would be greatly appreciated; please share your device model, firmware version, and results.
 

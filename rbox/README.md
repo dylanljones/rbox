@@ -118,9 +118,14 @@ fn main() -> anyhow::Result<()> {
 
 ### One Library (Device Library Plus)
 
+> **⚠️ Warning**: One Library support is experimental and may contain bugs. Back up existing databases
+> and test generated exports on your hardware before relying on them.
+> See the `rbox-onelib` crate for more information.
+
 For newer generation Pioneer DJ devices, Rekordbox exports a new library format to the USB storage
 device (or SD card), called ``One Library`` (formerly known as ``Device Library Plus``).
-As of 2025, this format is only supported by the [OPUS-QUAD], [OMNIS-DUO], [XDJ-AZ] and [CDJ-3000X] devices.
+As of 2026, this format is only supported by the [CDJ-3000X], [CDJ-1500X], [OPUS-QUAD], [OMNIS-DUO],
+[XDJ-AZ] and [XDJ-AN] devices.
 The database schema is similar to the main Rekordbox database. It contains a selection of tables
 from the main database, with similar columns and data types.
 
@@ -142,8 +147,7 @@ fn main() -> anyhow::Result<()> {
 
 ### Device Library (DeviceSQL)
 
-> [!WARNING]
-> DeviceSQL support is experimental and may contain bugs. Back up existing databases
+> **⚠️ Warning**: DeviceSQL support is experimental and may contain bugs. Back up existing databases
 > and test generated exports on your hardware before relying on them.
 > See the `rbox-devlib` crate for more information.
 
@@ -273,4 +277,6 @@ If rbox has helped you or saved you time, consider supporting its development - 
 [OPUS-QUAD]: https://www.pioneerdj.com/en/product/all-in-one-system/opus-quad/black/overview/
 [OMNIS-DUO]: https://alphatheta.com/en/product/all-in-one-dj-system/omnis-duo/indigo/
 [XDJ-AZ]: https://alphatheta.com/en/product/all-in-one-dj-system/xdj-az/black/
+[XDJ-AN]: https://alphatheta.com/en/product/all-in-one-dj-system/xdj-an/black/
 [CDJ-3000X]: https://alphatheta.com/en/product/player/cdj-3000x/black/
+[CDJ-1500X]: https://alphatheta.com/en/product/player/cdj-1500x/black/
