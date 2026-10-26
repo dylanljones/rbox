@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `RecommendedLike`.
+
 use chrono::Utc;
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
@@ -26,6 +28,7 @@ use rbox_db::{Model, ModelDelete, ModelInsert, ModelUpdate};
 /// * [`Content`] via `content_id_1` foreign key.
 /// * [`Content`] via `content_id_2` foreign key.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset, Insertable)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = recommendedLike)]
 #[diesel(primary_key(content_id_1, content_id_2))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]

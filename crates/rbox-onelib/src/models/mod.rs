@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models for the OneLibrary export database.
+
 mod album;
 mod artist;
 mod category;

@@ -26,6 +26,7 @@ use rbox_db::{Model, ModelDelete, ModelInsert, ModelUpdate};
 /// reject duplicate names transactionally. `update` targets the current name;
 /// changing a snapshot's name does not rename its original row.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset, Insertable)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = property)]
 #[diesel(primary_key(device_name))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]

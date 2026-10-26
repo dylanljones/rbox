@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `DjmdHotCueBanklist`.
+
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -31,6 +33,7 @@ use rbox_db::Model;
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = djmdHotCueBanklist)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdHotCueBanklist, foreign_key = parent_id))]
@@ -138,6 +141,7 @@ impl DjmdHotCueBanklist {
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = djmdSongHotCueBanklist)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
@@ -269,6 +273,7 @@ impl DjmdSongHotCueBanklist {
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = hotCueBanklistCue)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdSongHotCueBanklist, foreign_key = hot_cue_banklist_id))]

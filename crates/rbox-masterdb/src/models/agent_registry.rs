@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `AgentRegistry`.
+
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -27,6 +29,7 @@ use crate::schema::{agentRegistry, cloudAgentRegistry};
 /// * SyncSettingsRootPath
 /// * LangPath
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, Insertable, AsChangeset)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = agentRegistry)]
 #[diesel(primary_key(registry_id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -146,6 +149,7 @@ impl AgentRegistry {
 /// It contains similar fields as the [`AgentRegistry`], but is specifically used for cloud-related
 /// registry entries.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, Insertable, AsChangeset)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = cloudAgentRegistry)]
 #[diesel(primary_key(id))]
 #[cfg_attr(

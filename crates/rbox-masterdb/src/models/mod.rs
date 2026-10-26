@@ -1,7 +1,7 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
-//! # Rekordbox master.db database models
+//! Rekordbox master.db database models
 //!
 //! This module defines the data models that map to the tables in the main Rekordbox SQLite database.
 

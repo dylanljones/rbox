@@ -188,14 +188,13 @@ fn content_isrc_edits_validate_preserve_unknown_frames_and_roundtrip() -> Result
     // Syntactically valid string framing, but not a supported ISRC representation.
     row.text.isrc = DeviceSqlString::encode("opaque", StringEncoding::LongAscii)?;
     let opaque = row.text.isrc.clone();
+    let current = Content::find(&mut conn, &1)?.unwrap();
     let mut tx = conn.transaction();
-    let current = tx.index_rows(Content::TABLE, |record| {
-        let Row::Standard(StandardRow::Track(row)) = record.decode()? else {
-            panic!()
-        };
-        Ok(row.header.id)
-    })?[&1];
-    let handle = tx.locate(Content::TABLE, current.page, current.slot)?;
+    let handle = tx.locate(
+        Content::TABLE,
+        current.raw_record().page(),
+        current.raw_record().slot().slot,
+    )?;
     tx.update(&handle, &Row::Standard(StandardRow::Track(row)))?;
     tx.commit()?;
     let mut unknown = Content::find(&mut conn, &1)?.unwrap();

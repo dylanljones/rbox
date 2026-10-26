@@ -33,6 +33,7 @@ use rbox_db::{load_related, Model, ModelDelete, ModelInsert, ModelRelations, Mod
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = djmdAlbum)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdArtist, foreign_key = album_artist_id))]

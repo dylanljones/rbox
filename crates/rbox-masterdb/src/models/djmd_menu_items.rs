@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `DjmdMenuItems`.
+
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -22,6 +24,7 @@ use rbox_db::Model;
 /// * [`DjmdCategory`] via `menu_item_id` foreign key.
 /// * [`DjmdSort`] via `menu_item_id` foreign key.
 #[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = djmdMenuItems)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]

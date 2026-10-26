@@ -31,6 +31,7 @@ use rbox_masterdb::models::DjmdAlbum;
 /// * [`Artist`] via `artist_id` foreign key.
 /// * [`Image`] via `image_id` foreign key.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset, Associations)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = album)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(Artist, foreign_key = artist_id))]

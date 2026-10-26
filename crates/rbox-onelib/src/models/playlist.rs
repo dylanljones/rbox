@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `Playlist`.
+
 use diesel::prelude::*;
 use diesel::result::Error;
 #[cfg(feature = "napi")]
@@ -36,6 +38,7 @@ pub type PlaylistTreeNodeRef = Rc<RefCell<PlaylistTreeNode>>;
 /// # References
 /// * [`Playlist`] via `parent_id` foreign key.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset, Associations)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = playlist)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(Playlist, foreign_key = parent_id))]

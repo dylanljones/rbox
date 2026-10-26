@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `Sort`.
+
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -20,6 +22,7 @@ use rbox_db::{ordering_error, Model, ModelDelete, ModelInsert, ModelUpdate};
 /// # References
 /// * [`MenuItem`] via `menu_item_id` foreign key.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = sort)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(MenuItem, foreign_key = menu_item_id))]

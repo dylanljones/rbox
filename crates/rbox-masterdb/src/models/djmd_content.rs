@@ -63,6 +63,7 @@ use rbox_db::{load_related, Model, ModelInsert, ModelRelations, ModelUpdate};
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = djmdContent)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdArtist, foreign_key = artist_id))]

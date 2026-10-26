@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `History`.
+
 use diesel::prelude::*;
 use diesel::result::Error;
 #[cfg(feature = "napi")]
@@ -32,6 +34,7 @@ use rbox_db::{
 /// # References
 /// * [`History`] via `parent_id` foreign key.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset, Associations)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = history)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(History, foreign_key = parent_id))]

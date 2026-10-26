@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `DjmdPlaylist`.
+
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel::result::Error;
@@ -42,6 +44,7 @@ use rbox_db::{
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = djmdPlaylist)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdPlaylist, foreign_key = parent_id))]
@@ -683,6 +686,7 @@ impl NewDjmdPlaylist {
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = djmdSongPlaylist)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdPlaylist, foreign_key = playlist_id))]
