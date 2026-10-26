@@ -360,7 +360,7 @@ pub struct NewPlaylist {
     pub name: String,
     /// Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image).
     pub image_id: Option<i32>,
-    /// The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`).
+    /// The type to insert: only [`PlaylistType::List`] and [`PlaylistType::Folder`] are supported.
     pub attribute: PlaylistType,
     /// The ID of the parent [`Playlist`], `0` for top-level records.
     pub parent_id: i32,
@@ -369,7 +369,13 @@ pub struct NewPlaylist {
 impl ModelInsert for NewPlaylist {
     type Model = Playlist;
 
+    /// Insert a regular playlist or folder, rejecting other types before changing sibling order.
     fn insert(mut self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
+        if !matches!(self.attribute, PlaylistType::List | PlaylistType::Folder) {
+            return Err(ordering_error(
+                "OneLibrary supports inserting only regular playlists and folders",
+            ));
+        }
         conn.transaction(|conn| {
             let seq = self.seq;
             let (seq, _n) = Playlist::update_seq_before_insert(conn, &self.parent_id, seq)?;

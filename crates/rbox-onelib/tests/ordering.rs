@@ -242,6 +242,45 @@ fn one_library_association_deletion_and_rollback() {
 }
 
 #[test]
+fn playlist_insert_rejects_unsupported_types_without_changing_order() -> anyhow::Result<()> {
+    use diesel::result::{DatabaseErrorKind, Error};
+    use rbox_onelib::{NewPlaylist, Playlist, PlaylistType};
+
+    let mut conn = ConnectionFixture::one_library(rbox_onelib::connection::establish_connection);
+    NewPlaylist::playlist("Existing playlist").insert(&mut conn)?;
+    NewPlaylist::folder("Existing folder").insert(&mut conn)?;
+    let before = Playlist::all(&mut conn)?;
+
+    for attribute in [PlaylistType::SmartList, PlaylistType::CloudLibrarySync] {
+        // Public fields and binding objects can bypass the constructor's validation.
+        let mut invalid = NewPlaylist::playlist("Invalid").seq(0);
+        invalid.attribute = attribute;
+        assert!(matches!(
+            invalid.clone().insert(&mut conn),
+            Err(Error::DatabaseError(
+                DatabaseErrorKind::RestrictViolation,
+                _
+            ))
+        ));
+        assert_eq!(Playlist::all(&mut conn)?, before);
+
+        // A rejected later input must roll back earlier insertions and sibling shifts.
+        assert!(matches!(
+            NewPlaylist::insert_all(
+                &mut conn,
+                vec![NewPlaylist::playlist("Rolled back").seq(0), invalid],
+            ),
+            Err(Error::DatabaseError(
+                DatabaseErrorKind::RestrictViolation,
+                _
+            ))
+        ));
+        assert_eq!(Playlist::all(&mut conn)?, before);
+    }
+    Ok(())
+}
+
+#[test]
 fn one_library_bulk_insert_and_invalid_parents() {
     use rbox_onelib::{enums::PlaylistType, models::*};
     let mut conn = ConnectionFixture::one_library(rbox_onelib::connection::establish_connection);
