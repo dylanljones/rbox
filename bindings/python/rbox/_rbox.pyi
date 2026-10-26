@@ -3472,6 +3472,21 @@ class PyOneLibrary:
         """Queries a record from the `content` table by its primary key `id`."""
         ...
 
+    def get_content_by_master_content_id(self, master_content_id: int, master_db_id: int) -> Optional[Content]:
+        """Find by both stored signed 32-bit source IDs; return None if absent or zero.
+
+        Repeated pairs return the content with the lowest local export ID.
+        """
+        ...
+
+    def get_contents_by_master_content_ids(self, master_content_ids: List[int], master_db_id: int) -> List[Content]:
+        """Load all matching contents for signed source IDs within one library.
+
+        Ordered by local export ID; missing/zero IDs are omitted and repeated input
+        IDs do not repeat rows. Empty input or a zero library ID returns [].
+        """
+        ...
+
     def insert_content(self, content: NewContent) -> Content:
         """Inserts a new record into the `content` table."""
         ...

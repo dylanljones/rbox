@@ -17,6 +17,114 @@ use rbox_onelib::database::OneLibrary;
 use rbox_onelib::models::*;
 use rbox_testing::data::{get_temp_root_dir, setup_one_library_path};
 
+#[test]
+fn content_master_identity_lookup_is_scoped_to_source_library() -> anyhow::Result<()> {
+    let fixture = setup_one_library_path();
+    let mut conn = establish_connection(fixture.path(), &ConnectionOptions::default())?;
+    let library = -795_645_379i32;
+    let mut inserted = Vec::new();
+    for (index, (source_content, source_library)) in [
+        (Some(2_000_000_123), Some(library)),
+        (Some(2_000_000_123), Some(42)),
+        (Some(2_000_000_124), Some(library)),
+        (Some(2_000_000_123), Some(library)),
+        (None, None),
+        (Some(0), Some(0)),
+        (Some(i32::MIN), Some(library)),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let mut row = NewContent::new(format!("/master-identity/{index}.wav"));
+        row.file_type = Some(1);
+        row.master_content_id = source_content;
+        row.master_db_id = source_library;
+        inserted.push(row.insert(&mut conn)?);
+    }
+    assert_eq!(
+        Content::find_by_master_content_id(&mut conn, 2_000_000_123, library)?
+            .unwrap()
+            .id,
+        inserted[0].id
+    );
+    assert_eq!(
+        Content::find_by_master_content_id(&mut conn, 2_000_000_123, 42)?
+            .unwrap()
+            .id,
+        inserted[1].id
+    );
+    assert_eq!(
+        Content::find_by_master_content_id(&mut conn, 2_000_000_124, library)?
+            .unwrap()
+            .id,
+        inserted[2].id
+    );
+    assert!(inserted[0].master_db_id.unwrap() < 0);
+    assert!(Content::find_by_master_content_id(&mut conn, 2_000_000_123, 999)?.is_none());
+    assert!(Content::find_by_master_content_id(&mut conn, 2_000_000_125, library)?.is_none());
+    assert_eq!(
+        Content::find_by_master_content_id(&mut conn, i32::MIN, library)?
+            .unwrap()
+            .id,
+        inserted[6].id
+    );
+    assert!(Content::find_by_master_content_id(&mut conn, 0, 0)?.is_none());
+    let db = OneLibrary::from_path(fixture.path())?;
+    for (source_content, source_library) in [
+        (2_000_000_123, library),
+        (2_000_000_123, 42),
+        (2_000_000_124, library),
+        (i32::MIN, library),
+        (2_000_000_123, 999),
+        (0, 0),
+    ] {
+        assert_eq!(
+            db.get_content_by_master_content_id(source_content, source_library)?,
+            Content::find_by_master_content_id(&mut conn, source_content, source_library)?
+        );
+    }
+    // More than two batches, with matches at either end of the sorted source IDs.
+    let mut source_ids = vec![2_000_000_124, 2_000_000_123, i32::MIN, 0, 2_000_000_123];
+    source_ids.extend(1000..2200);
+    let batch = Content::by_master_content_ids(&mut conn, &source_ids, library)?;
+    assert_eq!(
+        batch.iter().map(|row| row.id).collect::<Vec<_>>(),
+        vec![
+            inserted[0].id,
+            inserted[2].id,
+            inserted[3].id,
+            inserted[6].id
+        ]
+    );
+    assert_eq!(
+        db.get_contents_by_master_content_ids(&source_ids, library)?,
+        batch
+    );
+    assert_eq!(
+        db.get_contents_by_master_content_ids(&source_ids, 42)?,
+        vec![inserted[1].clone()]
+    );
+    for (ids, source_library) in [
+        (&[][..], library),
+        (&[0][..], library),
+        (&source_ids[..], 0),
+        (&source_ids[..], 999),
+    ] {
+        assert!(Content::by_master_content_ids(&mut conn, ids, source_library)?.is_empty());
+        assert!(db
+            .get_contents_by_master_content_ids(ids, source_library)?
+            .is_empty());
+    }
+    Content::delete(&mut conn, &inserted[0].id)?;
+    assert_eq!(
+        Content::find_by_master_content_id(&mut conn, 2_000_000_123, library)?
+            .unwrap()
+            .id,
+        inserted[3].id
+    );
+    Ok(())
+}
+
 fn assert_no_content_relations(view: &ContentView) {
     assert!(view.artist.is_none());
     assert!(view.remixer.is_none());

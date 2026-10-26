@@ -58,6 +58,35 @@ def test_raw_getters(one_library):
         db.get_content_by_id([])
 
 
+def test_content_lookup_by_master_identity(one_library):
+    db = one_library
+    row = db.get_contents()[0]
+    row.master_content_id = 2_000_000_123
+    row.master_db_id = -795_645_379
+    db.update_content(row)
+    found = db.get_content_by_master_content_id(row.master_content_id, row.master_db_id)
+    assert isinstance(found, models.Content)
+    assert found.id == row.id
+    assert found.master_db_id == -795_645_379
+    assert db.get_content_by_master_content_id(row.master_content_id, 42) is None
+    assert db.get_content_by_master_content_id(0, 0) is None
+    batch = db.get_contents_by_master_content_ids(
+        [row.master_content_id, 2_000_000_125, row.master_content_id, 0], row.master_db_id
+    )
+    assert [item.id for item in batch] == [row.id]
+    assert isinstance(batch[0], models.Content)
+    assert db.get_contents_by_master_content_ids([], row.master_db_id) == []
+    assert db.get_contents_by_master_content_ids([row.master_content_id], 42) == []
+    with pytest.raises(TypeError):
+        db.get_contents_by_master_content_ids(["invalid"], row.master_db_id)
+    with pytest.raises(OverflowError):
+        db.get_contents_by_master_content_ids([row.master_content_id], 3_499_321_917)
+    with pytest.raises(TypeError):
+        db.get_content_by_master_content_id([], row.master_db_id)
+    with pytest.raises(OverflowError):
+        db.get_content_by_master_content_id(row.master_content_id, 3_499_321_917)
+
+
 def test_album_mutation_signatures(one_library):
     db = one_library
     row = db.create_album("API album", None, None)

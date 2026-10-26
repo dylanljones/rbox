@@ -321,6 +321,7 @@ impl OneLibrary {
     // -- Content ----------------------------------------------------------------------------------
 
     /// Load shared tracks with resolved metadata, including album artists.
+    ///
     /// Content and relationships share one read transaction. Results are detached
     /// snapshots; absent metadata stays `None`. BPM is unscaled, duration is seconds,
     /// and file size is bytes. Source-library IDs come from each content row.
@@ -338,6 +339,7 @@ impl OneLibrary {
     }
 
     /// Load matching tracks in ascending ID order with batched queries.
+    ///
     /// Missing IDs are omitted, repeated IDs occur once, and empty input returns
     /// an empty vector. See [`Self::get_tracks`] for resolution, units and errors.
     pub fn get_tracks_by_ids(&self, ids: &[i32]) -> Result<Vec<Track>> {
@@ -358,6 +360,7 @@ impl OneLibrary {
     }
 
     /// Load a shared track by its stored path, or `None` if absent.
+    ///
     /// Backslashes are converted to forward slashes without accessing the file;
     /// the path must otherwise match exactly. See [`Self::get_tracks`] for errors.
     pub fn get_track_by_path(&self, path: &str) -> Result<Option<Track>> {
@@ -395,6 +398,43 @@ impl OneLibrary {
     pub fn get_content_by_id(&self, id: i32) -> Result<Option<Content>> {
         let mut conn = self.pool.get()?;
         Ok(Content::find(&mut conn, &id)?)
+    }
+
+    /// Find content by both source-library IDs in OneLibrary's stored signed form.
+    ///
+    /// Returns `None` for missing or zero identities. If the pair occurs more than
+    /// once, returns the content with the lowest local export ID.
+    pub fn get_content_by_master_content_id(
+        &self,
+        master_content_id: i32,
+        master_db_id: i32,
+    ) -> Result<Option<Content>> {
+        let mut conn = self.pool.get()?;
+        Ok(Content::find_by_master_content_id(
+            &mut conn,
+            master_content_id,
+            master_db_id,
+        )?)
+    }
+
+    /// Load contents by source-content IDs within one source library, using signed IDs.
+    ///
+    /// Returns all matches in local export-ID order, omitting missing/zero IDs and
+    /// repeated input IDs. See [`Content::by_master_content_ids`] for batch semantics.
+    pub fn get_contents_by_master_content_ids(
+        &self,
+        master_content_ids: &[i32],
+        master_db_id: i32,
+    ) -> Result<Vec<Content>> {
+        if master_db_id == 0 || master_content_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut conn = self.pool.get()?;
+        Ok(Content::by_master_content_ids(
+            &mut conn,
+            master_content_ids,
+            master_db_id,
+        )?)
     }
 
     /// Load a track and all direct metadata relationships in one read transaction.

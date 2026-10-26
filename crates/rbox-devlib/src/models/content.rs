@@ -6,7 +6,7 @@
 //! Content is the model name for DeviceSQL tracks, matching masterdb and OneLibrary
 //! terminology. The underlying binary representation remains `TrackRow`.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::{Cursor, Read, Seek};
 
 use binrw::BinRead;
@@ -347,6 +347,121 @@ impl Content {
             .contains_key(id))
     }
 
+    /// Load matching export IDs in ascending order, omitting missing and repeated IDs.
+    ///
+    /// Only matching rows have their strings decoded. Empty input reads no pages.
+    pub fn by_ids<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        ids: &[u32],
+    ) -> Result<Vec<Self>> {
+        conn.check_kind(Self::TABLE)?;
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut ids = ids.to_vec();
+        ids.sort_unstable();
+        ids.dedup();
+        let index = conn.index_rows(Self::TABLE, Self::read_id)?;
+        let locations: Vec<_> = ids.iter().filter_map(|id| index.get(id).copied()).collect();
+        locations
+            .into_iter()
+            .map(|location| Self::try_from(conn.read_indexed_row(Self::TABLE, location)?))
+            .collect()
+    }
+
+    /// Find the first live row whose stored audio path matches exactly.
+    ///
+    /// Comparison is case-sensitive and does not normalize separators or access files.
+    /// If paths repeat, the first row in physical page/slot order is returned.
+    pub fn find_by_path<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        path: &str,
+    ) -> Result<Option<Self>> {
+        for row in Self::iter(conn)? {
+            let row = row?;
+            if row.path == path {
+                return Ok(Some(row));
+            }
+        }
+        Ok(None)
+    }
+
+    /// Check for an exact stored audio path, using the same comparison as `find_by_path`.
+    pub fn path_exists<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        path: &str,
+    ) -> Result<bool> {
+        Ok(Self::find_by_path(conn, path)?.is_some())
+    }
+
+    /// Find content by its source-library identity, not its local export ID.
+    ///
+    /// Both IDs use their unsigned representation, as in `rbox_core::Track`.
+    /// Zero means an absent source identity and returns `None`. If the pair occurs
+    /// more than once, return the row with the lowest export ID. Scans scalar
+    /// headers and decodes strings only for the selected row.
+    pub fn find_by_master_content_id<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        master_content_id: u32,
+        master_db_id: u32,
+    ) -> Result<Option<Self>> {
+        conn.check_kind(Self::TABLE)?;
+        if master_content_id == 0 || master_db_id == 0 {
+            return Ok(None);
+        }
+        let mut selected: Option<(u32, RowRecord)> = None;
+        for record in conn.iter_raw(Self::TABLE)? {
+            let record = record?;
+            let header = Self::read_header(&record)?;
+            if header.master_content_id == master_content_id
+                && header.master_db_id == master_db_id
+                && selected.as_ref().is_none_or(|(id, _)| header.id < *id)
+            {
+                selected = Some((header.id, record));
+            }
+        }
+        selected
+            .map(|(_, record)| Self::try_from(record))
+            .transpose()
+    }
+
+    /// Load all contents matching source-content IDs within one source library.
+
+    /// IDs use DeviceLibrary's unsigned representation. Missing and zero IDs are
+    /// omitted; repeated input IDs do not repeat rows. A zero library ID or empty
+    /// input returns an empty vector without reading pages. Results are ordered by
+    /// local export ID, including all exported rows when a source identity repeats.
+    /// Scans scalar headers once and decodes strings only for matching rows.
+    /// Extended connections are rejected, including for empty input.
+    pub fn by_master_content_ids<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        master_content_ids: &[u32],
+        master_db_id: u32,
+    ) -> Result<Vec<Self>> {
+        conn.check_kind(Self::TABLE)?;
+        if master_db_id == 0 || master_content_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let ids: HashSet<_> = master_content_ids
+            .iter()
+            .copied()
+            .filter(|id| *id != 0)
+            .collect();
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut rows = Vec::new();
+        for record in conn.iter_raw(Self::TABLE)? {
+            let record = record?;
+            let header = Self::read_header(&record)?;
+            if header.master_db_id == master_db_id && ids.contains(&header.master_content_id) {
+                rows.push(Self::try_from(record)?);
+            }
+        }
+        rows.sort_unstable_by_key(|row| row.id);
+        Ok(rows)
+    }
+
     /// Persist edited public fields, preserving current unknown data and unedited frames.
     ///
     /// Re-resolves the original export ID; changing it is rejected. Only fields
@@ -636,6 +751,10 @@ impl Content {
     }
 
     pub(super) fn read_id(record: &RowRecord) -> Result<u32> {
+        Ok(Self::read_header(record)?.id)
+    }
+
+    fn read_header(record: &RowRecord) -> Result<TrackHeader> {
         if record.table() != Self::TABLE {
             return Err(unsupported(record));
         }
@@ -651,7 +770,7 @@ impl Content {
         if header.subtype != TrackHeader::SUBTYPE {
             return Err(unsupported(record));
         }
-        Ok(header.id)
+        Ok(header)
     }
 }
 

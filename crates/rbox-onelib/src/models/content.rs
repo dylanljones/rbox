@@ -437,6 +437,67 @@ impl Content {
         diesel::dsl::select(diesel::dsl::exists(query)).get_result(conn)
     }
 
+    /// Find content by its source-library identity, not its local export ID.
+    ///
+    /// Both IDs use OneLibrary's stored `i32` representation, including negative
+    /// master-library IDs. Zero IDs return `None`.
+    /// If the pair occurs more than once, return the row with the lowest export ID.
+    pub fn find_by_master_content_id(
+        conn: &mut SqliteConnection,
+        master_content_id: i32,
+        master_db_id: i32,
+    ) -> QueryResult<Option<Self>> {
+        if master_content_id == 0 || master_db_id == 0 {
+            return Ok(None);
+        }
+        Self::query()
+            .filter(content::master_content_id.eq(master_content_id))
+            .filter(content::master_db_id.eq(master_db_id))
+            .order(content::id.asc())
+            .first(conn)
+            .optional()
+    }
+
+    /// Load all contents matching source-content IDs within one source library.
+    ///
+    /// IDs use OneLibrary's stored signed representation. Missing and zero IDs
+    /// are omitted; repeated input IDs do not repeat rows. A zero library ID or
+    /// empty input returns an empty vector. Results are ordered by local export
+    /// ID, including all exported rows when a source identity occurs more than once.
+    /// Queries run in bounded batches within one read transaction.
+    pub fn by_master_content_ids(
+        conn: &mut SqliteConnection,
+        master_content_ids: &[i32],
+        master_db_id: i32,
+    ) -> QueryResult<Vec<Self>> {
+        if master_db_id == 0 || master_content_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut ids: Vec<_> = master_content_ids
+            .iter()
+            .copied()
+            .filter(|id| *id != 0)
+            .collect();
+        ids.sort_unstable();
+        ids.dedup();
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        conn.transaction(|conn| {
+            let mut rows = Vec::new();
+            for chunk in ids.chunks(500) {
+                rows.extend(
+                    Self::query()
+                        .filter(content::master_content_id.eq_any(chunk))
+                        .filter(content::master_db_id.eq(master_db_id))
+                        .load::<Self>(conn)?,
+                );
+            }
+            rows.sort_unstable_by_key(|row| row.id);
+            Ok(rows)
+        })
+    }
+
     /// Sets the `artist_id` field of a record in the `content` table matching the given `id`.
     pub fn set_artist_id(
         conn: &mut SqliteConnection,

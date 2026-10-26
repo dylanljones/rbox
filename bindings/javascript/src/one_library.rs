@@ -430,6 +430,33 @@ impl JsOneLibrary {
         Ok(res)
     }
 
+    /// Find content by both stored signed source IDs, or null if absent or zero.
+    /// Repeated pairs return the content with the lowest local export ID.
+    #[napi]
+    pub fn get_content_by_master_content_id(
+        &self,
+        master_content_id: i32,
+        master_db_id: i32,
+    ) -> Result<Option<Content>> {
+        self.inner
+            .get_content_by_master_content_id(master_content_id, master_db_id)
+            .map_err(crate::util::binding_error)
+    }
+
+    /// Load all matching contents for signed source-content IDs in one source library.
+    /// Results use local export-ID order; missing/zero IDs are omitted and input
+    /// duplicates do not repeat rows. Empty input or a zero library ID returns [].
+    #[napi]
+    pub fn get_contents_by_master_content_ids(
+        &self,
+        master_content_ids: Vec<i32>,
+        master_db_id: i32,
+    ) -> Result<Vec<Content>> {
+        self.inner
+            .get_contents_by_master_content_ids(&master_content_ids, master_db_id)
+            .map_err(crate::util::binding_error)
+    }
+
     /// Inserts a new record into the `content` table.
     #[napi]
     pub fn insert_content(&self, content: NewContent) -> Result<Content> {

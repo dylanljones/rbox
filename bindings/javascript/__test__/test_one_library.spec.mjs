@@ -50,6 +50,26 @@ test('raw getters and argument conversion', t => {
     t.throws(() => db.getContentById([]), { instanceOf: Error })
 })
 
+test('content lookup accepts signed master identities', t => {
+    const db = t.context.db
+    const row = db.getContents()[0]
+    row.masterContentId = 2000000123
+    row.masterDbId = -795645379
+    db.updateContent(row)
+    const found = db.getContentByMasterContentId(row.masterContentId, row.masterDbId)
+    t.is(found.id, row.id)
+    t.is(found.masterDbId, -795645379)
+    t.true(db.getContentByMasterContentId(row.masterContentId, 42) == null)
+    t.true(db.getContentByMasterContentId(0, 0) == null)
+    const batch = db.getContentsByMasterContentIds(
+        [row.masterContentId, 2000000125, row.masterContentId, 0], row.masterDbId)
+    t.deepEqual(batch.map(item => item.id), [row.id])
+    t.deepEqual(db.getContentsByMasterContentIds([], row.masterDbId), [])
+    t.deepEqual(db.getContentsByMasterContentIds([row.masterContentId], 42), [])
+    t.throws(() => db.getContentsByMasterContentIds(['invalid'], row.masterDbId), { instanceOf: Error })
+    t.throws(() => db.getContentByMasterContentId([], row.masterDbId), { instanceOf: Error })
+})
+
 test('album mutation signatures', t => {
     const db = t.context.db
     const row = db.createAlbum('API album', null, null)

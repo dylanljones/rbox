@@ -14,6 +14,148 @@ use rbox_devlib::models::{Content, NewContent};
 use rbox_devlib::{CreateOptions, DeviceSqlConnection, Error, Result};
 use rbox_testing::data::{create_temp_dir, export_dir};
 
+#[test]
+fn content_lookup_helpers_follow_live_rows() -> Result<()> {
+    let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+    NewContent::new(20, "/Contents/音.wav").insert(&mut conn)?;
+    NewContent::new(10, "/Contents/other.wav").insert(&mut conn)?;
+    assert!(Content::by_ids(&mut conn, &[])?.is_empty());
+    assert_eq!(
+        Content::by_ids(&mut conn, &[20, 999, 10, 20])?
+            .iter()
+            .map(|row| row.id)
+            .collect::<Vec<_>>(),
+        vec![10, 20]
+    );
+    assert_eq!(
+        Content::find_by_path(&mut conn, "/Contents/音.wav")?
+            .unwrap()
+            .id,
+        20
+    );
+    assert!(Content::path_exists(&mut conn, "/Contents/音.wav")?);
+    assert!(!Content::path_exists(&mut conn, "/contents/音.wav")?);
+    assert!(!Content::path_exists(&mut conn, r"\Contents\音.wav")?);
+    assert!(Content::find_by_path(&mut conn, "/missing.wav")?.is_none());
+
+    let mut edited = Content::find(&mut conn, &20)?.unwrap();
+    edited.path = "/Contents/renamed.wav".into();
+    edited.update(&mut conn)?;
+    assert!(!Content::path_exists(&mut conn, "/Contents/音.wav")?);
+    assert!(Content::path_exists(&mut conn, "/Contents/renamed.wav")?);
+    Content::delete(&mut conn, &20)?;
+    assert_eq!(Content::by_ids(&mut conn, &[10, 20])?.len(), 1);
+    assert!(!Content::path_exists(&mut conn, "/Contents/renamed.wav")?);
+
+    let mut ext = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+    assert!(matches!(
+        Content::by_ids(&mut ext, &[]),
+        Err(Error::WrongDatabaseKind { .. })
+    ));
+    assert!(matches!(
+        Content::find_by_path(&mut ext, ""),
+        Err(Error::WrongDatabaseKind { .. })
+    ));
+    assert!(matches!(
+        Content::find_by_master_content_id(&mut ext, 1, 2),
+        Err(Error::WrongDatabaseKind { .. })
+    ));
+    assert!(matches!(
+        Content::by_master_content_ids(&mut ext, &[], 0),
+        Err(Error::WrongDatabaseKind { .. })
+    ));
+    Ok(())
+}
+
+#[test]
+fn content_master_identity_lookup_is_scoped_to_source_library() -> Result<()> {
+    let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+    let library = 3_499_321_917;
+    for (id, source_content, source_library) in [
+        (30, 123, library),
+        (10, 123, library),
+        (20, 123, 42),
+        (40, 124, library),
+        (50, 0, 0),
+        (60, u32::MAX, library),
+    ] {
+        let mut row = NewContent::new(id, format!("/Contents/{id}.wav"));
+        row.master_content_id = source_content;
+        row.master_db_id = source_library;
+        row.insert(&mut conn)?;
+    }
+    assert_eq!(
+        Content::find_by_master_content_id(&mut conn, 123, library)?
+            .unwrap()
+            .id,
+        10
+    );
+    assert_eq!(
+        Content::find_by_master_content_id(&mut conn, 123, 42)?
+            .unwrap()
+            .id,
+        20
+    );
+    assert_eq!(
+        Content::find_by_master_content_id(&mut conn, 124, library)?
+            .unwrap()
+            .id,
+        40
+    );
+    assert_eq!(
+        Content::find_by_master_content_id(&mut conn, u32::MAX, library)?
+            .unwrap()
+            .id,
+        60
+    );
+    assert!(Content::find_by_master_content_id(&mut conn, 123, 999)?.is_none());
+    assert!(Content::find_by_master_content_id(&mut conn, 999, library)?.is_none());
+    assert!(Content::find_by_master_content_id(&mut conn, 0, 0)?.is_none());
+    let mut ids = vec![u32::MAX, 124, 123, 0, 123];
+    ids.extend(1000..2200);
+    assert_eq!(
+        Content::by_master_content_ids(&mut conn, &ids, library)?
+            .iter()
+            .map(|row| row.id)
+            .collect::<Vec<_>>(),
+        vec![10, 30, 40, 60]
+    );
+    assert_eq!(
+        Content::by_master_content_ids(&mut conn, &ids, 42)?
+            .iter()
+            .map(|row| row.id)
+            .collect::<Vec<_>>(),
+        vec![20]
+    );
+    for (source_ids, source_library) in [
+        (&[][..], library),
+        (&[0][..], library),
+        (&ids[..], 0),
+        (&ids[..], 999),
+    ] {
+        assert!(Content::by_master_content_ids(&mut conn, source_ids, source_library)?.is_empty());
+    }
+    let mut row = Content::find(&mut conn, &10)?.unwrap();
+    row.master_db_id = 43;
+    row.update(&mut conn)?;
+    assert_eq!(
+        Content::find_by_master_content_id(&mut conn, 123, library)?
+            .unwrap()
+            .id,
+        30
+    );
+    Content::delete(&mut conn, &30)?;
+    assert!(Content::find_by_master_content_id(&mut conn, 123, library)?.is_none());
+    assert_eq!(
+        Content::by_master_content_ids(&mut conn, &ids, library)?
+            .iter()
+            .map(|row| row.id)
+            .collect::<Vec<_>>(),
+        vec![40, 60]
+    );
+    Ok(())
+}
+
 // Binary-only fixture for unusual color IDs used by read/relationship tests.
 fn seed_color(
     conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>,

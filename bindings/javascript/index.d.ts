@@ -4039,6 +4039,17 @@ export declare class OneLibrary {
   getContents(): Array<Content>
   /** Queries a record from the `content` table by its primary key `id`. */
   getContentById(id: number): Content | null
+  /**
+   * Find content by both stored signed source IDs, or null if absent or zero.
+   * Repeated pairs return the content with the lowest local export ID.
+   */
+  getContentByMasterContentId(masterContentId: number, masterDbId: number): Content | null
+  /**
+   * Load all matching contents for signed source-content IDs in one source library.
+   * Results use local export-ID order; missing/zero IDs are omitted and input
+   * duplicates do not repeat rows. Empty input or a zero library ID returns [].
+   */
+  getContentsByMasterContentIds(masterContentIds: Array<number>, masterDbId: number): Array<Content>
   /** Inserts a new record into the `content` table. */
   insertContent(content: NewContent): Content
   /** Creates a new record and inserts it into the `content` table. */
