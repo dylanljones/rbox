@@ -13,7 +13,9 @@
 
 use std::io::{Read, Seek};
 
-use super::{read_fields, text, text_error, unsupported, validate_id, validate_nonzero_id};
+use super::{
+    next_id, read_fields, text, text_error, unsupported, validate_id, validate_nonzero_id,
+};
 use crate::binary::{HistoryEntryRow, NamedRow, PageType, Row, RowRecord, StandardRow, TableKind};
 use crate::devicesql::DeviceSqlConnection;
 use crate::{Error, Result};
@@ -174,6 +176,11 @@ impl History {
         }
         read_fields::<u32>(record)
     }
+
+    /// Generate the next export ID: the highest live ID plus one, or 1 when empty.
+    fn generate_id<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<u32> {
+        next_id(conn, Self::TABLE, Self::read_id)
+    }
 }
 
 impl TryFrom<RowRecord> for History {
@@ -201,40 +208,39 @@ impl TryFrom<RowRecord> for History {
 
 /// Input for a fresh history playlist, without an existing raw row.
 ///
-/// IDs are explicit and nonzero. No existing row or database template is needed.
+/// Insertion allocates the highest live table ID plus one, starting at 1.
+/// Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+/// Use the returned model's ID when creating relationships.
+///
+/// No existing row or database template is needed.
 /// Insertion commits to the connection's in-memory overlay; saving is explicit.
 /// Other tables are not modified.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewHistory {
-    /// Unused, nonzero export history playlist ID.
-    pub id: u32,
-
     /// Decoded display name, preserving empty text.
     pub name: String,
 }
 
 impl NewHistory {
-    /// Prepare a new history playlist with explicit identity and display name.
-    pub fn new(id: u32, name: impl Into<String>) -> Self {
-        Self {
-            id,
-            name: name.into(),
-        }
+    /// Prepare a new history playlist with explicit display name.
+    pub fn new(name: impl Into<String>) -> Self {
+        Self { name: name.into() }
     }
 
-    /// Insert atomically, rejecting duplicate IDs and leaving the connection unchanged on error.
+    /// Allocate an export ID and insert atomically; errors leave the connection unchanged.
     /// The returned model contains the engine-created row. This does not save to disk.
     pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<History> {
         conn.check_kind(History::TABLE)?;
-        let row = self.to_binary()?;
+        let id = History::generate_id(conn)?;
+        let row = self.to_binary(id)?;
         let mut tx = conn.transaction();
         if tx
             .index_rows(History::TABLE, History::read_id)?
-            .contains_key(&self.id)
+            .contains_key(&id)
         {
             return Err(Error::DuplicateId {
                 table: History::TABLE,
-                id: self.id,
+                id,
             });
         }
         let handle = tx.insert(
@@ -246,12 +252,11 @@ impl NewHistory {
         Ok(model)
     }
 
-    /// Encode fields for an explicit binary transaction; the engine assigns placement.
-    /// Direct binary inserts do not check model-ID uniqueness.
-    pub fn to_binary(&self) -> Result<NamedRow> {
-        validate_id(History::TABLE, self.id)?;
+    /// Encode fields with the allocated ID; the engine assigns placement.
+    fn to_binary(&self, id: u32) -> Result<NamedRow> {
+        validate_id(History::TABLE, id)?;
         Ok(NamedRow {
-            id: self.id,
+            id,
             name: text(&self.name)?,
         })
     }
@@ -419,8 +424,8 @@ impl NewHistoryContent {
         Ok(model)
     }
 
-    /// Encode the binary fields for an explicit transaction; placement is assigned by the engine.
-    pub fn to_binary(&self) -> Result<HistoryEntryRow> {
+    /// Validate references and encode fields; placement is assigned by the engine.
+    fn to_binary(&self) -> Result<HistoryEntryRow> {
         validate_nonzero_id(HistoryContent::TABLE, "history_id", self.history_id)?;
         validate_nonzero_id(HistoryContent::TABLE, "content_id", self.content_id)?;
         Ok(HistoryEntryRow {

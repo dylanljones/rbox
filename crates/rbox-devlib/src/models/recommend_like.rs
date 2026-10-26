@@ -203,9 +203,8 @@ impl NewRecommendedLike {
         Ok(model)
     }
 
-    /// Encode fields for an explicit binary transaction; placement is assigned by the engine.
-    /// Direct binary insertion bypasses the model's pair-uniqueness check.
-    pub fn to_binary(&self) -> Result<RecommendLikeRow> {
+    /// Validate references and encode fields; the caller checks pair uniqueness.
+    fn to_binary(&self) -> Result<RecommendLikeRow> {
         validate_nonzero_id(RecommendedLike::TABLE, "content_id_1", self.content_id_1)?;
         validate_nonzero_id(RecommendedLike::TABLE, "content_id_2", self.content_id_2)?;
         Ok(RecommendLikeRow {

@@ -20,12 +20,12 @@
 //!
 //! # fn main() -> rbox_devlib::Result<()> {
 //! let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-//! NewPlaylist::folder(1, "Sets").insert(&mut conn)?;
-//! NewPlaylist::playlist(2, "Warmup").parent_id(1).insert(&mut conn)?;
-//! NewContent::new(10, "/Contents/track.wav").insert(&mut conn)?;
-//! NewPlaylistContent::new(2, 10, None).insert(&mut conn)?;
-//! assert_eq!(Playlist::get_contents(&mut conn, &2)?[0].id, 10);
-//! Playlist::move_to(&mut conn, &2, Some(&0), Some(0))?;
+//! let folder = NewPlaylist::folder("Sets").insert(&mut conn)?;
+//! let playlist = NewPlaylist::playlist("Warmup").parent_id(folder.id).insert(&mut conn)?;
+//! let content = NewContent::new("/Contents/track.wav").insert(&mut conn)?;
+//! NewPlaylistContent::new(playlist.id, content.id, None).insert(&mut conn)?;
+//! assert_eq!(Playlist::get_contents(&mut conn, &playlist.id)?[0].id, content.id);
+//! Playlist::move_to(&mut conn, &playlist.id, Some(&0), Some(0))?;
 //! // Changes are in memory; save the connection explicitly when ready.
 //! # Ok(())
 //! # }
@@ -38,7 +38,8 @@ use rbox_core::PlaylistType;
 
 use super::ordering::{Change, Position};
 use super::{
-    ordering, read_fields, text, text_error, unsupported, validate_id, validate_nonzero_id, Content,
+    next_id, ordering, read_fields, text, text_error, unsupported, validate_id,
+    validate_nonzero_id, Content,
 };
 use crate::binary::{
     PageType, PlaylistEntryRow, PlaylistTreeRow, Row, RowRecord, StandardRow, TableKind,
@@ -546,6 +547,11 @@ impl Playlist {
         }
         Ok(read_fields::<PlaylistTreeRow>(record)?.id)
     }
+
+    /// Generate the next export ID: the highest live ID plus one, or 1 when empty.
+    fn generate_id<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<u32> {
+        next_id(conn, Self::TABLE, Self::read_id)
+    }
 }
 
 fn invalid_parent(reason: &'static str) -> Error {
@@ -873,13 +879,15 @@ impl TryFrom<RowRecord> for Playlist {
 
 /// Input for a fresh playlist or folder; no existing raw row is needed.
 ///
-/// IDs are explicit. Model insertion validates the parent and maintains sibling
+/// Insertion allocates the highest live table ID plus one, starting at 1.
+/// Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+/// Use the returned model's ID when creating relationships.
+///
+/// Model insertion validates the parent and maintains sibling
 /// ordering; `None` appends. The reserved word defaults to zero and remains configurable.
 /// Insertion commits in memory only and does not create entries or save to disk.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewPlaylist {
-    /// Unused, nonzero export playlist/folder ID.
-    pub id: u32,
     /// Parent folder ID; zero denotes the root.
     pub parent_id: u32,
     /// Zero-based insertion position; `None` appends after the last sibling.
@@ -898,13 +906,12 @@ impl NewPlaylist {
     /// # Panics
     ///
     /// Panics if `attribute` is neither [`PlaylistType::List`] nor [`PlaylistType::Folder`].
-    pub fn new(id: u32, name: impl Into<String>, attribute: PlaylistType) -> Self {
+    pub fn new(name: impl Into<String>, attribute: PlaylistType) -> Self {
         if !(attribute == PlaylistType::List || attribute == PlaylistType::Folder) {
             panic!("Invalid playlist type: {:?}", attribute);
         }
 
         Self {
-            id,
             parent_id: 0,
             seq: None,
             name: name.into(),
@@ -913,14 +920,14 @@ impl NewPlaylist {
         }
     }
 
-    /// Prepare a regular playlist with an explicit ID and name.
-    pub fn playlist(id: u32, name: impl Into<String>) -> Self {
-        Self::new(id, name, PlaylistType::List)
+    /// Prepare a regular root playlist; insertion allocates its ID and appends by default.
+    pub fn playlist(name: impl Into<String>) -> Self {
+        Self::new(name, PlaylistType::List)
     }
 
-    /// Prepare a folder with an explicit ID and name.
-    pub fn folder(id: u32, name: impl Into<String>) -> Self {
-        Self::new(id, name, PlaylistType::Folder)
+    /// Prepare a root folder; insertion allocates its ID and appends by default.
+    pub fn folder(name: impl Into<String>) -> Self {
+        Self::new(name, PlaylistType::Folder)
     }
 
     /// Set the insertion position among siblings; zero inserts first.
@@ -935,23 +942,24 @@ impl NewPlaylist {
         self
     }
 
-    /// Insert atomically, rejecting duplicate IDs and returning the engine-created row.
+    /// Allocate an export ID and insert atomically, returning the engine-created row.
     /// Failures leave the connection unchanged; saving is explicit.
     pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Playlist> {
         conn.check_kind(Playlist::TABLE)?;
-        let mut row = self.to_binary()?;
+        let id = Playlist::generate_id(conn)?;
+        let mut row = self.to_binary(id)?;
         let mut tx = conn.transaction();
         if tx
             .index_rows(Playlist::TABLE, Playlist::read_id)?
-            .contains_key(&self.id)
+            .contains_key(&id)
         {
             return Err(Error::DuplicateId {
                 table: Playlist::TABLE,
-                id: self.id,
+                id,
             });
         }
         let rows = node_rows(&mut tx)?;
-        validate_parent(&rows, self.parent_id, &[self.id])?;
+        validate_parent(&rows, self.parent_id, &[id])?;
         let (position, changes) = ordering::insert(
             Playlist::TABLE,
             &node_positions(&rows),
@@ -970,16 +978,16 @@ impl NewPlaylist {
         Ok(model)
     }
 
-    /// Encode fields for an explicit binary transaction; the engine assigns placement.
+    /// Encode fields with the allocated ID; the engine assigns placement.
     /// Direct binary insertions bypass uniqueness, parent and ordering checks.
     /// An omitted position encodes zero; append requires model insertion.
-    pub fn to_binary(&self) -> Result<PlaylistTreeRow> {
-        validate_id(Playlist::TABLE, self.id)?;
+    fn to_binary(&self, id: u32) -> Result<PlaylistTreeRow> {
+        validate_id(Playlist::TABLE, id)?;
         Ok(PlaylistTreeRow {
             parent_id: self.parent_id,
             unknown_04: self.unknown_04,
             position: self.seq.unwrap_or(Playlist::START_SEQ),
-            id: self.id,
+            id,
             folder_flag: match self.attribute {
                 PlaylistType::List => 0,
                 PlaylistType::Folder => 1,
@@ -1422,10 +1430,8 @@ impl NewPlaylistContent {
         Ok(model)
     }
 
-    /// Encode the binary fields for an explicit transaction; placement is assigned by the engine.
-    /// Direct binary insertion bypasses uniqueness, reference and ordering checks.
-    /// An omitted position encodes one; append requires model insertion.
-    pub fn to_binary(&self) -> Result<PlaylistEntryRow> {
+    /// Encode fields for insertion; the caller checks uniqueness and assigns the final sequence.
+    fn to_binary(&self) -> Result<PlaylistEntryRow> {
         validate_nonzero_id(PlaylistContent::TABLE, "playlist_id", self.playlist_id)?;
         validate_nonzero_id(PlaylistContent::TABLE, "content_id", self.content_id)?;
         Ok(PlaylistEntryRow {

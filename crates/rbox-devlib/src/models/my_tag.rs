@@ -12,6 +12,9 @@
 //! Insertions, moves and deletions maintain sibling positions from [`MyTag::START_SEQ`].
 //! Reads retain imported gaps and ties; ordered mutations normalize affected lists.
 //! Only changed rows are written. Content associations have no sequence.
+//! Tag and category IDs should match their IDs in the source Rekordbox main
+//! database (`master.db`). Preserve these IDs and parent references when exporting;
+//! they are supplied explicitly rather than allocated by the Device Library.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::io::{Read, Seek};
@@ -32,10 +35,11 @@ use crate::{Error, Result};
 /// A detached My Tag or category from the extended database.
 ///
 /// IDs are preserved verbatim, without remapping or assuming sequential numbering.
+/// Tag/category IDs should match the source main database (`master.db`).
 /// Public-field edits affect only this snapshot. Parents and tracks are not loaded.
 #[derive(Clone, PartialEq, Eq)]
 pub struct MyTag {
-    /// Export tag/category ID.
+    /// Tag/category ID matching the source main database (`master.db`).
     pub id: u32,
     /// Parent category ID; zero denotes a root in observed exports.
     pub parent_id: u32,
@@ -580,24 +584,17 @@ impl TryFrom<RowRecord> for MyTag {
 
 /// Input for a fresh My Tag/category, with an explicit ID and optional position.
 ///
+/// Supply the tag/category ID from the source main database (`master.db`) and
+/// preserve its parent category ID. Insertion does not generate or remap these IDs,
+/// and does not check them against the source database.
+///
 /// The default reserved values are zero, with an empty second string frame, as in
 /// the established writer profile. Near-offset encoding is used; the engine rejects
 /// strings that cannot fit that layout. Insertion validates category ancestry and
 /// maintains sibling ordering. Saving remains explicit.
-///
-/// ```
-/// use rbox_devlib::{DatabaseKind, DeviceSqlConnection};
-/// use rbox_devlib::models::NewMyTag;
-/// # fn main() -> rbox_devlib::Result<()> {
-/// let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
-/// NewMyTag::folder(1, "Mood").insert(&mut conn)?;
-/// NewMyTag::tag(2, "Energetic").parent_id(1).seq(0).insert(&mut conn)?;
-/// # Ok(())
-/// # }
-/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewMyTag {
-    /// Unused, nonzero export tag/category ID.
+    /// Nonzero source main-database tag/category ID, unused in this export.
     pub id: u32,
     /// Parent category ID; zero denotes a root.
     pub parent_id: u32,
@@ -686,10 +683,8 @@ impl NewMyTag {
         Ok(model)
     }
 
-    /// Encode fields for an explicit binary transaction; the engine assigns offsets and slots.
-    /// Direct binary insertion bypasses uniqueness, ancestry and ordering checks.
-    /// An omitted position encodes [`MyTag::START_SEQ`]; append requires model insertion.
-    pub fn to_binary(&self) -> Result<MyTagRow> {
+    /// Encode fields for insertion; the caller validates ancestry and assigns the final sequence.
+    fn to_binary(&self) -> Result<MyTagRow> {
         validate_id(MyTag::TABLE, self.id)?;
         Ok(MyTagRow {
             header: MyTagHeader {
@@ -722,7 +717,7 @@ impl NewMyTag {
 pub struct MyTagContent {
     /// Export track ID in the separate standard database.
     pub content_id: u32,
-    /// Tag ID in the extended database.
+    /// Tag ID in the extended database, matching the source main-database tag ID.
     pub my_tag_id: u32,
     raw: RowRecord,
 }
@@ -868,7 +863,7 @@ impl TryFrom<RowRecord> for MyTagContent {
 pub struct NewMyTagContent {
     /// Nonzero export track ID in the standard database.
     pub content_id: u32,
-    /// Nonzero tag ID in the extended database.
+    /// Nonzero tag ID in the extended database, matching the source main-database tag ID.
     pub my_tag_id: u32,
     /// Reserved word at 0x00, defaulting to zero.
     pub unknown_00: u32,
@@ -904,8 +899,8 @@ impl NewMyTagContent {
         Ok(model)
     }
 
-    /// Encode the binary row for insertion inside an explicit transaction.
-    pub fn to_binary(&self) -> Result<TrackMyTagRow> {
+    /// Validate references and encode the row for insertion.
+    fn to_binary(&self) -> Result<TrackMyTagRow> {
         validate_nonzero_id(MyTagContent::TABLE, "content_id", self.content_id)?;
         validate_nonzero_id(MyTagContent::TABLE, "my_tag_id", self.my_tag_id)?;
         Ok(TrackMyTagRow {

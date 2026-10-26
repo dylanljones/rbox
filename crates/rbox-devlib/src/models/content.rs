@@ -15,8 +15,8 @@ use std::path::PathBuf;
 
 use super::playlist::remove_associations;
 use super::{
-    load_related, text, text_error, unsupported, update_export_count, validate_id, Album, Artist,
-    Artwork, Color, Genre, HistoryContent, Key, Label, MyTagContent, PlaylistContent,
+    load_related, next_id, text, text_error, unsupported, update_export_count, validate_id, Album,
+    Artist, Artwork, Color, Genre, HistoryContent, Key, Label, MyTagContent, PlaylistContent,
     RecommendedLike,
 };
 use crate::binary::{
@@ -137,13 +137,13 @@ pub struct Content {
 /// use rbox_devlib::models::{Content, NewArtist, NewContent};
 /// # fn main() -> rbox_devlib::Result<()> {
 /// let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-/// let artist = NewArtist::new(1, "Artist").insert(&mut conn)?;
-/// let mut input = NewContent::new(10, "/Contents/Track.wav");
+/// let artist = NewArtist::new("Artist").insert(&mut conn)?;
+/// let mut input = NewContent::new("/Contents/Track.wav");
 /// input.artist_id = artist.id;
-/// input.insert(&mut conn)?;
-/// let view = Content::find_with_relations(&mut conn, &10)?.unwrap();
+/// let content = input.insert(&mut conn)?;
+/// let view = Content::find_with_relations(&mut conn, &content.id)?.unwrap();
 /// assert_eq!(view.artist.as_ref().map(|artist| artist.name.as_str()), Some("Artist"));
-/// assert_eq!(view.id, 10); // Content fields remain accessible through Deref.
+/// assert_eq!(view.id, content.id); // Content fields remain accessible through Deref.
 /// # Ok(())
 /// # }
 /// ```
@@ -796,6 +796,11 @@ impl Content {
         }
         Ok(header)
     }
+
+    /// Generate the next export ID: the highest live ID plus one, or 1 when empty.
+    fn generate_id<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<u32> {
+        next_id(conn, Self::TABLE, Self::read_id)
+    }
 }
 
 /// Select live occurrences without interpreting their unknown fields, then tombstone
@@ -895,7 +900,11 @@ impl TryFrom<RowRecord> for Content {
 
 /// Input for a fresh track; no source row or existing PDB is required.
 ///
-/// Supply an unused, nonzero export ID and the exported audio path. Metadata
+/// Insertion allocates the highest live table ID plus one, starting at 1.
+/// Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+/// Use the returned model's ID when creating relationships.
+///
+/// Supply the exported audio path. Metadata
 /// starts at zero or empty text; no source-library identity or analysis path is
 /// inferred. `creation` supplies overridable reserved values from the engine's
 /// supported writer profile. Populate metadata and ANLZ references before export.
@@ -910,20 +919,17 @@ impl TryFrom<RowRecord> for Content {
 ///
 /// # fn main() -> rbox_devlib::Result<()> {
 /// let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-/// let mut new = NewContent::new(1, "/Contents/Artist/Track.flac");
+/// let mut new = NewContent::new("/Contents/Artist/Track.flac");
 /// new.title = "Track".into();
 /// new.bpmx100 = 12800;
 /// new.analysis_path = "/PIONEER/USBANLZ/P02F/0000E9C7/ANLZ0000.DAT".into();
 /// let track = new.insert(&mut conn)?;
-/// assert_eq!(track.id, 1);
 /// assert_eq!(track.title, "Track");
 /// # Ok(())
 /// # }
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct NewContent {
-    /// Export track ID, used by playlists and tag associations.
-    pub id: u32,
     /// Main artist ID.
     pub artist_id: u32,
     /// Album ID.
@@ -1005,15 +1011,14 @@ pub struct NewContent {
 }
 
 impl NewContent {
-    /// Start a track with an explicit export ID and audio path using forward slashes.
+    /// Start a track with an audio path using forward slashes.
     ///
     /// The file name is the last slash-separated component of the supplied path.
-    /// Other metadata remains zero or empty. Insertion validates the ID and path.
-    pub fn new(id: u32, path: impl Into<String>) -> Self {
+    /// Other metadata remains zero or empty.
+    pub fn new(path: impl Into<String>) -> Self {
         let path = path.into();
         let file_name = path.rsplit('/').next().unwrap_or_default().to_owned();
         Self {
-            id,
             path,
             file_name,
             ..Self::default()
@@ -1022,19 +1027,20 @@ impl NewContent {
 
     /// Insert a fresh row and return its decoded snapshot.
     ///
-    /// Duplicate IDs, encoding errors and allocation failures leave the connection
+    /// ID exhaustion, encoding errors and allocation failures leave the connection
     /// unchanged. Existing export-property counts are updated in the same transaction;
     /// a bare database without property rows remains supported. This commits to the
     /// connection's overlay only, not to disk.
     pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Content> {
         conn.check_kind(Content::TABLE)?;
-        let row = self.to_binary()?;
+        let id = Content::generate_id(conn)?;
+        let row = self.to_binary(id)?;
         let mut tx = conn.transaction();
         let index = tx.index_rows(Content::TABLE, Content::read_id)?;
-        if index.contains_key(&self.id) {
+        if index.contains_key(&id) {
             return Err(Error::DuplicateId {
                 table: Content::TABLE,
-                id: self.id,
+                id,
             });
         }
         let count = u32::try_from(index.len())
@@ -1050,11 +1056,8 @@ impl NewContent {
     }
 
     /// Build a binary row without assigning a page, slot, or string offsets.
-    ///
-    /// Useful for explicit binary transactions. Direct engine inserts do not
-    /// check duplicate model IDs or maintain export-property counts.
-    pub fn to_binary(&self) -> Result<TrackRow> {
-        if self.id == 0 {
+    fn to_binary(&self, id: u32) -> Result<TrackRow> {
+        if id == 0 {
             return Err(Error::InvalidModelField {
                 table: Content::TABLE,
                 field: "id",
@@ -1074,7 +1077,7 @@ impl NewContent {
                 index_shift: 0,
                 content_link: self.creation.content_link,
                 raw_analysis: self.creation.raw_analysis,
-                id: self.id,
+                id,
                 artist_id: self.artist_id,
                 album_id: self.album_id,
                 genre_id: self.genre_id,
@@ -1215,8 +1218,8 @@ fn track_mapping_error(field: &'static str, reason: &'static str) -> Error {
 
 /// Build an insertion row without database access or asset copying.
 ///
-/// `Track::id` must be a nonzero u32 export ID; assign a destination ID first when
-/// importing from another library. Absent master IDs use the stored zero sentinel.
+/// The source `Track::id` is ignored; insertion allocates a destination export ID.
+/// Absent master IDs use the stored zero sentinel.
 /// Relationship and artwork IDs remain zero: resolve names and assign destination
 /// references before inserting. Paths use Unix separators; the basename is derived
 /// from the audio path. BPM is rounded to hundredths and length to whole seconds.
@@ -1227,10 +1230,6 @@ impl TryFrom<&Track> for NewContent {
     type Error = Error;
 
     fn try_from(input: &Track) -> Result<Self> {
-        let id = input
-            .id
-            .ok_or_else(|| track_mapping_error("id", "export ID must be assigned"))?;
-        validate_id(Content::TABLE, id)?;
         let path = input
             .path
             .normalize_unix_string()
@@ -1254,7 +1253,7 @@ impl TryFrom<&Track> for NewContent {
                 "rating must be between 0 and 5",
             ));
         }
-        let mut row = Self::new(id, path);
+        let mut row = Self::new(path);
         row.master_content_id = input.master_content_id.unwrap_or_default();
         row.master_db_id = input.master_db_id.unwrap_or_default();
         row.file_type = u16::try_from(input.file_type.unwrap_or_default())

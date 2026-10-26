@@ -5,7 +5,9 @@
 
 use std::io::{Read, Seek};
 
-use super::{read_fields, text, text_error, unique_name, unsupported, validate_id, Content};
+use super::{
+    next_id, read_fields, text, text_error, unique_name, unsupported, validate_id, Content,
+};
 use crate::binary::{KeyRow, PageType, Row, RowRecord, StandardRow, TableKind, TrackHeader};
 use crate::devicesql::DeviceSqlConnection;
 use crate::{Error, Result};
@@ -207,6 +209,11 @@ impl Key {
         }
         read_fields::<u32>(record)
     }
+
+    /// Generate the next export ID: the highest live ID plus one, or 1 when empty.
+    fn generate_id<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<u32> {
+        next_id(conn, Self::TABLE, Self::read_id)
+    }
 }
 
 impl TryFrom<RowRecord> for Key {
@@ -234,14 +241,16 @@ impl TryFrom<RowRecord> for Key {
 
 /// Input for a fresh key, without an existing raw row.
 ///
+/// Insertion allocates the highest live table ID plus one, starting at 1.
+/// Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+/// Use the returned model's ID when creating relationships.
+///
 /// The second stored ID is explicit: it is not assumed to equal the primary
 /// ID, and no musical-key numbering scheme is inferred.
 /// Insertion commits to the connection's in-memory overlay; saving is explicit.
 /// Other tables are not modified.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewKey {
-    /// Unused, nonzero export key ID.
-    pub id: u32,
     /// Second stored ID, supplied independently; its role remains unknown.
     pub secondary_id: u32,
     /// Decoded display name, preserving empty text.
@@ -249,29 +258,26 @@ pub struct NewKey {
 }
 
 impl NewKey {
-    /// Prepare a new key with explicit identity and display name.
-    pub fn new(id: u32, secondary_id: u32, name: impl Into<String>) -> Self {
+    /// Prepare a key with a display name and an explicit secondary ID.
+    pub fn new(name: impl Into<String>, secondary_id: u32) -> Self {
         Self {
-            id,
             secondary_id,
             name: name.into(),
         }
     }
 
     /// Names must be unique within this table (exact, case-sensitive text equality).
-    /// Insert atomically, rejecting duplicate IDs and leaving the connection unchanged on error.
+    /// Allocate an export ID and insert atomically; errors leave the connection unchanged.
     /// The returned model contains the engine-created row. This does not save to disk.
     pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Key> {
         conn.check_kind(Key::TABLE)?;
-        let row = self.to_binary()?;
+        let id = Key::generate_id(conn)?;
+        let row = self.to_binary(id)?;
         let mut tx = conn.transaction();
-        if tx
-            .index_rows(Key::TABLE, Key::read_id)?
-            .contains_key(&self.id)
-        {
+        if tx.index_rows(Key::TABLE, Key::read_id)?.contains_key(&id) {
             return Err(Error::DuplicateId {
                 table: Key::TABLE,
-                id: self.id,
+                id,
             });
         }
         unique_name(&mut tx, Key::TABLE, &self.name, None)?;
@@ -281,12 +287,11 @@ impl NewKey {
         Ok(model)
     }
 
-    /// Encode fields for an explicit binary transaction; the engine assigns placement.
-    /// Direct binary inserts bypass model ID and name uniqueness constraints.
-    pub fn to_binary(&self) -> Result<KeyRow> {
-        validate_id(Key::TABLE, self.id)?;
+    /// Encode fields with the allocated ID; the engine assigns placement.
+    fn to_binary(&self, id: u32) -> Result<KeyRow> {
+        validate_id(Key::TABLE, id)?;
         Ok(KeyRow {
-            id: self.id,
+            id,
             secondary_id: self.secondary_id,
             name: text(&self.name)?,
         })

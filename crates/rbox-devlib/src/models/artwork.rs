@@ -5,7 +5,7 @@
 
 use std::io::{Read, Seek};
 
-use super::{read_fields, text, text_error, unsupported, validate_id, Content};
+use super::{next_id, read_fields, text, text_error, unsupported, validate_id, Content};
 use crate::binary::{NamedRow, PageType, Row, RowRecord, StandardRow, TableKind, TrackHeader};
 use crate::devicesql::DeviceSqlConnection;
 use crate::{Error, Result};
@@ -183,6 +183,11 @@ impl Artwork {
         }
         read_fields::<u32>(record)
     }
+
+    /// Generate the next export ID: the highest live ID plus one, or 1 when empty.
+    fn generate_id<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<u32> {
+        next_id(conn, Self::TABLE, Self::read_id)
+    }
 }
 
 impl TryFrom<RowRecord> for Artwork {
@@ -210,41 +215,40 @@ impl TryFrom<RowRecord> for Artwork {
 
 /// Input for a fresh artwork, without an existing raw row.
 ///
+/// Insertion allocates the highest live table ID plus one, starting at 1.
+/// Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+/// Use the returned model's ID when creating relationships.
+///
 /// This is an image-path reference only. The caller copies the artwork file;
 /// paths are stored as supplied without normalization or filesystem access.
 /// Insertion commits to the connection's in-memory overlay; saving is explicit.
 /// Other tables are not modified.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewArtwork {
-    /// Unused, nonzero export artwork ID.
-    pub id: u32,
-
     /// Original artwork path, preserving stored separators.
     pub path: String,
 }
 
 impl NewArtwork {
-    /// Prepare a new artwork with explicit identity and image path.
-    pub fn new(id: u32, path: impl Into<String>) -> Self {
-        Self {
-            id,
-            path: path.into(),
-        }
+    /// Prepare a new artwork with explicit image path.
+    pub fn new(path: impl Into<String>) -> Self {
+        Self { path: path.into() }
     }
 
-    /// Insert atomically, rejecting duplicate IDs and leaving the connection unchanged on error.
+    /// Allocate an export ID and insert atomically; errors leave the connection unchanged.
     /// The returned model contains the engine-created row. This does not save to disk.
     pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Artwork> {
         conn.check_kind(Artwork::TABLE)?;
-        let row = self.to_binary()?;
+        let id = Artwork::generate_id(conn)?;
+        let row = self.to_binary(id)?;
         let mut tx = conn.transaction();
         if tx
             .index_rows(Artwork::TABLE, Artwork::read_id)?
-            .contains_key(&self.id)
+            .contains_key(&id)
         {
             return Err(Error::DuplicateId {
                 table: Artwork::TABLE,
-                id: self.id,
+                id,
             });
         }
         let handle = tx.insert(Artwork::TABLE, &Row::Standard(StandardRow::Artwork(row)))?;
@@ -253,10 +257,9 @@ impl NewArtwork {
         Ok(model)
     }
 
-    /// Encode fields for an explicit binary transaction; the engine assigns placement.
-    /// Direct binary inserts do not check model-ID uniqueness.
-    pub fn to_binary(&self) -> Result<NamedRow> {
-        validate_id(Artwork::TABLE, self.id)?;
+    /// Encode fields with the allocated ID; the engine assigns placement.
+    fn to_binary(&self, id: u32) -> Result<NamedRow> {
+        validate_id(Artwork::TABLE, id)?;
         if self.path.is_empty() {
             return Err(Error::InvalidModelField {
                 table: Artwork::TABLE,
@@ -265,7 +268,7 @@ impl NewArtwork {
             });
         }
         Ok(NamedRow {
-            id: self.id,
+            id,
             name: text(&self.path)?,
         })
     }

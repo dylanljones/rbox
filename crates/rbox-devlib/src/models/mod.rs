@@ -16,6 +16,11 @@
 //! Models with insertion inputs keep them in the same file. The [`browse`] module
 //! groups the three browse models; [`property`] groups the two property models. These
 //! models have no insertion inputs; creation profiles initialize their rows.
+//! Insertion builders allocate export IDs automatically using the highest live
+//! table ID plus one (starting at 1). Failed insertions do not consume IDs;
+//! deleted maximum IDs can be reused. Use the returned model's ID for relationships.
+//! My Tag IDs remain explicit source-library identities; association models have
+//! no independent ID to generate. Explicit imported IDs require binary operations.
 //! Tables retain their standard or extended database namespace. Using the wrong connection returns
 //! `WrongDatabaseKind`. Unknown tables remain accessible through binary rows.
 //! Playlist and My Tag attributes use shared enums. Unknown attribute values are
@@ -27,10 +32,10 @@
 //!
 //! # fn main() -> rbox_devlib::Result<()> {
 //! let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-//! let artist = NewArtist::new(1, "Artist").insert(&mut conn)?;
-//! let album = NewAlbum::new(2, artist.id, "Album").insert(&mut conn)?;
-//! // Both stored key IDs are explicit; no numbering scheme is inferred.
-//! let key = NewKey::new(3, 23, "Am").insert(&mut conn)?;
+//! let artist = NewArtist::new("Artist").insert(&mut conn)?;
+//! let album = NewAlbum::new("Album").artist_id(artist.id).insert(&mut conn)?;
+//! // Only the secondary key ID is explicit; no musical-key numbering is inferred.
+//! let key = NewKey::new("Am", 23).insert(&mut conn)?;
 //! assert_eq!(Album::find(&mut conn, &album.id)?.unwrap().artist_id, artist.id);
 //! # Ok(())
 //! # }
@@ -76,6 +81,25 @@ use binrw::BinRead;
 use crate::binary::{DeviceSqlString, Row, RowRecord, StandardRow, StringEncoding, TableKind};
 use crate::devicesql::{DeviceSqlConnection, Transaction};
 use crate::{Error, Result};
+
+/// Generate a table-local ID from the engine's cached index of live rows.
+fn next_id<R: Read + Seek>(
+    conn: &mut DeviceSqlConnection<R>,
+    table: TableKind,
+    read_id: fn(&RowRecord) -> Result<u32>,
+) -> Result<u32> {
+    conn.index_rows(table, read_id)?
+        .keys()
+        .copied()
+        .max()
+        .unwrap_or(0)
+        .checked_add(1)
+        .ok_or(Error::InvalidModelField {
+            table,
+            field: "id",
+            reason: "the highest live ID is u32::MAX; no next ID is available",
+        })
+}
 
 /// Enforce exact decoded-name equality independently of the stored string encoding.
 /// Updates exclude their own ID; callers validate ID uniqueness separately.

@@ -6,7 +6,7 @@
 use std::io::{Read, Seek};
 
 use super::{
-    load_related, read_fields, text, text_error, unsupported, validate_id, Artist, Content,
+    load_related, next_id, read_fields, text, text_error, unsupported, validate_id, Artist, Content,
 };
 use crate::binary::{
     AlbumHeader, AlbumRow, PageType, Row, RowRecord, StandardRow, StringOffsets, TableKind,
@@ -314,6 +314,11 @@ impl Album {
         }
         Ok(header.id)
     }
+
+    /// Generate the next export ID: the highest live ID plus one, or 1 when empty.
+    fn generate_id<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<u32> {
+        next_id(conn, Self::TABLE, Self::read_id)
+    }
 }
 
 /// Compare the final merged row, rather than potentially stale public fields.
@@ -370,15 +375,16 @@ impl TryFrom<RowRecord> for Album {
 
 /// Input for a fresh album, without an existing raw row.
 ///
+/// Insertion allocates the highest live table ID plus one, starting at 1.
+/// Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+/// Use the returned model's ID when creating relationships.
+///
 /// New rows use the near-offset subtype and marker 3. Reserved words default
-/// to observed zero values and remain configurable. Artist IDs are stored as
-/// supplied; no artist row is created or loaded.
+/// to observed zero values and remain configurable.
 /// Insertion commits to the connection's in-memory overlay; saving is explicit.
 /// Other tables are not modified.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewAlbum {
-    /// Unused, nonzero export album ID.
-    pub id: u32,
     /// Album artist ID, independent of the track artist; zero means unassigned.
     pub artist_id: u32,
     /// Decoded display name, preserving empty text.
@@ -390,31 +396,37 @@ pub struct NewAlbum {
 }
 
 impl NewAlbum {
-    /// Prepare a new album with explicit identity and display name.
-    pub fn new(id: u32, artist_id: u32, name: impl Into<String>) -> Self {
+    /// Prepare an album with no artist assigned; set one with [`Self::artist_id`].
+    pub fn new(name: impl Into<String>) -> Self {
         Self {
-            id,
-            artist_id,
+            artist_id: 0,
             name: name.into(),
             unknown_04: 0,
             unknown_10: 0,
         }
     }
 
-    /// Insert atomically, rejecting duplicate IDs or `(name, artist_id)` pairs.
+    /// Builder for `artist_id`.
+    pub fn artist_id(mut self, id: u32) -> Self {
+        self.artist_id = id;
+        self
+    }
+
+    /// Allocate an export ID and insert atomically, rejecting duplicate `(name, artist_id)` pairs.
     /// Names use exact, case-sensitive text equality; failures leave the connection unchanged.
     /// The returned model contains the engine-created row. This does not save to disk.
     pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Album> {
         conn.check_kind(Album::TABLE)?;
-        let row = self.to_binary()?;
+        let id = Album::generate_id(conn)?;
+        let row = self.to_binary(id)?;
         let mut tx = conn.transaction();
         if tx
             .index_rows(Album::TABLE, Album::read_id)?
-            .contains_key(&self.id)
+            .contains_key(&id)
         {
             return Err(Error::DuplicateId {
                 table: Album::TABLE,
-                id: self.id,
+                id,
             });
         }
         unique_album(&mut tx, &row, None)?;
@@ -424,17 +436,16 @@ impl NewAlbum {
         Ok(model)
     }
 
-    /// Encode fields for an explicit binary transaction; the engine assigns placement.
-    /// Direct binary inserts bypass model ID and name/artist uniqueness constraints.
-    pub fn to_binary(&self) -> Result<AlbumRow> {
-        validate_id(Album::TABLE, self.id)?;
+    /// Encode fields with the allocated ID; the engine assigns placement.
+    fn to_binary(&self, id: u32) -> Result<AlbumRow> {
+        validate_id(Album::TABLE, id)?;
         Ok(AlbumRow {
             header: AlbumHeader {
                 subtype: AlbumHeader::NEAR_SUBTYPE,
                 index_shift: 0,
                 unknown_04: self.unknown_04,
                 artist_id: self.artist_id,
-                id: self.id,
+                id,
                 unknown_10: self.unknown_10,
             },
             strings: StringOffsets::Near {

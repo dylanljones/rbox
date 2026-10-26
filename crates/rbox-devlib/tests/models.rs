@@ -15,13 +15,308 @@ use rbox_devlib::{CreateOptions, DeviceSqlConnection, Error, MyTagType, Playlist
 use rbox_testing::data::{create_temp_dir, export_dir};
 
 #[test]
+fn insertions_allocate_table_local_ids() -> Result<()> {
+    use rbox_devlib::models::*;
+    let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+    let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
+    macro_rules! check {
+        ($model:ident, $new:expr) => {{
+            let new = $new;
+            assert!(matches!(
+                new(1).insert(&mut extended),
+                Err(Error::WrongDatabaseKind { .. })
+            ));
+            let first = new(1).insert(&mut conn)?;
+            assert_eq!(first.id, 1);
+            assert_eq!(new(2).insert(&mut conn)?.id, 2);
+            let row = new(3).insert(&mut conn)?;
+            assert_eq!(row.id, 3);
+            let raw = row.raw_record();
+            let mut tx = conn.transaction();
+            let handle = tx.locate($model::TABLE, raw.page(), raw.slot().slot)?;
+            tx.delete(&handle)?;
+            tx.commit()?;
+            assert_eq!(new(4).insert(&mut conn)?.id, 3);
+
+            // Seed sparse imported IDs through the binary engine.
+            let mut imported = first.raw_record().decode()?;
+            set_row_id(&mut imported, u32::MAX - 1);
+            let mut tx = conn.transaction();
+            tx.insert($model::TABLE, &imported)?;
+            tx.commit()?;
+            assert_eq!(new(5).insert(&mut conn)?.id, u32::MAX);
+            let mut saved = Vec::new();
+            conn.write_to(&mut saved)?;
+            assert!(matches!(
+                new(6).insert(&mut conn),
+                Err(Error::InvalidModelField { field: "id", .. })
+            ));
+            let mut after = Vec::new();
+            conn.write_to(&mut after)?;
+            assert_eq!(after, saved);
+            let mut reopened =
+                DeviceSqlConnection::from_reader(Cursor::new(saved), DatabaseKind::Standard)?;
+            assert!(matches!(
+                new(6).insert(&mut reopened),
+                Err(Error::InvalidModelField { field: "id", .. })
+            ));
+        }};
+    }
+    check!(Artist, |n| NewArtist::new(format!("Artist {n}")));
+    check!(Artwork, |n| NewArtwork::new(format!("/Art/{n}.jpg")));
+    check!(Content, |n| NewContent::new(format!("/Contents/{n}.wav")));
+    check!(Genre, |n| NewGenre::new(format!("Genre {n}")));
+    check!(History, |n| NewHistory::new(format!("History {n}")));
+    check!(Key, |n| NewKey::new(format!("Key {n}"), 77));
+    check!(Label, |n| NewLabel::new(format!("Label {n}")));
+    check!(Playlist, |n| NewPlaylist::playlist(format!("Playlist {n}")));
+    Ok(())
+}
+
+/// Set a binary fixture's identity without using model insertion rules.
+fn set_row_id(row: &mut Row, id: u32) {
+    match row {
+        Row::Standard(StandardRow::Artist(row)) => row.header.id = id,
+        Row::Standard(StandardRow::Album(row)) => row.header.id = id,
+        Row::Standard(StandardRow::Track(row)) => row.header.id = id,
+        Row::Standard(
+            StandardRow::Genre(row)
+            | StandardRow::Label(row)
+            | StandardRow::Artwork(row)
+            | StandardRow::HistoryPlaylist(row),
+        ) => row.id = id,
+        Row::Standard(StandardRow::Key(row)) => row.id = id,
+        Row::Standard(StandardRow::PlaylistTree(row)) => row.id = id,
+        _ => panic!("fixture must have an independent ID"),
+    }
+}
+
+#[test]
+fn automatic_ids_reject_duplicate_binary_ids() -> Result<()> {
+    use rbox_devlib::models::{Genre, NewGenre};
+    let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+    let genre = NewGenre::new("Genre").insert(&mut conn)?;
+    let row = genre.raw_record().decode()?;
+    let mut tx = conn.transaction();
+    tx.insert(Genre::TABLE, &row)?;
+    tx.commit()?;
+    assert!(matches!(NewGenre::new("New").insert(&mut conn),
+        Err(Error::DuplicateId { table, id: 1 }) if table == Genre::TABLE));
+    Ok(())
+}
+
+/// Binary named-row fixture for imported IDs, malformed text and duplicate rows.
+fn named_row(id: u32, name: &str) -> Result<rbox_devlib::binary::NamedRow> {
+    Ok(rbox_devlib::binary::NamedRow {
+        id,
+        name: DeviceSqlString::encode(name, StringEncoding::Utf16Le)?,
+    })
+}
+
+fn artist_row(id: u32, name: &str) -> Result<rbox_devlib::binary::ArtistRow> {
+    use rbox_devlib::binary::{ArtistHeader, ArtistRow, StringOffsets};
+    Ok(ArtistRow {
+        header: ArtistHeader {
+            subtype: ArtistHeader::NEAR_SUBTYPE,
+            index_shift: 0,
+            id,
+        },
+        strings: StringOffsets::Near {
+            marker: 3,
+            offsets: [0],
+        },
+        name: named_row(id, name)?.name,
+    })
+}
+
+fn playlist_row(
+    id: u32,
+    input: &rbox_devlib::models::NewPlaylist,
+) -> Result<rbox_devlib::binary::PlaylistTreeRow> {
+    Ok(rbox_devlib::binary::PlaylistTreeRow {
+        id,
+        parent_id: input.parent_id,
+        unknown_04: input.unknown_04,
+        position: input.seq.unwrap_or(0),
+        folder_flag: input.attribute as u32,
+        name: named_row(id, &input.name)?.name,
+    })
+}
+
+/// Obtain a valid track fixture through public insertion, then assign its imported ID.
+fn content_row(id: u32, input: &NewContent) -> Result<TrackRow> {
+    let mut scratch = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+    let model = input.clone().insert(&mut scratch)?;
+    let mut row = track_row(model.raw_record())?;
+    row.header.id = id;
+    Ok(row)
+}
+
+/// Seed imported content IDs for lookup and association tests, bypassing model allocation.
+fn seed_content(conn: &mut MemoryConnection, id: u32, path: impl Into<String>) -> Result<Content> {
+    let row = content_row(id, &NewContent::new(path))?;
+    let mut tx = conn.transaction();
+    let handle = tx.insert(Content::TABLE, &Row::Standard(StandardRow::Track(row)))?;
+    let model = Content::try_from(tx.read(&handle)?)?;
+    tx.commit()?;
+    Ok(model)
+}
+
+/// Binary fixtures deliberately bypass model validation, ordering and uniqueness.
+fn my_tag_row(input: &rbox_devlib::models::NewMyTag) -> Result<rbox_devlib::binary::MyTagRow> {
+    use rbox_devlib::binary::{MyTagHeader, MyTagRow, StringOffsets};
+    Ok(MyTagRow {
+        header: MyTagHeader {
+            subtype: MyTagHeader::NEAR_SUBTYPE,
+            index_shift: 0,
+            unknown_04: input.unknown_04,
+            unknown_08: input.unknown_08,
+            parent_id: input.parent_id,
+            position: input.seq.unwrap_or(0),
+            id: input.id,
+            unknown_18: input.unknown_18,
+            unknown_1a: input.unknown_1a,
+            attribute: input.attribute as u8,
+        },
+        strings: StringOffsets::Near {
+            marker: 3,
+            offsets: [0; 2],
+        },
+        name: named_row(input.id, &input.name)?.name,
+        unknown_string: DeviceSqlString::encode("", StringEncoding::ShortAscii)?,
+    })
+}
+
+fn tag_content_row(
+    input: &rbox_devlib::models::NewMyTagContent,
+) -> rbox_devlib::binary::TrackMyTagRow {
+    rbox_devlib::binary::TrackMyTagRow {
+        unknown_00: input.unknown_00,
+        track_id: input.content_id,
+        tag_id: input.my_tag_id,
+        reserved_string_marker: input.reserved_string_marker,
+        reserved_tail: input.reserved_tail,
+    }
+}
+
+fn playlist_entry_row(
+    input: &rbox_devlib::models::NewPlaylistContent,
+) -> rbox_devlib::binary::PlaylistEntryRow {
+    rbox_devlib::binary::PlaylistEntryRow {
+        position: input.seq.unwrap_or(1),
+        track_id: input.content_id,
+        playlist_id: input.playlist_id,
+    }
+}
+
+fn history_entry_row(
+    input: &rbox_devlib::models::NewHistoryContent,
+) -> rbox_devlib::binary::HistoryEntryRow {
+    rbox_devlib::binary::HistoryEntryRow {
+        position: input.seq,
+        track_id: input.content_id,
+        playlist_id: input.history_id,
+    }
+}
+
+fn recommendation_row(
+    input: &rbox_devlib::models::NewRecommendedLike,
+) -> rbox_devlib::binary::RecommendLikeRow {
+    rbox_devlib::binary::RecommendLikeRow {
+        unknown_00: input.unknown_00,
+        track_id_1: input.content_id_1,
+        track_id_2: input.content_id_2,
+        unknown_10: input.unknown_10,
+        unknown_14: input.unknown_14,
+    }
+}
+
+/// Explicit binary fixture for imported IDs and non-default album layouts.
+fn album_row(id: u32, artist_id: u32, name: &str) -> Result<rbox_devlib::binary::AlbumRow> {
+    use rbox_devlib::binary::{AlbumHeader, AlbumRow, StringOffsets};
+    Ok(AlbumRow {
+        header: AlbumHeader {
+            subtype: AlbumHeader::NEAR_SUBTYPE,
+            index_shift: 0,
+            unknown_04: 0,
+            artist_id,
+            id,
+            unknown_10: 0,
+        },
+        strings: StringOffsets::Near {
+            marker: 3,
+            offsets: [0],
+        },
+        name: DeviceSqlString::encode(name, StringEncoding::Utf16Le)?,
+    })
+}
+
+#[test]
+fn album_builder_allocates_ids_and_failed_insertions_do_not_consume_them() -> Result<()> {
+    use rbox_devlib::models::{Album, NewAlbum};
+    let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+    let first = NewAlbum::new("First").insert(&mut conn)?;
+    assert_eq!((first.id, first.artist_id), (1, 0));
+    let second = NewAlbum::new("Second").artist_id(73).insert(&mut conn)?;
+    assert_eq!((second.id, second.artist_id), (2, 73));
+    let mut before = Vec::new();
+    conn.write_to(&mut before)?;
+    assert!(matches!(
+        NewAlbum::new("Second").artist_id(73).insert(&mut conn),
+        Err(Error::UniqueConstraintViolation { .. })
+    ));
+    assert!(matches!(
+        NewAlbum::new("Bad\0name").insert(&mut conn),
+        Err(Error::EmbeddedNul)
+    ));
+    assert!(matches!(
+        NewAlbum::new("x".repeat(5000)).insert(&mut conn),
+        Err(Error::NoRowSpace { .. })
+    ));
+    let mut after = Vec::new();
+    conn.write_to(&mut after)?;
+    assert_eq!(after, before);
+    assert_eq!(NewAlbum::new("Third").insert(&mut conn)?.id, 3);
+    Album::delete(&mut conn, &3)?;
+    assert_eq!(NewAlbum::new("Reused").insert(&mut conn)?.id, 3);
+
+    // Imported IDs can have gaps; automatic allocation follows the live maximum.
+    let mut tx = conn.transaction();
+    tx.insert(
+        Album::TABLE,
+        &Row::Standard(StandardRow::Album(album_row(20, 0, "Imported")?)),
+    )?;
+    tx.commit()?;
+    assert_eq!(NewAlbum::new("After import").insert(&mut conn)?.id, 21);
+    let mut saved = Vec::new();
+    conn.write_to(&mut saved)?;
+    let mut conn = DeviceSqlConnection::from_reader(Cursor::new(saved), DatabaseKind::Standard)?;
+    assert_eq!(NewAlbum::new("After reopen").insert(&mut conn)?.id, 22);
+    let mut tx = conn.transaction();
+    tx.insert(
+        Album::TABLE,
+        &Row::Standard(StandardRow::Album(album_row(u32::MAX - 1, 0, "High ID")?)),
+    )?;
+    tx.commit()?;
+    assert_eq!(NewAlbum::new("Last ID").insert(&mut conn)?.id, u32::MAX);
+    let dirty = conn.modified_page_count();
+    assert!(matches!(
+        NewAlbum::new("Overflow").insert(&mut conn),
+        Err(Error::InvalidModelField { field: "id", .. })
+    ));
+    assert_eq!(conn.modified_page_count(), dirty);
+    assert_eq!(Album::all(&mut conn)?.len(), 8);
+    Ok(())
+}
+
+#[test]
 fn unknown_tree_attributes_remain_binary_only() -> Result<()> {
     use rbox_devlib::binary::ExtendedRow;
     use rbox_devlib::models::{MyTag, NewMyTag, NewPlaylist, Playlist};
 
     for flag in [4, 0x80, u32::MAX] {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let mut row = NewPlaylist::playlist(1, "Unknown").to_binary()?;
+        let mut row = playlist_row(1, &NewPlaylist::playlist("Unknown"))?;
         row.folder_flag = flag;
         let mut tx = conn.transaction();
         let handle = tx.insert(
@@ -48,14 +343,14 @@ fn unknown_tree_attributes_remain_binary_only() -> Result<()> {
                 ..
             })
         ));
-        assert!(NewPlaylist::playlist(2, "Child")
+        assert!(NewPlaylist::playlist("Child")
             .parent_id(1)
             .insert(&mut conn)
             .is_err());
     }
 
     let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
-    let mut row = NewMyTag::tag(1, "Unknown").to_binary()?;
+    let mut row = my_tag_row(&NewMyTag::tag(1, "Unknown"))?;
     row.header.attribute = 0x80;
     let mut tx = conn.transaction();
     let handle = tx.insert(MyTag::TABLE, &Row::Extended(ExtendedRow::MyTag(row)))?;
@@ -89,7 +384,7 @@ fn unsupported_playlist_types_cannot_be_written_by_models() -> Result<()> {
     let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
     let dirty = conn.modified_page_count();
     for attribute in [PlaylistType::SmartList, PlaylistType::CloudLibrarySync] {
-        let panic = std::panic::catch_unwind(|| NewPlaylist::new(1, "Unsupported", attribute))
+        let panic = std::panic::catch_unwind(|| NewPlaylist::new("Unsupported", attribute))
             .expect_err("unsupported playlist types must panic during construction");
         assert_eq!(
             panic.downcast_ref::<String>().map(String::as_str),
@@ -97,15 +392,8 @@ fn unsupported_playlist_types_cannot_be_written_by_models() -> Result<()> {
         );
 
         // Public fields can still be changed after construction; encoding must validate them.
-        let mut input = NewPlaylist::playlist(1, "Unsupported");
+        let mut input = NewPlaylist::playlist("Unsupported");
         input.attribute = attribute;
-        assert!(matches!(
-            input.to_binary(),
-            Err(Error::InvalidModelField {
-                field: "attribute",
-                ..
-            })
-        ));
         assert!(matches!(
             input.insert(&mut conn),
             Err(Error::InvalidModelField {
@@ -116,7 +404,7 @@ fn unsupported_playlist_types_cannot_be_written_by_models() -> Result<()> {
         assert_eq!(conn.modified_page_count(), dirty);
         assert!(Playlist::all(&mut conn)?.is_empty());
     }
-    let playlist = NewPlaylist::new(1, "Playlist", PlaylistType::List).insert(&mut conn)?;
+    let playlist = NewPlaylist::new("Playlist", PlaylistType::List).insert(&mut conn)?;
     assert_eq!(playlist.attribute, PlaylistType::List);
     assert_eq!(
         Playlist::get_attribute(&mut conn, &1)?,
@@ -128,8 +416,8 @@ fn unsupported_playlist_types_cannot_be_written_by_models() -> Result<()> {
 #[test]
 fn content_lookup_helpers_follow_live_rows() -> Result<()> {
     let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-    NewContent::new(20, "/Contents/音.wav").insert(&mut conn)?;
-    NewContent::new(10, "/Contents/other.wav").insert(&mut conn)?;
+    seed_content(&mut conn, 20, "/Contents/音.wav")?;
+    seed_content(&mut conn, 10, "/Contents/other.wav")?;
     assert!(Content::by_ids(&mut conn, &[])?.is_empty());
     assert_eq!(
         Content::by_ids(&mut conn, &[20, 999, 10, 20])?
@@ -190,10 +478,13 @@ fn content_master_identity_lookup_is_scoped_to_source_library() -> Result<()> {
         (50, 0, 0),
         (60, u32::MAX, library),
     ] {
-        let mut row = NewContent::new(id, format!("/Contents/{id}.wav"));
+        let mut row = NewContent::new(format!("/Contents/{id}.wav"));
         row.master_content_id = source_content;
         row.master_db_id = source_library;
-        row.insert(&mut conn)?;
+        let row = content_row(id, &row)?;
+        let mut tx = conn.transaction();
+        tx.insert(Content::TABLE, &Row::Standard(StandardRow::Track(row)))?;
+        tx.commit()?;
     }
     assert_eq!(
         Content::find_by_master_content_id(&mut conn, 123, library)?
@@ -270,7 +561,7 @@ fn content_master_identity_lookup_is_scoped_to_source_library() -> Result<()> {
 #[test]
 fn content_isrc_edits_validate_preserve_unknown_frames_and_roundtrip() -> Result<()> {
     let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-    let mut input = NewContent::new(1, "/Contents/isrc.wav");
+    let mut input = NewContent::new("/Contents/isrc.wav");
     input.isrc = "USABC2400001".into();
     let original = input.insert(&mut conn)?;
     let mut edited = original.clone();
@@ -446,26 +737,26 @@ mod content_mutations {
         )?;
         let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
         for id in [1, 2] {
-            NewContent::new(id, format!("/Contents/{id}.wav")).insert(&mut standard)?;
+            NewContent::new(format!("/Contents/{id}.wav")).insert(&mut standard)?;
         }
-        NewPlaylist::playlist(10, "Playlist")
+        NewPlaylist::playlist("Playlist")
             .seq(0)
             .insert(&mut standard)?;
-        NewHistory::new(20, "History").insert(&mut standard)?;
+        NewHistory::new("History").insert(&mut standard)?;
         NewMyTag::tag(30, "Tag").seq(0).insert(&mut extended)?;
         for (id, seq) in [(1, 1), (1, 3), (2, 8)] {
             // Seed existing binary duplicates to exercise cleanup of imported files.
             let mut tx = standard.transaction();
             tx.insert(
                 PlaylistContent::TABLE,
-                &Row::Standard(StandardRow::PlaylistEntry(
-                    NewPlaylistContent::new(10, id, seq).to_binary()?,
-                )),
+                &Row::Standard(StandardRow::PlaylistEntry(playlist_entry_row(
+                    &NewPlaylistContent::new(1, id, seq),
+                ))),
             )?;
             tx.commit()?;
         }
         for (id, seq) in [(1, 1), (2, 9)] {
-            NewHistoryContent::new(20, id, seq).insert(&mut standard)?;
+            NewHistoryContent::new(1, id, seq).insert(&mut standard)?;
         }
         for id in [1, 1, 2] {
             NewMyTagContent::new(id, 30).insert(&mut extended)?;
@@ -479,7 +770,7 @@ mod content_mutations {
     #[test]
     fn updates_map_all_public_fields_preserve_unknowns_and_follow_relocations() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let mut input = NewContent::new(1, "/Contents/original.wav");
+        let mut input = NewContent::new("/Contents/original.wav");
         input.isrc = "USABC1234567".into();
         input.creation.content_link = 0x12345678;
         input.creation.raw_analysis = 0x9876;
@@ -571,7 +862,7 @@ mod content_mutations {
         let Row::Standard(StandardRow::Track(actual)) = updated.raw_record().decode()? else {
             panic!()
         };
-        let mut expected = desired.to_binary()?;
+        let mut expected = content_row(original.id, &desired)?;
         expected.header.index_shift = actual.header.index_shift; // Placement is engine-owned.
         assert_eq!(actual.header, expected.header);
         assert_eq!(actual.text, expected.text);
@@ -630,8 +921,8 @@ mod content_mutations {
         let histories = HistoryContent::all(&mut standard)?;
         assert_eq!(histories.len(), 1);
         assert_eq!((histories[0].content_id, histories[0].seq), (2, 9));
-        assert!(Playlist::find(&mut standard, &10)?.is_some());
-        assert!(History::find(&mut standard, &20)?.is_some());
+        assert!(Playlist::find(&mut standard, &1)?.is_some());
+        assert!(History::find(&mut standard, &1)?.is_some());
         assert!(MyTag::find(&mut extended, &30)?.is_some());
         let tags = MyTagContent::all(&mut extended)?;
         assert_eq!(tags.len(), 1);
@@ -713,7 +1004,7 @@ mod content_mutations {
     #[test]
     fn update_validation_missing_rows_and_standard_only_delete() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let content = NewContent::new(1, "/Contents/track.wav").insert(&mut conn)?;
+        let content = NewContent::new("/Contents/track.wav").insert(&mut conn)?;
         let before = bytes(&mut conn)?;
         let mut edited = content.clone();
         edited.id = 2;
@@ -764,13 +1055,13 @@ mod content_mutations {
 fn album_uniqueness_uses_name_and_current_album_artist() -> Result<()> {
     use rbox_devlib::models::{Album, NewAlbum};
     let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-    let first = NewAlbum::new(1, 10, "Album").insert(&mut conn)?;
-    let second = NewAlbum::new(2, 20, "Album").insert(&mut conn)?;
-    let other = NewAlbum::new(3, 10, "Other").insert(&mut conn)?;
-    NewAlbum::new(4, 0, "Album").insert(&mut conn)?;
+    let first = NewAlbum::new("Album").artist_id(10).insert(&mut conn)?;
+    let second = NewAlbum::new("Album").artist_id(20).insert(&mut conn)?;
+    let other = NewAlbum::new("Other").artist_id(10).insert(&mut conn)?;
+    NewAlbum::new("Album").artist_id(0).insert(&mut conn)?;
     for artist in [0, 10, 20] {
         assert!(matches!(
-            NewAlbum::new(5, artist, "Album").insert(&mut conn),
+            NewAlbum::new("Album").artist_id(artist).insert(&mut conn),
             Err(Error::UniqueConstraintViolation {
                 fields: &["name", "artist_id"],
                 ..
@@ -799,7 +1090,7 @@ fn album_uniqueness_uses_name_and_current_album_artist() -> Result<()> {
     let mut edited = first.clone();
     edited.artist_id = 30;
     edited.update(&mut conn)?;
-    NewAlbum::new(5, 30, "Taken").insert(&mut conn)?;
+    NewAlbum::new("Taken").artist_id(30).insert(&mut conn)?;
     let mut stale = first;
     stale.name = "Taken".into();
     assert!(matches!(
@@ -812,11 +1103,11 @@ fn album_uniqueness_uses_name_and_current_album_artist() -> Result<()> {
     let mut reopened =
         DeviceSqlConnection::from_reader(Cursor::new(bytes), DatabaseKind::Standard)?;
     assert!(matches!(
-        NewAlbum::new(6, 30, "Album").insert(&mut reopened),
+        NewAlbum::new("Album").artist_id(30).insert(&mut reopened),
         Err(Error::UniqueConstraintViolation { .. })
     ));
     Album::delete(&mut reopened, &1)?;
-    NewAlbum::new(6, 30, "Album").insert(&mut reopened)?;
+    NewAlbum::new("Album").artist_id(30).insert(&mut reopened)?;
     Ok(())
 }
 
@@ -858,12 +1149,14 @@ fn named_models_find_exact_names_without_resolving_relations() -> Result<()> {
             ));
         }};
     }
-    check!(Artist, NewArtist::new(1, "Name"));
-    check!(Genre, NewGenre::new(1, "Name"));
-    check!(Key, NewKey::new(1, 23, "Name"));
-    check!(Label, NewLabel::new(1, "Name"));
-    check!(Album, NewAlbum::new(1, 999, "Name"));
-    NewAlbum::new(2, 1000, "\u{97f3}").insert(&mut conn)?;
+    check!(Artist, NewArtist::new("Name"));
+    check!(Genre, NewGenre::new("Name"));
+    check!(Key, NewKey::new("Name", 23));
+    check!(Label, NewLabel::new("Name"));
+    check!(Album, NewAlbum::new("Name").artist_id(999));
+    NewAlbum::new("\u{97f3}")
+        .artist_id(1000)
+        .insert(&mut conn)?;
     let first = Album::all(&mut conn)?
         .into_iter()
         .find(|a| a.name == "\u{97f3}")
@@ -907,21 +1200,21 @@ mod name_constraints {
         macro_rules! check {
             ($model:ident, $new:expr) => {{
                 let new = $new;
-                let first = new(1, "Name").insert(&mut conn)?;
-                let second = new(2, "Other").insert(&mut conn)?;
+                let first = new("Name").insert(&mut conn)?;
+                let second = new("Other").insert(&mut conn)?;
                 // Self updates and identical names in different tables are valid.
                 first.clone().update(&mut conn)?;
                 let before = bytes(&mut conn)?;
-                assert!(matches!(new(3, "Name").insert(&mut conn),
+                assert!(matches!(new("Name").insert(&mut conn),
                     Err(Error::UniqueConstraintViolation { table, fields: &["name"] }) if table == $model::TABLE));
                 let mut edited = second.clone();
                 edited.name = "Name".into();
                 assert!(matches!(edited.update(&mut conn), Err(Error::UniqueConstraintViolation { .. })));
                 assert_eq!(bytes(&mut conn)?, before);
-                new(3, "name").insert(&mut conn)?;
-                new(4, "Name ").insert(&mut conn)?;
-                new(5, "").insert(&mut conn)?;
-                assert!(matches!(new(6, "").insert(&mut conn), Err(Error::UniqueConstraintViolation { .. })));
+                new("name").insert(&mut conn)?;
+                new("Name ").insert(&mut conn)?;
+                new("").insert(&mut conn)?;
+                assert!(matches!(new("").insert(&mut conn), Err(Error::UniqueConstraintViolation { .. })));
                 let mut changed = second.clone();
                 changed.name = "Taken".into();
                 changed.update(&mut conn)?;
@@ -929,29 +1222,29 @@ mod name_constraints {
                 stale.name = "Taken".into();
                 assert!(matches!(stale.update(&mut conn), Err(Error::UniqueConstraintViolation { .. })));
                 $model::delete(&mut conn, &1)?;
-                new(6, "Name").insert(&mut conn)?;
+                new("Name").insert(&mut conn)?;
                 let mut reopened = DeviceSqlConnection::from_reader(Cursor::new(bytes(&mut conn)?), DatabaseKind::Standard)?;
-                assert!(matches!(new(7, "Name").insert(&mut reopened), Err(Error::UniqueConstraintViolation { .. })));
+                assert!(matches!(new("Name").insert(&mut reopened), Err(Error::UniqueConstraintViolation { .. })));
             }};
         }
-        check!(Artist, |id, name: &str| NewArtist::new(id, name));
-        check!(Genre, |id, name: &str| NewGenre::new(id, name));
-        check!(Key, |id, name: &str| NewKey::new(id, 77, name));
-        check!(Label, |id, name: &str| NewLabel::new(id, name));
+        check!(Artist, |name: &str| NewArtist::new(name));
+        check!(Genre, |name: &str| NewGenre::new(name));
+        check!(Key, |name: &str| NewKey::new(name, 77));
+        check!(Label, |name: &str| NewLabel::new(name));
         Ok(())
     }
 
     #[test]
     fn equal_names_conflict_across_binary_string_encodings() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let mut row = NewGenre::new(1, "House").to_binary()?;
+        let mut row = named_row(3, "House")?;
         row.name = DeviceSqlString::encode("House", StringEncoding::Utf16Le)?;
         let mut tx = conn.transaction();
         tx.insert(Genre::TABLE, &Row::Standard(StandardRow::Genre(row)))?;
         tx.commit()?;
         let before = bytes(&mut conn)?;
         assert!(matches!(
-            NewGenre::new(2, "House").insert(&mut conn),
+            NewGenre::new("House").insert(&mut conn),
             Err(Error::UniqueConstraintViolation { .. })
         ));
         assert_eq!(bytes(&mut conn)?, before);
@@ -1030,9 +1323,9 @@ mod recommendation_deletions {
         )?;
         tx.update(
             &handle,
-            &Row::Extended(ExtendedRow::RecommendLike(
-                NewRecommendedLike::new(1, 2, 77, 8, 9).to_binary()?,
-            )),
+            &Row::Extended(ExtendedRow::RecommendLike(recommendation_row(
+                &NewRecommendedLike::new(1, 2, 77, 8, 9),
+            ))),
         )?;
         tx.commit()?;
         let before = bytes(&mut conn)?;
@@ -1232,7 +1525,7 @@ mod property_mutations {
             Err(Error::UniqueConstraintViolation { .. })
         ));
         assert!(matches!(
-            NewContent::new(1, "/Contents/test.wav").insert(&mut conn),
+            NewContent::new("/Contents/test.wav").insert(&mut conn),
             Err(Error::UniqueConstraintViolation { .. })
         ));
         assert!(!Content::id_exists(&mut conn, &1)?);
@@ -1286,7 +1579,7 @@ mod property_mutations {
         let mut reopened =
             DeviceSqlConnection::from_reader(Cursor::new(before), DatabaseKind::Standard)?;
         assert_eq!(ExportProperty::all(&mut reopened)?[0], updated);
-        NewContent::new(1, "/Contents/test.wav").insert(&mut reopened)?;
+        NewContent::new("/Contents/test.wav").insert(&mut reopened)?;
         assert!(matches!(
             updated.update(&mut reopened),
             Err(Error::StaleModelRow { .. })
@@ -1395,12 +1688,12 @@ mod playlist_mutations {
     #[test]
     fn edits_validate_parents_preserve_reserved_fields_and_merge_stale_snapshots() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let root = NewPlaylist::folder(1, "Root").seq(0).insert(&mut conn)?;
-        NewPlaylist::folder(2, "Nested")
+        let root = NewPlaylist::folder("Root").seq(0).insert(&mut conn)?;
+        NewPlaylist::folder("Nested")
             .parent_id(1)
             .seq(0)
             .insert(&mut conn)?;
-        let mut input = NewPlaylist::playlist(3, "List").parent_id(1).seq(1);
+        let mut input = NewPlaylist::playlist("List").parent_id(1).seq(1);
         input.unknown_04 = 42;
         let playlist = input.insert(&mut conn)?;
         let before = bytes(&mut conn)?;
@@ -1444,18 +1737,17 @@ mod playlist_mutations {
     #[test]
     fn cascade_is_atomic_and_keeps_contents_and_other_playlists() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let root = NewPlaylist::folder(1, "Root").seq(0).insert(&mut conn)?;
-        NewPlaylist::folder(2, "Nested")
+        let root = NewPlaylist::folder("Root").seq(0).insert(&mut conn)?;
+        NewPlaylist::folder("Nested")
             .parent_id(1)
             .seq(0)
             .insert(&mut conn)?;
-        NewPlaylist::playlist(3, "List")
+        NewPlaylist::playlist("List")
             .parent_id(2)
             .seq(0)
             .insert(&mut conn)?;
-        NewPlaylist::playlist(4, "Keep").seq(1).insert(&mut conn)?;
-        let content = NewContent::new(99, "/Contents/test.wav")
-            .insert(&mut conn)?
+        NewPlaylist::playlist("Keep").seq(1).insert(&mut conn)?;
+        let content = seed_content(&mut conn, 99, "/Contents/test.wav")?
             .raw_record()
             .decode()?;
         for playlist in [3, 3, 4] {
@@ -1463,9 +1755,9 @@ mod playlist_mutations {
             let mut tx = conn.transaction();
             tx.insert(
                 PlaylistContent::TABLE,
-                &Row::Standard(StandardRow::PlaylistEntry(
-                    NewPlaylistContent::new(playlist, 99, 7).to_binary()?,
-                )),
+                &Row::Standard(StandardRow::PlaylistEntry(playlist_entry_row(
+                    &NewPlaylistContent::new(playlist, 99, 7),
+                ))),
             )?;
             tx.commit()?;
         }
@@ -1510,9 +1802,9 @@ mod playlist_mutations {
     #[test]
     fn occurrence_deletion_and_pair_removal_preserve_other_plays() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewPlaylist::playlist(1, "List").insert(&mut conn)?;
-        NewContent::new(2, "/2.wav").insert(&mut conn)?;
-        NewContent::new(3, "/3.wav").insert(&mut conn)?;
+        NewPlaylist::playlist("List").insert(&mut conn)?;
+        seed_content(&mut conn, 2, "/2.wav")?;
+        seed_content(&mut conn, 3, "/3.wav")?;
         let first = NewPlaylistContent::new(1, 2, 1).insert(&mut conn)?;
         NewPlaylistContent::new(1, 3, 2).insert(&mut conn)?;
         for seq in [3, 9] {
@@ -1520,9 +1812,9 @@ mod playlist_mutations {
             let mut tx = conn.transaction();
             tx.insert(
                 PlaylistContent::TABLE,
-                &Row::Standard(StandardRow::PlaylistEntry(
-                    NewPlaylistContent::new(1, 2, seq).to_binary()?,
-                )),
+                &Row::Standard(StandardRow::PlaylistEntry(playlist_entry_row(
+                    &NewPlaylistContent::new(1, 2, seq),
+                ))),
             )?;
             tx.commit()?;
         }
@@ -1542,9 +1834,9 @@ mod playlist_mutations {
         )?;
         tx.update(
             &handle,
-            &Row::Standard(StandardRow::PlaylistEntry(
-                NewPlaylistContent::new(1, 3, 15).to_binary()?,
-            )),
+            &Row::Standard(StandardRow::PlaylistEntry(playlist_entry_row(
+                &NewPlaylistContent::new(1, 3, 15),
+            ))),
         )?;
         tx.commit()?;
         let before = bytes(&mut conn)?;
@@ -1644,7 +1936,7 @@ mod my_tag_mutations {
             .parent_id(1)
             .insert(&mut conn)?;
         NewMyTag::tag(3, "Tag").parent_id(1).insert(&mut conn)?;
-        let mut unknown = NewMyTag::tag(4, "Unknown").to_binary()?;
+        let mut unknown = my_tag_row(&NewMyTag::tag(4, "Unknown"))?;
         unknown.header.attribute = 0x80;
         let mut tx = conn.transaction();
         tx.insert(MyTag::TABLE, &Row::Extended(ExtendedRow::MyTag(unknown)))?;
@@ -1702,9 +1994,7 @@ mod my_tag_mutations {
     #[test]
     fn reset_preserves_imported_ties_and_binary_reserved_fields() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
-        let mut input = NewMyTag::new(1, "Reserved fields", MyTagType::List)
-            .seq(9)
-            .to_binary()?;
+        let mut input = my_tag_row(&NewMyTag::new(1, "Reserved fields", MyTagType::List).seq(9))?;
         input.header.unknown_04 = 0x12345678;
         input.header.unknown_08 = 42;
         input.header.unknown_18 = 17;
@@ -1714,9 +2004,9 @@ mod my_tag_mutations {
         for id in [2, 3] {
             tx.insert(
                 MyTag::TABLE,
-                &Row::Extended(ExtendedRow::MyTag(
-                    NewMyTag::tag(id, "Tied").seq(4).to_binary()?,
-                )),
+                &Row::Extended(ExtendedRow::MyTag(my_tag_row(
+                    &NewMyTag::tag(id, "Tied").seq(4),
+                )?)),
             )?;
         }
         tx.commit()?;
@@ -1749,9 +2039,9 @@ mod my_tag_mutations {
         for id in 1..=200 {
             tx.insert(
                 MyTag::TABLE,
-                &Row::Extended(ExtendedRow::MyTag(
-                    NewMyTag::tag(id, "Tag").seq(id - 1).to_binary()?,
-                )),
+                &Row::Extended(ExtendedRow::MyTag(my_tag_row(
+                    &NewMyTag::tag(id, "Tag").seq(id - 1),
+                )?)),
             )?;
         }
         tx.commit()?;
@@ -1799,7 +2089,7 @@ mod my_tag_mutations {
         NewMyTag::folder(2, "Other").insert(&mut conn)?;
         let mut input = NewMyTag::tag(3, "Tag").parent_id(1).seq(7);
         input.unknown_04 = 42;
-        let row = input.to_binary()?;
+        let row = my_tag_row(&input)?;
         let mut tx = conn.transaction();
         let handle = tx.insert(
             MyTag::TABLE,
@@ -1927,9 +2217,9 @@ mod my_tag_mutations {
         )?;
         tx.update(
             &handle,
-            &Row::Extended(ExtendedRow::TrackMyTag(
-                NewMyTagContent::new(3, 2).to_binary()?,
-            )),
+            &Row::Extended(ExtendedRow::TrackMyTag(tag_content_row(
+                &NewMyTagContent::new(3, 2),
+            ))),
         )?;
         tx.commit()?;
         let before = bytes(&mut conn)?;
@@ -1971,7 +2261,7 @@ mod history_mutations {
     #[test]
     fn history_updates_follow_original_id_and_preserve_unedited_names() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let history = NewHistory::new(1, "Set").insert(&mut conn)?;
+        let history = NewHistory::new("Set").insert(&mut conn)?;
         let before = bytes(&mut conn)?;
         history.clone().update(&mut conn)?;
         assert_eq!(bytes(&mut conn)?, before);
@@ -2011,9 +2301,9 @@ mod history_mutations {
     #[test]
     fn deletion_preserves_duplicates_other_histories_and_contents() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewHistory::new(1, "First").insert(&mut conn)?;
-        NewHistory::new(2, "Second").insert(&mut conn)?;
-        NewContent::new(1, "/Contents/test.wav").insert(&mut conn)?;
+        NewHistory::new("First").insert(&mut conn)?;
+        NewHistory::new("Second").insert(&mut conn)?;
+        NewContent::new("/Contents/test.wav").insert(&mut conn)?;
         let first = NewHistoryContent::new(1, 1, 3).insert(&mut conn)?;
         NewHistoryContent::new(1, 1, 3).insert(&mut conn)?;
         NewHistoryContent::new(1, 1, 9).insert(&mut conn)?;
@@ -2058,7 +2348,7 @@ mod history_mutations {
     #[test]
     fn stale_occurrences_wrong_namespaces_and_resource_failures_are_rejected() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let history = NewHistory::new(1, "Set").insert(&mut conn)?;
+        let history = NewHistory::new("Set").insert(&mut conn)?;
         let entry = NewHistoryContent::new(1, 1, 1).insert(&mut conn)?;
         let mut tx = conn.transaction();
         let handle = tx.locate(
@@ -2068,9 +2358,9 @@ mod history_mutations {
         )?;
         tx.update(
             &handle,
-            &Row::Standard(StandardRow::HistoryEntry(
-                NewHistoryContent::new(1, 2, 1).to_binary()?,
-            )),
+            &Row::Standard(StandardRow::HistoryEntry(history_entry_row(
+                &NewHistoryContent::new(1, 2, 1),
+            ))),
         )?;
         tx.commit()?;
         let before = bytes(&mut conn)?;
@@ -2125,7 +2415,11 @@ mod key_mutations {
     #[test]
     fn updates_preserve_frames_and_support_growth_stale_snapshots_and_empty_names() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let mut row = NewKey::new(1, 17, "House").to_binary()?;
+        let mut row = Ok::<_, Error>(rbox_devlib::binary::KeyRow {
+            id: 1,
+            secondary_id: (NewKey::new("House", 17)).secondary_id,
+            name: named_row(1, &(NewKey::new("House", 17)).name)?.name,
+        })?;
         row.name = DeviceSqlString::encode("House", StringEncoding::Utf16Le)?;
         let mut tx = conn.transaction();
         let handle = tx.insert(Key::TABLE, &Row::Standard(StandardRow::Key(row)))?;
@@ -2177,11 +2471,11 @@ mod key_mutations {
             DatabaseKind::Standard,
             &CreateOptions::standard("2026-10-25", "Test")?,
         )?;
-        NewKey::new(1, 17, "House").insert(&mut conn)?;
-        let keep = NewKey::new(2, 29, "Techno").insert(&mut conn)?;
+        NewKey::new("House", 17).insert(&mut conn)?;
+        let keep = NewKey::new("Techno", 29).insert(&mut conn)?;
         let mut expected = Vec::new();
         for (id, key_id) in [(1, 1), (2, 2), (3, 1), (4, 0)] {
-            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            let mut content = NewContent::new(format!("/Contents/{id}.wav"));
             content.key_id = key_id;
             content.creation.content_link = 12345;
             let content = content.insert(&mut conn)?;
@@ -2220,7 +2514,7 @@ mod key_mutations {
     #[test]
     fn invalid_edits_and_failed_reference_cleanup_leave_database_unchanged() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let key = NewKey::new(1, 17, "House").insert(&mut conn)?;
+        let key = NewKey::new("House", 17).insert(&mut conn)?;
         let before = bytes(&mut conn)?;
         let mut edited = key.clone();
         edited.id = 2;
@@ -2247,7 +2541,7 @@ mod key_mutations {
         ));
         let mut records = Vec::new();
         for id in [1, 2] {
-            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            let mut content = NewContent::new(format!("/Contents/{id}.wav"));
             content.key_id = 1;
             records.push(content.insert(&mut conn)?);
         }
@@ -2288,7 +2582,7 @@ mod label_mutations {
     #[test]
     fn updates_preserve_frames_and_support_growth_stale_snapshots_and_empty_names() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let mut row = NewLabel::new(1, "Label A").to_binary()?;
+        let mut row = named_row(1, "Label A")?;
         row.name = DeviceSqlString::encode("Label A", StringEncoding::Utf16Le)?;
         let mut tx = conn.transaction();
         let handle = tx.insert(Label::TABLE, &Row::Standard(StandardRow::Label(row)))?;
@@ -2324,11 +2618,11 @@ mod label_mutations {
             DatabaseKind::Standard,
             &CreateOptions::standard("2026-10-25", "Test")?,
         )?;
-        NewLabel::new(1, "Label A").insert(&mut conn)?;
-        let keep = NewLabel::new(2, "Label B").insert(&mut conn)?;
+        NewLabel::new("Label A").insert(&mut conn)?;
+        let keep = NewLabel::new("Label B").insert(&mut conn)?;
         let mut expected = Vec::new();
         for (id, label_id) in [(1, 1), (2, 2), (3, 1), (4, 0)] {
-            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            let mut content = NewContent::new(format!("/Contents/{id}.wav"));
             content.label_id = label_id;
             content.creation.content_link = 12345;
             let content = content.insert(&mut conn)?;
@@ -2367,7 +2661,7 @@ mod label_mutations {
     #[test]
     fn invalid_edits_and_failed_reference_cleanup_leave_database_unchanged() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let label = NewLabel::new(1, "Label A").insert(&mut conn)?;
+        let label = NewLabel::new("Label A").insert(&mut conn)?;
         let before = bytes(&mut conn)?;
         let mut edited = label.clone();
         edited.id = 2;
@@ -2394,7 +2688,7 @@ mod label_mutations {
         ));
         let mut records = Vec::new();
         for id in [1, 2] {
-            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            let mut content = NewContent::new(format!("/Contents/{id}.wav"));
             content.label_id = 1;
             records.push(content.insert(&mut conn)?);
         }
@@ -2435,7 +2729,7 @@ mod genre_mutations {
     #[test]
     fn updates_preserve_frames_and_support_growth_stale_snapshots_and_empty_names() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let mut row = NewGenre::new(1, "House").to_binary()?;
+        let mut row = named_row(1, "House")?;
         row.name = DeviceSqlString::encode("House", StringEncoding::Utf16Le)?;
         let mut tx = conn.transaction();
         let handle = tx.insert(Genre::TABLE, &Row::Standard(StandardRow::Genre(row)))?;
@@ -2471,11 +2765,11 @@ mod genre_mutations {
             DatabaseKind::Standard,
             &CreateOptions::standard("2026-10-25", "Test")?,
         )?;
-        NewGenre::new(1, "House").insert(&mut conn)?;
-        let keep = NewGenre::new(2, "Techno").insert(&mut conn)?;
+        NewGenre::new("House").insert(&mut conn)?;
+        let keep = NewGenre::new("Techno").insert(&mut conn)?;
         let mut expected = Vec::new();
         for (id, genre_id) in [(1, 1), (2, 2), (3, 1), (4, 0)] {
-            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            let mut content = NewContent::new(format!("/Contents/{id}.wav"));
             content.genre_id = genre_id;
             content.creation.content_link = 12345;
             let content = content.insert(&mut conn)?;
@@ -2514,7 +2808,7 @@ mod genre_mutations {
     #[test]
     fn invalid_edits_and_failed_reference_cleanup_leave_database_unchanged() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let genre = NewGenre::new(1, "House").insert(&mut conn)?;
+        let genre = NewGenre::new("House").insert(&mut conn)?;
         let before = bytes(&mut conn)?;
         let mut edited = genre.clone();
         edited.id = 2;
@@ -2541,7 +2835,7 @@ mod genre_mutations {
         ));
         let mut records = Vec::new();
         for id in [1, 2] {
-            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            let mut content = NewContent::new(format!("/Contents/{id}.wav"));
             content.genre_id = 1;
             records.push(content.insert(&mut conn)?);
         }
@@ -2583,7 +2877,7 @@ mod artwork_mutations {
     #[test]
     fn updates_preserve_frames_handle_growth_and_refresh_stale_snapshots() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let mut row = NewArtwork::new(1, "/Art/original.jpg").to_binary()?;
+        let mut row = named_row(1, "/Art/original.jpg")?;
         row.name = DeviceSqlString::encode("/Art/original.jpg", StringEncoding::Utf16Le)?;
         let mut tx = conn.transaction();
         let handle = tx.insert(Artwork::TABLE, &Row::Standard(StandardRow::Artwork(row)))?;
@@ -2622,7 +2916,7 @@ mod artwork_mutations {
     #[test]
     fn invalid_paths_ids_namespaces_and_resource_failures_are_atomic() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let artwork = NewArtwork::new(1, "/Art/cover.jpg").insert(&mut conn)?;
+        let artwork = NewArtwork::new("/Art/cover.jpg").insert(&mut conn)?;
         let before = bytes(&mut conn)?;
         let mut edited = artwork.clone();
         edited.id = 2;
@@ -2686,9 +2980,7 @@ mod artwork_mutations {
         for _ in 0..2 {
             tx.insert(
                 Artwork::TABLE,
-                &Row::Standard(StandardRow::Artwork(
-                    NewArtwork::new(1, "/Art/duplicate.jpg").to_binary()?,
-                )),
+                &Row::Standard(StandardRow::Artwork(named_row(1, "/Art/duplicate.jpg")?)),
             )?;
         }
         tx.commit()?;
@@ -2712,11 +3004,11 @@ mod artwork_mutations {
         fs::write(&image, b"keep image bytes")?;
         let options = CreateOptions::standard("2026-10-25", "Test")?;
         let mut conn = DeviceSqlConnection::create_with_options(DatabaseKind::Standard, &options)?;
-        let artwork = NewArtwork::new(1, image.to_string_lossy()).insert(&mut conn)?;
-        NewArtwork::new(2, "/Art/keep.jpg").insert(&mut conn)?;
+        let artwork = NewArtwork::new(image.to_string_lossy()).insert(&mut conn)?;
+        NewArtwork::new("/Art/keep.jpg").insert(&mut conn)?;
         let mut expected = Vec::new();
         for (id, artwork_id) in [(1, 1), (2, 2), (3, 1), (4, 0)] {
-            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            let mut content = NewContent::new(format!("/Contents/{id}.wav"));
             content.artwork_id = artwork_id;
             let model = content.insert(&mut conn)?;
             let Row::Standard(StandardRow::Track(mut row)) = model.raw_record().decode()? else {
@@ -2767,10 +3059,10 @@ mod artwork_mutations {
     #[test]
     fn malformed_content_rolls_back_artwork_and_prior_reference_updates() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewArtwork::new(1, "/Art/keep.jpg").insert(&mut conn)?;
+        NewArtwork::new("/Art/keep.jpg").insert(&mut conn)?;
         let mut records = Vec::new();
         for id in [1, 2] {
-            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            let mut content = NewContent::new(format!("/Contents/{id}.wav"));
             content.artwork_id = 1;
             records.push(content.insert(&mut conn)?);
         }
@@ -2809,7 +3101,7 @@ mod artist_mutations {
     #[test]
     fn updates_preserve_frames_and_slot_bits_and_resolve_relocated_snapshots() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let mut row = NewArtist::new(1, "Original").to_binary()?;
+        let mut row = artist_row(1, "Original")?;
         row.name = DeviceSqlString::encode("Original", StringEncoding::Utf16Le)?;
         row.header.index_shift = 0x0b;
         let mut tx = conn.transaction();
@@ -2861,7 +3153,7 @@ mod artist_mutations {
     #[test]
     fn invalid_missing_duplicate_and_wrong_namespace_mutations_are_rejected() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let artist = NewArtist::new(1, "Artist").insert(&mut conn)?;
+        let artist = NewArtist::new("Artist").insert(&mut conn)?;
         let before = bytes(&mut conn)?;
         let mut edited = artist.clone();
         edited.id = 2;
@@ -2922,9 +3214,7 @@ mod artist_mutations {
         for _ in 0..2 {
             tx.insert(
                 Artist::TABLE,
-                &Row::Standard(StandardRow::Artist(
-                    NewArtist::new(1, "Duplicate").to_binary()?,
-                )),
+                &Row::Standard(StandardRow::Artist(artist_row(1, "Duplicate")?)),
             )?;
         }
         tx.commit()?;
@@ -2945,11 +3235,11 @@ mod artist_mutations {
     fn deletion_clears_all_roles_once_per_row_and_preserves_other_binary_fields() -> Result<()> {
         let options = CreateOptions::standard("2026-10-25", "Test")?;
         let mut conn = DeviceSqlConnection::create_with_options(DatabaseKind::Standard, &options)?;
-        NewArtist::new(1, "Delete").insert(&mut conn)?;
-        NewArtist::new(2, "Keep").insert(&mut conn)?;
+        NewArtist::new("Delete").insert(&mut conn)?;
+        NewArtist::new("Keep").insert(&mut conn)?;
         let mut expected_albums = Vec::new();
         for (id, artist_id) in [(10, 1), (11, 1), (12, 2), (13, 0)] {
-            let mut album = NewAlbum::new(id, artist_id, format!("Album {id}"));
+            let mut album = NewAlbum::new(format!("Album {id}")).artist_id(artist_id);
             album.unknown_04 = 0x12345678;
             let album = album.insert(&mut conn)?;
             let Row::Standard(StandardRow::Album(mut row)) = album.raw_record().decode()? else {
@@ -2973,14 +3263,14 @@ mod artist_mutations {
         .into_iter()
         .enumerate()
         {
-            let mut content = NewContent::new(i as u32 + 1, format!("/Contents/{i}.wav"));
+            let mut content = NewContent::new(format!("/Contents/{i}.wav"));
             [
                 content.artist_id,
                 content.original_artist_id,
                 content.composer_id,
                 content.remixer_id,
             ] = roles;
-            content.album_id = 10;
+            content.album_id = 1;
             let content = content.insert(&mut conn)?;
             let Row::Standard(StandardRow::Track(mut row)) = content.raw_record().decode()? else {
                 panic!()
@@ -3034,11 +3324,11 @@ mod artist_mutations {
     #[test]
     fn malformed_content_rolls_back_artist_album_and_prior_content_changes() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewArtist::new(1, "Keep on failure").insert(&mut conn)?;
-        NewAlbum::new(1, 1, "Album").insert(&mut conn)?;
+        NewArtist::new("Keep on failure").insert(&mut conn)?;
+        NewAlbum::new("Album").artist_id(1).insert(&mut conn)?;
         let mut records = Vec::new();
         for id in [1, 2] {
-            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            let mut content = NewContent::new(format!("/Contents/{id}.wav"));
             content.composer_id = 1;
             records.push(content.insert(&mut conn)?);
         }
@@ -3078,7 +3368,7 @@ mod album_mutations {
     #[test]
     fn updates_preserve_frames_and_current_reserved_fields_and_resolve_relocations() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let mut binary = NewAlbum::new(1, 0, "Original").to_binary()?;
+        let mut binary = album_row(1, 0, "Original")?;
         binary.name = DeviceSqlString::encode("Original", StringEncoding::Utf16Le)?;
         binary.header.unknown_04 = 0x12345678;
         let mut tx = conn.transaction();
@@ -3145,7 +3435,7 @@ mod album_mutations {
     #[test]
     fn invalid_updates_and_missing_or_ambiguous_ids_leave_the_database_unchanged() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let album = NewAlbum::new(1, 0, "Album").insert(&mut conn)?;
+        let album = NewAlbum::new("Album").artist_id(0).insert(&mut conn)?;
         let before = bytes(&mut conn)?;
         let mut edited = album.clone();
         edited.id = 2;
@@ -3188,9 +3478,7 @@ mod album_mutations {
         for _ in 0..2 {
             tx.insert(
                 Album::TABLE,
-                &Row::Standard(StandardRow::Album(
-                    NewAlbum::new(1, 0, "Duplicate").to_binary()?,
-                )),
+                &Row::Standard(StandardRow::Album(album_row(1, 0, "Duplicate")?)),
             )?;
         }
         tx.commit()?;
@@ -3211,27 +3499,31 @@ mod album_mutations {
     fn deletion_clears_only_matching_references_and_keeps_counts_and_artists() -> Result<()> {
         let options = CreateOptions::standard("2026-10-25", "Test")?;
         let mut conn = DeviceSqlConnection::create_with_options(DatabaseKind::Standard, &options)?;
-        let artist = NewArtist::new(1, "Artist").insert(&mut conn)?;
-        NewAlbum::new(10, artist.id, "Delete").insert(&mut conn)?;
-        let other = NewAlbum::new(20, artist.id, "Keep").insert(&mut conn)?;
+        let artist = NewArtist::new("Artist").insert(&mut conn)?;
+        let deleted = NewAlbum::new("Delete")
+            .artist_id(artist.id)
+            .insert(&mut conn)?;
+        let other = NewAlbum::new("Keep")
+            .artist_id(artist.id)
+            .insert(&mut conn)?;
         let mut expected = Vec::new();
-        for (id, album_id) in [(1, 10), (2, 20), (3, 10), (4, 0)] {
-            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+        for (id, album_id) in [(1, deleted.id), (2, other.id), (3, deleted.id), (4, 0)] {
+            let mut content = NewContent::new(format!("/Contents/{id}.wav"));
             content.album_id = album_id;
             let model = content.insert(&mut conn)?;
             let Row::Standard(StandardRow::Track(mut row)) = model.raw_record().decode()? else {
                 panic!()
             };
-            if album_id == 10 {
+            if album_id == deleted.id {
                 row.header.album_id = 0;
             }
             expected.push(row);
         }
         let properties = ExportProperty::all(&mut conn)?;
-        assert_eq!(Album::delete(&mut conn, &10)?, 3);
-        assert_eq!(Album::delete(&mut conn, &10)?, 0);
-        assert!(Album::find(&mut conn, &10)?.is_none());
-        let kept = Album::find(&mut conn, &20)?.unwrap();
+        assert_eq!(Album::delete(&mut conn, &deleted.id)?, 3);
+        assert_eq!(Album::delete(&mut conn, &deleted.id)?, 0);
+        assert!(Album::find(&mut conn, &deleted.id)?.is_none());
+        let kept = Album::find(&mut conn, &other.id)?.unwrap();
         assert_eq!(kept.raw_record().as_bytes(), other.raw_record().as_bytes());
         assert_eq!(
             rbox_devlib::models::Artist::find(&mut conn, &1)?,
@@ -3250,17 +3542,19 @@ mod album_mutations {
                 Row::Standard(StandardRow::Track(expected))
             );
         }
-        assert!(Album::find(&mut reopened, &10)?.is_none());
+        assert!(Album::find(&mut reopened, &deleted.id)?.is_none());
         Ok(())
     }
 
     #[test]
     fn deletion_rolls_back_album_and_earlier_reference_updates_on_decode_failure() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewAlbum::new(1, 0, "Keep on failure").insert(&mut conn)?;
+        NewAlbum::new("Keep on failure")
+            .artist_id(0)
+            .insert(&mut conn)?;
         let mut records = Vec::new();
         for id in [1, 2] {
-            let mut content = NewContent::new(id, format!("/Contents/{id}.wav"));
+            let mut content = NewContent::new(format!("/Contents/{id}.wav"));
             content.album_id = 1;
             records.push(content.insert(&mut conn)?);
         }
@@ -3293,10 +3587,14 @@ mod album_relations {
     #[test]
     fn album_views_keep_original_rows_local_edits_and_input_order() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewArtist::new(1, "First artist").insert(&mut conn)?;
-        NewArtist::new(2, "Second artist").insert(&mut conn)?;
-        NewAlbum::new(10, 1, "First album").insert(&mut conn)?;
-        NewAlbum::new(20, 2, "Second album").insert(&mut conn)?;
+        NewArtist::new("First artist").insert(&mut conn)?;
+        NewArtist::new("Second artist").insert(&mut conn)?;
+        NewAlbum::new("First album")
+            .artist_id(1)
+            .insert(&mut conn)?;
+        NewAlbum::new("Second album")
+            .artist_id(2)
+            .insert(&mut conn)?;
         let albums = Album::all(&mut conn)?;
         let views = Album::all_with_relations(&mut conn)?;
         assert_eq!(views.len(), 2);
@@ -3308,7 +3606,7 @@ mod album_relations {
         assert_eq!(views[0].artist.as_ref().unwrap().name, "First artist");
         assert_eq!(views[1].artist.as_ref().unwrap().name, "Second artist");
         assert_eq!(
-            Album::find_with_relations(&mut conn, &10)?,
+            Album::find_with_relations(&mut conn, &albums[0].id)?,
             Some(views[0].clone())
         );
         assert!(!format!("{:?}", views[0]).contains("raw:"));
@@ -3320,12 +3618,15 @@ mod album_relations {
             Album::resolve_many(&mut conn, vec![albums[1].clone(), edited.clone(), edited])?;
         assert_eq!(
             batch.iter().map(|view| view.id).collect::<Vec<_>>(),
-            vec![20, 10, 10]
+            vec![albums[1].id, albums[0].id, albums[0].id]
         );
         assert_eq!(batch[1], batch[2]);
         assert_eq!(batch[1].name, "Local name");
         assert_eq!(batch[1].artist.as_ref().unwrap().name, "Second artist");
-        assert_eq!(Album::find(&mut conn, &10)?, Some(albums[0].clone()));
+        assert_eq!(
+            Album::find(&mut conn, &albums[0].id)?,
+            Some(albums[0].clone())
+        );
         Ok(())
     }
 
@@ -3336,7 +3637,7 @@ mod album_relations {
         assert!(Album::resolve_many(&mut conn, Vec::new())?.is_empty());
         assert_eq!(conn.read_stats(), reads);
         assert!(Album::find_with_relations(&mut conn, &99)?.is_none());
-        let album = NewAlbum::new(1, 0, "Unassigned").insert(&mut conn)?;
+        let album = NewAlbum::new("Unassigned").artist_id(0).insert(&mut conn)?;
         let reads = conn.read_stats();
         assert!(album.clone().resolve(&mut conn)?.artist.is_none());
         assert_eq!(conn.read_stats(), reads);
@@ -3345,9 +3646,11 @@ mod album_relations {
         let view = missing.resolve(&mut conn)?;
         assert_eq!(view.artist_id, 99);
         assert!(view.artist.is_none());
-        NewArtist::new(99, "Now present").insert(&mut conn)?;
+        let artist = NewArtist::new("Now present").insert(&mut conn)?;
+        let mut resolved = view.album;
+        resolved.artist_id = artist.id;
         assert_eq!(
-            view.album.resolve(&mut conn)?.artist.unwrap().name,
+            resolved.resolve(&mut conn)?.artist.unwrap().name,
             "Now present"
         );
         let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
@@ -3373,8 +3676,8 @@ mod album_relations {
     #[test]
     fn batch_resolution_reuses_artist_reads_without_a_page_cache() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewArtist::new(1, "Shared artist").insert(&mut conn)?;
-        NewAlbum::new(1, 1, "Album").insert(&mut conn)?;
+        NewArtist::new("Shared artist").insert(&mut conn)?;
+        NewAlbum::new("Album").artist_id(1).insert(&mut conn)?;
         let mut bytes = Vec::new();
         conn.write_to(&mut bytes)?;
         let mut single =
@@ -3404,9 +3707,9 @@ mod album_relations {
     #[test]
     fn related_errors_propagate_and_committed_artist_changes_refresh_new_views() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewArtist::new(1, "Original").insert(&mut conn)?;
-        let album = NewAlbum::new(1, 1, "Album").insert(&mut conn)?;
-        let mut bad = NewArtist::new(2, "Bad").to_binary()?;
+        NewArtist::new("Original").insert(&mut conn)?;
+        let album = NewAlbum::new("Album").artist_id(1).insert(&mut conn)?;
+        let mut bad = artist_row(2, "Bad")?;
         bad.name = DeviceSqlString::parse(&[0x90, 6, 0, 0, 0, 0xd8])?;
         let mut tx = conn.transaction();
         tx.insert(Artist::TABLE, &Row::Standard(StandardRow::Artist(bad)))?;
@@ -3423,9 +3726,7 @@ mod album_relations {
         let handle = tx.locate(Artist::TABLE, raw.page(), raw.slot().slot)?;
         tx.update(
             &handle,
-            &Row::Standard(StandardRow::Artist(
-                NewArtist::new(1, "Updated").to_binary()?,
-            )),
+            &Row::Standard(StandardRow::Artist(artist_row(1, "Updated")?)),
         )?;
         tx.commit()?;
         assert_eq!(
@@ -3436,9 +3737,7 @@ mod album_relations {
         let mut tx = conn.transaction();
         tx.insert(
             Artist::TABLE,
-            &Row::Standard(StandardRow::Artist(
-                NewArtist::new(1, "Duplicate").to_binary()?,
-            )),
+            &Row::Standard(StandardRow::Artist(artist_row(1, "Duplicate")?)),
         )?;
         tx.commit()?;
         assert!(
@@ -3459,36 +3758,36 @@ mod content_relations {
     #[test]
     fn resolves_all_roles_album_artist_and_metadata_without_losing_content() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        for (id, name) in [
+        for (_id, name) in [
             (1, "Main"),
             (2, "Remixer"),
             (3, "Original"),
             (4, "Composer"),
             (5, "Album artist"),
         ] {
-            NewArtist::new(id, name).insert(&mut conn)?;
+            NewArtist::new(name).insert(&mut conn)?;
         }
-        NewAlbum::new(10, 5, "Album").insert(&mut conn)?;
-        NewGenre::new(11, "Genre").insert(&mut conn)?;
-        NewLabel::new(12, "Label").insert(&mut conn)?;
-        NewKey::new(13, 23, "Am").insert(&mut conn)?;
+        let album = NewAlbum::new("Album").artist_id(5).insert(&mut conn)?;
+        let genre = NewGenre::new("Genre").insert(&mut conn)?;
+        let label = NewLabel::new("Label").insert(&mut conn)?;
+        let key = NewKey::new("Am", 23).insert(&mut conn)?;
         seed_color(&mut conn, 255, "Custom color")?;
-        NewArtwork::new(14, "/PIONEER/Artwork/image.jpg").insert(&mut conn)?;
-        let mut input = NewContent::new(100, "/Contents/Track.wav");
+        let artwork = NewArtwork::new("/PIONEER/Artwork/image.jpg").insert(&mut conn)?;
+        let mut input = NewContent::new("/Contents/Track.wav");
         input.artist_id = 1;
         input.remixer_id = 2;
         input.original_artist_id = 3;
         input.composer_id = 4;
-        input.album_id = 10;
-        input.genre_id = 11;
-        input.label_id = 12;
-        input.key_id = 13;
+        input.album_id = album.id;
+        input.genre_id = genre.id;
+        input.label_id = label.id;
+        input.key_id = key.id;
         input.color_id = 255;
-        input.artwork_id = 14;
+        input.artwork_id = artwork.id;
         let content = input.insert(&mut conn)?;
         let raw = content.raw_record().clone();
         let view = content.resolve(&mut conn)?;
-        assert_eq!(view.id, 100);
+        assert_eq!(view.id, 1);
         assert_eq!(view.artist.as_ref().unwrap().name, "Main");
         assert_eq!(view.remixer.as_ref().unwrap().name, "Remixer");
         assert_eq!(view.original_artist.as_ref().unwrap().name, "Original");
@@ -3505,7 +3804,7 @@ mod content_relations {
         );
         assert_eq!(view.raw_record(), &raw);
         assert_eq!(
-            Content::find_with_relations(&mut conn, &100)?,
+            Content::find_with_relations(&mut conn, &1)?,
             Some(view.clone())
         );
         assert_eq!(Content::all_with_relations(&mut conn)?, vec![view.clone()]);
@@ -3521,7 +3820,7 @@ mod content_relations {
         assert_eq!(batch[0].artist.as_ref().unwrap().name, "Remixer");
         assert_eq!(batch[1], view);
         assert_eq!(batch[0], batch[2]);
-        assert_eq!(Content::find(&mut conn, &100)?.unwrap().artist_id, 1);
+        assert_eq!(Content::find(&mut conn, &1)?.unwrap().artist_id, 1);
         Ok(())
     }
 
@@ -3532,7 +3831,7 @@ mod content_relations {
         assert!(Content::resolve_many(&mut conn, Vec::new())?.is_empty());
         assert_eq!(conn.read_stats(), reads);
         assert!(Content::find_with_relations(&mut conn, &123)?.is_none());
-        let content = NewContent::new(1, "/Contents/Track.wav").insert(&mut conn)?;
+        let content = NewContent::new("/Contents/Track.wav").insert(&mut conn)?;
         let reads = conn.read_stats();
         let empty = content.clone().resolve(&mut conn)?;
         assert_eq!(conn.read_stats(), reads);
@@ -3563,8 +3862,12 @@ mod content_relations {
         );
         assert!(view.key.is_none() && view.artwork.is_none() && view.color.is_none());
         assert_eq!(view.artist_id, 999);
-        NewAlbum::new(999, 777, "Missing artist").insert(&mut conn)?;
-        let view = view.content.resolve(&mut conn)?;
+        let album = NewAlbum::new("Missing artist")
+            .artist_id(777)
+            .insert(&mut conn)?;
+        let mut missing = view.content;
+        missing.album_id = album.id;
+        let view = missing.resolve(&mut conn)?;
         assert!(view.album.is_some() && view.album_artist.is_none());
         let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
         assert!(matches!(
@@ -3589,9 +3892,9 @@ mod content_relations {
     #[test]
     fn shared_targets_are_loaded_once_per_batch_even_without_page_cache() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewArtist::new(1, "Shared").insert(&mut conn)?;
-        NewAlbum::new(1, 1, "Album").insert(&mut conn)?;
-        let mut input = NewContent::new(1, "/Contents/Track.wav");
+        NewArtist::new("Shared").insert(&mut conn)?;
+        NewAlbum::new("Album").artist_id(1).insert(&mut conn)?;
+        let mut input = NewContent::new("/Contents/Track.wav");
         input.artist_id = 1;
         input.remixer_id = 1;
         input.original_artist_id = 1;
@@ -3628,13 +3931,13 @@ mod content_relations {
     #[test]
     fn referenced_errors_propagate_unreferenced_text_stays_lazy_and_edits_refresh() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewArtist::new(1, "Good").insert(&mut conn)?;
-        let mut bad = NewArtist::new(2, "Bad").to_binary()?;
+        NewArtist::new("Good").insert(&mut conn)?;
+        let mut bad = artist_row(2, "Bad")?;
         bad.name = DeviceSqlString::parse(&[0x90, 6, 0, 0, 0, 0xd8])?;
         let mut tx = conn.transaction();
         tx.insert(Artist::TABLE, &Row::Standard(StandardRow::Artist(bad)))?;
         tx.commit()?;
-        let mut input = NewContent::new(1, "/Contents/Track.wav");
+        let mut input = NewContent::new("/Contents/Track.wav");
         input.artist_id = 1;
         let content = input.insert(&mut conn)?;
         let old = content.clone().resolve(&mut conn)?;
@@ -3649,9 +3952,7 @@ mod content_relations {
         let h = tx.locate(Artist::TABLE, raw.page(), raw.slot().slot)?;
         tx.update(
             &h,
-            &Row::Standard(StandardRow::Artist(
-                NewArtist::new(1, "Updated").to_binary()?,
-            )),
+            &Row::Standard(StandardRow::Artist(artist_row(1, "Updated")?)),
         )?;
         tx.commit()?;
         assert_eq!(
@@ -3662,9 +3963,7 @@ mod content_relations {
         let mut tx = conn.transaction();
         tx.insert(
             Artist::TABLE,
-            &Row::Standard(StandardRow::Artist(
-                NewArtist::new(1, "Duplicate").to_binary()?,
-            )),
+            &Row::Standard(StandardRow::Artist(artist_row(1, "Duplicate")?)),
         )?;
         tx.commit()?;
         assert!(
@@ -4151,7 +4450,7 @@ mod configuration {
             (row.unknown_08, row.unknown_0a, row.separator),
             (7, 0xabcd, 0x9876)
         );
-        NewContent::new(1, "/Contents/Track.wav").insert(&mut conn)?;
+        NewContent::new("/Contents/Track.wav").insert(&mut conn)?;
         let properties = ExportProperty::all(&mut conn)?;
         assert_eq!(properties.len(), 2);
         assert!(properties
@@ -4210,8 +4509,13 @@ mod configuration {
         for (first, second) in [(10, 20), (20, 10), (10, 20), (10, 10), (30, 40)] {
             // Existing binary files can contain duplicates even though model
             // insertion now rejects them. Reads must continue to preserve them.
-            let row = NewRecommendedLike::new(first, second, u64::MAX, 0x12345678, 0xabcdef01)
-                .to_binary()?;
+            let row = recommendation_row(&NewRecommendedLike::new(
+                first,
+                second,
+                u64::MAX,
+                0x12345678,
+                0xabcdef01,
+            ));
             let mut tx = conn.transaction();
             tx.insert(
                 RecommendedLike::TABLE,
@@ -4569,10 +4873,10 @@ mod history {
         assert!(History::all(&mut conn)?.is_empty());
         assert!(History::find(&mut conn, &1)?.is_none());
         assert!(HistoryContent::by_history_id(&mut conn, &1)?.is_empty());
-        NewPlaylist::playlist(1, "Regular playlist")
+        NewPlaylist::playlist("Regular playlist")
             .seq(0)
             .insert(&mut conn)?;
-        let mut detached = NewHistory::new(1, "Session Ã©Å¸Â³Ã¦Â¥Â½").insert(&mut conn)?;
+        let mut detached = NewHistory::new("Session Ã©Å¸Â³Ã¦Â¥Â½").insert(&mut conn)?;
         detached.name = "Local edit".into();
         assert_eq!(
             History::find(&mut conn, &1)?.unwrap().name,
@@ -4582,10 +4886,10 @@ mod history {
         assert!(History::id_exists(&mut conn, &1)?);
         assert!(!History::id_exists(&mut conn, &2)?);
         assert_eq!(conn.read_stats(), reads);
-        NewHistory::new(2, "").insert(&mut conn)?;
+        NewHistory::new("").insert(&mut conn)?;
         assert!(History::id_exists(&mut conn, &2)?);
-        NewContent::new(10, "/Contents/One.wav").insert(&mut conn)?;
-        NewContent::new(20, "/Contents/Two.wav").insert(&mut conn)?;
+        NewContent::new("/Contents/One.wav").insert(&mut conn)?;
+        NewContent::new("/Contents/Two.wav").insert(&mut conn)?;
         for (playlist, track, position) in [
             (1, 10, 30),
             (1, 20, 4),
@@ -4644,24 +4948,16 @@ mod history {
     #[test]
     fn history_insert_errors_preserve_the_connection() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewHistory::new(1, "Original").insert(&mut conn)?;
+        NewHistory::new("Original").insert(&mut conn)?;
         let state = (conn.page_count(), conn.modified_page_count());
         let mut before = Vec::new();
         conn.write_to(&mut before)?;
         assert!(matches!(
-            NewHistory::new(1, "Duplicate").insert(&mut conn),
-            Err(Error::DuplicateId { id: 1, .. })
-        ));
-        assert!(matches!(
-            NewHistory::new(0, "Zero").insert(&mut conn),
-            Err(Error::InvalidModelField { field: "id", .. })
-        ));
-        assert!(matches!(
-            NewHistory::new(2, "Bad\0name").insert(&mut conn),
+            NewHistory::new("Bad\0name").insert(&mut conn),
             Err(Error::EmbeddedNul)
         ));
         assert!(matches!(
-            NewHistory::new(2, "x".repeat(5000)).insert(&mut conn),
+            NewHistory::new("x".repeat(5000)).insert(&mut conn),
             Err(Error::NoRowSpace { .. })
         ));
         assert!(matches!(
@@ -4688,7 +4984,7 @@ mod history {
             ..Default::default()
         })?;
         assert!(matches!(
-            NewHistory::new(1, "Limited").insert(&mut limited),
+            NewHistory::new("Limited").insert(&mut limited),
             Err(Error::DirtyPageLimit { .. })
         ));
         assert!(matches!(
@@ -4733,7 +5029,7 @@ mod history {
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            NewHistory::new(1, "Wrong").insert(&mut conn),
+            NewHistory::new("Wrong").insert(&mut conn),
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
@@ -4742,10 +5038,8 @@ mod history {
         ));
         assert_eq!(conn.modified_page_count(), 0);
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let regular = NewPlaylist::playlist(1, "Regular")
-            .seq(0)
-            .insert(&mut conn)?;
-        NewContent::new(10, "/test.wav").insert(&mut conn)?;
+        let regular = NewPlaylist::playlist("Regular").seq(0).insert(&mut conn)?;
+        seed_content(&mut conn, 10, "/test.wav")?;
         let entry = rbox_devlib::models::NewPlaylistContent::new(1, 10, 1).insert(&mut conn)?;
         assert!(matches!(
             History::try_from(regular.raw_record().clone()),
@@ -4761,7 +5055,7 @@ mod history {
     #[test]
     fn explicit_history_transactions_and_invalid_text_keep_context() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let mut row = NewHistory::new(1, "Name").to_binary()?;
+        let mut row = named_row(1, "Name")?;
         row.name = DeviceSqlString::parse(&[0x90, 6, 0, 0, 0, 0xd8])?;
         let mut tx = conn.transaction();
         tx.insert(
@@ -4776,9 +5070,9 @@ mod history {
         let mut tx = conn.transaction();
         let handle = tx.insert(
             HistoryContent::TABLE,
-            &Row::Standard(StandardRow::HistoryEntry(
-                NewHistoryContent::new(1, 20, 9).to_binary()?,
-            )),
+            &Row::Standard(StandardRow::HistoryEntry(history_entry_row(
+                &NewHistoryContent::new(1, 20, 9),
+            ))),
         )?;
         let model = HistoryContent::try_from(tx.read(&handle)?)?;
         assert_eq!((model.history_id, model.content_id, model.seq), (1, 20, 9));
@@ -4833,7 +5127,7 @@ mod tags {
         let mut tx = conn.transaction();
         let handle = tx.insert(
             MyTag::TABLE,
-            &Row::Extended(ExtendedRow::MyTag(input.to_binary()?)),
+            &Row::Extended(ExtendedRow::MyTag(my_tag_row(&input)?)),
         )?;
         let model = MyTag::try_from(tx.read(&handle)?)?;
         tx.commit()?;
@@ -5102,7 +5396,7 @@ mod tags {
     #[test]
     fn binary_transactions_preserve_reserved_values_and_report_bad_tag_text() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Extended)?;
-        let mut row = NewMyTag::tag(2, "Name").parent_id(1).seq(0).to_binary()?;
+        let mut row = my_tag_row(&NewMyTag::tag(2, "Name").parent_id(1).seq(0))?;
         row.name = DeviceSqlString::parse(&[0x90, 6, 0, 0, 0, 0xd8])?;
         let mut tx = conn.transaction();
         tx.insert(MyTag::TABLE, &Row::Extended(ExtendedRow::MyTag(row)))?;
@@ -5115,7 +5409,7 @@ mod tags {
         input.unknown_00 = 0xabcdef;
         input.reserved_string_marker = 5;
         input.reserved_tail = [3, 2, 1];
-        let row = input.to_binary()?;
+        let row = tag_content_row(&input);
         let mut tx = conn.transaction();
         let handle = tx.insert(
             MyTagContent::TABLE,
@@ -5161,15 +5455,15 @@ mod playlists {
     #[test]
     fn ordered_tree_insertions_moves_queries_and_bulk_deletion() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewPlaylist::folder(1, "Root").insert(&mut conn)?;
-        NewPlaylist::folder(2, "Other").insert(&mut conn)?;
-        NewPlaylist::folder(3, "Nested")
+        NewPlaylist::folder("Root").insert(&mut conn)?;
+        NewPlaylist::folder("Other").insert(&mut conn)?;
+        NewPlaylist::folder("Nested")
             .parent_id(1)
             .insert(&mut conn)?;
-        NewPlaylist::playlist(4, "Last")
+        NewPlaylist::playlist("Last")
             .parent_id(1)
             .insert(&mut conn)?;
-        let mut input = NewPlaylist::playlist(5, "Middle").parent_id(1).seq(1);
+        let mut input = NewPlaylist::playlist("Middle").parent_id(1).seq(1);
         input.unknown_04 = 0xaabbccdd;
         input.insert(&mut conn)?;
         assert_eq!(children(&mut conn, 1)?, [3, 5, 4]);
@@ -5233,14 +5527,14 @@ mod playlists {
     #[test]
     fn invalid_tree_mutations_are_atomic_and_paths_report_ambiguity() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewPlaylist::folder(1, "Root").insert(&mut conn)?;
-        NewPlaylist::folder(2, "Nested")
+        NewPlaylist::folder("Root").insert(&mut conn)?;
+        NewPlaylist::folder("Nested")
             .parent_id(1)
             .insert(&mut conn)?;
-        NewPlaylist::playlist(3, "List")
+        NewPlaylist::playlist("List")
             .parent_id(1)
             .insert(&mut conn)?;
-        NewPlaylist::playlist(4, "List")
+        NewPlaylist::playlist("List")
             .parent_id(1)
             .insert(&mut conn)?;
         assert!(Playlist::find_by_path(&mut conn, &["Root", "List"])?.is_none());
@@ -5252,11 +5546,11 @@ mod playlists {
         assert!(Playlist::move_all_to(&mut conn, &[2, 2], &0, None).is_err());
         assert!(Playlist::delete_all(&mut conn, &[2, 99]).is_err());
         assert!(Playlist::delete_all(&mut conn, &[2, 2]).is_err());
-        assert!(NewPlaylist::playlist(5, "Invalid")
+        assert!(NewPlaylist::playlist("Invalid")
             .parent_id(3)
             .insert(&mut conn)
             .is_err());
-        assert!(NewPlaylist::playlist(5, "Cycle")
+        assert!(NewPlaylist::playlist("Cycle")
             .parent_id(5)
             .insert(&mut conn)
             .is_err());
@@ -5269,14 +5563,16 @@ mod playlists {
         assert_eq!(bytes(&mut conn)?, before);
         raw_node(
             &mut conn,
-            NewPlaylist::folder(9, "Cycle").parent_id(9).seq(0),
+            9,
+            NewPlaylist::folder("Cycle").parent_id(9).seq(0),
         )?;
         assert!(Playlist::tree(&mut conn).is_err());
         assert!(Playlist::find_by_path(&mut conn, &["Cycle"]).is_err());
         assert_eq!(Playlist::delete(&mut conn, &9)?, 1);
         raw_node(
             &mut conn,
-            NewPlaylist::playlist(9, "Orphan").parent_id(99).seq(0),
+            9,
+            NewPlaylist::playlist("Orphan").parent_id(99).seq(0),
         )?;
         assert!(Playlist::tree(&mut conn).is_err());
         Ok(())
@@ -5285,11 +5581,11 @@ mod playlists {
     #[test]
     fn ordered_contents_queries_moves_and_bulk_deletion() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        for id in [1, 2] {
-            NewPlaylist::playlist(id, "List").insert(&mut conn)?;
+        for _ in [1, 2] {
+            NewPlaylist::playlist("List").insert(&mut conn)?;
         }
         for id in 10..14 {
-            NewContent::new(id, format!("/{id}.wav")).insert(&mut conn)?;
+            seed_content(&mut conn, id, format!("/{id}.wav"))?;
         }
         for id in [10, 11, 12] {
             NewPlaylistContent::new(1, id, None).insert(&mut conn)?;
@@ -5370,9 +5666,9 @@ mod playlists {
     #[test]
     fn imported_positions_can_be_reset_without_losing_duplicate_occurrences() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        raw_node(&mut conn, NewPlaylist::playlist(1, "Later").seq(9))?;
-        raw_node(&mut conn, NewPlaylist::playlist(2, "Earlier").seq(4))?;
-        raw_node(&mut conn, NewPlaylist::playlist(3, "Tied").seq(4))?;
+        raw_node(&mut conn, 1, NewPlaylist::playlist("Later").seq(9))?;
+        raw_node(&mut conn, 2, NewPlaylist::playlist("Earlier").seq(4))?;
+        raw_node(&mut conn, 3, NewPlaylist::playlist("Tied").seq(4))?;
         assert!(!Playlist::validate_seq_numbers(&mut conn, &0)?);
         assert_eq!(Playlist::reset_seq(&mut conn, &0)?, 3);
         assert_eq!(children(&mut conn, 0)?, [2, 3, 1]);
@@ -5400,17 +5696,17 @@ mod playlists {
     #[test]
     fn multi_page_moves_rollback_on_resource_limits_and_preserve_other_tables() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewPlaylist::playlist(1, "List").insert(&mut conn)?;
-        NewContent::new(1, "/keep.wav").insert(&mut conn)?;
+        NewPlaylist::playlist("List").insert(&mut conn)?;
+        NewContent::new("/keep.wav").insert(&mut conn)?;
         let content = Content::find(&mut conn, &1)?.unwrap();
         let mut tx = conn.transaction();
         // Binary setup isolates ordering from content insertion and allocation costs.
         for id in 1..=600 {
             tx.insert(
                 PlaylistContent::TABLE,
-                &Row::Standard(StandardRow::PlaylistEntry(
-                    NewPlaylistContent::new(1, id, id).to_binary()?,
-                )),
+                &Row::Standard(StandardRow::PlaylistEntry(playlist_entry_row(
+                    &NewPlaylistContent::new(1, id, id),
+                ))),
             )?;
         }
         tx.commit()?;
@@ -5507,12 +5803,13 @@ mod playlists {
 
     fn raw_node(
         conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>,
+        id: u32,
         input: NewPlaylist,
     ) -> Result<Playlist> {
         let mut tx = conn.transaction();
         let handle = tx.insert(
             Playlist::TABLE,
-            &Row::Standard(StandardRow::PlaylistTree(input.to_binary()?)),
+            &Row::Standard(StandardRow::PlaylistTree(playlist_row(id, &input)?)),
         )?;
         let row = Playlist::try_from(tx.read(&handle)?)?;
         tx.commit()?;
@@ -5526,7 +5823,7 @@ mod playlists {
         let mut tx = conn.transaction();
         let handle = tx.insert(
             PlaylistContent::TABLE,
-            &Row::Standard(StandardRow::PlaylistEntry(input.to_binary()?)),
+            &Row::Standard(StandardRow::PlaylistEntry(playlist_entry_row(&input))),
         )?;
         let row = PlaylistContent::try_from(tx.read(&handle)?)?;
         tx.commit()?;
@@ -5536,10 +5833,10 @@ mod playlists {
     #[test]
     fn content_pairs_are_unique_regardless_of_sequence() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewPlaylist::playlist(1, "First").insert(&mut conn)?;
-        NewPlaylist::playlist(2, "Second").insert(&mut conn)?;
-        NewContent::new(10, "/10.wav").insert(&mut conn)?;
-        NewContent::new(20, "/20.wav").insert(&mut conn)?;
+        NewPlaylist::playlist("First").insert(&mut conn)?;
+        NewPlaylist::playlist("Second").insert(&mut conn)?;
+        seed_content(&mut conn, 10, "/10.wav")?;
+        seed_content(&mut conn, 20, "/20.wav")?;
         let first = NewPlaylistContent::new(1, 10, 1).insert(&mut conn)?;
         NewPlaylistContent::new(2, 10, 1).insert(&mut conn)?;
         NewPlaylistContent::new(1, 20, 2).insert(&mut conn)?;
@@ -5580,9 +5877,9 @@ mod playlists {
         assert!(Playlist::by_parent_id(&mut conn, &0)?.is_empty());
         assert!(PlaylistContent::all(&mut conn)?.is_empty());
 
-        let mut folder = NewPlaylist::folder(1, "Ã©Å¸Â³Ã¦Â¥Â½ Ã°Å¸Å½Âµ").seq(50);
+        let mut folder = NewPlaylist::folder("Ã©Å¸Â³Ã¦Â¥Â½ Ã°Å¸Å½Âµ").seq(50);
         folder.unknown_04 = 0xaabbccdd;
-        let folder = raw_node(&mut conn, folder)?;
+        let folder = raw_node(&mut conn, 1, folder)?;
         assert!(folder.is_folder());
         assert_eq!(folder.attribute, PlaylistType::Folder);
         assert_eq!(folder.name, "Ã©Å¸Â³Ã¦Â¥Â½ Ã°Å¸Å½Âµ");
@@ -5592,17 +5889,20 @@ mod playlists {
         assert_eq!(row.unknown_04, 0xaabbccdd);
         let later = raw_node(
             &mut conn,
-            NewPlaylist::playlist(2, "Later").parent_id(1).seq(20),
+            2,
+            NewPlaylist::playlist("Later").parent_id(1).seq(20),
         )?;
         raw_node(
             &mut conn,
-            NewPlaylist::playlist(3, "Earlier").parent_id(1).seq(4),
+            3,
+            NewPlaylist::playlist("Earlier").parent_id(1).seq(4),
         )?;
         raw_node(
             &mut conn,
-            NewPlaylist::playlist(4, "Tied").parent_id(1).seq(4),
+            4,
+            NewPlaylist::playlist("Tied").parent_id(1).seq(4),
         )?;
-        raw_node(&mut conn, NewPlaylist::playlist(5, "Root playlist").seq(1))?;
+        raw_node(&mut conn, 5, NewPlaylist::playlist("Root playlist").seq(1))?;
         assert!(!later.is_folder());
         assert_eq!(
             Playlist::by_parent_id(&mut conn, &1)?
@@ -5647,12 +5947,10 @@ mod playlists {
     #[test]
     fn repeated_occurrences_and_position_ties_survive_save_and_reopen() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewPlaylist::playlist(1, "Playlist")
-            .seq(0)
-            .insert(&mut conn)?;
-        NewPlaylist::playlist(2, "Other").seq(1).insert(&mut conn)?;
-        NewContent::new(10, "/Contents/One.wav").insert(&mut conn)?;
-        NewContent::new(20, "/Contents/Two.wav").insert(&mut conn)?;
+        NewPlaylist::playlist("Playlist").seq(0).insert(&mut conn)?;
+        NewPlaylist::playlist("Other").seq(1).insert(&mut conn)?;
+        seed_content(&mut conn, 10, "/Contents/One.wav")?;
+        seed_content(&mut conn, 20, "/Contents/Two.wav")?;
         let late = raw_entry(&mut conn, NewPlaylistContent::new(1, 10, 30))?;
         let first_tie = raw_entry(&mut conn, NewPlaylistContent::new(1, 20, 4))?;
         // Bypass the model constraint to test lossless reads of existing duplicates.
@@ -5661,9 +5959,9 @@ mod playlists {
         for seq in [4, 4, 0] {
             let handle = tx.insert(
                 PlaylistContent::TABLE,
-                &Row::Standard(StandardRow::PlaylistEntry(
-                    NewPlaylistContent::new(1, 10, seq).to_binary()?,
-                )),
+                &Row::Standard(StandardRow::PlaylistEntry(playlist_entry_row(
+                    &NewPlaylistContent::new(1, 10, seq),
+                ))),
             )?;
             duplicates.push(PlaylistContent::try_from(tx.read(&handle)?)?);
         }
@@ -5733,29 +6031,17 @@ mod playlists {
     #[test]
     fn rejected_playlist_insertions_leave_existing_pages_unchanged() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewPlaylist::playlist(1, "Original")
-            .seq(0)
-            .insert(&mut conn)?;
+        NewPlaylist::playlist("Original").seq(0).insert(&mut conn)?;
         let mut before = Vec::new();
         conn.write_to(&mut before)?;
         let pages = conn.page_count();
         let dirty = conn.modified_page_count();
         assert!(matches!(
-            NewPlaylist::folder(1, "Duplicate").seq(2).insert(&mut conn),
-            Err(Error::DuplicateId { id: 1, .. })
-        ));
-        assert!(matches!(
-            NewPlaylist::playlist(0, "Zero").seq(1).insert(&mut conn),
-            Err(Error::InvalidModelField { field: "id", .. })
-        ));
-        assert!(matches!(
-            NewPlaylist::playlist(2, "Bad\0name")
-                .seq(1)
-                .insert(&mut conn),
+            NewPlaylist::playlist("Bad\0name").seq(1).insert(&mut conn),
             Err(Error::EmbeddedNul)
         ));
         assert!(matches!(
-            NewPlaylist::playlist(2, "x".repeat(5000))
+            NewPlaylist::playlist("x".repeat(5000))
                 .seq(1)
                 .insert(&mut conn),
             Err(Error::NoRowSpace { .. })
@@ -5784,8 +6070,8 @@ mod playlists {
         assert!(PlaylistContent::all(&mut conn)?.is_empty());
 
         let mut limited = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        NewPlaylist::playlist(2, "Existing").insert(&mut limited)?;
-        NewContent::new(1, "/test.wav").insert(&mut limited)?;
+        NewPlaylist::playlist("Existing").insert(&mut limited)?;
+        NewContent::new("/test.wav").insert(&mut limited)?;
         let mut saved = Vec::new();
         limited.write_to(&mut saved)?;
         let mut limited =
@@ -5795,13 +6081,11 @@ mod playlists {
             ..Default::default()
         })?;
         assert!(matches!(
-            NewPlaylist::playlist(1, "Limited")
-                .seq(0)
-                .insert(&mut limited),
+            NewPlaylist::playlist("Limited").seq(0).insert(&mut limited),
             Err(Error::DirtyPageLimit { .. })
         ));
         assert!(matches!(
-            NewPlaylistContent::new(2, 1, 1).insert(&mut limited),
+            NewPlaylistContent::new(1, 1, 1).insert(&mut limited),
             Err(Error::DirtyPageLimit { .. })
         ));
         assert_eq!(limited.modified_page_count(), 0);
@@ -5892,7 +6176,7 @@ mod playlists {
             Err(Error::WrongDatabaseKind { .. })
         ));
         assert!(matches!(
-            NewPlaylist::playlist(1, "Wrong namespace")
+            NewPlaylist::playlist("Wrong namespace")
                 .seq(1)
                 .insert(&mut conn),
             Err(Error::WrongDatabaseKind { .. })
@@ -5903,8 +6187,8 @@ mod playlists {
         ));
         assert_eq!(conn.modified_page_count(), 0);
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let node = NewPlaylist::playlist(1, "Node").seq(0).insert(&mut conn)?;
-        NewContent::new(1, "/test.wav").insert(&mut conn)?;
+        let node = NewPlaylist::playlist("Node").seq(0).insert(&mut conn)?;
+        NewContent::new("/test.wav").insert(&mut conn)?;
         let entry = NewPlaylistContent::new(1, 1, 1).insert(&mut conn)?;
         assert!(matches!(
             Playlist::try_from(entry.raw_record().clone()),
@@ -5920,7 +6204,7 @@ mod playlists {
     #[test]
     fn binary_transactions_remain_explicit_and_bad_name_text_is_contextual() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let mut row = NewPlaylist::playlist(1, "Name").seq(1).to_binary()?;
+        let mut row = playlist_row(1, &NewPlaylist::playlist("Name").seq(1))?;
         row.name = DeviceSqlString::parse(&[0x90, 6, 0, 0, 0, 0xd8])?;
         let mut tx = conn.transaction();
         tx.insert(
@@ -5935,9 +6219,9 @@ mod playlists {
         let mut tx = conn.transaction();
         let handle = tx.insert(
             PlaylistContent::TABLE,
-            &Row::Standard(StandardRow::PlaylistEntry(
-                NewPlaylistContent::new(1, 10, 7).to_binary()?,
-            )),
+            &Row::Standard(StandardRow::PlaylistEntry(playlist_entry_row(
+                &NewPlaylistContent::new(1, 10, 7),
+            ))),
         )?;
         let staged = PlaylistContent::try_from(tx.read(&handle)?)?;
         assert_eq!(
@@ -5962,7 +6246,7 @@ mod catalog {
 
     struct Case {
         table: TableKind,
-        insert: fn(&mut MemoryConnection, u32, &str) -> Result<RowRecord>,
+        insert: fn(&mut MemoryConnection, &str) -> Result<RowRecord>,
         find: fn(&mut MemoryConnection, u32) -> Result<Option<RowRecord>>,
         all: fn(&mut MemoryConnection) -> Result<Vec<RowRecord>>,
         exists: fn(&mut MemoryConnection, u32) -> Result<bool>,
@@ -5974,9 +6258,7 @@ mod catalog {
         vec![
             Case {
                 table: Artist::TABLE,
-                insert: |conn, id, value| {
-                    Ok(NewArtist::new(id, value).insert(conn)?.raw_record().clone())
-                },
+                insert: |conn, value| Ok(NewArtist::new(value).insert(conn)?.raw_record().clone()),
                 find: |conn, id| {
                     Ok(Artist::find(conn, &id)?.map(|model| model.raw_record().clone()))
                 },
@@ -5995,8 +6277,9 @@ mod catalog {
             },
             Case {
                 table: Album::TABLE,
-                insert: |conn, id, value| {
-                    Ok(NewAlbum::new(id, 73, value)
+                insert: |conn, value| {
+                    Ok(NewAlbum::new(value)
+                        .artist_id(73)
                         .insert(conn)?
                         .raw_record()
                         .clone())
@@ -6017,9 +6300,7 @@ mod catalog {
             },
             Case {
                 table: Genre::TABLE,
-                insert: |conn, id, value| {
-                    Ok(NewGenre::new(id, value).insert(conn)?.raw_record().clone())
-                },
+                insert: |conn, value| Ok(NewGenre::new(value).insert(conn)?.raw_record().clone()),
                 find: |conn, id| Ok(Genre::find(conn, &id)?.map(|model| model.raw_record().clone())),
                 all: |conn| {
                     Ok(Genre::all(conn)?
@@ -6036,9 +6317,7 @@ mod catalog {
             },
             Case {
                 table: Label::TABLE,
-                insert: |conn, id, value| {
-                    Ok(NewLabel::new(id, value).insert(conn)?.raw_record().clone())
-                },
+                insert: |conn, value| Ok(NewLabel::new(value).insert(conn)?.raw_record().clone()),
                 find: |conn, id| Ok(Label::find(conn, &id)?.map(|model| model.raw_record().clone())),
                 all: |conn| {
                     Ok(Label::all(conn)?
@@ -6055,12 +6334,7 @@ mod catalog {
             },
             Case {
                 table: Key::TABLE,
-                insert: |conn, id, value| {
-                    Ok(NewKey::new(id, 91, value)
-                        .insert(conn)?
-                        .raw_record()
-                        .clone())
-                },
+                insert: |conn, value| Ok(NewKey::new(value, 91).insert(conn)?.raw_record().clone()),
                 find: |conn, id| Ok(Key::find(conn, &id)?.map(|model| model.raw_record().clone())),
                 all: |conn| {
                     Ok(Key::all(conn)?
@@ -6077,12 +6351,7 @@ mod catalog {
             },
             Case {
                 table: Artwork::TABLE,
-                insert: |conn, id, value| {
-                    Ok(NewArtwork::new(id, value)
-                        .insert(conn)?
-                        .raw_record()
-                        .clone())
-                },
+                insert: |conn, value| Ok(NewArtwork::new(value).insert(conn)?.raw_record().clone()),
                 find: |conn, id| {
                     Ok(Artwork::find(conn, &id)?.map(|model| model.raw_record().clone()))
                 },
@@ -6111,21 +6380,21 @@ mod catalog {
             (case.lazy)(&mut conn)?;
             assert_eq!(conn.read_stats(), before);
             assert!((case.all)(&mut conn)?.is_empty());
-            assert!((case.find)(&mut conn, 7)?.is_none());
+            assert!((case.find)(&mut conn, 1)?.is_none());
 
-            let first = (case.insert)(&mut conn, 7, &value)?;
+            let first = (case.insert)(&mut conn, &value)?;
             assert_eq!(first.table(), case.table);
             assert_eq!((case.decode)(first.clone())?, value);
-            assert_eq!((case.find)(&mut conn, 7)?, Some(first));
+            assert_eq!((case.find)(&mut conn, 1)?, Some(first));
             let before = conn.read_stats();
-            assert!((case.exists)(&mut conn, 7)?);
+            assert!((case.exists)(&mut conn, 1)?);
             assert!(!(case.exists)(&mut conn, 999)?);
             assert_eq!(conn.read_stats(), before);
 
-            (case.insert)(&mut conn, 11, "Second")?;
+            (case.insert)(&mut conn, "Second")?;
             assert_eq!((case.all)(&mut conn)?.len(), 2);
             assert_eq!(
-                (case.decode)((case.find)(&mut conn, 11)?.unwrap())?,
+                (case.decode)((case.find)(&mut conn, 2)?.unwrap())?,
                 "Second"
             );
         }
@@ -6136,7 +6405,7 @@ mod catalog {
         for case in cases() {
             assert_eq!((case.all)(&mut reopened)?.len(), 2);
             assert_eq!(
-                (case.decode)((case.find)(&mut reopened, 7)?.unwrap())?,
+                (case.decode)((case.find)(&mut reopened, 1)?.unwrap())?,
                 value
             );
         }
@@ -6147,23 +6416,23 @@ mod catalog {
     fn duplicate_invalid_and_oversized_insertions_are_atomic() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
         for case in cases() {
-            (case.insert)(&mut conn, 7, "Existing")?;
+            (case.insert)(&mut conn, "Existing")?;
             let mut before = Vec::new();
             conn.write_to(&mut before)?;
             let pages = conn.page_count();
             let dirty = conn.modified_page_count();
-            assert!(matches!((case.insert)(&mut conn, 7, "Duplicate"),
-                Err(Error::DuplicateId { table, id: 7 }) if table == case.table));
+            if case.table != Artwork::TABLE {
+                assert!(matches!(
+                    (case.insert)(&mut conn, "Existing"),
+                    Err(Error::UniqueConstraintViolation { .. })
+                ));
+            }
             assert!(matches!(
-                (case.insert)(&mut conn, 0, "Zero"),
-                Err(Error::InvalidModelField { field: "id", .. })
-            ));
-            assert!(matches!(
-                (case.insert)(&mut conn, 8, "Bad\0text"),
+                (case.insert)(&mut conn, "Bad\0text"),
                 Err(Error::EmbeddedNul)
             ));
             assert!(matches!(
-                (case.insert)(&mut conn, 8, &"x".repeat(5000)),
+                (case.insert)(&mut conn, &"x".repeat(5000)),
                 Err(Error::NoRowSpace { .. })
             ));
             assert_eq!(
@@ -6173,10 +6442,11 @@ mod catalog {
             let mut after = Vec::new();
             conn.write_to(&mut after)?;
             assert_eq!(after, before);
-            assert!(!(case.exists)(&mut conn, 8)?);
+            let next_id = 2;
+            assert!(!(case.exists)(&mut conn, next_id)?);
         }
         assert!(matches!(
-            NewArtwork::new(8, "").insert(&mut conn),
+            NewArtwork::new("").insert(&mut conn),
             Err(Error::InvalidModelField { field: "path", .. })
         ));
         Ok(())
@@ -6185,7 +6455,7 @@ mod catalog {
     #[test]
     fn all_catalog_models_reject_extended_connections_and_other_tables() -> Result<()> {
         let mut standard = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let track = NewContent::new(1, "/Contents/One.wav").insert(&mut standard)?;
+        let track = NewContent::new("/Contents/One.wav").insert(&mut standard)?;
         let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
         for case in cases() {
             assert!(matches!(
@@ -6205,7 +6475,7 @@ mod catalog {
                 Err(Error::WrongDatabaseKind { .. })
             ));
             assert!(matches!(
-                (case.insert)(&mut extended, 1, "Name"),
+                (case.insert)(&mut extended, "Name"),
                 Err(Error::WrongDatabaseKind { .. })
             ));
             assert!(matches!(
@@ -6249,16 +6519,15 @@ mod catalog {
     #[test]
     fn independent_ids_reserved_values_and_far_layouts_survive() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let mut artist = NewArtist::new(73, "Artist").to_binary()?;
+        let mut artist = artist_row(73, "Artist")?;
         artist.header.subtype = ArtistHeader::FAR_SUBTYPE;
         artist.strings = StringOffsets::Far {
             marker: 5,
             offsets: [0],
         };
-        let mut album = NewAlbum::new(9, 73, "Album");
-        album.unknown_04 = 0xaabbccdd;
-        album.unknown_10 = 0x11223344;
-        let mut album = album.to_binary()?;
+        let mut album = album_row(9, 73, "Album")?;
+        album.header.unknown_04 = 0xaabbccdd;
+        album.header.unknown_10 = 0x11223344;
         album.header.subtype = AlbumHeader::FAR_SUBTYPE;
         album.strings = StringOffsets::Far {
             marker: 7,
@@ -6286,8 +6555,8 @@ mod catalog {
         album.name = "Detached edit".into();
         assert_eq!(Album::find(&mut conn, &9)?.unwrap().name, "Album");
 
-        let key = NewKey::new(5, 91, "Am").insert(&mut conn)?;
-        assert_eq!((key.id, key.secondary_id), (5, 91));
+        let key = NewKey::new("Am", 91).insert(&mut conn)?;
+        assert_eq!((key.id, key.secondary_id), (1, 91));
         let mut color = rbox_devlib::binary::ColorRow {
             id: 0x1234,
             name: DeviceSqlString::encode("Custom color", StringEncoding::ShortAscii)?,
@@ -6317,7 +6586,7 @@ mod catalog {
     fn malformed_catalog_text_keeps_id_lookup_and_reports_field_context() -> Result<()> {
         for case in cases() {
             let mut source = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-            let original = (case.insert)(&mut source, 7, "Good text")?;
+            let original = (case.insert)(&mut source, "Good text")?;
             let mut row = original.decode()?;
             let name = match &mut row {
                 Row::Standard(StandardRow::Artist(row)) => &mut row.name,
@@ -6334,9 +6603,9 @@ mod catalog {
             let mut tx = conn.transaction();
             tx.insert(case.table, &row)?;
             tx.commit()?;
-            assert!((case.exists)(&mut conn, 7)?);
+            assert!((case.exists)(&mut conn, 1)?);
             assert!(
-                matches!((case.find)(&mut conn, 7), Err(Error::ModelText { table, source, field, .. })
+                matches!((case.find)(&mut conn, 1), Err(Error::ModelText { table, source, field, .. })
                 if table == case.table && matches!(*source, Error::InvalidUtf16)
                 && field == if table == Artwork::TABLE { "path" } else { "name" })
             );
@@ -6347,14 +6616,16 @@ mod catalog {
     #[test]
     fn tracks_can_reference_all_fresh_catalog_models() -> Result<()> {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-        let artist = NewArtist::new(1, "Artist").insert(&mut conn)?;
-        let album = NewAlbum::new(2, artist.id, "Album").insert(&mut conn)?;
-        let genre = NewGenre::new(3, "House").insert(&mut conn)?;
-        let label = NewLabel::new(4, "Label").insert(&mut conn)?;
-        let key = NewKey::new(5, 23, "Am").insert(&mut conn)?;
+        let artist = NewArtist::new("Artist").insert(&mut conn)?;
+        let album = NewAlbum::new("Album")
+            .artist_id(artist.id)
+            .insert(&mut conn)?;
+        let genre = NewGenre::new("House").insert(&mut conn)?;
+        let label = NewLabel::new("Label").insert(&mut conn)?;
+        let key = NewKey::new("Am", 23).insert(&mut conn)?;
         let color = seed_color(&mut conn, 6, "Blue")?;
-        let artwork = NewArtwork::new(7, "/PIONEER/Artwork/00001/a7.jpg").insert(&mut conn)?;
-        let mut track = NewContent::new(8, "/Contents/Track.flac");
+        let artwork = NewArtwork::new("/PIONEER/Artwork/00001/a7.jpg").insert(&mut conn)?;
+        let mut track = NewContent::new("/Contents/Track.flac");
         track.artist_id = artist.id;
         track.album_id = album.id;
         track.genre_id = genre.id;
@@ -6623,7 +6894,7 @@ fn fresh_insertions_allocate_rows_and_maintain_counts_without_input_pdbs() -> Re
     let mut conn = DeviceSqlConnection::create_with_options(DatabaseKind::Standard, &options)?;
     let original_pages = conn.page_count();
     for id in 1..=24 {
-        let mut input = NewContent::new(id, format!("/Contents/Artist/Track {id}.flac"));
+        let mut input = NewContent::new(format!("/Contents/Artist/Track {id}.flac"));
         input.title = format!("Ã©Å¸Â³Ã¦Â¥Â½ Ã°Å¸Å½Âµ {id}");
         input.comment = "Long ASCII comment. ".repeat(10);
         input.bpmx100 = 12850;
@@ -6664,8 +6935,8 @@ fn fresh_insertions_allocate_rows_and_maintain_counts_without_input_pdbs() -> Re
 
 #[test]
 fn fresh_track_policy_is_explicit_and_overridable() -> Result<()> {
-    let mut input = NewContent::new(7, "/Contents/Test.wav");
-    let row = input.to_binary()?;
+    let mut input = NewContent::new("/Contents/Test.wav");
+    let row = content_row(1, &input)?;
     assert_eq!(row.header.content_link, 0x000c0700);
     assert_eq!(row.header.raw_analysis, 0x29);
     assert_eq!(row.text.unknown_02.text()?, "1");
@@ -6700,24 +6971,16 @@ fn fresh_track_policy_is_explicit_and_overridable() -> Result<()> {
 #[test]
 fn rejected_new_tracks_leave_existing_rows_and_pages_unchanged() -> Result<()> {
     let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-    NewContent::new(1, "/Contents/Existing.wav").insert(&mut conn)?;
+    NewContent::new("/Contents/Existing.wav").insert(&mut conn)?;
     let mut before = Vec::new();
     conn.write_to(&mut before)?;
     let pages = conn.page_count();
     let dirty = conn.modified_page_count();
     assert!(matches!(
-        NewContent::new(1, "/duplicate.wav").insert(&mut conn),
-        Err(Error::DuplicateId { id: 1, .. })
-    ));
-    assert!(matches!(
-        NewContent::new(0, "/invalid.wav").insert(&mut conn),
-        Err(Error::InvalidModelField { field: "id", .. })
-    ));
-    assert!(matches!(
-        NewContent::new(2, "").insert(&mut conn),
+        NewContent::new("").insert(&mut conn),
         Err(Error::InvalidModelField { field: "path", .. })
     ));
-    let mut invalid = NewContent::new(2, "/Contents/Invalid.wav");
+    let mut invalid = NewContent::new("/Contents/Invalid.wav");
     invalid.title = "embedded\0NUL".into();
     assert!(matches!(
         invalid.clone().insert(&mut conn),
@@ -6746,7 +7009,7 @@ fn rejected_new_tracks_leave_existing_rows_and_pages_unchanged() -> Result<()> {
 
     let mut extended = DeviceSqlConnection::create(DatabaseKind::Extended)?;
     assert!(matches!(
-        NewContent::new(2, "/Contents/Invalid.wav").insert(&mut extended),
+        NewContent::new("/Contents/Invalid.wav").insert(&mut extended),
         Err(Error::WrongDatabaseKind { .. })
     ));
     assert_eq!(extended.modified_page_count(), 0);
@@ -6772,7 +7035,7 @@ fn property_failure_rolls_back_the_already_staged_track() -> Result<()> {
         DeviceSqlConnection::from_reader(Cursor::new(bytes.clone()), DatabaseKind::Standard)?;
     let pages = conn.page_count();
     assert!(matches!(
-        NewContent::new(1, "/Contents/Track.wav").insert(&mut conn),
+        NewContent::new("/Contents/Track.wav").insert(&mut conn),
         Err(Error::UnsupportedModelRow { .. })
     ));
     assert!(Content::all(&mut conn)?.is_empty());
@@ -6789,11 +7052,11 @@ fn fresh_tracks_persist_and_support_later_insertions() -> Result<()> {
     let temporary = create_temp_dir();
     let path = temporary.path().join("export.pdb");
     let mut fresh = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-    NewContent::new(1, "/Contents/One.wav").insert(&mut fresh)?;
+    NewContent::new("/Contents/One.wav").insert(&mut fresh)?;
     fresh.save_as(&path)?;
     let mut reopened = DeviceSqlConnection::open(&path, DatabaseKind::Standard)?;
     assert!(Content::id_exists(&mut reopened, &1)?);
-    NewContent::new(2, "/Contents/Two.wav").insert(&mut reopened)?;
+    NewContent::new("/Contents/Two.wav").insert(&mut reopened)?;
     reopened.save_pages()?;
     drop(reopened);
     let mut reopened = DeviceSqlConnection::open(&path, DatabaseKind::Standard)?;
@@ -6806,13 +7069,13 @@ fn fresh_tracks_persist_and_support_later_insertions() -> Result<()> {
 }
 
 #[test]
-fn new_tracks_can_be_used_in_explicit_binary_transactions() -> Result<()> {
+fn binary_track_rows_support_explicit_transactions() -> Result<()> {
     let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-    let input = NewContent::new(1, "/Contents/Track.wav");
+    let input = NewContent::new("/Contents/Track.wav");
     let mut tx = conn.transaction();
     let handle = tx.insert(
         Content::TABLE,
-        &Row::Standard(StandardRow::Track(input.to_binary()?)),
+        &Row::Standard(StandardRow::Track(content_row(1, &input)?)),
     )?;
     assert_eq!(Content::try_from(tx.read(&handle)?)?.id, 1);
     tx.rollback();
@@ -6825,12 +7088,12 @@ fn shared_track_conversion_resolves_names_and_preserves_metadata() -> Result<()>
     use rbox_core::{Track, TrackSource};
     use rbox_devlib::models::{NewAlbum, NewArtist, NewArtwork};
     let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-    let artist = NewArtist::new(1, "Artist").insert(&mut conn)?;
-    let album_artist = NewArtist::new(2, "Album artist").insert(&mut conn)?;
-    let album = NewAlbum::new(3, album_artist.id, "Album");
+    let artist = NewArtist::new("Artist").insert(&mut conn)?;
+    let album_artist = NewArtist::new("Album artist").insert(&mut conn)?;
+    let album = NewAlbum::new("Album").artist_id(album_artist.id);
     let album = album.insert(&mut conn)?;
-    let artwork = NewArtwork::new(4, "/art.jpg").insert(&mut conn)?;
-    let mut input = NewContent::new(10, "/Contents/track.wav");
+    let artwork = NewArtwork::new("/art.jpg").insert(&mut conn)?;
+    let mut input = NewContent::new("/Contents/track.wav");
     input.artist_id = artist.id;
     input.album_id = album.id;
     input.artwork_id = artwork.id;
@@ -6858,7 +7121,6 @@ fn shared_track_conversion_resolves_names_and_preserves_metadata() -> Result<()>
     assert!(track.date_created.is_none());
     assert!(track.genre.is_none());
     let mapped = NewContent::try_from(track)?;
-    assert_eq!(mapped.id, input.id);
     assert_eq!(mapped.title, input.title);
     assert_eq!(mapped.bpmx100, input.bpmx100);
     assert_eq!(mapped.file_size, input.file_size);
@@ -6869,7 +7131,7 @@ fn shared_track_conversion_resolves_names_and_preserves_metadata() -> Result<()>
     assert_eq!(mapped.album_id, 0);
     assert_eq!(mapped.artwork_id, 0);
     assert!(mapped.analysis_date.is_empty());
-    assert_eq!(Track::try_from(view)?.id, Some(10));
+    assert_eq!(Track::try_from(view)?.id, Some(1));
     Ok(())
 }
 
@@ -6905,10 +7167,10 @@ fn shared_track_insertion_checks_ranges_and_normalizes_paths() -> Result<()> {
     let mut invalid = track.clone();
     invalid.rating = Some(6);
     assert!(NewContent::try_from(invalid).is_err());
-    for id in [None, Some(0)] {
+    for id in [None, Some(0), Some(u32::MAX)] {
         let mut invalid = track.clone();
         invalid.id = id;
-        assert!(NewContent::try_from(invalid).is_err());
+        assert_eq!(NewContent::try_from(invalid)?, row);
     }
     let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
     let mut view = row.insert(&mut conn)?.resolve(&mut conn)?;
