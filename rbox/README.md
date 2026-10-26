@@ -158,7 +158,7 @@ use rbox::devlib::models::Content;
 
 fn main() -> anyhow::Result<()> {
     let mut db = DeviceLibrary::new("PIONEER/rekordbox")?;
-    let contents = Content::all(db.standard_mut())?;
+    let contents = db.get_contents()?;
     for content in contents {
         println!("{:?}", content);
     }

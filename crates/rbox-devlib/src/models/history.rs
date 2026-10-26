@@ -11,10 +11,11 @@
 //! Individual occurrences support deletion but not updates. Mutations commit to
 //! the connection's in-memory overlay; saving remains explicit.
 
+use std::collections::HashMap;
 use std::io::{Read, Seek};
 
 use super::{
-    next_id, read_fields, text, text_error, unsupported, validate_id, validate_nonzero_id,
+    next_id, read_fields, text, text_error, unsupported, validate_id, validate_nonzero_id, Content,
 };
 use crate::binary::{HistoryEntryRow, NamedRow, PageType, Row, RowRecord, StandardRow, TableKind};
 use crate::devicesql::DeviceSqlConnection;
@@ -23,9 +24,9 @@ use crate::{Error, Result};
 /// A detached history playlist from the standard database.
 ///
 /// Changing public fields changes only this snapshot. Original bytes, reserved
-/// values and framing remain in [`Self::raw_record`]. Queries never load related
-/// tables and reject extended database connections. Use [`Self::update`] to
-/// persist an edited name.
+/// values and framing remain in [`Self::raw_record`]. Relationships are loaded
+/// explicitly through [`Self::get_contents`]. Queries reject extended database
+/// connections. Use [`Self::update`] to persist an edited name.
 #[derive(Clone, PartialEq, Eq)]
 pub struct History {
     /// History-playlist ID, in a separate namespace from regular playlists.
@@ -84,6 +85,35 @@ impl History {
         Ok(conn
             .index_rows(Self::TABLE, Self::read_id)?
             .contains_key(id))
+    }
+
+    /// Load contents in stored sequence order, preserving repeated plays and ties.
+    ///
+    /// Ties retain physical occurrence order. Each distinct content is decoded once;
+    /// metadata relationships are not resolved. Missing content references are errors.
+    /// The parent history is not loaded; a history with no entries returns an empty list.
+    pub fn get_contents<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        id: &u32,
+    ) -> Result<Vec<Content>> {
+        let entries = HistoryContent::by_history_id(conn, id)?;
+        let ids: Vec<_> = entries.iter().map(|entry| entry.content_id).collect();
+        let contents: HashMap<_, _> = Content::by_ids(conn, &ids)?
+            .into_iter()
+            .map(|content| (content.id, content))
+            .collect();
+        entries
+            .into_iter()
+            .map(|entry| {
+                contents
+                    .get(&entry.content_id)
+                    .cloned()
+                    .ok_or(Error::ModelNotFound {
+                        table: Content::TABLE,
+                        id: entry.content_id,
+                    })
+            })
+            .collect()
     }
 
     /// Persist an edited name and return a refreshed history snapshot.

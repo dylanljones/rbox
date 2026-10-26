@@ -23,7 +23,8 @@ use rbox_core::MyTagType;
 
 use super::ordering::{Change, Position};
 use super::{
-    ordering, read_fields, text, text_error, unsupported, validate_id, validate_nonzero_id,
+    load_related, ordering, read_fields, text, text_error, unsupported, validate_id,
+    validate_nonzero_id, Content,
 };
 use crate::binary::{
     ExtPageType, ExtendedRow, MyTagHeader, MyTagRow, Row, RowRecord, StringOffsets, TableKind,
@@ -121,6 +122,63 @@ impl MyTag {
         }
         children.sort_by_key(|row| row.seq);
         Ok(children)
+    }
+
+    /// Resolve tags associated with a content ID, retaining physical association order and repeats.
+    /// Each distinct tag is decoded once. Missing tags are errors; the standard content
+    /// row is not loaded or validated. No associations returns an empty list.
+    pub fn by_content_id<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        content_id: &u32,
+    ) -> Result<Vec<Self>> {
+        let entries = MyTagContent::by_content_id(conn, content_id)?;
+        let tags = load_related(
+            conn,
+            entries.iter().map(|entry| entry.my_tag_id),
+            Self::find,
+        )?;
+        entries
+            .into_iter()
+            .map(|entry| {
+                tags.get(&entry.my_tag_id)
+                    .cloned()
+                    .ok_or(Error::ModelNotFound {
+                        table: Self::TABLE,
+                        id: entry.my_tag_id,
+                    })
+            })
+            .collect()
+    }
+
+    /// Resolve a tag's contents across the standard and extended databases.
+    ///
+    /// Physical association order and repeated pairs are retained. Each distinct content
+    /// is decoded once; metadata relationships are not loaded. Missing contents are errors.
+    /// The tag is not loaded or validated; no associations returns an empty list.
+    pub fn get_contents<R: Read + Seek, E: Read + Seek>(
+        standard: &mut DeviceSqlConnection<R>,
+        extended: &mut DeviceSqlConnection<E>,
+        id: &u32,
+    ) -> Result<Vec<Content>> {
+        standard.check_kind(Content::TABLE)?;
+        let entries = MyTagContent::by_my_tag_id(extended, id)?;
+        let contents = load_related(
+            standard,
+            entries.iter().map(|entry| entry.content_id),
+            Content::find,
+        )?;
+        entries
+            .into_iter()
+            .map(|entry| {
+                contents
+                    .get(&entry.content_id)
+                    .cloned()
+                    .ok_or(Error::ModelNotFound {
+                        table: Content::TABLE,
+                        id: entry.content_id,
+                    })
+            })
+            .collect()
     }
 
     /// Count immediate children without decoding names.

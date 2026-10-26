@@ -68,6 +68,24 @@ impl Artwork {
             .transpose()
     }
 
+    /// Find the first exact, case-sensitive path match in physical order.
+    ///
+    /// Returns `None` when absent. Paths are compared as stored, without separator
+    /// normalization or filesystem access. Duplicate paths return the first match;
+    /// decoding errors encountered before that match propagate.
+    pub fn find_by_path<R: Read + Seek>(
+        conn: &mut DeviceSqlConnection<R>,
+        path: &str,
+    ) -> Result<Option<Self>> {
+        for artwork in Self::iter(conn)? {
+            let artwork = artwork?;
+            if artwork.path == path {
+                return Ok(Some(artwork));
+            }
+        }
+        Ok(None)
+    }
+
     /// Check an ID using the engine index without converting string frames to text.
     pub fn id_exists<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<bool> {
         Ok(conn
