@@ -8,8 +8,8 @@ Output is tab-separated package name and version; this script never publishes.
 """
 
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 
 def publish_order(metadata):
