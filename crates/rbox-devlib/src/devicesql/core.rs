@@ -586,12 +586,14 @@ pub(super) fn replace_file(
     let temporary_path = TempPath::try_from_path(temporary_path)?;
     file.set_permissions(fs::metadata(path)?.permissions())?;
     file.sync_all()?;
-    let replacement = SourceFile::new(path.clone(), &file)?;
     source.check()?;
     fs::rename(&temporary_path, path).map_err(|source| Error::Save {
         path: path.clone(),
         source,
     })?;
+    // Windows replacement can preserve the destination's creation timestamp.
+    // Capture the published file's metadata, not the temporary file's stamp.
+    let replacement = SourceFile::new(path.clone(), &file)?;
     Ok((file, replacement))
 }
 
