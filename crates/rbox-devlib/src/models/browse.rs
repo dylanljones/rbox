@@ -36,6 +36,13 @@
 
 use std::io::{Read, Seek};
 
+#[cfg(feature = "napi")]
+use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
+#[cfg(feature = "pyo3")]
+use rbox_derives::{pyclass_public, PyMutableMapping};
+
 use super::{checked_number, read_fields, text, text_error, unsupported};
 use crate::binary::{PageType, Row, RowRecord, StandardRow, TableKind};
 use crate::devicesql::{DeviceSqlConnection, RowHandle, Transaction};
@@ -51,6 +58,9 @@ use crate::{Error, Result};
 /// Public-field edits affect only this snapshot. Unknown data and original framing
 /// remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi)]
 pub struct DevBrowseColumn {
     /// Column/menu-label ID.
     pub id: i64,
@@ -275,6 +285,9 @@ fn settings_handle<R: Read + Seek>(
 /// remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
 /// No unique row ID or singleton constraint is assumed; repeated rows are retained.
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi)]
 pub struct DevBrowseCategory {
     /// Column/menu-label ID.
     pub column_id: i64,
@@ -405,6 +418,9 @@ impl TryFrom<RowRecord> for DevBrowseCategory {
 /// remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
 /// No unique row ID or singleton constraint is assumed; repeated rows are retained.
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi)]
 pub struct DevBrowseSort {
     /// Column/menu-label ID.
     pub column_id: i64,

@@ -3534,6 +3534,894 @@ export declare const enum MyTagType {
   List = 0,
   Folder = 1
 }
+/**
+ * A detached album from the standard database.
+ *
+ * Changing public fields changes only this snapshot. Original bytes, reserved
+ * values and framing remain in [`Self::raw_record`]. Plain queries never load related
+ * tables. Use [`Self::resolve`] or [`Self::all_with_relations`] for a [`DevAlbumView`].
+ * All queries reject extended database connections.
+ */
+export declare class DevAlbum {
+  /** Export album ID. */
+  id: number
+  /** Album artist ID, independent of the track artist; zero means unassigned. */
+  artistId: number
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * A detached artist from the standard database.
+ *
+ * Changing public fields changes only this snapshot. Original bytes, reserved
+ * values and framing remain in [`Self::raw_record`]. Queries never load related
+ * tables and reject extended database connections.
+ */
+export declare class DevArtist {
+  /** Export artist ID. */
+  id: number
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * A detached artwork from the standard database.
+ *
+ * Changing public fields changes only this snapshot. Original bytes, reserved
+ * values and framing remain in [`Self::raw_record`]. Queries never load related
+ * tables and reject extended database connections.
+ */
+export declare class DevArtwork {
+  /** Export artwork ID. */
+  id: number
+  /** Original artwork path, preserving stored separators. */
+  path: string
+}
+
+/**
+ * Category menu visibility and order from standard table 17.
+ *
+ * [`Self::column_id`] references a [`DevBrowseColumn`] label. Use [`Self::state`]
+ * for the stored visibility value and [`Self::position`] for display order;
+ * physical row order and row presence do not determine active menu membership.
+ * See the [module documentation](self) for interpretation and update guidance.
+ *
+ * Public-field edits affect only this snapshot. Unknown data and original framing
+ * remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
+ * No unique row ID or singleton constraint is assumed; repeated rows are retained.
+ */
+export declare class DevBrowseCategory {
+  /** Column/menu-label ID. */
+  columnId: number
+  /** Content/menu selector, not a PDB table ID. */
+  selector: number
+  /** Raw attribute byte; its meaning is not inferred. */
+  unknown04: number
+  /**
+   * Visibility/state: 0 visible and 1 hidden in CDJ-350 experiments.
+   * Values 2 and 3 also occur in native exports and remain unqualified.
+   * Preserve unknown values without boolean coercion.
+   */
+  state: number
+  /** Stored display order; zero is a valid first position. */
+  position: number
+}
+
+/**
+ * A predefined browse label from standard table 16, such as ARTIST or BPM.
+ *
+ * Category and sort settings refer to [`Self::id`] through their `column_id`.
+ * This catalog does not determine which options are active. No Rekordbox UI for
+ * arbitrary custom catalog entries is documented. Creation profiles initialize
+ * these rows; preserve their IDs and codes when editing configuration.
+ *
+ * Public-field edits affect only this snapshot. Unknown data and original framing
+ * remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
+ */
+export declare class DevBrowseColumn {
+  /** Column/menu-label ID. */
+  id: number
+  /** Raw column code; unknown values are retained. */
+  code: number
+  /**
+   * Display label with one enclosing U+FFFA/U+FFFB pair removed, if present.
+   * Unframed labels, whitespace and interior characters are preserved.
+   */
+  name: string
+}
+
+/**
+ * Sort-option configuration from standard table 18.
+ *
+ * [`Self::column_id`] references a [`DevBrowseColumn`] label. Enabled state and
+ * position appear to be packed into [`Self::raw_tail`], but their complete
+ * semantics are not established. The layout differs from [`DevBrowseCategory`].
+ * See the [module documentation](self) for the inferred mapping and its limits.
+ *
+ * Public-field edits affect only this snapshot. Unknown data and original framing
+ * remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
+ * No unique row ID or singleton constraint is assumed; repeated rows are retained.
+ */
+export declare class DevBrowseSort {
+  /** Column/menu-label ID. */
+  columnId: number
+  /** Sort-item selector; zero is retained. */
+  selector: number
+  /**
+   * Complete little-endian tail word, preserving all four bytes.
+   * Flag and position interpretations are provisional; see the module docs.
+   */
+  rawTail: number
+}
+
+/**
+ * A detached color from the standard database.
+ *
+ * Changing public fields changes only this snapshot. Original bytes, reserved
+ * values and framing remain in [`Self::raw_record`]. Queries never load related
+ * tables and reject extended database connections. Call [`Self::update`] to
+ * persist an edited name; saving remains explicit.
+ */
+export declare class DevColor {
+  /** Export color ID, retaining both bytes of the binary field. */
+  id: number
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * A detached track from the standard database's track table.
+ *
+ * Uses content terminology shared with the SQL models and the `Dev` model prefix.
+ * Wraps the binary [`TrackRow`] and uses [`PageType::Tracks`].
+ *
+ * Public fields contain decoded values, like the masterdb/onelib models-old.
+ * Editing a field only changes this snapshot; call [Self::update] to persist edits.
+ * Use [`NewDevContent`] to insert a fresh track without an existing raw row.
+ * IDs, empty strings, date text and paths retain their stored meaning. Unknown
+ * fields and string encodings remain available through [`Self::raw_record`].
+ * ISRC decoding is explicit because its frame can have an unknown encoding.
+ *
+ * Plain queries never load relationships. Use [`Self::resolve`] or
+ * [`Self::all_with_relations`] to explicitly construct a [`DevContentView`].
+ * The extended database has no track table and returns [`Error::WrongDatabaseKind`].
+ */
+export declare class DevContent {
+  /** Export track ID, used by playlists and tag associations. */
+  id: number
+  /** Main artist ID. */
+  artistId: number
+  /** Album ID. */
+  albumId: number
+  /** Genre ID. */
+  genreId: number
+  /** Label ID. */
+  labelId: number
+  /** Musical-key ID. */
+  keyId: number
+  /** Artwork-reference ID. */
+  artworkId: number
+  /** Composer artist ID. */
+  composerId: number
+  /** Original artist ID. */
+  originalArtistId: number
+  /** Remixer artist ID. */
+  remixerId: number
+  /** Content identity in the source library, separate from the export ID. */
+  masterContentId: number
+  /** Source library identity. */
+  masterDbId: number
+  /** Sample rate in Hz. */
+  sampleRate: number
+  /** Audio file size in bytes. */
+  fileSize: number
+  /** Stored bitrate, normally kb/s. */
+  bitrate: number
+  /** Tempo in BPM multiplied by 100. */
+  bpmx100: number
+  /** Track duration in seconds. */
+  length: number
+  /** Track number within the release. */
+  trackNo: number
+  /** Disc number. */
+  discNo: number
+  /** Stored play count. */
+  playCount: number
+  /** Release year. */
+  releaseYear: number
+  /** Sample depth in bits per sample. */
+  bitDepth: number
+  /** Raw color ID, including zero. */
+  colorId: number
+  /** Raw star rating; unrecognized values are retained. */
+  rating: number
+  /** Raw audio format code; unrecognized codes are retained. */
+  fileType: number
+  /** Display title. */
+  title: string
+  /** DJ comment. */
+  comment: string
+  /** Mix/remix name. */
+  mixName: string
+  /** Lyricist text. */
+  lyricist: string
+  /** Track message, separate from the comment. */
+  message: string
+  /** Original publication setting text. */
+  publishTrackInfo: string
+  /** Original hot-cue auto-load setting text. */
+  hotCueAutoLoad: string
+  /** Collection date as stored text. */
+  dateAdded: string
+  /** Release date as stored text. */
+  releaseDate: string
+  /** Analysis date as stored text. */
+  analysisDate: string
+  /** Analysis-file path, preserving original separators. */
+  analysisPath: string
+  /** Audio basename. */
+  fileName: string
+  /** Audio path, preserving original separators. */
+  path: string
+}
+
+/**
+ * Source My Tag library metadata from extended table 7, initialized by the extended profile.
+ *
+ * The exposed identity is used verbatim, without a DBID conversion. Reserved
+ * words and string frames remain in the original binary row. See the [module
+ * documentation](self) for initialization and updates that preserve this data.
+ *
+ * Public-field edits affect only this snapshot. Unknown data and original framing
+ * remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
+ * No unique row ID or singleton constraint is assumed; repeated rows are retained.
+ */
+export declare class DevDatabaseProperty {
+  /** Source/master My Tag library identity, not a row ID; zero is valid. */
+  myTagMasterDbId: number
+}
+
+/**
+ * Export metadata from standard table 19, initialized by the standard creation profile.
+ *
+ * Update the existing metadata when the export changes. See the [module
+ * documentation](self) for initialization, count maintenance and binary updates.
+ *
+ * Public-field edits affect only this snapshot. Unknown data and original framing
+ * remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
+ * The exact device/export name is the model's unique key, matching OneLibrary.
+ * Duplicate names in existing binary data are reported as a constraint violation;
+ * the low-level engine remains available to inspect or repair such files.
+ */
+export declare class DevExportProperty {
+  /** Stored track count after the export update. */
+  trackCount: number
+  /** Raw Device Library background-color value. */
+  backgroundColor: number
+  /** Export/creation date as stored text; no date format is imposed. */
+  date: string
+  /** Stored version text. */
+  version: string
+  /** Device/export name. */
+  name: string
+}
+
+/**
+ * A detached genre from the standard database.
+ *
+ * Changing public fields changes only this snapshot. Original bytes, reserved
+ * values and framing remain in [`Self::raw_record`]. Queries never load related
+ * tables and reject extended database connections. Call [`Self::update`] to
+ * persist edited fields to the connection's in-memory overlay.
+ */
+export declare class DevGenre {
+  /** Export genre ID. */
+  id: number
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * A detached history playlist from the standard database.
+ *
+ * Changing public fields changes only this snapshot. Original bytes, reserved
+ * values and framing remain in [`Self::raw_record`]. Relationships are loaded
+ * explicitly through [`Self::get_contents`]. Queries reject extended database
+ * connections. Use [`Self::update`] to persist an edited name.
+ */
+export declare class DevHistory {
+  /** History-playlist ID, in a separate namespace from regular playlists. */
+  id: number
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * A detached track occurrence in a standard database history playlist.
+ *
+ * Entries have no unique scalar ID. Repeated tracks, identical occurrences and
+ * position ties are retained. Editing fields changes only this snapshot; tracks
+ * and history playlists are not loaded automatically. No timestamp is inferred.
+ */
+export declare class DevHistoryContent {
+  /** History-playlist ID; this does not reference the regular playlist table. */
+  historyId: number
+  /** Export track ID, distinct from the source/master content ID. */
+  contentId: number
+  /** Stored occurrence position; zero and gaps remain unmodified on reads. */
+  seq: number
+}
+
+/**
+ * A detached key from the standard database.
+ *
+ * Changing public fields changes only this snapshot. Original bytes, reserved
+ * values and framing remain in [`Self::raw_record`]. Queries never load related
+ * tables and reject extended database connections. Call [`Self::update`] to
+ * persist edited fields to the connection's in-memory overlay.
+ */
+export declare class DevKey {
+  /** Export key ID. */
+  id: number
+  /** Second stored ID, supplied independently; its role remains unknown. */
+  secondaryId: number
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * A detached label from the standard database.
+ *
+ * Changing public fields changes only this snapshot. Original bytes, reserved
+ * values and framing remain in [`Self::raw_record`]. Queries never load related
+ * tables and reject extended database connections. Call [`Self::update`] to
+ * persist edited fields to the connection's in-memory overlay.
+ */
+export declare class DevLabel {
+  /** Export label ID. */
+  id: number
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * A detached My Tag or category from the extended database.
+ *
+ * IDs are preserved verbatim, without remapping or assuming sequential numbering.
+ * Tag/category IDs should match the source main database (`master.db`).
+ * Public-field edits affect only this snapshot. Parents and tracks are not loaded.
+ */
+export declare class DevMyTag {
+  /** Tag/category ID matching the source main database (`master.db`). */
+  id: number
+  /** Parent category ID; zero denotes a root in observed exports. */
+  parentId: number
+  /** Zero-based position within the parent/category list. */
+  seq: number
+  /** Decoded display name. */
+  name: string
+  /** Tag or category type; unknown binary attributes are rejected by this model. */
+  attribute: MyTagType
+}
+
+/**
+ * A detached association between a standard database track and an extended tag.
+ *
+ * There is no assumed unique row ID. Queries preserve repeated associations and
+ * never load related rows. Editing fields changes only this snapshot.
+ */
+export declare class DevMyTagContent {
+  /** Export track ID in the separate standard database. */
+  contentId: number
+  /** Tag ID in the extended database, matching the source main-database tag ID. */
+  myTagId: number
+}
+
+/**
+ * A detached playlist or folder in the standard database's playlist tree.
+ *
+ * IDs and positions retain their stored values. Reads reject unknown folder flags and do not
+ * traverse parents or load entries. Editing fields changes only this snapshot;
+ * original bytes remain available through [`Self::raw_record`].
+ */
+export declare class DevPlaylist {
+  /** Export playlist/folder ID. */
+  id: number
+  /** Parent folder ID; zero denotes the root. */
+  parentId: number
+  /** Stored sibling position; gaps and ties are retained. */
+  seq: number
+  /** Regular playlist or folder; other binary flags are rejected by this model. */
+  attribute: PlaylistType
+  /** Decoded display name. */
+  name: string
+}
+
+/**
+ * A detached track occurrence in a standard database playlist.
+ *
+ * Entries have no unique scalar ID. Repeated tracks, identical occurrences and
+ * position ties are retained. Editing fields changes only this snapshot; tracks
+ * and playlist nodes are not loaded automatically.
+ */
+export declare class DevPlaylistContent {
+  /** Export playlist ID. */
+  playlistId: number
+  /** Export track ID, distinct from the source/master content ID. */
+  contentId: number
+  /** Stored position, commonly one-based; zero and gaps remain unmodified on reads. */
+  seq: number
+}
+
+/**
+ * A detached RecommendedLike row in the extended database.
+ *
+ * Public-field edits affect only this snapshot. Unknown data and original framing
+ * remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
+ * Existing repeated rows are retained on reads; model insertion rejects duplicate
+ * ordered content pairs. There is no unique scalar row ID.
+ */
+export declare class DevRecommendedLike {
+  /** First standard export track ID; no source/target direction is inferred. */
+  contentId1: number
+  /** Second standard export track ID. */
+  contentId2: number
+  /** Raw word at 0x10. */
+  unknown10: number
+  /** Raw word at 0x14; flag semantics are unknown. */
+  unknown14: number
+  /** Raw eight-byte value at 0x00, exposed without precision loss as a bigint. */
+  get unknown00(): bigint
+  /** Reject negative values and values that exceed the binary field width. */
+  set unknown00(value: bigint)
+}
+
+/**
+ * Input for a fresh track; no source row or existing PDB is required.
+ *
+ * Insertion allocates the highest live table ID plus one, starting at 1.
+ * Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+ * Use the returned model's ID when creating relationships.
+ *
+ * Supply the exported audio path. Metadata
+ * starts at zero or empty text; no source-library identity or analysis path is
+ * inferred. `creation` supplies overridable reserved values from the engine's
+ * supported writer profile. Populate metadata and ANLZ references before export.
+ *
+ * Insertion returns a [`DevContent`] with an engine-created raw row, commits in memory,
+ * and updates any existing export-property track counts. Call the connection's
+ * save methods to persist. Related rows and audio/ANLZ assets are not created.
+ *
+ * ```
+ * use rbox_devlib::{binary::DatabaseKind, DeviceSqlConnection};
+ * use rbox_devlib::models::NewDevContent;
+ *
+ * # fn main() -> rbox_devlib::Result<()> {
+ * let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+ * let mut new = NewDevContent::new("/Contents/Artist/Track.flac");
+ * new.title = "Track".into();
+ * new.bpmx100 = 12800;
+ * new.analysis_path = "/PIONEER/USBANLZ/P02F/0000E9C7/ANLZ0000.DAT".into();
+ * let track = new.insert(&mut conn)?;
+ * assert_eq!(track.title, "Track");
+ * # Ok(())
+ * # }
+ * ```
+ */
+export declare class NewDevContent {
+  /** Main artist ID. */
+  artistId: number
+  /** Album ID. */
+  albumId: number
+  /** Genre ID. */
+  genreId: number
+  /** Label ID. */
+  labelId: number
+  /** Musical-key ID. */
+  keyId: number
+  /** Artwork-reference ID. */
+  artworkId: number
+  /** Composer artist ID. */
+  composerId: number
+  /** Original artist ID. */
+  originalArtistId: number
+  /** Remixer artist ID. */
+  remixerId: number
+  /** Content identity in the source library, separate from the export ID. */
+  masterContentId: number
+  /** Source library identity. */
+  masterDbId: number
+  /** Sample rate in Hz. */
+  sampleRate: number
+  /** Audio file size in bytes. */
+  fileSize: number
+  /** Stored bitrate, normally kb/s. */
+  bitrate: number
+  /** Tempo in BPM multiplied by 100. */
+  bpmx100: number
+  /** Track duration in seconds. */
+  length: number
+  /** Track number within the release. */
+  trackNo: number
+  /** Disc number. */
+  discNo: number
+  /** Stored play count. */
+  playCount: number
+  /** Release year. */
+  releaseYear: number
+  /** Sample depth in bits per sample. */
+  bitDepth: number
+  /** Raw color ID, including zero. */
+  colorId: number
+  /** Raw star rating; unrecognized values are retained. */
+  rating: number
+  /** Raw audio format code; unrecognized codes are retained. */
+  fileType: number
+  /** Display title. */
+  title: string
+  /** DJ comment. */
+  comment: string
+  /** Mix/remix name. */
+  mixName: string
+  /** Lyricist text. */
+  lyricist: string
+  /** Track message, separate from the comment. */
+  message: string
+  /** Original publication setting text. */
+  publishTrackInfo: string
+  /** Original hot-cue auto-load setting text. */
+  hotCueAutoLoad: string
+  /** Collection date as stored text. */
+  dateAdded: string
+  /** Release date as stored text. */
+  releaseDate: string
+  /** Analysis date as stored text. */
+  analysisDate: string
+  /** Analysis-file path, preserving original separators. */
+  analysisPath: string
+  /** Audio basename. */
+  fileName: string
+  /** Audio path, preserving original separators. */
+  path: string
+  /** ISRC text; empty means absent, otherwise twelve ASCII alphanumeric characters. */
+  isrc: string
+}
+
+/**
+ * An album snapshot with its album artist explicitly resolved.
+ *
+ * [`Self::artist`] resolves [`DevAlbum::artist_id`], the same relationship exposed
+ * as [`super::DevContentView::album_artist`] on a content view. It is independent
+ * of the content's main artist; the album row has only this one artist reference.
+ *
+ * Field access performs no queries. A zero artist ID or missing target resolves
+ * to `None`; the original ID and raw row remain in [`Self::album`]. Editing this
+ * view changes only the snapshot, without saving or refreshing relationships.
+ */
+export interface DevAlbumView {
+  /** Original album snapshot, including its artist ID. */
+  album: DevAlbum
+  /**
+   * Album artist resolved from `album.artist_id`, without recursive expansion.
+   * Equivalent to `DevContentView::album_artist`, not the content's main artist.
+   */
+  artist?: DevArtist
+}
+
+/**
+ * Content snapshot with resolved metadata, following masterdb's content-view pattern.
+ *
+ * Field access performs no queries. Zero IDs and missing targets are represented
+ * by `None`; the original IDs and raw row remain in [`Self::content`].
+ * Related models-old are detached rows, with only the album artist additionally
+ * resolved. Editing the view does not persist changes or refresh related fields.
+ *
+ * ```
+ * use rbox_devlib::{binary::DatabaseKind, DeviceSqlConnection};
+ * use rbox_devlib::models::{DevContent, NewDevArtist, NewDevContent};
+ * # fn main() -> rbox_devlib::Result<()> {
+ * let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+ * let artist = NewDevArtist::new("Artist").insert(&mut conn)?;
+ * let mut input = NewDevContent::new("/Contents/Track.wav");
+ * input.artist_id = artist.id;
+ * let content = input.insert(&mut conn)?;
+ * let view = DevContent::find_with_relations(&mut conn, &content.id)?.unwrap();
+ * assert_eq!(view.artist.as_ref().map(|artist| artist.name.as_str()), Some("Artist"));
+ * assert_eq!(view.id, content.id); // Content fields remain accessible through Deref.
+ * # Ok(())
+ * # }
+ * ```
+ */
+export interface DevContentView {
+  /** Original content snapshot, including unresolved foreign keys. */
+  content: DevContent
+  /** Main artist. */
+  artist?: DevArtist
+  /** Artist credited as remixer. */
+  remixer?: DevArtist
+  /** Artist credited as original artist. */
+  originalArtist?: DevArtist
+  /** Artist credited as composer. */
+  composer?: DevArtist
+  /** Referenced album. */
+  album?: DevAlbum
+  /** Artist referenced by the album's artist_id, independently of the content artist. */
+  albumArtist?: DevArtist
+  /** Referenced genre. */
+  genre?: DevGenre
+  /** Referenced label. */
+  label?: DevLabel
+  /** Referenced musical key. */
+  key?: DevKey
+  /** Referenced color. */
+  color?: DevColor
+  /** Referenced artwork path record; no image file is loaded. */
+  artwork?: DevArtwork
+}
+
+/** Detached playlist tree node. Editing this snapshot does not persist changes. */
+export interface DevPlaylistTreeNode {
+  /** The playlist or folder and its original binary row. */
+  playlist: DevPlaylist
+  /** Immediate children in sibling order. */
+  children: Array<DevPlaylistTreeNode>
+}
+
+/**
+ * Input for a fresh album, without an existing raw row.
+ *
+ * Insertion allocates the highest live table ID plus one, starting at 1.
+ * Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+ * Use the returned model's ID when creating relationships.
+ *
+ * New rows use the near-offset subtype and marker 3. Reserved words default
+ * to observed zero values and remain configurable.
+ * Insertion commits to the connection's in-memory overlay; saving is explicit.
+ * Other tables are not modified.
+ */
+export interface NewDevAlbum {
+  /** Album artist ID, independent of the track artist; zero means unassigned. */
+  artistId: number
+  /** Decoded display name, preserving empty text. */
+  name: string
+  /** Reserved word at 0x04; defaults to the observed zero authoring value. */
+  unknown04: number
+  /** Reserved word at 0x10; defaults to the observed zero authoring value. */
+  unknown10: number
+}
+
+/**
+ * Input for a fresh artist, without an existing raw row.
+ *
+ * Insertion allocates the highest live table ID plus one, starting at 1.
+ * Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+ * Use the returned model's ID when creating relationships.
+ *
+ * New rows use the established near-offset subtype and marker 3. Name length
+ * does not determine offset width; the engine places and aligns the string.
+ * Insertion commits to the connection's in-memory overlay; saving is explicit.
+ * Other tables are not modified.
+ */
+export interface NewDevArtist {
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * Input for a fresh artwork, without an existing raw row.
+ *
+ * Insertion allocates the highest live table ID plus one, starting at 1.
+ * Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+ * Use the returned model's ID when creating relationships.
+ *
+ * This is an image-path reference only. The caller copies the artwork file;
+ * paths are stored as supplied without normalization or filesystem access.
+ * Insertion commits to the connection's in-memory overlay; saving is explicit.
+ * Other tables are not modified.
+ */
+export interface NewDevArtwork {
+  /** Original artwork path, preserving stored separators. */
+  path: string
+}
+
+/**
+ * Input for a fresh genre, without an existing raw row.
+ *
+ * Insertion allocates the highest live table ID plus one, starting at 1.
+ * Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+ * Use the returned model's ID when creating relationships.
+ *
+ * Insertion commits to the connection's in-memory overlay; saving is explicit.
+ * Other tables are not modified.
+ */
+export interface NewDevGenre {
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * Input for a fresh history playlist, without an existing raw row.
+ *
+ * Insertion allocates the highest live table ID plus one, starting at 1.
+ * Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+ * Use the returned model's ID when creating relationships.
+ *
+ * No existing row or database template is needed.
+ * Insertion commits to the connection's in-memory overlay; saving is explicit.
+ * Other tables are not modified.
+ */
+export interface NewDevHistory {
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * Input for a fresh history occurrence, without a synthetic ID or source row.
+ *
+ * Positions are explicit; insertion never shifts other entries or deduplicates
+ * tracks. Nonzero playlist/track IDs are required, but referenced rows are not
+ * resolved. The caller supplies valid references to a history playlist and an export track.
+ * Saving, relationship validation and automatic ordering remain separate steps.
+ */
+export interface NewDevHistoryContent {
+  /** Nonzero history-playlist ID; existence is not checked. */
+  historyId: number
+  /** Nonzero export track ID. */
+  contentId: number
+  /** Explicit occurrence position; other positions are untouched. */
+  seq: number
+}
+
+/**
+ * Input for a fresh key, without an existing raw row.
+ *
+ * Insertion allocates the highest live table ID plus one, starting at 1.
+ * Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+ * Use the returned model's ID when creating relationships.
+ *
+ * The second stored ID is explicit: it is not assumed to equal the primary
+ * ID, and no musical-key numbering scheme is inferred.
+ * Insertion commits to the connection's in-memory overlay; saving is explicit.
+ * Other tables are not modified.
+ */
+export interface NewDevKey {
+  /** Second stored ID, supplied independently; its role remains unknown. */
+  secondaryId: number
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * Input for a fresh label, without an existing raw row.
+ *
+ * Insertion allocates the highest live table ID plus one, starting at 1.
+ * Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+ * Use the returned model's ID when creating relationships.
+ *
+ * No existing row or database template is needed.
+ * Insertion commits to the connection's in-memory overlay; saving is explicit.
+ * Other tables are not modified.
+ */
+export interface NewDevLabel {
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * Input for a fresh My Tag/category, with an explicit ID and optional position.
+ *
+ * Supply the tag/category ID from the source main database (`master.db`) and
+ * preserve its parent category ID. Insertion does not generate or remap these IDs,
+ * and does not check them against the source database.
+ *
+ * The default reserved values are zero, with an empty second string frame, as in
+ * the established writer profile. Near-offset encoding is used; the engine rejects
+ * strings that cannot fit that layout. Insertion validates category ancestry and
+ * maintains sibling ordering. Saving remains explicit.
+ */
+export interface NewDevMyTag {
+  /** Nonzero source main-database tag/category ID, unused in this export. */
+  id: number
+  /** Parent category ID; zero denotes a root. */
+  parentId: number
+  /** Insertion position starting at [`DevMyTag::START_SEQ`]; `None` appends. */
+  seq?: number
+  /** Display name. */
+  name: string
+  /** Tag (List) or category (Folder). */
+  attribute: MyTagType
+  /** Reserved word at 0x04, defaulting to zero. */
+  unknown04: number
+  /** Reserved word at 0x08, defaulting to zero. */
+  unknown08: number
+  /** Reserved word at 0x18, defaulting to zero. */
+  unknown18: number
+  /** Reserved byte at 0x1a, defaulting to zero. */
+  unknown1A: number
+}
+
+/**
+ * Input for a fresh track/tag association, without a synthetic row ID.
+ *
+ * References must be nonzero but their existence is not checked. Duplicate pairs
+ * are allowed; no uniqueness constraint is inferred from the binary layout.
+ * Reserved fields default to zero with the observed empty-string marker 3.
+ * Insertion commits in memory only; saving is explicit.
+ */
+export interface NewDevMyTagContent {
+  /** Nonzero export track ID in the standard database. */
+  contentId: number
+  /** Nonzero tag ID in the extended database, matching the source main-database tag ID. */
+  myTagId: number
+  /** Reserved word at 0x00, defaulting to zero. */
+  unknown00: number
+  /** Raw marker at 0x0c; defaults to the observed empty short-string frame, 3. */
+  reservedStringMarker: number
+  /** Reserved trailing bytes, defaulting to zero. */
+  reservedTail: number[]
+}
+
+/**
+ * Input for a fresh playlist or folder; no existing raw row is needed.
+ *
+ * Insertion allocates the highest live table ID plus one, starting at 1.
+ * Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+ * Use the returned model's ID when creating relationships.
+ *
+ * Model insertion validates the parent and maintains sibling
+ * ordering; `None` appends. The reserved word defaults to zero and remains configurable.
+ * Insertion commits in memory only and does not create entries or save to disk.
+ */
+export interface NewDevPlaylist {
+  /** Parent folder ID; zero denotes the root. */
+  parentId: number
+  /** Zero-based insertion position; `None` appends after the last sibling. */
+  seq?: number
+  /** Node type; only List and Folder can be encoded for DeviceSQL. */
+  attribute: PlaylistType
+  /** Display name. */
+  name: string
+  /** Reserved word at 0x04, defaulting to zero. */
+  unknown04: number
+}
+
+/**
+ * Input for a fresh playlist occurrence, without a synthetic ID or source row.
+ *
+ * Insertion validates the playlist and content, rejects duplicate pairs, and
+ * maintains one-based positions. `None` appends. Saving remains explicit.
+ */
+export interface NewDevPlaylistContent {
+  /** Existing regular playlist ID. */
+  playlistId: number
+  /** Nonzero export track ID. */
+  contentId: number
+  /** One-based insertion position; `None` appends. */
+  seq?: number
+}
+
+/**
+ * Insertion input for a fresh RecommendedLike row.
+ *
+ * Creation semantics are not established. All unknown words must be supplied
+ * explicitly; this input provides binary insertion, not a recommendation generator
+ * or a guarantee of player behavior. Track existence and pair direction are not
+ * inferred. Model insertion requires a unique ordered content pair.
+ * Saving is explicit; insertion commits only to the in-memory connection.
+ */
+export interface NewDevRecommendedLike {
+  /** Raw eight-byte value at 0x00; not interpreted as a timestamp. */
+  unknown00: bigint
+  /** First standard export track ID; no source/target direction is inferred. */
+  contentId1: number
+  /** Second standard export track ID. */
+  contentId2: number
+  /** Raw word at 0x10. */
+  unknown10: number
+  /** Raw word at 0x14; flag semantics are unknown. */
+  unknown14: number
+}
 export declare class Anlz {
   /** Owned snapshot equivalent of Rust's into_data; the binding handler remains usable. */
   intoData(): AnlzData

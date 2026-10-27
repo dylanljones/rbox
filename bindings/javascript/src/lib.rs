@@ -4,6 +4,7 @@
 //! JavaScript native binding modules.
 
 mod anlz;
+mod devlib;
 mod locate;
 mod masterdb;
 mod models;

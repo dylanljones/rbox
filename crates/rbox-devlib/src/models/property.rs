@@ -23,6 +23,13 @@
 use std::collections::HashSet;
 use std::io::{Read, Seek};
 
+#[cfg(feature = "napi")]
+use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
+#[cfg(feature = "pyo3")]
+use rbox_derives::{pyclass_public, PyMutableMapping};
+
 use super::{checked_number, text, text_error, unsupported, update_export_count, DevContent};
 use crate::binary::{ExtPageType, ExtendedRow, PageType, Row, RowRecord, StandardRow, TableKind};
 use crate::devicesql::{DeviceSqlConnection, RowHandle, Transaction};
@@ -39,6 +46,9 @@ use crate::{Error, Result};
 /// Duplicate names in existing binary data are reported as a constraint violation;
 /// the low-level engine remains available to inspect or repair such files.
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi)]
 pub struct DevExportProperty {
     /// Stored track count after the export update.
     pub track_count: u32,
@@ -285,6 +295,9 @@ impl TryFrom<RowRecord> for DevExportProperty {
 /// remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
 /// No unique row ID or singleton constraint is assumed; repeated rows are retained.
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi)]
 pub struct DevDatabaseProperty {
     /// Source/master My Tag library identity, not a row ID; zero is valid.
     pub my_tag_master_db_id: i64,

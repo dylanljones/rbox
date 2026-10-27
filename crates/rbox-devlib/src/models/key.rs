@@ -3,6 +3,13 @@
 
 //! Key snapshots and explicit read, insert, update, and delete operations.
 
+#[cfg(feature = "napi")]
+use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
+#[cfg(feature = "pyo3")]
+use rbox_derives::{pyclass_public, PyMutableMapping};
+
 use std::io::{Read, Seek};
 
 use super::{
@@ -20,6 +27,9 @@ use crate::{Error, Result};
 /// tables and reject extended database connections. Call [`Self::update`] to
 /// persist edited fields to the connection's in-memory overlay.
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi)]
 pub struct DevKey {
     /// Export key ID.
     pub id: i64,
@@ -258,6 +268,9 @@ impl TryFrom<RowRecord> for DevKey {
 /// Insertion commits to the connection's in-memory overlay; saving is explicit.
 /// Other tables are not modified.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct NewDevKey {
     /// Second stored ID, supplied independently; its role remains unknown.
     pub secondary_id: i64,

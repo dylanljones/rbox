@@ -13,11 +13,24 @@ rust-version.workspace = true
 
 publish = true
 
+[features]
+default = []
+
+# Features for the bindings
+pyo3 = ["dep:pyo3", "dep:rbox-derives", "rbox-core/pyo3"]
+napi = ["dep:napi", "dep:napi-derive", "rbox-core/napi"]
+
 [dependencies]
 binrw               = { workspace = true }
 thiserror           = { workspace = true }
 tempfile            = { workspace = true }
+
+pyo3                = { workspace = true, optional = true }
+napi                = { workspace = true, optional = true }
+napi-derive         = { workspace = true, optional = true }
+
 rbox-core           = { path = "../rbox-core", version = "0.2.0", default-features = false }
+rbox-derives        = { path = "../rbox-derives", version = "0.2.0", optional = true }
 
 [dev-dependencies]
 anyhow              = { workspace = true }

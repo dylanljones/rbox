@@ -7,7 +7,7 @@ import enum
 from datetime import datetime
 from os import PathLike
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 from .anlz import AnlzData, AnlzSection
 
@@ -3907,6 +3907,542 @@ class PyOneLibrary:
     def delete_sort(self, id: int) -> int:
         """Deletes a record from the `sort` table by its primary key `id`."""
         ...
+
+# ---- Device Library -------------------------------------------------------------------------------
+
+class DevAlbum(_RustMutableMapping):
+    """A detached album from the standard database."""
+
+    id: int
+    """Export album ID."""
+    artist_id: int
+    """Album artist ID, independent of the track artist; zero means unassigned."""
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class DevAlbumView:
+    """An album snapshot with its album artist explicitly resolved."""
+
+    @property
+    def album(self) -> DevAlbum: ...
+    @property
+    def artist(self) -> Optional[DevArtist]: ...
+
+class NewDevAlbum(_RustMutableMapping):
+    """Input for a fresh album, without an existing raw row."""
+
+    artist_id: int
+    """Album artist ID, independent of the track artist; zero means unassigned."""
+    name: str
+    """Decoded display name, preserving empty text."""
+    unknown_04: int
+    """Reserved word at 0x04; defaults to the observed zero authoring value."""
+    unknown_10: int
+    """Reserved word at 0x10; defaults to the observed zero authoring value."""
+
+class DevArtist(_RustMutableMapping):
+    """A detached artist from the standard database."""
+
+    id: int
+    """Export artist ID."""
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class NewDevArtist(_RustMutableMapping):
+    """Input for a fresh artist, without an existing raw row."""
+
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class DevArtwork(_RustMutableMapping):
+    """A detached artwork from the standard database."""
+
+    id: int
+    """Export artwork ID."""
+    path: str
+    """Original artwork path, preserving stored separators."""
+
+class NewDevArtwork(_RustMutableMapping):
+    """Input for a fresh artwork, without an existing raw row."""
+
+    path: str
+    """Original artwork path, preserving stored separators."""
+
+class DevBrowseColumn(_RustMutableMapping):
+    """A predefined browse label from standard table 16, such as ARTIST or BPM."""
+
+    id: int
+    """Column/menu-label ID."""
+    code: int
+    """Raw column code; unknown values are retained."""
+    name: str
+    """Display label with one enclosing U+FFFA/U+FFFB pair removed, if present. Unframed labels, whitespace and interior characters are preserved."""
+
+class DevBrowseCategory(_RustMutableMapping):
+    """Category menu visibility and order from standard table 17."""
+
+    column_id: int
+    """Column/menu-label ID."""
+    selector: int
+    """Content/menu selector, not a PDB table ID."""
+    unknown_04: int
+    """Raw attribute byte; its meaning is not inferred."""
+    state: int
+    """Visibility/state: 0 visible and 1 hidden in CDJ-350 experiments. Values 2 and 3 also occur in native exports and remain unqualified. Preserve unknown values without boolean coercion."""
+    position: int
+    """Stored display order; zero is a valid first position."""
+
+class DevBrowseSort(_RustMutableMapping):
+    """Sort-option configuration from standard table 18."""
+
+    column_id: int
+    """Column/menu-label ID."""
+    selector: int
+    """Sort-item selector; zero is retained."""
+    raw_tail: int
+    """Complete little-endian tail word, preserving all four bytes. Flag and position interpretations are provisional; see the module docs."""
+
+class DevColor(_RustMutableMapping):
+    """A detached color from the standard database."""
+
+    id: int
+    """Export color ID, retaining both bytes of the binary field."""
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class DevContent(_RustMutableMapping):
+    """A detached track from the standard database's track table."""
+
+    id: int
+    """Export track ID, used by playlists and tag associations."""
+    artist_id: int
+    """Main artist ID."""
+    album_id: int
+    """Album ID."""
+    genre_id: int
+    """Genre ID."""
+    label_id: int
+    """Label ID."""
+    key_id: int
+    """Musical-key ID."""
+    artwork_id: int
+    """Artwork-reference ID."""
+    composer_id: int
+    """Composer artist ID."""
+    original_artist_id: int
+    """Original artist ID."""
+    remixer_id: int
+    """Remixer artist ID."""
+    master_content_id: int
+    """Content identity in the source library, separate from the export ID."""
+    master_db_id: int
+    """Source library identity."""
+    sample_rate: int
+    """Sample rate in Hz."""
+    file_size: int
+    """Audio file size in bytes."""
+    bitrate: int
+    """Stored bitrate, normally kb/s."""
+    bpmx100: int
+    """Tempo in BPM multiplied by 100."""
+    length: int
+    """Track duration in seconds."""
+    track_no: int
+    """Track number within the release."""
+    disc_no: int
+    """Disc number."""
+    play_count: int
+    """Stored play count."""
+    release_year: int
+    """Release year."""
+    bit_depth: int
+    """Sample depth in bits per sample."""
+    color_id: int
+    """Raw color ID, including zero."""
+    rating: int
+    """Raw star rating; unrecognized values are retained."""
+    file_type: int
+    """Raw audio format code; unrecognized codes are retained."""
+    title: str
+    """Display title."""
+    comment: str
+    """DJ comment."""
+    mix_name: str
+    """Mix/remix name."""
+    lyricist: str
+    """Lyricist text."""
+    message: str
+    """Track message, separate from the comment."""
+    publish_track_info: str
+    """Original publication setting text."""
+    hot_cue_auto_load: str
+    """Original hot-cue auto-load setting text."""
+    date_added: str
+    """Collection date as stored text."""
+    release_date: str
+    """Release date as stored text."""
+    analysis_date: str
+    """Analysis date as stored text."""
+    analysis_path: str
+    """Analysis-file path, preserving original separators."""
+    file_name: str
+    """Audio basename."""
+    path: str
+    """Audio path, preserving original separators."""
+
+class DevContentView:
+    """Content snapshot with resolved metadata, following masterdb's content-view pattern."""
+
+    @property
+    def content(self) -> DevContent: ...
+    @property
+    def artist(self) -> Optional[DevArtist]: ...
+    @property
+    def remixer(self) -> Optional[DevArtist]: ...
+    @property
+    def original_artist(self) -> Optional[DevArtist]: ...
+    @property
+    def composer(self) -> Optional[DevArtist]: ...
+    @property
+    def album(self) -> Optional[DevAlbum]: ...
+    @property
+    def album_artist(self) -> Optional[DevArtist]: ...
+    @property
+    def genre(self) -> Optional[DevGenre]: ...
+    @property
+    def label(self) -> Optional[DevLabel]: ...
+    @property
+    def key(self) -> Optional[DevKey]: ...
+    @property
+    def color(self) -> Optional[DevColor]: ...
+    @property
+    def artwork(self) -> Optional[DevArtwork]: ...
+
+class NewDevContent(_RustMutableMapping):
+    """Input for a fresh track; no source row or existing PDB is required."""
+
+    artist_id: int
+    """Main artist ID."""
+    album_id: int
+    """Album ID."""
+    genre_id: int
+    """Genre ID."""
+    label_id: int
+    """Label ID."""
+    key_id: int
+    """Musical-key ID."""
+    artwork_id: int
+    """Artwork-reference ID."""
+    composer_id: int
+    """Composer artist ID."""
+    original_artist_id: int
+    """Original artist ID."""
+    remixer_id: int
+    """Remixer artist ID."""
+    master_content_id: int
+    """Content identity in the source library, separate from the export ID."""
+    master_db_id: int
+    """Source library identity."""
+    sample_rate: int
+    """Sample rate in Hz."""
+    file_size: int
+    """Audio file size in bytes."""
+    bitrate: int
+    """Stored bitrate, normally kb/s."""
+    bpmx100: int
+    """Tempo in BPM multiplied by 100."""
+    length: int
+    """Track duration in seconds."""
+    track_no: int
+    """Track number within the release."""
+    disc_no: int
+    """Disc number."""
+    play_count: int
+    """Stored play count."""
+    release_year: int
+    """Release year."""
+    bit_depth: int
+    """Sample depth in bits per sample."""
+    color_id: int
+    """Raw color ID, including zero."""
+    rating: int
+    """Raw star rating; unrecognized values are retained."""
+    file_type: int
+    """Raw audio format code; unrecognized codes are retained."""
+    title: str
+    """Display title."""
+    comment: str
+    """DJ comment."""
+    mix_name: str
+    """Mix/remix name."""
+    lyricist: str
+    """Lyricist text."""
+    message: str
+    """Track message, separate from the comment."""
+    publish_track_info: str
+    """Original publication setting text."""
+    hot_cue_auto_load: str
+    """Original hot-cue auto-load setting text."""
+    date_added: str
+    """Collection date as stored text."""
+    release_date: str
+    """Release date as stored text."""
+    analysis_date: str
+    """Analysis date as stored text."""
+    analysis_path: str
+    """Analysis-file path, preserving original separators."""
+    file_name: str
+    """Audio basename."""
+    path: str
+    """Audio path, preserving original separators."""
+    isrc: str
+    """ISRC text; empty means absent, otherwise twelve ASCII alphanumeric characters."""
+
+class DevGenre(_RustMutableMapping):
+    """A detached genre from the standard database."""
+
+    id: int
+    """Export genre ID."""
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class NewDevGenre(_RustMutableMapping):
+    """Input for a fresh genre, without an existing raw row."""
+
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class DevHistory(_RustMutableMapping):
+    """A detached history playlist from the standard database."""
+
+    id: int
+    """History-playlist ID, in a separate namespace from regular playlists."""
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class NewDevHistory(_RustMutableMapping):
+    """Input for a fresh history playlist, without an existing raw row."""
+
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class DevHistoryContent(_RustMutableMapping):
+    """A detached track occurrence in a standard database history playlist."""
+
+    history_id: int
+    """History-playlist ID; this does not reference the regular playlist table."""
+    content_id: int
+    """Export track ID, distinct from the source/master content ID."""
+    seq: int
+    """Stored occurrence position; zero and gaps remain unmodified on reads."""
+
+class NewDevHistoryContent(_RustMutableMapping):
+    """Input for a fresh history occurrence, without a synthetic ID or source row."""
+
+    history_id: int
+    """Nonzero history-playlist ID; existence is not checked."""
+    content_id: int
+    """Nonzero export track ID."""
+    seq: int
+    """Explicit occurrence position; other positions are untouched."""
+
+class DevKey(_RustMutableMapping):
+    """A detached key from the standard database."""
+
+    id: int
+    """Export key ID."""
+    secondary_id: int
+    """Second stored ID, supplied independently; its role remains unknown."""
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class NewDevKey(_RustMutableMapping):
+    """Input for a fresh key, without an existing raw row."""
+
+    secondary_id: int
+    """Second stored ID, supplied independently; its role remains unknown."""
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class DevLabel(_RustMutableMapping):
+    """A detached label from the standard database."""
+
+    id: int
+    """Export label ID."""
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class NewDevLabel(_RustMutableMapping):
+    """Input for a fresh label, without an existing raw row."""
+
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class DevMyTag(_RustMutableMapping):
+    """A detached My Tag or category from the extended database."""
+
+    id: int
+    """Tag/category ID matching the source main database (`master.db`)."""
+    parent_id: int
+    """Parent category ID; zero denotes a root in observed exports."""
+    seq: int
+    """Zero-based position within the parent/category list."""
+    name: str
+    """Decoded display name."""
+    attribute: MyTagType
+    """Tag or category type; unknown binary attributes are rejected by this model."""
+
+class NewDevMyTag(_RustMutableMapping):
+    """Input for a fresh My Tag/category, with an explicit ID and optional position."""
+
+    id: int
+    """Nonzero source main-database tag/category ID, unused in this export."""
+    parent_id: int
+    """Parent category ID; zero denotes a root."""
+    seq: Optional[int]
+    """Insertion position starting at `DevMyTag::START_SEQ`; `None` appends."""
+    name: str
+    """Display name."""
+    attribute: MyTagType
+    """Tag (List) or category (Folder)."""
+    unknown_04: int
+    """Reserved word at 0x04, defaulting to zero."""
+    unknown_08: int
+    """Reserved word at 0x08, defaulting to zero."""
+    unknown_18: int
+    """Reserved word at 0x18, defaulting to zero."""
+    unknown_1a: int
+    """Reserved byte at 0x1a, defaulting to zero."""
+
+class DevMyTagContent(_RustMutableMapping):
+    """A detached association between a standard database track and an extended tag."""
+
+    content_id: int
+    """Export track ID in the separate standard database."""
+    my_tag_id: int
+    """Tag ID in the extended database, matching the source main-database tag ID."""
+
+class NewDevMyTagContent(_RustMutableMapping):
+    """Input for a fresh track/tag association, without a synthetic row ID."""
+
+    content_id: int
+    """Nonzero export track ID in the standard database."""
+    my_tag_id: int
+    """Nonzero tag ID in the extended database, matching the source main-database tag ID."""
+    unknown_00: int
+    """Reserved word at 0x00, defaulting to zero."""
+    reserved_string_marker: int
+    """Raw marker at 0x0c; defaults to the observed empty short-string frame, 3."""
+    @property
+    def reserved_tail(self) -> bytes:
+        """Three reserved trailing bytes."""
+        ...
+    @reserved_tail.setter
+    def reserved_tail(self, value: Sequence[int]) -> None: ...
+
+class DevPlaylistTreeNode:
+    """Detached playlist tree node. Editing this snapshot does not persist changes."""
+
+    @property
+    def playlist(self) -> DevPlaylist: ...
+    @property
+    def children(self) -> List[DevPlaylistTreeNode]: ...
+
+class DevPlaylist(_RustMutableMapping):
+    """A detached playlist or folder in the standard database's playlist tree."""
+
+    id: int
+    """Export playlist/folder ID."""
+    parent_id: int
+    """Parent folder ID; zero denotes the root."""
+    seq: int
+    """Stored sibling position; gaps and ties are retained."""
+    attribute: PlaylistType
+    """Regular playlist or folder; other binary flags are rejected by this model."""
+    name: str
+    """Decoded display name."""
+
+class NewDevPlaylist(_RustMutableMapping):
+    """Input for a fresh playlist or folder; no existing raw row is needed."""
+
+    parent_id: int
+    """Parent folder ID; zero denotes the root."""
+    seq: Optional[int]
+    """Zero-based insertion position; `None` appends after the last sibling."""
+    attribute: PlaylistType
+    """Node type; only List and Folder can be encoded for DeviceSQL."""
+    name: str
+    """Display name."""
+    unknown_04: int
+    """Reserved word at 0x04, defaulting to zero."""
+
+class DevPlaylistContent(_RustMutableMapping):
+    """A detached track occurrence in a standard database playlist."""
+
+    playlist_id: int
+    """Export playlist ID."""
+    content_id: int
+    """Export track ID, distinct from the source/master content ID."""
+    seq: int
+    """Stored position, commonly one-based; zero and gaps remain unmodified on reads."""
+
+class NewDevPlaylistContent(_RustMutableMapping):
+    """Input for a fresh playlist occurrence, without a synthetic ID or source row."""
+
+    playlist_id: int
+    """Existing regular playlist ID."""
+    content_id: int
+    """Nonzero export track ID."""
+    seq: Optional[int]
+    """One-based insertion position; `None` appends."""
+
+class DevExportProperty(_RustMutableMapping):
+    """Export metadata from standard table 19, initialized by the standard creation profile."""
+
+    track_count: int
+    """Stored track count after the export update."""
+    background_color: int
+    """Raw Device Library background-color value."""
+    date: str
+    """Export/creation date as stored text; no date format is imposed."""
+    version: str
+    """Stored version text."""
+    name: str
+    """Device/export name."""
+
+class DevDatabaseProperty(_RustMutableMapping):
+    """Source My Tag library metadata from extended table 7, initialized by the extended profile."""
+
+    my_tag_master_db_id: int
+    """Source/master My Tag library identity, not a row ID; zero is valid."""
+
+class DevRecommendedLike(_RustMutableMapping):
+    """A detached RecommendedLike row in the extended database."""
+
+    unknown_00: int
+    """Raw eight-byte value at 0x00; not interpreted as a timestamp."""
+    content_id_1: int
+    """First standard export track ID; no source/target direction is inferred."""
+    content_id_2: int
+    """Second standard export track ID."""
+    unknown_10: int
+    """Raw word at 0x10."""
+    unknown_14: int
+    """Raw word at 0x14; flag semantics are unknown."""
+
+class NewDevRecommendedLike(_RustMutableMapping):
+    """Insertion input for a fresh RecommendedLike row."""
+
+    unknown_00: int
+    """Raw eight-byte value at 0x00; not interpreted as a timestamp."""
+    content_id_1: int
+    """First standard export track ID; no source/target direction is inferred."""
+    content_id_2: int
+    """Second standard export track ID."""
+    unknown_10: int
+    """Raw word at 0x10."""
+    unknown_14: int
+    """Raw word at 0x14; flag semantics are unknown."""
 
 # ---- ANLZ snapshots and handlers ---------------------------------------------------------------
 

@@ -19,6 +19,17 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::io::{Read, Seek};
 
+#[cfg(feature = "napi")]
+use napi::bindgen_prelude::{FromNapiValue, Object};
+#[cfg(feature = "napi")]
+use napi::sys;
+#[cfg(feature = "napi")]
+use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
+#[cfg(feature = "pyo3")]
+use rbox_derives::{pyclass_public, PyMutableMapping};
+
 use rbox_core::MyTagType;
 
 use super::ordering::{Change, Position};
@@ -39,6 +50,9 @@ use crate::{Error, Result};
 /// Tag/category IDs should match the source main database (`master.db`).
 /// Public-field edits affect only this snapshot. Parents and tracks are not loaded.
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi)]
 pub struct DevMyTag {
     /// Tag/category ID matching the source main database (`master.db`).
     pub id: i64,
@@ -679,6 +693,9 @@ impl TryFrom<RowRecord> for DevMyTag {
 /// strings that cannot fit that layout. Insertion validates category ancestry and
 /// maintains sibling ordering. Saving remains explicit.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct NewDevMyTag {
     /// Nonzero source main-database tag/category ID, unused in this export.
     pub id: i64,
@@ -800,6 +817,9 @@ impl NewDevMyTag {
 /// There is no assumed unique row ID. Queries preserve repeated associations and
 /// never load related rows. Editing fields changes only this snapshot.
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi)]
 pub struct DevMyTagContent {
     /// Export track ID in the separate standard database.
     pub content_id: i64,
@@ -950,6 +970,9 @@ impl TryFrom<RowRecord> for DevMyTagContent {
 /// Reserved fields default to zero with the observed empty-string marker 3.
 /// Insertion commits in memory only; saving is explicit.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object, object_from_js = false))]
 pub struct NewDevMyTagContent {
     /// Nonzero export track ID in the standard database.
     pub content_id: i64,
@@ -1003,5 +1026,50 @@ impl NewDevMyTagContent {
             reserved_string_marker: self.reserved_string_marker,
             reserved_tail: self.reserved_tail,
         })
+    }
+}
+
+#[cfg(feature = "napi")]
+fn fixed_array<T, const N: usize>(values: Vec<T>, field: &str) -> napi::Result<[T; N]> {
+    values.try_into().map_err(|values: Vec<T>| {
+        napi::Error::new(
+            napi::Status::InvalidArg,
+            format!(
+                "`{field}` requires exactly {N} elements, got {}",
+                values.len()
+            ),
+        )
+    })
+}
+
+#[cfg(feature = "napi")]
+impl FromNapiValue for NewDevMyTagContent {
+    unsafe fn from_napi_value(env: sys::napi_env, value: sys::napi_value) -> napi::Result<Self> {
+        let object = unsafe { Object::from_napi_value(env, value)? };
+        Ok(Self {
+            content_id: super::napi_required(&object, "contentId")?,
+            my_tag_id: super::napi_required(&object, "myTagId")?,
+            unknown_00: super::napi_required(&object, "unknown00")?,
+            reserved_string_marker: super::napi_required(&object, "reservedStringMarker")?,
+            reserved_tail: fixed_array(
+                super::napi_required(&object, "reservedTail")?,
+                "reservedTail",
+            )?,
+        })
+    }
+}
+
+#[cfg(all(test, feature = "napi"))]
+mod napi_tests {
+    use super::fixed_array;
+
+    #[test]
+    fn fixed_arrays_require_exact_lengths() {
+        assert_eq!(
+            fixed_array::<_, 3>(vec![1, 2, 3], "tail").unwrap(),
+            [1, 2, 3]
+        );
+        assert!(fixed_array::<u8, 3>(vec![1, 2], "tail").is_err());
+        assert!(fixed_array::<u8, 3>(vec![1, 2, 3, 4], "tail").is_err());
     }
 }

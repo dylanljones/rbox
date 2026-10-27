@@ -34,6 +34,13 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::io::{Read, Seek};
 
+#[cfg(feature = "napi")]
+use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
+#[cfg(feature = "pyo3")]
+use rbox_derives::{pyclass_public, PyMutableMapping};
+
 use rbox_core::PlaylistType;
 
 use super::ordering::{Change, Position};
@@ -50,6 +57,8 @@ use crate::{Error, Result};
 
 /// Detached playlist tree node. Editing this snapshot does not persist changes.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all))]
+#[cfg_attr(feature = "napi", napi(object, object_from_js = false))]
 pub struct DevPlaylistTreeNode {
     /// The playlist or folder and its original binary row.
     pub playlist: DevPlaylist,
@@ -63,6 +72,9 @@ pub struct DevPlaylistTreeNode {
 /// traverse parents or load entries. Editing fields changes only this snapshot;
 /// original bytes remain available through [`Self::raw_record`].
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi)]
 pub struct DevPlaylist {
     /// Export playlist/folder ID.
     pub id: i64,
@@ -922,6 +934,9 @@ impl TryFrom<RowRecord> for DevPlaylist {
 /// ordering; `None` appends. The reserved word defaults to zero and remains configurable.
 /// Insertion commits in memory only and does not create entries or save to disk.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct NewDevPlaylist {
     /// Parent folder ID; zero denotes the root.
     pub parent_id: i64,
@@ -1045,6 +1060,9 @@ impl NewDevPlaylist {
 /// position ties are retained. Editing fields changes only this snapshot; tracks
 /// and playlist nodes are not loaded automatically.
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi)]
 pub struct DevPlaylistContent {
     /// Export playlist ID.
     pub playlist_id: i64,
@@ -1429,6 +1447,9 @@ impl TryFrom<RowRecord> for DevPlaylistContent {
 /// Insertion validates the playlist and content, rejects duplicate pairs, and
 /// maintains one-based positions. `None` appends. Saving remains explicit.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct NewDevPlaylistContent {
     /// Existing regular playlist ID.
     pub playlist_id: i64,

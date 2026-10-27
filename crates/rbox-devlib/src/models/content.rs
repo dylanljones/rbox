@@ -13,6 +13,13 @@ use binrw::BinRead;
 use rbox_core::{PathExt, Track, TrackSource};
 use std::path::PathBuf;
 
+#[cfg(feature = "napi")]
+use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
+#[cfg(feature = "pyo3")]
+use rbox_derives::{pyclass_public, PyMutableMapping};
+
 use super::playlist::remove_associations;
 use super::{
     checked_number, load_related, next_id, text, text_error, unsupported, update_export_count,
@@ -44,6 +51,9 @@ use crate::{Error, Result};
 /// [`Self::all_with_relations`] to explicitly construct a [`DevContentView`].
 /// The extended database has no track table and returns [`Error::WrongDatabaseKind`].
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi)]
 pub struct DevContent {
     /// Export track ID, used by playlists and tag associations.
     pub id: i64,
@@ -148,6 +158,8 @@ pub struct DevContent {
 /// # }
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all))]
+#[cfg_attr(feature = "napi", napi(object, object_from_js = false))]
 pub struct DevContentView {
     /// Original content snapshot, including unresolved foreign keys.
     pub content: DevContent,
@@ -965,6 +977,9 @@ impl TryFrom<RowRecord> for DevContent {
 /// # }
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi)]
 pub struct NewDevContent {
     /// Main artist ID.
     pub artist_id: i64,
@@ -1042,8 +1057,9 @@ pub struct NewDevContent {
     pub path: String,
     /// ISRC text; empty means absent, otherwise twelve ASCII alphanumeric characters.
     pub isrc: String,
+
     /// Reserved authoring values; defaults describe a writer policy, not parser invariants.
-    pub creation: TrackCreationOptions,
+    creation: TrackCreationOptions,
 }
 
 impl NewDevContent {
@@ -1059,6 +1075,26 @@ impl NewDevContent {
             file_name,
             ..Self::default()
         }
+    }
+
+    /// Start a track with an audio path using forward slashes and reserved authoring values.
+    ///
+    /// The file name is the last slash-separated component of the supplied path.
+    /// Other metadata remains zero or empty.
+    pub fn new_with_creation(path: impl Into<String>, creation: TrackCreationOptions) -> Self {
+        let path = path.into();
+        let file_name = path.rsplit('/').next().unwrap_or_default().to_owned();
+        Self {
+            path,
+            file_name,
+            creation,
+            ..Self::default()
+        }
+    }
+
+    /// Configure reserved authoring values from Rust; these are not exposed to JavaScript.
+    pub fn creation_mut(&mut self) -> &mut TrackCreationOptions {
+        &mut self.creation
     }
 
     /// Insert a fresh row and return its decoded snapshot.

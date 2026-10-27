@@ -5,6 +5,13 @@
 
 use std::io::{Read, Seek};
 
+#[cfg(feature = "napi")]
+use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
+#[cfg(feature = "pyo3")]
+use rbox_derives::{pyclass_public, PyMutableMapping};
+
 use super::{
     checked_number, next_id, read_fields, text, text_error, unsupported, validate_id, DevContent,
 };
@@ -18,6 +25,9 @@ use crate::{Error, Result};
 /// values and framing remain in [`Self::raw_record`]. Queries never load related
 /// tables and reject extended database connections.
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi)]
 pub struct DevArtwork {
     /// Export artwork ID.
     pub id: i64,
@@ -251,6 +261,9 @@ impl TryFrom<RowRecord> for DevArtwork {
 /// Insertion commits to the connection's in-memory overlay; saving is explicit.
 /// Other tables are not modified.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct NewDevArtwork {
     /// Original artwork path, preserving stored separators.
     pub path: String,

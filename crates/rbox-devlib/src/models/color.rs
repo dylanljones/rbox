@@ -9,6 +9,13 @@
 
 use std::io::{Read, Seek};
 
+#[cfg(feature = "napi")]
+use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
+#[cfg(feature = "pyo3")]
+use rbox_derives::{pyclass_public, PyMutableMapping};
+
 use super::{checked_number, read_fields, text, text_error, unique_name, unsupported, validate_id};
 use crate::binary::{ColorRow, PageType, Row, RowRecord, StandardRow, TableKind};
 use crate::devicesql::DeviceSqlConnection;
@@ -21,6 +28,9 @@ use crate::{Error, Result};
 /// tables and reject extended database connections. Call [`Self::update`] to
 /// persist an edited name; saving remains explicit.
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi)]
 pub struct DevColor {
     /// Export color ID, retaining both bytes of the binary field.
     pub id: i64,

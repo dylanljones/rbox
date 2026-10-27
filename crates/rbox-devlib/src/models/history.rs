@@ -14,6 +14,13 @@
 use std::collections::HashMap;
 use std::io::{Read, Seek};
 
+#[cfg(feature = "napi")]
+use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
+#[cfg(feature = "pyo3")]
+use rbox_derives::{pyclass_public, PyMutableMapping};
+
 use super::{
     checked_number, next_id, read_fields, text, text_error, unsupported, validate_id,
     validate_nonzero_id, DevContent,
@@ -29,6 +36,9 @@ use crate::{Error, Result};
 /// explicitly through [`Self::get_contents`]. Queries reject extended database
 /// connections. Use [`Self::update`] to persist an edited name.
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi)]
 pub struct DevHistory {
     /// History-playlist ID, in a separate namespace from regular playlists.
     pub id: i64,
@@ -255,6 +265,9 @@ impl TryFrom<RowRecord> for DevHistory {
 /// Insertion commits to the connection's in-memory overlay; saving is explicit.
 /// Other tables are not modified.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct NewDevHistory {
     /// Decoded display name, preserving empty text.
     pub name: String,
@@ -307,6 +320,9 @@ impl NewDevHistory {
 /// position ties are retained. Editing fields changes only this snapshot; tracks
 /// and history playlists are not loaded automatically. No timestamp is inferred.
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi)]
 pub struct DevHistoryContent {
     /// History-playlist ID; this does not reference the regular playlist table.
     pub history_id: i64,
@@ -427,6 +443,9 @@ impl TryFrom<RowRecord> for DevHistoryContent {
 /// resolved. The caller supplies valid references to a history playlist and an export track.
 /// Saving, relationship validation and automatic ordering remain separate steps.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct NewDevHistoryContent {
     /// Nonzero history-playlist ID; existence is not checked.
     pub history_id: i64,

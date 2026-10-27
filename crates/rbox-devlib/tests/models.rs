@@ -788,9 +788,9 @@ mod content_mutations {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
         let mut input = NewDevContent::new("/Contents/original.wav");
         input.isrc = "USABC1234567".into();
-        input.creation.content_link = 0x12345678;
-        input.creation.raw_analysis = 0x9876;
-        input.creation.unknown_strings =
+        input.creation_mut().content_link = 0x12345678;
+        input.creation_mut().raw_analysis = 0x9876;
+        input.creation_mut().unknown_strings =
             ["one", "two", "three", "four", "five", "six", "seven"].map(str::to_owned);
         let original = input.clone().insert(&mut conn)?;
         let before = bytes(&mut conn)?;
@@ -2533,7 +2533,7 @@ mod key_mutations {
         for (id, key_id) in [(1, 1), (2, 2), (3, 1), (4, 0)] {
             let mut content = NewDevContent::new(format!("/Contents/{id}.wav"));
             content.key_id = key_id;
-            content.creation.content_link = 12345;
+            content.creation_mut().content_link = 12345;
             let content = content.insert(&mut conn)?;
             let Row::Standard(StandardRow::Track(mut row)) = content.raw_record().decode()? else {
                 panic!()
@@ -2680,7 +2680,7 @@ mod label_mutations {
         for (id, label_id) in [(1, 1), (2, 2), (3, 1), (4, 0)] {
             let mut content = NewDevContent::new(format!("/Contents/{id}.wav"));
             content.label_id = label_id;
-            content.creation.content_link = 12345;
+            content.creation_mut().content_link = 12345;
             let content = content.insert(&mut conn)?;
             let Row::Standard(StandardRow::Track(mut row)) = content.raw_record().decode()? else {
                 panic!()
@@ -2827,7 +2827,7 @@ mod genre_mutations {
         for (id, genre_id) in [(1, 1), (2, 2), (3, 1), (4, 0)] {
             let mut content = NewDevContent::new(format!("/Contents/{id}.wav"));
             content.genre_id = genre_id;
-            content.creation.content_link = 12345;
+            content.creation_mut().content_link = 12345;
             let content = content.insert(&mut conn)?;
             let Row::Standard(StandardRow::Track(mut row)) = content.raw_record().decode()? else {
                 panic!()
@@ -7095,10 +7095,10 @@ fn fresh_track_policy_is_explicit_and_overridable() -> Result<()> {
     ] {
         assert_eq!(frame.text()?, "");
     }
-    input.creation.content_link = 0x700;
-    input.creation.raw_analysis = 0x1234;
-    input.creation.string_marker = 5;
-    input.creation.unknown_strings[0] = "opaque".into();
+    input.creation_mut().content_link = 0x700;
+    input.creation_mut().raw_analysis = 0x1234;
+    input.creation_mut().string_marker = 5;
+    input.creation_mut().unknown_strings[0] = "opaque".into();
     let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
     let inserted = input.insert(&mut conn)?;
     let row = track_row(inserted.raw_record())?;

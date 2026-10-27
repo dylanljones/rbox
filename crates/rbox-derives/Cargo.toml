@@ -19,3 +19,7 @@ proc-macro = true
 [dependencies]
 quote       = { workspace = true }
 syn         = { workspace = true }
+
+[dev-dependencies]
+pyo3        = { workspace = true }
+rbox-core   = { path = "../rbox-core", default-features = false, features = ["pyo3"] }

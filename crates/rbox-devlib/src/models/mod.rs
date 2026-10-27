@@ -246,3 +246,17 @@ fn text_error(record: &RowRecord, field: &'static str, source: Error) -> Error {
         source: Box::new(source),
     }
 }
+
+/// Read a required property for model-specific JavaScript conversions.
+#[cfg(feature = "napi")]
+fn napi_required<T: napi::bindgen_prelude::FromNapiValue>(
+    object: &napi::bindgen_prelude::Object<'_>,
+    field: &str,
+) -> napi::Result<T> {
+    object.get(field)?.ok_or_else(|| {
+        napi::Error::new(
+            napi::Status::InvalidArg,
+            format!("Missing required field `{field}`"),
+        )
+    })
+}

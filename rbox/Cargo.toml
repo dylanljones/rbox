@@ -32,8 +32,8 @@ bundled = ["rbox-db?/bundled", "rbox-masterdb?/bundled", "rbox-onelib?/bundled"]
 bundled-vendored-openssl = ["rbox-db?/bundled-vendored-openssl", "rbox-masterdb?/bundled-vendored-openssl", "rbox-onelib?/bundled-vendored-openssl"]
 
 # Features for the bindings
-pyo3 = ["rbox-core/pyo3", "rbox-db?/pyo3", "rbox-masterdb?/pyo3", "rbox-onelib?/pyo3"]
-napi = ["rbox-core/napi", "rbox-db?/napi", "rbox-masterdb?/napi", "rbox-onelib?/napi"]
+pyo3 = ["rbox-core/pyo3", "rbox-db?/pyo3", "rbox-masterdb?/pyo3", "rbox-onelib?/pyo3", "rbox-devlib?/pyo3"]
+napi = ["rbox-core/napi", "rbox-db?/napi", "rbox-masterdb?/napi", "rbox-onelib?/napi", "rbox-devlib?/napi"]
 
 [dependencies]
 thiserror       = { workspace = true }

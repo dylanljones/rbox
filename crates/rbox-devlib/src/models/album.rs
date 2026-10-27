@@ -5,6 +5,13 @@
 
 use std::io::{Read, Seek};
 
+#[cfg(feature = "napi")]
+use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
+#[cfg(feature = "pyo3")]
+use rbox_derives::{pyclass_public, PyMutableMapping};
+
 use super::{
     checked_number, load_related, next_id, read_fields, text, text_error, unsupported, validate_id,
     DevArtist, DevContent,
@@ -23,6 +30,9 @@ use crate::{Error, Result};
 /// tables. Use [`Self::resolve`] or [`Self::all_with_relations`] for a [`DevAlbumView`].
 /// All queries reject extended database connections.
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi)]
 pub struct DevAlbum {
     /// Export album ID.
     pub id: i64,
@@ -43,6 +53,8 @@ pub struct DevAlbum {
 /// to `None`; the original ID and raw row remain in [`Self::album`]. Editing this
 /// view changes only the snapshot, without saving or refreshing relationships.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all))]
+#[cfg_attr(feature = "napi", napi(object, object_from_js = false))]
 pub struct DevAlbumView {
     /// Original album snapshot, including its artist ID.
     pub album: DevAlbum,
@@ -396,6 +408,9 @@ impl TryFrom<RowRecord> for DevAlbum {
 /// Insertion commits to the connection's in-memory overlay; saving is explicit.
 /// Other tables are not modified.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object))]
 pub struct NewDevAlbum {
     /// Album artist ID, independent of the track artist; zero means unassigned.
     pub artist_id: i64,

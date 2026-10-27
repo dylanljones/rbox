@@ -5,6 +5,17 @@
 
 use std::io::{Read, Seek};
 
+#[cfg(feature = "napi")]
+use napi::bindgen_prelude::{BigInt, FromNapiValue, Object};
+#[cfg(feature = "napi")]
+use napi::sys;
+#[cfg(feature = "napi")]
+use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
+#[cfg(feature = "pyo3")]
+use rbox_derives::{pyclass_public, PyMutableMapping};
+
 use super::{checked_number, unsupported, validate_nonzero_id};
 use crate::binary::{ExtPageType, ExtendedRow, RecommendLikeRow, Row, RowRecord, TableKind};
 use crate::devicesql::DeviceSqlConnection;
@@ -17,8 +28,12 @@ use crate::{Error, Result};
 /// Existing repeated rows are retained on reads; model insertion rejects duplicate
 /// ordered content pairs. There is no unique scalar row ID.
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi)]
 pub struct DevRecommendedLike {
     /// Raw eight-byte value at 0x00; not interpreted as a timestamp.
+    #[cfg_attr(feature = "napi", napi(skip))]
     pub unknown_00: u64,
     /// First standard export track ID; no source/target direction is inferred.
     pub content_id_1: i64,
@@ -141,6 +156,9 @@ impl TryFrom<RowRecord> for DevRecommendedLike {
 /// inferred. Model insertion requires a unique ordered content pair.
 /// Saving is explicit; insertion commits only to the in-memory connection.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "napi", napi(object, object_from_js = false))]
 pub struct NewDevRecommendedLike {
     /// Raw eight-byte value at 0x00; not interpreted as a timestamp.
     pub unknown_00: u64,
@@ -215,6 +233,48 @@ impl NewDevRecommendedLike {
             track_id_2: checked_number(self.content_id_2, "track_id_2")?,
             unknown_10: self.unknown_10,
             unknown_14: self.unknown_14,
+        })
+    }
+}
+
+#[cfg(feature = "napi")]
+fn unsigned_word(value: BigInt) -> napi::Result<u64> {
+    if value.sign_bit || value.words.len() > 1 {
+        return Err(napi::Error::new(
+            napi::Status::InvalidArg,
+            "`unknown00` must be a bigint between 0 and 18446744073709551615",
+        ));
+    }
+    Ok(value.words.first().copied().unwrap_or(0))
+}
+
+#[cfg(feature = "napi")]
+#[napi]
+impl DevRecommendedLike {
+    /// Raw eight-byte value at 0x00, exposed without precision loss as a bigint.
+    #[napi(getter, js_name = "unknown00")]
+    pub fn get_unknown_00(&self) -> u64 {
+        self.unknown_00
+    }
+
+    /// Reject negative values and values that exceed the binary field width.
+    #[napi(setter, js_name = "unknown00")]
+    pub fn set_unknown_00(&mut self, value: BigInt) -> napi::Result<()> {
+        self.unknown_00 = unsigned_word(value)?;
+        Ok(())
+    }
+}
+
+#[cfg(feature = "napi")]
+impl FromNapiValue for NewDevRecommendedLike {
+    unsafe fn from_napi_value(env: sys::napi_env, value: sys::napi_value) -> napi::Result<Self> {
+        let object = unsafe { Object::from_napi_value(env, value)? };
+        Ok(Self {
+            unknown_00: unsigned_word(super::napi_required(&object, "unknown00")?)?,
+            content_id_1: super::napi_required(&object, "contentId1")?,
+            content_id_2: super::napi_required(&object, "contentId2")?,
+            unknown_10: super::napi_required(&object, "unknown10")?,
+            unknown_14: super::napi_required(&object, "unknown14")?,
         })
     }
 }
