@@ -35,7 +35,7 @@ pip install rbox
 ```
 
 
-## 🚀 Quick-Start
+## Quick-Start
 
 > **❗ Caution**:
 > Please make sure to back up your Rekordbox collection before making changes to rekordbox data.

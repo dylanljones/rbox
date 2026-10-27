@@ -90,7 +90,7 @@ These features are used in the bindings and *should not be enabled manually*:
 - `pyo3`: Enables Python bindings
 - `napi`: Enables Node.js/JavaScript bindings through N-API
 
-## 🚀 Quick-Start
+## Quick-Start
 
 > **❗ Caution**:
 > Please make sure to back up your Rekordbox collection before making changes to rekordbox data.
