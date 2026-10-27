@@ -1,2 +1,4 @@
 [env]
 RUST_TEST_THREADS = "4"
+# Defaults for this checkout, including cargo test; shell values take precedence.
+RBOX_SQLCIPHER_LOG_LEVEL = "ERROR"

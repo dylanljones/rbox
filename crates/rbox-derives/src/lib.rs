@@ -1,15 +1,146 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
-//! Procedural derives for Rbox Python bindings.
+//! Procedural macros for rbox Python and JavaScript bindings.
 //!
 //! Generates Python mapping methods for named-field models. Generated iterators
 //! use the runtime helpers in `rbox-core`, whose `pyo3` feature must be enabled
 //! by the consuming crate.
 
+mod napi;
+mod py_constructor;
+
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Fields, Type};
+use syn::punctuated::Punctuated;
+use syn::{
+    parse_macro_input, parse_quote, Data, DeriveInput, Fields, ItemStruct, Meta, Token, Type,
+    Visibility,
+};
+
+/// Generate a Python constructor using the model's Rust constructor and public fields.
+///
+/// `#[py_constructor(required(path))]` calls `Self::new(path)`. Required fields
+/// accept positional or keyword arguments in the listed order. Other public
+/// fields accept keyword arguments; omitted fields retain the constructor's
+/// defaults. Explicit `None` is accepted only when the field type accepts it.
+/// Private and restricted fields cannot be supplied.
+///
+/// Override initialization with an expression, for example
+/// `#[py_constructor(required(playlist_id, content_id), constructor = Self::new(playlist_id, content_id, None))]`.
+/// The expression may use `?` to propagate a Python error. Nongeneric named
+/// structs are supported. Requires `pyo3` and a separate `#[pyclass]` declaration.
+#[proc_macro_derive(PyConstructor, attributes(py_constructor))]
+pub fn derive_py_constructor(input: TokenStream) -> TokenStream {
+    let item = parse_macro_input!(input as ItemStruct);
+    match py_constructor::expand(&item) {
+        Ok(generated) => quote!(#generated).into(),
+        Err(error) => error.into_compile_error().into(),
+    }
+}
+
+/// Generate JavaScript object shapes from unrestricted public fields.
+///
+/// Output mode generates an output-only object and `ToNapiValue` for the model:
+/// `#[napi_public(output = ContentObject, patch = ContentChanges, readonly(id))]`.
+/// The optional patch has optional fields and an `apply_to` method; readonly fields
+/// are excluded. Input mode generates an input-only object and conversion into the
+/// model: `#[napi_public(input = ContentInput, required(path), constructor = new)]`.
+/// Required fields are passed to the constructor in the listed order; remaining
+/// supplied fields override its defaults. Both object modes use the model's name
+/// in JavaScript. Private/restricted fields are never exposed or reconstructed.
+///
+/// Use behind the consuming crate's `napi` feature. Requires `napi` and
+/// `napi-derive`. Supports nongeneric named structs with nonoptional public fields;
+/// omitted or `undefined` patch/input options leave values unchanged. `null` is
+/// rejected, matching the nonnullable field types.
+#[proc_macro_derive(NapiPublic, attributes(napi_public))]
+pub fn napi_public(input: TokenStream) -> TokenStream {
+    let item = parse_macro_input!(input as ItemStruct);
+    match napi::expand(&item) {
+        Ok(generated) => quote!(#generated).into(),
+        Err(error) => error.into_compile_error().into(),
+    }
+}
+
+/// Expose a named-field struct as a Python class with public-field properties.
+///
+/// Arguments are forwarded to `pyo3::pyclass`. Unrestricted `pub` fields receive
+/// `#[pyo3(get, set)]`, or just `get` for a `frozen` class. Explicit field `get` or
+/// `set` annotations override this default; name-only annotations retain it.
+/// Private and restricted fields are left untouched. Class-wide `get_all` and
+/// `set_all` are rejected because they would also expose private fields.
+///
+/// Apply this attribute before derives such as `PyMutableMapping`. It replaces
+/// `#[pyclass]`; the consuming crate must depend on `pyo3`.
+///
+/// ```ignore
+/// #[cfg_attr(feature = "pyo3", rbox_derives::pyclass_public(from_py_object, mapping))]
+/// #[cfg_attr(feature = "pyo3", derive(rbox_derives::PyMutableMapping))]
+/// #[derive(Clone)]
+/// pub struct DevGenre {
+///     pub id: i64,
+///     pub name: String,
+///     raw: RowRecord,
+/// }
+/// ```
+#[proc_macro_attribute]
+pub fn pyclass_public(args: TokenStream, input: TokenStream) -> TokenStream {
+    let options = parse_macro_input!(args with Punctuated::<Meta, Token![,]>::parse_terminated);
+    let item = parse_macro_input!(input as ItemStruct);
+    match public_pyclass(item, options) {
+        Ok(item) => quote!(#item).into(),
+        Err(error) => error.into_compile_error().into(),
+    }
+}
+
+fn public_pyclass(
+    mut item: ItemStruct,
+    options: Punctuated<Meta, Token![,]>,
+) -> syn::Result<ItemStruct> {
+    let Fields::Named(fields) = &mut item.fields else {
+        return Err(syn::Error::new_spanned(
+            &item,
+            "pyclass_public requires a struct with named fields",
+        ));
+    };
+    for option in &options {
+        if option.path().is_ident("get_all") || option.path().is_ident("set_all") {
+            return Err(syn::Error::new_spanned(
+                option,
+                "pyclass_public supplies public-field accessors; remove get_all/set_all",
+            ));
+        }
+    }
+    let frozen = options
+        .iter()
+        .any(|option| option.path().is_ident("frozen"));
+    for field in &mut fields.named {
+        if !matches!(field.vis, Visibility::Public(_)) {
+            continue;
+        }
+        let mut explicit_access = false;
+        for attr in &field.attrs {
+            if attr.path().is_ident("pyo3") {
+                let options =
+                    attr.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)?;
+                explicit_access |= options
+                    .iter()
+                    .any(|option| option.path().is_ident("get") || option.path().is_ident("set"));
+            }
+        }
+        if !explicit_access {
+            field.attrs.push(if frozen {
+                parse_quote!(#[pyo3(get)])
+            } else {
+                parse_quote!(#[pyo3(get, set)])
+            });
+        }
+    }
+    item.attrs
+        .insert(0, parse_quote!(#[::pyo3::pyclass(#options)]));
+    Ok(item)
+}
 
 const ENUMS: [&str; 6] = [
     // "Analyzed",
@@ -22,6 +153,11 @@ const ENUMS: [&str; 6] = [
 ];
 
 /// Implement Python mapping methods for a named-field Python class.
+///
+/// Only unrestricted `pub` fields participate in the mapping and its representation.
+/// Private and restricted fields (such as `pub(crate)`) are ignored, including any
+/// `repr_field` annotation on those fields. Hidden field types need no Python conversions.
+/// This does not control properties generated separately by `pyclass`.
 ///
 /// The consuming crate must depend on `rbox-core` with its `pyo3` feature
 /// enabled. Iterator helpers are resolved through `::rbox_core::python`, so
@@ -53,10 +189,14 @@ pub fn derive_py_mutable_mapping(input: TokenStream) -> TokenStream {
             }
         });
 
-    // Extract field information
+    // Use the same public fields for every generated mapping operation.
     let fields = if let Data::Struct(data_struct) = &input.data {
         if let Fields::Named(fields) = &data_struct.fields {
-            fields.named.iter().collect::<Vec<_>>()
+            fields
+                .named
+                .iter()
+                .filter(|field| matches!(field.vis, Visibility::Public(_)))
+                .collect::<Vec<_>>()
         } else {
             panic!("PyMutableMapping only works with named fields");
         }
@@ -72,25 +212,16 @@ pub fn derive_py_mutable_mapping(input: TokenStream) -> TokenStream {
         quote! { #name.to_string() }
     });
 
-    // Find the field to use for __repr__ (defaults to first field)
-    let repr_field = if let Data::Struct(data_struct) = &input.data {
-        if let Fields::Named(fields) = &data_struct.fields {
-            fields
-                .named
+    // Representation must not expose hidden fields either.
+    let repr_field = fields
+        .iter()
+        .find(|f| {
+            f.attrs
                 .iter()
-                .find(|f| {
-                    f.attrs
-                        .iter()
-                        .any(|attr| attr.path().is_ident("repr_field"))
-                })
-                .or_else(|| fields.named.first())
-                .and_then(|f| f.ident.as_ref())
-        } else {
-            None
-        }
-    } else {
-        None
-    };
+                .any(|attr| attr.path().is_ident("repr_field"))
+        })
+        .or_else(|| fields.first())
+        .and_then(|f| f.ident.as_ref());
 
     // Generate getter match arms
     let getter_arms = fields.iter().map(|f| {
@@ -296,4 +427,46 @@ fn is_py_datetime(ty: &Type) -> bool {
         return path_str.contains("Py < PyDateTime >");
     }
     false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn public_class_rejects_options_that_expose_private_fields() {
+        for option in [parse_quote!(get_all), parse_quote!(set_all)] {
+            let mut options = Punctuated::new();
+            options.push(option);
+            let error = public_pyclass(
+                parse_quote!(
+                    struct Model {
+                        pub id: i64,
+                        raw: NativeOnly,
+                    }
+                ),
+                options,
+            )
+            .unwrap_err();
+            assert!(error.to_string().contains("remove get_all/set_all"));
+        }
+    }
+
+    #[test]
+    fn public_class_rejects_unnamed_fields_with_a_diagnostic() {
+        for item in [
+            parse_quote!(
+                struct Tuple(pub i64);
+            ),
+            parse_quote!(
+                struct Unit;
+            ),
+        ] {
+            let error = public_pyclass(item, Punctuated::new()).unwrap_err();
+            assert_eq!(
+                error.to_string(),
+                "pyclass_public requires a struct with named fields"
+            );
+        }
+    }
 }

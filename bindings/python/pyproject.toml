@@ -4,7 +4,7 @@
 [project]
 name = 'rbox'
 license = 'GPL-3.0-only'
-# The license text is inherited through Cargo.toml's license-file setting.
+license-files = ['LICENSE']
 description = "Python library for interacting with the local and export data of Pioneers Rekordbox DJ software"
 authors = [
     {name = "Dylan Jones", email = "dylanljones@proton.me"},

@@ -1,13 +1,15 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `Sort`.
+
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 #[cfg(feature = "pyo3")]
-use rbox_derives::PyMutableMapping;
+use rbox_derives::{PyConstructor, PyMutableMapping};
 
 use crate::schema::sort;
 use rbox_db::ordering::{SequenceStore, SequenceVisible};
@@ -20,6 +22,7 @@ use rbox_db::{ordering_error, Model, ModelDelete, ModelInsert, ModelUpdate};
 /// # References
 /// * [`MenuItem`] via `menu_item_id` foreign key.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = sort)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(MenuItem, foreign_key = menu_item_id))]
@@ -29,10 +32,11 @@ use rbox_db::{ordering_error, Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Sort {
     /// The unique identifier of the record.
-    pub id: i32,
+    pub id: i64,
     /// An optional foreign key referencing the [`MenuItem`].
-    pub menu_item_id: i32,
-    /// The sequence/order number of the *visible* items (1-based index)
+    pub menu_item_id: i64,
+    /// One-based order among visible sort options. Hidden rows may retain an old
+    /// position and are excluded from active sequence maintenance.
     pub seq: i32,
     /// A flag if the item is visible in the menu
     pub is_visible: i32,
@@ -41,7 +45,7 @@ pub struct Sort {
 }
 
 impl Model for Sort {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().order((sort::seq, sort::id)).load(conn)
@@ -136,22 +140,27 @@ impl Sort {
 
 impl SequenceStore for Sort {
     type ParentId = ();
+    const START_SEQ: i32 = 1;
+
     fn is_valid_parent(_: &mut SqliteConnection, _: &()) -> QueryResult<bool> {
         Ok(true)
     }
+
     fn count_children(conn: &mut SqliteConnection, _: &()) -> QueryResult<i32> {
         let count: i64 = Self::filter_is_visible(1).count().get_result(conn)?;
         i32::try_from(count).map_err(|_| ordering_error("Collection too large"))
     }
+
     fn get_seq_numbers(conn: &mut SqliteConnection, _: &()) -> QueryResult<Vec<i32>> {
         Self::filter_is_visible(1)
             .order(sort::seq)
             .select(sort::seq)
             .load(conn)
     }
+
     fn reset_seq(conn: &mut SqliteConnection, _: &()) -> QueryResult<usize> {
         conn.transaction(|conn| {
-            let rows: Vec<(i32, i32)> = Self::filter_is_visible(1)
+            let rows: Vec<(i64, i32)> = Self::filter_is_visible(1)
                 .order((sort::seq, sort::id))
                 .select((sort::id, sort::seq))
                 .load(conn)?;
@@ -170,6 +179,7 @@ impl SequenceStore for Sort {
             Ok(count)
         })
     }
+
     fn shift_seq(
         conn: &mut SqliteConnection,
         _: &(),
@@ -185,6 +195,7 @@ impl SequenceStore for Sort {
         .execute(conn)
     }
 }
+
 impl SequenceVisible for Sort {}
 
 /// Represents a new record insertale to the `sort` table.
@@ -202,11 +213,12 @@ impl SequenceVisible for Sort {}
 #[diesel(table_name = sort)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(menu_item_id)))]
 pub struct NewSort {
     /// An optional foreign key referencing the [`MenuItem`].
-    pub menu_item_id: i32,
+    pub menu_item_id: i64,
     /// The sequence/order number of the item (1-based index)
     pub seq: i32,
     /// A flag if the item is visible in the menu
@@ -237,7 +249,7 @@ impl ModelInsert for NewSort {
 
 impl NewSort {
     /// Creates a new `sort` record with the required fields.
-    pub fn new(menu_item_id: i32) -> Self {
+    pub fn new(menu_item_id: i64) -> Self {
         Self {
             menu_item_id,
             ..Default::default()

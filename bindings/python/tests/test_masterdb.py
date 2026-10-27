@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from rbox import MasterDb, MasterDbError, Track
+from rbox import MasterDb, MasterDbError, Track, TrackSource
 from rbox.masterdb import models
 
 
@@ -33,22 +33,51 @@ def test_raw_getters(master_db):
         db.get_content_by_id([])
 
 
+def test_wide_file_sizes(master_db):
+    row = master_db.get_contents()[0]
+    for size in [2**40, 2**63 - 1, None]:
+        row.file_size = size
+        master_db.update_content(row)
+        assert master_db.get_content_by_id(row.id).file_size == size
+        assert master_db.get_track_by_id(row.id).file_size == size
+    with pytest.raises(OverflowError):
+        row.file_size = 2**63
+
+
 def test_resolved_track_helpers(master_db):
     db = master_db
     row = db.get_contents()[0]
     row.artist_id = db.create_artist("Track helper artist").id
     row.bpm = 12825
     row.composer_id = None
+    row.image_path = "/artwork/cover.jpg"
+    row.analysis_data_path = "/PIONEER/USBANLZ/example/ANLZ0000.DAT"
+    row.color_id = "3"
+    row.dj_play_count = 123
+    row.hot_cue_auto_load = "unknown-setting"
+    row.delivery_control = "on"
+    row.delivery_comment = "Delivery comment"
     db.update_content(row)
     track = db.get_track_by_id(row.id)
     assert isinstance(track, Track)
+    assert track.id == int(row.id)
     assert track.artist == "Track helper artist"
     assert track.bpm == 128.25
     assert track.composer is None
     assert isinstance(track.path, Path)
-    assert db.get_track_by_path(str(track.path)).id == row.id
+    assert track.master_content_id == int(row.id)
+    assert track.master_db_id == int(db.get_properties()[0].db_id)
+    assert track.source == TrackSource.MasterDb
+    assert track.artwork_path == Path(row.image_path)
+    assert track.analysis_data_path == Path(row.analysis_data_path)
+    assert track.color == 3
+    assert track.play_count == 123
+    assert track.hot_cue_auto_load == "unknown-setting"
+    assert track.delivery_control == "on"
+    assert track.delivery_comment == "Delivery comment"
+    assert db.get_track_by_path(str(track.path)).id == int(row.id)
     assert all(isinstance(item, Track) for item in db.get_tracks())
-    assert [item.id for item in db.get_tracks_by_ids([row.id, "missing", row.id])] == [row.id]
+    assert [item.id for item in db.get_tracks_by_ids([row.id, "missing", row.id])] == [int(row.id)]
     assert db.get_tracks_by_ids([]) == []
     assert db.get_track_by_id("missing") is None
     assert db.get_track_by_path("/missing/track.mp3") is None
@@ -127,3 +156,29 @@ def test_album_view(master_db):
     assert db.get_album_with_relations("missing-id") is None
     with pytest.raises(AttributeError):
         view.album = row
+
+
+def test_wide_metadata(master_db):
+    db = master_db
+    row = db.get_contents()[0]
+    fields = ["bit_rate", "sample_rate", "track_no", "bpm"]
+    wide = 2**32 - 1
+    for field in fields:
+        setattr(row, field, wide)
+    db.update_content(row)
+    stored = db.get_content_by_id(row.id)
+    assert all(getattr(stored, field) == wide for field in fields)
+    track = db.get_track_by_id(row.id)
+    assert track.bit_rate == wide
+    assert track.sample_rate == wide
+    assert track.track_no == wide
+    assert track.bpm == wide / 100
+    for value in [2**63 - 1, None]:
+        for field in fields:
+            setattr(row, field, value)
+        db.update_content(row)
+        stored = db.get_content_by_id(row.id)
+        assert all(getattr(stored, field) == value for field in fields)
+    for field in fields:
+        with pytest.raises(OverflowError):
+            setattr(row, field, 2**63)

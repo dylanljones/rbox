@@ -21,7 +21,7 @@ impl ConnectionFixture {
     ) -> Self {
         let file = rbox_testing::data::setup_one_library_path();
         let mut conn = open(file.path().to_path_buf(), &ConnectionOptions::default()).unwrap();
-        // Exported tag IDs exceed the signed model range. Start ordered collections empty.
+        // Start ordered collections empty for deterministic sequence tests.
         for table in [
             "myTag_content",
             "myTag",
@@ -43,7 +43,7 @@ impl ConnectionFixture {
     }
 
     /// Create six track identities for One Library association contracts.
-    pub fn seed_content_ids(&mut self) -> Vec<i32> {
+    pub fn seed_content_ids(&mut self) -> Vec<i64> {
         (1_000_000..1_000_006)
             .map(|id| {
                 diesel::sql_query(format!("INSERT INTO content(content_id) VALUES ({id})"))

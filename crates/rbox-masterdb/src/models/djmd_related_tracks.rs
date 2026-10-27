@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `DjmdRelatedTracks`.
+
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel::result::Error;
@@ -9,7 +11,7 @@ use napi_derive::napi;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 #[cfg(feature = "pyo3")]
-use rbox_derives::PyMutableMapping;
+use rbox_derives::{PyConstructor, PyMutableMapping};
 use std::collections::VecDeque;
 use uuid::Uuid;
 
@@ -38,6 +40,7 @@ use rbox_db::{
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = djmdRelatedTracks)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdRelatedTracks, foreign_key = parent_id))]
@@ -453,8 +456,9 @@ impl OrderedModel for DjmdRelatedTracks {
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(name, attribute)))]
 pub struct NewDjmdRelatedTracks {
     /// The name of the related track.
     pub name: String,
@@ -568,6 +572,7 @@ impl NewDjmdRelatedTracks {
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = djmdSongRelatedTracks)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdSongRelatedTracks, foreign_key = related_tracks_id))]
@@ -855,8 +860,12 @@ impl OrderedModel for DjmdSongRelatedTracks {
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(
+    feature = "pyo3",
+    py_constructor(required(related_tracks_id, content_id))
+)]
 pub struct NewDjmdSongRelatedTracks {
     /// The ID of the associated playlist in [`DjmdPlaylist`].
     pub related_tracks_id: String,

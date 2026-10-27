@@ -9,7 +9,7 @@ use napi_derive::napi;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 #[cfg(feature = "pyo3")]
-use rbox_derives::PyMutableMapping;
+use rbox_derives::{PyConstructor, PyMutableMapping};
 
 use super::artist::Artist;
 use super::image::Image;
@@ -31,6 +31,7 @@ use rbox_masterdb::models::DjmdAlbum;
 /// * [`Artist`] via `artist_id` foreign key.
 /// * [`Image`] via `image_id` foreign key.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset, Associations)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = album)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(Artist, foreign_key = artist_id))]
@@ -41,13 +42,13 @@ use rbox_masterdb::models::DjmdAlbum;
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Album {
     /// The unique identifier of the album.
-    pub id: i32,
+    pub id: i64,
     /// The name of the album.
     pub name: String,
     /// An optional foreign key referencing the album [`Artist`].
-    pub artist_id: Option<i32>,
+    pub artist_id: Option<i64>,
     /// An optional foreign key referencing the album artwork [`Image`].
-    pub image_id: Option<i32>,
+    pub image_id: Option<i64>,
     /// A flag if the album is a compilation.
     pub is_compilation: i32,
     /// An optional string used for searching the album.
@@ -124,7 +125,7 @@ impl ModelRelations for Album {
 }
 
 impl Model for Album {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
@@ -152,7 +153,7 @@ impl ModelDelete for Album {
         let mut result = diesel::delete(album::table.find(id)).execute(conn)?;
         // Remove any references to the album in the content table
         result += diesel::update(content::table.filter(content::album_id.eq(id)))
-            .set(content::album_id.eq(None::<i32>))
+            .set(content::album_id.eq(None::<i64>))
             .execute(conn)?;
         Ok(result)
     }
@@ -162,7 +163,7 @@ impl ModelDelete for Album {
             diesel::delete(album::table.filter(album::id.eq_any(&ids))).execute(conn)?;
         // Remove any references to the albums in the content table
         result += diesel::update(content::table.filter(content::album_id.eq_any(&ids)))
-            .set(content::album_id.eq(None::<i32>))
+            .set(content::album_id.eq(None::<i64>))
             .execute(conn)?;
         Ok(result)
     }
@@ -182,7 +183,7 @@ impl Album {
     /// Returns a detached snapshot; missing relationship targets remain `None`.
     pub fn find_with_relations(
         conn: &mut SqliteConnection,
-        id: i32,
+        id: i64,
     ) -> QueryResult<Option<AlbumView>> {
         conn.transaction(|conn| {
             Self::find(conn, &id)?
@@ -221,15 +222,16 @@ impl Album {
 #[diesel(table_name = album)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(name)))]
 pub struct NewAlbum {
     /// The name of the album.
     pub name: String,
     /// An optional foreign key referencing the album artist [`Artist`].
-    pub artist_id: Option<i32>,
+    pub artist_id: Option<i64>,
     /// An optional foreign key referencing the album artwork [`Image`].
-    pub image_id: Option<i32>,
+    pub image_id: Option<i64>,
     /// A flag if the album is a compilation.
     pub is_compilation: i32,
     /// An optional string used for searching the album.
@@ -262,13 +264,13 @@ impl NewAlbum {
     }
 
     /// Builder for `artist_id`.
-    pub fn artist_id(mut self, id: i32) -> Self {
+    pub fn artist_id(mut self, id: i64) -> Self {
         self.artist_id = Some(id);
         self
     }
 
     /// Builder for `image_id`.
-    pub fn image_id(mut self, id: i32) -> Self {
+    pub fn image_id(mut self, id: i64) -> Self {
         self.image_id = Some(id);
         self
     }

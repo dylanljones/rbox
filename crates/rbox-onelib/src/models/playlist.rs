@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `Playlist`.
+
 use diesel::prelude::*;
 use diesel::result::Error;
 #[cfg(feature = "napi")]
@@ -8,7 +10,7 @@ use napi_derive::napi;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 #[cfg(feature = "pyo3")]
-use rbox_derives::PyMutableMapping;
+use rbox_derives::{PyConstructor, PyMutableMapping};
 use std::cell::RefCell;
 use std::collections::{HashSet, VecDeque};
 use std::rc::Rc;
@@ -36,6 +38,7 @@ pub type PlaylistTreeNodeRef = Rc<RefCell<PlaylistTreeNode>>;
 /// # References
 /// * [`Playlist`] via `parent_id` foreign key.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset, Associations)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = playlist)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(Playlist, foreign_key = parent_id))]
@@ -45,21 +48,21 @@ pub type PlaylistTreeNodeRef = Rc<RefCell<PlaylistTreeNode>>;
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Playlist {
     /// The unique identifier of the playlist.
-    pub id: i32,
+    pub id: i64,
     /// Position among siblings, starting at zero.
     pub seq: i32,
     /// The name of the playlist.
     pub name: String,
     /// Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image).
-    pub image_id: Option<i32>,
+    pub image_id: Option<i64>,
     /// The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`).
     pub attribute: PlaylistType,
     /// The ID of the parent [`Playlist`], `0` for top-level records.
-    pub parent_id: i32,
+    pub parent_id: i64,
 }
 
 impl Model for Playlist {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query()
@@ -87,7 +90,7 @@ impl ModelDelete for Playlist {
             let mut deleted_ids = vec![*id];
 
             // Delete the record
-            let parent_id: i32 = diesel::delete(playlist::table.find(id))
+            let parent_id: i64 = diesel::delete(playlist::table.find(id))
                 .returning(playlist::parent_id)
                 .get_result(conn)?;
 
@@ -98,7 +101,7 @@ impl ModelDelete for Playlist {
             let mut parent_ids = VecDeque::from(vec![*id]);
             while let Some(parent_id) = parent_ids.pop_front() {
                 // Delete children
-                let deleted: Vec<i32> =
+                let deleted: Vec<i64> =
                     diesel::delete(playlist::table.filter(playlist::parent_id.eq(parent_id)))
                         .returning(playlist::id)
                         .get_results(conn)?;
@@ -154,7 +157,7 @@ impl Playlist {
     }
 
     /// Queries the records from the `playlist` table by their `parent_id`.
-    pub fn by_parent_id(conn: &mut SqliteConnection, parent_id: i32) -> QueryResult<Vec<Self>> {
+    pub fn by_parent_id(conn: &mut SqliteConnection, parent_id: i64) -> QueryResult<Vec<Self>> {
         Self::query()
             .filter(playlist::parent_id.eq(parent_id))
             .order(playlist::seq)
@@ -162,7 +165,7 @@ impl Playlist {
     }
 
     /// Queries the records from the `content` table associated with the given `playlist`.
-    pub fn get_contents(conn: &mut SqliteConnection, id: i32) -> QueryResult<Vec<Content>> {
+    pub fn get_contents(conn: &mut SqliteConnection, id: i64) -> QueryResult<Vec<Content>> {
         content::table
             .inner_join(playlist_content::table.on(content::id.eq(playlist_content::content_id)))
             .filter(playlist_content::playlist_id.eq(id))
@@ -175,12 +178,12 @@ impl Playlist {
     ///
     /// Returns `None` if no unique node can be found for the given `path`.
     pub fn find_by_path(conn: &mut SqliteConnection, path: Vec<&str>) -> QueryResult<Option<Self>> {
-        let mut parent_ids: HashSet<i32> = HashSet::new();
+        let mut parent_ids: HashSet<i64> = HashSet::new();
         parent_ids.insert(0);
         for name in path {
-            let mut new_parent_ids: HashSet<i32> = HashSet::new();
+            let mut new_parent_ids: HashSet<i64> = HashSet::new();
             for parent_id in parent_ids.iter() {
-                let result: Option<i32> = playlist::table
+                let result: Option<i64> = playlist::table
                     .filter(playlist::parent_id.eq(parent_id))
                     .filter(playlist::name.eq(name))
                     .select(playlist::id)
@@ -206,7 +209,7 @@ impl Playlist {
     /// Returns the playlist type (`attribute`) of a record in the `playlist` table or `None` if not found.
     pub fn get_attribute(
         conn: &mut SqliteConnection,
-        id: i32,
+        id: i64,
     ) -> QueryResult<Option<PlaylistType>> {
         if id == 0 {
             return Ok(Some(PlaylistType::Folder));
@@ -220,7 +223,7 @@ impl Playlist {
     }
 
     /// Returns `true` if the record in the `playlist` table exists and is a playlist, `false` otherwise.
-    pub fn is_playlist(conn: &mut SqliteConnection, id: i32) -> QueryResult<bool> {
+    pub fn is_playlist(conn: &mut SqliteConnection, id: i64) -> QueryResult<bool> {
         match Self::get_attribute(conn, id)? {
             Some(attr) => Ok(attr == PlaylistType::List),
             None => Ok(false),
@@ -228,7 +231,7 @@ impl Playlist {
     }
 
     /// Returns `true` if the record in the `playlist` table exists and is a folder, `false` otherwise.
-    pub fn is_folder(conn: &mut SqliteConnection, id: i32) -> QueryResult<bool> {
+    pub fn is_folder(conn: &mut SqliteConnection, id: i64) -> QueryResult<bool> {
         match Self::get_attribute(conn, id)? {
             Some(attr) => Ok(attr == PlaylistType::Folder),
             None => Ok(false),
@@ -236,7 +239,7 @@ impl Playlist {
     }
 
     /// Set the name of a record in the `playlist` table.
-    pub fn rename(conn: &mut SqliteConnection, id: i32, name: &str) -> QueryResult<usize> {
+    pub fn rename(conn: &mut SqliteConnection, id: i64, name: &str) -> QueryResult<usize> {
         diesel::update(playlist::table.find(id))
             .set(playlist::name.eq(name))
             .execute(conn)
@@ -244,14 +247,16 @@ impl Playlist {
 }
 
 impl TreeSeq for Playlist {
-    type ParentId = i32;
+    type ParentId = i64;
     const START_SEQ: i32 = 0;
+
     fn is_valid_parent(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
     ) -> QueryResult<bool> {
         Self::is_folder(conn, *parent_id)
     }
+
     fn count_children(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<i32> {
         let count: i64 = playlist::table
             .filter(playlist::parent_id.eq(parent_id))
@@ -259,6 +264,7 @@ impl TreeSeq for Playlist {
             .get_result(conn)?;
         i32::try_from(count).map_err(|_| ordering_error("Collection too large"))
     }
+
     fn get_seq_numbers(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
@@ -269,9 +275,11 @@ impl TreeSeq for Playlist {
             .select(playlist::seq)
             .load(conn)
     }
+
     fn reset_seq(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<usize> {
         <Self as OrderedModel>::renumber(conn, parent_id)
     }
+
     fn shift_seq(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
@@ -290,15 +298,18 @@ impl TreeSeq for Playlist {
 }
 
 impl OrderedModel for Playlist {
-    fn order_id(&self) -> i32 {
+    fn order_id(&self) -> i64 {
         self.id
     }
+
     fn order_parent(&self) -> &Self::ParentId {
         &self.parent_id
     }
+
     fn order_position(&self) -> i32 {
         self.seq
     }
+
     fn ordered(conn: &mut SqliteConnection, parent_id: &Self::ParentId) -> QueryResult<Vec<Self>> {
         playlist::table
             .filter(playlist::parent_id.eq(parent_id))
@@ -306,6 +317,7 @@ impl OrderedModel for Playlist {
             .select(Self::as_select())
             .load(conn)
     }
+
     fn write_order(
         conn: &mut SqliteConnection,
         changes: &[(&Self, &Self::ParentId, i32)],
@@ -339,25 +351,32 @@ impl OrderedModel for Playlist {
 #[diesel(table_name = playlist)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(name, attribute), constructor = Self::new_python(name, attribute)?))]
 pub struct NewPlaylist {
     /// Insertion position in the collection; `None` appends.
     pub seq: Option<i32>,
     /// The name of the playlist.
     pub name: String,
     /// Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image).
-    pub image_id: Option<i32>,
-    /// The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`).
+    pub image_id: Option<i64>,
+    /// The type to insert: only [`PlaylistType::List`] and [`PlaylistType::Folder`] are supported.
     pub attribute: PlaylistType,
     /// The ID of the parent [`Playlist`], `0` for top-level records.
-    pub parent_id: i32,
+    pub parent_id: i64,
 }
 
 impl ModelInsert for NewPlaylist {
     type Model = Playlist;
 
+    /// Insert a regular playlist or folder, rejecting other types before changing sibling order.
     fn insert(mut self, conn: &mut SqliteConnection) -> QueryResult<Self::Model> {
+        if !matches!(self.attribute, PlaylistType::List | PlaylistType::Folder) {
+            return Err(ordering_error(
+                "OneLibrary supports inserting only regular playlists and folders",
+            ));
+        }
         conn.transaction(|conn| {
             let seq = self.seq;
             let (seq, _n) = Playlist::update_seq_before_insert(conn, &self.parent_id, seq)?;
@@ -370,7 +389,22 @@ impl ModelInsert for NewPlaylist {
 }
 
 impl NewPlaylist {
+    /// Validate Python input before calling the infallible Rust constructor.
+    #[cfg(feature = "pyo3")]
+    fn new_python(name: String, attribute: PlaylistType) -> PyResult<Self> {
+        if !matches!(attribute, PlaylistType::List | PlaylistType::Folder) {
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "only List and Folder playlist types are supported",
+            ));
+        }
+        Ok(Self::new(name, attribute))
+    }
+
     /// Creates a new playlist record with the required fields.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `attribute` is neither [`PlaylistType::List`] nor [`PlaylistType::Folder`].
     pub fn new<S: Into<String>>(name: S, attribute: PlaylistType) -> Self {
         if !(attribute == PlaylistType::List || attribute == PlaylistType::Folder) {
             panic!("Invalid playlist type: {:?}", attribute);
@@ -408,13 +442,13 @@ impl NewPlaylist {
     }
 
     /// Builder for `parent_id`.
-    pub fn parent_id(mut self, id: i32) -> Self {
+    pub fn parent_id(mut self, id: i64) -> Self {
         self.parent_id = id;
         self
     }
 
     /// Builder for `image_id`.
-    pub fn image_id(mut self, id: i32) -> Self {
+    pub fn image_id(mut self, id: i64) -> Self {
         self.image_id = Some(id);
         self
     }
@@ -442,15 +476,15 @@ impl NewPlaylist {
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct PlaylistContent {
     /// The ID of the associated [`Playlist`].
-    pub playlist_id: i32,
+    pub playlist_id: i64,
     /// The ID of the associated [`Content`].
-    pub content_id: i32,
-    /// Position within the playlist, starting at zero. Before insertion, `-1` requests append.
+    pub content_id: i64,
+    /// Position within the playlist, starting at one. Before insertion, `-1` requests append.
     pub seq: i32,
 }
 
 impl Model for PlaylistContent {
-    type Id = (i32, i32);
+    type Id = (i64, i64);
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query()
@@ -534,7 +568,7 @@ impl ModelList for PlaylistContent {
 
 impl PlaylistContent {
     /// Create an entry that will be appended to the playlist on insertion.
-    pub fn new(playlist_id: i32, content_id: i32) -> Self {
+    pub fn new(playlist_id: i64, content_id: i64) -> Self {
         Self {
             playlist_id,
             content_id,
@@ -542,14 +576,14 @@ impl PlaylistContent {
         }
     }
 
-    /// Set the stored position; zero is the first entry and -1 requests append on insertion.
+    /// Set the stored position; one is the first entry and -1 requests append on insertion.
     pub fn seq(mut self, seq: i32) -> Self {
         self.seq = seq;
         self
     }
 
     /// Queries all records from the `playlist_content` table by its `playlist_id`
-    pub fn by_playlist_id(conn: &mut SqliteConnection, playlist_id: i32) -> QueryResult<Vec<Self>> {
+    pub fn by_playlist_id(conn: &mut SqliteConnection, playlist_id: i64) -> QueryResult<Vec<Self>> {
         Self::query()
             .filter(playlist_content::playlist_id.eq(playlist_id))
             .order((playlist_content::seq, playlist_content::content_id))
@@ -557,7 +591,7 @@ impl PlaylistContent {
     }
 
     /// Queries all records from the `playlist_content` table by its `content_id`
-    pub fn by_content_id(conn: &mut SqliteConnection, content_id: i32) -> QueryResult<Vec<Self>> {
+    pub fn by_content_id(conn: &mut SqliteConnection, content_id: i64) -> QueryResult<Vec<Self>> {
         Self::query()
             .filter(playlist_content::content_id.eq(content_id))
             .load(conn)
@@ -565,24 +599,24 @@ impl PlaylistContent {
 
     /// Creates a filter for records by `playlist_id`.
     #[diesel::dsl::auto_type(no_type_alias)]
-    fn filter_by_playlist_id(playlist_id: i32) -> _ {
+    fn filter_by_playlist_id(playlist_id: i64) -> _ {
         playlist_content::table.filter(playlist_content::playlist_id.eq(playlist_id))
     }
 
     /// Creates a filter for records by multiple `playlist_id`s.
     #[diesel::dsl::auto_type(no_type_alias)]
-    fn filter_by_playlist_ids(playlist_ids: &[i32]) -> _ {
+    fn filter_by_playlist_ids(playlist_ids: &[i64]) -> _ {
         playlist_content::table.filter(playlist_content::playlist_id.eq_any(playlist_ids))
     }
 
     /// Creates a filter for records by multiple `content_id`s.
     #[diesel::dsl::auto_type(no_type_alias)]
-    fn filter_by_content_ids(content_ids: &[i32]) -> _ {
+    fn filter_by_content_ids(content_ids: &[i64]) -> _ {
         playlist_content::table.filter(playlist_content::content_id.eq_any(content_ids))
     }
 
     /// Counts the number of records in the `playlist_content` table for a given `playlist_id`.
-    pub fn count(conn: &mut SqliteConnection, playlist_id: i32) -> QueryResult<i32> {
+    pub fn count(conn: &mut SqliteConnection, playlist_id: i64) -> QueryResult<i32> {
         let count: i64 = Self::filter_by_playlist_id(playlist_id)
             .count()
             .get_result(conn)?;
@@ -592,7 +626,7 @@ impl PlaylistContent {
     /// Deletes all record from the `playlist_content` table referencing a `playlist` record.
     pub fn delete_by_playlist_id(
         conn: &mut SqliteConnection,
-        playlist_id: i32,
+        playlist_id: i64,
     ) -> QueryResult<usize> {
         conn.transaction(|conn| {
             // We don't need to handle seq, since we're deleting all records referencing the playlist
@@ -603,7 +637,7 @@ impl PlaylistContent {
     /// Deletes all record from the `playlist_content` table referencing multiple `playlist` records.
     pub fn delete_by_playlist_ids(
         conn: &mut SqliteConnection,
-        playlist_ids: &[i32],
+        playlist_ids: &[i64],
     ) -> QueryResult<usize> {
         conn.transaction(|conn| {
             // We don't need to handle seq, since we're deleting all records referencing the playlists
@@ -614,7 +648,7 @@ impl PlaylistContent {
     /// Deletes all record from the `playlist_content` table referencing a `content` record.
     pub fn delete_by_content_id(
         conn: &mut SqliteConnection,
-        content_id: i32,
+        content_id: i64,
     ) -> QueryResult<usize> {
         conn.transaction(|conn| Self::delete_by_content_ids(conn, &[content_id]))
     }
@@ -622,10 +656,10 @@ impl PlaylistContent {
     /// Deletes all record from the `playlist_content` table referencing a `content` record.
     pub fn delete_by_content_ids(
         conn: &mut SqliteConnection,
-        content_ids: &[i32],
+        content_ids: &[i64],
     ) -> QueryResult<usize> {
         conn.transaction(|conn| {
-            let playlist_ids: Vec<i32> = diesel::delete(Self::filter_by_content_ids(content_ids))
+            let playlist_ids: Vec<i64> = diesel::delete(Self::filter_by_content_ids(content_ids))
                 .returning(playlist_content::playlist_id)
                 .get_results(conn)?;
             for playlist_id in &playlist_ids
@@ -641,8 +675,9 @@ impl PlaylistContent {
 }
 
 impl TreeSeq for PlaylistContent {
-    type ParentId = i32;
-    const START_SEQ: i32 = 0;
+    type ParentId = i64;
+    const START_SEQ: i32 = 1;
+
     fn is_valid_parent(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
@@ -687,7 +722,7 @@ impl TreeSeq for PlaylistContent {
 }
 
 impl OrderedModel for PlaylistContent {
-    fn order_id(&self) -> (i32, i32) {
+    fn order_id(&self) -> (i64, i64) {
         (self.playlist_id, self.content_id)
     }
     fn order_parent(&self) -> &Self::ParentId {
@@ -730,12 +765,12 @@ impl OrderedModel for PlaylistContent {
 /// See [`Playlist`] for the flat representation.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlaylistTreeNode {
-    pub id: i32,
+    pub id: i64,
     pub seq: i32,
     pub name: String,
-    pub image_id: Option<i32>,
+    pub image_id: Option<i64>,
     pub attribute: PlaylistType,
-    pub parent_id: i32,
+    pub parent_id: i64,
     pub children: Vec<PlaylistTreeNodeRef>,
 }
 
@@ -768,14 +803,14 @@ impl Into<Playlist> for PlaylistTreeNode {
 
 impl TreeNode for PlaylistTreeNode {
     type Model = Playlist;
-    type Id = i32;
-    fn id(&self) -> i32 {
+    type Id = i64;
+    fn id(&self) -> i64 {
         self.id
     }
     fn sequence(&self) -> i32 {
         self.seq
     }
-    fn parent_id(&self) -> i32 {
+    fn parent_id(&self) -> i64 {
         self.parent_id
     }
     fn children(&self) -> &Vec<PlaylistTreeNodeRef> {

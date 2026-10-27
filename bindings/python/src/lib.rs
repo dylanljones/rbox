@@ -1,13 +1,17 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! Python extension registration and shared utility bindings.
+
 mod anlz;
+mod devlib;
 mod errors;
 mod locate;
 mod masterdb;
-mod one_library;
+mod onelib;
 mod options;
 mod settings;
+mod share;
 mod traits;
 mod xml;
 
@@ -46,6 +50,11 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(options_json_path, m)?)?;
     m.add_function(wrap_pyfunction!(rekordbox_app_dir, m)?)?;
     m.add_function(wrap_pyfunction!(is_rekordbox_running, m)?)?;
+    m.add_function(wrap_pyfunction!(share::anlz_dir_usb, m)?)?;
+    m.add_function(wrap_pyfunction!(share::anlz_dir_local, m)?)?;
+    m.add_function(wrap_pyfunction!(share::artwork_dir_local, m)?)?;
+    m.add_function(wrap_pyfunction!(share::image_path_local, m)?)?;
+    m.add_function(wrap_pyfunction!(share::artwork_dir_usb, m)?)?;
 
     m.add_class::<rbox::core::locate::LocationSource>()?;
     m.add_class::<locate::PyLibraryLocation>()?;
@@ -61,20 +70,20 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     // Shared track models
     m.add_class::<rbox::core::models::TrackMetadata>()?;
     m.add_class::<rbox::core::models::Track>()?;
+    m.add_class::<rbox::core::TrackSource>()?;
 
     // Rekordbox Options
     m.add_class::<options::PyRekordboxOptions>()?;
 
     // Database enums
     m.add_class::<rbox::core::FileType>()?;
-    m.add_class::<rbox::masterdb::enums::Analyzed>()?;
-    m.add_class::<rbox::db::enums::HistoryType>()?;
-    m.add_class::<rbox::db::enums::HotCueBanklistType>()?;
-    m.add_class::<rbox::db::enums::MyTagType>()?;
-    m.add_class::<rbox::masterdb::enums::PlaylistType>()?;
-    m.add_class::<rbox::one_library::enums::PlaylistType>()?;
-    m.add_class::<rbox::masterdb::enums::RelatedTracksType>()?;
-    m.add_class::<rbox::masterdb::enums::SamplerType>()?;
+    m.add_class::<rbox::core::Analyzed>()?;
+    m.add_class::<rbox::core::HistoryType>()?;
+    m.add_class::<rbox::core::HotCueBanklistType>()?;
+    m.add_class::<rbox::core::MyTagType>()?;
+    m.add_class::<rbox::core::PlaylistType>()?;
+    m.add_class::<rbox::core::RelatedTracksType>()?;
+    m.add_class::<rbox::core::SamplerType>()?;
 
     // Master-db
     m.add_class::<masterdb::PyMasterDb>()?;
@@ -137,51 +146,94 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<rbox::masterdb::models::SettingFile>()?;
     m.add_class::<rbox::masterdb::models::UuidIDMap>()?;
 
+    // Device Library
+    m.add_class::<devlib::PyDeviceLibrary>()?;
+    m.add_class::<devlib::PyLibraryCreateOptions>()?;
+    m.add_class::<devlib::PyDevSaveStats>()?;
+    m.add_class::<devlib::PyLibrarySaveStats>()?;
+    m.add_class::<rbox::devlib::models::DevAlbum>()?;
+    m.add_class::<rbox::devlib::models::DevAlbumView>()?;
+    m.add_class::<rbox::devlib::models::NewDevAlbum>()?;
+    m.add_class::<rbox::devlib::models::DevArtist>()?;
+    m.add_class::<rbox::devlib::models::NewDevArtist>()?;
+    m.add_class::<rbox::devlib::models::DevArtwork>()?;
+    m.add_class::<rbox::devlib::models::NewDevArtwork>()?;
+    m.add_class::<rbox::devlib::models::DevBrowseColumn>()?;
+    m.add_class::<rbox::devlib::models::DevBrowseCategory>()?;
+    m.add_class::<rbox::devlib::models::DevBrowseSort>()?;
+    m.add_class::<rbox::devlib::models::DevColor>()?;
+    m.add_class::<rbox::devlib::models::DevContent>()?;
+    m.add_class::<rbox::devlib::models::DevContentView>()?;
+    m.add_class::<rbox::devlib::models::NewDevContent>()?;
+    m.add_class::<rbox::devlib::models::DevGenre>()?;
+    m.add_class::<rbox::devlib::models::NewDevGenre>()?;
+    m.add_class::<rbox::devlib::models::DevHistory>()?;
+    m.add_class::<rbox::devlib::models::NewDevHistory>()?;
+    m.add_class::<rbox::devlib::models::DevHistoryContent>()?;
+    m.add_class::<rbox::devlib::models::NewDevHistoryContent>()?;
+    m.add_class::<rbox::devlib::models::DevKey>()?;
+    m.add_class::<rbox::devlib::models::NewDevKey>()?;
+    m.add_class::<rbox::devlib::models::DevLabel>()?;
+    m.add_class::<rbox::devlib::models::NewDevLabel>()?;
+    m.add_class::<rbox::devlib::models::DevMyTag>()?;
+    m.add_class::<rbox::devlib::models::NewDevMyTag>()?;
+    m.add_class::<rbox::devlib::models::DevMyTagContent>()?;
+    m.add_class::<rbox::devlib::models::NewDevMyTagContent>()?;
+    m.add_class::<rbox::devlib::models::playlist::DevPlaylistTreeNode>()?;
+    m.add_class::<rbox::devlib::models::DevPlaylist>()?;
+    m.add_class::<rbox::devlib::models::NewDevPlaylist>()?;
+    m.add_class::<rbox::devlib::models::DevPlaylistContent>()?;
+    m.add_class::<rbox::devlib::models::NewDevPlaylistContent>()?;
+    m.add_class::<rbox::devlib::models::DevExportProperty>()?;
+    m.add_class::<rbox::devlib::models::DevDatabaseProperty>()?;
+    m.add_class::<rbox::devlib::models::DevRecommendedLike>()?;
+    m.add_class::<rbox::devlib::models::NewDevRecommendedLike>()?;
+
     // Device Library Plus
-    m.add_class::<one_library::PyOneLibrary>()?;
-    m.add_class::<rbox::one_library::models::Album>()?;
-    m.add_class::<rbox::one_library::models::AlbumView>()?;
-    m.add_class::<rbox::one_library::models::NewAlbum>()?;
-    m.add_class::<rbox::one_library::models::Artist>()?;
-    m.add_class::<rbox::one_library::models::Composer>()?;
-    m.add_class::<rbox::one_library::models::Lyricist>()?;
-    m.add_class::<rbox::one_library::models::NewArtist>()?;
-    m.add_class::<rbox::one_library::models::OriginalArtist>()?;
-    m.add_class::<rbox::one_library::models::Remixer>()?;
-    m.add_class::<rbox::one_library::models::Category>()?;
-    m.add_class::<rbox::one_library::models::CategoryView>()?;
-    m.add_class::<rbox::one_library::models::NewCategory>()?;
-    m.add_class::<rbox::one_library::models::Color>()?;
-    m.add_class::<rbox::one_library::models::NewColor>()?;
-    m.add_class::<rbox::one_library::models::Content>()?;
-    m.add_class::<rbox::one_library::models::ContentView>()?;
-    m.add_class::<rbox::one_library::models::NewContent>()?;
-    m.add_class::<rbox::one_library::models::Cue>()?;
-    m.add_class::<rbox::one_library::models::Genre>()?;
-    m.add_class::<rbox::one_library::models::NewGenre>()?;
-    m.add_class::<rbox::one_library::models::History>()?;
-    m.add_class::<rbox::one_library::models::HistoryContent>()?;
-    m.add_class::<rbox::one_library::models::NewHistory>()?;
-    m.add_class::<rbox::one_library::models::HotCueBankList>()?;
-    m.add_class::<rbox::one_library::models::HotCueBankListCue>()?;
-    m.add_class::<rbox::one_library::models::Image>()?;
-    m.add_class::<rbox::one_library::models::NewImage>()?;
-    m.add_class::<rbox::one_library::models::Key>()?;
-    m.add_class::<rbox::one_library::models::NewKey>()?;
-    m.add_class::<rbox::one_library::models::Label>()?;
-    m.add_class::<rbox::one_library::models::NewLabel>()?;
-    m.add_class::<rbox::one_library::models::MenuItem>()?;
-    m.add_class::<rbox::one_library::models::NewMenuItem>()?;
-    m.add_class::<rbox::one_library::models::MyTag>()?;
-    m.add_class::<rbox::one_library::models::MyTagContent>()?;
-    m.add_class::<rbox::one_library::models::NewMyTag>()?;
-    m.add_class::<rbox::one_library::models::NewPlaylist>()?;
-    m.add_class::<rbox::one_library::models::Playlist>()?;
-    m.add_class::<rbox::one_library::models::PlaylistContent>()?;
-    m.add_class::<rbox::one_library::models::Property>()?;
-    m.add_class::<rbox::one_library::models::RecommendedLike>()?;
-    m.add_class::<rbox::one_library::models::NewSort>()?;
-    m.add_class::<rbox::one_library::models::Sort>()?;
+    m.add_class::<onelib::PyOneLibrary>()?;
+    m.add_class::<rbox::onelib::models::Album>()?;
+    m.add_class::<rbox::onelib::models::AlbumView>()?;
+    m.add_class::<rbox::onelib::models::NewAlbum>()?;
+    m.add_class::<rbox::onelib::models::Artist>()?;
+    m.add_class::<rbox::onelib::models::Composer>()?;
+    m.add_class::<rbox::onelib::models::Lyricist>()?;
+    m.add_class::<rbox::onelib::models::NewArtist>()?;
+    m.add_class::<rbox::onelib::models::OriginalArtist>()?;
+    m.add_class::<rbox::onelib::models::Remixer>()?;
+    m.add_class::<rbox::onelib::models::Category>()?;
+    m.add_class::<rbox::onelib::models::CategoryView>()?;
+    m.add_class::<rbox::onelib::models::NewCategory>()?;
+    m.add_class::<rbox::onelib::models::Color>()?;
+    m.add_class::<rbox::onelib::models::NewColor>()?;
+    m.add_class::<rbox::onelib::models::Content>()?;
+    m.add_class::<rbox::onelib::models::ContentView>()?;
+    m.add_class::<rbox::onelib::models::NewContent>()?;
+    m.add_class::<rbox::onelib::models::Cue>()?;
+    m.add_class::<rbox::onelib::models::Genre>()?;
+    m.add_class::<rbox::onelib::models::NewGenre>()?;
+    m.add_class::<rbox::onelib::models::History>()?;
+    m.add_class::<rbox::onelib::models::HistoryContent>()?;
+    m.add_class::<rbox::onelib::models::NewHistory>()?;
+    m.add_class::<rbox::onelib::models::HotCueBankList>()?;
+    m.add_class::<rbox::onelib::models::HotCueBankListCue>()?;
+    m.add_class::<rbox::onelib::models::Image>()?;
+    m.add_class::<rbox::onelib::models::NewImage>()?;
+    m.add_class::<rbox::onelib::models::Key>()?;
+    m.add_class::<rbox::onelib::models::NewKey>()?;
+    m.add_class::<rbox::onelib::models::Label>()?;
+    m.add_class::<rbox::onelib::models::NewLabel>()?;
+    m.add_class::<rbox::onelib::models::MenuItem>()?;
+    m.add_class::<rbox::onelib::models::NewMenuItem>()?;
+    m.add_class::<rbox::onelib::models::MyTag>()?;
+    m.add_class::<rbox::onelib::models::MyTagContent>()?;
+    m.add_class::<rbox::onelib::models::NewMyTag>()?;
+    m.add_class::<rbox::onelib::models::NewPlaylist>()?;
+    m.add_class::<rbox::onelib::models::Playlist>()?;
+    m.add_class::<rbox::onelib::models::PlaylistContent>()?;
+    m.add_class::<rbox::onelib::models::Property>()?;
+    m.add_class::<rbox::onelib::models::RecommendedLike>()?;
+    m.add_class::<rbox::onelib::models::NewSort>()?;
+    m.add_class::<rbox::onelib::models::Sort>()?;
 
     // Anlz
     m.add_class::<anlz::PySongStructure>()?;
@@ -235,6 +287,10 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add("Error", m.py().get_type::<errors::Error>())?;
     m.add("OptionsError", m.py().get_type::<errors::OptionsError>())?;
     m.add("MasterDbError", m.py().get_type::<errors::MasterDbError>())?;
+    m.add(
+        "DeviceLibraryError",
+        m.py().get_type::<errors::DeviceLibraryError>(),
+    )?;
     m.add(
         "OneLibraryError",
         m.py().get_type::<errors::OneLibraryError>(),

@@ -1,13 +1,15 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `Label`.
+
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 #[cfg(feature = "pyo3")]
-use rbox_derives::PyMutableMapping;
+use rbox_derives::{PyConstructor, PyMutableMapping};
 
 use crate::schema::{content, label};
 use rbox_db::{Model, ModelDelete, ModelInsert, ModelUpdate};
@@ -22,6 +24,7 @@ use rbox_masterdb::models::DjmdLabel;
 /// # Referenced by
 /// * [`Content`] via `label_id` foreign key.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = label)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -30,13 +33,13 @@ use rbox_masterdb::models::DjmdLabel;
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Label {
     /// The unique identifier of the label.
-    pub id: i32,
+    pub id: i64,
     /// The name of the label.
     pub name: String,
 }
 
 impl Model for Label {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
@@ -64,7 +67,7 @@ impl ModelDelete for Label {
         let result = diesel::delete(label::table.find(id)).execute(conn)?;
         // Remove any references to the label in the content table
         diesel::update(content::table.filter(content::label_id.eq(id)))
-            .set(content::label_id.eq(None::<i32>))
+            .set(content::label_id.eq(None::<i64>))
             .execute(conn)?;
         Ok(result)
     }
@@ -73,7 +76,7 @@ impl ModelDelete for Label {
         let result = diesel::delete(label::table.filter(label::id.eq_any(&ids))).execute(conn)?;
         // Remove any references to the label in the content table
         diesel::update(content::table.filter(content::label_id.eq_any(&ids)))
-            .set(content::label_id.eq(None::<i32>))
+            .set(content::label_id.eq(None::<i64>))
             .execute(conn)?;
         Ok(result)
     }
@@ -100,8 +103,9 @@ impl Label {
 #[diesel(table_name = label)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(name)))]
 pub struct NewLabel {
     /// The name of the label.
     pub name: String,

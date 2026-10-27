@@ -1,13 +1,15 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `Color`.
+
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 #[cfg(feature = "pyo3")]
-use rbox_derives::PyMutableMapping;
+use rbox_derives::{PyConstructor, PyMutableMapping};
 
 use crate::schema::{color, content};
 use rbox_db::{Model, ModelDelete, ModelInsert, ModelUpdate};
@@ -18,6 +20,7 @@ use rbox_db::{Model, ModelDelete, ModelInsert, ModelUpdate};
 /// # Referenced by
 /// * [`Content`] via `color_id` foreign key.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = color)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -26,13 +29,13 @@ use rbox_db::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Color {
     /// The unique identifier of the color.
-    pub id: i32,
+    pub id: i64,
     /// The name of the color
     pub name: String,
 }
 
 impl Model for Color {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
@@ -87,8 +90,9 @@ impl Color {
 #[diesel(table_name = color)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(name)))]
 pub struct NewColor {
     /// The name of the color
     pub name: String,

@@ -34,6 +34,13 @@ create_exception!(
 
 create_exception!(
     rbox,
+    DeviceLibraryError,
+    Error,
+    "Exception raised for errors related to the Device Library databases."
+);
+
+create_exception!(
+    rbox,
     AnlzError,
     Error,
     "Exception raised for errors that are related to the ANLZ files."

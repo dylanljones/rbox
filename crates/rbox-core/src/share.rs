@@ -4,7 +4,8 @@
 //! Directory naming for analysis and artwork files in rekordbox's shared storage.
 //!
 //! USB analysis directories are derived from the exported audio path using a
-//! 32-bit hash. Local directories use a UUID split into two path components.
+//! 32-bit hash. USB artwork directories group numeric artwork IDs. Local
+//! directories use a UUID split into two path components.
 //! The public helpers return forward-slash paths with a leading `/PIONEER/`,
 //! without a filename or trailing slash. They only construct strings and do not
 //! inspect or create directories.
@@ -131,4 +132,30 @@ pub fn artwork_dir_local(uuid: &str) -> String {
 pub fn image_path_local(uuid: &str) -> String {
     let relpath = compute_share_relpath_local(uuid);
     format!("/PIONEER/Artwork/{}/artwork.jpg", relpath)
+}
+
+/// Return the artwork directory for an image exported to a USB volume.
+///
+/// `artwork_id` is the exported artwork ID referenced by the database, not the
+/// track ID or a hash of the audio path. The directory number is
+/// `artwork_id / 20 + 1`, formatted as decimal with at least five digits:
+/// IDs 1..=19 use `00001`, 20..=39 use `00002`, and 40 starts `00003`.
+/// Zero normally denotes absent artwork; this helper does not validate IDs
+/// and formats zero into `00001` as well.
+///
+/// The result has the form `/PIONEER/Artwork/00001`, without a filename or
+/// trailing slash. Resolve it beneath the USB volume root after removing the
+/// leading slash, then append a filename such as `a1.jpg` or `a1_m.jpg`.
+/// For existing images, the stored artwork path remains authoritative.
+///
+/// ```
+/// use rbox_core::share::artwork_dir_usb;
+///
+/// assert_eq!(artwork_dir_usb(19), "/PIONEER/Artwork/00001");
+/// assert_eq!(artwork_dir_usb(20), "/PIONEER/Artwork/00002");
+/// assert_eq!(artwork_dir_usb(40), "/PIONEER/Artwork/00003");
+/// ```
+pub fn artwork_dir_usb(artwork_id: u32) -> String {
+    let folder = artwork_id / 20 + 1;
+    format!("/PIONEER/Artwork/{folder:05}")
 }

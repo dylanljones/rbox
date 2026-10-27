@@ -13,6 +13,74 @@ use rbox_db::connection::{
     DbPool, JournalMode, OpenMode, Synchronous,
 };
 
+// Isolate process-global SQLCipher logging and environment variables from other tests.
+#[cfg(any(feature = "bundled", feature = "bundled-vendored-openssl"))]
+#[test]
+fn sqlcipher_logging_environment() {
+    const CHILD: &str = "RBOX_TEST_CIPHER_LOG_CHILD";
+    if let Ok(expected) = std::env::var(CHILD) {
+        #[derive(QueryableByName)]
+        struct LogLevel {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            cipher_log_level: String,
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("encrypted.db");
+        let options = ConnectionOptions {
+            key: Some("test passphrase".into()),
+            ..ConnectionOptions::for_export()
+        };
+        if expected == "invalid" {
+            let error = establish_connection(&path, &options).err().unwrap();
+            assert!(error.to_string().contains("RBOX_SQLCIPHER_LOG_LEVEL"));
+            return;
+        }
+        let mut direct = establish_connection(&path, &options).unwrap();
+        direct
+            .batch_execute("CREATE TABLE sample(id INTEGER PRIMARY KEY)")
+            .unwrap();
+        let pool = create_connection_pool(&path, &options, 2).unwrap();
+        let mut first = pool.get().unwrap();
+        let mut second = pool.get().unwrap();
+        for conn in [&mut direct, &mut *first, &mut *second] {
+            let actual = diesel::sql_query("PRAGMA cipher_log_level")
+                .get_result::<LogLevel>(conn)
+                .unwrap();
+            assert_eq!(actual.cipher_log_level, expected);
+            assert_eq!(
+                diesel::sql_query("SELECT count(*) AS value FROM sample")
+                    .get_result::<Number>(conn)
+                    .unwrap()
+                    .value,
+                0
+            );
+        }
+        return;
+    }
+    for (value, expected) in [
+        (None, "WARN"),
+        (Some("error"), "ERROR"),
+        (Some("NONE"), "NONE"),
+        (Some("ERROR; SELECT 1"), "invalid"),
+    ] {
+        let mut child = std::process::Command::new(std::env::current_exe().unwrap());
+        child
+            .args(["--exact", "sqlcipher_logging_environment", "--nocapture"])
+            .env(CHILD, expected)
+            .env_remove("RBOX_SQLCIPHER_LOG_LEVEL");
+        if let Some(value) = value {
+            child.env("RBOX_SQLCIPHER_LOG_LEVEL", value);
+        }
+        let output = child.output().unwrap();
+        assert!(
+            output.status.success(),
+            "{expected}: {}\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+}
+
 fn read_only() -> ConnectionOptions {
     ConnectionOptions {
         open_mode: OpenMode::ReadOnly,

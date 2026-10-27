@@ -10,7 +10,7 @@ use napi_derive::napi;
 use pyo3::prelude::*;
 use rbox_db::ordering::{SequenceStore, SequenceVisible};
 #[cfg(feature = "pyo3")]
-use rbox_derives::PyMutableMapping;
+use rbox_derives::{PyConstructor, PyMutableMapping};
 
 use super::menu_item::MenuItem;
 use crate::schema::{category, menuItem};
@@ -25,6 +25,7 @@ use rbox_db::{
 /// # References
 /// * [`MenuItem`] via `menu_item_id` foreign key.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset, Associations)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = category)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(MenuItem, foreign_key = menu_item_id))]
@@ -34,10 +35,11 @@ use rbox_db::{
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Category {
     /// The unique identifier of the category.
-    pub id: i32,
+    pub id: i64,
     /// A foreign key referencing the [`MenuItem`].
-    pub menu_item_id: i32,
-    /// The sequence/order of the category.
+    pub menu_item_id: i64,
+    /// One-based order among visible categories. Hidden rows may retain an old
+    /// position and are excluded from active sequence maintenance.
     pub seq: i32,
     /// A flag if the category is visible.
     pub is_visible: i32,
@@ -100,7 +102,7 @@ impl ModelRelations for Category {
 }
 
 impl Model for Category {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query()
@@ -189,7 +191,7 @@ impl Category {
     /// Returns a detached snapshot; missing relationship targets remain `None`.
     pub fn find_with_relations(
         conn: &mut SqliteConnection,
-        id: i32,
+        id: i64,
     ) -> QueryResult<Option<CategoryView>> {
         conn.transaction(|conn| {
             Self::find(conn, &id)?
@@ -207,6 +209,7 @@ impl Category {
 
 impl SequenceStore for Category {
     type ParentId = ();
+    const START_SEQ: i32 = 1;
     fn is_valid_parent(_: &mut SqliteConnection, _: &()) -> QueryResult<bool> {
         Ok(true)
     }
@@ -222,7 +225,7 @@ impl SequenceStore for Category {
     }
     fn reset_seq(conn: &mut SqliteConnection, _: &()) -> QueryResult<usize> {
         conn.transaction(|conn| {
-            let rows: Vec<(i32, i32)> = Self::filter_is_visible(1)
+            let rows: Vec<(i64, i32)> = Self::filter_is_visible(1)
                 .order((category::seq, category::id))
                 .select((category::id, category::seq))
                 .load(conn)?;
@@ -273,11 +276,12 @@ impl SequenceVisible for Category {}
 #[diesel(table_name = category)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(menu_item_id)))]
 pub struct NewCategory {
     /// A foreign key referencing the [`MenuItem`].
-    pub menu_item_id: i32,
+    pub menu_item_id: i64,
     /// The sequence/order of the category.
     pub seq: i32,
     /// A flag if the category is visible.
@@ -306,7 +310,7 @@ impl ModelInsert for NewCategory {
 
 impl NewCategory {
     /// Creates a new category record with the required fields.
-    pub fn new(menu_item_id: i32) -> Self {
+    pub fn new(menu_item_id: i64) -> Self {
         Self {
             menu_item_id,
             ..Default::default()

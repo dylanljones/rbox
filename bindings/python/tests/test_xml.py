@@ -1,10 +1,32 @@
 # Copyright (C) 2026 Dylan Jones
 # SPDX-License-Identifier: GPL-3.0-only
 
+"""XML namespace, model conversions, and collection editing."""
+
 import pytest
 
-from rbox import RekordboxXml, XmlError
-from rbox.rbxml import XmlPlaylistNode, XmlTrack
+from rbox.rbxml import RekordboxXml, XmlError, XmlPlaylistNode, XmlTrack
+
+
+def test_xml_namespace():
+    import rbox
+    from rbox import rbxml
+
+    for name in (
+        "RekordboxXml",
+        "XmlError",
+        "XmlPlaylistNode",
+        "XmlPlaylistTrack",
+        "XmlPositionMark",
+        "XmlTempo",
+        "XmlTrack",
+    ):
+        assert name in rbxml.__all__
+        assert hasattr(rbxml, name)
+        if name != "RekordboxXml":
+            assert not hasattr(rbox, name)
+    assert rbox.RekordboxXml is rbxml.RekordboxXml
+    assert issubclass(XmlError, rbox.Error)
 
 
 def test_load_errors_are_xml_errors(tmp_path):
@@ -66,8 +88,7 @@ def test_update_unknown_track(fixture_copy):
 
 
 def test_xml_track_name_and_compatibility_alias():
-    from rbox import XmlTrack as PublicXmlTrack
-    from rbox.rbxml import Track as LegacyTrack
+    from rbox.rbxml import Track as LegacyTrack, XmlTrack as PublicXmlTrack
 
     assert PublicXmlTrack is XmlTrack
     assert LegacyTrack is XmlTrack
@@ -77,17 +98,16 @@ def test_xml_track_name_and_compatibility_alias():
 
 @pytest.mark.parametrize("name", ["Tempo", "PositionMark", "PlaylistTrack", "PlaylistNode"])
 def test_xml_model_names_and_compatibility_aliases(name):
-    import rbox
     from rbox import _rbox, rbxml
 
-    model = getattr(rbox, "Xml" + name)
+    model = getattr(rbxml, "Xml" + name)
     assert model.__name__ == "Xml" + name
     assert getattr(rbxml, name) is model
     assert getattr(_rbox, name) is model
 
 
 def test_prefixed_xml_model_constructors():
-    from rbox import XmlPlaylistNode, XmlPlaylistTrack, XmlPositionMark, XmlTempo
+    from rbox.rbxml import XmlPlaylistNode, XmlPlaylistTrack, XmlPositionMark, XmlTempo
 
     assert XmlTempo(0.0, 128.0, "4/4", 1).bpm == 128.0
     assert XmlPositionMark("Cue", 0, -1, 1.5, None).start == 1.5

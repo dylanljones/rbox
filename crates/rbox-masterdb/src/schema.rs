@@ -7,6 +7,8 @@
 //! It includes table definitions and relationships for various entities such as
 //! content, playlists, artists, albums, and more. These schema definitions are
 //! used to map database tables to Rust structs and enable ORM operations.
+//! File sizes and cue positions use `BigInt` to preserve signed 64-bit values;
+//! this mapping does not change the on-disk SQLite table declarations.
 //!
 //! *Note*: The fields in the database tables have been renamed to follow Rust's
 //! `snake_case` naming convention and to unify naming inconsistencies.
@@ -121,7 +123,7 @@ diesel::table! {
         #[sql_name = "Hash"]
         hash -> Text,
         #[sql_name = "Size"]
-        size -> Integer,
+        size -> BigInt,
         rb_local_path -> Text,
         rb_insync_hash -> Nullable<Text>,
         rb_insync_local_usn -> Nullable<Integer>,
@@ -289,13 +291,13 @@ diesel::table! {
         #[sql_name = "GenreID"]
         genre_id -> Nullable<Text>,
         #[sql_name = "BPM"]
-        bpm -> Nullable<Integer>,
+        bpm -> Nullable<BigInt>,
         #[sql_name = "Length"]
         length -> Nullable<Integer>,
         #[sql_name = "TrackNo"]
-        track_no -> Nullable<Integer>,
+        track_no -> Nullable<BigInt>,
         #[sql_name = "BitRate"]
-        bit_rate -> Nullable<Integer>,
+        bit_rate -> Nullable<BigInt>,
         #[sql_name = "BitDepth"]
         bit_depth -> Nullable<Integer>,
         #[sql_name = "Commnt"]
@@ -331,7 +333,7 @@ diesel::table! {
         #[sql_name = "SearchStr"]
         search_str -> Nullable<Text>,
         #[sql_name = "FileSize"]
-        file_size -> Nullable<Integer>,
+        file_size -> Nullable<BigInt>,
         #[sql_name = "DiscNo"]
         disc_no -> Nullable<Integer>,
         #[sql_name = "ComposerID"]
@@ -339,7 +341,7 @@ diesel::table! {
         #[sql_name = "Subtitle"]
         subtitle -> Nullable<Text>,
         #[sql_name = "SampleRate"]
-        sample_rate -> Nullable<Integer>,
+        sample_rate -> Nullable<BigInt>,
         #[sql_name = "DisableQuantize"]
         disable_quantize -> Nullable<Integer>,
         #[sql_name = "Analysed"]
@@ -429,21 +431,21 @@ diesel::table! {
         #[sql_name = "ContentID"]
         content_id -> Text,
         #[sql_name = "InMsec"]
-        in_msec -> Integer,
+        in_msec -> BigInt,
         #[sql_name = "InFrame"]
-        in_frame -> Integer,
+        in_frame -> BigInt,
         #[sql_name = "InMpegFrame"]
-        in_mpeg_frame -> Integer,
+        in_mpeg_frame -> BigInt,
         #[sql_name = "InMpegAbs"]
-        in_mpeg_abs -> Integer,
+        in_mpeg_abs -> BigInt,
         #[sql_name = "OutMsec"]
-        out_msec -> Integer,
+        out_msec -> BigInt,
         #[sql_name = "OutFrame"]
-        out_frame -> Integer,
+        out_frame -> BigInt,
         #[sql_name = "OutMpegFrame"]
-        out_mpeg_frame -> Integer,
+        out_mpeg_frame -> BigInt,
         #[sql_name = "OutMpegAbs"]
-        out_mpeg_abs -> Integer,
+        out_mpeg_abs -> BigInt,
         #[sql_name = "Kind"]
         kind -> Integer,
         #[sql_name = "Color"]
@@ -457,7 +459,7 @@ diesel::table! {
         #[sql_name = "BeatLoopSize"]
         beat_loop_size -> Nullable<Integer>,
         #[sql_name = "CueMicrosec"]
-        cue_microsec -> Nullable<Integer>,
+        cue_microsec -> Nullable<BigInt>,
         #[sql_name = "InPointSeekInfo"]
         in_point_seek_info -> Nullable<Text>,
         #[sql_name = "OutPointSeekInfo"]
@@ -607,21 +609,21 @@ diesel::table! {
         #[sql_name = "CueID"]
         cue_id -> Text,
         #[sql_name = "InMsec"]
-        in_msec -> Integer,
+        in_msec -> BigInt,
         #[sql_name = "InFrame"]
-        in_frame -> Integer,
+        in_frame -> BigInt,
         #[sql_name = "InMpegFrame"]
-        in_mpeg_frame -> Integer,
+        in_mpeg_frame -> BigInt,
         #[sql_name = "InMpegAbs"]
-        in_mpeg_abs -> Integer,
+        in_mpeg_abs -> BigInt,
         #[sql_name = "OutMsec"]
-        out_msec -> Integer,
+        out_msec -> BigInt,
         #[sql_name = "OutFrame"]
-        out_frame -> Integer,
+        out_frame -> BigInt,
         #[sql_name = "OutMpegFrame"]
-        out_mpeg_frame -> Integer,
+        out_mpeg_frame -> BigInt,
         #[sql_name = "OutMpegAbs"]
-        out_mpeg_abs -> Integer,
+        out_mpeg_abs -> BigInt,
         #[sql_name = "Color"]
         color -> Integer,
         #[sql_name = "ColorTableIndex"]
@@ -633,7 +635,7 @@ diesel::table! {
         #[sql_name = "BeatLoopSize"]
         beat_loop_size -> Nullable<Integer>,
         #[sql_name = "CueMicrosec"]
-        cue_microsec -> Nullable<Integer>,
+        cue_microsec -> Nullable<BigInt>,
         #[sql_name = "InPointSeekInfo"]
         in_point_seek_info -> Nullable<Text>,
         #[sql_name = "OutPointSeekInfo"]
@@ -1101,7 +1103,7 @@ diesel::table! {
         #[sql_name = "Hash"]
         hash -> Nullable<Text>,
         #[sql_name = "Size"]
-        size -> Nullable<Integer>,
+        size -> Nullable<BigInt>,
         rb_local_path -> Nullable<Text>,
         rb_insync_hash -> Nullable<Text>,
         rb_insync_local_usn -> Nullable<Integer>,
@@ -1134,7 +1136,7 @@ diesel::table! {
         #[sql_name = "Hash"]
         hash -> Text,
         #[sql_name = "Size"]
-        size -> Integer,
+        size -> BigInt,
         rb_local_path -> Nullable<Text>,
         rb_insync_hash -> Nullable<Text>,
         rb_insync_local_usn -> Nullable<Integer>,

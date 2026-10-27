@@ -7,6 +7,9 @@
 //! connection helpers. Model modules also expose relationship views and ordered
 //! collection operations.
 //!
+//! Numeric row IDs and references use `i64`, including parent IDs and composite
+//! keys. Sequence positions remain `i32`; the SQLite file format is unchanged.
+//!
 //! The optional `master-db` feature enables conversions from master database
 //! models for export workflows.
 
@@ -21,6 +24,7 @@ pub use connection::{
     create_connection_pool, establish_connection, initialize_schema, DbConn, DbPool,
 };
 pub use database::OneLibrary;
+pub use enums::*;
 pub use error::{Error, Result};
 pub use models::*;
 

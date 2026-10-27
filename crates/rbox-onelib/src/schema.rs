@@ -2,16 +2,20 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 //! Rekordbox One Library database schemas
+//!
+//! Numeric identities and references use `BigInt` to preserve SQLite's signed
+//! 64-bit integers, as do file sizes and cue time/seek positions.
+//! The on-disk `INTEGER` declarations remain unchanged.
 
 #![allow(non_snake_case)]
 
 diesel::table! {
     album (id) {
         #[sql_name = "album_id"]
-        id -> Integer,
+        id -> BigInt,
         name -> Text,
-        artist_id -> Nullable<Integer>,
-        image_id -> Nullable<Integer>,
+        artist_id -> Nullable<BigInt>,
+        image_id -> Nullable<BigInt>,
         #[sql_name = "isComplation"]
         is_compilation -> Integer,
         #[sql_name = "nameForSearch"]
@@ -22,7 +26,7 @@ diesel::table! {
 diesel::table! {
     artist (id) {
         #[sql_name = "artist_id"]
-        id -> Integer,
+        id -> BigInt,
         name -> Text,
         #[sql_name = "nameForSearch"]
         name_for_search -> Nullable<Text>,
@@ -32,9 +36,9 @@ diesel::table! {
 diesel::table! {
     category (id) {
         #[sql_name = "category_id"]
-        id -> Integer,
+        id -> BigInt,
         #[sql_name = "menuItem_id"]
-        menu_item_id -> Integer,
+        menu_item_id -> BigInt,
         #[sql_name = "sequenceNo"]
         seq -> Integer,
         #[sql_name = "isVisible"]
@@ -45,7 +49,7 @@ diesel::table! {
 diesel::table! {
     color (id) {
         #[sql_name = "color_id"]
-        id -> Integer,
+        id -> BigInt,
         name -> Text,
     }
 }
@@ -53,33 +57,33 @@ diesel::table! {
 diesel::table! {
     content (id) {
         #[sql_name = "content_id"]
-        id -> Integer,
+        id -> BigInt,
         title -> Nullable<Text>,
         #[sql_name = "titleForSearch"]
         title_for_search -> Nullable<Text>,
         subtitle -> Nullable<Text>,
-        bpmx100 -> Nullable<Integer>,
+        bpmx100 -> Nullable<BigInt>,
         length -> Nullable<Integer>,
         #[sql_name = "trackNo"]
-        track_no -> Nullable<Integer>,
+        track_no -> Nullable<BigInt>,
         #[sql_name = "discNo"]
         disc_no -> Nullable<Integer>,
         #[sql_name = "artist_id_artist"]
-        artist_id -> Nullable<Integer>,
+        artist_id -> Nullable<BigInt>,
         #[sql_name = "artist_id_remixer"]
-        remixer_id -> Nullable<Integer>,
+        remixer_id -> Nullable<BigInt>,
         #[sql_name = "artist_id_originalArtist"]
-        original_artist_id -> Nullable<Integer>,
+        original_artist_id -> Nullable<BigInt>,
         #[sql_name = "artist_id_composer"]
-        composer_id -> Nullable<Integer>,
+        composer_id -> Nullable<BigInt>,
         #[sql_name = "artist_id_lyricist"]
-        lyricist_id -> Nullable<Integer>,
-        album_id -> Nullable<Integer>,
-        genre_id -> Nullable<Integer>,
-        label_id -> Nullable<Integer>,
-        key_id -> Nullable<Integer>,
-        color_id -> Nullable<Integer>,
-        image_id -> Nullable<Integer>,
+        lyricist_id -> Nullable<BigInt>,
+        album_id -> Nullable<BigInt>,
+        genre_id -> Nullable<BigInt>,
+        label_id -> Nullable<BigInt>,
+        key_id -> Nullable<BigInt>,
+        color_id -> Nullable<BigInt>,
+        image_id -> Nullable<BigInt>,
         #[sql_name = "djComment"]
         dj_comment -> Nullable<Text>,
         rating -> Nullable<Integer>,
@@ -95,14 +99,14 @@ diesel::table! {
         #[sql_name = "fileName"]
         file_name -> Nullable<Text>,
         #[sql_name = "fileSize"]
-        file_size -> Nullable<Integer>,
+        file_size -> Nullable<BigInt>,
         #[sql_name = "fileType"]
         file_type -> Integer,
-        bitrate -> Nullable<Integer>,
+        bitrate -> Nullable<BigInt>,
         #[sql_name = "bitDepth"]
         bit_depth -> Nullable<Integer>,
         #[sql_name = "samplingRate"]
-        sampling_rate -> Nullable<Integer>,
+        sampling_rate -> Nullable<BigInt>,
         isrc -> Nullable<Text>,
         #[sql_name = "isHotCueAutoLoadOn"]
         is_hot_cue_auto_load_on -> Nullable<Integer>,
@@ -111,15 +115,15 @@ diesel::table! {
         #[sql_name = "kuvoDeliveryComment"]
         kuvo_delivery_comment -> Nullable<Text>,
         #[sql_name = "masterDbId"]
-        master_db_id -> Nullable<Integer>,
+        master_db_id -> Nullable<BigInt>,
         #[sql_name = "masterContentId"]
-        master_content_id -> Nullable<Integer>,
+        master_content_id -> Nullable<BigInt>,
         #[sql_name = "analysisDataFilePath"]
         analysis_data_file_path -> Nullable<Text>,
         #[sql_name = "analysedBits"]
         analysed_bits -> Nullable<Integer>,
         #[sql_name = "contentLink"]
-        content_link -> Nullable<Integer>,
+        content_link -> Nullable<BigInt>,
         #[sql_name = "hasModified"]
         has_modified -> Nullable<Integer>,
         #[sql_name = "cueUpdateCount"]
@@ -134,8 +138,8 @@ diesel::table! {
 diesel::table! {
     cue (id) {
         #[sql_name = "cue_id"]
-        id -> Integer,
-        content_id -> Integer,
+        id -> BigInt,
+        content_id -> BigInt,
         kind -> Nullable<Integer>,
         #[sql_name = "colorTableIndex"]
         color_table_index -> Nullable<Integer>,
@@ -148,40 +152,40 @@ diesel::table! {
         #[sql_name = "beatLoopDenominator"]
         beat_loop_denominator -> Nullable<Integer>,
         #[sql_name = "inUsec"]
-        in_usec -> Nullable<Integer>,
+        in_usec -> Nullable<BigInt>,
         #[sql_name = "outUsec"]
-        out_usec -> Nullable<Integer>,
+        out_usec -> Nullable<BigInt>,
         #[sql_name = "in150FramePerSec"]
-        in150_frame_per_sec -> Nullable<Integer>,
+        in150_frame_per_sec -> Nullable<BigInt>,
         #[sql_name = "out150FramePerSec"]
-        out150_frame_per_sec -> Nullable<Integer>,
+        out150_frame_per_sec -> Nullable<BigInt>,
         #[sql_name = "inMpegFrameNumber"]
-        in_mpeg_frame_number -> Nullable<Integer>,
+        in_mpeg_frame_number -> Nullable<BigInt>,
         #[sql_name = "outMpegFrameNumber"]
-        out_mpeg_frame_number -> Nullable<Integer>,
+        out_mpeg_frame_number -> Nullable<BigInt>,
         #[sql_name = "inMpegAbs"]
-        in_mpeg_abs -> Nullable<Integer>,
+        in_mpeg_abs -> Nullable<BigInt>,
         #[sql_name = "outMpegAbs"]
-        out_mpeg_abs -> Nullable<Integer>,
+        out_mpeg_abs -> Nullable<BigInt>,
         #[sql_name = "inDecodingStartFramePosition"]
-        in_decoding_start_frame_position -> Nullable<Integer>,
+        in_decoding_start_frame_position -> Nullable<BigInt>,
         #[sql_name = "outDecodingStartFramePosition"]
-        out_decoding_start_frame_position -> Nullable<Integer>,
+        out_decoding_start_frame_position -> Nullable<BigInt>,
         #[sql_name = "inFileOffsetInBlock"]
-        in_file_offset_in_block -> Nullable<Integer>,
+        in_file_offset_in_block -> Nullable<BigInt>,
         #[sql_name = "outFileOffsetInBlock"]
-        out_file_offset_in_block -> Nullable<Integer>,
+        out_file_offset_in_block -> Nullable<BigInt>,
         #[sql_name = "inNumberOfSampleInBlock"]
-        in_number_of_sample_in_block -> Nullable<Integer>,
+        in_number_of_sample_in_block -> Nullable<BigInt>,
         #[sql_name = "outNumberOfSampleInBlock"]
-        out_number_of_sample_in_block -> Nullable<Integer>,
+        out_number_of_sample_in_block -> Nullable<BigInt>,
     }
 }
 
 diesel::table! {
     genre (id) {
         #[sql_name = "genre_id"]
-        id -> Integer,
+        id -> BigInt,
         name -> Text,
     }
 }
@@ -189,20 +193,20 @@ diesel::table! {
 diesel::table! {
     history (id) {
         #[sql_name = "history_id"]
-        id -> Integer,
+        id -> BigInt,
         #[sql_name = "sequenceNo"]
         seq -> Integer,
         name -> Text,
         attribute -> Integer,
         #[sql_name = "history_id_parent"]
-        parent_id -> Integer,
+        parent_id -> BigInt,
     }
 }
 
 diesel::table! {
     history_content (history_id, content_id) {
-        history_id -> Integer,
-        content_id -> Integer,
+        history_id -> BigInt,
+        content_id -> BigInt,
         #[sql_name = "sequenceNo"]
         seq -> Integer,
     }
@@ -211,22 +215,22 @@ diesel::table! {
 diesel::table! {
     hotCueBankList (id) {
         #[sql_name = "hotCueBankList_id"]
-        id -> Integer,
+        id -> BigInt,
         #[sql_name = "sequenceNo"]
         seq -> Integer,
         name -> Nullable<Text>,
-        image_id -> Nullable<Integer>,
+        image_id -> Nullable<BigInt>,
         attribute -> Integer,
         #[sql_name = "hotCueBankList_id_parent"]
-        parent_id -> Nullable<Integer>,
+        parent_id -> Nullable<BigInt>,
     }
 }
 
 diesel::table! {
     hotCueBankList_cue (hot_cue_bank_list_id, cue_id) {
         #[sql_name = "hotCueBankList_id"]
-        hot_cue_bank_list_id -> Integer,
-        cue_id -> Integer,
+        hot_cue_bank_list_id -> BigInt,
+        cue_id -> BigInt,
         #[sql_name = "sequenceNo"]
         seq -> Integer,
     }
@@ -235,7 +239,7 @@ diesel::table! {
 diesel::table! {
     image (id) {
         #[sql_name = "image_id"]
-        id -> Integer,
+        id -> BigInt,
         path -> Text,
     }
 }
@@ -243,7 +247,7 @@ diesel::table! {
 diesel::table! {
     key (id) {
         #[sql_name = "key_id"]
-        id -> Integer,
+        id -> BigInt,
         name -> Text,
     }
 }
@@ -251,7 +255,7 @@ diesel::table! {
 diesel::table! {
     label (id) {
         #[sql_name = "label_id"]
-        id -> Integer,
+        id -> BigInt,
         name -> Text,
     }
 }
@@ -259,7 +263,7 @@ diesel::table! {
 diesel::table! {
     menuItem (id) {
         #[sql_name = "menuItem_id"]
-        id -> Integer,
+        id -> BigInt,
         kind -> Integer,
         name -> Text,
     }
@@ -268,42 +272,42 @@ diesel::table! {
 diesel::table! {
     myTag (id) {
         #[sql_name = "myTag_id"]
-        id -> Integer,
+        id -> BigInt,
         #[sql_name = "sequenceNo"]
         seq -> Integer,
         name -> Text,
         attribute -> Integer,
         #[sql_name = "myTag_id_parent"]
-        parent_id -> Integer,
+        parent_id -> BigInt,
     }
 }
 
 diesel::table! {
     myTag_content (my_tag_id, content_id) {
         #[sql_name = "myTag_id"]
-        my_tag_id -> Integer,
-        content_id -> Integer,
+        my_tag_id -> BigInt,
+        content_id -> BigInt,
     }
 }
 
 diesel::table! {
     playlist (id) {
         #[sql_name = "playlist_id"]
-        id -> Integer,
+        id -> BigInt,
         #[sql_name = "sequenceNo"]
         seq -> Integer,
         name -> Text,
-        image_id -> Nullable<Integer>,
+        image_id -> Nullable<BigInt>,
         attribute -> Integer,
         #[sql_name = "playlist_id_parent"]
-        parent_id -> Integer
+        parent_id -> BigInt
     }
 }
 
 diesel::table! {
     playlist_content (playlist_id, content_id) {
-        playlist_id -> Integer,
-        content_id -> Integer,
+        playlist_id -> BigInt,
+        content_id -> BigInt,
         #[sql_name = "sequenceNo"]
         seq -> Integer,
     }
@@ -322,14 +326,14 @@ diesel::table! {
         #[sql_name = "backGroundColorType"]
         back_ground_color_type -> Integer,
         #[sql_name = "myTagMasterDBID"]
-        my_tag_master_dbid -> Integer,
+        my_tag_master_dbid -> BigInt,
     }
 }
 
 diesel::table! {
     recommendedLike (content_id_1, content_id_2) {
-        content_id_1 -> Integer,
-        content_id_2 -> Integer,
+        content_id_1 -> BigInt,
+        content_id_2 -> BigInt,
         rating -> Integer,
         #[sql_name = "createdDate"]
         created_date -> Text,
@@ -339,9 +343,9 @@ diesel::table! {
 diesel::table! {
     sort (id) {
         #[sql_name = "sort_id"]
-        id -> Integer,
+        id -> BigInt,
         #[sql_name = "menuItem_id"]
-        menu_item_id -> Integer,
+        menu_item_id -> BigInt,
         #[sql_name = "sequenceNo"]
         seq -> Integer,
         #[sql_name = "isVisible"]

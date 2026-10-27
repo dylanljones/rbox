@@ -8,6 +8,13 @@
 //! and DELETE journaling for a new device export. Database-specific callers supply
 //! the encryption key. These options describe configuration; constructing them
 //! does not open a connection or execute any PRAGMAs.
+//!
+//! Set `RBOX_SQLCIPHER_LOG_LEVEL=ERROR` before starting tests to suppress SQLCipher
+//! warnings while retaining errors. Supported levels are `NONE`, `ERROR`, `WARN`,
+//! `INFO`, `DEBUG`, and `TRACE` (case-insensitive). Each connection applies the override
+//! before key setup; unset leaves logging unchanged. This is process-wide,
+//! does not disable memory locking or fix quota failures, and is ignored by plain
+//! SQLite or SQLCipher versions without `cipher_log_level`.
 
 use diesel::r2d2::{self, ConnectionManager, CustomizeConnection, Pool};
 use diesel::result::{DatabaseErrorKind, Error as DieselError};
@@ -272,10 +279,43 @@ pub fn setup_connection(conn: &mut DbConn, options: &ConnectionOptions) -> Query
         .map_err(|error| invalid(&error.to_string()))?;
     let timeout = options.busy_timeout.as_millis();
     let read_only = options.open_mode == OpenMode::ReadOnly;
+    // SQLCipher has no runtime environment setting for this PRAGMA. Validate the
+    // value before interpolation, and apply it before key setup can log warnings.
+    let log_level = match std::env::var("RBOX_SQLCIPHER_LOG_LEVEL") {
+        Ok(value) => {
+            let value = value.trim().to_ascii_uppercase();
+            if !matches!(
+                value.as_str(),
+                "NONE" | "ERROR" | "WARN" | "INFO" | "DEBUG" | "TRACE"
+            ) {
+                return Err(invalid(
+                    "RBOX_SQLCIPHER_LOG_LEVEL must be NONE, ERROR, WARN, INFO, DEBUG, or TRACE",
+                ));
+            }
+            Some(value)
+        }
+        Err(std::env::VarError::NotPresent) => None,
+        Err(_) => {
+            return Err(invalid(
+                "RBOX_SQLCIPHER_LOG_LEVEL must contain valid Unicode",
+            ))
+        }
+    };
+    if let Some(level) = &log_level {
+        // Activation replaces NONE with the default level. Keep warnings filtered
+        // during activation, then apply the requested level after setting the key.
+        let initial = if level == "NONE" { "ERROR" } else { level };
+        diesel::sql_query(format!("PRAGMA cipher_log_level = {initial}")).execute(conn)?;
+    }
+
     if let Some(key) = &options.key {
         // PRAGMA does not support bound parameters. Escape the SQL string literal.
         let key = key.replace('\'', "''");
         diesel::sql_query(format!("PRAGMA key = '{key}'")).execute(conn)?;
+    }
+
+    if let Some(level) = &log_level {
+        diesel::sql_query(format!("PRAGMA cipher_log_level = {level}")).execute(conn)?;
     }
     diesel::sql_query(format!("PRAGMA busy_timeout = {timeout}")).execute(conn)?;
 

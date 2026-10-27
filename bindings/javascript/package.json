@@ -32,12 +32,6 @@
     "@napi-rs/cli": "^3.1.5",
     "ava": "^6.0.1"
   },
-  "ava": {
-    "timeout": "3m",
-    "files": [
-      "./__test__/*.mjs"
-    ]
-  },
   "engines": {
     "node": ">= 10"
   },
@@ -45,8 +39,7 @@
     "artifacts": "napi artifacts",
     "build": "napi build --platform --release --js-package-name @dylanljones/rbox-js",
     "build:debug": "napi build --platform",
-    "prepack": "node scripts/copy-license.cjs",
-    "prepublishOnly": "node scripts/copy-license.cjs && napi prepublish -t npm --no-gh-release",
+    "prepublishOnly": "napi prepublish -t npm --no-gh-release",
     "test": "ava --serial",
     "universal": "napi universalize",
     "version": "napi version"

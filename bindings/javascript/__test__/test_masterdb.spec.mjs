@@ -34,17 +34,34 @@ test('resolved track helpers expose core models and translate errors', t => {
     const row = db.getContents()[0]
     row.artistId = db.createArtist('Track helper artist').id
     row.bpm = 12825
+    row.imagePath = '/art/cover.jpg'
+    row.analysisDataPath = '/ANLZ/ANLZ0000.DAT'
+    row.colorId = '3'
+    row.djPlayCount = 123
+    row.hotCueAutoLoad = 'unknown-setting'
+    row.deliveryControl = 'on'
+    row.deliveryComment = 'Comment'
     delete row.composerId
     db.updateContent(row)
     const track = db.getTrackById(row.id)
+    t.is(track.id, Number(row.id))
+    t.is(track.masterContentId, Number(row.id))
+    t.is(track.masterDbId, Number(db.getProperties()[0].dbId))
+    t.is(track.artworkPath, row.imagePath)
+    t.is(track.analysisDataPath, row.analysisDataPath)
+    t.is(track.color, 3)
+    t.is(track.playCount, 123)
+    t.is(track.hotCueAutoLoad, 'unknown-setting')
+    t.is(track.deliveryControl, 'on')
+    t.is(track.deliveryComment, 'Comment')
     t.is(track.artist, 'Track helper artist')
     t.is(track.bpm, 128.25)
     t.true(track.composer == null)
     t.is(typeof track.path, 'string')
     t.true(track.fileSize == null || typeof track.fileSize === 'bigint')
-    t.is(db.getTrackByPath(track.path).id, row.id)
-    t.true(db.getTracks().every(item => typeof item.id === 'string'))
-    t.deepEqual(db.getTracksByIds([row.id, 'missing', row.id]).map(item => item.id), [row.id])
+    t.is(db.getTrackByPath(track.path).id, Number(row.id))
+    t.true(db.getTracks().every(item => Number.isInteger(item.id)))
+    t.deepEqual(db.getTracksByIds([row.id, 'missing', row.id]).map(item => item.id), [Number(row.id)])
     t.deepEqual(db.getTracksByIds([]), [])
     t.true(db.getTrackById('missing') == null)
     t.true(db.getTrackByPath('/missing/track.mp3') == null)
@@ -52,6 +69,19 @@ test('resolved track helpers expose core models and translate errors', t => {
     row.rating = 6
     db.updateContent(row)
     t.throws(() => db.getTrackById(row.id), { message: /rating/ })
+})
+
+test('wide file sizes round trip through raw and shared track models', t => {
+    const db = t.context.db
+    const row = db.getContents()[0]
+    row.fileSize = 2 ** 40
+    db.updateContent(row)
+    t.is(db.getContentById(row.id).fileSize, row.fileSize)
+    t.is(db.getTrackById(row.id).fileSize, BigInt(row.fileSize))
+    delete row.fileSize
+    db.updateContent(row)
+    t.true(db.getContentById(row.id).fileSize == null)
+    t.true(db.getTrackById(row.id).fileSize == null)
 })
 
 test('album mutation signatures', t => {
@@ -101,4 +131,28 @@ test('album views expose converted rows and optional fields', t => {
     t.true(db.getAlbumWithRelations(absent.id).artist == null)
 
     t.true(db.getAlbumWithRelations('missing-id') == null)
+})
+
+
+test('wide metadata uses exact numbers and preserves nulls', t => {
+    const db = t.context.db
+    const row = db.getContents()[0]
+    const fields = ['bitRate', 'sampleRate', 'trackNo', 'bpm']
+    const wide = 2 ** 32 - 1
+    for (const field of fields) row[field] = wide
+    db.updateContent(row)
+    const stored = db.getContentById(row.id)
+    for (const field of fields) t.is(stored[field], wide)
+    const track = db.getTrackById(row.id)
+    t.is(track.bitRate, wide)
+    t.is(track.sampleRate, wide)
+    t.is(track.trackNo, wide)
+    t.is(track.bpm, wide / 100)
+    for (const field of fields) row[field] = 2 ** 40
+    db.updateContent(row)
+    for (const field of fields) t.is(db.getContentById(row.id)[field], 2 ** 40)
+    t.throws(() => db.getTrackById(row.id))
+    for (const field of fields) delete row[field]
+    db.updateContent(row)
+    for (const field of fields) t.true(db.getContentById(row.id)[field] == null)
 })

@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `DjmdProperty`.
+
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -22,6 +24,7 @@ use rbox_db::Model;
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = djmdProperty)]
 #[diesel(primary_key(db_id))]
 #[diesel(belongs_to(DjmdDevice, foreign_key = device_id))]
@@ -82,6 +85,7 @@ impl Model for DjmdProperty {
 /// It stores metadata and properties related to cloud-based entries, including status,
 /// synchronization details, and reserved fields for future use.
 #[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = djmdCloudProperty)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]

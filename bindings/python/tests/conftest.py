@@ -3,6 +3,7 @@
 
 """Shared fixture copies for binding API tests; Rust tests cover data semantics."""
 
+import os
 import shutil
 from pathlib import Path
 
@@ -10,12 +11,17 @@ import pytest
 
 from rbox import MasterDb, OneLibrary
 
+# Set before fixtures open connections; preserve explicit diagnostic overrides.
+os.environ.setdefault("RBOX_SQLCIPHER_LOG_LEVEL", "ERROR")
+
 TESTDATA = Path(__file__).resolve().parents[3] / ".testdata"
 DEMO = TESTDATA / "RBv6" / "demo"
 ANLZ = DEMO / "rekordbox/share/PIONEER/USBANLZ/e35/fa187-3f34-47e2-9880-2b33cb8d1304"
 FIXTURES = {
     "masterdb": DEMO / "rekordbox/master.db",
     "one_library": TESTDATA / "RBv7/demo/export/PIONEER/rekordbox/exportLibrary.db",
+    "device_library": TESTDATA / "RBv7/demo/export/PIONEER/rekordbox/export.pdb",
+    "device_library_extended": TESTDATA / "RBv7/demo/export/PIONEER/rekordbox/exportExt.pdb",
     "xml": DEMO / "database.xml",
     **{extension: ANLZ / f"ANLZ0000.{extension}" for extension in ("DAT", "EXT", "2EX")},
 }
@@ -44,4 +50,4 @@ def master_db(fixture_copy):
 
 @pytest.fixture
 def one_library(fixture_copy):
-    return OneLibrary(str(fixture_copy("one_library")))
+    return OneLibrary.from_path(str(fixture_copy("one_library")))

@@ -13,6 +13,65 @@ use rbox_db::ordering::SequenceVisible;
 use rbox_db::*;
 
 #[test]
+fn native_export_uses_model_specific_sequence_starts() -> anyhow::Result<()> {
+    use rbox_onelib::models::{Category, MyTag, Playlist, PlaylistContent, Sort};
+    use rbox_onelib::schema::myTag;
+
+    let fixture = rbox_testing::data::setup_one_library_path();
+    let mut conn = rbox_onelib::connection::establish_connection(
+        fixture.path(),
+        &ConnectionOptions::default(),
+    )?;
+    let playlists = Playlist::by_parent_id(&mut conn, 0)?;
+    assert!(!playlists.is_empty());
+    assert_eq!(playlists[0].seq, 0);
+    assert!(Playlist::validate_seq_numbers(&mut conn, &0)?);
+    let playlist = playlists
+        .iter()
+        .find(|row| row.name == "Demo Tracks")
+        .unwrap();
+    let original = PlaylistContent::by_playlist_id(&mut conn, playlist.id)?;
+    assert_eq!(
+        original.iter().map(|row| row.seq).collect::<Vec<_>>(),
+        [1, 2]
+    );
+    assert!(PlaylistContent::validate_seq_numbers(
+        &mut conn,
+        &playlist.id
+    )?);
+    assert_eq!(PlaylistContent::reset_seq(&mut conn, &playlist.id)?, 0);
+    assert_eq!(
+        PlaylistContent::by_playlist_id(&mut conn, playlist.id)?,
+        original
+    );
+
+    // Native tag identities exceed i32; preserve parent IDs when checking each scope.
+    let parents = myTag::table
+        .select(myTag::parent_id)
+        .distinct()
+        .load::<i64>(&mut conn)?;
+    assert!(!parents.is_empty());
+    for parent in parents {
+        let positions = MyTag::get_seq_numbers(&mut conn, &parent)?;
+        assert_eq!(positions.first(), Some(&0));
+        assert!(MyTag::validate_seq_numbers(&mut conn, &parent)?);
+    }
+    assert_eq!(
+        <Category as SequenceVisible>::get_seq_numbers(&mut conn)?.first(),
+        Some(&1)
+    );
+    assert_eq!(
+        <Sort as SequenceVisible>::get_seq_numbers(&mut conn)?.first(),
+        Some(&1)
+    );
+    assert!(<Category as SequenceVisible>::validate_seq_numbers(
+        &mut conn
+    )?);
+    assert!(<Sort as SequenceVisible>::validate_seq_numbers(&mut conn)?);
+    Ok(())
+}
+
+#[test]
 fn one_library_tree_snapshot_has_stable_sibling_order() {
     use rbox_onelib::models::*;
     use rbox_onelib::schema::playlist;
@@ -88,7 +147,7 @@ fn one_library_association_deletion_and_rollback() {
         .collect::<Vec<_>>();
     let histories = (0..3)
         .map(|i| {
-            NewHistory::new(format!("h{i}"), rbox_db::enums::HistoryType::List)
+            NewHistory::new(format!("h{i}"), rbox_onelib::HistoryType::List)
                 .insert(&mut conn)
                 .unwrap()
         })
@@ -105,13 +164,13 @@ fn one_library_association_deletion_and_rollback() {
     }
     let original_playlists = PlaylistContent::all(&mut conn).unwrap();
     let original_histories = HistoryContent::all(&mut conn).unwrap();
-    // Duplicate composite keys fail after opening a slot; neither list may retain a gap.
+    // Duplicate composite keys must leave both lists unchanged.
     assert!(PlaylistContent::new(playlists[0].id, content[2])
-        .seq(0)
+        .seq(1)
         .insert(&mut conn)
         .is_err());
     assert!(HistoryContent::new(histories[0].id, content[2])
-        .seq(0)
+        .seq(1)
         .insert(&mut conn)
         .is_err());
     assert_eq!(PlaylistContent::all(&mut conn).unwrap(), original_playlists);
@@ -183,18 +242,57 @@ fn one_library_association_deletion_and_rollback() {
 }
 
 #[test]
+fn playlist_insert_rejects_unsupported_types_without_changing_order() -> anyhow::Result<()> {
+    use diesel::result::{DatabaseErrorKind, Error};
+    use rbox_onelib::{NewPlaylist, Playlist, PlaylistType};
+
+    let mut conn = ConnectionFixture::one_library(rbox_onelib::connection::establish_connection);
+    NewPlaylist::playlist("Existing playlist").insert(&mut conn)?;
+    NewPlaylist::folder("Existing folder").insert(&mut conn)?;
+    let before = Playlist::all(&mut conn)?;
+
+    for attribute in [PlaylistType::SmartList, PlaylistType::CloudLibrarySync] {
+        // Public fields and binding objects can bypass the constructor's validation.
+        let mut invalid = NewPlaylist::playlist("Invalid").seq(0);
+        invalid.attribute = attribute;
+        assert!(matches!(
+            invalid.clone().insert(&mut conn),
+            Err(Error::DatabaseError(
+                DatabaseErrorKind::RestrictViolation,
+                _
+            ))
+        ));
+        assert_eq!(Playlist::all(&mut conn)?, before);
+
+        // A rejected later input must roll back earlier insertions and sibling shifts.
+        assert!(matches!(
+            NewPlaylist::insert_all(
+                &mut conn,
+                vec![NewPlaylist::playlist("Rolled back").seq(0), invalid],
+            ),
+            Err(Error::DatabaseError(
+                DatabaseErrorKind::RestrictViolation,
+                _
+            ))
+        ));
+        assert_eq!(Playlist::all(&mut conn)?, before);
+    }
+    Ok(())
+}
+
+#[test]
 fn one_library_bulk_insert_and_invalid_parents() {
     use rbox_onelib::{enums::PlaylistType, models::*};
     let mut conn = ConnectionFixture::one_library(rbox_onelib::connection::establish_connection);
     one_tree_updates!(conn, Playlist, NewPlaylist, PlaylistType::List);
-    one_tree_updates!(conn, History, NewHistory, rbox_db::enums::HistoryType::List);
-    one_tree_updates!(conn, MyTag, NewMyTag, rbox_db::enums::MyTagType::List);
+    one_tree_updates!(conn, History, NewHistory, rbox_onelib::HistoryType::List);
+    one_tree_updates!(conn, MyTag, NewMyTag, rbox_onelib::MyTagType::List);
 }
 
 #[test]
 fn high_level_one_library_positions_are_unambiguous() {
     let fixture = ConnectionFixture::one_library(rbox_onelib::connection::establish_connection);
-    let db = rbox_onelib::database::OneLibrary::new(fixture.path()).unwrap();
+    let db = rbox_onelib::database::OneLibrary::from_path(fixture.path()).unwrap();
     let p = db.create_playlist_folder("parent", None, None).unwrap();
     let a = db.create_playlist("a", Some(p.id), None).unwrap();
     let b = db.create_playlist("b", Some(p.id), Some(0)).unwrap();
@@ -224,12 +322,25 @@ visible_matrix!(
 
 #[test]
 fn history_ordering() {
-    use rbox_onelib::models::NewHistory;
+    use rbox_onelib::models::{History, NewHistory};
     let mut conn = ConnectionFixture::one_library(rbox_onelib::connection::establish_connection);
+    let root = NewHistory::folder("root").seq(0).insert(&mut conn).unwrap();
+    assert_eq!(root.seq, 0);
+    let child = NewHistory::history("first")
+        .parent_id(root.id)
+        .seq(0)
+        .insert(&mut conn)
+        .unwrap();
+    let sibling = NewHistory::history("second")
+        .parent_id(root.id)
+        .insert(&mut conn)
+        .unwrap();
+    assert_eq!((child.seq, sibling.seq), (0, 1));
+    History::delete(&mut conn, &root.id).unwrap();
     ordering::tree_matrix::<rbox_onelib::models::History>(
         &mut conn,
         &0,
-        &i32::MAX,
+        &i64::MAX,
         |conn, parent, seq| {
             let mut item = NewHistory::folder("ordering test");
             item.parent_id = *parent;
@@ -247,7 +358,7 @@ fn playlist_ordering() {
     ordering::tree_matrix::<rbox_onelib::models::Playlist>(
         &mut conn,
         &0,
-        &i32::MAX,
+        &i64::MAX,
         |conn, parent, seq| {
             let mut item = NewPlaylist::folder("ordering test");
             item.parent_id = *parent;
@@ -265,7 +376,7 @@ fn my_tag_ordering() {
     ordering::tree_matrix::<rbox_onelib::models::MyTag>(
         &mut conn,
         &0,
-        &i32::MAX,
+        &i64::MAX,
         |conn, parent, seq| {
             let mut item = NewMyTag::folder("ordering test");
             item.parent_id = *parent;
@@ -281,18 +392,24 @@ fn history_content_ordering() {
     use rbox_onelib::models::*;
     let mut conn = ConnectionFixture::one_library(rbox_onelib::connection::establish_connection);
     let content_ids = conn.seed_content_ids();
-    let p = NewHistory::new(
-        "ordering p",
-        rbox_db::enums::HistoryType::try_from(0).unwrap(),
-    )
-    .insert(&mut conn)
-    .unwrap();
-    let q = NewHistory::new(
-        "ordering q",
-        rbox_db::enums::HistoryType::try_from(0).unwrap(),
-    )
-    .insert(&mut conn)
-    .unwrap();
+    let p = NewHistory::new("ordering p", rbox_onelib::HistoryType::try_from(0).unwrap())
+        .insert(&mut conn)
+        .unwrap();
+    let q = NewHistory::new("ordering q", rbox_onelib::HistoryType::try_from(0).unwrap())
+        .insert(&mut conn)
+        .unwrap();
+    // Source-backed convention: rbxport writes history membership as position + 1.
+    assert_eq!((p.seq, q.seq), (0, 1));
+    let first = HistoryContent::new(p.id, content_ids[0])
+        .insert(&mut conn)
+        .unwrap();
+    assert_eq!(first.seq, 1);
+    assert!(HistoryContent::new(p.id, content_ids[1])
+        .seq(0)
+        .insert(&mut conn)
+        .is_err());
+    assert!(HistoryContent::move_to(&mut conn, &(p.id, content_ids[0]), Some(0)).is_err());
+    HistoryContent::delete(&mut conn, &(p.id, content_ids[0])).unwrap();
     ordering::list_matrix::<HistoryContent>(
         &mut conn,
         &p.id,
@@ -317,6 +434,16 @@ fn playlist_content_ordering() {
     let q = NewPlaylist::new("ordering q", PlaylistType::try_from(0).unwrap())
         .insert(&mut conn)
         .unwrap();
+    let first = PlaylistContent::new(p.id, content_ids[0])
+        .insert(&mut conn)
+        .unwrap();
+    assert_eq!(first.seq, 1);
+    assert!(PlaylistContent::new(p.id, content_ids[1])
+        .seq(0)
+        .insert(&mut conn)
+        .is_err());
+    assert!(PlaylistContent::move_to(&mut conn, &(p.id, content_ids[0]), Some(0)).is_err());
+    PlaylistContent::delete(&mut conn, &(p.id, content_ids[0])).unwrap();
     ordering::list_matrix::<PlaylistContent>(
         &mut conn,
         &p.id,
@@ -335,7 +462,7 @@ fn handler_playlist_and_membership_moves() {
     use rbox_onelib::{database::OneLibrary, models::*};
     let mut fixture = ConnectionFixture::one_library(rbox_onelib::connection::establish_connection);
     let tracks = fixture.seed_content_ids();
-    let db = OneLibrary::new(fixture.path()).unwrap();
+    let db = OneLibrary::from_path(fixture.path()).unwrap();
     let p = db.create_playlist_folder("source", None, None).unwrap();
     let q = db.create_playlist_folder("target", None, None).unwrap();
     let a = db.create_playlist("a", Some(p.id), None).unwrap();
@@ -353,10 +480,10 @@ fn handler_playlist_and_membership_moves() {
     for &id in &tracks[..3] {
         db.create_playlist_content(a.id, id, None).unwrap();
     }
-    db.move_playlist_content(a.id, tracks[2], Some(0)).unwrap();
+    db.move_playlist_content(a.id, tracks[2], Some(1)).unwrap();
     let ids = [(a.id, tracks[0]), (a.id, tracks[1]), (a.id, tracks[2])];
     ordering::assert_order::<PlaylistContent>(&mut fixture, &a.id, &[ids[2], ids[0], ids[1]]);
-    db.move_playlist_contents(vec![&ids[1], &ids[0]], Some(0))
+    db.move_playlist_contents(vec![&ids[1], &ids[0]], Some(1))
         .unwrap();
     ordering::assert_order::<PlaylistContent>(&mut fixture, &a.id, &[ids[1], ids[0], ids[2]]);
     assert!(db
@@ -380,7 +507,7 @@ fn handler_playlist_and_membership_moves() {
 fn handler_my_tag_moves_and_deletions() {
     use rbox_onelib::{database::OneLibrary, models::MyTag};
     let mut fixture = ConnectionFixture::one_library(rbox_onelib::connection::establish_connection);
-    let db = OneLibrary::new(fixture.path()).unwrap();
+    let db = OneLibrary::from_path(fixture.path()).unwrap();
     let p = db.create_my_tag_folder("source", None, None).unwrap();
     let q = db.create_my_tag_folder("target", None, None).unwrap();
     let a = db.create_my_tag("a", Some(p.id), None).unwrap();
@@ -420,9 +547,9 @@ fn handler_history_membership_compaction() {
     use rbox_onelib::{database::OneLibrary, models::*};
     let mut fixture = ConnectionFixture::one_library(rbox_onelib::connection::establish_connection);
     let tracks = fixture.seed_content_ids();
-    let db = OneLibrary::new(fixture.path()).unwrap();
+    let db = OneLibrary::from_path(fixture.path()).unwrap();
     let history = db
-        .create_history("history", rbox_db::enums::HistoryType::List)
+        .create_history("history", rbox_onelib::HistoryType::List)
         .unwrap();
     for &id in &tracks[..3] {
         db.create_history_content(history.id, id).unwrap();

@@ -47,8 +47,8 @@
 //! | Feature | Effect | Enabled by default |
 //! | --- | --- | --- |
 //! | `full` | Enables `master-db`, `one-library`, `anlz`, `xml`, and `settings` | Yes |
-//! | `master-db` | Enables `masterdb`, shared `db` APIs, and `anlz`; adds master database integration to `one_library` when it is also enabled | Yes, via `full` |
-//! | `one-library` | Enables `one_library` and shared `db` APIs | Yes, via `full` |
+//! | `master-db` | Enables `masterdb`, shared `db` APIs, and `anlz`; adds master database integration to `onelib` when it is also enabled | Yes, via `full` |
+//! | `one-library` | Enables `onelib` and shared `db` APIs | Yes, via `full` |
 //! | `anlz` | Enables analysis file APIs in `anlz` | Yes, via `full` |
 //! | `xml` | Enables XML library APIs in `xml` | Yes, via `full` |
 //! | `settings` | Enables settings file APIs in `settings` | Yes, via `full` |
@@ -173,7 +173,17 @@ pub use rbox_db as db;
 #[cfg(feature = "master-db")]
 pub use rbox_masterdb as masterdb;
 #[cfg(feature = "one-library")]
-pub use rbox_onelib as one_library;
+pub use rbox_onelib as onelib;
+
+/// Compatibility namespace for One Library APIs. Use [`onelib`] instead.
+#[cfg(feature = "one-library")]
+#[deprecated(since = "0.2.0", note = "use `rbox::onelib` instead")]
+pub mod one_library {
+    pub use rbox_onelib::*;
+}
+
+#[cfg(feature = "device-library")]
+pub use rbox_devlib as devlib;
 #[cfg(feature = "settings")]
 pub use rbox_setting as settings;
 #[cfg(feature = "xml")]
@@ -199,7 +209,11 @@ pub use masterdb::{MasterDb, MasterPlaylistXml, SmartList};
 
 // onelib exports
 #[cfg(feature = "one-library")]
-pub use one_library::OneLibrary;
+pub use onelib::OneLibrary;
+
+// devlib exports
+#[cfg(feature = "device-library")]
+pub use devlib::DeviceLibrary;
 
 // settings exports
 #[cfg(feature = "settings")]

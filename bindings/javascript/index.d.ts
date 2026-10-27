@@ -3428,6 +3428,14 @@ export interface UuidIDMap {
   /** The current ID in the mapping. */
   currentId: string
 }
+/** Stored Rekordbox codes for Analyzed. */
+export declare const enum Analyzed {
+  NotAnalyzed = 0,
+  Standard = 105,
+  Advanced = 121,
+  Locked = 233
+}
+
 /** Known Rekordbox file type codes; use raw integers to retain unknown values. */
 export declare const enum FileType {
   /** Content that rekordbox could not read; this is a known on-disk code. */
@@ -3443,6 +3451,18 @@ export declare const enum FileType {
   StreamApple = 26
 }
 
+/** Stored Rekordbox codes for HistoryType. */
+export declare const enum HistoryType {
+  List = 0,
+  Folder = 1
+}
+
+/** Stored Rekordbox codes for HotCueBanklistType. */
+export declare const enum HotCueBanklistType {
+  List = 0,
+  Folder = 1
+}
+
 /** Where the selected library path came from. */
 export declare const enum LocationSource {
   /** The `masterDbDirectory` application setting. */
@@ -3450,7 +3470,52 @@ export declare const enum LocationSource {
   /** The agent's `db-path` option. */
   Options = 1,
   /** A platform default library location. */
-  Default = 2
+  Default = 2,
+  /** Manual supplied path, not from configuration or defaults. */
+  Manual = 3
+}
+
+/** Stored Rekordbox codes for MyTagType. */
+export declare const enum MyTagType {
+  List = 0,
+  Folder = 1
+}
+
+/**
+ * Shared master database and OneLibrary playlist codes. DeviceSQL only uses the list/folder distinction;
+ * these variants do not imply support for exporting smart or cloud playlists.
+ */
+export declare const enum PlaylistType {
+  List = 0,
+  Folder = 1,
+  SmartList = 4,
+  CloudLibrarySync = -128
+}
+
+/** Stored Rekordbox codes for RelatedTracksType. */
+export declare const enum RelatedTracksType {
+  List = 11,
+  Folder = 10
+}
+
+/** Stored Rekordbox codes for SamplerType. */
+export declare const enum SamplerType {
+  List = 2,
+  Folder = 3,
+  All = 5,
+  Capture = 6
+}
+
+/** Database format whose local content identifier is stored in [`Track::id`]. */
+export declare const enum TrackSource {
+  /** No database identity has been assigned, or the source is unavailable. */
+  Unknown = 0,
+  /** Desktop Rekordbox master database. */
+  MasterDb = 1,
+  /** Legacy Device Library (DeviceSQL/PDB). */
+  DeviceLib = 2,
+  /** OneLibrary / Device Library Plus. */
+  OneLib = 3
 }
 /** Stored Rekordbox codes for HistoryType. */
 export declare const enum HistoryType {
@@ -3468,6 +3533,925 @@ export declare const enum HotCueBanklistType {
 export declare const enum MyTagType {
   List = 0,
   Folder = 1
+}
+/**
+ * A detached album from the standard database.
+ *
+ * Changing public fields changes only this snapshot. Original bytes, reserved
+ * values and framing remain in [`Self::raw_record`]. Plain queries never load related
+ * tables. Use [`Self::resolve`] or [`Self::all_with_relations`] for a [`DevAlbumView`].
+ * All queries reject extended database connections.
+ */
+export declare class DevAlbum {
+  /** Export album ID. */
+  id: number
+  /** Album artist ID, independent of the track artist; zero means unassigned. */
+  artistId: number
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * A detached artist from the standard database.
+ *
+ * Changing public fields changes only this snapshot. Original bytes, reserved
+ * values and framing remain in [`Self::raw_record`]. Queries never load related
+ * tables and reject extended database connections.
+ */
+export declare class DevArtist {
+  /** Export artist ID. */
+  id: number
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * A detached artwork from the standard database.
+ *
+ * Changing public fields changes only this snapshot. Original bytes, reserved
+ * values and framing remain in [`Self::raw_record`]. Queries never load related
+ * tables and reject extended database connections.
+ */
+export declare class DevArtwork {
+  /** Export artwork ID. */
+  id: number
+  /** Original artwork path, preserving stored separators. */
+  path: string
+}
+
+/**
+ * Category menu visibility and order from standard table 17.
+ *
+ * [`Self::column_id`] references a [`DevBrowseColumn`] label. Use [`Self::state`]
+ * for the stored visibility value and [`Self::position`] for display order;
+ * physical row order and row presence do not determine active menu membership.
+ * See the [module documentation](self) for interpretation and update guidance.
+ *
+ * Public-field edits affect only this snapshot. Unknown data and original framing
+ * remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
+ * No unique row ID or singleton constraint is assumed; repeated rows are retained.
+ */
+export declare class DevBrowseCategory {
+  /** Column/menu-label ID. */
+  columnId: number
+  /** Content/menu selector, not a PDB table ID. */
+  selector: number
+  /** Raw attribute byte; its meaning is not inferred. */
+  unknown04: number
+  /**
+   * Visibility/state: 0 visible and 1 hidden in CDJ-350 experiments.
+   * Values 2 and 3 also occur in native exports and remain unqualified.
+   * Preserve unknown values without boolean coercion.
+   */
+  state: number
+  /** Stored display order; zero is a valid first position. */
+  position: number
+}
+
+/**
+ * A predefined browse label from standard table 16, such as ARTIST or BPM.
+ *
+ * Category and sort settings refer to [`Self::id`] through their `column_id`.
+ * This catalog does not determine which options are active. No Rekordbox UI for
+ * arbitrary custom catalog entries is documented. Creation profiles initialize
+ * these rows; preserve their IDs and codes when editing configuration.
+ *
+ * Public-field edits affect only this snapshot. Unknown data and original framing
+ * remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
+ */
+export declare class DevBrowseColumn {
+  /** Column/menu-label ID. */
+  id: number
+  /** Raw column code; unknown values are retained. */
+  code: number
+  /**
+   * Display label with one enclosing U+FFFA/U+FFFB pair removed, if present.
+   * Unframed labels, whitespace and interior characters are preserved.
+   */
+  name: string
+}
+
+/**
+ * Sort-option configuration from standard table 18.
+ *
+ * [`Self::column_id`] references a [`DevBrowseColumn`] label. Enabled state and
+ * position appear to be packed into [`Self::raw_tail`], but their complete
+ * semantics are not established. The layout differs from [`DevBrowseCategory`].
+ * See the [module documentation](self) for the inferred mapping and its limits.
+ *
+ * Public-field edits affect only this snapshot. Unknown data and original framing
+ * remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
+ * No unique row ID or singleton constraint is assumed; repeated rows are retained.
+ */
+export declare class DevBrowseSort {
+  /** Column/menu-label ID. */
+  columnId: number
+  /** Sort-item selector; zero is retained. */
+  selector: number
+  /**
+   * Complete little-endian tail word, preserving all four bytes.
+   * Flag and position interpretations are provisional; see the module docs.
+   */
+  rawTail: number
+}
+
+/**
+ * A detached color from the standard database.
+ *
+ * Changing public fields changes only this snapshot. Original bytes, reserved
+ * values and framing remain in [`Self::raw_record`]. Queries never load related
+ * tables and reject extended database connections. Call [`Self::update`] to
+ * persist an edited name; saving remains explicit.
+ */
+export declare class DevColor {
+  /** Export color ID, retaining both bytes of the binary field. */
+  id: number
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * Source My Tag library metadata from extended table 7, initialized by the extended profile.
+ *
+ * The exposed identity is used verbatim, without a DBID conversion. Reserved
+ * words and string frames remain in the original binary row. See the [module
+ * documentation](self) for initialization and updates that preserve this data.
+ *
+ * Public-field edits affect only this snapshot. Unknown data and original framing
+ * remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
+ * No unique row ID or singleton constraint is assumed; repeated rows are retained.
+ */
+export declare class DevDatabaseProperty {
+  /** Source/master My Tag library identity, not a row ID; zero is valid. */
+  myTagMasterDbId: number
+}
+
+/**
+ * Export metadata from standard table 19, initialized by the standard creation profile.
+ *
+ * Update the existing metadata when the export changes. See the [module
+ * documentation](self) for initialization, count maintenance and binary updates.
+ *
+ * Public-field edits affect only this snapshot. Unknown data and original framing
+ * remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
+ * The exact device/export name is the model's unique key, matching OneLibrary.
+ * Duplicate names in existing binary data are reported as a constraint violation;
+ * the low-level engine remains available to inspect or repair such files.
+ */
+export declare class DevExportProperty {
+  /** Stored track count after the export update. */
+  trackCount: number
+  /** Raw Device Library background-color value. */
+  backgroundColor: number
+  /** Export/creation date as stored text; no date format is imposed. */
+  date: string
+  /** Stored version text. */
+  version: string
+  /** Device/export name. */
+  name: string
+}
+
+/**
+ * A detached genre from the standard database.
+ *
+ * Changing public fields changes only this snapshot. Original bytes, reserved
+ * values and framing remain in [`Self::raw_record`]. Queries never load related
+ * tables and reject extended database connections. Call [`Self::update`] to
+ * persist edited fields to the connection's in-memory overlay.
+ */
+export declare class DevGenre {
+  /** Export genre ID. */
+  id: number
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * A detached history playlist from the standard database.
+ *
+ * Changing public fields changes only this snapshot. Original bytes, reserved
+ * values and framing remain in [`Self::raw_record`]. Relationships are loaded
+ * explicitly through [`Self::get_contents`]. Queries reject extended database
+ * connections. Use [`Self::update`] to persist an edited name.
+ */
+export declare class DevHistory {
+  /** History-playlist ID, in a separate namespace from regular playlists. */
+  id: number
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * A detached track occurrence in a standard database history playlist.
+ *
+ * Entries have no unique scalar ID. Repeated tracks, identical occurrences and
+ * position ties are retained. Editing fields changes only this snapshot; tracks
+ * and history playlists are not loaded automatically. No timestamp is inferred.
+ */
+export declare class DevHistoryContent {
+  /** History-playlist ID; this does not reference the regular playlist table. */
+  historyId: number
+  /** Export track ID, distinct from the source/master content ID. */
+  contentId: number
+  /** Stored occurrence position; zero and gaps remain unmodified on reads. */
+  seq: number
+}
+
+/**
+ * A detached key from the standard database.
+ *
+ * Changing public fields changes only this snapshot. Original bytes, reserved
+ * values and framing remain in [`Self::raw_record`]. Queries never load related
+ * tables and reject extended database connections. Call [`Self::update`] to
+ * persist edited fields to the connection's in-memory overlay.
+ */
+export declare class DevKey {
+  /** Export key ID. */
+  id: number
+  /** Second stored ID, supplied independently; its role remains unknown. */
+  secondaryId: number
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * A detached label from the standard database.
+ *
+ * Changing public fields changes only this snapshot. Original bytes, reserved
+ * values and framing remain in [`Self::raw_record`]. Queries never load related
+ * tables and reject extended database connections. Call [`Self::update`] to
+ * persist edited fields to the connection's in-memory overlay.
+ */
+export declare class DevLabel {
+  /** Export label ID. */
+  id: number
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * A detached My Tag or category from the extended database.
+ *
+ * IDs are preserved verbatim, without remapping or assuming sequential numbering.
+ * Tag/category IDs should match the source main database (`master.db`).
+ * Public-field edits affect only this snapshot. Parents and tracks are not loaded.
+ */
+export declare class DevMyTag {
+  /** Tag/category ID matching the source main database (`master.db`). */
+  id: number
+  /** Parent category ID; zero denotes a root in observed exports. */
+  parentId: number
+  /** Zero-based position within the parent/category list. */
+  seq: number
+  /** Decoded display name. */
+  name: string
+  /** Tag or category type; unknown binary attributes are rejected by this model. */
+  attribute: MyTagType
+}
+
+/**
+ * A detached association between a standard database track and an extended tag.
+ *
+ * There is no assumed unique row ID. Queries preserve repeated associations and
+ * never load related rows. Editing fields changes only this snapshot.
+ */
+export declare class DevMyTagContent {
+  /** Export track ID in the separate standard database. */
+  contentId: number
+  /** Tag ID in the extended database, matching the source main-database tag ID. */
+  myTagId: number
+}
+
+/**
+ * A detached playlist or folder in the standard database's playlist tree.
+ *
+ * IDs and positions retain their stored values. Reads reject unknown folder flags and do not
+ * traverse parents or load entries. Editing fields changes only this snapshot;
+ * original bytes remain available through [`Self::raw_record`].
+ */
+export declare class DevPlaylist {
+  /** Export playlist/folder ID. */
+  id: number
+  /** Parent folder ID; zero denotes the root. */
+  parentId: number
+  /** Stored sibling position; gaps and ties are retained. */
+  seq: number
+  /** Regular playlist or folder; other binary flags are rejected by this model. */
+  attribute: PlaylistType
+  /** Decoded display name. */
+  name: string
+}
+
+/**
+ * A detached track occurrence in a standard database playlist.
+ *
+ * Entries have no unique scalar ID. Repeated tracks, identical occurrences and
+ * position ties are retained. Editing fields changes only this snapshot; tracks
+ * and playlist nodes are not loaded automatically.
+ */
+export declare class DevPlaylistContent {
+  /** Export playlist ID. */
+  playlistId: number
+  /** Export track ID, distinct from the source/master content ID. */
+  contentId: number
+  /** Stored position, commonly one-based; zero and gaps remain unmodified on reads. */
+  seq: number
+}
+
+/**
+ * A detached RecommendedLike row in the extended database.
+ *
+ * Public-field edits affect only this snapshot. Unknown data and original framing
+ * remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
+ * Existing repeated rows are retained on reads; model insertion rejects duplicate
+ * ordered content pairs. There is no unique scalar row ID.
+ */
+export declare class DevRecommendedLike {
+  /** First standard export track ID; no source/target direction is inferred. */
+  contentId1: number
+  /** Second standard export track ID. */
+  contentId2: number
+  /** Raw word at 0x10. */
+  unknown10: number
+  /** Raw word at 0x14; flag semantics are unknown. */
+  unknown14: number
+  /** Raw eight-byte value at 0x00, exposed without precision loss as a bigint. */
+  get unknown00(): bigint
+  /** Reject negative values and values that exceed the binary field width. */
+  set unknown00(value: bigint)
+}
+
+/**
+ * An album snapshot with its album artist explicitly resolved.
+ *
+ * [`Self::artist`] resolves [`DevAlbum::artist_id`], the same relationship exposed
+ * as [`super::DevContentView::album_artist`] on a content view. It is independent
+ * of the content's main artist; the album row has only this one artist reference.
+ *
+ * Field access performs no queries. A zero artist ID or missing target resolves
+ * to `None`; the original ID and raw row remain in [`Self::album`]. Editing this
+ * view changes only the snapshot, without saving or refreshing relationships.
+ */
+export interface DevAlbumView {
+  /** Original album snapshot, including its artist ID. */
+  album: DevAlbum
+  /**
+   * Album artist resolved from `album.artist_id`, without recursive expansion.
+   * Equivalent to `DevContentView::album_artist`, not the content's main artist.
+   */
+  artist?: DevArtist
+}
+
+/** Detached public values; editing this object does not persist changes. */
+export interface DevContent {
+  /** Export track ID, used by playlists and tag associations. */
+  id: number
+  /** Main artist ID. */
+  artistId: number
+  /** Album ID. */
+  albumId: number
+  /** Genre ID. */
+  genreId: number
+  /** Label ID. */
+  labelId: number
+  /** Musical-key ID. */
+  keyId: number
+  /** Artwork-reference ID. */
+  artworkId: number
+  /** Composer artist ID. */
+  composerId: number
+  /** Original artist ID. */
+  originalArtistId: number
+  /** Remixer artist ID. */
+  remixerId: number
+  /** Content identity in the source library, separate from the export ID. */
+  masterContentId: number
+  /** Source library identity. */
+  masterDbId: number
+  /** Sample rate in Hz. */
+  sampleRate: number
+  /** Audio file size in bytes. */
+  fileSize: number
+  /** Stored bitrate, normally kb/s. */
+  bitrate: number
+  /** Tempo in BPM multiplied by 100. */
+  bpmx100: number
+  /** Track duration in seconds. */
+  length: number
+  /** Track number within the release. */
+  trackNo: number
+  /** Disc number. */
+  discNo: number
+  /** Stored play count. */
+  playCount: number
+  /** Release year. */
+  releaseYear: number
+  /** Sample depth in bits per sample. */
+  bitDepth: number
+  /** Raw color ID, including zero. */
+  colorId: number
+  /** Raw star rating; unrecognized values are retained. */
+  rating: number
+  /** Raw audio format code; unrecognized codes are retained. */
+  fileType: number
+  /** Display title. */
+  title: string
+  /** DJ comment. */
+  comment: string
+  /** Mix/remix name. */
+  mixName: string
+  /** Lyricist text. */
+  lyricist: string
+  /** Track message, separate from the comment. */
+  message: string
+  /** Original publication setting text. */
+  publishTrackInfo: string
+  /** Original hot-cue auto-load setting text. */
+  hotCueAutoLoad: string
+  /** Collection date as stored text. */
+  dateAdded: string
+  /** Release date as stored text. */
+  releaseDate: string
+  /** Analysis date as stored text. */
+  analysisDate: string
+  /** Analysis-file path, preserving original separators. */
+  analysisPath: string
+  /** Audio basename. */
+  fileName: string
+  /** Audio path, preserving original separators. */
+  path: string
+}
+
+/** Partial changes. Omitted or undefined fields retain their current values; null is rejected. */
+export interface DevContentChanges {
+  /** Main artist ID. */
+  artistId?: number
+  /** Album ID. */
+  albumId?: number
+  /** Genre ID. */
+  genreId?: number
+  /** Label ID. */
+  labelId?: number
+  /** Musical-key ID. */
+  keyId?: number
+  /** Artwork-reference ID. */
+  artworkId?: number
+  /** Composer artist ID. */
+  composerId?: number
+  /** Original artist ID. */
+  originalArtistId?: number
+  /** Remixer artist ID. */
+  remixerId?: number
+  /** Content identity in the source library, separate from the export ID. */
+  masterContentId?: number
+  /** Source library identity. */
+  masterDbId?: number
+  /** Sample rate in Hz. */
+  sampleRate?: number
+  /** Audio file size in bytes. */
+  fileSize?: number
+  /** Stored bitrate, normally kb/s. */
+  bitrate?: number
+  /** Tempo in BPM multiplied by 100. */
+  bpmx100?: number
+  /** Track duration in seconds. */
+  length?: number
+  /** Track number within the release. */
+  trackNo?: number
+  /** Disc number. */
+  discNo?: number
+  /** Stored play count. */
+  playCount?: number
+  /** Release year. */
+  releaseYear?: number
+  /** Sample depth in bits per sample. */
+  bitDepth?: number
+  /** Raw color ID, including zero. */
+  colorId?: number
+  /** Raw star rating; unrecognized values are retained. */
+  rating?: number
+  /** Raw audio format code; unrecognized codes are retained. */
+  fileType?: number
+  /** Display title. */
+  title?: string
+  /** DJ comment. */
+  comment?: string
+  /** Mix/remix name. */
+  mixName?: string
+  /** Lyricist text. */
+  lyricist?: string
+  /** Track message, separate from the comment. */
+  message?: string
+  /** Original publication setting text. */
+  publishTrackInfo?: string
+  /** Original hot-cue auto-load setting text. */
+  hotCueAutoLoad?: string
+  /** Collection date as stored text. */
+  dateAdded?: string
+  /** Release date as stored text. */
+  releaseDate?: string
+  /** Analysis date as stored text. */
+  analysisDate?: string
+  /** Analysis-file path, preserving original separators. */
+  analysisPath?: string
+  /** Audio basename. */
+  fileName?: string
+  /** Audio path, preserving original separators. */
+  path?: string
+}
+
+/**
+ * Content snapshot with resolved metadata, following masterdb's content-view pattern.
+ *
+ * Field access performs no queries. Zero IDs and missing targets are represented
+ * by `None`; the original IDs and raw row remain in [`Self::content`].
+ * Related models-old are detached rows, with only the album artist additionally
+ * resolved. Editing the view does not persist changes or refresh related fields.
+ *
+ * ```
+ * use rbox_devlib::{binary::DatabaseKind, DeviceSqlConnection};
+ * use rbox_devlib::models::{DevContent, NewDevArtist, NewDevContent};
+ * # fn main() -> rbox_devlib::Result<()> {
+ * let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
+ * let artist = NewDevArtist::new("Artist").insert(&mut conn)?;
+ * let mut input = NewDevContent::new("/Contents/Track.wav");
+ * input.artist_id = artist.id;
+ * let content = input.insert(&mut conn)?;
+ * let view = DevContent::find_with_relations(&mut conn, &content.id)?.unwrap();
+ * assert_eq!(view.artist.as_ref().map(|artist| artist.name.as_str()), Some("Artist"));
+ * assert_eq!(view.id, content.id); // Content fields remain accessible through Deref.
+ * # Ok(())
+ * # }
+ * ```
+ */
+export interface DevContentView {
+  /** Original content snapshot, including unresolved foreign keys. */
+  content: DevContent
+  /** Main artist. */
+  artist?: DevArtist
+  /** Artist credited as remixer. */
+  remixer?: DevArtist
+  /** Artist credited as original artist. */
+  originalArtist?: DevArtist
+  /** Artist credited as composer. */
+  composer?: DevArtist
+  /** Referenced album. */
+  album?: DevAlbum
+  /** Artist referenced by the album's artist_id, independently of the content artist. */
+  albumArtist?: DevArtist
+  /** Referenced genre. */
+  genre?: DevGenre
+  /** Referenced label. */
+  label?: DevLabel
+  /** Referenced musical key. */
+  key?: DevKey
+  /** Referenced color. */
+  color?: DevColor
+  /** Referenced artwork path record; no image file is loaded. */
+  artwork?: DevArtwork
+}
+
+/** Detached playlist tree node. Editing this snapshot does not persist changes. */
+export interface DevPlaylistTreeNode {
+  /** The playlist or folder and its original binary row. */
+  playlist: DevPlaylist
+  /** Immediate children in sibling order. */
+  children: Array<DevPlaylistTreeNode>
+}
+
+/**
+ * Input for a fresh album, without an existing raw row.
+ *
+ * Insertion allocates the highest live table ID plus one, starting at 1.
+ * Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+ * Use the returned model's ID when creating relationships.
+ *
+ * New rows use the near-offset subtype and marker 3. Reserved words default
+ * to observed zero values and remain configurable.
+ * Insertion commits to the connection's in-memory overlay; saving is explicit.
+ * Other tables are not modified.
+ */
+export interface NewDevAlbum {
+  /** Album artist ID, independent of the track artist; zero means unassigned. */
+  artistId: number
+  /** Decoded display name, preserving empty text. */
+  name: string
+  /** Reserved word at 0x04; defaults to the observed zero authoring value. */
+  unknown04: number
+  /** Reserved word at 0x10; defaults to the observed zero authoring value. */
+  unknown10: number
+}
+
+/**
+ * Input for a fresh artist, without an existing raw row.
+ *
+ * Insertion allocates the highest live table ID plus one, starting at 1.
+ * Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+ * Use the returned model's ID when creating relationships.
+ *
+ * New rows use the established near-offset subtype and marker 3. Name length
+ * does not determine offset width; the engine places and aligns the string.
+ * Insertion commits to the connection's in-memory overlay; saving is explicit.
+ * Other tables are not modified.
+ */
+export interface NewDevArtist {
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * Input for a fresh artwork, without an existing raw row.
+ *
+ * Insertion allocates the highest live table ID plus one, starting at 1.
+ * Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+ * Use the returned model's ID when creating relationships.
+ *
+ * This is an image-path reference only. The caller copies the artwork file;
+ * paths are stored as supplied without normalization or filesystem access.
+ * Insertion commits to the connection's in-memory overlay; saving is explicit.
+ * Other tables are not modified.
+ */
+export interface NewDevArtwork {
+  /** Original artwork path, preserving stored separators. */
+  path: string
+}
+
+/** Insertion input. Optional fields override the model constructor's defaults. */
+export interface NewDevContent {
+  /** Main artist ID. */
+  artistId?: number
+  /** Album ID. */
+  albumId?: number
+  /** Genre ID. */
+  genreId?: number
+  /** Label ID. */
+  labelId?: number
+  /** Musical-key ID. */
+  keyId?: number
+  /** Artwork-reference ID. */
+  artworkId?: number
+  /** Composer artist ID. */
+  composerId?: number
+  /** Original artist ID. */
+  originalArtistId?: number
+  /** Remixer artist ID. */
+  remixerId?: number
+  /** Content identity in the source library, separate from the export ID. */
+  masterContentId?: number
+  /** Source library identity. */
+  masterDbId?: number
+  /** Sample rate in Hz. */
+  sampleRate?: number
+  /** Audio file size in bytes. */
+  fileSize?: number
+  /** Stored bitrate, normally kb/s. */
+  bitrate?: number
+  /** Tempo in BPM multiplied by 100. */
+  bpmx100?: number
+  /** Track duration in seconds. */
+  length?: number
+  /** Track number within the release. */
+  trackNo?: number
+  /** Disc number. */
+  discNo?: number
+  /** Stored play count. */
+  playCount?: number
+  /** Release year. */
+  releaseYear?: number
+  /** Sample depth in bits per sample. */
+  bitDepth?: number
+  /** Raw color ID, including zero. */
+  colorId?: number
+  /** Raw star rating; unrecognized values are retained. */
+  rating?: number
+  /** Raw audio format code; unrecognized codes are retained. */
+  fileType?: number
+  /** Display title. */
+  title?: string
+  /** DJ comment. */
+  comment?: string
+  /** Mix/remix name. */
+  mixName?: string
+  /** Lyricist text. */
+  lyricist?: string
+  /** Track message, separate from the comment. */
+  message?: string
+  /** Original publication setting text. */
+  publishTrackInfo?: string
+  /** Original hot-cue auto-load setting text. */
+  hotCueAutoLoad?: string
+  /** Collection date as stored text. */
+  dateAdded?: string
+  /** Release date as stored text. */
+  releaseDate?: string
+  /** Analysis date as stored text. */
+  analysisDate?: string
+  /** Analysis-file path, preserving original separators. */
+  analysisPath?: string
+  /** Audio basename. */
+  fileName?: string
+  /** Audio path, preserving original separators. */
+  path: string
+  /** ISRC text; empty means absent, otherwise twelve ASCII alphanumeric characters. */
+  isrc?: string
+}
+
+/**
+ * Input for a fresh genre, without an existing raw row.
+ *
+ * Insertion allocates the highest live table ID plus one, starting at 1.
+ * Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+ * Use the returned model's ID when creating relationships.
+ *
+ * Insertion commits to the connection's in-memory overlay; saving is explicit.
+ * Other tables are not modified.
+ */
+export interface NewDevGenre {
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * Input for a fresh history playlist, without an existing raw row.
+ *
+ * Insertion allocates the highest live table ID plus one, starting at 1.
+ * Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+ * Use the returned model's ID when creating relationships.
+ *
+ * No existing row or database template is needed.
+ * Insertion commits to the connection's in-memory overlay; saving is explicit.
+ * Other tables are not modified.
+ */
+export interface NewDevHistory {
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * Input for a fresh history occurrence, without a synthetic ID or source row.
+ *
+ * Positions are explicit; insertion never shifts other entries or deduplicates
+ * tracks. Nonzero playlist/track IDs are required, but referenced rows are not
+ * resolved. The caller supplies valid references to a history playlist and an export track.
+ * Saving, relationship validation and automatic ordering remain separate steps.
+ */
+export interface NewDevHistoryContent {
+  /** Nonzero history-playlist ID; existence is not checked. */
+  historyId: number
+  /** Nonzero export track ID. */
+  contentId: number
+  /** Explicit occurrence position; other positions are untouched. */
+  seq: number
+}
+
+/**
+ * Input for a fresh key, without an existing raw row.
+ *
+ * Insertion allocates the highest live table ID plus one, starting at 1.
+ * Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+ * Use the returned model's ID when creating relationships.
+ *
+ * The second stored ID is explicit: it is not assumed to equal the primary
+ * ID, and no musical-key numbering scheme is inferred.
+ * Insertion commits to the connection's in-memory overlay; saving is explicit.
+ * Other tables are not modified.
+ */
+export interface NewDevKey {
+  /** Second stored ID, supplied independently; its role remains unknown. */
+  secondaryId: number
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * Input for a fresh label, without an existing raw row.
+ *
+ * Insertion allocates the highest live table ID plus one, starting at 1.
+ * Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+ * Use the returned model's ID when creating relationships.
+ *
+ * No existing row or database template is needed.
+ * Insertion commits to the connection's in-memory overlay; saving is explicit.
+ * Other tables are not modified.
+ */
+export interface NewDevLabel {
+  /** Decoded display name, preserving empty text. */
+  name: string
+}
+
+/**
+ * Input for a fresh My Tag/category, with an explicit ID and optional position.
+ *
+ * Supply the tag/category ID from the source main database (`master.db`) and
+ * preserve its parent category ID. Insertion does not generate or remap these IDs,
+ * and does not check them against the source database.
+ *
+ * The default reserved values are zero, with an empty second string frame, as in
+ * the established writer profile. Near-offset encoding is used; the engine rejects
+ * strings that cannot fit that layout. Insertion validates category ancestry and
+ * maintains sibling ordering. Saving remains explicit.
+ */
+export interface NewDevMyTag {
+  /** Nonzero source main-database tag/category ID, unused in this export. */
+  id: number
+  /** Parent category ID; zero denotes a root. */
+  parentId: number
+  /** Insertion position starting at [`DevMyTag::START_SEQ`]; `None` appends. */
+  seq?: number
+  /** Display name. */
+  name: string
+  /** Tag (List) or category (Folder). */
+  attribute: MyTagType
+  /** Reserved word at 0x04, defaulting to zero. */
+  unknown04: number
+  /** Reserved word at 0x08, defaulting to zero. */
+  unknown08: number
+  /** Reserved word at 0x18, defaulting to zero. */
+  unknown18: number
+  /** Reserved byte at 0x1a, defaulting to zero. */
+  unknown1A: number
+}
+
+/**
+ * Input for a fresh track/tag association, without a synthetic row ID.
+ *
+ * References must be nonzero but their existence is not checked. Duplicate pairs
+ * are allowed; no uniqueness constraint is inferred from the binary layout.
+ * Reserved fields default to zero with the observed empty-string marker 3.
+ * Insertion commits in memory only; saving is explicit.
+ */
+export interface NewDevMyTagContent {
+  /** Nonzero export track ID in the standard database. */
+  contentId: number
+  /** Nonzero tag ID in the extended database, matching the source main-database tag ID. */
+  myTagId: number
+  /** Reserved word at 0x00, defaulting to zero. */
+  unknown00: number
+  /** Raw marker at 0x0c; defaults to the observed empty short-string frame, 3. */
+  reservedStringMarker: number
+  /** Reserved trailing bytes, defaulting to zero. */
+  reservedTail: number[]
+}
+
+/**
+ * Input for a fresh playlist or folder; no existing raw row is needed.
+ *
+ * Insertion allocates the highest live table ID plus one, starting at 1.
+ * Failed insertions do not consume an ID; deleting the highest ID permits reuse.
+ * Use the returned model's ID when creating relationships.
+ *
+ * Model insertion validates the parent and maintains sibling
+ * ordering; `None` appends. The reserved word defaults to zero and remains configurable.
+ * Insertion commits in memory only and does not create entries or save to disk.
+ */
+export interface NewDevPlaylist {
+  /** Parent folder ID; zero denotes the root. */
+  parentId: number
+  /** Zero-based insertion position; `None` appends after the last sibling. */
+  seq?: number
+  /** Node type; only List and Folder can be encoded for DeviceSQL. */
+  attribute: PlaylistType
+  /** Display name. */
+  name: string
+  /** Reserved word at 0x04, defaulting to zero. */
+  unknown04: number
+}
+
+/**
+ * Input for a fresh playlist occurrence, without a synthetic ID or source row.
+ *
+ * Insertion validates the playlist and content, rejects duplicate pairs, and
+ * maintains one-based positions. `None` appends. Saving remains explicit.
+ */
+export interface NewDevPlaylistContent {
+  /** Existing regular playlist ID. */
+  playlistId: number
+  /** Nonzero export track ID. */
+  contentId: number
+  /** One-based insertion position; `None` appends. */
+  seq?: number
+}
+
+/**
+ * Insertion input for a fresh RecommendedLike row.
+ *
+ * Creation semantics are not established. All unknown words must be supplied
+ * explicitly; this input provides binary insertion, not a recommendation generator
+ * or a guarantee of player behavior. Track existence and pair direction are not
+ * inferred. Model insertion requires a unique ordered content pair.
+ * Saving is explicit; insertion commits only to the in-memory connection.
+ */
+export interface NewDevRecommendedLike {
+  /** Raw eight-byte value at 0x00; not interpreted as a timestamp. */
+  unknown00: bigint
+  /** First standard export track ID; no source/target direction is inferred. */
+  contentId1: number
+  /** Second standard export track ID. */
+  contentId2: number
+  /** Raw word at 0x10. */
+  unknown10: number
+  /** Raw word at 0x14; flag semantics are unknown. */
+  unknown14: number
 }
 export declare class Anlz {
   /** Owned snapshot equivalent of Rust's into_data; the binding handler remains usable. */
@@ -3585,6 +4569,800 @@ export declare class Anlz {
   getSongStructure(): SongStructureData | null
 }
 export type JsAnlz = Anlz
+
+/**
+ * Device Library backed by export.pdb and optionally exportExt.pdb.
+ * Edits remain in memory until save/savePages; saveAs copies without switching files.
+ * Saves run standard-then-extended and are not atomic across the pair.
+ */
+export declare class DeviceLibrary {
+  /** Open the database directory, usually PIONEER/rekordbox (not the USB root). */
+  constructor(directory: string)
+  /** Open explicit paths. Omit extended to open only the standard database. */
+  static fromPaths(standard: string, extended?: string | undefined | null): DeviceLibrary
+  /** Create both files without overwriting existing export files. */
+  static create(directory: string, options: LibraryCreateOptions): DeviceLibrary
+  /** Whether the extended database was opened. */
+  hasExtended(): boolean
+  /** Replace each changed file atomically; the pair is not atomic. Unchanged files write nothing. */
+  save(): LibrarySaveStats
+  /**
+   * Write changed pages directly, non-atomically. After failure, discard the handler
+   * and reopen only after restoring or repairing the affected file.
+   */
+  savePages(): LibrarySaveStats
+  /**
+   * Copy database images without overwriting. Keeps source files and pending changes.
+   * Does not copy audio, artwork, or analysis assets.
+   */
+  saveAs(directory: string): void
+  /** Load all albums in physical order without resolving related rows. */
+  getAlbums(): Array<DevAlbum>
+  /** Find an album by export ID; returns `null` when absent. */
+  getAlbumById(id: number): DevAlbum | null
+  /**
+   * Find the first exact, case-sensitive name match in physical order.
+   *
+   * Albums with different artists can share a name; this does not filter by artist.
+   */
+  getAlbumByName(name: string): DevAlbum | null
+  /**
+   * Load an album and its album artist. Missing albums return `null`.
+   *
+   * Missing or unassigned artists remain `null` in the detached view.
+   */
+  getAlbumWithRelations(id: number): DevAlbumView | null
+  /** Load all albums in physical order and resolve shared album artists in a batch. */
+  getAlbumsWithRelations(): Array<DevAlbumView>
+  /**
+   * Allocate an album ID and insert it, enforcing unique `(name, artist_id)` pairs.
+   *
+   * Changes remain in memory until explicitly saved.
+   */
+  insertAlbum(album: NewDevAlbum): DevAlbum
+  /**
+   * Create an album with an automatically allocated export ID and insert it in memory.
+   *
+   * `artist_id` is the album artist; `null` or zero means unassigned.
+   */
+  createAlbum(name: string, artistId?: number | undefined | null): DevAlbum
+  /**
+   * Persist edited album fields in memory and return a refreshed snapshot.
+   * Preserves unedited binary data and enforces the model's uniqueness checks.
+   */
+  updateAlbum(album: DevAlbum): DevAlbum
+  /**
+   * Delete an album and clear referencing contents' album IDs atomically in memory.
+   * Returns the total affected rows, or zero for a missing album. Saving is explicit.
+   */
+  deleteAlbum(id: number): number
+  /** Load all artists in physical order without resolving related rows. */
+  getArtists(): Array<DevArtist>
+  /** Find an artist by export ID; returns `null` when absent. */
+  getArtistById(id: number): DevArtist | null
+  /** Find the first exact, case-sensitive name match; returns `null` when absent. */
+  getArtistByName(name: string): DevArtist | null
+  /**
+   * Allocate an artist ID and insert it, enforcing unique, case-sensitive names.
+   *
+   * Changes remain in memory until explicitly saved.
+   */
+  insertArtist(artist: NewDevArtist): DevArtist
+  /** Create an artist with an automatically allocated export ID and insert it in memory. */
+  createArtist(name: string): DevArtist
+  /**
+   * Persist an edited artist name in memory and return a refreshed snapshot.
+   *
+   * Preserves unedited binary data and enforces name uniqueness; saving is explicit.
+   */
+  updateArtist(artist: DevArtist): DevArtist
+  /**
+   * Delete an artist and clear its album and content references atomically in memory.
+   *
+   * Clears album artist, main artist, composer, original artist, and remixer IDs.
+   * Returns the total affected rows, or zero for a missing artist. Saving is explicit.
+   */
+  deleteArtist(id: number): number
+  /** Load all artwork references in physical order without resolving related rows. */
+  getArtworks(): Array<DevArtwork>
+  /** Find an artwork reference by export ID; returns `null` when absent. */
+  getArtworkById(id: number): DevArtwork | null
+  /**
+   * Find the first exact, case-sensitive path match; returns `null` when absent.
+   *
+   * Paths are compared as stored, without normalization or filesystem access.
+   */
+  getArtworkByPath(path: string): DevArtwork | null
+  /**
+   * Allocate an artwork ID and insert a reference to a nonempty image path.
+   *
+   * Duplicate paths are allowed. Changes remain in memory; no image file is copied.
+   */
+  insertArtwork(artwork: NewDevArtwork): DevArtwork
+  /** Create an artwork reference with an automatically allocated ID and insert it in memory. */
+  createArtwork(path: string): DevArtwork
+  /**
+   * Persist an edited artwork path in memory and return a refreshed snapshot.
+   *
+   * Saving is explicit; this does not copy or rename image files.
+   */
+  updateArtwork(artwork: DevArtwork): DevArtwork
+  /**
+   * Delete an artwork reference and clear matching content artwork IDs atomically in memory.
+   *
+   * Returns the total affected rows, or zero when absent. Image files are retained;
+   * saving database changes remains explicit.
+   */
+  deleteArtwork(id: number): number
+  /** Load all predefined browse labels in physical order without resolving settings. */
+  getBrowseColumns(): Array<DevBrowseColumn>
+  /** Find a browse label by its 16-bit catalog ID; returns `null` when absent. */
+  getBrowseColumnById(id: number): DevBrowseColumn | null
+  /**
+   * Find the first exact, case-sensitive plain-text label match, or `null`.
+   *
+   * Enclosing U+FFFA/U+FFFB markers are omitted from the compared label.
+   */
+  getBrowseColumnByName(name: string): DevBrowseColumn | null
+  /**
+   * Update a browse label in memory, preserving its enclosing markers.
+   *
+   * Catalog IDs and codes cannot change; saving remains explicit.
+   */
+  updateBrowseColumn(column: DevBrowseColumn): DevBrowseColumn
+  /** Load all category-menu settings in physical order, retaining repeated rows. */
+  getBrowseCategories(): Array<DevBrowseCategory>
+  /**
+   * Load all category settings for a column ID, retaining physical order and repetitions.
+   *
+   * Returns an empty list when absent; referenced labels are not loaded.
+   */
+  getBrowseCategoriesByColumn(columnId: number): Array<DevBrowseCategory>
+  /**
+   * Update one category-setting occurrence in memory; saving remains explicit.
+   *
+   * Column and selector cannot change. No automatic reordering or state coercion
+   * is performed. Stale snapshots are rejected; reload after rebuilding the database.
+   */
+  updateBrowseCategory(category: DevBrowseCategory): DevBrowseCategory
+  /** Load all sort-option settings in physical order, retaining repeated rows. */
+  getBrowseSorts(): Array<DevBrowseSort>
+  /**
+   * Load all sort settings for a column ID, retaining physical order and repetitions.
+   *
+   * Returns an empty list when absent; referenced labels are not loaded.
+   */
+  getBrowseSortsByColumn(columnId: number): Array<DevBrowseSort>
+  /**
+   * Update one sort-setting occurrence's raw tail in memory; saving remains explicit.
+   *
+   * Column and selector cannot change. Stale snapshots are rejected; reload after
+   * rebuilding. Tail-bit meanings remain provisional; see `crate::models::browse`.
+   */
+  updateBrowseSort(sort: DevBrowseSort): DevBrowseSort
+  /** Load all initialized color labels in physical order without resolving related rows. */
+  getColors(): Array<DevColor>
+  /** Find a color label by its 16-bit export ID; returns `null` when absent. */
+  getColorById(id: number): DevColor | null
+  /** Find the first exact, case-sensitive color name match, or `null` when absent. */
+  getColorByName(name: string): DevColor | null
+  /**
+   * Update a color name in memory and return a refreshed snapshot.
+   *
+   * Names must be unique (case-sensitive); existing IDs cannot change.
+   * Colors are initialized at creation and support updates only. Saving remains explicit.
+   */
+  updateColor(color: DevColor): DevColor
+  /**
+   * Load shared tracks in physical order with resolved metadata, including album artists.
+   *
+   * Each distinct related row is decoded once per call; missing metadata stays `null`.
+   * BPM is unscaled, duration is seconds, and file size is bytes. Source-library IDs
+   * come from each content row. Decoding and metadata conversion errors propagate.
+   * Results are detached snapshots; audio and analysis files are not read.
+   */
+  getTracks(): Array<Track>
+  /**
+   * Load a shared track by its local export ID, or `null` if absent.
+   *
+   * See `Self::get_tracks` for relationship resolution, units and errors.
+   */
+  getTrackById(id: number): Track | null
+  /**
+   * Load matching shared tracks in ascending local export-ID order.
+   *
+   * Missing IDs are omitted, repeated IDs occur once, and empty input reads no pages.
+   * See `Self::get_tracks` for relationship resolution, units and errors.
+   */
+  getTracksByIds(ids: Array<number>): Array<Track>
+  /**
+   * Load a shared track by its stored audio path, or `null` if absent.
+   *
+   * Backslashes are converted to forward slashes without accessing the file;
+   * the path must otherwise match exactly. Repeated paths return the first
+   * physical occurrence. See `Self::get_tracks` for conversion errors.
+   */
+  getTrackByPath(path: string): Track | null
+  /** Load all content rows in physical order without resolving related metadata. */
+  getContents(): Array<DevContent>
+  /** Find content by its local export ID; returns `null` when absent. */
+  getContentById(id: number): DevContent | null
+  /**
+   * Find content by both source-library IDs, rather than its local export ID.
+   *
+   * Missing or zero identities return `null`. Repeated pairs return the row
+   * with the lowest local export ID.
+   */
+  getContentByMasterContentId(masterContentId: number, masterDbId: number): DevContent | null
+  /**
+   * Load contents by source-content IDs within one source library.
+   *
+   * Returns all matches in local export-ID order, omitting missing/zero IDs and
+   * repeated input IDs. Repeated source identities retain all matching content rows.
+   */
+  getContentsByMasterContentIds(masterContentIds: Array<number>, masterDbId: number): Array<DevContent>
+  /**
+   * Load content and its metadata relationships, including its album artist.
+   *
+   * Missing content returns `null`; missing relationship targets remain `null`.
+   */
+  getContentWithRelations(id: number): DevContentView | null
+  /**
+   * Load all content in physical order and resolve distinct metadata targets once.
+   *
+   * Returns detached snapshots without loading playlists, history, or My Tags.
+   */
+  getContentsWithRelations(): Array<DevContentView>
+  /**
+   * Allocate a local export ID and insert content, updating existing export-property counts.
+   *
+   * Accepts a plain object with a required path. Omitted metadata uses defaults;
+   * the file name is derived from the path unless explicitly supplied.
+   * The operation commits atomically in memory; saving remains explicit.
+   * Audio, artwork and analysis files are not copied or generated.
+   */
+  insertContent(content: NewDevContent): DevContent
+  /**
+   * Create content from a nonempty audio path with forward slashes and insert it in memory.
+   *
+   * The file name is derived from the path; other metadata uses `NewDevContent` defaults.
+   */
+  createContent(path: string): DevContent
+  /**
+   * Apply partial changes to the current content row and return a plain object.
+   *
+   * Omitted or undefined fields retain their current values; null is rejected.
+   * Empty strings and zero are explicit changes. Private binary data is preserved.
+   * The ID cannot change. Errors roll back the operation; saving remains explicit.
+   * Editing paths does not move files or automatically update other path fields.
+   */
+  updateContent(id: number, changes: DevContentChanges): DevContent
+  /**
+   * Delete content and its playlist/history occurrences, updating export-property counts.
+   *
+   * When the extended file is open, also delete its My Tag associations and
+   * recommendation pairs containing this ID on either side. Unknown tables remain intact.
+   * Returns deleted row count, including associations but excluding property updates;
+   * a missing ID returns zero. ID zero is rejected. Changes commit atomically in memory;
+   * saving the file pair remains explicit and is not atomic. Resource files are retained.
+   */
+  deleteContent(id: number): number
+  /** Load all genres in physical order without resolving related rows. */
+  getGenres(): Array<DevGenre>
+  /** Find a genre by export ID; returns `null` when absent. */
+  getGenreById(id: number): DevGenre | null
+  /** Find the first exact, case-sensitive name match; returns `null` when absent. */
+  getGenreByName(name: string): DevGenre | null
+  /**
+   * Allocate a genre ID and insert it, enforcing unique, case-sensitive names.
+   *
+   * Changes remain in memory until explicitly saved.
+   */
+  insertGenre(genre: NewDevGenre): DevGenre
+  /** Create a genre with an automatically allocated export ID and insert it in memory. */
+  createGenre(name: string): DevGenre
+  /**
+   * Persist an edited genre name in memory and return a refreshed snapshot.
+   *
+   * The ID cannot change; names must remain unique. Saving is explicit.
+   */
+  updateGenre(genre: DevGenre): DevGenre
+  /**
+   * Delete a genre and clear referencing contents' genre IDs atomically in memory.
+   *
+   * Returns the total affected rows, or zero for a missing genre. ID zero is rejected.
+   * Contents and export track counts are retained; saving remains explicit.
+   */
+  deleteGenre(id: number): number
+  /**
+   * Load all histories in physical order without loading their occurrences.
+   *
+   * Device Library histories have no folder hierarchy or type attribute.
+   */
+  getHistories(): Array<DevHistory>
+  /** Find a history by export ID; returns `null` when absent. */
+  getHistoryById(id: number): DevHistory | null
+  /**
+   * Load a history's contents in stored sequence order, retaining repeated plays.
+   *
+   * Ties retain physical occurrence order; missing content references return errors.
+   * No entries returns an empty list. Content metadata relationships are not resolved.
+   */
+  getHistoryContents(id: number): Array<DevContent>
+  /**
+   * Load occurrence snapshots in stored sequence order without resolving contents.
+   *
+   * Repeated plays, sequence gaps and ties are retained. These snapshots can be
+   * passed to `Self::delete_history_content` to delete individual occurrences.
+   */
+  getHistoryEntries(id: number): Array<DevHistoryContent>
+  /** Allocate a history ID and insert its name in memory; saving remains explicit. */
+  insertHistory(history: NewDevHistory): DevHistory
+  /**
+   * Create a named history with an automatically allocated export ID.
+   *
+   * Changes remain in memory until explicitly saved.
+   */
+  createHistory(name: string): DevHistory
+  /**
+   * Update a history name in memory and return a refreshed snapshot.
+   * The ID cannot change; saving remains explicit.
+   */
+  updateHistory(history: DevHistory): DevHistory
+  /**
+   * Delete a history and its occurrences atomically in memory, retaining contents.
+   *
+   * Returns the total deleted rows, or zero for a missing history. ID zero is rejected.
+   * Other histories and playlists are unchanged; saving remains explicit.
+   */
+  deleteHistory(id: number): number
+  /**
+   * Insert a history occurrence in memory, retaining its explicit stored position.
+   *
+   * Repeated tracks and position ties are allowed. Reference IDs must be nonzero;
+   * target existence is not checked. Saving remains explicit.
+   */
+  insertHistoryContent(entry: NewDevHistoryContent): DevHistoryContent
+  /**
+   * Create an occurrence at an explicit stored position without shifting other entries.
+   *
+   * See `Self::insert_history_content` for validation and persistence semantics.
+   */
+  createHistoryContent(historyId: number, contentId: number, seq: number): DevHistoryContent
+  /**
+   * Delete one occurrence snapshot, retaining other plays, contents and sequence gaps.
+   *
+   * Returns one on success; stale snapshots return an error. Re-fetch entries after
+   * structural edits. Changes remain in memory until explicitly saved.
+   */
+  deleteHistoryContent(entry: DevHistoryContent): number
+  /** Load all musical keys in physical order without resolving related rows. */
+  getKeys(): Array<DevKey>
+  /** Find a key by export ID; returns `null` when absent. */
+  getKeyById(id: number): DevKey | null
+  /** Find the first exact, case-sensitive name match; returns `null` when absent. */
+  getKeyByName(name: string): DevKey | null
+  /**
+   * Allocate an export key ID and insert it, enforcing unique, case-sensitive names.
+   *
+   * The supplied secondary ID is retained independently; saving remains explicit.
+   */
+  insertKey(key: NewDevKey): DevKey
+  /**
+   * Create a key with an automatically allocated export ID and an explicit secondary ID.
+   *
+   * The secondary ID's role remains unknown; no musical-key numbering is inferred.
+   * Changes remain in memory until explicitly saved.
+   */
+  createKey(name: string, secondaryId: number): DevKey
+  /**
+   * Persist an edited key name or secondary ID in memory and return a refreshed snapshot.
+   *
+   * The export ID cannot change; names must remain unique. Saving is explicit.
+   */
+  updateKey(key: DevKey): DevKey
+  /**
+   * Delete a key and clear referencing contents' key IDs atomically in memory.
+   *
+   * Returns the total affected rows, or zero for a missing key. ID zero is rejected.
+   * Contents and export track counts are retained; saving remains explicit.
+   */
+  deleteKey(id: number): number
+  /** Load all labels in physical order without resolving related rows. */
+  getLabels(): Array<DevLabel>
+  /** Find a label by export ID; returns `null` when absent. */
+  getLabelById(id: number): DevLabel | null
+  /** Find the first exact, case-sensitive name match; returns `null` when absent. */
+  getLabelByName(name: string): DevLabel | null
+  /**
+   * Allocate a label ID and insert it, enforcing unique, case-sensitive names.
+   * Changes remain in memory until explicitly saved.
+   */
+  insertLabel(label: NewDevLabel): DevLabel
+  /** Create a label with an automatically allocated export ID and insert it in memory. */
+  createLabel(name: string): DevLabel
+  /**
+   * Persist an edited label name in memory and return a refreshed snapshot.
+   *
+   * The ID cannot change; names must remain unique. Saving is explicit.
+   */
+  updateLabel(label: DevLabel): DevLabel
+  /**
+   * Delete a label and clear referencing contents' label IDs atomically in memory.
+   *
+   * Returns the total affected rows, or zero for a missing label. ID zero is rejected.
+   * Contents and export track counts are retained; saving remains explicit.
+   */
+  deleteLabel(id: number): number
+  /**
+   * Load all tags/categories in physical order without resolving relations.
+   *
+   * All My Tag methods require the extended file; otherwise they return
+   * `Error::MissingExtendedDatabase`. Mutations remain in memory until saved.
+   */
+  getMyTags(): Array<DevMyTag>
+  /** Find a tag/category by its source-library ID; missing IDs return `null`. */
+  getMyTagById(id: number): DevMyTag | null
+  /** Load immediate children in stored sequence order; zero selects roots. */
+  getMyTagChildren(id: number): Array<DevMyTag>
+  /**
+   * Load tags for a local content ID, retaining physical association order and repetitions.
+   *
+   * Missing tag targets return errors. The standard content row is not loaded.
+   */
+  getMyTagByContentId(contentId: number): Array<DevMyTag>
+  /**
+   * Load a tag's contents across both files in physical association order, retaining repeats.
+   *
+   * Missing content targets return errors. Metadata relationships are not resolved.
+   */
+  getMyTagContents(id: number): Array<DevContent>
+  /**
+   * Insert a tag/category, validating ancestry and maintaining sibling order.
+   *
+   * IDs must be supplied explicitly and should match the source `master.db`.
+   */
+  insertMyTag(myTag: NewDevMyTag): DevMyTag
+  /**
+   * Create a tag with its source `master.db` ID. `null` selects the root or appends.
+   *
+   * Explicit positions start at `DevMyTag::START_SEQ`. Saving remains explicit.
+   */
+  createMyTag(id: number, name: string, parentId?: number | undefined | null, seq?: number | undefined | null): DevMyTag
+  /**
+   * Create a category with its source `master.db` ID. `null` selects the root or appends.
+   *
+   * Explicit positions start at `DevMyTag::START_SEQ`. Saving remains explicit.
+   */
+  createMyTagFolder(id: number, name: string, parentId?: number | undefined | null, seq?: number | undefined | null): DevMyTag
+  /**
+   * Update name, parent or position, validating ancestry and maintaining sibling order.
+   *
+   * IDs and attributes cannot change. Changes commit atomically in memory.
+   */
+  updateMyTag(myTag: DevMyTag): DevMyTag
+  /** Rename a tag/category, returning one on success or zero for a missing ID. */
+  renameMyTag(id: number, name: string): number
+  /** Count immediate children without decoding names; zero selects the root. */
+  countMyTagChildren(parentId: number): number
+  /** Read sibling positions in ascending order, retaining imported gaps and ties. */
+  getMyTagSeqNumbers(parentId: number): Array<number>
+  /** Check contiguous sibling positions starting at `DevMyTag::START_SEQ`. */
+  validateMyTagSeqNumbers(parentId: number): boolean
+  /**
+   * Normalize sibling positions in stable sequence order, returning changed rows.
+   *
+   * The parent must be a category with valid ancestry, or zero for the root.
+   */
+  resetMyTagSeq(parentId: number): number
+  /**
+   * Move one node, maintaining sibling order and rejecting cycles or invalid parents.
+   *
+   * `null` keeps the parent or appends. Returns one if the selected node moved, else zero.
+   */
+  moveMyTag(id: number, parentId?: number | undefined | null, seq?: number | undefined | null): number
+  /**
+   * Move distinct nodes as a block in caller order, atomically; `null` appends.
+   *
+   * Returns changed selected nodes, excluding shifts of other siblings.
+   */
+  moveMyTags(ids: Array<number>, parentId: number, startSeq?: number | undefined | null): number
+  /**
+   * Delete a tag/category subtree and its associations, normalizing surviving siblings.
+   *
+   * Returns deleted rows; missing IDs return zero. Contents remain intact.
+   */
+  deleteMyTag(id: number): number
+  /**
+   * Delete selected subtrees atomically, counting overlapping descendants once.
+   *
+   * Duplicate or missing input IDs reject the batch. Returns deleted nodes and associations.
+   */
+  deleteMyTags(ids: Array<number>): number
+  /** Load all raw tag/content associations in physical order, retaining duplicates. */
+  getMyTagAssociations(): Array<DevMyTagContent>
+  /** Load a tag's association snapshots without resolving contents or deduplicating pairs. */
+  getMyTagEntries(id: number): Array<DevMyTagContent>
+  /** Load a content's association snapshots without resolving tags or deduplicating pairs. */
+  getMyTagAssociationsByContentId(contentId: number): Array<DevMyTagContent>
+  /**
+   * Insert an association with explicit reserved values. IDs must be nonzero.
+   *
+   * target existence is not checked and repeated pairs are allowed.
+   */
+  insertMyTagContent(entry: NewDevMyTagContent): DevMyTagContent
+  /**
+   * Associate a source-library tag ID with a local export content ID using model defaults.
+   *
+   * Repeated pairs are allowed; referenced rows are not loaded or validated.
+   */
+  createMyTagContent(myTagId: number, contentId: number): DevMyTagContent
+  /**
+   * Delete all occurrences of a tag/content pair, returning the deleted count.
+   * Both IDs must be nonzero. Tags and contents remain intact.
+   */
+  deleteMyTagContent(myTagId: number, contentId: number): number
+  /**
+   * Delete one association snapshot, retaining duplicate occurrences and referenced rows.
+   *
+   * Returns one on success. Re-fetch after structural edits; stale snapshots return errors.
+   */
+  deleteMyTagContentEntry(entry: DevMyTagContent): number
+  /**
+   * Load all playlists and folders in physical order without resolving contents.
+   *
+   * All playlist mutations commit in memory; saving remains explicit.
+   */
+  getPlaylists(): Array<DevPlaylist>
+  /** Find a playlist or folder by export ID; missing IDs return `null`. */
+  getPlaylistById(id: number): DevPlaylist | null
+  /** Load immediate children in sibling order; zero selects roots. */
+  getPlaylistChildren(id: number): Array<DevPlaylist>
+  /**
+   * Load contents in playlist sequence order, retaining imported duplicate occurrences.
+   *
+   * Missing content references return errors; metadata relationships are not resolved.
+   */
+  getPlaylistContents(id: number): Array<DevContent>
+  /**
+   * Find a node by exact path components. Empty, missing or ambiguous paths return `null`.
+   *
+   * Malformed ancestry and duplicate IDs return errors.
+   */
+  getPlaylistByPath(path: Array<string>): DevPlaylist | null
+  /**
+   * Build a detached tree with children in sibling order, without loading contents.
+   *
+   * Invalid parents, cycles and duplicate IDs return errors.
+   */
+  getPlaylistTree(): Array<DevPlaylistTreeNode>
+  /** Read the node type; the root sentinel (zero) is treated as a folder. */
+  getPlaylistAttribute(id: number): PlaylistType | null
+  /** Check whether an existing node is a regular playlist. */
+  isPlaylist(id: number): boolean
+  /** Allocate an export ID and insert a playlist/folder, validating ancestry and sibling order. */
+  insertPlaylist(playlist: NewDevPlaylist): DevPlaylist
+  /**
+   * Create a regular playlist. `null` selects the root or appends among siblings.
+   *
+   * Explicit positions start at `DevPlaylist::START_SEQ`.
+   */
+  createPlaylist(name: string, parentId?: number | undefined | null, seq?: number | undefined | null): DevPlaylist
+  /**
+   * Create a folder. `null` selects the root or appends among siblings.
+   *
+   * Explicit positions start at `DevPlaylist::START_SEQ`.
+   */
+  createPlaylistFolder(name: string, parentId?: number | undefined | null, seq?: number | undefined | null): DevPlaylist
+  /**
+   * Update name, parent or position, validating ancestry and maintaining sibling order.
+   *
+   * IDs and attributes cannot change. Changes commit atomically in memory.
+   */
+  updatePlaylist(playlist: DevPlaylist): DevPlaylist
+  /**
+   * Rename a node while preserving hierarchy, position and reserved data.
+   *
+   * Returns one on success; missing IDs return `Error::ModelNotFound`.
+   */
+  renamePlaylist(id: number, name: string): number
+  /** Count immediate children without decoding names; zero selects roots. */
+  countPlaylistChildren(parentId: number): number
+  /** Read sibling positions in ascending order, retaining imported gaps and ties. */
+  getPlaylistSeqNumbers(parentId: number): Array<number>
+  /** Check contiguous sibling positions starting at `DevPlaylist::START_SEQ`. */
+  validatePlaylistSeqNumbers(parentId: number): boolean
+  /**
+   * Normalize siblings in stable sequence order, returning changed rows.
+   *
+   * The parent must be a folder with valid ancestry, or zero for the root.
+   */
+  resetPlaylistSeq(parentId: number): number
+  /**
+   * Move one node, rejecting cycles and invalid parents. `null` keeps the parent or appends.
+   *
+   * Positions start at `DevPlaylist::START_SEQ`. Returns one if the selected node moved, else zero.
+   */
+  movePlaylist(id: number, parentId?: number | undefined | null, seq?: number | undefined | null): number
+  /**
+   * Move distinct nodes as a block in caller order, atomically; `null` appends.
+   *
+   * The destination is measured after removing the selection. Returns changed selected nodes.
+   */
+  movePlaylists(ids: Array<number>, parentId: number, startSeq?: number | undefined | null): number
+  /**
+   * Delete a playlist/folder subtree and its entries, normalizing surviving siblings.
+   *
+   * Returns deleted rows; missing IDs return zero. Contents remain intact.
+   */
+  deletePlaylist(id: number): number
+  /**
+   * Delete selected subtrees atomically, counting overlapping descendants once.
+   *
+   * Duplicate or missing input IDs reject the batch. Returns deleted nodes and entries.
+   */
+  deletePlaylists(ids: Array<number>): number
+  /** Load all playlist entry snapshots in physical order, retaining imported duplicates. */
+  getPlaylistAssociations(): Array<DevPlaylistContent>
+  /** Load a playlist's entry snapshots in stored sequence order without resolving contents. */
+  getPlaylistEntries(id: number): Array<DevPlaylistContent>
+  /** Load a content's entry snapshots ordered by playlist ID and sequence. */
+  getPlaylistAssociationsByContentId(contentId: number): Array<DevPlaylistContent>
+  /** Find a unique playlist/content pair; missing pairs return `null`, duplicates return errors. */
+  getPlaylistContentById(playlistId: number, contentId: number): DevPlaylistContent | null
+  /**
+   * Insert a unique playlist/content pair, normalizing affected positions.
+   *
+   * The destination must be a regular playlist; positions start at `DevPlaylistContent::START_SEQ`.
+   */
+  insertPlaylistContent(entry: NewDevPlaylistContent): DevPlaylistContent
+  /**
+   * Create a unique playlist/content pair; `null` appends.
+   *
+   * Explicit positions start at `DevPlaylistContent::START_SEQ`.
+   */
+  createPlaylistContent(playlistId: number, contentId: number, seq?: number | undefined | null): DevPlaylistContent
+  /** Count live entries without resolving contents. */
+  countPlaylistContents(playlistId: number): number
+  /** Read stored entry positions in ascending order. */
+  getPlaylistContentSeqNumbers(playlistId: number): Array<number>
+  /** Check contiguous entry positions starting at `DevPlaylistContent::START_SEQ`. */
+  validatePlaylistContentSeqNumbers(playlistId: number): boolean
+  /**
+   * Normalize entry positions in stable sequence order, retaining imported duplicates.
+   *
+   * Returns changed rows; the destination must be a regular playlist.
+   */
+  resetPlaylistContentSeq(playlistId: number): number
+  /**
+   * Move a unique pair within its playlist; `null` appends.
+   *
+   * Positions start at `DevPlaylistContent::START_SEQ`. Returns one if moved, else zero.
+   */
+  movePlaylistContent(playlistId: number, contentId: number, seq?: number | undefined | null): number
+  /**
+   * Move distinct pairs from one playlist as a block in caller order, atomically.
+   *
+   * The destination follows removal of the selection; `null` appends. Returns changed selected entries.
+   */
+  movePlaylistContents(ids: Array<[number, number]>, startSeq?: number | undefined | null): number
+  /**
+   * Delete a unique pair and close the sequence gap. Missing pairs return zero.
+   *
+   * imported duplicates return errors. The playlist and content remain intact.
+   */
+  deletePlaylistContent(playlistId: number, contentId: number): number
+  /**
+   * Delete distinct pairs atomically and compact affected lists, retaining playlists and contents.
+   *
+   * Missing, repeated or ambiguous pairs reject the batch.
+   */
+  deletePlaylistContents(ids: Array<[number, number]>): number
+  /**
+   * Delete one occurrence snapshot and normalize remaining positions, retaining duplicate pairs.
+   *
+   * Re-fetch after structural edits; stale snapshots return errors. Returns one on success.
+   */
+  deletePlaylistContentEntry(entry: DevPlaylistContent): number
+  /**
+   * Remove every occurrence of a playlist/content pair, including imported duplicates.
+   *
+   * Both IDs must be nonzero. Returns deleted rows, retaining the playlist and content.
+   */
+  removePlaylistContent(playlistId: number, contentId: number): number
+  /** Remove all entries of a playlist, retaining the playlist and contents. */
+  deletePlaylistContentsByPlaylistId(playlistId: number): number
+  /**
+   * Remove all entries of selected playlists atomically; missing IDs are ignored.
+   *
+   * Playlists and contents remain intact.
+   */
+  deletePlaylistContentsByPlaylistIds(ids: Array<number>): number
+  /**
+   * Remove every playlist occurrence of a content ID and compact affected lists.
+   *
+   * The content itself and playlists remain intact.
+   */
+  deletePlaylistContentsByContentId(contentId: number): number
+  /**
+   * Remove every playlist occurrence of selected content IDs atomically and compact affected lists.
+   *
+   * Contents and playlists remain intact.
+   */
+  deletePlaylistContentsByContentIds(ids: Array<number>): number
+  /** Load all standard export properties in physical order, validating unique device names. */
+  getProperties(): Array<DevExportProperty>
+  /**
+   * Find a standard export property by its exact, case-sensitive device name.
+   *
+   * Missing names return `null`; duplicate names return an error.
+   */
+  getPropertyByDevice(deviceName: string): DevExportProperty | null
+  /**
+   * Load the first standard export property, validating all property names.
+   *
+   * Returns `null` when the table is empty.
+   */
+  getFirstProperty(): DevExportProperty | null
+  /**
+   * Update a standard export property in memory, preserving unedited binary fields.
+   *
+   * Renaming requires an unused device name. Re-fetch after content mutations,
+   * which update track counts; stale snapshots are rejected. Saving remains explicit.
+   */
+  updateProperty(property: DevExportProperty): DevExportProperty
+  /**
+   * Load all extended database properties in physical order, retaining repeated rows.
+   *
+   * Returns `Error::MissingExtendedDatabase` when the extended file is not open.
+   */
+  getDatabaseProperties(): Array<DevDatabaseProperty>
+  /**
+   * Load the first extended database property, or `null` when its table is empty.
+   *
+   * Returns `Error::MissingExtendedDatabase` when the extended file is not open.
+   */
+  getFirstDatabaseProperty(): DevDatabaseProperty | null
+  /**
+   * Update one extended property's My Tag library identity, preserving reserved data.
+   * Does not remap tags or associations. Re-fetch after structural edits; saving is explicit.
+   * Returns `Error::MissingExtendedDatabase` when the extended file is not open.
+   */
+  updateDatabaseProperty(property: DevDatabaseProperty): DevDatabaseProperty
+  /**
+   * Load all extended recommendation rows in physical order, retaining imported duplicates.
+   *
+   * Returns `Error::MissingExtendedDatabase` when the extended file is not open.
+   */
+  getRecommendLikes(): Array<DevRecommendedLike>
+  /**
+   * Load recommendations containing the content ID on either side, in physical order.
+   *
+   * Referenced contents are not loaded. Requires an open extended database.
+   */
+  getRecommendLikeByContentId(contentId: number): Array<DevRecommendedLike>
+  /**
+   * Insert a unique ordered content pair in the extended database, in memory.
+   *
+   * Reversed pairs remain distinct. IDs must be nonzero; target existence is not checked.
+   * Unknown words are retained verbatim. Requires an open extended database; saving is explicit.
+   */
+  insertRecommendLike(recommendLike: NewDevRecommendedLike): DevRecommendedLike
+  /**
+   * Create a recommendation row with explicit unknown words; their meanings are not inferred.
+   *
+   * See `Self::insert_recommend_like` for constraints and persistence semantics.
+   */
+  createRecommendLike(contentId1: number, contentId2: number, unknown00: bigint, unknown10: number, unknown14: number): DevRecommendedLike
+  /**
+   * Delete one original recommendation occurrence, retaining contents and other occurrences.
+   *
+   * Returns one on success. Re-fetch snapshots after structural edits; stale rows return errors.
+   * Requires an open extended database; changes remain in memory until explicitly saved.
+   */
+  deleteRecommendLike(recommendLike: DevRecommendedLike): number
+}
+export type JsDeviceLibrary = DeviceLibrary
 
 /** Custom discovery inputs. Construction does not access the filesystem. */
 export declare class LookupPaths {
@@ -3923,9 +5701,19 @@ export declare class MasterDb {
 export type JsMasterDb = MasterDb
 
 export declare class OneLibrary {
-  /** Open a OneLibrary (Device Library Plus) database specified by path. */
-  constructor(path: string)
-  /** Open a OneLibrary (Device Library Plus) database specified by path. */
+  /** Load shared tracks with resolved names, including album artists. */
+  getTracks(): Array<Track>
+  /** Load a shared track by its numeric OneLibrary ID, or null if absent. */
+  getTrackById(id: number): Track | null
+  /** Load matching tracks in ID order, omitting missing and duplicate IDs. */
+  getTracksByIds(ids: Array<number>): Array<Track>
+  /** Load a shared track by stored path, accepting either separator style. */
+  getTrackByPath(path: string): Track | null
+  /** Open exportLibrary.db in the supplied directory, usually PIONEER/rekordbox. */
+  constructor(directory: string)
+  /** Open an existing OneLibrary database at an explicit file path. */
+  static fromPath(path: string): OneLibrary
+  /** Create a new OneLibrary database at an explicit file path. */
   static create(path: string, myTagMasterDbid: number): OneLibrary
   /** Create a new OneLibrary database if it does not exist, otherwise return the existing one. */
   static createIfNotExists(path: string, myTagMasterDbid: number): OneLibrary
@@ -4015,6 +5803,17 @@ export declare class OneLibrary {
   getContents(): Array<Content>
   /** Queries a record from the `content` table by its primary key `id`. */
   getContentById(id: number): Content | null
+  /**
+   * Find content by both stored signed source IDs, or null if absent or zero.
+   * Repeated pairs return the content with the lowest local export ID.
+   */
+  getContentByMasterContentId(masterContentId: number, masterDbId: number): Content | null
+  /**
+   * Load all matching contents for signed source-content IDs in one source library.
+   * Results use local export-ID order; missing/zero IDs are omitted and input
+   * duplicates do not repeat rows. Empty input or a zero library ID returns [].
+   */
+  getContentsByMasterContentIds(masterContentIds: Array<number>, masterDbId: number): Array<Content>
   /** Inserts a new record into the `content` table. */
   insertContent(content: NewContent): Content
   /** Creates a new record and inserts it into the `content` table. */
@@ -4177,11 +5976,21 @@ export declare class OneLibrary {
   deletePlaylist(id: number): number
   /** Deletes multiple records from the `playlist` table by its primary keys `id`. */
   deletePlaylists(ids: Array<number>): number
-  /** Creates a new record and inserts it into the `playlist_content` table. */
+  /**
+   * Creates a new record and inserts it into the `playlist_content` table.
+   * Positions start at one; an omitted position appends.
+   */
   createPlaylistContent(playlistId: number, contentId: number, seq?: number | undefined | null): PlaylistContent
-  /** Moves a playlist content to a new sequence number. */
+  /**
+   * Moves a playlist content to a new sequence number.
+   * Positions start at one; an omitted position moves to the end.
+   */
   movePlaylistContent(playlistId: number, contentId: number, seq?: number | undefined | null): number
-  /** Moves multiple playlist contents to a new sequence number. */
+  /**
+   * Moves multiple playlist contents to a new sequence number.
+   * The one-based destination is measured after removing the selected entries;
+   * an omitted position appends, preserving the supplied entry order.
+   */
   movePlaylistContents(ids: Array<[number, number]>, startSeq?: number | undefined | null): number
   /** Deletes a record from the `playlist_content` table by its primary key. */
   deletePlaylistContent(playlistId: number, contentId: number): number
@@ -4433,6 +6242,26 @@ export interface AnlzData {
   sections: Array<AnlzSection>
 }
 
+/**
+ * Return the local ANLZ directory derived from a track's djmdContent.UUID.
+ *
+ * The UUID is normalized to lowercase hyphenated text and split after three
+ * characters beneath /PIONEER/USBANLZ/. Remove the leading slash before joining
+ * to the analysis/share root, then append the analysis filename. Existing
+ * AnalysisDataPath values remain authoritative. Invalid UUIDs throw InvalidArg.
+ */
+export declare function anlzDirLocal(uuid: string): string
+
+/**
+ * Return the USB ANLZ directory derived from the exported audio path.
+ *
+ * Supply the volume-relative path with a leading slash, for example
+ * /Contents/Artist/Track.flac. Input is hashed without normalization.
+ * Remove the result's leading slash before joining to the USB root, then
+ * append an analysis filename such as ANLZ0000.DAT, ANLZ0000.EXT or ANLZ0000.2EX.
+ */
+export declare function anlzDirUsb(trackPath: string): string
+
 /** Computed PMAI header information in a complete snapshot. */
 export interface AnlzHeader {
   code: Array<number>
@@ -4469,6 +6298,27 @@ export type AnlzSection =
 
 /** Return the platform application-data base directory without checking existence. */
 export declare function appDir(): string
+
+/**
+ * Return the local artwork directory derived from an artwork UUID.
+ *
+ * The UUID is normalized to lowercase hyphenated text and split after three
+ * characters beneath /PIONEER/Artwork/. Remove the leading slash before joining
+ * to the share root. The result has no filename or trailing slash.
+ * Invalid UUIDs throw InvalidArg.
+ */
+export declare function artworkDirLocal(uuid: string): string
+
+/**
+ * Return the USB artwork directory for an integer artwork ID in 0..=4294967295.
+ *
+ * The directory number is Math.floor(artworkId / 20) + 1, padded to at least five
+ * decimal digits: IDs 1..19 use /PIONEER/Artwork/00001 and 20..39 use 00002.
+ * Zero also formats into 00001, although it normally denotes absent artwork.
+ * The result has no filename or trailing slash. Remove its leading slash before
+ * joining it to the USB volume root. Existing stored artwork paths remain authoritative.
+ */
+export declare function artworkDirUsb(artworkId: number): string
 
 export declare const enum AutoCue {
   Off = 'Off',
@@ -4577,6 +6427,12 @@ export declare const enum CueType {
 /** Return an existing database in the platform default locations. */
 export declare function defaultMasterDbPath(): string
 
+/** Per-file write counts. Bigints preserve the complete unsigned 64-bit range. */
+export interface DevSaveStats {
+  pagesWritten: bigint
+  bytesWritten: bigint
+}
+
 export declare const enum DiscSlotIllumination {
   Off = 'Off',
   Dark = 'Dark',
@@ -4679,6 +6535,15 @@ export declare const enum HotCueColor {
   On = 'On'
 }
 
+/**
+ * Return the local artwork path, ending in artwork.jpg, for an artwork UUID.
+ *
+ * Uses the same UUID normalization and directory layout as artworkDirLocal.
+ * Remove the leading slash before joining to the share root.
+ * Invalid UUIDs throw InvalidArg.
+ */
+export declare function imagePathLocal(uuid: string): string
+
 export declare function isRekordboxRunning(): boolean
 
 export declare const enum JogDisplayMode {
@@ -4746,6 +6611,16 @@ export declare const enum LCDBrightness {
   Five = 'Five'
 }
 
+/** Metadata for creating both export.pdb and exportExt.pdb. */
+export interface LibraryCreateOptions {
+  /** Export date, conventionally YYYY-MM-DD. */
+  date: string
+  /** Device name stored in the export properties. */
+  deviceName: string
+  /** Source library identifier stored in the My Tag properties. */
+  myTagMasterDbId: number
+}
+
 /** Selected library and its availability at discovery time. Paths are strings. */
 export interface LibraryLocation {
   dbPath: string
@@ -4753,6 +6628,12 @@ export interface LibraryLocation {
   settingsRoot: string
   source: LocationSource
   available: boolean
+}
+
+/** Results of saving the standard file and optional extended file. */
+export interface LibrarySaveStats {
+  standard: DevSaveStats
+  extended?: DevSaveStats
 }
 
 /** Locate the selected library, including unavailable configured paths. */
@@ -4986,8 +6867,18 @@ export interface TinyWaveformPreview {
 
 /** Shared track data. BPM is unscaled, length is seconds, fileSize is bytes as bigint. */
 export interface Track {
-  id: string
+  id?: number
+  masterContentId?: number
+  masterDbId?: number
+  source: TrackSource
   uuid: string
+  artworkPath?: string
+  analysisDataPath?: string
+  color?: number
+  playCount?: number
+  hotCueAutoLoad?: string
+  deliveryControl?: string
+  deliveryComment?: string
   path: string
   fileType?: number
   rating?: number
@@ -5059,7 +6950,7 @@ export interface TrackMetadata {
   isrc?: string
 }
 
-/** Copy metadata, omitting database identifiers. */
+/** Copy tag metadata, omitting database identifiers and export metadata. */
 export declare function trackToMetadata(track: Track): TrackMetadata
 
 /** Opaque section bytes, including the exact four-byte identifier. */
@@ -5285,14 +7176,6 @@ export interface AgentRegistry {
   text1?: string
   /** An optional string field for extended text data. */
   text2?: string
-}
-
-/** Stored Rekordbox codes for Analyzed. */
-export declare const enum Analyzed {
-  NotAnalyzed = 0,
-  Standard = 105,
-  Advanced = 121,
-  Locked = 233
 }
 
 /**
@@ -5804,13 +7687,13 @@ export interface DjmdContent {
   albumId?: string
   /** An optional string representing the ID of the associated genre in [`DjmdGenre`]. */
   genreId?: string
-  /** An optional integer representing the BPM of the track. */
+  /** Track tempo in BPM multiplied by 100. */
   bpm?: number
   /** An optional integer representing the length of the track in rounded seconds. */
   length?: number
   /** An optional integer representing the track number in the album. */
   trackNo?: number
-  /** An optional integer representing the bit rate of the track. */
+  /** Stored bitrate, normally kb/s. */
   bitRate?: number
   /** An optional integer representing the bit depth of the track. */
   bitDepth?: number
@@ -5854,7 +7737,7 @@ export interface DjmdContent {
   composerId?: string
   /** An optional string representing the subtitle of the track. */
   subtitle?: string
-  /** An optional integer representing the sample rate of the track. */
+  /** Sample rate in Hz. */
   sampleRate?: number
   /** An optional integer indicating whether quantization is disabled for the track. */
   disableQuantize?: number
@@ -6014,7 +7897,7 @@ export interface DjmdCue {
   inFrame: number
   /** The cue's start MPEG frame or 0 if not a VBR/ABR MPEG file (see note). */
   inMpegFrame: number
-  /** The cue's start MPEG absolute frame or 0 if not a VBR/ABR MPEG file. */
+  /** The byte offset of the cue's start MPEG frame or 0 if not a VBR/ABR MPEG file. */
   inMpegAbs: number
   /** The cue's end time in milliseconds or -1 if not a loop. */
   outMsec: number
@@ -6026,7 +7909,7 @@ export interface DjmdCue {
   outFrame: number
   /** The cue's end MPEG frame or 0 if not a loop or not a VBR/ABR MPEG file (see note) */
   outMpegFrame: number
-  /** The cue's end MPEG absolute frame or 0 if not a loop or not a VBR/ABR MPEG file */
+  /** The byte offset of the cue's end MPEG frame or 0 if not a loop or not a VBR/ABR MPEG file */
   outMpegAbs: number
   /**
    * The type of the cue.
@@ -6044,7 +7927,7 @@ export interface DjmdCue {
   comment?: string
   /** An optional integer representing the size of the beat loop. */
   beatLoopSize?: number
-  /** An optional integer representing the cue's position in microseconds. */
+  /** Raw `CueMicrosec` value; its precise timing semantics are not yet verified. */
   cueMicrosec?: number
   /** An optional string containing seek information for the cue's start point. */
   inPointSeekInfo?: string
@@ -6780,7 +8663,7 @@ export interface DjmdSongHotCueBanklist {
   comment?: string
   /** An optional integer representing the size of the beat loop. */
   beatLoopSize?: number
-  /** An optional integer representing the cue's position in microseconds. */
+  /** Raw `CueMicrosec` value; its precise timing semantics are not yet verified. */
   cueMicrosec?: number
   /** An optional string containing seek information for the cue's start point. */
   inPointSeekInfo?: string
@@ -7201,13 +9084,13 @@ export interface NewDjmdContent {
   albumId?: string
   /** An optional string representing the ID of the associated genre in [`DjmdGenre`]. */
   genreId?: string
-  /** An optional integer representing the BPM of the track. */
+  /** Track tempo in BPM multiplied by 100. */
   bpm?: number
-  /** An optional integer representing the length of the track in milliseconds. */
+  /** Track length in rounded seconds. */
   length?: number
   /** An optional integer representing the track number in the album. */
   trackNo?: number
-  /** An optional integer representing the bit rate of the track. */
+  /** Stored bitrate, normally kb/s. */
   bitRate?: number
   /** An optional integer representing the bit depth of the track. */
   bitDepth?: number
@@ -7245,7 +9128,7 @@ export interface NewDjmdContent {
   composerId?: string
   /** An optional string representing the subtitle of the track. */
   subtitle?: string
-  /** An optional integer representing the sample rate of the track. */
+  /** Sample rate in Hz. */
   sampleRate?: number
   /** An optional string representing the release date of the track. */
   releaseDate?: string
@@ -7589,28 +9472,6 @@ export interface NewDjmdSongSampler {
   trackNo?: number
 }
 
-/** Stored Rekordbox codes for PlaylistType. */
-export declare const enum PlaylistType {
-  List = 0,
-  Folder = 1,
-  SmartList = 4,
-  CloudLibrarySync = -128
-}
-
-/** Stored Rekordbox codes for RelatedTracksType. */
-export declare const enum RelatedTracksType {
-  List = 11,
-  Folder = 10
-}
-
-/** Stored Rekordbox codes for SamplerType. */
-export declare const enum SamplerType {
-  List = 2,
-  Folder = 3,
-  All = 5,
-  Capture = 6
-}
-
 /**
  * Represents the `settingFile` table in the Rekordbox database.
  *
@@ -7769,7 +9630,10 @@ export interface Category {
   id: number
   /** A foreign key referencing the [`MenuItem`]. */
   menuItemId: number
-  /** The sequence/order of the category. */
+  /**
+   * One-based order among visible categories. Hidden rows may retain an old
+   * position and are excluded from active sequence maintenance.
+   */
   seq: number
   /** A flag if the category is visible. */
   isVisible: number
@@ -7887,15 +9751,15 @@ export interface Content {
   path: string
   /** The file name of the track. */
   fileName?: string
-  /** The file size of the track */
+  /** The file size of the track in bytes. */
   fileSize?: number
   /** The file type of the track */
   fileType: number
-  /** The bitrate of the trackk */
+  /** Stored bitrate, normally kb/s. */
   bitrate?: number
   /** The bit depth of the track */
   bitDepth?: number
-  /** The sample rate of the track. */
+  /** Sample rate in Hz. */
   samplingRate?: number
   /** The ISRC of the track */
   isrc?: string
@@ -7905,7 +9769,7 @@ export interface Content {
   isKuvoDeliverStatusOn?: number
   /** A kuvo delivery comment */
   kuvoDeliveryComment?: string
-  /** The masterdb ID */
+  /** Master-library ID in signed storage form; see the struct's identity note. */
   masterDbId?: number
   /** The ID of the contnent in the masterdb */
   masterContentId?: number
@@ -7929,7 +9793,7 @@ export interface Content {
  * Track snapshot with all supported direct metadata relationships resolved.
  *
  * Field access performs no queries, and editing this view does not persist changes.
- * Related records are plain rows without recursive expansion. `None` means an
+ * Related records are plain rows; the album's artist is also resolved. `None` means an
  * absent foreign key or a missing target; the content row retains the original key.
  */
 export interface ContentView {
@@ -7947,6 +9811,8 @@ export interface ContentView {
   lyricist?: Artist
   /** Associated album. */
   album?: Album
+  /** Artist referenced by the album, independently of the content's main artist. */
+  albumArtist?: Artist
   /** Associated genre. */
   genre?: Genre
   /** Associated label. */
@@ -8069,7 +9935,10 @@ export interface Genre {
 export interface History {
   /** A unique identifier for the entry. */
   id: number
-  /** The sequence/order number of the history (1-based index) */
+  /**
+   * Zero-based sibling position, following the other OneLibrary tree models.
+   * This convention is inferred; populated native history exports are still needed.
+   */
   seq: number
   /** The name of the history. */
   name: string
@@ -8095,7 +9964,10 @@ export interface HistoryContent {
   historyId: number
   /** The ID of the associated [`Content`]. */
   contentId: number
-  /** Position within the history, starting at zero. Before insertion, `-1` requests append. */
+  /**
+   * Position within the history, starting at one. Before insertion, `-1` requests append.
+   * Matches rbxport's history writer; populated native fixtures are still needed.
+   */
   seq: number
 }
 
@@ -8111,7 +9983,10 @@ export interface HistoryContent {
 export interface HotCueBankList {
   /** The unique identifier of the hot cue bank list. */
   id: number
-  /** The sequence/order number of the hot cue bank list (1-based index). */
+  /**
+   * Stored sibling position. The starting index is not yet verified against
+   * populated native exports; values are preserved without normalization.
+   */
   seq: number
   /** The name of the hot cue bank list. */
   name?: string
@@ -8137,7 +10012,10 @@ export interface HotCueBankListCue {
   hotCueBankListId: number
   /** The unique identifier of the cue. */
   cueId: number
-  /** The sequence/order number of the hot cue bank list cue (1-based index). */
+  /**
+   * Stored position within the bank. The starting index is not yet verified
+   * against populated native exports; values are preserved without normalization.
+   */
   seq: number
 }
 
@@ -8340,6 +10218,10 @@ export interface NewColor {
  *
  * Implements the builder pattern for optional values of the new record.
  *
+ * `master_db_id` uses the same signed representation as [`Content`]: unsigned
+ * IDs above `i32::MAX` are stored as `unsigned_id - 2^32`. Conversion from
+ * [`Track`] preserves all 32 bits when constructing this field.
+ *
  * # Examples
  * ```rust
  * use rbox_onelib::models::NewContent;
@@ -8401,15 +10283,15 @@ export interface NewContent {
   releaseDate?: string
   /** The file name of the track. */
   fileName?: string
-  /** The file size of the track */
+  /** The file size of the track in bytes. */
   fileSize?: number
   /** The file typo of the track */
   fileType?: number
-  /** The bitrate of the trackk */
+  /** Stored bitrate, normally kb/s. */
   bitrate?: number
   /** The bit depth of the track */
   bitDepth?: number
-  /** The sample rate of the track. */
+  /** Sample rate in Hz. */
   samplingRate?: number
   /** The ISRC of the track */
   isrc?: string
@@ -8419,7 +10301,7 @@ export interface NewContent {
   isKuvoDeliverStatusOn?: number
   /** A kuvo delivery comment */
   kuvoDeliveryComment?: string
-  /** The masterdb ID */
+  /** Master-library ID in signed storage form; see the struct's identity note. */
   masterDbId?: number
   /** The ID of the contnent in the masterdb */
   masterContentId?: number
@@ -8539,8 +10421,8 @@ export interface NewPlaylist {
   name: string
   /** Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image). */
   imageId?: number
-  /** The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`). */
-  attribute: OneLibraryPlaylistType
+  /** The type to insert: only [`PlaylistType::List`] and [`PlaylistType::Folder`] are supported. */
+  attribute: PlaylistType
   /** The ID of the parent [`Playlist`], `0` for top-level records. */
   parentId: number
 }
@@ -8567,14 +10449,6 @@ export interface NewSort {
   isVisible: number
   /** A flag if the item is selected as a sub-column */
   isSelectedAsSubColumn: number
-}
-
-/** Stored Rekordbox codes for PlaylistType. */
-export declare const enum OneLibraryPlaylistType {
-  List = 0,
-  Folder = 1,
-  SmartList = 4,
-  CloudLibrarySync = -128
 }
 
 export interface OriginalArtist {
@@ -8607,7 +10481,7 @@ export interface Playlist {
   /** Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image). */
   imageId?: number
   /** The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`). */
-  attribute: OneLibraryPlaylistType
+  attribute: PlaylistType
   /** The ID of the parent [`Playlist`], `0` for top-level records. */
   parentId: number
 }
@@ -8630,7 +10504,7 @@ export interface PlaylistContent {
   playlistId: number
   /** The ID of the associated [`Content`]. */
   contentId: number
-  /** Position within the playlist, starting at zero. Before insertion, `-1` requests append. */
+  /** Position within the playlist, starting at one. Before insertion, `-1` requests append. */
   seq: number
 }
 
@@ -8639,6 +10513,10 @@ export interface PlaylistContent {
  *
  * This struct maps to the `property` table in the One Library export database.
  * It stores information about the device(s) and the export library.
+ * The exact `device_name` is a unique model key, including an empty name.
+ * Native tables do not necessarily enforce this in SQL, so model operations
+ * reject duplicate names transactionally. `update` targets the current name;
+ * changing a snapshot's name does not rename its original row.
  */
 export interface Property {
   /** The name of the device ('' by default) */
@@ -8698,7 +10576,10 @@ export interface Sort {
   id: number
   /** An optional foreign key referencing the [`MenuItem`]. */
   menuItemId: number
-  /** The sequence/order number of the *visible* items (1-based index) */
+  /**
+   * One-based order among visible sort options. Hidden rows may retain an old
+   * position and are excluded from active sequence maintenance.
+   */
   seq: number
   /** A flag if the item is visible in the menu */
   isVisible: number

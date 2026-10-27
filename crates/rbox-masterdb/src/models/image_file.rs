@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `ImageFile`.
+
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -19,6 +21,7 @@ use rbox_db::Model;
 /// It stores information about image files, including metadata such as file paths,
 /// hashes, and synchronization details.
 #[derive(Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = imageFile)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -62,7 +65,7 @@ pub struct ImageFile {
     /// An optional string representing the hash of the image file.
     pub hash: Option<String>,
     /// An optional integer representing the size of the image file.
-    pub size: Option<i32>,
+    pub size: Option<i64>,
     /// An optional string representing the local path of the image file in Rekordbox.
     pub rb_local_path: Option<String>,
     /// An optional string representing the in-sync hash of the image file.

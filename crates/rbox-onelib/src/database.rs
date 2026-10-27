@@ -15,7 +15,7 @@
 //! use rbox_onelib::OneLibrary;
 //!
 //! // Open the database
-//! let mut db = OneLibrary::new("exportLibrary.db").unwrap();
+//! let mut db = OneLibrary::new("PIONEER/rekordbox").unwrap();
 //!
 //! // Query all playlists
 //! let playlists = db.get_playlists().unwrap();
@@ -25,11 +25,14 @@
 //! ```
 //!
 
+use diesel::Connection;
+use rbox_core::{PathExt, Track};
 use std::ffi::OsStr;
 use std::path::Path;
 
 use rbox_db::{
-    ConnectionOptions, Model, ModelDelete, ModelInsert, ModelList, ModelTree, ModelUpdate,
+    ConnectionOptions, Model, ModelDelete, ModelInsert, ModelList, ModelRelations, ModelTree,
+    ModelUpdate,
 };
 
 use crate::connection::{create_connection_pool, establish_connection, initialize_schema, DbPool};
@@ -38,7 +41,7 @@ use crate::error::{Error, Result};
 use crate::models::*;
 
 /// Create a new device library plus database at the specified path and initialize it with default data.
-fn create(url: &str, my_tag_master_dbid: i32, options: &ConnectionOptions) -> Result<()> {
+fn create(url: &str, my_tag_master_dbid: i64, options: &ConnectionOptions) -> Result<()> {
     let mut conn = establish_connection(url, options)?;
     // create tables and indexes for the One Library database schema.
     // This also populates the DB with some default values.
@@ -58,36 +61,50 @@ pub struct OneLibrary {
 }
 
 impl OneLibrary {
-    /// Open a OneLibrary (Device Library Plus) database specified by path.
+    /// Open `exportLibrary.db` in the supplied directory.
     ///
-    /// The `path` must be a valid database file.
-    pub fn new<P: AsRef<OsStr>>(path: P) -> Result<Self> {
+    /// Pass the database directory, usually `PIONEER/rekordbox`, not the USB root.
+    /// Use [`Self::from_path`] to open an explicit database filename.
+    pub fn new<P: AsRef<OsStr>>(directory: P) -> Result<Self> {
+        Self::from_path(Path::new(&directory).join("exportLibrary.db"))
+    }
+
+    /// Open an existing OneLibrary database at an explicit file path.
+    ///
+    /// The filename may differ from `exportLibrary.db`. Missing paths and
+    /// directories return [`Error::FileNotFound`]; I/O and connection errors
+    /// propagate. This does not create a database.
+    pub fn from_path<P: AsRef<OsStr>>(path: P) -> Result<Self> {
         let path = Path::new(&path);
-        if !path.exists() {
-            return Err(Error::FileNotFound(path.to_path_buf()));
+        match std::fs::metadata(path) {
+            Ok(metadata) if metadata.is_file() => (),
+            Ok(_) => return Err(Error::FileNotFound(path.to_path_buf())),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                return Err(Error::FileNotFound(path.to_path_buf()));
+            }
+            Err(error) => return Err(error.into()),
         }
-        let url = path.to_str().unwrap();
         Ok(Self {
-            pool: create_connection_pool(url, &ConnectionOptions::default(), 8)?,
+            pool: create_connection_pool(path, &ConnectionOptions::default(), 8)?,
         })
     }
 
-    /// Create a new OneLibrary (Device Library Plus) database.
-    pub fn create<P: AsRef<OsStr>>(path: P, my_tag_master_dbid: i32) -> Result<Self> {
+    /// Create a new OneLibrary database at an explicit file path.
+    pub fn create<P: AsRef<OsStr>>(path: P, my_tag_master_dbid: i64) -> Result<Self> {
         let path = Path::new(&path);
         create(
             path.to_str().unwrap(),
             my_tag_master_dbid,
             &ConnectionOptions::default(),
         )?;
-        Self::new(path)
+        Self::from_path(path)
     }
 
-    /// Create a new OneLibrary database if it does not exist, otherwise return the existing one.
-    pub fn create_if_not_exists<P: AsRef<OsStr>>(path: P, my_tag_master_dbid: i32) -> Result<Self> {
+    /// Create a database at an explicit file path, or open it if it already exists.
+    pub fn create_if_not_exists<P: AsRef<OsStr>>(path: P, my_tag_master_dbid: i64) -> Result<Self> {
         let path = Path::new(&path);
         if path.exists() {
-            Self::new(path)
+            Self::from_path(path)
         } else {
             Self::create(path, my_tag_master_dbid)
         }
@@ -97,7 +114,7 @@ impl OneLibrary {
 
     /// Load an album and all direct relationships in one read transaction.
     /// Returns a detached snapshot; missing relationship targets remain `None`.
-    pub fn get_album_with_relations(&self, id: i32) -> Result<Option<AlbumView>> {
+    pub fn get_album_with_relations(&self, id: i64) -> Result<Option<AlbumView>> {
         let mut conn = self.pool.get()?;
         Ok(Album::find_with_relations(&mut conn, id)?)
     }
@@ -116,7 +133,7 @@ impl OneLibrary {
     }
 
     /// Queries a record from the `album` table by its primary key `id`.
-    pub fn get_album_by_id(&self, id: i32) -> Result<Option<Album>> {
+    pub fn get_album_by_id(&self, id: i64) -> Result<Option<Album>> {
         let mut conn = self.pool.get()?;
         Ok(Album::find(&mut conn, &id)?)
     }
@@ -137,8 +154,8 @@ impl OneLibrary {
     pub fn create_album<S: Into<String>>(
         &self,
         name: S,
-        artist_id: Option<i32>,
-        image_id: Option<i32>,
+        artist_id: Option<i64>,
+        image_id: Option<i64>,
     ) -> Result<Album> {
         let mut album = NewAlbum::new(name);
         album.artist_id = artist_id;
@@ -153,7 +170,7 @@ impl OneLibrary {
     }
 
     /// Deletes a record from the `album` table by its primary key `id`.
-    pub fn delete_album(&self, id: i32) -> Result<usize> {
+    pub fn delete_album(&self, id: i64) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(Album::delete(&mut conn, &id)?)
     }
@@ -167,7 +184,7 @@ impl OneLibrary {
     }
 
     /// Queries a record from the `artist` table by its primary key `id`.
-    pub fn get_artist_by_id(&self, id: i32) -> Result<Option<Artist>> {
+    pub fn get_artist_by_id(&self, id: i64) -> Result<Option<Artist>> {
         let mut conn = self.pool.get()?;
         Ok(Artist::find(&mut conn, &id)?)
     }
@@ -197,7 +214,7 @@ impl OneLibrary {
     }
 
     /// Deletes a record from the `artist` table by its primary key `id`.
-    pub fn delete_artist(&self, id: i32) -> Result<usize> {
+    pub fn delete_artist(&self, id: i64) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(Artist::delete(&mut conn, &id)?)
     }
@@ -206,7 +223,7 @@ impl OneLibrary {
 
     /// Load a category and all direct relationships in one read transaction.
     /// Returns a detached snapshot; missing relationship targets remain `None`.
-    pub fn get_category_with_relations(&self, id: i32) -> Result<Option<CategoryView>> {
+    pub fn get_category_with_relations(&self, id: i64) -> Result<Option<CategoryView>> {
         let mut conn = self.pool.get()?;
         Ok(Category::find_with_relations(&mut conn, id)?)
     }
@@ -225,7 +242,7 @@ impl OneLibrary {
     }
 
     /// Queries a record from the `category` table by its primary key `id`.
-    pub fn get_category_by_id(&self, id: i32) -> Result<Option<Category>> {
+    pub fn get_category_by_id(&self, id: i64) -> Result<Option<Category>> {
         let mut conn = self.pool.get()?;
         Ok(Category::find(&mut conn, &id)?)
     }
@@ -239,7 +256,7 @@ impl OneLibrary {
     /// Creates a new record and inserts it into the `category` table.
     pub fn create_category(
         &self,
-        menu_item_id: i32,
+        menu_item_id: i64,
         seq: Option<i32>,
         is_visible: Option<i32>,
     ) -> Result<Category> {
@@ -258,7 +275,7 @@ impl OneLibrary {
     }
 
     /// Deletes a record from the `category` table by its primary key `id`.
-    pub fn delete_category(&self, id: i32) -> Result<usize> {
+    pub fn delete_category(&self, id: i64) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(Category::delete(&mut conn, &id)?)
     }
@@ -272,7 +289,7 @@ impl OneLibrary {
     }
 
     /// Queries a record from the `color` table by its primary key `id`.
-    pub fn get_color_by_id(&self, id: i32) -> Result<Option<Color>> {
+    pub fn get_color_by_id(&self, id: i64) -> Result<Option<Color>> {
         let mut conn = self.pool.get()?;
         Ok(Color::find(&mut conn, &id)?)
     }
@@ -296,12 +313,80 @@ impl OneLibrary {
     }
 
     /// Deletes a record from the `color` table by its primary key `id`.
-    pub fn delete_color(&self, id: i32) -> Result<usize> {
+    pub fn delete_color(&self, id: i64) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(Color::delete(&mut conn, &id)?)
     }
 
     // -- Content ----------------------------------------------------------------------------------
+
+    /// Load shared tracks with resolved metadata, including album artists.
+    ///
+    /// Content and relationships share one read transaction. Results are detached
+    /// snapshots; absent metadata stays `None`. BPM is unscaled, duration is seconds,
+    /// and file size is bytes. Source-library IDs come from each content row.
+    /// Database and metadata conversion errors propagate.
+    pub fn get_tracks(&self) -> Result<Vec<Track>> {
+        self.read_tracks(Content::all)
+    }
+
+    /// Load a shared track by its OneLibrary content ID, or `None` if absent.
+    /// See [`Self::get_tracks`] for resolution, units and errors.
+    pub fn get_track_by_id(&self, id: i64) -> Result<Option<Track>> {
+        Ok(self
+            .read_tracks(|conn| Ok(Content::find(conn, &id)?.into_iter().collect()))?
+            .pop())
+    }
+
+    /// Load matching tracks in ascending ID order with batched queries.
+    ///
+    /// Missing IDs are omitted, repeated IDs occur once, and empty input returns
+    /// an empty vector. See [`Self::get_tracks`] for resolution, units and errors.
+    pub fn get_tracks_by_ids(&self, ids: &[i64]) -> Result<Vec<Track>> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        self.read_tracks(|conn| {
+            let mut ids = ids.to_vec();
+            ids.sort_unstable();
+            ids.dedup();
+            let mut rows = Vec::new();
+            for chunk in ids.chunks(500) {
+                rows.extend(Content::by_ids(conn, chunk)?);
+            }
+            rows.sort_unstable_by_key(|row| row.id);
+            Ok(rows)
+        })
+    }
+
+    /// Load a shared track by its stored path, or `None` if absent.
+    ///
+    /// Backslashes are converted to forward slashes without accessing the file;
+    /// the path must otherwise match exactly. See [`Self::get_tracks`] for errors.
+    pub fn get_track_by_path(&self, path: &str) -> Result<Option<Track>> {
+        let path = Path::new(path).to_unix();
+        Ok(self
+            .read_tracks(|conn| {
+                Ok(Content::find_by_path(conn, &path.to_string_lossy())?
+                    .into_iter()
+                    .collect())
+            })?
+            .pop())
+    }
+
+    fn read_tracks(
+        &self,
+        load: impl FnOnce(&mut crate::connection::DbConn) -> diesel::QueryResult<Vec<Content>>,
+    ) -> Result<Vec<Track>> {
+        let mut conn = self.pool.get()?;
+        conn.transaction(|conn| {
+            let rows = load(conn)?;
+            Content::resolve_many(conn, rows)?
+                .into_iter()
+                .map(Track::try_from)
+                .collect()
+        })
+    }
 
     /// Queries all records from the `color` table.
     pub fn get_contents(&self) -> Result<Vec<Content>> {
@@ -310,14 +395,51 @@ impl OneLibrary {
     }
 
     /// Queries a record from the `content` table by its primary key `id`.
-    pub fn get_content_by_id(&self, id: i32) -> Result<Option<Content>> {
+    pub fn get_content_by_id(&self, id: i64) -> Result<Option<Content>> {
         let mut conn = self.pool.get()?;
         Ok(Content::find(&mut conn, &id)?)
     }
 
+    /// Find content by both source-library IDs in OneLibrary's stored signed form.
+    ///
+    /// Returns `None` for missing or zero identities. If the pair occurs more than
+    /// once, returns the content with the lowest local export ID.
+    pub fn get_content_by_master_content_id(
+        &self,
+        master_content_id: i64,
+        master_db_id: i64,
+    ) -> Result<Option<Content>> {
+        let mut conn = self.pool.get()?;
+        Ok(Content::find_by_master_content_id(
+            &mut conn,
+            master_content_id,
+            master_db_id,
+        )?)
+    }
+
+    /// Load contents by source-content IDs within one source library, using signed IDs.
+    ///
+    /// Returns all matches in local export-ID order, omitting missing/zero IDs and
+    /// repeated input IDs. See [`Content::by_master_content_ids`] for batch semantics.
+    pub fn get_contents_by_master_content_ids(
+        &self,
+        master_content_ids: &[i64],
+        master_db_id: i64,
+    ) -> Result<Vec<Content>> {
+        if master_db_id == 0 || master_content_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut conn = self.pool.get()?;
+        Ok(Content::by_master_content_ids(
+            &mut conn,
+            master_content_ids,
+            master_db_id,
+        )?)
+    }
+
     /// Load a track and all direct metadata relationships in one read transaction.
     /// Returns a detached snapshot; missing relationship targets remain `None`.
-    pub fn get_content_with_relations(&self, id: i32) -> Result<Option<ContentView>> {
+    pub fn get_content_with_relations(&self, id: i64) -> Result<Option<ContentView>> {
         let mut conn = self.pool.get()?;
         Ok(Content::find_with_relations(&mut conn, id)?)
     }
@@ -348,7 +470,7 @@ impl OneLibrary {
     }
 
     /// Deletes a record from the `content` table by its primary key `id`.
-    pub fn delete_content(&self, id: i32) -> Result<usize> {
+    pub fn delete_content(&self, id: i64) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(Content::delete(&mut conn, &id)?)
     }
@@ -362,7 +484,7 @@ impl OneLibrary {
     }
 
     /// Queries a record from the `cue` table by its primary key `id`.
-    pub fn get_cue_by_id(&self, id: i32) -> Result<Option<Cue>> {
+    pub fn get_cue_by_id(&self, id: i64) -> Result<Option<Cue>> {
         let mut conn = self.pool.get()?;
         Ok(Cue::find(&mut conn, &id)?)
     }
@@ -374,7 +496,7 @@ impl OneLibrary {
     }
 
     /// Deletes a record from the `cue` table by its primary key `id`.
-    pub fn delete_cue(&self, id: i32) -> Result<usize> {
+    pub fn delete_cue(&self, id: i64) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(Cue::delete(&mut conn, &id)?)
     }
@@ -388,7 +510,7 @@ impl OneLibrary {
     }
 
     /// Queries a record from the `genre` table by its primary key `id`.
-    pub fn get_genre_by_id(&self, id: i32) -> Result<Option<Genre>> {
+    pub fn get_genre_by_id(&self, id: i64) -> Result<Option<Genre>> {
         let mut conn = self.pool.get()?;
         Ok(Genre::find(&mut conn, &id)?)
     }
@@ -418,7 +540,7 @@ impl OneLibrary {
     }
 
     /// Deletes a record from the `genre` table by its primary key `id`.
-    pub fn delete_genre(&self, id: i32) -> Result<usize> {
+    pub fn delete_genre(&self, id: i64) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(Genre::delete(&mut conn, &id)?)
     }
@@ -432,19 +554,19 @@ impl OneLibrary {
     }
 
     /// Queries all child records from the `history` table by parent `id`.
-    pub fn get_history_children(&self, id: i32) -> Result<Vec<History>> {
+    pub fn get_history_children(&self, id: i64) -> Result<Vec<History>> {
         let mut conn = self.pool.get()?;
         Ok(History::by_parent_id(&mut conn, id)?)
     }
 
     /// Queries all `content` records associated with a `history` record.
-    pub fn get_history_contents(&self, id: i32) -> Result<Vec<Content>> {
+    pub fn get_history_contents(&self, id: i64) -> Result<Vec<Content>> {
         let mut conn = self.pool.get()?;
         Ok(History::get_contents(&mut conn, id)?)
     }
 
     /// Queries a record from the `history` table by its primary key `id`.
-    pub fn get_history_by_id(&self, id: i32) -> Result<Option<History>> {
+    pub fn get_history_by_id(&self, id: i64) -> Result<Option<History>> {
         let mut conn = self.pool.get()?;
         Ok(History::find(&mut conn, &id)?)
     }
@@ -466,7 +588,7 @@ impl OneLibrary {
     }
 
     /// Deletes a record from the `history` table by its primary key `id`.
-    pub fn delete_history(&self, id: i32) -> Result<usize> {
+    pub fn delete_history(&self, id: i64) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(History::delete(&mut conn, &id)?)
     }
@@ -474,8 +596,8 @@ impl OneLibrary {
     /// Creates a new record and inserts it into the `history_content` table.
     pub fn create_history_content(
         &self,
-        history_id: i32,
-        content_id: i32,
+        history_id: i64,
+        content_id: i64,
     ) -> Result<HistoryContent> {
         let mut conn = self.pool.get()?;
         let history_content = HistoryContent::new(history_id, content_id);
@@ -483,7 +605,7 @@ impl OneLibrary {
     }
 
     /// Deletes a record from the `history_content` table by its primary key.
-    pub fn delete_history_content(&self, history_id: i32, content_id: i32) -> Result<usize> {
+    pub fn delete_history_content(&self, history_id: i64, content_id: i64) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(HistoryContent::delete(
             &mut conn,
@@ -500,7 +622,7 @@ impl OneLibrary {
     }
 
     /// Queries a record from the `hot_cue_bank_list` table by its primary key `id`.
-    pub fn get_hot_cue_bank_list_by_id(&self, id: i32) -> Result<Option<HotCueBankList>> {
+    pub fn get_hot_cue_bank_list_by_id(&self, id: i64) -> Result<Option<HotCueBankList>> {
         let mut conn = self.pool.get()?;
         Ok(HotCueBankList::find(&mut conn, &id)?)
     }
@@ -514,7 +636,7 @@ impl OneLibrary {
     }
 
     /// Queries a record from the `image` table by its primary key `id`.
-    pub fn get_image_by_id(&self, id: i32) -> Result<Option<Image>> {
+    pub fn get_image_by_id(&self, id: i64) -> Result<Option<Image>> {
         let mut conn = self.pool.get()?;
         Ok(Image::find(&mut conn, &id)?)
     }
@@ -544,7 +666,7 @@ impl OneLibrary {
     }
 
     /// Deletes a record from the `image` table by its primary key `id`.
-    pub fn delete_image(&self, id: i32) -> Result<usize> {
+    pub fn delete_image(&self, id: i64) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(Image::delete(&mut conn, &id)?)
     }
@@ -558,7 +680,7 @@ impl OneLibrary {
     }
 
     /// Queries a record from the `key` table by its primary key `id`.
-    pub fn get_key_by_id(&self, id: i32) -> Result<Option<Key>> {
+    pub fn get_key_by_id(&self, id: i64) -> Result<Option<Key>> {
         let mut conn = self.pool.get()?;
         Ok(Key::find(&mut conn, &id)?)
     }
@@ -588,7 +710,7 @@ impl OneLibrary {
     }
 
     /// Deletes a record from the `key` table by its primary key `id`.
-    pub fn delete_key(&self, id: i32) -> Result<usize> {
+    pub fn delete_key(&self, id: i64) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(Key::delete(&mut conn, &id)?)
     }
@@ -602,7 +724,7 @@ impl OneLibrary {
     }
 
     /// Queries a record from the `label` table by its primary key `id`.
-    pub fn get_label_by_id(&self, id: i32) -> Result<Option<Label>> {
+    pub fn get_label_by_id(&self, id: i64) -> Result<Option<Label>> {
         let mut conn = self.pool.get()?;
         Ok(Label::find(&mut conn, &id)?)
     }
@@ -632,7 +754,7 @@ impl OneLibrary {
     }
 
     /// Deletes a record from the `label` table by its primary key `id`.
-    pub fn delete_label(&self, id: i32) -> Result<usize> {
+    pub fn delete_label(&self, id: i64) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(Label::delete(&mut conn, &id)?)
     }
@@ -646,7 +768,7 @@ impl OneLibrary {
     }
 
     /// Queries a record from the `menuItem` table by its primary key `id`.
-    pub fn get_menu_item_by_id(&self, id: i32) -> Result<Option<MenuItem>> {
+    pub fn get_menu_item_by_id(&self, id: i64) -> Result<Option<MenuItem>> {
         let mut conn = self.pool.get()?;
         Ok(MenuItem::find(&mut conn, &id)?)
     }
@@ -676,7 +798,7 @@ impl OneLibrary {
     }
 
     /// Deletes a record from the `menuItem` table by its primary key `id`.
-    pub fn delete_menu_item(&self, id: i32) -> Result<usize> {
+    pub fn delete_menu_item(&self, id: i64) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(MenuItem::delete(&mut conn, &id)?)
     }
@@ -690,25 +812,25 @@ impl OneLibrary {
     }
 
     /// Queries all child records from the `myTag` table by parent `id`.
-    pub fn get_my_tag_children(&self, id: i32) -> Result<Vec<MyTag>> {
+    pub fn get_my_tag_children(&self, id: i64) -> Result<Vec<MyTag>> {
         let mut conn = self.pool.get()?;
         Ok(MyTag::by_parent_id(&mut conn, id)?)
     }
 
     /// Queries all `content` records associated with a `myTag` record.
-    pub fn get_my_tag_contents(&self, id: i32) -> Result<Vec<Content>> {
+    pub fn get_my_tag_contents(&self, id: i64) -> Result<Vec<Content>> {
         let mut conn = self.pool.get()?;
         Ok(MyTag::get_contents(&mut conn, id)?)
     }
 
     /// Queries a record from the `myTag` table by its primary key `id`.
-    pub fn get_my_tag_by_id(&self, id: i32) -> Result<Option<MyTag>> {
+    pub fn get_my_tag_by_id(&self, id: i64) -> Result<Option<MyTag>> {
         let mut conn = self.pool.get()?;
         Ok(MyTag::find(&mut conn, &id)?)
     }
 
     /// Queries all records from the `myTag` table their associated `content_id` via `myTag_content`
-    pub fn get_my_tag_by_content_id(&self, cid: i32) -> Result<Vec<MyTag>> {
+    pub fn get_my_tag_by_content_id(&self, cid: i64) -> Result<Vec<MyTag>> {
         let mut conn = self.pool.get()?;
         Ok(MyTag::by_content_id(&mut conn, cid)?)
     }
@@ -723,7 +845,7 @@ impl OneLibrary {
     pub fn create_my_tag<S: Into<String>>(
         &self,
         name: S,
-        parent_id: Option<i32>,
+        parent_id: Option<i64>,
         seq: Option<i32>,
     ) -> Result<MyTag> {
         let mut my_tag = NewMyTag::tag(name);
@@ -736,7 +858,7 @@ impl OneLibrary {
     pub fn create_my_tag_folder<S: Into<String>>(
         &self,
         name: S,
-        parent_id: Option<i32>,
+        parent_id: Option<i64>,
         seq: Option<i32>,
     ) -> Result<MyTag> {
         let mut my_tag = NewMyTag::folder(name);
@@ -746,7 +868,7 @@ impl OneLibrary {
     }
 
     /// Renames an existing my_tag record in the `myTag` table.
-    pub fn rename_my_tag(&self, my_tag_id: i32, name: &str) -> Result<usize> {
+    pub fn rename_my_tag(&self, my_tag_id: i64, name: &str) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(MyTag::rename(&mut conn, my_tag_id, name)?)
     }
@@ -754,8 +876,8 @@ impl OneLibrary {
     /// Moves a tag to a new parent folder or changes its sequence within the same parent.
     pub fn move_my_tag(
         &self,
-        my_tag_id: i32,
-        parent_id: Option<&i32>,
+        my_tag_id: i64,
+        parent_id: Option<&i64>,
         seq: Option<i32>,
     ) -> Result<usize> {
         let mut conn = self.pool.get()?;
@@ -765,8 +887,8 @@ impl OneLibrary {
     /// Moves multiple tags to a new parent folder or changes its sequence within the same parent.
     pub fn move_my_tags(
         &self,
-        my_tag_ids: Vec<&i32>,
-        parent_id: i32,
+        my_tag_ids: Vec<&i64>,
+        parent_id: i64,
         start_seq: Option<i32>,
     ) -> Result<usize> {
         let mut conn = self.pool.get()?;
@@ -779,25 +901,25 @@ impl OneLibrary {
     }
 
     /// Deletes a record from the `myTag` table by its primary key `id`.
-    pub fn delete_my_tag(&self, id: i32) -> Result<usize> {
+    pub fn delete_my_tag(&self, id: i64) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(MyTag::delete(&mut conn, &id)?)
     }
 
     /// Deletes multiple records from the `myTag` table by its primary keys `id`.
-    pub fn delete_my_tags(&self, ids: Vec<&i32>) -> Result<usize> {
+    pub fn delete_my_tags(&self, ids: Vec<&i64>) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(MyTag::delete_all(&mut conn, ids)?)
     }
 
     /// Deletes a record from the `myTag_content` table by its primary key.
-    pub fn delete_my_tag_content(&self, my_tag_id: i32, content_id: i32) -> Result<usize> {
+    pub fn delete_my_tag_content(&self, my_tag_id: i64, content_id: i64) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(MyTagContent::delete(&mut conn, &(my_tag_id, content_id))?)
     }
 
     /// Deletes a record from the `myTag_content` table by its primary key.
-    pub fn delete_my_tag_contents(&self, ids: Vec<&(i32, i32)>) -> Result<usize> {
+    pub fn delete_my_tag_contents(&self, ids: Vec<&(i64, i64)>) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(MyTagContent::delete_all(&mut conn, ids)?)
     }
@@ -811,19 +933,19 @@ impl OneLibrary {
     }
 
     /// Queries all child records from the `playlist` table by parent `id`.
-    pub fn get_playlist_children(&self, id: i32) -> Result<Vec<Playlist>> {
+    pub fn get_playlist_children(&self, id: i64) -> Result<Vec<Playlist>> {
         let mut conn = self.pool.get()?;
         Ok(Playlist::by_parent_id(&mut conn, id)?)
     }
 
     /// Queries all `content` records associated with a `playlist` record.
-    pub fn get_playlist_contents(&self, id: i32) -> Result<Vec<Content>> {
+    pub fn get_playlist_contents(&self, id: i64) -> Result<Vec<Content>> {
         let mut conn = self.pool.get()?;
         Ok(Playlist::get_contents(&mut conn, id)?)
     }
 
     /// Queries a record from the `playlist` table by its primary key `id`.
-    pub fn get_playlist_by_id(&self, id: i32) -> Result<Option<Playlist>> {
+    pub fn get_playlist_by_id(&self, id: i64) -> Result<Option<Playlist>> {
         let mut conn = self.pool.get()?;
         Ok(Playlist::find(&mut conn, &id)?)
     }
@@ -838,7 +960,7 @@ impl OneLibrary {
     pub fn create_playlist<S: Into<String>>(
         &self,
         name: S,
-        parent_id: Option<i32>,
+        parent_id: Option<i64>,
         seq: Option<i32>,
     ) -> Result<Playlist> {
         let mut playlist = NewPlaylist::playlist(name);
@@ -851,7 +973,7 @@ impl OneLibrary {
     pub fn create_playlist_folder<S: Into<String>>(
         &self,
         name: S,
-        parent_id: Option<i32>,
+        parent_id: Option<i64>,
         seq: Option<i32>,
     ) -> Result<Playlist> {
         let mut playlist = NewPlaylist::folder(name);
@@ -861,7 +983,7 @@ impl OneLibrary {
     }
 
     /// Renames an existing playlist record in the `playlist` table.
-    pub fn rename_playlist(&self, playlist_id: i32, name: &str) -> Result<usize> {
+    pub fn rename_playlist(&self, playlist_id: i64, name: &str) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(Playlist::rename(&mut conn, playlist_id, name)?)
     }
@@ -869,8 +991,8 @@ impl OneLibrary {
     /// Moves a playlist to a new parent folder or changes its sequence within the same parent.
     pub fn move_playlist(
         &self,
-        playlist_id: i32,
-        parent_id: Option<&i32>,
+        playlist_id: i64,
+        parent_id: Option<&i64>,
         seq: Option<i32>,
     ) -> Result<usize> {
         let mut conn = self.pool.get()?;
@@ -880,8 +1002,8 @@ impl OneLibrary {
     /// Moves multiple playlists to a new parent folder or changes its sequence within the same parent.
     pub fn move_playlists(
         &self,
-        playlist_ids: Vec<&i32>,
-        parent_id: i32,
+        playlist_ids: Vec<&i64>,
+        parent_id: i64,
         start_seq: Option<i32>,
     ) -> Result<usize> {
         let mut conn = self.pool.get()?;
@@ -894,22 +1016,23 @@ impl OneLibrary {
     }
 
     /// Deletes a record from the `playlist` table by its primary key `id`.
-    pub fn delete_playlist(&self, id: i32) -> Result<usize> {
+    pub fn delete_playlist(&self, id: i64) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(Playlist::delete(&mut conn, &id)?)
     }
 
     /// Deletes multiple records from the `playlist` table by its primary keys `id`.
-    pub fn delete_playlists(&self, ids: Vec<&i32>) -> Result<usize> {
+    pub fn delete_playlists(&self, ids: Vec<&i64>) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(Playlist::delete_all(&mut conn, ids)?)
     }
 
     /// Creates a new record and inserts it into the `playlist_content` table.
+    /// Positions start at one; an omitted position appends.
     pub fn create_playlist_content(
         &self,
-        playlist_id: i32,
-        content_id: i32,
+        playlist_id: i64,
+        content_id: i64,
         seq: Option<i32>,
     ) -> Result<PlaylistContent> {
         let mut conn = self.pool.get()?;
@@ -919,10 +1042,11 @@ impl OneLibrary {
     }
 
     /// Moves a playlist content to a new sequence number.
+    /// Positions start at one; an omitted position moves to the end.
     pub fn move_playlist_content(
         &self,
-        playlist_id: i32,
-        content_id: i32,
+        playlist_id: i64,
+        content_id: i64,
         seq: Option<i32>,
     ) -> Result<usize> {
         let mut conn = self.pool.get()?;
@@ -934,9 +1058,11 @@ impl OneLibrary {
     }
 
     /// Moves multiple playlist contents to a new sequence number.
+    /// The one-based destination is measured after removing the selected entries;
+    /// an omitted position appends, preserving the supplied entry order.
     pub fn move_playlist_contents(
         &self,
-        ids: Vec<&(i32, i32)>,
+        ids: Vec<&(i64, i64)>,
         start_seq: Option<i32>,
     ) -> Result<usize> {
         let mut conn = self.pool.get()?;
@@ -944,7 +1070,7 @@ impl OneLibrary {
     }
 
     /// Deletes a record from the `playlist_content` table by its primary key.
-    pub fn delete_playlist_content(&self, playlist_id: i32, content_id: i32) -> Result<usize> {
+    pub fn delete_playlist_content(&self, playlist_id: i64, content_id: i64) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(PlaylistContent::delete(
             &mut conn,
@@ -953,7 +1079,7 @@ impl OneLibrary {
     }
 
     /// Deletes a record from the `playlist_content` table by its primary key.
-    pub fn delete_playlist_contents(&self, ids: Vec<&(i32, i32)>) -> Result<usize> {
+    pub fn delete_playlist_contents(&self, ids: Vec<&(i64, i64)>) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(PlaylistContent::delete_all(&mut conn, ids)?)
     }
@@ -988,7 +1114,7 @@ impl OneLibrary {
     pub fn create_property<S: Into<String>>(
         &self,
         device_name: S,
-        my_tag_master_dbid: i32,
+        my_tag_master_dbid: i64,
     ) -> Result<Property> {
         let property = Property::new(device_name, my_tag_master_dbid);
         self.insert_property(property)
@@ -1017,8 +1143,8 @@ impl OneLibrary {
     /// Queries a record from the `recommendLike` table by its primary key `id`.
     pub fn get_recommend_like_by_id(
         &self,
-        content_id_1: i32,
-        content_id_2: i32,
+        content_id_1: i64,
+        content_id_2: i64,
     ) -> Result<Option<RecommendedLike>> {
         let mut conn = self.pool.get()?;
         Ok(RecommendedLike::find(
@@ -1030,14 +1156,14 @@ impl OneLibrary {
     /// Queries all records from the `recommendedLike` table that are linked to the given `content`.
     pub fn get_recommend_like_by_content_id(
         &self,
-        content_id: i32,
+        content_id: i64,
     ) -> Result<Vec<RecommendedLike>> {
         let mut conn = self.pool.get()?;
         Ok(RecommendedLike::by_content_id(&mut conn, content_id)?)
     }
 
     /// Get related `content` ids for a given `content`.
-    pub fn get_recommend_like_contents(&self, content_id: i32) -> Result<Vec<i32>> {
+    pub fn get_recommend_like_contents(&self, content_id: i64) -> Result<Vec<i64>> {
         let mut conn = self.pool.get()?;
         Ok(RecommendedLike::related_content_ids(&mut conn, content_id)?)
     }
@@ -1054,8 +1180,8 @@ impl OneLibrary {
     /// Creates a new record and inserts it into the `recommendLike` table.
     pub fn create_recommend_like(
         &self,
-        content_id_1: i32,
-        content_id_2: i32,
+        content_id_1: i64,
+        content_id_2: i64,
         rating: Option<i32>,
     ) -> Result<RecommendedLike> {
         let recommend_like =
@@ -1073,7 +1199,7 @@ impl OneLibrary {
     }
 
     /// Deletes a record from the `recommendLike` table by its primary key.
-    pub fn delete_recommend_like(&self, content_id_1: i32, content_id_2: i32) -> Result<usize> {
+    pub fn delete_recommend_like(&self, content_id_1: i64, content_id_2: i64) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(RecommendedLike::delete(
             &mut conn,
@@ -1082,7 +1208,7 @@ impl OneLibrary {
     }
 
     /// Deletes a record from the `recommendLike` table by its primary key.
-    pub fn delete_recommend_like_by_content(&self, content_id: i32) -> Result<usize> {
+    pub fn delete_recommend_like_by_content(&self, content_id: i64) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(RecommendedLike::delete_by_content_id(
             &mut conn, content_id,
@@ -1098,7 +1224,7 @@ impl OneLibrary {
     }
 
     /// Queries a record from the `sort` table by its primary key `id`.
-    pub fn get_sort_by_id(&self, id: i32) -> Result<Option<Sort>> {
+    pub fn get_sort_by_id(&self, id: i64) -> Result<Option<Sort>> {
         let mut conn = self.pool.get()?;
         Ok(Sort::find(&mut conn, &id)?)
     }
@@ -1112,7 +1238,7 @@ impl OneLibrary {
     /// Creates a new record and inserts it into the `sort` table.
     pub fn create_sort(
         &self,
-        menu_item_id: i32,
+        menu_item_id: i64,
         seq: Option<i32>,
         is_visible: Option<i32>,
     ) -> Result<Sort> {
@@ -1132,7 +1258,7 @@ impl OneLibrary {
     }
 
     /// Deletes a record from the `sort` table by its primary key `id`.
-    pub fn delete_sort(&self, id: i32) -> Result<usize> {
+    pub fn delete_sort(&self, id: i64) -> Result<usize> {
         let mut conn = self.pool.get()?;
         Ok(Sort::delete(&mut conn, &id)?)
     }

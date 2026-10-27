@@ -17,17 +17,17 @@
 > The maintainers and contributors assume no liability for any data loss or damage to your Rekordbox library.
 > "Rekordbox" is a registered trademark of AlphaTheta Corporation.
 
-**rbox** is a high-performance Rust library for seamlessly interacting with Pioneer DJ's Rekordbox software data.
+**rbox** provides Python bindings to the Rust library for reading and modifying Rekordbox data.
 It supports the following Rekordbox files:
 
 - **Rekordbox database**: Query and update the Rekordbox v6/v7 master.db database through a type-safe ORM
 - **One Library**: Read and write Rekordbox One Library (Device Library Plus) export files
-- **XML database**: Read and write Rekordbox XML database files
+- **Device Library**: Read and write Rekordbox DeviceSQL (.pdb) database files
 - **Analysis Files**: Read and write ANLZ files containing waveforms, beat grids, hot cues and more
 - **Settings Access**: Read and write My-Setting files
+- **XML database**: Read and write Rekordbox XML database files
 
-
-## 🔧 Installation
+## Installation
 
 rbox is available on PyPI:
 ```bash
@@ -35,19 +35,20 @@ pip install rbox
 ```
 
 
-## 🚀 Quick-Start
+## Quick-Start
 
 > **❗ Caution**:
-> Please make sure to back up your Rekordbox collection before making changes to rekordbox data.
-> The backup dialog can be found under "File" > "Library" > "Backup Library"
+> Please make sure to back up your Rekordbox collection before making changes to local rekordbox data.
+> The backup dialog can be found under "File" > "Library" > "Backup Library".
+>
+> DeviceSQL and One Library support is experimental and may contain bugs.
+> Exports are not backed up by Rekordbox, so make sure to back up your USB device or SD card
+> before making changes. Test generated exports on your hardware before relying on them.
+
 
 ### Rekordbox 6/7 database
 
 Rekordbox 6 and 7 use a SQLite database for storing the collection content.
-Unfortunatly, the `master.db` SQLite database is encrypted using
-[SQLCipher][sqlcipher], which means it can't be used without the encryption key.
-However, since your data is stored and used locally, the key must be present on the
-machine running Rekordbox.
 
 rbox can unlock the new Rekordbox `master.db` SQLite database and provides
 an easy interface for accessing and updating the data stored in it.
@@ -56,8 +57,7 @@ an easy interface for accessing and updating the data stored in it.
 from rbox import MasterDb
 
 db = MasterDb.open()
-contents = db.get_contents()
-for content in contents:
+for content in db.get_contents():
     print(content)
 ```
 
@@ -65,19 +65,86 @@ for content in contents:
 
 For newer generation Pioneer DJ devices, Rekordbox exports a new library format to the USB storage
 device (or SD card), called ``One Library`` (formerly known as ``Device Library Plus``).
-As of 2025, this format is only supported by the [OPUS-QUAD], [OMNIS-DUO], [XDJ-AZ] and [CDJ-3000X] devices.
+As of 2026, this format is only supported by the [CDJ-3000X], [CDJ-1500X], [OPUS-QUAD], [OMNIS-DUO],
+[XDJ-AZ] and [XDJ-AN] devices.
 The database schema is similar to the main Rekordbox database. It contains a selection of tables
 from the main database, with similar columns and data types.
 
 rbox can unlock the new Rekordbox `exportLibrary.db` One Library database and provides
 an easy interface for accessing the data stored in it:
 ```python
-from rbox import OneLibrary
+from rbox.onelib import OneLibrary
 
-db = OneLibrary("exportLibrary.db")
-contents = db.get_contents()
-for content in contents:
+db = OneLibrary("PIONEER/rekordbox")
+# For an explicit file: OneLibrary.from_path("backups/exportLibrary.db")
+for content in db.get_contents():
     print(content)
+```
+
+### Device Library (DeviceSQL)
+
+Rekordbox stores Device Library exports in the binary `export.pdb` database and
+an optional `exportExt.pdb` file under `PIONEER/rekordbox` on the export device.
+Pass the database directory to `DeviceLibrary`. Pages are loaded on demand,
+and typed models provide access to tracks, playlists, artists, and other tables:
+
+```python
+from rbox import DeviceLibrary
+
+db = DeviceLibrary("PIONEER/rekordbox")
+for content in db.get_contents():
+    print(content)
+```
+
+### Rekordbox ANLZ files
+
+Rekordbox stores analysis information of the tracks in the collection in specific files,
+which also get exported to devices used by Pioneer professional DJ equipment. The files
+have names like `ANLZ0000` and come with the extensions `.DAT`, `.EXT` or `.2EX`.
+They include waveforms, beat grids (information about the precise time at which
+each beat occurs), time indices to allow efficient seeking to specific positions
+inside variable bit-rate audio streams, and lists of memory cues and loop points.
+
+rbox indexes analysis files on opening and decodes sections on demand. Reading a
+section can fail after opening, and a missing section returns `None`.
+Getters return detached snapshots: apply edits with the corresponding setter,
+such as `set_beat_grid(grid)`, then call `dump()` to save. Saving preserves section
+order and copies untouched sections without decoding them.
+
+For finer access, use `get_section(index)`. `into_data()` materializes a complete
+snapshot while leaving the binding handler usable. Keep the backing file
+unchanged externally while the handler is open.
+
+```python
+from rbox import Anlz
+
+anlz = Anlz.load("ANLZ0000.DAT")
+grid = anlz.get_beat_grid()
+if grid is not None:
+    for beat in grid.beats:
+        print(f"Beat: {beat.beat_number} Tempo: {beat.tempo} Time: {beat.time}")
+```
+
+
+### Rekordbox My-Settings
+
+Rekordbox stores the user settings in `*SETTING.DAT` files, which get exported to USB
+devices. These files are either in the `PIONEER` directory of a USB drive
+(device exports), but are also present for on local installations of Rekordbox.
+The setting files store the settings found on the "DJ System" > "My Settings" page of
+the Rekordbox preferences. These include language, LCD brightness, tempo fader range,
+crossfader curve and other settings for Pioneer professional DJ equipment.
+
+rbox supports both parsing and writing of My-Setting files.
+
+```python
+from rbox import Setting
+from rbox.settings import Quantize
+
+settings = Setting.load("MYSETTING.DAT")
+print(f"Quantize: {settings.get_quantize()}")
+settings.set_quantize(Quantize.Off)
+settings.dump()
 ```
 
 ### Rekordbox XML
@@ -91,52 +158,9 @@ rbox can read and write Rekordbox XML databases.
 ```python
 from rbox import RekordboxXml
 
-xml = RekordboxXml(path)
-tracks = xml.get_tracks()
-for track in tracks:
+xml = RekordboxXml("database.xml")
+for track in xml.get_tracks():
     print(track)
-```
-
-
-### Rekordbox ANLZ files
-
-Rekordbox stores analysis information of the tracks in the collection in specific files,
-which also get exported to decives used by Pioneer professional DJ equipment. The files
-have names like `ANLZ0000` and come with the extensions `.DAT`, `.EXT` or `.2EX`.
-They include waveforms, beat grids (information about the precise time at which
-each beat occurs), time indices to allow efficient seeking to specific positions
-inside variable bit-rate audio streams, and lists of memory cues and loop points.
-
-rbox can parse and write all three analysis files.
-
-```python
-from rbox import Anlz
-
-anlz = Anlz("ANLZ0000.DAT")
-grid = anlz.get_beat_grid()
-for beat in grid:
-    print(f"Beat: {beat.beat_number} Tempo: {beat.tempo} Time: {beat.time}")
-```
-
-
-### Rekordbox My-Settings
-
-Rekordbox stores the user settings in `*SETTING.DAT` files, which get exported to USB
-devices. These files are either in the `PIONEER`directory of a USB drive
-(device exports), but are also present for on local installations of Rekordbox 6.
-The setting files store the settings found on the "DJ System" > "My Settings" page of
-the Rekordbox preferences. These include language, LCD brightness, tempo fader range,
-crossfader curve and other settings for Pioneer professional DJ equipment.
-
-rbox supports both parsing and writing of My-Setting files.
-
-```python
-from rbox import Setting
-
-sett = Setting(path)
-print(f"Quantize: {sett.get_quantize()}")
-sett.set_quantize("Off")
-sett.dump()
 ```
 
 
@@ -158,10 +182,11 @@ If rbox has helped you or saved you time, consider supporting its development - 
 
 [![BuyMeACoffee](https://raw.githubusercontent.com/pachadotdev/buymeacoffee-badges/main/bmc-white.svg)](https://www.buymeacoffee.com/dylanljones)
 
-[sqlcipher]: https://www.zetetic.net/sqlcipher/open-source/
 [LICENSE]: https://github.com/dylanljones/rbox/blob/main/LICENSE
 
 [OPUS-QUAD]: https://www.pioneerdj.com/en/product/all-in-one-system/opus-quad/black/overview/
 [OMNIS-DUO]: https://alphatheta.com/en/product/all-in-one-dj-system/omnis-duo/indigo/
 [XDJ-AZ]: https://alphatheta.com/en/product/all-in-one-dj-system/xdj-az/black/
+[XDJ-AN]: https://alphatheta.com/en/product/all-in-one-dj-system/xdj-an/black/
 [CDJ-3000X]: https://alphatheta.com/en/product/player/cdj-3000x/black/
+[CDJ-1500X]: https://alphatheta.com/en/product/player/cdj-1500x/black/

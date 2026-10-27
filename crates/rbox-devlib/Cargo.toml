@@ -1,0 +1,40 @@
+[package]
+name = "rbox-devlib"
+description = "Rekordbox Device Library (DeviceSQL) database handler"
+readme = "README.md"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+publish = true
+
+[features]
+default = []
+
+# Features for the bindings
+pyo3 = ["dep:pyo3", "dep:rbox-derives", "rbox-core/pyo3"]
+napi = ["dep:napi", "dep:napi-derive", "dep:rbox-derives", "rbox-core/napi"]
+
+[dependencies]
+binrw               = { workspace = true }
+thiserror           = { workspace = true }
+tempfile            = { workspace = true }
+
+pyo3                = { workspace = true, optional = true, features = ["multiple-pymethods"] }
+napi                = { workspace = true, optional = true }
+napi-derive         = { workspace = true, optional = true }
+
+rbox-core           = { path = "../rbox-core", version = "0.2.0", default-features = false }
+rbox-derives        = { path = "../rbox-derives", version = "0.2.0", optional = true }
+
+[dev-dependencies]
+anyhow              = { workspace = true }
+rbox-anlz           = { path = "../rbox-anlz", default-features = false }
+rbox-testing        = { path = "../rbox-testing", default-features = false }
+rbox-db             = { path = "../rbox-db", default-features = false }
+rbox-masterdb       = { path = "../rbox-masterdb", default-features = false, features = ["bundled-vendored-openssl"] }

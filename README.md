@@ -22,27 +22,30 @@
 > The maintainers and contributors assume no liability for any data loss or damage to your Rekordbox library.
 > "Rekordbox" is a registered trademark of AlphaTheta Corporation.
 
-**rbox** is a high-performance Rust library for seamlessly interacting with Pioneer DJ's Rekordbox software data.
+**rbox** is a Rust library for seamlessly interacting with Pioneer DJ's Rekordbox local and export data.
 Its goal is one comprehensive, general-purpose package that other projects can
 build on. It currently supports the following Rekordbox files:
 
 - **Rekordbox database**: Query and update the Rekordbox v6/v7 master.db database through a type-safe ORM
 - **One Library**: Read and write Rekordbox One Library (Device Library Plus) export files
-- **XML database**: Read and write Rekordbox XML database files
+- **Device Library**: Read and write Rekordbox DeviceSql (.pdb) database files
 - **Analysis Files**: Read and write ANLZ files containing waveforms, beat grids, hot cues and more
 - **Settings Access**: Read and write My-Setting files
+- **XML database**: Read and write Rekordbox XML database files
 
 | File               | Read | Update | Create |
 |:-------------------|:----:|-------:|-------:|
-| Rekordbox database |  ✓   |      ✓ |      ❌ |
-| One Library        |  ✓   |      ✓ |      ✓ |
-| XML database       |  ✓   |      ✓ |      ✓ |
-| Analysis Files     |  ✓   |      ✓ |      ✓ |
-| Settings Files     |  ✓   |      ✓ |      ✓ |
+| Rekordbox database |  ✓  |     ✓ |     ❌ |
+| One Library        |  ✓  |     ✓ |     ✓ |
+| Device Library     |  ✓  |     ✓ |     ✓ |
+| Analysis Files     |  ✓  |     ✓ |     ✓ |
+| Settings Files     |  ✓  |     ✓ |     ✓ |
+| XML database       |  ✓  |     ✓ |     ✓ |
 
 
 > [!TIP]
-> This project is still being actively developed and is in early stages, so expect some rough edges and missing features.
+> This project is still being actively developed and is in early stages, so expect some rough edges,
+> API changes in the future and missing features.
 > If you are looking for a more mature and battle-tested library, check the original [pyrekordbox] Python library.
 
 
@@ -129,34 +132,44 @@ Can rbox analyze audio and generate analysis files?
 Can I use rbox to prepare device exports without Rekordbox?
 </summary>
 
-> `rbox` supports the One Library (Device Library Plus) export database format, and existing
-> analysis files can be copied to a device. A complete export workflow starting from unanalysed
-> audio still requires analysis-file generation, which is a project goal.
+> Yes. `rbox` can create and update both original Device Library (`.pdb`) and One Library
+> (Device Library Plus) databases, using existing analysis files for the export. A complete
+> workflow starting from unanalysed audio still requires analysis-file generation, which is
+> a project goal.
 
 </details>
+
 
 <details>
 <summary>
-Does this library support the old Device Library export files?
+Does rbox support Pro DJ Link?
 </summary>
 
-> Not yet. Support for the original Device Library (`.pdb`) format is planned, but it will take
-> time to implement. There is no release timeline yet.
->
-> In the meantime, check out [rekordcrate](https://github.com/Holzhaus/rekordcrate) for a library focused more on export files
-> and their awesome work of reverse engineering the `.pdb` format.
+> Not yet. Pro DJ Link support is planned for the future, but there is no release timeline yet.
 
 </details>
 
+
 ## Thank you
+
+Thank you to everyone contributing to rbox through code, bug reports, testing,
+documentation, and ideas. Your contributions and shared knowledge help make
+these tools better for the community.
 
 A special thank you to everyone who has contributed to [pyrekordbox]. Your code,
 bug reports, testing, documentation, and ideas helped build the foundation that
 rbox builds on today.
 
-Thank you also to everyone contributing to rbox and sharing knowledge about
-Rekordbox's file formats and databases. Every contribution helps make these tools
-better for the community.
+We are also grateful to the projects that have documented and reverse-engineered
+Rekordbox's formats and shared their findings openly. Their documentation,
+reference implementations, and sample files have been invaluable:
+
+- [Deep Symmetry's crate-digger](https://github.com/Deep-Symmetry/crate-digger) and
+  [Rekordbox Export Analysis](https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/)
+  for detailed format documentation and binary schemas.
+- [rekordcrate](https://github.com/Holzhaus/rekordcrate) for its extensive work on Rekordbox's binary formats.
+- [fourfour](https://github.com/morizkraemer/fourfour) for additional export-format
+  research and implementation references.
 
 ## Sponsor
 

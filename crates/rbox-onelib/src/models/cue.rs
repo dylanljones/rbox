@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `Cue`.
+
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -33,6 +35,7 @@ use rbox_db::{Model, ModelDelete, ModelUpdate};
 /// # References
 /// * [`Content`] via `content_id` foreign key.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = cue)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -41,9 +44,9 @@ use rbox_db::{Model, ModelDelete, ModelUpdate};
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Cue {
     /// The unique identifier of the cue.
-    pub id: i32,
+    pub id: i64,
     /// A foreign key referencing the [`Content`].
-    pub content_id: i32,
+    pub content_id: i64,
     /// The type of the cue.
     ///
     /// 0 if a memory cue, otherwise the number of Hot Cue
@@ -59,41 +62,41 @@ pub struct Cue {
     /// Unknonw
     pub beat_loop_denominator: Option<i32>,
     /// The cue's start time in microseconds.
-    pub in_usec: Option<i32>,
+    pub in_usec: Option<i64>,
     /// The cue's end time in microseconds.
-    pub out_usec: Option<i32>,
+    pub out_usec: Option<i64>,
     /// The cue's start frame.
     ///
     /// One frame is 1/150th of a second
-    pub in150_frame_per_sec: Option<i32>,
+    pub in150_frame_per_sec: Option<i64>,
     /// The cue's end frame or -1 if not a loop.
     ///
     /// One frame is 1/150th of a second
-    pub out150_frame_per_sec: Option<i32>,
+    pub out150_frame_per_sec: Option<i64>,
     /// The cue's start MPEG frame or 0 if not a VBR/ABR MPEG file (see note).
-    pub in_mpeg_frame_number: Option<i32>,
+    pub in_mpeg_frame_number: Option<i64>,
     /// The cue's end MPEG frame or 0 if not a loop or not a VBR/ABR MPEG file (see note)
-    pub out_mpeg_frame_number: Option<i32>,
+    pub out_mpeg_frame_number: Option<i64>,
     /// The cue's start MPEG absolute frame or 0 if not a VBR/ABR MPEG file.
-    pub in_mpeg_abs: Option<i32>,
+    pub in_mpeg_abs: Option<i64>,
     /// The cue's end MPEG absolute frame or 0 if not a loop or not a VBR/ABR MPEG file
-    pub out_mpeg_abs: Option<i32>,
+    pub out_mpeg_abs: Option<i64>,
     /// The cue's start frame position in the decoding block.
-    pub in_decoding_start_frame_position: Option<i32>,
+    pub in_decoding_start_frame_position: Option<i64>,
     /// The cue's end frame position in the decoding block.
-    pub out_decoding_start_frame_position: Option<i32>,
+    pub out_decoding_start_frame_position: Option<i64>,
     /// The cue's start file offset in the decoding block.
-    pub in_file_offset_in_block: Option<i32>,
+    pub in_file_offset_in_block: Option<i64>,
     /// The cue's end file offset in the decoding block.
-    pub out_file_offset_in_block: Option<i32>,
+    pub out_file_offset_in_block: Option<i64>,
     /// The cue's start sample position in the decoding block.
-    pub in_number_of_sample_in_block: Option<i32>,
+    pub in_number_of_sample_in_block: Option<i64>,
     /// The cue's end sample position in the decoding block.
-    pub out_number_of_sample_in_block: Option<i32>,
+    pub out_number_of_sample_in_block: Option<i64>,
 }
 
 impl Model for Cue {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
@@ -125,7 +128,7 @@ impl ModelDelete for Cue {
 
     fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
         let mut result = diesel::delete(cue::table.filter(cue::id.eq_any(&ids))).execute(conn)?;
-        let ids: Vec<i32> = ids.iter().map(|&id| *id).collect();
+        let ids: Vec<i64> = ids.iter().map(|&id| *id).collect();
         result += HotCueBankListCue::delete_by_cue_ids(conn, &ids)?;
         Ok(result)
     }
@@ -133,8 +136,8 @@ impl ModelDelete for Cue {
 
 impl Cue {
     /// Deletes all record from the `cue` table referencing a `content` record.
-    pub fn delete_by_content_id(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
-        let deleted_ids: Vec<i32> = diesel::delete(cue::table.filter(cue::content_id.eq(id)))
+    pub fn delete_by_content_id(conn: &mut SqliteConnection, id: i64) -> QueryResult<usize> {
+        let deleted_ids: Vec<i64> = diesel::delete(cue::table.filter(cue::content_id.eq(id)))
             .returning(cue::id)
             .get_results(conn)?;
         let mut result = deleted_ids.len();
@@ -143,8 +146,8 @@ impl Cue {
     }
 
     /// Deletes all record from the `cue` table referencing multiple `content` records.
-    pub fn delete_by_content_ids(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<usize> {
-        let deleted_ids: Vec<i32> = diesel::delete(cue::table.filter(cue::content_id.eq_any(ids)))
+    pub fn delete_by_content_ids(conn: &mut SqliteConnection, ids: &[i64]) -> QueryResult<usize> {
+        let deleted_ids: Vec<i64> = diesel::delete(cue::table.filter(cue::content_id.eq_any(ids)))
             .returning(cue::id)
             .get_results(conn)?;
         let mut result = deleted_ids.len();

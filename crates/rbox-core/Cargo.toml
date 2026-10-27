@@ -5,7 +5,6 @@ readme = "README.md"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
-license-file.workspace = true
 repository.workspace = true
 keywords.workspace = true
 categories.workspace = true
@@ -16,22 +15,31 @@ publish = true
 
 [features]
 default = []
+# SQLite integer conversions for shared enums; not needed by binary handlers.
+diesel = ["dep:diesel"]
 pyo3 = ["dep:pyo3"]
 napi = ["dep:napi", "dep:napi-derive"]
 
 [dependencies]
-pyo3            = { workspace = true, optional = true }
-napi            = { workspace = true, optional = true }
-napi-derive     = { workspace = true, optional = true }
-image           = { workspace = true }
-sysinfo         = { workspace = true }
-thiserror       = { workspace = true }
-serde           = { workspace = true }
-serde_json      = { workspace = true }
-quick-xml       = { workspace = true }
-uuid            = { workspace = true }
+diesel              = { workspace = true, optional = true }
+pyo3                = { workspace = true, optional = true }
+napi                = { workspace = true, optional = true }
+napi-derive         = { workspace = true, optional = true }
+image               = { workspace = true }
+sysinfo             = { workspace = true }
+thiserror           = { workspace = true }
+serde               = { workspace = true }
+serde_json          = { workspace = true }
+quick-xml           = { workspace = true }
+uuid                = { workspace = true }
+fast_image_resize   = { workspace = true }
 
 [dev-dependencies]
-rbox-derives    = { path = "../rbox-derives" }
-anyhow          = { workspace = true }
-tempfile        = { workspace = true }
+rbox-derives        = { path = "../rbox-derives" }
+anyhow              = { workspace = true }
+criterion           = { workspace = true }
+tempfile            = { workspace = true }
+
+[[bench]]
+name = "artwork"
+harness = false

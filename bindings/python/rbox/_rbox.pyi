@@ -7,7 +7,7 @@ import enum
 from datetime import datetime
 from os import PathLike
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 from .anlz import AnlzData, AnlzSection
 
@@ -34,6 +34,11 @@ class OneLibraryError(Exception):
 
     ...
 
+class DeviceLibraryError(Error):
+    """Errors from Device Library database operations."""
+
+    ...
+
 class AnlzError(Exception):
     """Exception raised for errors that are related to the ANLZ files."""
 
@@ -50,6 +55,26 @@ class SettingError(Exception):
     ...
 
 # ---- Utility -------------------------------------------------------------------------------------
+
+def anlz_dir_usb(track_path: str) -> str:
+    """Return the USB ANLZ directory by hashing the exported path as supplied."""
+    ...
+
+def anlz_dir_local(uuid: str) -> str:
+    """Return the local ANLZ directory. Invalid UUIDs raise ValueError."""
+    ...
+
+def artwork_dir_local(uuid: str) -> str:
+    """Return the local artwork directory. Invalid UUIDs raise ValueError."""
+    ...
+
+def image_path_local(uuid: str) -> str:
+    """Return the local artwork.jpg path. Invalid UUIDs raise ValueError."""
+    ...
+
+def artwork_dir_usb(artwork_id: int) -> str:
+    """Return the USB artwork directory for an unsigned 32-bit artwork ID."""
+    ...
 
 def rekordbox_agent_app_dir() -> str: ...
 def options_json_path() -> str: ...
@@ -206,17 +231,6 @@ class PlaylistType(enum.IntEnum):
     def __repr__(self) -> str: ...
     def __eq__(self, other: int | PlaylistType) -> bool: ...
     def __ne__(self, other: int | PlaylistType) -> bool: ...
-
-class OneLibraryPlaylistType(enum.IntEnum):
-    List: OneLibraryPlaylistType
-    Folder: OneLibraryPlaylistType
-    SmartList: OneLibraryPlaylistType
-    CloudLibrarySync: OneLibraryPlaylistType
-
-    def __int__(self) -> int: ...
-    def __repr__(self) -> str: ...
-    def __eq__(self, other: int | OneLibraryPlaylistType) -> bool: ...
-    def __ne__(self, other: int | OneLibraryPlaylistType) -> bool: ...
 
 class RelatedTracksType(enum.IntEnum):
     List: RelatedTracksType
@@ -504,6 +518,16 @@ class DjmdAlbum(_RustMutableMapping):
 class NewDjmdAlbum(_RustMutableMapping):
     """Represents a new record insertale to the `djmdAlbum` table."""
 
+    def __init__(
+        self,
+        name: str,
+        *,
+        album_artist_id: Optional[str] = ...,
+        image_path: Optional[str] = ...,
+        compilation: Optional[int] = ...,
+        search_str: Optional[str] = ...,
+    ) -> None: ...
+
     name: str
     """The name of the album."""
     album_artist_id: Optional[str]
@@ -545,6 +569,13 @@ class DjmdArtist(_RustMutableMapping):
 
 class NewDjmdArtist(_RustMutableMapping):
     """Represents a new record insertale to the `djmdArtist` table."""
+
+    def __init__(
+        self,
+        name: str,
+        *,
+        search_str: Optional[str] = ...,
+    ) -> None: ...
 
     name: str
     """The name of the artist."""
@@ -805,6 +836,64 @@ class DjmdContent(_RustMutableMapping):
 class NewDjmdContent(_RustMutableMapping):
     """Represents a new record insertale to the `djmdContent` table."""
 
+    def __init__(
+        self,
+        folder_path: str,
+        *,
+        title: Optional[str] = ...,
+        artist_id: Optional[str] = ...,
+        album_id: Optional[str] = ...,
+        genre_id: Optional[str] = ...,
+        bpm: Optional[int] = ...,
+        length: Optional[int] = ...,
+        track_no: Optional[int] = ...,
+        bit_rate: Optional[int] = ...,
+        bit_depth: Optional[int] = ...,
+        commnt: Optional[str] = ...,
+        file_type: Optional[int] = ...,
+        rating: Optional[int] = ...,
+        release_year: Optional[int] = ...,
+        remixer_id: Optional[str] = ...,
+        label_id: Optional[str] = ...,
+        org_artist_id: Optional[str] = ...,
+        key_id: Optional[str] = ...,
+        stock_date: Optional[str] = ...,
+        color_id: Optional[str] = ...,
+        dj_play_count: Optional[int] = ...,
+        image_path: Optional[str] = ...,
+        analysis_data_path: Optional[str] = ...,
+        search_str: Optional[str] = ...,
+        disc_no: Optional[int] = ...,
+        composer_id: Optional[str] = ...,
+        subtitle: Optional[str] = ...,
+        sample_rate: Optional[int] = ...,
+        release_date: Optional[str] = ...,
+        date_created: Optional[str] = ...,
+        content_link: Optional[int] = ...,
+        tag: Optional[str] = ...,
+        delivery_comment: Optional[str] = ...,
+        lyricist: Optional[str] = ...,
+        isrc: Optional[str] = ...,
+        sampler_track_info: Optional[int] = ...,
+        sampler_play_offset: Optional[int] = ...,
+        sampler_gain: Optional[float] = ...,
+        video_associate: Optional[str] = ...,
+        lyric_status: Optional[int] = ...,
+        org_folder_path: Optional[str] = ...,
+        reserved1: Optional[str] = ...,
+        reserved2: Optional[str] = ...,
+        reserved3: Optional[str] = ...,
+        reserved4: Optional[str] = ...,
+        ext_info: Optional[str] = ...,
+        device_id: Optional[str] = ...,
+        rb_local_folder_path: Optional[str] = ...,
+        src_id: Optional[str] = ...,
+        src_title: Optional[str] = ...,
+        src_artist_name: Optional[str] = ...,
+        src_album_name: Optional[str] = ...,
+        src_length: Optional[int] = ...,
+    ) -> None: ...
+
     folder_path: str
     """An optional string representing the folder path of the track."""
     title: Optional[str]
@@ -981,6 +1070,11 @@ class DjmdGenre(_RustMutableMapping):
 class NewDjmdGenre(_RustMutableMapping):
     """Represents a new record insertale to the `djmdGenre` table."""
 
+    def __init__(
+        self,
+        name: str,
+    ) -> None: ...
+
     name: str
     """The name of the genre."""
 
@@ -1020,6 +1114,16 @@ class DjmdHistory(_RustMutableMapping):
 
 class NewDjmdHistory(_RustMutableMapping):
     """Represents a new record insertale to the `djmdHistory` table."""
+
+    def __init__(
+        self,
+        name: str,
+        attribute: HistoryType,
+        *,
+        seq: Optional[int] = ...,
+        parent_id: Optional[str] = ...,
+        date_created: Optional[str] = ...,
+    ) -> None: ...
 
     name: str
     """The name of the history."""
@@ -1064,6 +1168,14 @@ class DjmdSongHistory(_RustMutableMapping):
 
 class NewDjmdSongHistory(_RustMutableMapping):
     """Represents a new record insertale to the `djmdSongHistory` table."""
+
+    def __init__(
+        self,
+        history_id: str,
+        content_id: str,
+        *,
+        track_no: Optional[int] = ...,
+    ) -> None: ...
 
     history_id: str
     """The ID of the associated history entry in [`DjmdHistory`]."""
@@ -1233,6 +1345,13 @@ class DjmdKey(_RustMutableMapping):
 class NewDjmdKey(_RustMutableMapping):
     """Represents a new record insertale to the `djmdKey` table."""
 
+    def __init__(
+        self,
+        name: str,
+        *,
+        seq: Optional[int] = ...,
+    ) -> None: ...
+
     name: str
     """The name of the musical key."""
     seq: Optional[int]
@@ -1266,6 +1385,11 @@ class DjmdLabel(_RustMutableMapping):
 
 class NewDjmdLabel(_RustMutableMapping):
     """Represents a new record insertale to the `djmdLabel` table."""
+
+    def __init__(
+        self,
+        name: str,
+    ) -> None: ...
 
     name: str
     """The name of the label."""
@@ -1367,6 +1491,15 @@ class DjmdMyTag(_RustMutableMapping):
 class NewDjmdMyTag(_RustMutableMapping):
     """Represents a new record insertale to the `djmdMyTag` table."""
 
+    def __init__(
+        self,
+        name: str,
+        attribute: MyTagType,
+        *,
+        seq: Optional[int] = ...,
+        parent_id: Optional[str] = ...,
+    ) -> None: ...
+
     name: str
     """The name of the tag"""
     attribute: MyTagType
@@ -1408,6 +1541,14 @@ class DjmdSongMyTag(_RustMutableMapping):
 
 class NewDjmdSongMyTag(_RustMutableMapping):
     """Represents a new record insertale to the `djmdSongMyTag` table."""
+
+    def __init__(
+        self,
+        my_tag_id: str,
+        content_id: str,
+        *,
+        track_no: Optional[int] = ...,
+    ) -> None: ...
 
     my_tag_id: str
     """The ID of the associated [`DjmdMyTag`]."""
@@ -1455,6 +1596,17 @@ class DjmdPlaylist(_RustMutableMapping):
 class NewDjmdPlaylist(_RustMutableMapping):
     """Represents a new record insertale to the `djmdPlaylist` table."""
 
+    def __init__(
+        self,
+        name: str,
+        attribute: PlaylistType,
+        *,
+        seq: Optional[int] = ...,
+        parent_id: Optional[str] = ...,
+        image_path: Optional[str] = ...,
+        smart_list: Optional[str] = ...,
+    ) -> None: ...
+
     name: str
     """The name of the playlist."""
     attribute: PlaylistType
@@ -1500,6 +1652,14 @@ class DjmdSongPlaylist(_RustMutableMapping):
 
 class NewDjmdSongPlaylist(_RustMutableMapping):
     """Represents a new record insertale to the `djmdSongPlaylist` table."""
+
+    def __init__(
+        self,
+        playlist_id: str,
+        content_id: str,
+        *,
+        track_no: Optional[int] = ...,
+    ) -> None: ...
 
     playlist_id: str
     """The ID of the associated playlist in [`DjmdPlaylist`]."""
@@ -1641,6 +1801,16 @@ class DjmdRelatedTracks(_RustMutableMapping):
 class NewDjmdRelatedTracks(_RustMutableMapping):
     """Represents a new record insertale to the `djmdRelatedTracks` table."""
 
+    def __init__(
+        self,
+        name: str,
+        attribute: RelatedTracksType,
+        *,
+        seq: Optional[int] = ...,
+        parent_id: Optional[str] = ...,
+        criteria: Optional[str] = ...,
+    ) -> None: ...
+
     name: str
     """The name of the related track."""
     attribute: RelatedTracksType
@@ -1685,6 +1855,14 @@ class DjmdSongRelatedTracks(_RustMutableMapping):
 class NewDjmdSongRelatedTracks(_RustMutableMapping):
     """Represents a new record insertale to the `djmdSongRelatedTracks` table."""
 
+    def __init__(
+        self,
+        related_tracks_id: str,
+        content_id: str,
+        *,
+        track_no: Optional[int] = ...,
+    ) -> None: ...
+
     related_tracks_id: str
     """The ID of the associated playlist in [`DjmdPlaylist`]."""
     content_id: str
@@ -1727,6 +1905,15 @@ class DjmdSampler(_RustMutableMapping):
 class NewDjmdSampler(_RustMutableMapping):
     """Represents a new record insertale to the `djmdSampler` table."""
 
+    def __init__(
+        self,
+        name: str,
+        attribute: SamplerType,
+        *,
+        seq: Optional[int] = ...,
+        parent_id: Optional[str] = ...,
+    ) -> None: ...
+
     name: str
     """The name of the sampler."""
     attribute: SamplerType
@@ -1768,6 +1955,14 @@ class DjmdSongSampler(_RustMutableMapping):
 
 class NewDjmdSongSampler(_RustMutableMapping):
     """Represents a new record insertale to the `djmdSongSampler` table."""
+
+    def __init__(
+        self,
+        sampler_id: str,
+        content_id: str,
+        *,
+        track_no: Optional[int] = ...,
+    ) -> None: ...
 
     sampler_id: str
     """The ID of the associated sampler in [`DjmdSampler`]."""
@@ -2659,6 +2854,16 @@ class Album(_RustMutableMapping):
 class NewAlbum(_RustMutableMapping):
     """Represents a new record insertale to the `album` table."""
 
+    def __init__(
+        self,
+        name: str,
+        *,
+        artist_id: Optional[int] = ...,
+        image_id: Optional[int] = ...,
+        is_compilation: int = ...,
+        name_for_search: Optional[str] = ...,
+    ) -> None: ...
+
     name: str
     """The name of the album."""
     artist_id: Optional[int]
@@ -2682,6 +2887,13 @@ class Artist(_RustMutableMapping):
 
 class NewArtist(_RustMutableMapping):
     """Represents a new record insertale to the `artist` table."""
+
+    def __init__(
+        self,
+        name: str,
+        *,
+        name_for_search: Optional[str] = ...,
+    ) -> None: ...
 
     name: str
     """The name of the artist."""
@@ -2734,6 +2946,14 @@ class Category(_RustMutableMapping):
 class NewCategory(_RustMutableMapping):
     """Represents a new record insertale to the `category` table."""
 
+    def __init__(
+        self,
+        menu_item_id: int,
+        *,
+        seq: int = ...,
+        is_visible: int = ...,
+    ) -> None: ...
+
     menu_item_id: int
     """A foreign key referencing the [`MenuItem`]."""
     seq: int
@@ -2751,6 +2971,11 @@ class Color(_RustMutableMapping):
 
 class NewColor(_RustMutableMapping):
     """Represents a new record insertale to the `color` table."""
+
+    def __init__(
+        self,
+        name: str,
+    ) -> None: ...
 
     name: str
     """The name of the color"""
@@ -2775,6 +3000,8 @@ class ContentView:
     def lyricist(self) -> Optional[Artist]: ...
     @property
     def album(self) -> Optional[Album]: ...
+    @property
+    def album_artist(self) -> Optional[Artist]: ...
     @property
     def genre(self) -> Optional[Genre]: ...
     @property
@@ -2882,6 +3109,55 @@ class Content(_RustMutableMapping):
 
 class NewContent(_RustMutableMapping):
     """Represents a new record insertale to the `content` table."""
+
+    def __init__(
+        self,
+        path: str,
+        *,
+        date_created: datetime = ...,
+        date_added: datetime = ...,
+        title: Optional[str] = ...,
+        title_for_search: Optional[str] = ...,
+        subtitle: Optional[str] = ...,
+        bpmx100: Optional[int] = ...,
+        length: Optional[int] = ...,
+        track_no: Optional[int] = ...,
+        disc_no: Optional[int] = ...,
+        artist_id: Optional[int] = ...,
+        remixer_id: Optional[int] = ...,
+        original_artist_id: Optional[int] = ...,
+        composer_id: Optional[int] = ...,
+        lyricist_id: Optional[int] = ...,
+        album_id: Optional[int] = ...,
+        genre_id: Optional[int] = ...,
+        label_id: Optional[int] = ...,
+        key_id: Optional[int] = ...,
+        color_id: Optional[int] = ...,
+        image_id: Optional[int] = ...,
+        dj_comment: Optional[str] = ...,
+        rating: Optional[int] = ...,
+        release_year: Optional[int] = ...,
+        release_date: Optional[str] = ...,
+        file_name: Optional[str] = ...,
+        file_size: Optional[int] = ...,
+        file_type: Optional[int] = ...,
+        bitrate: Optional[int] = ...,
+        bit_depth: Optional[int] = ...,
+        sampling_rate: Optional[int] = ...,
+        isrc: Optional[str] = ...,
+        is_hot_cue_auto_load_on: Optional[int] = ...,
+        is_kuvo_deliver_status_on: Optional[int] = ...,
+        kuvo_delivery_comment: Optional[str] = ...,
+        master_db_id: Optional[int] = ...,
+        master_content_id: Optional[int] = ...,
+        analysis_data_file_path: Optional[str] = ...,
+        analysed_bits: Optional[int] = ...,
+        content_link: Optional[int] = ...,
+        has_modified: Optional[int] = ...,
+        cue_update_count: Optional[int] = ...,
+        analysis_data_update_count: Optional[int] = ...,
+        information_update_count: Optional[int] = ...,
+    ) -> None: ...
 
     date_created: datetime
     """The date the record was created"""
@@ -3031,6 +3307,11 @@ class Genre(_RustMutableMapping):
 class NewGenre(_RustMutableMapping):
     """Represents a new record insertale to the `genre` table."""
 
+    def __init__(
+        self,
+        name: str,
+    ) -> None: ...
+
     name: str
     """The name of the genre."""
 
@@ -3051,7 +3332,16 @@ class History(_RustMutableMapping):
 class NewHistory(_RustMutableMapping):
     """Represents a new record insertale to the `history` table."""
 
-    seq: int
+    def __init__(
+        self,
+        name: str,
+        attribute: HistoryType,
+        *,
+        seq: Optional[int] = ...,
+        parent_id: int = ...,
+    ) -> None: ...
+
+    seq: Optional[int]
     """The sequence/order number of the history (1-based index)"""
     name: str
     """The name of the history."""
@@ -3107,6 +3397,11 @@ class Image(_RustMutableMapping):
 class NewImage(_RustMutableMapping):
     """Represents a new record insertale to the `image` table."""
 
+    def __init__(
+        self,
+        path: str,
+    ) -> None: ...
+
     path: str
     """The relative file path of the image."""
 
@@ -3121,6 +3416,11 @@ class Key(_RustMutableMapping):
 class NewKey(_RustMutableMapping):
     """Represents a new record insertale to the `key` table."""
 
+    def __init__(
+        self,
+        name: str,
+    ) -> None: ...
+
     name: str
     """The name of the key."""
 
@@ -3134,6 +3434,11 @@ class Label(_RustMutableMapping):
 
 class NewLabel(_RustMutableMapping):
     """Represents a new record insertale to the `label` table."""
+
+    def __init__(
+        self,
+        name: str,
+    ) -> None: ...
 
     name: str
     """The name of the label."""
@@ -3150,6 +3455,12 @@ class MenuItem(_RustMutableMapping):
 
 class NewMenuItem(_RustMutableMapping):
     """Represents a new record insertale to the `menuItem` table."""
+
+    def __init__(
+        self,
+        name: str,
+        kind: int,
+    ) -> None: ...
 
     kind: int
     """The kind of menu item (similar to `class` in the main DB)."""
@@ -3173,7 +3484,16 @@ class MyTag(_RustMutableMapping):
 class NewMyTag(_RustMutableMapping):
     """Represents a new record insertale to the `myTag` table."""
 
-    seq: int
+    def __init__(
+        self,
+        name: str,
+        attribute: MyTagType,
+        *,
+        seq: Optional[int] = ...,
+        parent_id: int = ...,
+    ) -> None: ...
+
+    seq: Optional[int]
     """The sequence/order number of the tag (1-based index)."""
     name: str
     """The name of the tag."""
@@ -3201,7 +3521,7 @@ class Playlist(_RustMutableMapping):
     """The name of the playlist."""
     image_id: Optional[int]
     """Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image)."""
-    attribute: OneLibraryPlaylistType
+    attribute: PlaylistType
     """The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`)."""
     parent_id: int
     """The ID of the parent [`Playlist`], `0` for top-level records."""
@@ -3209,13 +3529,23 @@ class Playlist(_RustMutableMapping):
 class NewPlaylist(_RustMutableMapping):
     """Represents a new record insertale to the `playlist` table."""
 
-    seq: int
+    def __init__(
+        self,
+        name: str,
+        attribute: PlaylistType,
+        *,
+        seq: Optional[int] = ...,
+        image_id: Optional[int] = ...,
+        parent_id: int = ...,
+    ) -> None: ...
+
+    seq: Optional[int]
     """The sequence/order number of the playlist (1-based index)."""
     name: str
     """The name of the playlist."""
     image_id: Optional[int]
     """Optional foreign key referencing the artwork [`Image`] (`0` or `None` if no image)."""
-    attribute: OneLibraryPlaylistType
+    attribute: PlaylistType
     """The playlist type, either list (`0`), a folder (`1`) or a smart list (`4`)."""
     parent_id: int
     """The ID of the parent [`Playlist`], `0` for top-level records."""
@@ -3275,6 +3605,15 @@ class Sort(_RustMutableMapping):
 class NewSort(_RustMutableMapping):
     """Represents a new record insertale to the `sort` table."""
 
+    def __init__(
+        self,
+        menu_item_id: int,
+        *,
+        seq: int = ...,
+        is_visible: int = ...,
+        is_selected_as_sub_column: int = ...,
+    ) -> None: ...
+
     menu_item_id: int
     """An optional foreign key referencing the [`MenuItem`]."""
     seq: int
@@ -3285,8 +3624,23 @@ class NewSort(_RustMutableMapping):
     """A flag if the item is selected as a sub-column"""
 
 class PyOneLibrary:
-    def __init__(self, path: str) -> "PyOneLibrary":
-        """Open a OneLibrary (Device Library Plus) database specified by path."""
+    def get_tracks(self) -> List[Track]:
+        """Load shared tracks with resolved names and unsigned numeric IDs."""
+        ...
+
+    def get_track_by_id(self, id: int) -> Optional[Track]: ...
+    def get_tracks_by_ids(self, ids: List[int]) -> List[Track]:
+        """Load tracks in ID order, omitting missing and duplicate IDs."""
+        ...
+
+    def get_track_by_path(self, path: str) -> Optional[Track]: ...
+    def __init__(self, directory: str) -> "PyOneLibrary":
+        """Open exportLibrary.db in the supplied directory, usually PIONEER/rekordbox."""
+        ...
+
+    @classmethod
+    def from_path(cls, path: str) -> "PyOneLibrary":
+        """Open an existing OneLibrary database at an explicit file path."""
         ...
 
     @classmethod
@@ -3433,6 +3787,21 @@ class PyOneLibrary:
 
     def get_content_by_id(self, id: int) -> Optional[Content]:
         """Queries a record from the `content` table by its primary key `id`."""
+        ...
+
+    def get_content_by_master_content_id(self, master_content_id: int, master_db_id: int) -> Optional[Content]:
+        """Find by both stored signed 32-bit source IDs; return None if absent or zero.
+
+        Repeated pairs return the content with the lowest local export ID.
+        """
+        ...
+
+    def get_contents_by_master_content_ids(self, master_content_ids: List[int], master_db_id: int) -> List[Content]:
+        """Load all matching contents for signed source IDs within one library.
+
+        Ordered by local export ID; missing/zero IDs are omitted and repeated input
+        IDs do not repeat rows. Empty input or a zero library ID returns [].
+        """
         ...
 
     def insert_content(self, content: NewContent) -> Content:
@@ -3866,6 +4235,901 @@ class PyOneLibrary:
     def delete_sort(self, id: int) -> int:
         """Deletes a record from the `sort` table by its primary key `id`."""
         ...
+
+# ---- Device Library -------------------------------------------------------------------------------
+
+class LibraryCreateOptions:
+    """Metadata for creating both Device Library files."""
+
+    date: str
+    device_name: str
+    my_tag_master_db_id: int
+    def __init__(self, date: str, device_name: str, my_tag_master_db_id: int) -> None: ...
+
+class DevSaveStats:
+    """Read-only per-file write statistics."""
+
+    @property
+    def pages_written(self) -> int: ...
+    @property
+    def bytes_written(self) -> int: ...
+
+class LibrarySaveStats:
+    """Write statistics; extended is None for a standard-only library."""
+
+    @property
+    def standard(self) -> DevSaveStats: ...
+    @property
+    def extended(self) -> Optional[DevSaveStats]: ...
+
+class PyDeviceLibrary:
+    """Detached edits require explicit saves; the two files are not saved atomically as a pair."""
+
+    def __init__(self, directory: Union[str, PathLike[str]]) -> None: ...
+    @classmethod
+    def from_paths(
+        cls, standard: Union[str, PathLike[str]], extended: Optional[Union[str, PathLike[str]]] = None
+    ) -> PyDeviceLibrary: ...
+    @classmethod
+    def create(cls, directory: Union[str, PathLike[str]], options: LibraryCreateOptions) -> PyDeviceLibrary: ...
+    def has_extended(self) -> bool: ...
+    def save(self) -> LibrarySaveStats:
+        """Replace changed source files, individually atomically; unchanged files perform no writes."""
+        ...
+    def save_pages(self) -> LibrarySaveStats:
+        """Write changed pages non-atomically. Discard the handler after a failed write."""
+        ...
+    def save_as(self, directory: Union[str, PathLike[str]]) -> None:
+        """Copy database images without overwriting; retains the source and pending edits."""
+        ...
+    def get_albums(self) -> List[DevAlbum]: ...
+    def get_album_by_id(self, id: int) -> Optional[DevAlbum]: ...
+    def get_album_by_name(self, name: str) -> Optional[DevAlbum]: ...
+    def get_album_with_relations(self, id: int) -> Optional[DevAlbumView]: ...
+    def get_albums_with_relations(self) -> List[DevAlbumView]: ...
+    def insert_album(self, album: NewDevAlbum) -> DevAlbum: ...
+    def create_album(self, name: str, artist_id: Optional[int] = None) -> DevAlbum: ...
+    def update_album(self, album: DevAlbum) -> DevAlbum: ...
+    def delete_album(self, id: int) -> int: ...
+    def get_artists(self) -> List[DevArtist]: ...
+    def get_artist_by_id(self, id: int) -> Optional[DevArtist]: ...
+    def get_artist_by_name(self, name: str) -> Optional[DevArtist]: ...
+    def insert_artist(self, artist: NewDevArtist) -> DevArtist: ...
+    def create_artist(self, name: str) -> DevArtist: ...
+    def update_artist(self, artist: DevArtist) -> DevArtist: ...
+    def delete_artist(self, id: int) -> int: ...
+    def get_artworks(self) -> List[DevArtwork]: ...
+    def get_artwork_by_id(self, id: int) -> Optional[DevArtwork]: ...
+    def get_artwork_by_path(self, path: str) -> Optional[DevArtwork]: ...
+    def insert_artwork(self, artwork: NewDevArtwork) -> DevArtwork: ...
+    def create_artwork(self, path: str) -> DevArtwork: ...
+    def update_artwork(self, artwork: DevArtwork) -> DevArtwork: ...
+    def delete_artwork(self, id: int) -> int: ...
+    def get_browse_columns(self) -> List[DevBrowseColumn]: ...
+    def get_browse_column_by_id(self, id: int) -> Optional[DevBrowseColumn]: ...
+    def get_browse_column_by_name(self, name: str) -> Optional[DevBrowseColumn]: ...
+    def update_browse_column(self, column: DevBrowseColumn) -> DevBrowseColumn: ...
+    def get_browse_categories(self) -> List[DevBrowseCategory]: ...
+    def get_browse_categories_by_column(self, column_id: int) -> List[DevBrowseCategory]: ...
+    def update_browse_category(self, category: DevBrowseCategory) -> DevBrowseCategory: ...
+    def get_browse_sorts(self) -> List[DevBrowseSort]: ...
+    def get_browse_sorts_by_column(self, column_id: int) -> List[DevBrowseSort]: ...
+    def update_browse_sort(self, sort: DevBrowseSort) -> DevBrowseSort: ...
+    def get_colors(self) -> List[DevColor]: ...
+    def get_color_by_id(self, id: int) -> Optional[DevColor]: ...
+    def get_color_by_name(self, name: str) -> Optional[DevColor]: ...
+    def update_color(self, color: DevColor) -> DevColor: ...
+    def get_tracks(self) -> List[Track]: ...
+    def get_track_by_id(self, id: int) -> Optional[Track]: ...
+    def get_tracks_by_ids(self, ids: List[int]) -> List[Track]: ...
+    def get_track_by_path(self, path: str) -> Optional[Track]: ...
+    def get_contents(self) -> List[DevContent]: ...
+    def get_content_by_id(self, id: int) -> Optional[DevContent]: ...
+    def get_content_by_master_content_id(self, master_content_id: int, master_db_id: int) -> Optional[DevContent]: ...
+    def get_contents_by_master_content_ids(
+        self, master_content_ids: List[int], master_db_id: int
+    ) -> List[DevContent]: ...
+    def get_content_with_relations(self, id: int) -> Optional[DevContentView]: ...
+    def get_contents_with_relations(self) -> List[DevContentView]: ...
+    def insert_content(self, content: NewDevContent) -> DevContent: ...
+    def create_content(self, path: str) -> DevContent: ...
+    def update_content(self, content: DevContent) -> DevContent: ...
+    def delete_content(self, id: int) -> int: ...
+    def get_genres(self) -> List[DevGenre]: ...
+    def get_genre_by_id(self, id: int) -> Optional[DevGenre]: ...
+    def get_genre_by_name(self, name: str) -> Optional[DevGenre]: ...
+    def insert_genre(self, genre: NewDevGenre) -> DevGenre: ...
+    def create_genre(self, name: str) -> DevGenre: ...
+    def update_genre(self, genre: DevGenre) -> DevGenre: ...
+    def delete_genre(self, id: int) -> int: ...
+    def get_histories(self) -> List[DevHistory]: ...
+    def get_history_by_id(self, id: int) -> Optional[DevHistory]: ...
+    def get_history_contents(self, id: int) -> List[DevContent]: ...
+    def get_history_entries(self, id: int) -> List[DevHistoryContent]: ...
+    def insert_history(self, history: NewDevHistory) -> DevHistory: ...
+    def create_history(self, name: str) -> DevHistory: ...
+    def update_history(self, history: DevHistory) -> DevHistory: ...
+    def delete_history(self, id: int) -> int: ...
+    def insert_history_content(self, entry: NewDevHistoryContent) -> DevHistoryContent: ...
+    def create_history_content(self, history_id: int, content_id: int, seq: int) -> DevHistoryContent: ...
+    def delete_history_content(self, entry: DevHistoryContent) -> int: ...
+    def get_keys(self) -> List[DevKey]: ...
+    def get_key_by_id(self, id: int) -> Optional[DevKey]: ...
+    def get_key_by_name(self, name: str) -> Optional[DevKey]: ...
+    def insert_key(self, key: NewDevKey) -> DevKey: ...
+    def create_key(self, name: str, secondary_id: int) -> DevKey: ...
+    def update_key(self, key: DevKey) -> DevKey: ...
+    def delete_key(self, id: int) -> int: ...
+    def get_labels(self) -> List[DevLabel]: ...
+    def get_label_by_id(self, id: int) -> Optional[DevLabel]: ...
+    def get_label_by_name(self, name: str) -> Optional[DevLabel]: ...
+    def insert_label(self, label: NewDevLabel) -> DevLabel: ...
+    def create_label(self, name: str) -> DevLabel: ...
+    def update_label(self, label: DevLabel) -> DevLabel: ...
+    def delete_label(self, id: int) -> int: ...
+    def get_my_tags(self) -> List[DevMyTag]: ...
+    def get_my_tag_by_id(self, id: int) -> Optional[DevMyTag]: ...
+    def get_my_tag_children(self, id: int) -> List[DevMyTag]: ...
+    def get_my_tag_by_content_id(self, content_id: int) -> List[DevMyTag]: ...
+    def get_my_tag_contents(self, id: int) -> List[DevContent]: ...
+    def insert_my_tag(self, my_tag: NewDevMyTag) -> DevMyTag: ...
+    def create_my_tag(
+        self, id: int, name: str, parent_id: Optional[int] = None, seq: Optional[int] = None
+    ) -> DevMyTag: ...
+    def create_my_tag_folder(
+        self, id: int, name: str, parent_id: Optional[int] = None, seq: Optional[int] = None
+    ) -> DevMyTag: ...
+    def update_my_tag(self, my_tag: DevMyTag) -> DevMyTag: ...
+    def rename_my_tag(self, id: int, name: str) -> int: ...
+    def count_my_tag_children(self, parent_id: int) -> int: ...
+    def get_my_tag_seq_numbers(self, parent_id: int) -> List[int]: ...
+    def validate_my_tag_seq_numbers(self, parent_id: int) -> bool: ...
+    def reset_my_tag_seq(self, parent_id: int) -> int: ...
+    def move_my_tag(self, id: int, parent_id: Optional[int] = None, seq: Optional[int] = None) -> int: ...
+    def move_my_tags(self, ids: List[int], parent_id: int, start_seq: Optional[int] = None) -> int: ...
+    def delete_my_tag(self, id: int) -> int: ...
+    def delete_my_tags(self, ids: List[int]) -> int: ...
+    def get_my_tag_associations(self) -> List[DevMyTagContent]: ...
+    def get_my_tag_entries(self, id: int) -> List[DevMyTagContent]: ...
+    def get_my_tag_associations_by_content_id(self, content_id: int) -> List[DevMyTagContent]: ...
+    def insert_my_tag_content(self, entry: NewDevMyTagContent) -> DevMyTagContent: ...
+    def create_my_tag_content(self, my_tag_id: int, content_id: int) -> DevMyTagContent: ...
+    def delete_my_tag_content(self, my_tag_id: int, content_id: int) -> int: ...
+    def delete_my_tag_content_entry(self, entry: DevMyTagContent) -> int: ...
+    def get_playlists(self) -> List[DevPlaylist]: ...
+    def get_playlist_by_id(self, id: int) -> Optional[DevPlaylist]: ...
+    def get_playlist_children(self, id: int) -> List[DevPlaylist]: ...
+    def get_playlist_contents(self, id: int) -> List[DevContent]: ...
+    def get_playlist_by_path(self, path: List[str]) -> Optional[DevPlaylist]: ...
+    def get_playlist_tree(self) -> List[DevPlaylistTreeNode]: ...
+    def get_playlist_attribute(self, id: int) -> Optional[PlaylistType]: ...
+    def is_playlist(self, id: int) -> bool: ...
+    def insert_playlist(self, playlist: NewDevPlaylist) -> DevPlaylist: ...
+    def create_playlist(self, name: str, parent_id: Optional[int] = None, seq: Optional[int] = None) -> DevPlaylist: ...
+    def create_playlist_folder(
+        self, name: str, parent_id: Optional[int] = None, seq: Optional[int] = None
+    ) -> DevPlaylist: ...
+    def update_playlist(self, playlist: DevPlaylist) -> DevPlaylist: ...
+    def rename_playlist(self, id: int, name: str) -> int: ...
+    def count_playlist_children(self, parent_id: int) -> int: ...
+    def get_playlist_seq_numbers(self, parent_id: int) -> List[int]: ...
+    def validate_playlist_seq_numbers(self, parent_id: int) -> bool: ...
+    def reset_playlist_seq(self, parent_id: int) -> int: ...
+    def move_playlist(self, id: int, parent_id: Optional[int] = None, seq: Optional[int] = None) -> int: ...
+    def move_playlists(self, ids: List[int], parent_id: int, start_seq: Optional[int] = None) -> int: ...
+    def delete_playlist(self, id: int) -> int: ...
+    def delete_playlists(self, ids: List[int]) -> int: ...
+    def get_playlist_associations(self) -> List[DevPlaylistContent]: ...
+    def get_playlist_entries(self, id: int) -> List[DevPlaylistContent]: ...
+    def get_playlist_associations_by_content_id(self, content_id: int) -> List[DevPlaylistContent]: ...
+    def get_playlist_content_by_id(self, playlist_id: int, content_id: int) -> Optional[DevPlaylistContent]: ...
+    def insert_playlist_content(self, entry: NewDevPlaylistContent) -> DevPlaylistContent: ...
+    def create_playlist_content(
+        self, playlist_id: int, content_id: int, seq: Optional[int] = None
+    ) -> DevPlaylistContent: ...
+    def count_playlist_contents(self, playlist_id: int) -> int: ...
+    def get_playlist_content_seq_numbers(self, playlist_id: int) -> List[int]: ...
+    def validate_playlist_content_seq_numbers(self, playlist_id: int) -> bool: ...
+    def reset_playlist_content_seq(self, playlist_id: int) -> int: ...
+    def move_playlist_content(self, playlist_id: int, content_id: int, seq: Optional[int] = None) -> int: ...
+    def move_playlist_contents(self, ids: List[Tuple[int, int]], start_seq: Optional[int] = None) -> int: ...
+    def delete_playlist_content(self, playlist_id: int, content_id: int) -> int: ...
+    def delete_playlist_contents(self, ids: List[Tuple[int, int]]) -> int: ...
+    def delete_playlist_content_entry(self, entry: DevPlaylistContent) -> int: ...
+    def remove_playlist_content(self, playlist_id: int, content_id: int) -> int: ...
+    def delete_playlist_contents_by_playlist_id(self, playlist_id: int) -> int: ...
+    def delete_playlist_contents_by_playlist_ids(self, ids: List[int]) -> int: ...
+    def delete_playlist_contents_by_content_id(self, content_id: int) -> int: ...
+    def delete_playlist_contents_by_content_ids(self, ids: List[int]) -> int: ...
+    def get_properties(self) -> List[DevExportProperty]: ...
+    def get_property_by_device(self, device_name: str) -> Optional[DevExportProperty]: ...
+    def get_first_property(self) -> Optional[DevExportProperty]: ...
+    def update_property(self, property: DevExportProperty) -> DevExportProperty: ...
+    def get_database_properties(self) -> List[DevDatabaseProperty]: ...
+    def get_first_database_property(self) -> Optional[DevDatabaseProperty]: ...
+    def update_database_property(self, property: DevDatabaseProperty) -> DevDatabaseProperty: ...
+    def get_recommend_likes(self) -> List[DevRecommendedLike]: ...
+    def get_recommend_like_by_content_id(self, content_id: int) -> List[DevRecommendedLike]: ...
+    def insert_recommend_like(self, recommend_like: NewDevRecommendedLike) -> DevRecommendedLike: ...
+    def create_recommend_like(
+        self, content_id_1: int, content_id_2: int, unknown_00: int, unknown_10: int, unknown_14: int
+    ) -> DevRecommendedLike: ...
+    def delete_recommend_like(self, recommend_like: DevRecommendedLike) -> int: ...
+
+class DevAlbum(_RustMutableMapping):
+    """A detached album from the standard database."""
+
+    id: int
+    """Export album ID."""
+    artist_id: int
+    """Album artist ID, independent of the track artist; zero means unassigned."""
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class DevAlbumView:
+    """An album snapshot with its album artist explicitly resolved."""
+
+    @property
+    def album(self) -> DevAlbum: ...
+    @property
+    def artist(self) -> Optional[DevArtist]: ...
+
+class NewDevAlbum(_RustMutableMapping):
+    """Input for a fresh album, without an existing raw row."""
+
+    def __init__(
+        self,
+        name: str,
+        *,
+        artist_id: int = ...,
+        unknown_04: int = ...,
+        unknown_10: int = ...,
+    ) -> None: ...
+
+    artist_id: int
+    """Album artist ID, independent of the track artist; zero means unassigned."""
+    name: str
+    """Decoded display name, preserving empty text."""
+    unknown_04: int
+    """Reserved word at 0x04; defaults to the observed zero authoring value."""
+    unknown_10: int
+    """Reserved word at 0x10; defaults to the observed zero authoring value."""
+
+class DevArtist(_RustMutableMapping):
+    """A detached artist from the standard database."""
+
+    id: int
+    """Export artist ID."""
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class NewDevArtist(_RustMutableMapping):
+    """Input for a fresh artist, without an existing raw row."""
+
+    def __init__(
+        self,
+        name: str,
+    ) -> None: ...
+
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class DevArtwork(_RustMutableMapping):
+    """A detached artwork from the standard database."""
+
+    id: int
+    """Export artwork ID."""
+    path: str
+    """Original artwork path, preserving stored separators."""
+
+class NewDevArtwork(_RustMutableMapping):
+    """Input for a fresh artwork, without an existing raw row."""
+
+    def __init__(
+        self,
+        path: str,
+    ) -> None: ...
+
+    path: str
+    """Original artwork path, preserving stored separators."""
+
+class DevBrowseColumn(_RustMutableMapping):
+    """A predefined browse label from standard table 16, such as ARTIST or BPM."""
+
+    id: int
+    """Column/menu-label ID."""
+    code: int
+    """Raw column code; unknown values are retained."""
+    name: str
+    """Display label with one enclosing U+FFFA/U+FFFB pair removed, if present. Unframed labels, whitespace and interior characters are preserved."""
+
+class DevBrowseCategory(_RustMutableMapping):
+    """Category menu visibility and order from standard table 17."""
+
+    column_id: int
+    """Column/menu-label ID."""
+    selector: int
+    """Content/menu selector, not a PDB table ID."""
+    unknown_04: int
+    """Raw attribute byte; its meaning is not inferred."""
+    state: int
+    """Visibility/state: 0 visible and 1 hidden in CDJ-350 experiments. Values 2 and 3 also occur in native exports and remain unqualified. Preserve unknown values without boolean coercion."""
+    position: int
+    """Stored display order; zero is a valid first position."""
+
+class DevBrowseSort(_RustMutableMapping):
+    """Sort-option configuration from standard table 18."""
+
+    column_id: int
+    """Column/menu-label ID."""
+    selector: int
+    """Sort-item selector; zero is retained."""
+    raw_tail: int
+    """Complete little-endian tail word, preserving all four bytes. Flag and position interpretations are provisional; see the module docs."""
+
+class DevColor(_RustMutableMapping):
+    """A detached color from the standard database."""
+
+    id: int
+    """Export color ID, retaining both bytes of the binary field."""
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class DevContent(_RustMutableMapping):
+    """A detached track from the standard database's track table."""
+
+    id: int
+    """Export track ID, used by playlists and tag associations."""
+    artist_id: int
+    """Main artist ID."""
+    album_id: int
+    """Album ID."""
+    genre_id: int
+    """Genre ID."""
+    label_id: int
+    """Label ID."""
+    key_id: int
+    """Musical-key ID."""
+    artwork_id: int
+    """Artwork-reference ID."""
+    composer_id: int
+    """Composer artist ID."""
+    original_artist_id: int
+    """Original artist ID."""
+    remixer_id: int
+    """Remixer artist ID."""
+    master_content_id: int
+    """Content identity in the source library, separate from the export ID."""
+    master_db_id: int
+    """Source library identity."""
+    sample_rate: int
+    """Sample rate in Hz."""
+    file_size: int
+    """Audio file size in bytes."""
+    bitrate: int
+    """Stored bitrate, normally kb/s."""
+    bpmx100: int
+    """Tempo in BPM multiplied by 100."""
+    length: int
+    """Track duration in seconds."""
+    track_no: int
+    """Track number within the release."""
+    disc_no: int
+    """Disc number."""
+    play_count: int
+    """Stored play count."""
+    release_year: int
+    """Release year."""
+    bit_depth: int
+    """Sample depth in bits per sample."""
+    color_id: int
+    """Raw color ID, including zero."""
+    rating: int
+    """Raw star rating; unrecognized values are retained."""
+    file_type: int
+    """Raw audio format code; unrecognized codes are retained."""
+    title: str
+    """Display title."""
+    comment: str
+    """DJ comment."""
+    mix_name: str
+    """Mix/remix name."""
+    lyricist: str
+    """Lyricist text."""
+    message: str
+    """Track message, separate from the comment."""
+    publish_track_info: str
+    """Original publication setting text."""
+    hot_cue_auto_load: str
+    """Original hot-cue auto-load setting text."""
+    date_added: str
+    """Collection date as stored text."""
+    release_date: str
+    """Release date as stored text."""
+    analysis_date: str
+    """Analysis date as stored text."""
+    analysis_path: str
+    """Analysis-file path, preserving original separators."""
+    file_name: str
+    """Audio basename."""
+    path: str
+    """Audio path, preserving original separators."""
+
+class DevContentView:
+    """Content snapshot with resolved metadata, following masterdb's content-view pattern."""
+
+    @property
+    def content(self) -> DevContent: ...
+    @property
+    def artist(self) -> Optional[DevArtist]: ...
+    @property
+    def remixer(self) -> Optional[DevArtist]: ...
+    @property
+    def original_artist(self) -> Optional[DevArtist]: ...
+    @property
+    def composer(self) -> Optional[DevArtist]: ...
+    @property
+    def album(self) -> Optional[DevAlbum]: ...
+    @property
+    def album_artist(self) -> Optional[DevArtist]: ...
+    @property
+    def genre(self) -> Optional[DevGenre]: ...
+    @property
+    def label(self) -> Optional[DevLabel]: ...
+    @property
+    def key(self) -> Optional[DevKey]: ...
+    @property
+    def color(self) -> Optional[DevColor]: ...
+    @property
+    def artwork(self) -> Optional[DevArtwork]: ...
+
+class NewDevContent(_RustMutableMapping):
+    """Input for a fresh track; no source row or existing PDB is required."""
+
+    def __init__(
+        self,
+        path: str,
+        *,
+        artist_id: int = ...,
+        album_id: int = ...,
+        genre_id: int = ...,
+        label_id: int = ...,
+        key_id: int = ...,
+        artwork_id: int = ...,
+        composer_id: int = ...,
+        original_artist_id: int = ...,
+        remixer_id: int = ...,
+        master_content_id: int = ...,
+        master_db_id: int = ...,
+        sample_rate: int = ...,
+        file_size: int = ...,
+        bitrate: int = ...,
+        bpmx100: int = ...,
+        length: int = ...,
+        track_no: int = ...,
+        disc_no: int = ...,
+        play_count: int = ...,
+        release_year: int = ...,
+        bit_depth: int = ...,
+        color_id: int = ...,
+        rating: int = ...,
+        file_type: int = ...,
+        title: str = ...,
+        comment: str = ...,
+        mix_name: str = ...,
+        lyricist: str = ...,
+        message: str = ...,
+        publish_track_info: str = ...,
+        hot_cue_auto_load: str = ...,
+        date_added: str = ...,
+        release_date: str = ...,
+        analysis_date: str = ...,
+        analysis_path: str = ...,
+        file_name: str = ...,
+        isrc: str = ...,
+    ) -> None: ...
+
+    artist_id: int
+    """Main artist ID."""
+    album_id: int
+    """Album ID."""
+    genre_id: int
+    """Genre ID."""
+    label_id: int
+    """Label ID."""
+    key_id: int
+    """Musical-key ID."""
+    artwork_id: int
+    """Artwork-reference ID."""
+    composer_id: int
+    """Composer artist ID."""
+    original_artist_id: int
+    """Original artist ID."""
+    remixer_id: int
+    """Remixer artist ID."""
+    master_content_id: int
+    """Content identity in the source library, separate from the export ID."""
+    master_db_id: int
+    """Source library identity."""
+    sample_rate: int
+    """Sample rate in Hz."""
+    file_size: int
+    """Audio file size in bytes."""
+    bitrate: int
+    """Stored bitrate, normally kb/s."""
+    bpmx100: int
+    """Tempo in BPM multiplied by 100."""
+    length: int
+    """Track duration in seconds."""
+    track_no: int
+    """Track number within the release."""
+    disc_no: int
+    """Disc number."""
+    play_count: int
+    """Stored play count."""
+    release_year: int
+    """Release year."""
+    bit_depth: int
+    """Sample depth in bits per sample."""
+    color_id: int
+    """Raw color ID, including zero."""
+    rating: int
+    """Raw star rating; unrecognized values are retained."""
+    file_type: int
+    """Raw audio format code; unrecognized codes are retained."""
+    title: str
+    """Display title."""
+    comment: str
+    """DJ comment."""
+    mix_name: str
+    """Mix/remix name."""
+    lyricist: str
+    """Lyricist text."""
+    message: str
+    """Track message, separate from the comment."""
+    publish_track_info: str
+    """Original publication setting text."""
+    hot_cue_auto_load: str
+    """Original hot-cue auto-load setting text."""
+    date_added: str
+    """Collection date as stored text."""
+    release_date: str
+    """Release date as stored text."""
+    analysis_date: str
+    """Analysis date as stored text."""
+    analysis_path: str
+    """Analysis-file path, preserving original separators."""
+    file_name: str
+    """Audio basename."""
+    path: str
+    """Audio path, preserving original separators."""
+    isrc: str
+    """ISRC text; empty means absent, otherwise twelve ASCII alphanumeric characters."""
+
+class DevGenre(_RustMutableMapping):
+    """A detached genre from the standard database."""
+
+    id: int
+    """Export genre ID."""
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class NewDevGenre(_RustMutableMapping):
+    """Input for a fresh genre, without an existing raw row."""
+
+    def __init__(
+        self,
+        name: str,
+    ) -> None: ...
+
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class DevHistory(_RustMutableMapping):
+    """A detached history playlist from the standard database."""
+
+    id: int
+    """History-playlist ID, in a separate namespace from regular playlists."""
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class NewDevHistory(_RustMutableMapping):
+    """Input for a fresh history playlist, without an existing raw row."""
+
+    def __init__(
+        self,
+        name: str,
+    ) -> None: ...
+
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class DevHistoryContent(_RustMutableMapping):
+    """A detached track occurrence in a standard database history playlist."""
+
+    history_id: int
+    """History-playlist ID; this does not reference the regular playlist table."""
+    content_id: int
+    """Export track ID, distinct from the source/master content ID."""
+    seq: int
+    """Stored occurrence position; zero and gaps remain unmodified on reads."""
+
+class NewDevHistoryContent(_RustMutableMapping):
+    """Input for a fresh history occurrence, without a synthetic ID or source row."""
+
+    def __init__(
+        self,
+        history_id: int,
+        content_id: int,
+        seq: int,
+    ) -> None: ...
+
+    history_id: int
+    """Nonzero history-playlist ID; existence is not checked."""
+    content_id: int
+    """Nonzero export track ID."""
+    seq: int
+    """Explicit occurrence position; other positions are untouched."""
+
+class DevKey(_RustMutableMapping):
+    """A detached key from the standard database."""
+
+    id: int
+    """Export key ID."""
+    secondary_id: int
+    """Second stored ID, supplied independently; its role remains unknown."""
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class NewDevKey(_RustMutableMapping):
+    """Input for a fresh key, without an existing raw row."""
+
+    def __init__(
+        self,
+        name: str,
+        secondary_id: int,
+    ) -> None: ...
+
+    secondary_id: int
+    """Second stored ID, supplied independently; its role remains unknown."""
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class DevLabel(_RustMutableMapping):
+    """A detached label from the standard database."""
+
+    id: int
+    """Export label ID."""
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class NewDevLabel(_RustMutableMapping):
+    """Input for a fresh label, without an existing raw row."""
+
+    def __init__(
+        self,
+        name: str,
+    ) -> None: ...
+
+    name: str
+    """Decoded display name, preserving empty text."""
+
+class DevMyTag(_RustMutableMapping):
+    """A detached My Tag or category from the extended database."""
+
+    id: int
+    """Tag/category ID matching the source main database (`master.db`)."""
+    parent_id: int
+    """Parent category ID; zero denotes a root in observed exports."""
+    seq: int
+    """Zero-based position within the parent/category list."""
+    name: str
+    """Decoded display name."""
+    attribute: MyTagType
+    """Tag or category type; unknown binary attributes are rejected by this model."""
+
+class NewDevMyTag(_RustMutableMapping):
+    """Input for a fresh My Tag/category, with an explicit ID and optional position."""
+
+    def __init__(
+        self,
+        id: int,
+        name: str,
+        attribute: MyTagType,
+        *,
+        parent_id: int = ...,
+        seq: Optional[int] = ...,
+        unknown_04: int = ...,
+        unknown_08: int = ...,
+        unknown_18: int = ...,
+        unknown_1a: int = ...,
+    ) -> None: ...
+
+    id: int
+    """Nonzero source main-database tag/category ID, unused in this export."""
+    parent_id: int
+    """Parent category ID; zero denotes a root."""
+    seq: Optional[int]
+    """Insertion position starting at `DevMyTag::START_SEQ`; `None` appends."""
+    name: str
+    """Display name."""
+    attribute: MyTagType
+    """Tag (List) or category (Folder)."""
+    unknown_04: int
+    """Reserved word at 0x04, defaulting to zero."""
+    unknown_08: int
+    """Reserved word at 0x08, defaulting to zero."""
+    unknown_18: int
+    """Reserved word at 0x18, defaulting to zero."""
+    unknown_1a: int
+    """Reserved byte at 0x1a, defaulting to zero."""
+
+class DevMyTagContent(_RustMutableMapping):
+    """A detached association between a standard database track and an extended tag."""
+
+    content_id: int
+    """Export track ID in the separate standard database."""
+    my_tag_id: int
+    """Tag ID in the extended database, matching the source main-database tag ID."""
+
+class NewDevMyTagContent(_RustMutableMapping):
+    """Input for a fresh track/tag association, without a synthetic row ID."""
+
+    def __init__(
+        self,
+        content_id: int,
+        my_tag_id: int,
+        *,
+        unknown_00: int = ...,
+        reserved_string_marker: int = ...,
+        reserved_tail: Sequence[int] = ...,
+    ) -> None: ...
+
+    content_id: int
+    """Nonzero export track ID in the standard database."""
+    my_tag_id: int
+    """Nonzero tag ID in the extended database, matching the source main-database tag ID."""
+    unknown_00: int
+    """Reserved word at 0x00, defaulting to zero."""
+    reserved_string_marker: int
+    """Raw marker at 0x0c; defaults to the observed empty short-string frame, 3."""
+    @property
+    def reserved_tail(self) -> bytes:
+        """Three reserved trailing bytes."""
+        ...
+    @reserved_tail.setter
+    def reserved_tail(self, value: Sequence[int]) -> None: ...
+
+class DevPlaylistTreeNode:
+    """Detached playlist tree node. Editing this snapshot does not persist changes."""
+
+    @property
+    def playlist(self) -> DevPlaylist: ...
+    @property
+    def children(self) -> List[DevPlaylistTreeNode]: ...
+
+class DevPlaylist(_RustMutableMapping):
+    """A detached playlist or folder in the standard database's playlist tree."""
+
+    id: int
+    """Export playlist/folder ID."""
+    parent_id: int
+    """Parent folder ID; zero denotes the root."""
+    seq: int
+    """Stored sibling position; gaps and ties are retained."""
+    attribute: PlaylistType
+    """Regular playlist or folder; other binary flags are rejected by this model."""
+    name: str
+    """Decoded display name."""
+
+class NewDevPlaylist(_RustMutableMapping):
+    """Input for a fresh playlist or folder; no existing raw row is needed."""
+
+    def __init__(
+        self,
+        name: str,
+        attribute: PlaylistType,
+        *,
+        parent_id: int = ...,
+        seq: Optional[int] = ...,
+        unknown_04: int = ...,
+    ) -> None: ...
+
+    parent_id: int
+    """Parent folder ID; zero denotes the root."""
+    seq: Optional[int]
+    """Zero-based insertion position; `None` appends after the last sibling."""
+    attribute: PlaylistType
+    """Node type; only List and Folder can be encoded for DeviceSQL."""
+    name: str
+    """Display name."""
+    unknown_04: int
+    """Reserved word at 0x04, defaulting to zero."""
+
+class DevPlaylistContent(_RustMutableMapping):
+    """A detached track occurrence in a standard database playlist."""
+
+    playlist_id: int
+    """Export playlist ID."""
+    content_id: int
+    """Export track ID, distinct from the source/master content ID."""
+    seq: int
+    """Stored position, commonly one-based; zero and gaps remain unmodified on reads."""
+
+class NewDevPlaylistContent(_RustMutableMapping):
+    """Input for a fresh playlist occurrence, without a synthetic ID or source row."""
+
+    def __init__(
+        self,
+        playlist_id: int,
+        content_id: int,
+        *,
+        seq: Optional[int] = ...,
+    ) -> None: ...
+
+    playlist_id: int
+    """Existing regular playlist ID."""
+    content_id: int
+    """Nonzero export track ID."""
+    seq: Optional[int]
+    """One-based insertion position; `None` appends."""
+
+class DevExportProperty(_RustMutableMapping):
+    """Export metadata from standard table 19, initialized by the standard creation profile."""
+
+    track_count: int
+    """Stored track count after the export update."""
+    background_color: int
+    """Raw Device Library background-color value."""
+    date: str
+    """Export/creation date as stored text; no date format is imposed."""
+    version: str
+    """Stored version text."""
+    name: str
+    """Device/export name."""
+
+class DevDatabaseProperty(_RustMutableMapping):
+    """Source My Tag library metadata from extended table 7, initialized by the extended profile."""
+
+    my_tag_master_db_id: int
+    """Source/master My Tag library identity, not a row ID; zero is valid."""
+
+class DevRecommendedLike(_RustMutableMapping):
+    """A detached RecommendedLike row in the extended database."""
+
+    unknown_00: int
+    """Raw eight-byte value at 0x00; not interpreted as a timestamp."""
+    content_id_1: int
+    """First standard export track ID; no source/target direction is inferred."""
+    content_id_2: int
+    """Second standard export track ID."""
+    unknown_10: int
+    """Raw word at 0x10."""
+    unknown_14: int
+    """Raw word at 0x14; flag semantics are unknown."""
+
+class NewDevRecommendedLike(_RustMutableMapping):
+    """Insertion input for a fresh RecommendedLike row."""
+
+    def __init__(
+        self,
+        content_id_1: int,
+        content_id_2: int,
+        unknown_00: int,
+        unknown_10: int,
+        unknown_14: int,
+    ) -> None: ...
+
+    unknown_00: int
+    """Raw eight-byte value at 0x00; not interpreted as a timestamp."""
+    content_id_1: int
+    """First standard export track ID; no source/target direction is inferred."""
+    content_id_2: int
+    """Second standard export track ID."""
+    unknown_10: int
+    """Raw word at 0x10."""
+    unknown_14: int
+    """Raw word at 0x14; flag semantics are unknown."""
 
 # ---- ANLZ snapshots and handlers ---------------------------------------------------------------
 
@@ -4504,9 +5768,27 @@ class TrackMetadata:
     isrc: Optional[str]
     def __init__(self, path: Union[str, PathLike[str]]) -> None: ...
 
+class TrackSource:
+    """Database format whose local identifier is stored in Track.id."""
+
+    Unknown: TrackSource
+    MasterDb: TrackSource
+    DeviceLib: TrackSource
+    OneLib: TrackSource
+
 class Track:
-    id: str
+    id: Optional[int]
+    master_content_id: Optional[int]
+    master_db_id: Optional[int]
+    source: TrackSource
     uuid: str
+    artwork_path: Optional[Path]
+    analysis_data_path: Optional[Path]
+    color: Optional[int]
+    play_count: Optional[int]
+    hot_cue_auto_load: Optional[str]
+    delivery_control: Optional[str]
+    delivery_comment: Optional[str]
     path: Path
     file_type: Optional[int]
     rating: Optional[int]

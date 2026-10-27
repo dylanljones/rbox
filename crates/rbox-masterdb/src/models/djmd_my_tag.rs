@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `DjmdMyTag`.
+
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel::result::Error;
@@ -9,7 +11,7 @@ use napi_derive::napi;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 #[cfg(feature = "pyo3")]
-use rbox_derives::PyMutableMapping;
+use rbox_derives::{PyConstructor, PyMutableMapping};
 use std::collections::VecDeque;
 use uuid::Uuid;
 
@@ -38,6 +40,7 @@ use rbox_db::{
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = djmdMyTag)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdMyTag, foreign_key = parent_id))]
@@ -432,8 +435,9 @@ impl OrderedModel for DjmdMyTag {
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(name, attribute)))]
 pub struct NewDjmdMyTag {
     /// The name of the tag
     pub name: String,
@@ -539,6 +543,7 @@ impl NewDjmdMyTag {
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = djmdSongMyTag)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdMyTag, foreign_key = my_tag_id))]
@@ -817,8 +822,9 @@ impl OrderedModel for DjmdSongMyTag {
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(my_tag_id, content_id)))]
 pub struct NewDjmdSongMyTag {
     /// The ID of the associated [`DjmdMyTag`].
     pub my_tag_id: String,

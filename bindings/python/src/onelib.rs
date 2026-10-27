@@ -1,10 +1,13 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! Python OneLibrary handler and database operations.
+
 use pyo3::prelude::*;
 use pyo3::types::PyType;
-use rbox::db::enums::HistoryType;
-use rbox::one_library::{models::*, OneLibrary};
+use rbox::core::Track;
+use rbox::onelib::HistoryType;
+use rbox::onelib::{models::*, OneLibrary};
 
 use super::errors::OneLibraryError;
 
@@ -20,16 +23,43 @@ pub struct PyOneLibrary {
 
 #[pymethods]
 impl PyOneLibrary {
-    /// Open a OneLibrary (Device Library Plus) database specified by path.
+    /// Load shared tracks with resolved names, including album artists.
+    pub fn get_tracks(&self) -> PyResult<Vec<Track>> {
+        self.inner.get_tracks().map_err(db_error)
+    }
+
+    /// Load a shared track by its numeric OneLibrary ID, or None if absent.
+    pub fn get_track_by_id(&self, id: i64) -> PyResult<Option<Track>> {
+        self.inner.get_track_by_id(id).map_err(db_error)
+    }
+
+    /// Load matching tracks in ID order, omitting missing and duplicate IDs.
+    pub fn get_tracks_by_ids(&self, ids: Vec<i64>) -> PyResult<Vec<Track>> {
+        self.inner.get_tracks_by_ids(&ids).map_err(db_error)
+    }
+
+    /// Load a shared track by stored path, accepting either separator style.
+    pub fn get_track_by_path(&self, path: &str) -> PyResult<Option<Track>> {
+        self.inner.get_track_by_path(path).map_err(db_error)
+    }
+
+    /// Open exportLibrary.db in the supplied directory, usually PIONEER/rekordbox.
     #[new]
-    pub fn new(path: &str) -> PyResult<Self> {
-        let inner = OneLibrary::new(path).map_err(|e| db_error(e))?;
+    pub fn new(directory: &str) -> PyResult<Self> {
+        let inner = OneLibrary::new(directory).map_err(db_error)?;
+        Ok(PyOneLibrary { inner })
+    }
+
+    /// Open an existing OneLibrary database at an explicit file path.
+    #[classmethod]
+    pub fn from_path(_cls: &Bound<'_, PyType>, path: &str) -> PyResult<Self> {
+        let inner = OneLibrary::from_path(path).map_err(db_error)?;
         Ok(PyOneLibrary { inner })
     }
 
     /// Create a new OneLibrary (Device Library Plus) database.
     #[classmethod]
-    pub fn create(_cls: &Bound<'_, PyType>, path: &str, my_tag_master_dbid: i32) -> PyResult<Self> {
+    pub fn create(_cls: &Bound<'_, PyType>, path: &str, my_tag_master_dbid: i64) -> PyResult<Self> {
         let inner = OneLibrary::create(path, my_tag_master_dbid).map_err(db_error)?;
         Ok(PyOneLibrary { inner })
     }
@@ -39,7 +69,7 @@ impl PyOneLibrary {
     pub fn create_if_not_exists(
         _cls: &Bound<'_, PyType>,
         path: &str,
-        my_tag_master_dbid: i32,
+        my_tag_master_dbid: i64,
     ) -> PyResult<Self> {
         let inner = OneLibrary::create_if_not_exists(path, my_tag_master_dbid).map_err(db_error)?;
         Ok(PyOneLibrary { inner })
@@ -47,7 +77,7 @@ impl PyOneLibrary {
 
     /// Load a detached album snapshot with all supported direct relationships.
     /// Related rows are shallow snapshots; changes require explicit model updates.
-    pub fn get_album_with_relations(&self, id: i32) -> PyResult<Option<AlbumView>> {
+    pub fn get_album_with_relations(&self, id: i64) -> PyResult<Option<AlbumView>> {
         self.inner.get_album_with_relations(id).map_err(db_error)
     }
 
@@ -64,7 +94,7 @@ impl PyOneLibrary {
     }
 
     /// Queries a record from the `album` table by its primary key `id`.
-    pub fn get_album_by_id(&self, id: i32) -> PyResult<Option<Album>> {
+    pub fn get_album_by_id(&self, id: i64) -> PyResult<Option<Album>> {
         let res = self.inner.get_album_by_id(id).map_err(db_error)?;
         Ok(res)
     }
@@ -85,8 +115,8 @@ impl PyOneLibrary {
     pub fn create_album(
         &self,
         name: &str,
-        artist_id: Option<i32>,
-        image_id: Option<i32>,
+        artist_id: Option<i64>,
+        image_id: Option<i64>,
     ) -> PyResult<Album> {
         let res = self
             .inner
@@ -102,7 +132,7 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `album` table by its primary key `id`.
-    pub fn delete_album(&self, id: i32) -> PyResult<usize> {
+    pub fn delete_album(&self, id: i64) -> PyResult<usize> {
         let res = self.inner.delete_album(id).map_err(db_error)?;
         Ok(res)
     }
@@ -114,7 +144,7 @@ impl PyOneLibrary {
     }
 
     /// Queries a record from the `artist` table by its primary key `id`.
-    pub fn get_artist_by_id(&self, id: i32) -> PyResult<Option<Artist>> {
+    pub fn get_artist_by_id(&self, id: i64) -> PyResult<Option<Artist>> {
         let res = self.inner.get_artist_by_id(id).map_err(db_error)?;
         Ok(res)
     }
@@ -144,14 +174,14 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `artist` table by its primary key `id`.
-    pub fn delete_artist(&self, id: i32) -> PyResult<usize> {
+    pub fn delete_artist(&self, id: i64) -> PyResult<usize> {
         let res = self.inner.delete_artist(id).map_err(db_error)?;
         Ok(res)
     }
 
     /// Load a detached category snapshot with all supported direct relationships.
     /// Related rows are shallow snapshots; changes require explicit model updates.
-    pub fn get_category_with_relations(&self, id: i32) -> PyResult<Option<CategoryView>> {
+    pub fn get_category_with_relations(&self, id: i64) -> PyResult<Option<CategoryView>> {
         self.inner.get_category_with_relations(id).map_err(db_error)
     }
 
@@ -168,7 +198,7 @@ impl PyOneLibrary {
     }
 
     /// Queries a record from the `category` table by its primary key `id`.
-    pub fn get_category_by_id(&self, id: i32) -> PyResult<Option<Category>> {
+    pub fn get_category_by_id(&self, id: i64) -> PyResult<Option<Category>> {
         let res = self.inner.get_category_by_id(id).map_err(db_error)?;
         Ok(res)
     }
@@ -182,7 +212,7 @@ impl PyOneLibrary {
     /// Creates a new record and inserts it into the `category` table.
     pub fn create_category(
         &self,
-        menu_item_id: i32,
+        menu_item_id: i64,
         seq: Option<i32>,
         is_visible: Option<i32>,
     ) -> PyResult<Category> {
@@ -200,7 +230,7 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `category` table by its primary key `id`.
-    pub fn delete_category(&self, id: i32) -> PyResult<usize> {
+    pub fn delete_category(&self, id: i64) -> PyResult<usize> {
         let res = self.inner.delete_category(id).map_err(db_error)?;
         Ok(res)
     }
@@ -212,7 +242,7 @@ impl PyOneLibrary {
     }
 
     /// Queries a record from the `color` table by its primary key `id`.
-    pub fn get_color_by_id(&self, id: i32) -> PyResult<Option<Color>> {
+    pub fn get_color_by_id(&self, id: i64) -> PyResult<Option<Color>> {
         let res = self.inner.get_color_by_id(id).map_err(db_error)?;
         Ok(res)
     }
@@ -236,14 +266,14 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `color` table by its primary key `id`.
-    pub fn delete_color(&self, id: i32) -> PyResult<usize> {
+    pub fn delete_color(&self, id: i64) -> PyResult<usize> {
         let res = self.inner.delete_color(id).map_err(db_error)?;
         Ok(res)
     }
 
     /// Load a detached content snapshot with all supported direct relationships.
     /// Related rows are shallow snapshots; changes require explicit model updates.
-    pub fn get_content_with_relations(&self, id: i32) -> PyResult<Option<ContentView>> {
+    pub fn get_content_with_relations(&self, id: i64) -> PyResult<Option<ContentView>> {
         self.inner.get_content_with_relations(id).map_err(db_error)
     }
 
@@ -260,9 +290,34 @@ impl PyOneLibrary {
     }
 
     /// Queries a record from the `content` table by its primary key `id`.
-    pub fn get_content_by_id(&self, id: i32) -> PyResult<Option<Content>> {
+    pub fn get_content_by_id(&self, id: i64) -> PyResult<Option<Content>> {
         let res = self.inner.get_content_by_id(id).map_err(db_error)?;
         Ok(res)
+    }
+
+    /// Find content by both stored signed source IDs, or None if absent or zero.
+    /// Repeated pairs return the content with the lowest local export ID.
+    pub fn get_content_by_master_content_id(
+        &self,
+        master_content_id: i64,
+        master_db_id: i64,
+    ) -> PyResult<Option<Content>> {
+        self.inner
+            .get_content_by_master_content_id(master_content_id, master_db_id)
+            .map_err(db_error)
+    }
+
+    /// Load all matching contents for signed source-content IDs in one source library.
+    /// Results use local export-ID order; missing/zero IDs are omitted and input
+    /// duplicates do not repeat rows. Empty input or a zero library ID returns [].
+    pub fn get_contents_by_master_content_ids(
+        &self,
+        master_content_ids: Vec<i64>,
+        master_db_id: i64,
+    ) -> PyResult<Vec<Content>> {
+        self.inner
+            .get_contents_by_master_content_ids(&master_content_ids, master_db_id)
+            .map_err(db_error)
     }
 
     /// Inserts a new record into the `content` table.
@@ -284,7 +339,7 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `content` table by its primary key `id`.
-    pub fn delete_content(&self, id: i32) -> PyResult<usize> {
+    pub fn delete_content(&self, id: i64) -> PyResult<usize> {
         let res = self.inner.delete_content(id).map_err(db_error)?;
         Ok(res)
     }
@@ -296,7 +351,7 @@ impl PyOneLibrary {
     }
 
     /// Queries a record from the `cue` table by its primary key `id`.
-    pub fn get_cue_by_id(&self, id: i32) -> PyResult<Option<Cue>> {
+    pub fn get_cue_by_id(&self, id: i64) -> PyResult<Option<Cue>> {
         let res = self.inner.get_cue_by_id(id).map_err(db_error)?;
         Ok(res)
     }
@@ -308,7 +363,7 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `cue` table by its primary key `id`.
-    pub fn delete_cue(&self, id: i32) -> PyResult<usize> {
+    pub fn delete_cue(&self, id: i64) -> PyResult<usize> {
         let res = self.inner.delete_cue(id).map_err(db_error)?;
         Ok(res)
     }
@@ -320,7 +375,7 @@ impl PyOneLibrary {
     }
 
     /// Queries a record from the `genre` table by its primary key `id`.
-    pub fn get_genre_by_id(&self, id: i32) -> PyResult<Option<Genre>> {
+    pub fn get_genre_by_id(&self, id: i64) -> PyResult<Option<Genre>> {
         let res = self.inner.get_genre_by_id(id).map_err(db_error)?;
         Ok(res)
     }
@@ -350,7 +405,7 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `genre` table by its primary key `id`.
-    pub fn delete_genre(&self, id: i32) -> PyResult<usize> {
+    pub fn delete_genre(&self, id: i64) -> PyResult<usize> {
         let res = self.inner.delete_genre(id).map_err(db_error)?;
         Ok(res)
     }
@@ -362,19 +417,19 @@ impl PyOneLibrary {
     }
 
     /// Queries all child records from the `history` table by parent `id`.
-    pub fn get_history_children(&self, id: i32) -> PyResult<Vec<History>> {
+    pub fn get_history_children(&self, id: i64) -> PyResult<Vec<History>> {
         let res = self.inner.get_history_children(id).map_err(db_error)?;
         Ok(res)
     }
 
     /// Queries all `content` records associated with a `history` record.
-    pub fn get_history_contents(&self, id: i32) -> PyResult<Vec<Content>> {
+    pub fn get_history_contents(&self, id: i64) -> PyResult<Vec<Content>> {
         let res = self.inner.get_history_contents(id).map_err(db_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `history` table by its primary key `id`.
-    pub fn get_history_by_id(&self, id: i32) -> PyResult<Option<History>> {
+    pub fn get_history_by_id(&self, id: i64) -> PyResult<Option<History>> {
         let res = self.inner.get_history_by_id(id).map_err(db_error)?;
         Ok(res)
     }
@@ -395,7 +450,7 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `history` table by its primary key `id`.
-    pub fn delete_history(&self, id: i32) -> PyResult<usize> {
+    pub fn delete_history(&self, id: i64) -> PyResult<usize> {
         let res = self.inner.delete_history(id).map_err(db_error)?;
         Ok(res)
     }
@@ -403,8 +458,8 @@ impl PyOneLibrary {
     /// Creates a new record and inserts it into the `history_content` table.
     pub fn create_history_content(
         &self,
-        history_id: i32,
-        content_id: i32,
+        history_id: i64,
+        content_id: i64,
     ) -> PyResult<HistoryContent> {
         let res = self
             .inner
@@ -414,7 +469,7 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `history_content` table by its primary key.
-    pub fn delete_history_content(&self, history_id: i32, content_id: i32) -> PyResult<usize> {
+    pub fn delete_history_content(&self, history_id: i64, content_id: i64) -> PyResult<usize> {
         let res = self
             .inner
             .delete_history_content(history_id, content_id)
@@ -429,7 +484,7 @@ impl PyOneLibrary {
     }
 
     /// Queries a record from the `hot_cue_bank_list` table by its primary key `id`.
-    pub fn get_hot_cue_bank_list_by_id(&self, id: i32) -> PyResult<Option<HotCueBankList>> {
+    pub fn get_hot_cue_bank_list_by_id(&self, id: i64) -> PyResult<Option<HotCueBankList>> {
         let res = self
             .inner
             .get_hot_cue_bank_list_by_id(id)
@@ -444,7 +499,7 @@ impl PyOneLibrary {
     }
 
     /// Queries a record from the `image` table by its primary key `id`.
-    pub fn get_image_by_id(&self, id: i32) -> PyResult<Option<Image>> {
+    pub fn get_image_by_id(&self, id: i64) -> PyResult<Option<Image>> {
         let res = self.inner.get_image_by_id(id).map_err(db_error)?;
         Ok(res)
     }
@@ -474,7 +529,7 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `image` table by its primary key `id`.
-    pub fn delete_image(&self, id: i32) -> PyResult<usize> {
+    pub fn delete_image(&self, id: i64) -> PyResult<usize> {
         let res = self.inner.delete_image(id).map_err(db_error)?;
         Ok(res)
     }
@@ -486,7 +541,7 @@ impl PyOneLibrary {
     }
 
     /// Queries a record from the `key` table by its primary key `id`.
-    pub fn get_key_by_id(&self, id: i32) -> PyResult<Option<Key>> {
+    pub fn get_key_by_id(&self, id: i64) -> PyResult<Option<Key>> {
         let res = self.inner.get_key_by_id(id).map_err(db_error)?;
         Ok(res)
     }
@@ -516,7 +571,7 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `key` table by its primary key `id`.
-    pub fn delete_key(&self, id: i32) -> PyResult<usize> {
+    pub fn delete_key(&self, id: i64) -> PyResult<usize> {
         let res = self.inner.delete_key(id).map_err(db_error)?;
         Ok(res)
     }
@@ -528,7 +583,7 @@ impl PyOneLibrary {
     }
 
     /// Queries a record from the `label` table by its primary key `id`.
-    pub fn get_label_by_id(&self, id: i32) -> PyResult<Option<Label>> {
+    pub fn get_label_by_id(&self, id: i64) -> PyResult<Option<Label>> {
         let res = self.inner.get_label_by_id(id).map_err(db_error)?;
         Ok(res)
     }
@@ -558,7 +613,7 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `label` table by its primary key `id`.
-    pub fn delete_label(&self, id: i32) -> PyResult<usize> {
+    pub fn delete_label(&self, id: i64) -> PyResult<usize> {
         let res = self.inner.delete_label(id).map_err(db_error)?;
         Ok(res)
     }
@@ -570,7 +625,7 @@ impl PyOneLibrary {
     }
 
     /// Queries a record from the `menuItem` table by its primary key `id`.
-    pub fn get_menu_item_by_id(&self, id: i32) -> PyResult<Option<MenuItem>> {
+    pub fn get_menu_item_by_id(&self, id: i64) -> PyResult<Option<MenuItem>> {
         let res = self.inner.get_menu_item_by_id(id).map_err(db_error)?;
         Ok(res)
     }
@@ -600,7 +655,7 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `menuItem` table by its primary key `id`.
-    pub fn delete_menu_item(&self, id: i32) -> PyResult<usize> {
+    pub fn delete_menu_item(&self, id: i64) -> PyResult<usize> {
         let res = self.inner.delete_menu_item(id).map_err(db_error)?;
         Ok(res)
     }
@@ -612,25 +667,25 @@ impl PyOneLibrary {
     }
 
     /// Queries all child records from the `myTag` table by parent `id`.
-    pub fn get_my_tag_children(&self, id: i32) -> PyResult<Vec<MyTag>> {
+    pub fn get_my_tag_children(&self, id: i64) -> PyResult<Vec<MyTag>> {
         let res = self.inner.get_my_tag_children(id).map_err(db_error)?;
         Ok(res)
     }
 
     /// Queries all `content` records associated with a `myTag` record.
-    pub fn get_my_tag_contents(&self, id: i32) -> PyResult<Vec<Content>> {
+    pub fn get_my_tag_contents(&self, id: i64) -> PyResult<Vec<Content>> {
         let res = self.inner.get_my_tag_contents(id).map_err(db_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `myTag` table by its primary key `id`.
-    pub fn get_my_tag_by_id(&self, id: i32) -> PyResult<Option<MyTag>> {
+    pub fn get_my_tag_by_id(&self, id: i64) -> PyResult<Option<MyTag>> {
         let res = self.inner.get_my_tag_by_id(id).map_err(db_error)?;
         Ok(res)
     }
 
     /// Queries all records from the `myTag` table their associated `content_id` via `myTag_content`
-    pub fn get_my_tag_by_content_id(&self, cid: i32) -> PyResult<Vec<MyTag>> {
+    pub fn get_my_tag_by_content_id(&self, cid: i64) -> PyResult<Vec<MyTag>> {
         let res = self.inner.get_my_tag_by_content_id(cid).map_err(db_error)?;
         Ok(res)
     }
@@ -645,7 +700,7 @@ impl PyOneLibrary {
     pub fn create_my_tag(
         &self,
         name: &str,
-        parent_id: Option<i32>,
+        parent_id: Option<i64>,
         seq: Option<i32>,
     ) -> PyResult<MyTag> {
         let res = self
@@ -659,7 +714,7 @@ impl PyOneLibrary {
     pub fn create_my_tag_folder(
         &self,
         name: &str,
-        parent_id: Option<i32>,
+        parent_id: Option<i64>,
         seq: Option<i32>,
     ) -> PyResult<MyTag> {
         let res = self
@@ -670,7 +725,7 @@ impl PyOneLibrary {
     }
 
     /// Renames an existing my_tag record in the `myTag` table.
-    pub fn rename_my_tag(&self, my_tag_id: i32, name: &str) -> PyResult<usize> {
+    pub fn rename_my_tag(&self, my_tag_id: i64, name: &str) -> PyResult<usize> {
         let res = self
             .inner
             .rename_my_tag(my_tag_id, name)
@@ -681,8 +736,8 @@ impl PyOneLibrary {
     /// Moves a tag to a new parent folder or changes its sequence within the same parent.
     pub fn move_my_tag(
         &self,
-        my_tag_id: i32,
-        parent_id: Option<i32>,
+        my_tag_id: i64,
+        parent_id: Option<i64>,
         seq: Option<i32>,
     ) -> PyResult<usize> {
         let res = self
@@ -695,8 +750,8 @@ impl PyOneLibrary {
     /// Moves multiple tags to a new parent folder or changes its sequence within the same parent.
     pub fn move_my_tags(
         &self,
-        my_tag_ids: Vec<i32>,
-        parent_id: i32,
+        my_tag_ids: Vec<i64>,
+        parent_id: i64,
         start_seq: Option<i32>,
     ) -> PyResult<usize> {
         let res = self
@@ -707,13 +762,13 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `myTag` table by its primary key `id`.
-    pub fn delete_my_tag(&self, id: i32) -> PyResult<usize> {
+    pub fn delete_my_tag(&self, id: i64) -> PyResult<usize> {
         let res = self.inner.delete_my_tag(id).map_err(db_error)?;
         Ok(res)
     }
 
     /// Deletes multiple records from the `myTag` table by its primary keys `id`.
-    pub fn delete_my_tags(&self, ids: Vec<i32>) -> PyResult<usize> {
+    pub fn delete_my_tags(&self, ids: Vec<i64>) -> PyResult<usize> {
         let res = self
             .inner
             .delete_my_tags(ids.iter().map(|i| i).collect())
@@ -722,7 +777,7 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `myTag_content` table by its primary key.
-    pub fn delete_my_tag_content(&self, my_tag_id: i32, content_id: i32) -> PyResult<usize> {
+    pub fn delete_my_tag_content(&self, my_tag_id: i64, content_id: i64) -> PyResult<usize> {
         let res = self
             .inner
             .delete_my_tag_content(my_tag_id, content_id)
@@ -731,7 +786,7 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `myTag_content` table by its primary key.
-    pub fn delete_my_tag_contents(&self, ids: Vec<(i32, i32)>) -> PyResult<usize> {
+    pub fn delete_my_tag_contents(&self, ids: Vec<(i64, i64)>) -> PyResult<usize> {
         let res = self
             .inner
             .delete_my_tag_contents(ids.iter().map(|i| i).collect())
@@ -746,19 +801,19 @@ impl PyOneLibrary {
     }
 
     /// Queries all child records from the `playlist` table by parent `id`.
-    pub fn get_playlist_children(&self, id: i32) -> PyResult<Vec<Playlist>> {
+    pub fn get_playlist_children(&self, id: i64) -> PyResult<Vec<Playlist>> {
         let res = self.inner.get_playlist_children(id).map_err(db_error)?;
         Ok(res)
     }
 
     /// Queries all `content` records associated with a `playlist` record.
-    pub fn get_playlist_contents(&self, id: i32) -> PyResult<Vec<Content>> {
+    pub fn get_playlist_contents(&self, id: i64) -> PyResult<Vec<Content>> {
         let res = self.inner.get_playlist_contents(id).map_err(db_error)?;
         Ok(res)
     }
 
     /// Queries a record from the `playlist` table by its primary key `id`.
-    pub fn get_playlist_by_id(&self, id: i32) -> PyResult<Option<Playlist>> {
+    pub fn get_playlist_by_id(&self, id: i64) -> PyResult<Option<Playlist>> {
         let res = self.inner.get_playlist_by_id(id).map_err(db_error)?;
         Ok(res)
     }
@@ -773,7 +828,7 @@ impl PyOneLibrary {
     pub fn create_playlist(
         &self,
         name: &str,
-        parent_id: Option<i32>,
+        parent_id: Option<i64>,
         seq: Option<i32>,
     ) -> PyResult<Playlist> {
         let res = self
@@ -787,7 +842,7 @@ impl PyOneLibrary {
     pub fn create_playlist_folder(
         &self,
         name: &str,
-        parent_id: Option<i32>,
+        parent_id: Option<i64>,
         seq: Option<i32>,
     ) -> PyResult<Playlist> {
         let res = self
@@ -798,7 +853,7 @@ impl PyOneLibrary {
     }
 
     /// Renames an existing playlist record in the `playlist` table.
-    pub fn rename_playlist(&self, playlist_id: i32, name: &str) -> PyResult<usize> {
+    pub fn rename_playlist(&self, playlist_id: i64, name: &str) -> PyResult<usize> {
         let res = self
             .inner
             .rename_playlist(playlist_id, name)
@@ -809,8 +864,8 @@ impl PyOneLibrary {
     /// Moves a playlist to a new parent folder or changes its sequence within the same parent.
     pub fn move_playlist(
         &self,
-        playlist_id: i32,
-        parent_id: Option<i32>,
+        playlist_id: i64,
+        parent_id: Option<i64>,
         seq: Option<i32>,
     ) -> PyResult<usize> {
         let res = self
@@ -823,8 +878,8 @@ impl PyOneLibrary {
     /// Moves multiple playlists to a new parent folder or changes its sequence within the same parent.
     pub fn move_playlists(
         &self,
-        playlist_ids: Vec<i32>,
-        parent_id: i32,
+        playlist_ids: Vec<i64>,
+        parent_id: i64,
         start_seq: Option<i32>,
     ) -> PyResult<usize> {
         let res = self
@@ -839,13 +894,13 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `playlist` table by its primary key `id`.
-    pub fn delete_playlist(&self, id: i32) -> PyResult<usize> {
+    pub fn delete_playlist(&self, id: i64) -> PyResult<usize> {
         let res = self.inner.delete_playlist(id).map_err(db_error)?;
         Ok(res)
     }
 
     /// Deletes multiple records from the `playlist` table by its primary keys `id`.
-    pub fn delete_playlists(&self, ids: Vec<i32>) -> PyResult<usize> {
+    pub fn delete_playlists(&self, ids: Vec<i64>) -> PyResult<usize> {
         let res = self
             .inner
             .delete_playlists(ids.iter().map(|i| i).collect())
@@ -854,10 +909,11 @@ impl PyOneLibrary {
     }
 
     /// Creates a new record and inserts it into the `playlist_content` table.
+    /// Positions start at one; an omitted position appends.
     pub fn create_playlist_content(
         &self,
-        playlist_id: i32,
-        content_id: i32,
+        playlist_id: i64,
+        content_id: i64,
         seq: Option<i32>,
     ) -> PyResult<PlaylistContent> {
         let res = self
@@ -868,10 +924,11 @@ impl PyOneLibrary {
     }
 
     /// Moves a playlist content to a new sequence number.
+    /// Positions start at one; an omitted position moves to the end.
     pub fn move_playlist_content(
         &self,
-        playlist_id: i32,
-        content_id: i32,
+        playlist_id: i64,
+        content_id: i64,
         seq: Option<i32>,
     ) -> PyResult<usize> {
         let res = self
@@ -882,9 +939,11 @@ impl PyOneLibrary {
     }
 
     /// Moves multiple playlist contents to a new sequence number.
+    /// The one-based destination is measured after removing the selected entries;
+    /// an omitted position appends, preserving the supplied entry order.
     pub fn move_playlist_contents(
         &self,
-        ids: Vec<(i32, i32)>,
+        ids: Vec<(i64, i64)>,
         start_seq: Option<i32>,
     ) -> PyResult<usize> {
         let res = self
@@ -895,7 +954,7 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `playlist_content` table by its primary key.
-    pub fn delete_playlist_content(&self, playlist_id: i32, content_id: i32) -> PyResult<usize> {
+    pub fn delete_playlist_content(&self, playlist_id: i64, content_id: i64) -> PyResult<usize> {
         let res = self
             .inner
             .delete_playlist_content(playlist_id, content_id)
@@ -904,7 +963,7 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `playlist_content` table by its primary key.
-    pub fn delete_playlist_contents(&self, ids: Vec<(i32, i32)>) -> PyResult<usize> {
+    pub fn delete_playlist_contents(&self, ids: Vec<(i64, i64)>) -> PyResult<usize> {
         let res = self
             .inner
             .delete_playlist_contents(ids.iter().map(|i| i).collect())
@@ -943,7 +1002,7 @@ impl PyOneLibrary {
     pub fn create_property(
         &self,
         device_name: &str,
-        my_tag_master_dbid: i32,
+        my_tag_master_dbid: i64,
     ) -> PyResult<Property> {
         let res = self
             .inner
@@ -973,8 +1032,8 @@ impl PyOneLibrary {
     /// Queries a record from the `recommendLike` table by its primary key `id`.
     pub fn get_recommend_like_by_id(
         &self,
-        content_id_1: i32,
-        content_id_2: i32,
+        content_id_1: i64,
+        content_id_2: i64,
     ) -> PyResult<Option<RecommendedLike>> {
         let res = self
             .inner
@@ -986,7 +1045,7 @@ impl PyOneLibrary {
     /// Queries all records from the `recommendedLike` table that are linked to the given `content`.
     pub fn get_recommend_like_by_content_id(
         &self,
-        content_id: i32,
+        content_id: i64,
     ) -> PyResult<Vec<RecommendedLike>> {
         let res = self
             .inner
@@ -996,7 +1055,7 @@ impl PyOneLibrary {
     }
 
     /// Get related `content` ids for a given `content`.
-    pub fn get_recommend_like_contents(&self, content_id: i32) -> PyResult<Vec<i32>> {
+    pub fn get_recommend_like_contents(&self, content_id: i64) -> PyResult<Vec<i64>> {
         let res = self
             .inner
             .get_recommend_like_contents(content_id)
@@ -1019,8 +1078,8 @@ impl PyOneLibrary {
     /// Creates a new record and inserts it into the `recommendLike` table.
     pub fn create_recommend_like(
         &self,
-        content_id_1: i32,
-        content_id_2: i32,
+        content_id_1: i64,
+        content_id_2: i64,
         rating: Option<i32>,
     ) -> PyResult<RecommendedLike> {
         let res = self
@@ -1043,7 +1102,7 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `recommendLike` table by its primary key.
-    pub fn delete_recommend_like(&self, content_id_1: i32, content_id_2: i32) -> PyResult<usize> {
+    pub fn delete_recommend_like(&self, content_id_1: i64, content_id_2: i64) -> PyResult<usize> {
         let res = self
             .inner
             .delete_recommend_like(content_id_1, content_id_2)
@@ -1052,7 +1111,7 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `recommendLike` table by its primary key.
-    pub fn delete_recommend_like_by_content(&self, content_id: i32) -> PyResult<usize> {
+    pub fn delete_recommend_like_by_content(&self, content_id: i64) -> PyResult<usize> {
         let res = self
             .inner
             .delete_recommend_like_by_content(content_id)
@@ -1067,7 +1126,7 @@ impl PyOneLibrary {
     }
 
     /// Queries a record from the `sort` table by its primary key `id`.
-    pub fn get_sort_by_id(&self, id: i32) -> PyResult<Option<Sort>> {
+    pub fn get_sort_by_id(&self, id: i64) -> PyResult<Option<Sort>> {
         let res = self.inner.get_sort_by_id(id).map_err(db_error)?;
         Ok(res)
     }
@@ -1081,7 +1140,7 @@ impl PyOneLibrary {
     /// Creates a new record and inserts it into the `sort` table.
     pub fn create_sort(
         &self,
-        menu_item_id: i32,
+        menu_item_id: i64,
         seq: Option<i32>,
         is_visible: Option<i32>,
     ) -> PyResult<Sort> {
@@ -1099,7 +1158,7 @@ impl PyOneLibrary {
     }
 
     /// Deletes a record from the `sort` table by its primary key `id`.
-    pub fn delete_sort(&self, id: i32) -> PyResult<usize> {
+    pub fn delete_sort(&self, id: i64) -> PyResult<usize> {
         let res = self.inner.delete_sort(id).map_err(db_error)?;
         Ok(res)
     }

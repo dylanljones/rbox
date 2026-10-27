@@ -7,6 +7,7 @@ use napi::bindgen_prelude::BigInt;
 use napi::{Error, Result};
 use napi_derive::napi;
 use rbox::core::models::{Track as CoreTrack, TrackMetadata as CoreTrackMetadata};
+use rbox::core::TrackSource;
 
 /// Create metadata with only the path populated.
 #[napi]
@@ -26,7 +27,7 @@ pub fn track_from_metadata(metadata: TrackMetadata) -> Result<Track> {
     Ok(CoreTrack::from(CoreTrackMetadata::try_from(metadata)?).into())
 }
 
-/// Copy metadata, omitting database identifiers.
+/// Copy tag metadata, omitting database identifiers and export metadata.
 #[napi]
 pub fn track_to_metadata(track: Track) -> Result<TrackMetadata> {
     let metadata: CoreTrackMetadata = CoreTrack::try_from(track)?.into();
@@ -189,8 +190,18 @@ impl TryFrom<TrackMetadata> for CoreTrackMetadata {
 /// Shared track data. BPM is unscaled, length is seconds, fileSize is bytes as bigint.
 #[napi(object)]
 pub struct Track {
-    pub id: String,
+    pub id: Option<f64>,
+    pub master_content_id: Option<f64>,
+    pub master_db_id: Option<f64>,
+    pub source: TrackSource,
     pub uuid: String,
+    pub artwork_path: Option<String>,
+    pub analysis_data_path: Option<String>,
+    pub color: Option<f64>,
+    pub play_count: Option<f64>,
+    pub hot_cue_auto_load: Option<String>,
+    pub delivery_control: Option<String>,
+    pub delivery_comment: Option<String>,
     pub path: String,
     pub file_type: Option<i32>,
     pub rating: Option<f64>,
@@ -227,8 +238,20 @@ pub struct Track {
 impl From<CoreTrack> for Track {
     fn from(value: CoreTrack) -> Self {
         Self {
-            id: value.id,
+            id: value.id.map(f64::from),
+            master_content_id: value.master_content_id.map(f64::from),
+            master_db_id: value.master_db_id.map(f64::from),
+            source: value.source,
             uuid: value.uuid,
+            artwork_path: value.artwork_path.map(|p| p.to_string_lossy().into_owned()),
+            analysis_data_path: value
+                .analysis_data_path
+                .map(|p| p.to_string_lossy().into_owned()),
+            color: value.color.map(f64::from),
+            play_count: value.play_count.map(f64::from),
+            hot_cue_auto_load: value.hot_cue_auto_load,
+            delivery_control: value.delivery_control,
+            delivery_comment: value.delivery_comment,
             path: value.path.to_string_lossy().into_owned(),
             file_type: value.file_type,
             rating: value.rating.map(f64::from),
@@ -268,8 +291,33 @@ impl TryFrom<Track> for CoreTrack {
     type Error = Error;
     fn try_from(value: Track) -> Result<Self> {
         Ok(Self {
-            id: value.id,
+            id: value
+                .id
+                .map(|n| unsigned(n, u32::MAX as f64, "id"))
+                .transpose()?,
+            master_content_id: value
+                .master_content_id
+                .map(|n| unsigned(n, u32::MAX as f64, "master_content_id"))
+                .transpose()?,
+            master_db_id: value
+                .master_db_id
+                .map(|n| unsigned(n, u32::MAX as f64, "master_db_id"))
+                .transpose()?,
+            source: value.source,
             uuid: value.uuid,
+            artwork_path: value.artwork_path.map(Into::into),
+            analysis_data_path: value.analysis_data_path.map(Into::into),
+            color: value
+                .color
+                .map(|n| unsigned(n, u8::MAX as f64, "color").map(|n| n as u8))
+                .transpose()?,
+            play_count: value
+                .play_count
+                .map(|n| unsigned(n, u32::MAX as f64, "play_count"))
+                .transpose()?,
+            hot_cue_auto_load: value.hot_cue_auto_load,
+            delivery_control: value.delivery_control,
+            delivery_comment: value.delivery_comment,
             path: value.path.into(),
             file_type: value.file_type,
             rating: value

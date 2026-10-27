@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `History`.
+
 use diesel::prelude::*;
 use diesel::result::Error;
 #[cfg(feature = "napi")]
@@ -8,7 +10,7 @@ use napi_derive::napi;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 #[cfg(feature = "pyo3")]
-use rbox_derives::PyMutableMapping;
+use rbox_derives::{PyConstructor, PyMutableMapping};
 use std::collections::VecDeque;
 
 use super::content::Content;
@@ -32,6 +34,7 @@ use rbox_db::{
 /// # References
 /// * [`History`] via `parent_id` foreign key.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset, Associations)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = history)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(History, foreign_key = parent_id))]
@@ -41,19 +44,20 @@ use rbox_db::{
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct History {
     /// A unique identifier for the entry.
-    pub id: i32,
-    /// The sequence/order number of the history (1-based index)
+    pub id: i64,
+    /// Zero-based sibling position, following the other OneLibrary tree models.
+    /// This convention is inferred; populated native history exports are still needed.
     pub seq: i32,
     /// The name of the history.
     pub name: String,
     /// The attribute of the tag, either history (`0`) or a folder (`1`)
     pub attribute: HistoryType,
     /// The ID of the parent [`History`] or `0` for top-level record.
-    pub parent_id: i32,
+    pub parent_id: i64,
 }
 
 impl Model for History {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query()
@@ -71,16 +75,12 @@ impl Model for History {
 }
 
 impl ModelDelete for History {
-    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
-        delete_tree_batch::<Self>(conn, ids)
-    }
-
     fn delete(conn: &mut SqliteConnection, id: &Self::Id) -> QueryResult<usize> {
         conn.transaction(|conn| {
             // Vec of all deleted ids
             let mut deleted_ids = vec![*id];
             // Delete the record
-            let parent_id: i32 = diesel::delete(history::table.find(id))
+            let parent_id: i64 = diesel::delete(history::table.find(id))
                 .returning(history::parent_id)
                 .get_result(conn)?;
 
@@ -91,7 +91,7 @@ impl ModelDelete for History {
             let mut parent_ids = VecDeque::from(vec![*id]);
             while let Some(parent_id) = parent_ids.pop_front() {
                 // Delete children
-                let deleted: Vec<i32> =
+                let deleted: Vec<i64> =
                     diesel::delete(history::table.filter(history::parent_id.eq(parent_id)))
                         .returning(history::id)
                         .get_results(conn)?;
@@ -107,6 +107,10 @@ impl ModelDelete for History {
 
             Ok(deleted_ids.len())
         })
+    }
+
+    fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
+        delete_tree_batch::<Self>(conn, ids)
     }
 }
 
@@ -141,7 +145,7 @@ impl ModelTree for History {
 
 impl History {
     /// Queries the records from the `history` table by their `parent_id`.
-    pub fn by_parent_id(conn: &mut SqliteConnection, parent_id: i32) -> QueryResult<Vec<Self>> {
+    pub fn by_parent_id(conn: &mut SqliteConnection, parent_id: i64) -> QueryResult<Vec<Self>> {
         Self::query()
             .filter(history::parent_id.eq(parent_id))
             .order(history::seq)
@@ -149,7 +153,7 @@ impl History {
     }
 
     /// Queries the records from the `content` table associated with the given `history`.
-    pub fn get_contents(conn: &mut SqliteConnection, id: i32) -> QueryResult<Vec<Content>> {
+    pub fn get_contents(conn: &mut SqliteConnection, id: i64) -> QueryResult<Vec<Content>> {
         content::table
             .inner_join(history_content::table.on(content::id.eq(history_content::content_id)))
             .filter(history_content::history_id.eq(id))
@@ -159,7 +163,7 @@ impl History {
     }
 
     /// Returns the history type (`attribute`) of a record in the `history` table or `None` if not found.
-    pub fn get_attribute(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<HistoryType>> {
+    pub fn get_attribute(conn: &mut SqliteConnection, id: i64) -> QueryResult<Option<HistoryType>> {
         if id == 0 {
             return Ok(Some(HistoryType::Folder));
         }
@@ -172,7 +176,7 @@ impl History {
     }
 
     /// Returns `true` if the record in the `history` table exists and is a history, `false` otherwise.
-    pub fn is_history(conn: &mut SqliteConnection, id: i32) -> QueryResult<bool> {
+    pub fn is_history(conn: &mut SqliteConnection, id: i64) -> QueryResult<bool> {
         match Self::get_attribute(conn, id)? {
             Some(attr) => Ok(attr == HistoryType::List),
             None => Ok(false),
@@ -180,7 +184,7 @@ impl History {
     }
 
     /// Returns `true` if the record in the `history` table exists and is a folder, `false` otherwise.
-    pub fn is_folder(conn: &mut SqliteConnection, id: i32) -> QueryResult<bool> {
+    pub fn is_folder(conn: &mut SqliteConnection, id: i64) -> QueryResult<bool> {
         match Self::get_attribute(conn, id)? {
             Some(attr) => Ok(attr == HistoryType::Folder),
             None => Ok(false),
@@ -188,7 +192,7 @@ impl History {
     }
 
     /// Set the name of a record in the `history` table.
-    pub fn rename(conn: &mut SqliteConnection, id: i32, name: &str) -> QueryResult<usize> {
+    pub fn rename(conn: &mut SqliteConnection, id: i64, name: &str) -> QueryResult<usize> {
         diesel::update(history::table.find(id))
             .set(history::name.eq(name))
             .execute(conn)
@@ -196,8 +200,9 @@ impl History {
 }
 
 impl TreeSeq for History {
-    type ParentId = i32;
-    const START_SEQ: i32 = 1;
+    type ParentId = i64;
+    const START_SEQ: i32 = 0;
+
     fn is_valid_parent(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
@@ -242,7 +247,7 @@ impl TreeSeq for History {
 }
 
 impl OrderedModel for History {
-    fn order_id(&self) -> i32 {
+    fn order_id(&self) -> i64 {
         self.id
     }
     fn order_parent(&self) -> &Self::ParentId {
@@ -291,8 +296,9 @@ impl OrderedModel for History {
 #[diesel(table_name = history)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(name, attribute)))]
 pub struct NewHistory {
     /// Insertion position in the collection; `None` appends.
     pub seq: Option<i32>,
@@ -301,7 +307,7 @@ pub struct NewHistory {
     /// The attribute of the tag, either history (`0`) or a folder (`1`)
     pub attribute: HistoryType,
     /// The ID of the parent [`History`] or `0` for top-level record.
-    pub parent_id: i32,
+    pub parent_id: i64,
 }
 
 impl ModelInsert for NewHistory {
@@ -347,14 +353,14 @@ impl NewHistory {
         }
     }
 
-    /// Set the insertion position among siblings; one inserts first.
+    /// Set the insertion position among siblings; zero inserts first.
     pub fn seq(mut self, seq: i32) -> Self {
         self.seq = Some(seq);
         self
     }
 
     /// Builder for `parent_id`.
-    pub fn parent_id(mut self, id: i32) -> Self {
+    pub fn parent_id(mut self, id: i64) -> Self {
         self.parent_id = id;
         self
     }
@@ -380,15 +386,16 @@ impl NewHistory {
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct HistoryContent {
     /// The ID of the associated [`History`].
-    pub history_id: i32,
+    pub history_id: i64,
     /// The ID of the associated [`Content`].
-    pub content_id: i32,
-    /// Position within the history, starting at zero. Before insertion, `-1` requests append.
+    pub content_id: i64,
+    /// Position within the history, starting at one. Before insertion, `-1` requests append.
+    /// Matches rbxport's history writer; populated native fixtures are still needed.
     pub seq: i32,
 }
 
 impl Model for HistoryContent {
-    type Id = (i32, i32);
+    type Id = (i64, i64);
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query()
@@ -469,7 +476,7 @@ impl ModelList for HistoryContent {
 
 impl HistoryContent {
     /// Create an entry that will be appended to the history on insertion.
-    pub fn new(history_id: i32, content_id: i32) -> Self {
+    pub fn new(history_id: i64, content_id: i64) -> Self {
         Self {
             history_id,
             content_id,
@@ -477,14 +484,14 @@ impl HistoryContent {
         }
     }
 
-    /// Set the stored position; zero is the first entry and -1 requests append on insertion.
+    /// Set the stored position; one is the first entry and -1 requests append on insertion.
     pub fn seq(mut self, seq: i32) -> Self {
         self.seq = seq;
         self
     }
 
     /// Queries all records from the `history_content` table by its `history_id`
-    pub fn by_history_id(conn: &mut SqliteConnection, history_id: i32) -> QueryResult<Vec<Self>> {
+    pub fn by_history_id(conn: &mut SqliteConnection, history_id: i64) -> QueryResult<Vec<Self>> {
         Self::query()
             .filter(history_content::history_id.eq(history_id))
             .order((history_content::seq, history_content::content_id))
@@ -492,7 +499,7 @@ impl HistoryContent {
     }
 
     /// Queries all records from the `history_content` table by its `content_id`
-    pub fn by_content_id(conn: &mut SqliteConnection, content_id: i32) -> QueryResult<Vec<Self>> {
+    pub fn by_content_id(conn: &mut SqliteConnection, content_id: i64) -> QueryResult<Vec<Self>> {
         Self::query()
             .filter(history_content::content_id.eq(content_id))
             .order((history_content::history_id, history_content::seq))
@@ -501,31 +508,31 @@ impl HistoryContent {
 
     /// Creates a filter for records by `history_id`.
     #[diesel::dsl::auto_type(no_type_alias)]
-    fn filter_by_history_id(history_id: i32) -> _ {
+    fn filter_by_history_id(history_id: i64) -> _ {
         history_content::table.filter(history_content::history_id.eq(history_id))
     }
 
     /// Creates a filter for records by multiple `history_id`s.
     #[diesel::dsl::auto_type(no_type_alias)]
-    fn filter_by_history_ids(history_ids: &[i32]) -> _ {
+    fn filter_by_history_ids(history_ids: &[i64]) -> _ {
         history_content::table.filter(history_content::history_id.eq_any(history_ids))
     }
 
     /// Creates a filter for records by multiple `content_id`s.
     #[diesel::dsl::auto_type(no_type_alias)]
-    fn filter_by_content_ids(content_ids: &[i32]) -> _ {
+    fn filter_by_content_ids(content_ids: &[i64]) -> _ {
         history_content::table.filter(history_content::content_id.eq_any(content_ids))
     }
 
     /// Counts the number of records in the `history_content` table for a given `history_id`.
-    pub fn count(conn: &mut SqliteConnection, history_id: i32) -> QueryResult<i32> {
+    pub fn count(conn: &mut SqliteConnection, history_id: i64) -> QueryResult<i32> {
         Self::count_children(conn, &history_id)
     }
 
     /// Deletes all record from the `history_content` table referencing a `history` record.
     pub fn delete_by_history_id(
         conn: &mut SqliteConnection,
-        history_id: i32,
+        history_id: i64,
     ) -> QueryResult<usize> {
         conn.transaction(|conn| {
             // We don't need to handle seq, since we're deleting all records referencing the history
@@ -536,7 +543,7 @@ impl HistoryContent {
     /// Deletes all record from the `history_content` table referencing multiple `history` records.
     pub fn delete_by_history_ids(
         conn: &mut SqliteConnection,
-        history_ids: &[i32],
+        history_ids: &[i64],
     ) -> QueryResult<usize> {
         conn.transaction(|conn| {
             // We don't need to handle seq, since we're deleting all records referencing the historys
@@ -547,15 +554,15 @@ impl HistoryContent {
     /// Deletes all record from the `history_content` table referencing a `content` record.
     pub fn delete_by_content_id(
         conn: &mut SqliteConnection,
-        content_id: i32,
+        content_id: i64,
     ) -> QueryResult<usize> {
         conn.transaction(|conn| Self::delete_by_content_ids(conn, &[content_id]))
     }
 
     /// Deletes all record from the `history_content` table referencing multiple `content` records.
-    pub fn delete_by_content_ids(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<usize> {
+    pub fn delete_by_content_ids(conn: &mut SqliteConnection, ids: &[i64]) -> QueryResult<usize> {
         conn.transaction(|conn| {
-            let history_ids: Vec<i32> = diesel::delete(Self::filter_by_content_ids(ids))
+            let history_ids: Vec<i64> = diesel::delete(Self::filter_by_content_ids(ids))
                 .returning(history_content::history_id)
                 .get_results(conn)?;
             for history in &history_ids
@@ -571,8 +578,9 @@ impl HistoryContent {
 }
 
 impl TreeSeq for HistoryContent {
-    type ParentId = i32;
-    const START_SEQ: i32 = 0;
+    type ParentId = i64;
+    const START_SEQ: i32 = 1;
+
     fn is_valid_parent(
         conn: &mut SqliteConnection,
         parent_id: &Self::ParentId,
@@ -617,7 +625,7 @@ impl TreeSeq for HistoryContent {
 }
 
 impl OrderedModel for HistoryContent {
-    fn order_id(&self) -> (i32, i32) {
+    fn order_id(&self) -> (i64, i64) {
         (self.history_id, self.content_id)
     }
     fn order_parent(&self) -> &Self::ParentId {

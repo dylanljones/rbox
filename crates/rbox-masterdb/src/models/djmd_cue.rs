@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `DjmdCue`.
+
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -36,6 +38,7 @@ use rbox_db::Model;
 #[derive(
     Debug, Clone, PartialEq, Default, HasQuery, Identifiable, Insertable, AsChangeset, Associations,
 )]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = djmdCue)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(DjmdContent, foreign_key = content_id))]
@@ -72,25 +75,25 @@ pub struct DjmdCue {
     /// The ID of the associated track in [`DjmdContent`].
     pub content_id: String,
     /// The cue's start time in milliseconds.
-    pub in_msec: i32,
+    pub in_msec: i64,
     /// The cue's start frame.
     ///
     /// One frame is 1/150th of a second
-    pub in_frame: i32,
+    pub in_frame: i64,
     /// The cue's start MPEG frame or 0 if not a VBR/ABR MPEG file (see note).
-    pub in_mpeg_frame: i32,
-    /// The cue's start MPEG absolute frame or 0 if not a VBR/ABR MPEG file.
-    pub in_mpeg_abs: i32,
+    pub in_mpeg_frame: i64,
+    /// The byte offset of the cue's start MPEG frame or 0 if not a VBR/ABR MPEG file.
+    pub in_mpeg_abs: i64,
     /// The cue's end time in milliseconds or -1 if not a loop.
-    pub out_msec: i32,
+    pub out_msec: i64,
     /// The cue's end frame or -1 if not a loop.
     ///
     /// One frame is 1/150th of a second
-    pub out_frame: i32,
+    pub out_frame: i64,
     /// The cue's end MPEG frame or 0 if not a loop or not a VBR/ABR MPEG file (see note)
-    pub out_mpeg_frame: i32,
-    /// The cue's end MPEG absolute frame or 0 if not a loop or not a VBR/ABR MPEG file
-    pub out_mpeg_abs: i32,
+    pub out_mpeg_frame: i64,
+    /// The byte offset of the cue's end MPEG frame or 0 if not a loop or not a VBR/ABR MPEG file
+    pub out_mpeg_abs: i64,
     /// The type of the cue.
     ///
     /// 0 if a memory cue, otherwise the number of Hot Cue
@@ -105,8 +108,8 @@ pub struct DjmdCue {
     pub comment: Option<String>,
     /// An optional integer representing the size of the beat loop.
     pub beat_loop_size: Option<i32>,
-    /// An optional integer representing the cue's position in microseconds.
-    pub cue_microsec: Option<i32>,
+    /// Raw `CueMicrosec` value; its precise timing semantics are not yet verified.
+    pub cue_microsec: Option<i64>,
     /// An optional string containing seek information for the cue's start point.
     pub in_point_seek_info: Option<String>,
     /// An optional string containing seek information for the cue's end point.

@@ -1,13 +1,15 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `Image`.
+
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 #[cfg(feature = "pyo3")]
-use rbox_derives::PyMutableMapping;
+use rbox_derives::{PyConstructor, PyMutableMapping};
 
 use crate::schema::{album, content, image};
 use rbox_db::{Model, ModelDelete, ModelInsert, ModelUpdate};
@@ -21,6 +23,7 @@ use rbox_db::{Model, ModelDelete, ModelInsert, ModelUpdate};
 /// * [`Album`] via `image_id` foreign key.
 /// * [`Content`] via `image_id` foreign key.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = image)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -29,13 +32,13 @@ use rbox_db::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Image {
     /// The unique identifier of the image.
-    pub id: i32,
+    pub id: i64,
     /// The relative file path of the image.
     pub path: String,
 }
 
 impl Model for Image {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
@@ -63,11 +66,11 @@ impl ModelDelete for Image {
         let result = diesel::delete(image::table.find(id)).execute(conn)?;
         // Remove any references to the image in the album table
         diesel::update(album::table.filter(album::image_id.eq(id)))
-            .set(album::image_id.eq(None::<i32>))
+            .set(album::image_id.eq(None::<i64>))
             .execute(conn)?;
         // Remove any references to the image in the content table
         diesel::update(content::table.filter(content::image_id.eq(id)))
-            .set(content::image_id.eq(None::<i32>))
+            .set(content::image_id.eq(None::<i64>))
             .execute(conn)?;
         Ok(result)
     }
@@ -76,11 +79,11 @@ impl ModelDelete for Image {
         let result = diesel::delete(image::table.filter(image::id.eq_any(&ids))).execute(conn)?;
         // Remove any references to the image in the album table
         diesel::update(album::table.filter(album::image_id.eq_any(&ids)))
-            .set(album::image_id.eq(None::<i32>))
+            .set(album::image_id.eq(None::<i64>))
             .execute(conn)?;
         // Remove any references to the image in the content table
         diesel::update(content::table.filter(content::image_id.eq_any(&ids)))
-            .set(content::image_id.eq(None::<i32>))
+            .set(content::image_id.eq(None::<i64>))
             .execute(conn)?;
         Ok(result)
     }
@@ -107,8 +110,9 @@ impl Image {
 #[diesel(table_name = image)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(path)))]
 pub struct NewImage {
     /// The relative file path of the image.
     pub path: String,

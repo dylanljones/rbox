@@ -11,7 +11,6 @@ version = "0.2.0"
 authors = ["Dylan Jones <dylanljones@proton.me>"]
 description = "Library for interacting with the local and export data of Pioneers Rekordbox DJ software"
 license = "GPL-3.0-only"
-license-file = "LICENSE"
 readme = "README.md"
 repository = "https://github.com/dylanljones/rbox"
 keywords = ["rekordbox", "dj", "database", "setting", "anlz"]
@@ -41,10 +40,11 @@ serde_json        = { version = "1.0" }
 syn               = { version = "3.0", features = ["full", "extra-traits"] }
 sysinfo           = { version = "0.38" }
 thiserror         = { version = "2.0" }
-tempfile          = { version = "3.23" }
+tempfile          = { version = "3.27" }
 uuid              = { version = "1.16", features = ["v4"] }
 
-image             = { version = "0.25" }
+image             = { version = "0.25", default-features = false, features = ["rayon", "jpeg", "png", "gif", "webp", "bmp", "tiff"] }
+fast_image_resize = { version = "6.1", features = ["image"] }
 lofty             = { version = "0.25.4" }
 symphonia         = { version = "0.6", default-features = false, features = ["mp3", "aac", "alac", "isomp4", "flac", "wav", "aiff", "pcm", "adpcm"] }
 

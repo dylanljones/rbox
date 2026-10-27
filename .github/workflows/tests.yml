@@ -1,4 +1,4 @@
-# This workflow will run all tests
+# Pull requests test changed components; manual runs test all components.
 
 name: Tests
 
@@ -45,33 +45,13 @@ jobs:
                 - 'rbox/README.md'
             python:
               paths:
-                - 'rbox/**'
-                - 'crates/**'
-                - 'Cargo.toml'
-                - 'Cargo.lock'
-                - 'rust-toolchain.toml'
-                - '.cargo/**'
-                - '.testdata/**'
-                - '.github/workflows/**'
-                - 'scripts/**'
                 - 'bindings/python/**'
               paths_ignore:
-                - 'rbox/README.md'
                 - 'bindings/python/README.md'
             javascript:
               paths:
-                - 'rbox/**'
-                - 'crates/**'
-                - 'Cargo.toml'
-                - 'Cargo.lock'
-                - 'rust-toolchain.toml'
-                - '.cargo/**'
-                - '.testdata/**'
-                - '.github/workflows/**'
-                - 'scripts/**'
                 - 'bindings/javascript/**'
               paths_ignore:
-                - 'rbox/README.md'
                 - 'bindings/javascript/README.md'
                 - 'bindings/javascript/rustfmt.toml'
 

@@ -1,49 +1,6 @@
 # Copyright (C) 2026 Dylan Jones
 # SPDX-License-Identifier: GPL-3.0-only
 
-# ruff: noqa
-from .._rbox import (
-    Album,
-    AlbumView,
-    NewAlbum,
-    Artist,
-    Composer,
-    Lyricist,
-    NewArtist,
-    OriginalArtist,
-    Remixer,
-    Category,
-    CategoryView,
-    NewCategory,
-    Color,
-    NewColor,
-    Content,
-    ContentView,
-    NewContent,
-    Cue,
-    Genre,
-    NewGenre,
-    History,
-    HistoryContent,
-    NewHistory,
-    HotCueBankList,
-    HotCueBankListCue,
-    Image,
-    NewImage,
-    Key,
-    NewKey,
-    Label,
-    NewLabel,
-    MenuItem,
-    NewMenuItem,
-    MyTag,
-    MyTagContent,
-    NewMyTag,
-    NewPlaylist,
-    Playlist,
-    PlaylistContent,
-    Property,
-    RecommendedLike,
-    NewSort,
-    Sort,
-)  # noqa
+"""Compatibility re-exports; use rbox.onelib.models instead."""
+
+from ..onelib.models import *  # noqa: F403

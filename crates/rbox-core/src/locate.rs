@@ -204,6 +204,22 @@ pub fn options_json_path() -> Result<PathBuf> {
     )
 }
 
+fn file_available(path: &Path) -> Result<bool> {
+    match std::fs::metadata(path) {
+        Ok(metadata) => Ok(metadata.is_file()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error.into()),
+    }
+}
+
+fn directory_available(path: &Path) -> Result<bool> {
+    match std::fs::metadata(path) {
+        Ok(metadata) => Ok(metadata.is_dir()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error.into()),
+    }
+}
+
 /// Explicit discovery inputs, allowing custom profiles and isolated tests.
 ///
 /// Constructors compute candidates without inspecting configuration. Call
@@ -230,6 +246,8 @@ pub enum LocationSource {
     Options,
     /// A platform default library location.
     Default,
+    /// Manual supplied path, not from configuration or defaults.
+    Manual,
 }
 
 /// A selected library, including a missing configured external drive.
@@ -249,6 +267,56 @@ pub struct LibraryLocation {
     pub source: LocationSource,
     /// True only when the selected database is an existing regular file.
     pub available: bool,
+}
+
+impl LibraryLocation {
+    /// Check that the database path exists and is a regular file.
+    ///
+    /// Returns `Ok(true)` for an existing file, `Ok(false)` for a missing file,
+    /// and propagates other I/O errors.
+    pub fn db_exists(&self) -> Result<bool> {
+        file_available(&self.db_path)
+    }
+
+    /// Check that the analysis root exists and is a directory.
+    ///
+    /// Returns `Ok(true)` for an existing directory, `Ok(false)` for a missing directory,
+    /// and propagates other I/O errors.
+    pub fn analysis_exists(&self) -> Result<bool> {
+        directory_available(&self.analysis_root)
+    }
+
+    /// Check that the settings root exists and is a directory.
+    ///
+    /// Returns `Ok(true)` for an existing directory, `Ok(false)` for a missing directory,
+    /// and propagates other I/O errors.
+    pub fn settings_exists(&self) -> Result<bool> {
+        directory_available(&self.settings_root)
+    }
+
+    /// Check that the database, analysis root, and settings root all exist.
+    ///
+    /// Returns `Ok(true)` if all paths exist, `Ok(false)` if any path is missing,
+    /// and propagates other I/O errors.
+    pub fn all_available(&self) -> Result<bool> {
+        Ok(self.db_exists()? && self.analysis_exists()? && self.settings_exists()?)
+    }
+
+    /// Validate that the database, analysis root, and settings root all exist.
+    ///
+    /// Returns `Ok(())` if all paths exist, or an `Error::FileNotFound` for the first missing path.
+    pub fn validate(&self) -> Result<()> {
+        if !self.db_exists()? {
+            return Err(Error::FileNotFound(self.db_path.clone()));
+        }
+        if !self.analysis_exists()? {
+            return Err(Error::FileNotFound(self.analysis_root.clone()));
+        }
+        if !self.settings_exists()? {
+            return Err(Error::FileNotFound(self.settings_root.clone()));
+        }
+        Ok(())
+    }
 }
 
 impl LookupPaths {
@@ -359,14 +427,6 @@ fn same_path(left: &Path, right: &Path) -> bool {
             (Ok(left), Ok(right)) => left == right,
             _ => false,
         }
-}
-
-fn file_available(path: &Path) -> Result<bool> {
-    match std::fs::metadata(path) {
-        Ok(metadata) => Ok(metadata.is_file()),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
-        Err(error) => Err(error.into()),
-    }
 }
 
 fn read_master_directory(path: &Path) -> Result<Option<PathBuf>> {

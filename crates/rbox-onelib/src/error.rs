@@ -10,6 +10,13 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    /// Shared track metadata cannot be represented by the destination model.
+    #[error("Invalid track field '{field}': {reason}")]
+    InvalidTrackField {
+        field: &'static str,
+        reason: &'static str,
+    },
+
     #[error(transparent)]
     Core(#[from] rbox_core::error::Error),
 

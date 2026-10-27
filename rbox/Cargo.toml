@@ -5,7 +5,6 @@ readme = "README.md"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
-license-file.workspace = true
 repository.workspace = true
 keywords.workspace = true
 categories.workspace = true
@@ -19,10 +18,11 @@ name = "rbox"
 
 [features]
 default = ["full", "bundled-vendored-openssl"]
-full = ["master-db", "one-library", "anlz", "xml", "settings"]
+full = ["master-db", "one-library", "device-library", "anlz", "xml", "settings"]
 
 master-db = ["dep:rbox-masterdb", "dep:rbox-db", "anlz", "rbox-onelib?/master-db"]
 one-library = ["dep:rbox-onelib", "dep:rbox-db"]
+device-library = ["dep:rbox-devlib"]
 anlz = ["dep:rbox-anlz"]
 xml = ["dep:rbox-xml"]
 settings = ["dep:rbox-setting"]
@@ -32,8 +32,8 @@ bundled = ["rbox-db?/bundled", "rbox-masterdb?/bundled", "rbox-onelib?/bundled"]
 bundled-vendored-openssl = ["rbox-db?/bundled-vendored-openssl", "rbox-masterdb?/bundled-vendored-openssl", "rbox-onelib?/bundled-vendored-openssl"]
 
 # Features for the bindings
-pyo3 = ["rbox-core/pyo3", "rbox-db?/pyo3", "rbox-masterdb?/pyo3", "rbox-onelib?/pyo3"]
-napi = ["rbox-core/napi", "rbox-db?/napi", "rbox-masterdb?/napi", "rbox-onelib?/napi"]
+pyo3 = ["rbox-core/pyo3", "rbox-db?/pyo3", "rbox-masterdb?/pyo3", "rbox-onelib?/pyo3", "rbox-devlib?/pyo3"]
+napi = ["rbox-core/napi", "rbox-db?/napi", "rbox-masterdb?/napi", "rbox-onelib?/napi", "rbox-devlib?/napi"]
 
 [dependencies]
 thiserror       = { workspace = true }
@@ -43,6 +43,7 @@ rbox-core       = { path = "../crates/rbox-core", version = "0.2.0", default-fea
 rbox-db         = { path = "../crates/rbox-db", version = "0.2.0", default-features = false, optional = true }
 rbox-masterdb   = { path = "../crates/rbox-masterdb", version = "0.2.0", default-features = false, optional = true }
 rbox-onelib     = { path = "../crates/rbox-onelib", version = "0.2.0", default-features = false, optional = true }
+rbox-devlib     = { path = "../crates/rbox-devlib", version = "0.2.0", default-features = false, optional = true }
 rbox-anlz       = { path = "../crates/rbox-anlz", version = "0.2.0", default-features = false, optional = true }
 rbox-xml        = { path = "../crates/rbox-xml", version = "0.2.0", default-features = false, optional = true }
 rbox-setting    = { path = "../crates/rbox-setting", version = "0.2.0", default-features = false, optional = true }

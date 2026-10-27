@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+//! SQLite row models and operations for `HotCueBankList`.
+
 use diesel::prelude::*;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -21,6 +23,7 @@ use rbox_db::Model;
 /// * [`HotCueBankList`] via `parent_id` foreign key.
 /// * [`Image`] via `image_id` foreign key.
 #[derive(Debug, Clone, PartialEq, HasQuery, Identifiable, AsChangeset)]
+#[diesel(treat_none_as_null = true)]
 #[diesel(table_name = hotCueBankList)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -29,21 +32,22 @@ use rbox_db::Model;
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct HotCueBankList {
     /// The unique identifier of the hot cue bank list.
-    pub id: i32,
-    /// The sequence/order number of the hot cue bank list (1-based index).
+    pub id: i64,
+    /// Stored sibling position. The starting index is not yet verified against
+    /// populated native exports; values are preserved without normalization.
     pub seq: i32,
     /// The name of the hot cue bank list.
     pub name: Option<String>,
     /// An optional foreign key referencing an [`Image`].
-    pub image_id: Option<i32>,
+    pub image_id: Option<i64>,
     /// The hot cue bank list type, either list (`0`) or a folder (`1`).
     pub attribute: HotCueBanklistType,
     /// The ID of the parent [`HotCueBankList`], `0` for top-level records.
-    pub parent_id: Option<i32>,
+    pub parent_id: Option<i64>,
 }
 
 impl Model for HotCueBankList {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query()
@@ -76,15 +80,16 @@ impl Model for HotCueBankList {
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct HotCueBankListCue {
     /// The unique identifier of the hot cue bank list.
-    pub hot_cue_bank_list_id: i32,
+    pub hot_cue_bank_list_id: i64,
     /// The unique identifier of the cue.
-    pub cue_id: i32,
-    /// The sequence/order number of the hot cue bank list cue (1-based index).
+    pub cue_id: i64,
+    /// Stored position within the bank. The starting index is not yet verified
+    /// against populated native exports; values are preserved without normalization.
     pub seq: i32,
 }
 
 impl Model for HotCueBankListCue {
-    type Id = (i32, i32);
+    type Id = (i64, i64);
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
@@ -100,7 +105,7 @@ impl Model for HotCueBankListCue {
 }
 
 impl HotCueBankListCue {
-    pub fn delete_by_cue_id(conn: &mut SqliteConnection, cue_id: i32) -> QueryResult<usize> {
+    pub fn delete_by_cue_id(conn: &mut SqliteConnection, cue_id: i64) -> QueryResult<usize> {
         let results =
             diesel::delete(hotCueBankList_cue::table.filter(hotCueBankList_cue::cue_id.eq(cue_id)))
                 .execute(conn)?;
@@ -110,7 +115,7 @@ impl HotCueBankListCue {
 
     pub fn delete_by_cue_ids(
         conn: &mut SqliteConnection,
-        cue_ids: &Vec<i32>,
+        cue_ids: &Vec<i64>,
     ) -> QueryResult<usize> {
         let results = diesel::delete(
             hotCueBankList_cue::table.filter(hotCueBankList_cue::cue_id.eq_any(cue_ids)),
