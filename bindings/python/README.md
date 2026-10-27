@@ -37,7 +37,7 @@ pip install rbox
 
 ## Quick-Start
 
-> **❗ Caution**:
+> [!CAUTION]
 > Please make sure to back up your Rekordbox collection before making changes to local rekordbox data.
 > The backup dialog can be found under "File" > "Library" > "Backup Library".
 >
