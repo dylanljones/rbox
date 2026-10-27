@@ -3,6 +3,8 @@
 
 """Rekordbox databases, analysis files, settings, and shared core utilities."""
 
+from types import ModuleType as _ModuleType
+
 from . import core, rbxml
 from ._rbox import (
     AnlzError,
@@ -43,6 +45,15 @@ from .core import (
 )
 from .devlib import DeviceLibrary
 from .masterdb import MasterDb
-from .one_library import OneLibrary
+from .onelib import OneLibrary
 from .rbxml import RekordboxXml
 from .settings import Setting
+
+
+def __getattr__(name: str) -> _ModuleType:
+    """Load the deprecated namespace only when explicitly requested."""
+    if name == "one_library":
+        from importlib import import_module
+
+        return import_module(".one_library", __name__)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

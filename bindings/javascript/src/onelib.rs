@@ -7,7 +7,7 @@ use crate::models::Track;
 use napi::Result;
 use napi_derive::napi;
 use rbox::core::HistoryType;
-use rbox::one_library::{models::*, OneLibrary};
+use rbox::onelib::{models::*, OneLibrary};
 
 #[napi(js_name = "OneLibrary")]
 pub struct JsOneLibrary {

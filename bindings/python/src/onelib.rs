@@ -6,8 +6,8 @@
 use pyo3::prelude::*;
 use pyo3::types::PyType;
 use rbox::core::Track;
-use rbox::one_library::HistoryType;
-use rbox::one_library::{models::*, OneLibrary};
+use rbox::onelib::HistoryType;
+use rbox::onelib::{models::*, OneLibrary};
 
 use super::errors::OneLibraryError;
 

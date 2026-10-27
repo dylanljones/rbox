@@ -7,7 +7,7 @@ import pytest
 
 from rbox import OneLibrary, OneLibraryError
 from rbox.enums import PlaylistType
-from rbox.one_library import models
+from rbox.onelib import models
 
 
 def test_directory_and_explicit_file_constructors(fixture_copy):

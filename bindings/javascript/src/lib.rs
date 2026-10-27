@@ -8,7 +8,7 @@ mod devlib;
 mod locate;
 mod masterdb;
 mod models;
-mod one_library;
+mod onelib;
 mod options;
 mod settings;
 mod share;

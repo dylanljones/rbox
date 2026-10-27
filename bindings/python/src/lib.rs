@@ -8,7 +8,7 @@ mod devlib;
 mod errors;
 mod locate;
 mod masterdb;
-mod one_library;
+mod onelib;
 mod options;
 mod settings;
 mod share;
@@ -190,7 +190,7 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<rbox::devlib::models::NewDevRecommendedLike>()?;
 
     // Device Library Plus
-    m.add_class::<one_library::PyOneLibrary>()?;
+    m.add_class::<onelib::PyOneLibrary>()?;
     m.add_class::<rbox::onelib::models::Album>()?;
     m.add_class::<rbox::onelib::models::AlbumView>()?;
     m.add_class::<rbox::onelib::models::NewAlbum>()?;
