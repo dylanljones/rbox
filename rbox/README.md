@@ -34,7 +34,7 @@ cargo add rbox
 ```
 or add the following line to your Cargo.toml:
 ```toml
-rbox = "0.2.0"
+rbox = "0.3.0"
 ```
 
 ### Features
@@ -53,7 +53,7 @@ To use only selected components, disable the default features and enable the one
 you need. For example, to use `rbox::anlz`:
 
 ```toml
-rbox = { version = "0.2.0", default-features = false, features = ["anlz"] }
+rbox = { version = "0.3.0", default-features = false, features = ["anlz"] }
 ```
 
 Shared core APIs remain available. Add more component names to `features` as needed.
@@ -74,7 +74,7 @@ To make building easier, there are two optional features for choosing SQLCipher'
 For example, to enable only One Library support and build both SQLCipher and OpenSSL:
 
 ```toml
-rbox = { version = "0.2.0", default-features = false, features = ["one-library", "bundled-vendored-openssl"] }
+rbox = { version = "0.3.0", default-features = false, features = ["one-library", "bundled-vendored-openssl"] }
 ```
 
 Replace `bundled-vendored-openssl` with `bundled` to use a system OpenSSL installation.

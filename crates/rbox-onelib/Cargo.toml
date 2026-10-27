@@ -38,10 +38,10 @@ napi              = { workspace = true, optional = true }
 napi-derive       = { workspace = true, optional = true }
 # uuid              = { workspace = true }
 
-rbox-db           = { path = "../rbox-db", version = "0.2.0", default-features = false }
-rbox-core         = { path = "../rbox-core", version = "0.2.0", default-features = false, features = ["diesel"] }
-rbox-derives      = { path = "../rbox-derives", version = "0.2.0", optional = true }
-rbox-masterdb     = { path = "../rbox-masterdb", version = "0.2.0", default-features = false, optional = true }
+rbox-db           = { path = "../rbox-db", version = "0.3.0", default-features = false }
+rbox-core         = { path = "../rbox-core", version = "0.3.0", default-features = false, features = ["diesel"] }
+rbox-derives      = { path = "../rbox-derives", version = "0.3.0", optional = true }
+rbox-masterdb     = { path = "../rbox-masterdb", version = "0.3.0", default-features = false, optional = true }
 
 [dev-dependencies]
 anyhow            = { workspace = true }
