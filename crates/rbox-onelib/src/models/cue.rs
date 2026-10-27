@@ -62,37 +62,37 @@ pub struct Cue {
     /// Unknonw
     pub beat_loop_denominator: Option<i32>,
     /// The cue's start time in microseconds.
-    pub in_usec: Option<i32>,
+    pub in_usec: Option<i64>,
     /// The cue's end time in microseconds.
-    pub out_usec: Option<i32>,
+    pub out_usec: Option<i64>,
     /// The cue's start frame.
     ///
     /// One frame is 1/150th of a second
-    pub in150_frame_per_sec: Option<i32>,
+    pub in150_frame_per_sec: Option<i64>,
     /// The cue's end frame or -1 if not a loop.
     ///
     /// One frame is 1/150th of a second
-    pub out150_frame_per_sec: Option<i32>,
+    pub out150_frame_per_sec: Option<i64>,
     /// The cue's start MPEG frame or 0 if not a VBR/ABR MPEG file (see note).
-    pub in_mpeg_frame_number: Option<i32>,
+    pub in_mpeg_frame_number: Option<i64>,
     /// The cue's end MPEG frame or 0 if not a loop or not a VBR/ABR MPEG file (see note)
-    pub out_mpeg_frame_number: Option<i32>,
+    pub out_mpeg_frame_number: Option<i64>,
     /// The cue's start MPEG absolute frame or 0 if not a VBR/ABR MPEG file.
-    pub in_mpeg_abs: Option<i32>,
+    pub in_mpeg_abs: Option<i64>,
     /// The cue's end MPEG absolute frame or 0 if not a loop or not a VBR/ABR MPEG file
-    pub out_mpeg_abs: Option<i32>,
+    pub out_mpeg_abs: Option<i64>,
     /// The cue's start frame position in the decoding block.
-    pub in_decoding_start_frame_position: Option<i32>,
+    pub in_decoding_start_frame_position: Option<i64>,
     /// The cue's end frame position in the decoding block.
-    pub out_decoding_start_frame_position: Option<i32>,
+    pub out_decoding_start_frame_position: Option<i64>,
     /// The cue's start file offset in the decoding block.
-    pub in_file_offset_in_block: Option<i32>,
+    pub in_file_offset_in_block: Option<i64>,
     /// The cue's end file offset in the decoding block.
-    pub out_file_offset_in_block: Option<i32>,
+    pub out_file_offset_in_block: Option<i64>,
     /// The cue's start sample position in the decoding block.
-    pub in_number_of_sample_in_block: Option<i32>,
+    pub in_number_of_sample_in_block: Option<i64>,
     /// The cue's end sample position in the decoding block.
-    pub out_number_of_sample_in_block: Option<i32>,
+    pub out_number_of_sample_in_block: Option<i64>,
 }
 
 impl Model for Cue {

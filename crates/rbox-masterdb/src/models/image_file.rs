@@ -65,7 +65,7 @@ pub struct ImageFile {
     /// An optional string representing the hash of the image file.
     pub hash: Option<String>,
     /// An optional integer representing the size of the image file.
-    pub size: Option<i32>,
+    pub size: Option<i64>,
     /// An optional string representing the local path of the image file in Rekordbox.
     pub rb_local_path: Option<String>,
     /// An optional string representing the in-sync hash of the image file.

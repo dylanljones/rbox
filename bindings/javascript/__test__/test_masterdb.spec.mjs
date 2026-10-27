@@ -71,6 +71,19 @@ test('resolved track helpers expose core models and translate errors', t => {
     t.throws(() => db.getTrackById(row.id), { message: /rating/ })
 })
 
+test('wide file sizes round trip through raw and shared track models', t => {
+    const db = t.context.db
+    const row = db.getContents()[0]
+    row.fileSize = 2 ** 40
+    db.updateContent(row)
+    t.is(db.getContentById(row.id).fileSize, row.fileSize)
+    t.is(db.getTrackById(row.id).fileSize, BigInt(row.fileSize))
+    delete row.fileSize
+    db.updateContent(row)
+    t.true(db.getContentById(row.id).fileSize == null)
+    t.true(db.getTrackById(row.id).fileSize == null)
+})
+
 test('album mutation signatures', t => {
     const db = t.context.db
     const row = db.createAlbum('API album', null, null, null)

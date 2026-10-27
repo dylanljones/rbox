@@ -72,6 +72,18 @@ test('content lookup accepts signed master identities', t => {
     t.throws(() => db.getContentByMasterContentId([], row.masterDbId), { instanceOf: Error })
 })
 
+test('wide file sizes cross the native boundary', t => {
+    const db = t.context.db
+    const row = db.getContents()[0]
+    row.fileSize = 2 ** 40
+    t.is(db.updateContent(row).fileSize, row.fileSize)
+    t.is(db.getContentById(row.id).fileSize, row.fileSize)
+    t.is(db.getTrackById(row.id).fileSize, BigInt(row.fileSize))
+    delete row.fileSize
+    t.true(db.updateContent(row).fileSize == null)
+
+})
+
 test('large tag IDs and optional references round trip', t => {
     const db = t.context.db
     const native = db.getMyTags()

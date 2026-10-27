@@ -69,7 +69,7 @@ pub struct ContentFile {
     /// The file hash.
     pub hash: String,
     /// The file size.
-    pub size: i32,
+    pub size: i64,
     /// The absolute file path.
     pub rb_local_path: String,
     /// An optional string representing the in-sync file hash.

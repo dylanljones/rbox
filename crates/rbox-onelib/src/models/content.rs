@@ -132,8 +132,8 @@ pub struct Content {
     pub path: String,
     /// The file name of the track.
     pub file_name: Option<String>,
-    /// The file size of the track
-    pub file_size: Option<i32>,
+    /// The file size of the track in bytes.
+    pub file_size: Option<i64>,
     /// The file type of the track
     pub file_type: i32,
     /// The bitrate of the trackk
@@ -714,8 +714,8 @@ pub struct NewContent {
     pub release_date: Option<String>,
     /// The file name of the track.
     pub file_name: Option<String>,
-    /// The file size of the track
-    pub file_size: Option<i32>,
+    /// The file size of the track in bytes.
+    pub file_size: Option<i64>,
     /// The file typo of the track
     pub file_type: Option<i32>,
     /// The bitrate of the trackk

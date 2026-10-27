@@ -6162,7 +6162,7 @@ export interface DjmdCue {
   inFrame: number
   /** The cue's start MPEG frame or 0 if not a VBR/ABR MPEG file (see note). */
   inMpegFrame: number
-  /** The cue's start MPEG absolute frame or 0 if not a VBR/ABR MPEG file. */
+  /** The byte offset of the cue's start MPEG frame or 0 if not a VBR/ABR MPEG file. */
   inMpegAbs: number
   /** The cue's end time in milliseconds or -1 if not a loop. */
   outMsec: number
@@ -6174,7 +6174,7 @@ export interface DjmdCue {
   outFrame: number
   /** The cue's end MPEG frame or 0 if not a loop or not a VBR/ABR MPEG file (see note) */
   outMpegFrame: number
-  /** The cue's end MPEG absolute frame or 0 if not a loop or not a VBR/ABR MPEG file */
+  /** The byte offset of the cue's end MPEG frame or 0 if not a loop or not a VBR/ABR MPEG file */
   outMpegAbs: number
   /**
    * The type of the cue.
@@ -6192,7 +6192,7 @@ export interface DjmdCue {
   comment?: string
   /** An optional integer representing the size of the beat loop. */
   beatLoopSize?: number
-  /** An optional integer representing the cue's position in microseconds. */
+  /** Raw `CueMicrosec` value; its precise timing semantics are not yet verified. */
   cueMicrosec?: number
   /** An optional string containing seek information for the cue's start point. */
   inPointSeekInfo?: string
@@ -6928,7 +6928,7 @@ export interface DjmdSongHotCueBanklist {
   comment?: string
   /** An optional integer representing the size of the beat loop. */
   beatLoopSize?: number
-  /** An optional integer representing the cue's position in microseconds. */
+  /** Raw `CueMicrosec` value; its precise timing semantics are not yet verified. */
   cueMicrosec?: number
   /** An optional string containing seek information for the cue's start point. */
   inPointSeekInfo?: string
@@ -8016,7 +8016,7 @@ export interface Content {
   path: string
   /** The file name of the track. */
   fileName?: string
-  /** The file size of the track */
+  /** The file size of the track in bytes. */
   fileSize?: number
   /** The file type of the track */
   fileType: number
@@ -8548,7 +8548,7 @@ export interface NewContent {
   releaseDate?: string
   /** The file name of the track. */
   fileName?: string
-  /** The file size of the track */
+  /** The file size of the track in bytes. */
   fileSize?: number
   /** The file typo of the track */
   fileType?: number

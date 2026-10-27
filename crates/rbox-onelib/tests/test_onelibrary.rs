@@ -1021,7 +1021,7 @@ fn shared_track_conversions_reject_invalid_values() -> anyhow::Result<()> {
     input.length = Some(f64::from(i32::MAX) + 1.0);
     assert!(NewContent::try_from(input).is_err());
     let mut input = track.clone();
-    input.file_size = Some(i32::MAX as u64 + 1);
+    input.file_size = Some(i64::MAX as u64 + 1);
     assert!(NewContent::try_from(input).is_err());
     let mut input = track.clone();
     input.rating = Some(6);

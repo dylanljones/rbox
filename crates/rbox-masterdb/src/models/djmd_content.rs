@@ -160,7 +160,7 @@ pub struct DjmdContent {
     /// An optional string used for searching the track.
     pub search_str: Option<String>,
     /// An optional integer representing the file size of the track.
-    pub file_size: Option<i32>,
+    pub file_size: Option<i64>,
     /// An optional integer representing the disc number of the track.
     pub disc_no: Option<i32>,
     /// An optional string representing the ID of the composer in [`DjmdArtist`].
@@ -850,7 +850,7 @@ impl ModelInsert for NewDjmdContent {
         let meta =
             std::fs::metadata(&path).map_err(|err| Error::SerializationError(Box::new(err)))?;
         let file_size =
-            i32::try_from(meta.len()).map_err(|err| Error::SerializationError(Box::new(err)))?;
+            i64::try_from(meta.len()).map_err(|err| Error::SerializationError(Box::new(err)))?;
         let (db_id, library_device_id): (String, String) = djmdProperty::table
             .select((djmdProperty::db_id, djmdProperty::device_id))
             .first(conn)?;

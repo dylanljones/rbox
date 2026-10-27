@@ -4,7 +4,8 @@
 //! Rekordbox One Library database schemas
 //!
 //! Numeric identities and references use `BigInt` to preserve SQLite's signed
-//! 64-bit integers. The on-disk `INTEGER` declarations remain unchanged.
+//! 64-bit integers, as do file sizes and cue time/seek positions.
+//! The on-disk `INTEGER` declarations remain unchanged.
 
 #![allow(non_snake_case)]
 
@@ -98,7 +99,7 @@ diesel::table! {
         #[sql_name = "fileName"]
         file_name -> Nullable<Text>,
         #[sql_name = "fileSize"]
-        file_size -> Nullable<Integer>,
+        file_size -> Nullable<BigInt>,
         #[sql_name = "fileType"]
         file_type -> Integer,
         bitrate -> Nullable<Integer>,
@@ -151,33 +152,33 @@ diesel::table! {
         #[sql_name = "beatLoopDenominator"]
         beat_loop_denominator -> Nullable<Integer>,
         #[sql_name = "inUsec"]
-        in_usec -> Nullable<Integer>,
+        in_usec -> Nullable<BigInt>,
         #[sql_name = "outUsec"]
-        out_usec -> Nullable<Integer>,
+        out_usec -> Nullable<BigInt>,
         #[sql_name = "in150FramePerSec"]
-        in150_frame_per_sec -> Nullable<Integer>,
+        in150_frame_per_sec -> Nullable<BigInt>,
         #[sql_name = "out150FramePerSec"]
-        out150_frame_per_sec -> Nullable<Integer>,
+        out150_frame_per_sec -> Nullable<BigInt>,
         #[sql_name = "inMpegFrameNumber"]
-        in_mpeg_frame_number -> Nullable<Integer>,
+        in_mpeg_frame_number -> Nullable<BigInt>,
         #[sql_name = "outMpegFrameNumber"]
-        out_mpeg_frame_number -> Nullable<Integer>,
+        out_mpeg_frame_number -> Nullable<BigInt>,
         #[sql_name = "inMpegAbs"]
-        in_mpeg_abs -> Nullable<Integer>,
+        in_mpeg_abs -> Nullable<BigInt>,
         #[sql_name = "outMpegAbs"]
-        out_mpeg_abs -> Nullable<Integer>,
+        out_mpeg_abs -> Nullable<BigInt>,
         #[sql_name = "inDecodingStartFramePosition"]
-        in_decoding_start_frame_position -> Nullable<Integer>,
+        in_decoding_start_frame_position -> Nullable<BigInt>,
         #[sql_name = "outDecodingStartFramePosition"]
-        out_decoding_start_frame_position -> Nullable<Integer>,
+        out_decoding_start_frame_position -> Nullable<BigInt>,
         #[sql_name = "inFileOffsetInBlock"]
-        in_file_offset_in_block -> Nullable<Integer>,
+        in_file_offset_in_block -> Nullable<BigInt>,
         #[sql_name = "outFileOffsetInBlock"]
-        out_file_offset_in_block -> Nullable<Integer>,
+        out_file_offset_in_block -> Nullable<BigInt>,
         #[sql_name = "inNumberOfSampleInBlock"]
-        in_number_of_sample_in_block -> Nullable<Integer>,
+        in_number_of_sample_in_block -> Nullable<BigInt>,
         #[sql_name = "outNumberOfSampleInBlock"]
-        out_number_of_sample_in_block -> Nullable<Integer>,
+        out_number_of_sample_in_block -> Nullable<BigInt>,
     }
 }
 

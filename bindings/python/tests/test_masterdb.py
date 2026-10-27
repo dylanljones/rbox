@@ -33,6 +33,17 @@ def test_raw_getters(master_db):
         db.get_content_by_id([])
 
 
+def test_wide_file_sizes(master_db):
+    row = master_db.get_contents()[0]
+    for size in [2**40, 2**63 - 1, None]:
+        row.file_size = size
+        master_db.update_content(row)
+        assert master_db.get_content_by_id(row.id).file_size == size
+        assert master_db.get_track_by_id(row.id).file_size == size
+    with pytest.raises(OverflowError):
+        row.file_size = 2**63
+
+
 def test_resolved_track_helpers(master_db):
     db = master_db
     row = db.get_contents()[0]

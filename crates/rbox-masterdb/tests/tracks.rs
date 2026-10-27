@@ -138,7 +138,7 @@ fn view_copies_resolved_names_and_preserves_optional_fields() {
             delivery_comment: Some("Publish comment".into()),
             title: Some("Title".into()),
             length: Some(62),
-            file_size: Some(i32::MAX),
+            file_size: Some(i64::MAX),
             ..Default::default()
         },
         artist: Some(DjmdArtist {
@@ -184,7 +184,7 @@ fn view_copies_resolved_names_and_preserves_optional_fields() {
     assert_eq!(track.uuid, "uuid");
     assert_eq!(track.title.as_deref(), Some("Title"));
     assert_eq!(track.length, Some(62.0));
-    assert_eq!(track.file_size, Some(i32::MAX as u64));
+    assert_eq!(track.file_size, Some(i64::MAX as u64));
     assert_eq!(track.artist.as_deref(), Some("Artist"));
     assert_eq!(track.remixer.as_deref(), Some("Remixer"));
     assert_eq!(track.album_artist.as_deref(), Some("Album artist"));

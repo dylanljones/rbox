@@ -57,6 +57,18 @@ def test_raw_getters(one_library):
         db.get_content_by_id([])
 
 
+def test_wide_file_sizes(one_library):
+    db = one_library
+    row = db.get_contents()[0]
+    for size in [2**40, 2**63 - 1, None]:
+        row.file_size = size
+        assert db.update_content(row).file_size == size
+        assert db.get_content_by_id(row.id).file_size == size
+        assert db.get_track_by_id(row.id).file_size == size
+    with pytest.raises(OverflowError):
+        row.file_size = 2**63
+
+
 def test_content_lookup_by_master_identity(one_library):
     db = one_library
     row = db.get_contents()[0]

@@ -59,7 +59,7 @@ pub struct SettingFile {
     /// The hash of the setting file.
     pub hash: String,
     /// The size of the setting file.
-    pub size: i32,
+    pub size: i64,
     /// An optional string representing the local path of the setting file in Rekordbox.
     pub rb_local_path: Option<String>,
     /// An optional string representing the in-sync hash of the setting file.
