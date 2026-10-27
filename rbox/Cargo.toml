@@ -39,14 +39,14 @@ napi = ["rbox-core/napi", "rbox-db?/napi", "rbox-masterdb?/napi", "rbox-onelib?/
 thiserror       = { workspace = true }
 
 # The facade controls defaults, including the SQLCipher build strategy.
-rbox-core       = { path = "../crates/rbox-core", version = "0.2.0", default-features = false }
-rbox-db         = { path = "../crates/rbox-db", version = "0.2.0", default-features = false, optional = true }
-rbox-masterdb   = { path = "../crates/rbox-masterdb", version = "0.2.0", default-features = false, optional = true }
-rbox-onelib     = { path = "../crates/rbox-onelib", version = "0.2.0", default-features = false, optional = true }
-rbox-devlib     = { path = "../crates/rbox-devlib", version = "0.2.0", default-features = false, optional = true }
-rbox-anlz       = { path = "../crates/rbox-anlz", version = "0.2.0", default-features = false, optional = true }
-rbox-xml        = { path = "../crates/rbox-xml", version = "0.2.0", default-features = false, optional = true }
-rbox-setting    = { path = "../crates/rbox-setting", version = "0.2.0", default-features = false, optional = true }
+rbox-core       = { path = "../crates/rbox-core", version = "0.3.0", default-features = false }
+rbox-db         = { path = "../crates/rbox-db", version = "0.3.0", default-features = false, optional = true }
+rbox-masterdb   = { path = "../crates/rbox-masterdb", version = "0.3.0", default-features = false, optional = true }
+rbox-onelib     = { path = "../crates/rbox-onelib", version = "0.3.0", default-features = false, optional = true }
+rbox-devlib     = { path = "../crates/rbox-devlib", version = "0.3.0", default-features = false, optional = true }
+rbox-anlz       = { path = "../crates/rbox-anlz", version = "0.3.0", default-features = false, optional = true }
+rbox-xml        = { path = "../crates/rbox-xml", version = "0.3.0", default-features = false, optional = true }
+rbox-setting    = { path = "../crates/rbox-setting", version = "0.3.0", default-features = false, optional = true }
 
 [dev-dependencies]
 anyhow          = { workspace = true }

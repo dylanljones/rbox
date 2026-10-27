@@ -1,6 +1,6 @@
 {
   "name": "rbox-js",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Javascript library for interacting with the local and export data of Pioneers Rekordbox DJ software",
   "author": "Dylan Jones <dylanljones@proton.me>",
   "keywords": [

@@ -16,6 +16,7 @@ crates/rbox-dsp
 crates/rbox-library
 crates/rbox-wav
 crates/rbox-usb
+crates/rbox-djlink
 
 # mdBook output and generated mdbook-tabs assets
 /docs/book/
