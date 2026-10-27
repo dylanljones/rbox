@@ -10,7 +10,7 @@ use rbox_derives::PyMutableMapping;
 #[pyclass]
 #[derive(PyMutableMapping)]
 struct Mapping {
-    name: String,
+    pub name: String,
 }
 
 #[test]

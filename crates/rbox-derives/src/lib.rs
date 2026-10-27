@@ -9,7 +9,7 @@
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Fields, Type};
+use syn::{parse_macro_input, Data, DeriveInput, Fields, Type, Visibility};
 
 const ENUMS: [&str; 6] = [
     // "Analyzed",
@@ -22,6 +22,11 @@ const ENUMS: [&str; 6] = [
 ];
 
 /// Implement Python mapping methods for a named-field Python class.
+///
+/// Only unrestricted `pub` fields participate in the mapping and its representation.
+/// Private and restricted fields (such as `pub(crate)`) are ignored, including any
+/// `repr_field` annotation on those fields. Hidden field types need no Python conversions.
+/// This does not control properties generated separately by `pyclass`.
 ///
 /// The consuming crate must depend on `rbox-core` with its `pyo3` feature
 /// enabled. Iterator helpers are resolved through `::rbox_core::python`, so
@@ -53,10 +58,14 @@ pub fn derive_py_mutable_mapping(input: TokenStream) -> TokenStream {
             }
         });
 
-    // Extract field information
+    // Use the same public fields for every generated mapping operation.
     let fields = if let Data::Struct(data_struct) = &input.data {
         if let Fields::Named(fields) = &data_struct.fields {
-            fields.named.iter().collect::<Vec<_>>()
+            fields
+                .named
+                .iter()
+                .filter(|field| matches!(field.vis, Visibility::Public(_)))
+                .collect::<Vec<_>>()
         } else {
             panic!("PyMutableMapping only works with named fields");
         }
@@ -72,25 +81,16 @@ pub fn derive_py_mutable_mapping(input: TokenStream) -> TokenStream {
         quote! { #name.to_string() }
     });
 
-    // Find the field to use for __repr__ (defaults to first field)
-    let repr_field = if let Data::Struct(data_struct) = &input.data {
-        if let Fields::Named(fields) = &data_struct.fields {
-            fields
-                .named
+    // Representation must not expose hidden fields either.
+    let repr_field = fields
+        .iter()
+        .find(|f| {
+            f.attrs
                 .iter()
-                .find(|f| {
-                    f.attrs
-                        .iter()
-                        .any(|attr| attr.path().is_ident("repr_field"))
-                })
-                .or_else(|| fields.named.first())
-                .and_then(|f| f.ident.as_ref())
-        } else {
-            None
-        }
-    } else {
-        None
-    };
+                .any(|attr| attr.path().is_ident("repr_field"))
+        })
+        .or_else(|| fields.first())
+        .and_then(|f| f.ident.as_ref());
 
     // Generate getter match arms
     let getter_arms = fields.iter().map(|f| {
