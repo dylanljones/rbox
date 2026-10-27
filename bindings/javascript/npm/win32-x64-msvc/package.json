@@ -1,6 +1,10 @@
 {
   "name": "@dylanljones/rbox-js-win32-x64-msvc",
   "version": "0.3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dylanljones/rbox"
+  },
   "os": [
     "win32"
   ],
