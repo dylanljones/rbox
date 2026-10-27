@@ -3671,102 +3671,6 @@ export declare class DevColor {
 }
 
 /**
- * A detached track from the standard database's track table.
- *
- * Uses content terminology shared with the SQL models and the `Dev` model prefix.
- * Wraps the binary [`TrackRow`] and uses [`PageType::Tracks`].
- *
- * Public fields contain decoded values, like the masterdb/onelib models-old.
- * Editing a field only changes this snapshot; call [Self::update] to persist edits.
- * Use [`NewDevContent`] to insert a fresh track without an existing raw row.
- * IDs, empty strings, date text and paths retain their stored meaning. Unknown
- * fields and string encodings remain available through [`Self::raw_record`].
- * ISRC decoding is explicit because its frame can have an unknown encoding.
- *
- * Plain queries never load relationships. Use [`Self::resolve`] or
- * [`Self::all_with_relations`] to explicitly construct a [`DevContentView`].
- * The extended database has no track table and returns [`Error::WrongDatabaseKind`].
- */
-export declare class DevContent {
-  /** Export track ID, used by playlists and tag associations. */
-  id: number
-  /** Main artist ID. */
-  artistId: number
-  /** Album ID. */
-  albumId: number
-  /** Genre ID. */
-  genreId: number
-  /** Label ID. */
-  labelId: number
-  /** Musical-key ID. */
-  keyId: number
-  /** Artwork-reference ID. */
-  artworkId: number
-  /** Composer artist ID. */
-  composerId: number
-  /** Original artist ID. */
-  originalArtistId: number
-  /** Remixer artist ID. */
-  remixerId: number
-  /** Content identity in the source library, separate from the export ID. */
-  masterContentId: number
-  /** Source library identity. */
-  masterDbId: number
-  /** Sample rate in Hz. */
-  sampleRate: number
-  /** Audio file size in bytes. */
-  fileSize: number
-  /** Stored bitrate, normally kb/s. */
-  bitrate: number
-  /** Tempo in BPM multiplied by 100. */
-  bpmx100: number
-  /** Track duration in seconds. */
-  length: number
-  /** Track number within the release. */
-  trackNo: number
-  /** Disc number. */
-  discNo: number
-  /** Stored play count. */
-  playCount: number
-  /** Release year. */
-  releaseYear: number
-  /** Sample depth in bits per sample. */
-  bitDepth: number
-  /** Raw color ID, including zero. */
-  colorId: number
-  /** Raw star rating; unrecognized values are retained. */
-  rating: number
-  /** Raw audio format code; unrecognized codes are retained. */
-  fileType: number
-  /** Display title. */
-  title: string
-  /** DJ comment. */
-  comment: string
-  /** Mix/remix name. */
-  mixName: string
-  /** Lyricist text. */
-  lyricist: string
-  /** Track message, separate from the comment. */
-  message: string
-  /** Original publication setting text. */
-  publishTrackInfo: string
-  /** Original hot-cue auto-load setting text. */
-  hotCueAutoLoad: string
-  /** Collection date as stored text. */
-  dateAdded: string
-  /** Release date as stored text. */
-  releaseDate: string
-  /** Analysis date as stored text. */
-  analysisDate: string
-  /** Analysis-file path, preserving original separators. */
-  analysisPath: string
-  /** Audio basename. */
-  fileName: string
-  /** Audio path, preserving original separators. */
-  path: string
-}
-
-/**
  * Source My Tag library metadata from extended table 7, initialized by the extended profile.
  *
  * The exposed identity is used verbatim, without a DBID conversion. Reserved
@@ -3978,38 +3882,30 @@ export declare class DevRecommendedLike {
 }
 
 /**
- * Input for a fresh track; no source row or existing PDB is required.
+ * An album snapshot with its album artist explicitly resolved.
  *
- * Insertion allocates the highest live table ID plus one, starting at 1.
- * Failed insertions do not consume an ID; deleting the highest ID permits reuse.
- * Use the returned model's ID when creating relationships.
+ * [`Self::artist`] resolves [`DevAlbum::artist_id`], the same relationship exposed
+ * as [`super::DevContentView::album_artist`] on a content view. It is independent
+ * of the content's main artist; the album row has only this one artist reference.
  *
- * Supply the exported audio path. Metadata
- * starts at zero or empty text; no source-library identity or analysis path is
- * inferred. `creation` supplies overridable reserved values from the engine's
- * supported writer profile. Populate metadata and ANLZ references before export.
- *
- * Insertion returns a [`DevContent`] with an engine-created raw row, commits in memory,
- * and updates any existing export-property track counts. Call the connection's
- * save methods to persist. Related rows and audio/ANLZ assets are not created.
- *
- * ```
- * use rbox_devlib::{binary::DatabaseKind, DeviceSqlConnection};
- * use rbox_devlib::models::NewDevContent;
- *
- * # fn main() -> rbox_devlib::Result<()> {
- * let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
- * let mut new = NewDevContent::new("/Contents/Artist/Track.flac");
- * new.title = "Track".into();
- * new.bpmx100 = 12800;
- * new.analysis_path = "/PIONEER/USBANLZ/P02F/0000E9C7/ANLZ0000.DAT".into();
- * let track = new.insert(&mut conn)?;
- * assert_eq!(track.title, "Track");
- * # Ok(())
- * # }
- * ```
+ * Field access performs no queries. A zero artist ID or missing target resolves
+ * to `None`; the original ID and raw row remain in [`Self::album`]. Editing this
+ * view changes only the snapshot, without saving or refreshing relationships.
  */
-export declare class NewDevContent {
+export interface DevAlbumView {
+  /** Original album snapshot, including its artist ID. */
+  album: DevAlbum
+  /**
+   * Album artist resolved from `album.artist_id`, without recursive expansion.
+   * Equivalent to `DevContentView::album_artist`, not the content's main artist.
+   */
+  artist?: DevArtist
+}
+
+/** Detached public values; editing this object does not persist changes. */
+export interface DevContent {
+  /** Export track ID, used by playlists and tag associations. */
+  id: number
   /** Main artist ID. */
   artistId: number
   /** Album ID. */
@@ -4084,31 +3980,84 @@ export declare class NewDevContent {
   fileName: string
   /** Audio path, preserving original separators. */
   path: string
-  /** ISRC text; empty means absent, otherwise twelve ASCII alphanumeric characters. */
-  isrc: string
-  /** Start an insertion input with an audio path; reserved values default during insertion. */
-  constructor(path: string)
 }
 
-/**
- * An album snapshot with its album artist explicitly resolved.
- *
- * [`Self::artist`] resolves [`DevAlbum::artist_id`], the same relationship exposed
- * as [`super::DevContentView::album_artist`] on a content view. It is independent
- * of the content's main artist; the album row has only this one artist reference.
- *
- * Field access performs no queries. A zero artist ID or missing target resolves
- * to `None`; the original ID and raw row remain in [`Self::album`]. Editing this
- * view changes only the snapshot, without saving or refreshing relationships.
- */
-export interface DevAlbumView {
-  /** Original album snapshot, including its artist ID. */
-  album: DevAlbum
-  /**
-   * Album artist resolved from `album.artist_id`, without recursive expansion.
-   * Equivalent to `DevContentView::album_artist`, not the content's main artist.
-   */
-  artist?: DevArtist
+/** Partial changes. Omitted or undefined fields retain their current values; null is rejected. */
+export interface DevContentChanges {
+  /** Main artist ID. */
+  artistId?: number
+  /** Album ID. */
+  albumId?: number
+  /** Genre ID. */
+  genreId?: number
+  /** Label ID. */
+  labelId?: number
+  /** Musical-key ID. */
+  keyId?: number
+  /** Artwork-reference ID. */
+  artworkId?: number
+  /** Composer artist ID. */
+  composerId?: number
+  /** Original artist ID. */
+  originalArtistId?: number
+  /** Remixer artist ID. */
+  remixerId?: number
+  /** Content identity in the source library, separate from the export ID. */
+  masterContentId?: number
+  /** Source library identity. */
+  masterDbId?: number
+  /** Sample rate in Hz. */
+  sampleRate?: number
+  /** Audio file size in bytes. */
+  fileSize?: number
+  /** Stored bitrate, normally kb/s. */
+  bitrate?: number
+  /** Tempo in BPM multiplied by 100. */
+  bpmx100?: number
+  /** Track duration in seconds. */
+  length?: number
+  /** Track number within the release. */
+  trackNo?: number
+  /** Disc number. */
+  discNo?: number
+  /** Stored play count. */
+  playCount?: number
+  /** Release year. */
+  releaseYear?: number
+  /** Sample depth in bits per sample. */
+  bitDepth?: number
+  /** Raw color ID, including zero. */
+  colorId?: number
+  /** Raw star rating; unrecognized values are retained. */
+  rating?: number
+  /** Raw audio format code; unrecognized codes are retained. */
+  fileType?: number
+  /** Display title. */
+  title?: string
+  /** DJ comment. */
+  comment?: string
+  /** Mix/remix name. */
+  mixName?: string
+  /** Lyricist text. */
+  lyricist?: string
+  /** Track message, separate from the comment. */
+  message?: string
+  /** Original publication setting text. */
+  publishTrackInfo?: string
+  /** Original hot-cue auto-load setting text. */
+  hotCueAutoLoad?: string
+  /** Collection date as stored text. */
+  dateAdded?: string
+  /** Release date as stored text. */
+  releaseDate?: string
+  /** Analysis date as stored text. */
+  analysisDate?: string
+  /** Analysis-file path, preserving original separators. */
+  analysisPath?: string
+  /** Audio basename. */
+  fileName?: string
+  /** Audio path, preserving original separators. */
+  path?: string
 }
 
 /**
@@ -4225,6 +4174,86 @@ export interface NewDevArtist {
 export interface NewDevArtwork {
   /** Original artwork path, preserving stored separators. */
   path: string
+}
+
+/** Insertion input. Optional fields override the model constructor's defaults. */
+export interface NewDevContent {
+  /** Main artist ID. */
+  artistId?: number
+  /** Album ID. */
+  albumId?: number
+  /** Genre ID. */
+  genreId?: number
+  /** Label ID. */
+  labelId?: number
+  /** Musical-key ID. */
+  keyId?: number
+  /** Artwork-reference ID. */
+  artworkId?: number
+  /** Composer artist ID. */
+  composerId?: number
+  /** Original artist ID. */
+  originalArtistId?: number
+  /** Remixer artist ID. */
+  remixerId?: number
+  /** Content identity in the source library, separate from the export ID. */
+  masterContentId?: number
+  /** Source library identity. */
+  masterDbId?: number
+  /** Sample rate in Hz. */
+  sampleRate?: number
+  /** Audio file size in bytes. */
+  fileSize?: number
+  /** Stored bitrate, normally kb/s. */
+  bitrate?: number
+  /** Tempo in BPM multiplied by 100. */
+  bpmx100?: number
+  /** Track duration in seconds. */
+  length?: number
+  /** Track number within the release. */
+  trackNo?: number
+  /** Disc number. */
+  discNo?: number
+  /** Stored play count. */
+  playCount?: number
+  /** Release year. */
+  releaseYear?: number
+  /** Sample depth in bits per sample. */
+  bitDepth?: number
+  /** Raw color ID, including zero. */
+  colorId?: number
+  /** Raw star rating; unrecognized values are retained. */
+  rating?: number
+  /** Raw audio format code; unrecognized codes are retained. */
+  fileType?: number
+  /** Display title. */
+  title?: string
+  /** DJ comment. */
+  comment?: string
+  /** Mix/remix name. */
+  mixName?: string
+  /** Lyricist text. */
+  lyricist?: string
+  /** Track message, separate from the comment. */
+  message?: string
+  /** Original publication setting text. */
+  publishTrackInfo?: string
+  /** Original hot-cue auto-load setting text. */
+  hotCueAutoLoad?: string
+  /** Collection date as stored text. */
+  dateAdded?: string
+  /** Release date as stored text. */
+  releaseDate?: string
+  /** Analysis date as stored text. */
+  analysisDate?: string
+  /** Analysis-file path, preserving original separators. */
+  analysisPath?: string
+  /** Audio basename. */
+  fileName?: string
+  /** Audio path, preserving original separators. */
+  path: string
+  /** ISRC text; empty means absent, otherwise twelve ASCII alphanumeric characters. */
+  isrc?: string
 }
 
 /**
@@ -4787,6 +4816,8 @@ export declare class DeviceLibrary {
   /**
    * Allocate a local export ID and insert content, updating existing export-property counts.
    *
+   * Accepts a plain object with a required path. Omitted metadata uses defaults;
+   * the file name is derived from the path unless explicitly supplied.
    * The operation commits atomically in memory; saving remains explicit.
    * Audio, artwork and analysis files are not copied or generated.
    */
@@ -4798,12 +4829,14 @@ export declare class DeviceLibrary {
    */
   createContent(path: string): DevContent
   /**
-   * Persist edited content in memory, preserving unedited binary fields.
+   * Apply partial changes to the current content row and return a plain object.
    *
+   * Omitted or undefined fields retain their current values; null is rejected.
+   * Empty strings and zero are explicit changes. Private binary data is preserved.
    * The ID cannot change. Errors roll back the operation; saving remains explicit.
    * Editing paths does not move files or automatically update other path fields.
    */
-  updateContent(content: DevContent): DevContent
+  updateContent(id: number, changes: DevContentChanges): DevContent
   /**
    * Delete content and its playlist/history occurrences, updating export-property counts.
    *

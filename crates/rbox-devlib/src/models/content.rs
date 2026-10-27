@@ -53,7 +53,8 @@ use crate::{Error, Result};
 #[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
-#[cfg_attr(feature = "napi", napi)]
+#[cfg_attr(feature = "napi", derive(rbox_derives::NapiPublic))]
+#[cfg_attr(feature = "napi", napi_public(output = DevContentObject, patch = DevContentChanges, readonly(id)))]
 pub struct DevContent {
     /// Export track ID, used by playlists and tag associations.
     pub id: i64,
@@ -979,7 +980,8 @@ impl TryFrom<RowRecord> for DevContent {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
-#[cfg_attr(feature = "napi", napi)]
+#[cfg_attr(feature = "napi", derive(rbox_derives::NapiPublic))]
+#[cfg_attr(feature = "napi", napi_public(input = NewDevContentInput, required(path), constructor = new))]
 pub struct NewDevContent {
     /// Main artist ID.
     pub artist_id: i64,
@@ -1067,16 +1069,6 @@ pub struct NewDevContent {
 impl NewDevContent {
     #[new]
     fn py_new(path: String) -> Self {
-        Self::new(path)
-    }
-}
-
-#[cfg(feature = "napi")]
-#[napi]
-impl NewDevContent {
-    /// Start an insertion input with an audio path; reserved values default during insertion.
-    #[napi(constructor)]
-    pub fn js_new(path: String) -> Self {
         Self::new(path)
     }
 }

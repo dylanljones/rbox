@@ -1,11 +1,13 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
-//! Procedural macros for Rbox Python bindings.
+//! Procedural macros for rbox Python and JavaScript bindings.
 //!
 //! Generates Python mapping methods for named-field models. Generated iterators
 //! use the runtime helpers in `rbox-core`, whose `pyo3` feature must be enabled
 //! by the consuming crate.
+
+mod napi;
 
 use proc_macro::TokenStream;
 use quote::quote;
@@ -14,6 +16,30 @@ use syn::{
     parse_macro_input, parse_quote, Data, DeriveInput, Fields, ItemStruct, Meta, Token, Type,
     Visibility,
 };
+
+/// Generate JavaScript object shapes from unrestricted public fields.
+///
+/// Output mode generates an output-only object and `ToNapiValue` for the model:
+/// `#[napi_public(output = ContentObject, patch = ContentChanges, readonly(id))]`.
+/// The optional patch has optional fields and an `apply_to` method; readonly fields
+/// are excluded. Input mode generates an input-only object and conversion into the
+/// model: `#[napi_public(input = ContentInput, required(path), constructor = new)]`.
+/// Required fields are passed to the constructor in the listed order; remaining
+/// supplied fields override its defaults. Both object modes use the model's name
+/// in JavaScript. Private/restricted fields are never exposed or reconstructed.
+///
+/// Use behind the consuming crate's `napi` feature. Requires `napi` and
+/// `napi-derive`. Supports nongeneric named structs with nonoptional public fields;
+/// omitted or `undefined` patch/input options leave values unchanged. `null` is
+/// rejected, matching the nonnullable field types.
+#[proc_macro_derive(NapiPublic, attributes(napi_public))]
+pub fn napi_public(input: TokenStream) -> TokenStream {
+    let item = parse_macro_input!(input as ItemStruct);
+    match napi::expand(&item) {
+        Ok(generated) => quote!(#generated).into(),
+        Err(error) => error.into_compile_error().into(),
+    }
+}
 
 /// Expose a named-field struct as a Python class with public-field properties.
 ///

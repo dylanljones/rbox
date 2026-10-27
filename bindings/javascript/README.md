@@ -106,6 +106,19 @@ for (const content of db.getContents()) {
 }
 ```
 
+Content reads return plain objects, including the `content` field of resolved views.
+Insert with an object containing a required `path`; other metadata is optional.
+Update by ID with only the fields to change. Omitted fields retain their current
+values, and private binary data is preserved. Changes stay in memory until saved.
+`DevContent` and `NewDevContent` are TypeScript interfaces, not constructors.
+
+```javascript
+const content = db.insertContent({ path: '/Contents/track.wav', title: 'Track' })
+const updated = db.updateContent(content.id, { title: 'Renamed', rating: 4 })
+console.log({ ...updated })
+db.save()
+```
+
 ### Rekordbox ANLZ files
 
 Rekordbox stores analysis information of the tracks in the collection in specific files,

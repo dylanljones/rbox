@@ -7,7 +7,7 @@ import test from 'ava'
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import {
-    DeviceLibrary, DevAlbum, DevContent, DevRecommendedLike, NewDevContent,
+    DeviceLibrary, DevAlbum, DevRecommendedLike,
     PlaylistType,
 } from '../index.js'
 import { cleanupFixtures, fixtureCopy, temporaryPath } from './helpers/fixtures.mjs'
@@ -31,7 +31,12 @@ test('demo directory and explicit paths expose both database files', t => {
     t.true(db.hasExtended())
     const explicit = DeviceLibrary.fromPaths(standard, extended)
     t.is(explicit.getContents().length, db.getContents().length)
-    t.true(db.getContents()[0] instanceof DevContent)
+    const content = db.getContents()[0]
+    t.is(Object.getPrototypeOf(content), Object.prototype)
+    t.deepEqual({ ...content }, content)
+    t.deepEqual(JSON.parse(JSON.stringify(content)), content)
+    t.false('raw' in content)
+    t.false('isrcOverride' in content)
     t.true(Array.isArray(db.getAlbums()))
     t.true(db.getContentById(2 ** 32 - 1) == null)
     t.true(Array.isArray(db.getMyTags()))
@@ -52,6 +57,22 @@ test('standard-only libraries retain an absent extended database', t => {
     t.false(existsSync(path.join(copy, 'exportExt.pdb')))
     t.throws(() => DeviceLibrary.fromPaths(standard, path.join(copy, 'exportExt.pdb')),
         { instanceOf: Error })
+})
+
+test('demo content patches preserve untouched metadata and leave no-op saves unchanged', t => {
+    const standard = fixtureCopy(t, 'deviceLibrary')
+    const db = DeviceLibrary.fromPaths(standard)
+    t.context.db = db
+    const before = readFileSync(standard)
+    const original = db.getContents()[0]
+    t.deepEqual(db.updateContent(original.id, {}), original)
+    t.is(db.save().standard.bytesWritten, 0n)
+    t.deepEqual(readFileSync(standard), before)
+    const expected = { ...original, comment: 'Updated through plain-object patch' }
+    t.deepEqual(db.updateContent(original.id, { comment: expected.comment }), expected)
+    db.save()
+    const reopened = DeviceLibrary.fromPaths(standard)
+    t.deepEqual(reopened.getContentById(original.id), expected)
 })
 
 test('missing paths and creation errors do not overwrite exports', t => {
@@ -94,20 +115,20 @@ test('album inputs, borrowed snapshots, and explicit relations round trip', t =>
     t.true(db.getAlbumById(album.id) == null)
 })
 
-test('content creation, shared tracks, and master identities use bound models', t => {
+test('plain content inputs and results retain shared tracks and master identities', t => {
     const { db } = createLibrary(t)
-    const input = new NewDevContent('/Contents/track.wav')
-    t.true(input instanceof NewDevContent)
-    t.is(input.fileName, 'track.wav')
-    t.is(input.title, '')
-    t.throws(() => new NewDevContent(), { instanceOf: Error })
-    t.throws(() => new NewDevContent(123), { instanceOf: Error })
-    t.false('creation' in input)
-    input.title = 'Track'
-    input.masterContentId = 2 ** 32 - 1
-    input.masterDbId = 2 ** 32 - 1
-    input.sampleRate = 2 ** 32 - 1
+    const input = {
+        path: '/Contents/track.wav', title: 'Track',
+        masterContentId: 2 ** 32 - 1, masterDbId: 2 ** 32 - 1, sampleRate: 2 ** 32 - 1,
+    }
     const content = db.insertContent(input)
+    t.is(Object.getPrototypeOf(content), Object.prototype)
+    t.deepEqual(JSON.parse(JSON.stringify(content)), content)
+    t.is(content.fileName, 'track.wav')
+    t.is(content.comment, '')
+    t.is(content.rating, 0)
+    t.false('creation' in content)
+    t.false('raw' in content)
     t.is(input.title, 'Track')
     t.is(content.sampleRate, input.sampleRate)
     t.is(db.getContentByMasterContentId(input.masterContentId, input.masterDbId).id, content.id)
@@ -120,10 +141,61 @@ test('content creation, shared tracks, and master identities use bound models', 
     t.is(db.getTracksByIds([content.id, content.id, 12345]).length, 1)
     t.is(db.getTracks().length, 1)
     t.true(db.getContentWithRelations(content.id).artist == null)
+    t.is(Object.getPrototypeOf(db.getContentWithRelations(content.id).content), Object.prototype)
     t.is(db.getContentsWithRelations().length, 1)
-    t.throws(() => db.insertContent({ path: '/not-a-native-input.wav' }), { instanceOf: Error })
     content.title = 'Edited'
-    t.is(db.updateContent(content).title, 'Edited')
+    t.is(db.getContentById(content.id).title, 'Track')
+    t.is(db.updateContent(content.id, { title: content.title }).title, 'Edited')
+})
+
+test('content insertion requires a path and defaults omitted metadata', t => {
+    const { db } = createLibrary(t)
+    for (const input of [{}, { path: 123 }, { path: '' }, { path: '/track.wav', title: 123 },
+        { path: '/track.wav', comment: null }]) {
+        t.throws(() => db.insertContent(input), { instanceOf: Error })
+    }
+    t.is(db.getContents().length, 0)
+    const content = db.insertContent({ path: '/Contents/default.wav' })
+    t.is(content.fileName, 'default.wav')
+    t.is(content.title, '')
+    t.is(content.sampleRate, 0)
+    const override = db.insertContent({
+        path: '/Contents/custom.wav', fileName: 'override.wav', title: undefined,
+    })
+    t.is(override.fileName, 'override.wav')
+    t.is(override.title, '')
+    t.is(override.comment, '')
+})
+
+test('content patches preserve omitted values, validate changes, and survive saving', t => {
+    const { db, directory } = createLibrary(t)
+    const artist = db.createArtist('Artist')
+    const content = db.insertContent({ path: '/track.wav', title: 'Original', rating: 5 })
+    db.updateContent(content.id, { artistId: artist.id, comment: 'Keep this' })
+    const changes = Object.freeze({ title: 'Updated', masterDbId: 2 ** 32 - 1 })
+    const updated = db.updateContent(content.id, changes)
+    t.is(updated.title, 'Updated')
+    t.is(updated.comment, 'Keep this')
+    t.is(updated.artistId, artist.id)
+    t.is(updated.rating, 5)
+    t.is(content.title, 'Original')
+    t.deepEqual(db.updateContent(content.id, {}), updated)
+    t.deepEqual(db.updateContent(content.id, { title: undefined, rating: undefined }), updated)
+    // Failed conversions or binary range checks must not partially apply a patch.
+    for (const patch of [{ title: 123 }, { title: 'Invalid', rating: 256 }, { artistId: -1 },
+        { rating: null }]) {
+        t.throws(() => db.updateContent(content.id, patch), { instanceOf: Error })
+        t.deepEqual(db.getContentById(content.id), updated)
+    }
+    t.throws(() => db.updateContent(99999, {}), { message: /no model with ID 99999/ })
+    t.throws(() => db.updateContent(-1, {}), { instanceOf: Error })
+    const cleared = db.updateContent(content.id, { title: '', rating: 0 })
+    t.is(cleared.title, '')
+    t.is(cleared.rating, 0)
+    db.save()
+    const reopened = new DeviceLibrary(directory)
+    t.deepEqual(reopened.getContentById(content.id), cleared)
+    t.is(reopened.getContentWithRelations(content.id).artist.name, 'Artist')
 })
 
 test('catalog and history operations preserve native snapshots', t => {

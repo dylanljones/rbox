@@ -1,6 +1,6 @@
 [package]
 name = "rbox-derives"
-description = "Proc macros for rbox's pyo3 bindings"
+description = "Proc macros for rbox's bindings"
 readme = "README.md"
 version = "0.2.0"
 authors.workspace = true

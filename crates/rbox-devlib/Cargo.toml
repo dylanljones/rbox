@@ -18,7 +18,7 @@ default = []
 
 # Features for the bindings
 pyo3 = ["dep:pyo3", "dep:rbox-derives", "rbox-core/pyo3"]
-napi = ["dep:napi", "dep:napi-derive", "rbox-core/napi"]
+napi = ["dep:napi", "dep:napi-derive", "dep:rbox-derives", "rbox-core/napi"]
 
 [dependencies]
 binrw               = { workspace = true }

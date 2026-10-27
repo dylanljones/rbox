@@ -10,6 +10,7 @@ use napi::{Error, Result};
 use napi_derive::napi;
 
 use rbox::core::PlaylistType;
+use rbox::devlib::models::content::{DevContentChanges, NewDevContentInput as NewDevContent};
 use rbox::devlib::models::playlist::DevPlaylistTreeNode;
 use rbox::devlib::models::*;
 use rbox::devlib::{DeviceLibrary, LibraryCreateOptions};
@@ -550,12 +551,14 @@ impl JsDeviceLibrary {
 
     /// Allocate a local export ID and insert content, updating existing export-property counts.
     ///
+    /// Accepts a plain object with a required path. Omitted metadata uses defaults;
+    /// the file name is derived from the path unless explicitly supplied.
     /// The operation commits atomically in memory; saving remains explicit.
     /// Audio, artwork and analysis files are not copied or generated.
     #[napi]
-    pub fn insert_content(&mut self, content: &NewDevContent) -> Result<DevContent> {
+    pub fn insert_content(&mut self, content: NewDevContent) -> Result<DevContent> {
         self.inner
-            .insert_content(content.clone())
+            .insert_content(content.into())
             .map_err(binding_error)
     }
 
@@ -567,15 +570,26 @@ impl JsDeviceLibrary {
         self.inner.create_content(path).map_err(binding_error)
     }
 
-    /// Persist edited content in memory, preserving unedited binary fields.
+    /// Apply partial changes to the current content row and return a plain object.
     ///
+    /// Omitted or undefined fields retain their current values; null is rejected.
+    /// Empty strings and zero are explicit changes. Private binary data is preserved.
     /// The ID cannot change. Errors roll back the operation; saving remains explicit.
     /// Editing paths does not move files or automatically update other path fields.
     #[napi]
-    pub fn update_content(&mut self, content: &DevContent) -> Result<DevContent> {
-        self.inner
-            .update_content(content.clone())
-            .map_err(binding_error)
+    pub fn update_content(&mut self, id: i64, changes: DevContentChanges) -> Result<DevContent> {
+        let mut content = self
+            .inner
+            .get_content_by_id(id)
+            .map_err(binding_error)?
+            .ok_or_else(|| {
+                binding_error(rbox::devlib::Error::ModelNotFound {
+                    table: DevContent::TABLE,
+                    id,
+                })
+            })?;
+        changes.apply_to(&mut content);
+        self.inner.update_content(content).map_err(binding_error)
     }
 
     /// Delete content and its playlist/history occurrences, updating export-property counts.
