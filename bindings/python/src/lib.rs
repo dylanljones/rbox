@@ -4,6 +4,7 @@
 //! Python extension registration and shared utility bindings.
 
 mod anlz;
+mod devlib;
 mod errors;
 mod locate;
 mod masterdb;
@@ -146,6 +147,10 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<rbox::masterdb::models::UuidIDMap>()?;
 
     // Device Library
+    m.add_class::<devlib::PyDeviceLibrary>()?;
+    m.add_class::<devlib::PyLibraryCreateOptions>()?;
+    m.add_class::<devlib::PyDevSaveStats>()?;
+    m.add_class::<devlib::PyLibrarySaveStats>()?;
     m.add_class::<rbox::devlib::models::DevAlbum>()?;
     m.add_class::<rbox::devlib::models::DevAlbumView>()?;
     m.add_class::<rbox::devlib::models::NewDevAlbum>()?;
@@ -282,6 +287,10 @@ fn _rbox(m: &Bound<PyModule>) -> PyResult<()> {
     m.add("Error", m.py().get_type::<errors::Error>())?;
     m.add("OptionsError", m.py().get_type::<errors::OptionsError>())?;
     m.add("MasterDbError", m.py().get_type::<errors::MasterDbError>())?;
+    m.add(
+        "DeviceLibraryError",
+        m.py().get_type::<errors::DeviceLibraryError>(),
+    )?;
     m.add(
         "OneLibraryError",
         m.py().get_type::<errors::OneLibraryError>(),

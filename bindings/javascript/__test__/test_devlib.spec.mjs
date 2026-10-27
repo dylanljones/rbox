@@ -8,7 +8,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import {
     DeviceLibrary, DevAlbum, DevContent, DevRecommendedLike, NewDevContent,
-    PlaylistType, createDevContent,
+    PlaylistType,
 } from '../index.js'
 import { cleanupFixtures, fixtureCopy, temporaryPath } from './helpers/fixtures.mjs'
 
@@ -96,8 +96,12 @@ test('album inputs, borrowed snapshots, and explicit relations round trip', t =>
 
 test('content creation, shared tracks, and master identities use bound models', t => {
     const { db } = createLibrary(t)
-    const input = createDevContent('/Contents/track.wav')
+    const input = new NewDevContent('/Contents/track.wav')
     t.true(input instanceof NewDevContent)
+    t.is(input.fileName, 'track.wav')
+    t.is(input.title, '')
+    t.throws(() => new NewDevContent(), { instanceOf: Error })
+    t.throws(() => new NewDevContent(123), { instanceOf: Error })
     t.false('creation' in input)
     input.title = 'Track'
     input.masterContentId = 2 ** 32 - 1

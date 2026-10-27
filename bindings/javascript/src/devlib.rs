@@ -42,12 +42,6 @@ pub struct JsLibrarySaveStats {
     pub extended: Option<JsDevSaveStats>,
 }
 
-/// Construct an insertion input with default reserved values and an audio path.
-#[napi]
-pub fn create_dev_content(path: String) -> NewDevContent {
-    NewDevContent::new(path)
-}
-
 /// Device Library backed by export.pdb and optionally exportExt.pdb.
 /// Edits remain in memory until save/savePages; saveAs copies without switching files.
 /// Saves run standard-then-extended and are not atomic across the pair.

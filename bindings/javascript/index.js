@@ -586,7 +586,6 @@ module.exports.ChannelFaderCurve = nativeBinding.ChannelFaderCurve
 module.exports.JsChannelFaderCurve = nativeBinding.JsChannelFaderCurve
 module.exports.ChannelFaderCurveLongFader = nativeBinding.ChannelFaderCurveLongFader
 module.exports.JsChannelFaderCurveLongFader = nativeBinding.JsChannelFaderCurveLongFader
-module.exports.createDevContent = nativeBinding.createDevContent
 module.exports.createTrack = nativeBinding.createTrack
 module.exports.createTrackMetadata = nativeBinding.createTrackMetadata
 module.exports.CrossfaderCurve = nativeBinding.CrossfaderCurve

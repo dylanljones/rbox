@@ -4086,6 +4086,8 @@ export declare class NewDevContent {
   path: string
   /** ISRC text; empty means absent, otherwise twelve ASCII alphanumeric characters. */
   isrc: string
+  /** Start an insertion input with an audio path; reserved values default during insertion. */
+  constructor(path: string)
 }
 
 /**
@@ -6354,9 +6356,6 @@ export declare const enum ChannelFaderCurveLongFader {
   Smooth = 'Smooth',
   Linear = 'Linear'
 }
-
-/** Construct an insertion input with default reserved values and an audio path. */
-export declare function createDevContent(path: string): NewDevContent
 
 /** Create a library track with empty database identifiers. */
 export declare function createTrack(path: string): Track

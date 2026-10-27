@@ -1058,15 +1058,34 @@ pub struct NewDevContent {
     /// ISRC text; empty means absent, otherwise twelve ASCII alphanumeric characters.
     pub isrc: String,
 
-    /// Reserved authoring values; defaults describe a writer policy, not parser invariants.
-    creation: TrackCreationOptions,
+    /// Optional reserved authoring overrides; absent values use the writer defaults at insertion.
+    creation: Option<TrackCreationOptions>,
+}
+
+#[cfg(feature = "pyo3")]
+#[pymethods]
+impl NewDevContent {
+    #[new]
+    fn py_new(path: String) -> Self {
+        Self::new(path)
+    }
+}
+
+#[cfg(feature = "napi")]
+#[napi]
+impl NewDevContent {
+    /// Start an insertion input with an audio path; reserved values default during insertion.
+    #[napi(constructor)]
+    pub fn js_new(path: String) -> Self {
+        Self::new(path)
+    }
 }
 
 impl NewDevContent {
     /// Start a track with an audio path using forward slashes.
     ///
     /// The file name is the last slash-separated component of the supplied path.
-    /// Other metadata remains zero or empty.
+    /// Other metadata remains zero or empty. Reserved authoring defaults are applied at insertion.
     pub fn new(path: impl Into<String>) -> Self {
         let path = path.into();
         let file_name = path.rsplit('/').next().unwrap_or_default().to_owned();
@@ -1082,19 +1101,17 @@ impl NewDevContent {
     /// The file name is the last slash-separated component of the supplied path.
     /// Other metadata remains zero or empty.
     pub fn new_with_creation(path: impl Into<String>, creation: TrackCreationOptions) -> Self {
-        let path = path.into();
-        let file_name = path.rsplit('/').next().unwrap_or_default().to_owned();
         Self {
-            path,
-            file_name,
-            creation,
-            ..Self::default()
+            creation: Some(creation),
+            ..Self::new(path)
         }
     }
 
-    /// Configure reserved authoring values from Rust; these are not exposed to JavaScript.
+    /// Configure reserved authoring values from Rust, initializing defaults when absent.
+    /// These options are not exposed to Python or JavaScript.
     pub fn creation_mut(&mut self) -> &mut TrackCreationOptions {
-        &mut self.creation
+        self.creation
+            .get_or_insert_with(TrackCreationOptions::default)
     }
 
     /// Insert a fresh row and return its decoded snapshot.
@@ -1143,12 +1160,20 @@ impl NewDevContent {
                 reason: "audio path must not be empty",
             });
         }
+        let defaults;
+        let creation = match &self.creation {
+            Some(creation) => creation,
+            None => {
+                defaults = TrackCreationOptions::default();
+                &defaults
+            }
+        };
         Ok(TrackRow {
             header: TrackHeader {
                 subtype: TrackHeader::SUBTYPE,
                 index_shift: 0,
-                content_link: self.creation.content_link,
-                raw_analysis: self.creation.raw_analysis,
+                content_link: creation.content_link,
+                raw_analysis: creation.raw_analysis,
                 id: checked_number(id, "id")?,
                 artist_id: checked_number(self.artist_id, "artist_id")?,
                 album_id: checked_number(self.album_id, "album_id")?,
@@ -1176,7 +1201,7 @@ impl NewDevContent {
                 audio_format: checked_number(self.file_type, "file_type")?,
             },
             strings: StringOffsets::Far {
-                marker: self.creation.string_marker,
+                marker: creation.string_marker,
                 offsets: [0; 21],
             },
             text: TrackStrings {
@@ -1194,13 +1219,13 @@ impl NewDevContent {
                 analysis_path: text(&self.analysis_path)?,
                 filename: text(&self.file_name)?,
                 file_path: text(&self.path)?,
-                unknown_02: text(&self.creation.unknown_strings[0])?,
-                unknown_03: text(&self.creation.unknown_strings[1])?,
-                unknown_04: text(&self.creation.unknown_strings[2])?,
-                unknown_08: text(&self.creation.unknown_strings[3])?,
-                unknown_09: text(&self.creation.unknown_strings[4])?,
-                unknown_13: text(&self.creation.unknown_strings[5])?,
-                unknown_18: text(&self.creation.unknown_strings[6])?,
+                unknown_02: text(&creation.unknown_strings[0])?,
+                unknown_03: text(&creation.unknown_strings[1])?,
+                unknown_04: text(&creation.unknown_strings[2])?,
+                unknown_08: text(&creation.unknown_strings[3])?,
+                unknown_09: text(&creation.unknown_strings[4])?,
+                unknown_13: text(&creation.unknown_strings[5])?,
+                unknown_18: text(&creation.unknown_strings[6])?,
             },
         })
     }
@@ -1394,5 +1419,44 @@ impl TryFrom<Track> for NewDevContent {
 
     fn try_from(input: Track) -> Result<Self> {
         Self::try_from(&input)
+    }
+}
+
+#[cfg(test)]
+mod creation_tests {
+    use super::{NewDevContent, TrackCreationOptions};
+
+    #[test]
+    fn omitted_options_encode_the_same_row_as_explicit_defaults() -> crate::Result<()> {
+        let input = NewDevContent::new("/Contents/track.wav");
+        assert!(input.creation.is_none());
+        assert_eq!(input.file_name, "track.wav");
+        let explicit = NewDevContent::new_with_creation(
+            "/Contents/track.wav",
+            TrackCreationOptions::default(),
+        );
+        assert_eq!(input.to_binary(1)?, explicit.to_binary(1)?);
+        assert!(input.creation.is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn explicit_and_mutated_options_override_defaults() -> crate::Result<()> {
+        let options = TrackCreationOptions {
+            content_link: 0x1234,
+            raw_analysis: 0x5678,
+            string_marker: 5,
+            unknown_strings: ["a", "b", "c", "d", "e", "f", "g"].map(str::to_owned),
+        };
+        let explicit = NewDevContent::new_with_creation("/track.wav", options.clone());
+        let mut edited = NewDevContent::new("/track.wav");
+        assert_eq!(edited.creation_mut(), &TrackCreationOptions::default());
+        *edited.creation_mut() = options;
+        let row = explicit.to_binary(1)?;
+        assert_eq!(row.header.content_link, 0x1234);
+        assert_eq!(row.header.raw_analysis, 0x5678);
+        assert_eq!(row, edited.to_binary(1)?);
+        assert_ne!(row, NewDevContent::new("/track.wav").to_binary(1)?);
+        Ok(())
     }
 }

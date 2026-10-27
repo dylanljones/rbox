@@ -20,6 +20,8 @@ ANLZ = DEMO / "rekordbox/share/PIONEER/USBANLZ/e35/fa187-3f34-47e2-9880-2b33cb8d
 FIXTURES = {
     "masterdb": DEMO / "rekordbox/master.db",
     "one_library": TESTDATA / "RBv7/demo/export/PIONEER/rekordbox/exportLibrary.db",
+    "device_library": TESTDATA / "RBv7/demo/export/PIONEER/rekordbox/export.pdb",
+    "device_library_extended": TESTDATA / "RBv7/demo/export/PIONEER/rekordbox/exportExt.pdb",
     "xml": DEMO / "database.xml",
     **{extension: ANLZ / f"ANLZ0000.{extension}" for extension in ("DAT", "EXT", "2EX")},
 }

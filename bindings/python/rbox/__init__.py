@@ -6,6 +6,7 @@
 from . import core, rbxml
 from ._rbox import (
     AnlzError,
+    DeviceLibraryError,
     Error,
     MasterDbError,
     OneLibraryError,
@@ -40,6 +41,7 @@ from .core import (
     rekordbox_agent_app_dir,
     rekordbox_app_dir,
 )
+from .devlib import DeviceLibrary
 from .masterdb import MasterDb
 from .one_library import OneLibrary
 from .rbxml import RekordboxXml
