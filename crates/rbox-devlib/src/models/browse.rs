@@ -36,7 +36,7 @@
 
 use std::io::{Read, Seek};
 
-use super::{read_fields, text, text_error, unsupported};
+use super::{checked_number, read_fields, text, text_error, unsupported};
 use crate::binary::{PageType, Row, RowRecord, StandardRow, TableKind};
 use crate::devicesql::{DeviceSqlConnection, RowHandle, Transaction};
 use crate::{Error, Result};
@@ -53,7 +53,7 @@ use crate::{Error, Result};
 #[derive(Clone, PartialEq, Eq)]
 pub struct BrowseColumn {
     /// Column/menu-label ID.
-    pub id: u16,
+    pub id: i64,
     /// Raw column code; unknown values are retained.
     pub code: u16,
     /// Display label with one enclosing U+FFFA/U+FFFB pair removed, if present.
@@ -119,21 +119,23 @@ impl BrowseColumn {
     /// Find a column by its 16-bit ID using the engine index; duplicate IDs are an error.
     pub fn find<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &u16,
+        id: &i64,
     ) -> Result<Option<Self>> {
+        let id = u32::from(checked_number::<u16, _>(*id, "id")?);
         let location = conn
             .index_rows(Self::TABLE, Self::read_id)?
-            .get(&u32::from(*id))
+            .get(&id)
             .copied();
         location
             .map(|location| Self::try_from(conn.read_indexed_row(Self::TABLE, location)?))
             .transpose()
     }
     /// Check an ID without converting label frames to text.
-    pub fn id_exists<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u16) -> Result<bool> {
+    pub fn id_exists<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &i64) -> Result<bool> {
+        let id = u32::from(checked_number::<u16, _>(*id, "id")?);
         Ok(conn
             .index_rows(Self::TABLE, Self::read_id)?
-            .contains_key(&u32::from(*id)))
+            .contains_key(&id))
     }
 
     fn read_id(record: &RowRecord) -> Result<u32> {
@@ -156,14 +158,14 @@ impl BrowseColumn {
         unchanged(Self::TABLE, "id", self.id, original.id)?;
         unchanged(Self::TABLE, "code", self.code, original.code)?;
         let mut tx = conn.transaction();
-        let id = u32::from(original.id);
+        let id = u32::from(checked_number::<u16, _>(original.id, "id")?);
         let location = tx
             .index_rows(Self::TABLE, Self::read_id)?
             .get(&id)
             .copied()
             .ok_or(Error::ModelNotFound {
                 table: Self::TABLE,
-                id,
+                id: i64::from(id),
             })?;
         let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
         let record = tx.read(&handle)?;
@@ -211,7 +213,7 @@ impl TryFrom<RowRecord> for BrowseColumn {
             .text()
             .map_err(|source| text_error(&record, "name", source))?;
         Ok(Self {
-            id: row.id,
+            id: i64::from(row.id),
             code: row.code,
             name: label_text(&name).to_owned(),
             raw: record,
@@ -226,7 +228,12 @@ fn label_text(name: &str) -> &str {
         .unwrap_or(name)
 }
 
-fn unchanged(table: TableKind, field: &'static str, value: u16, original: u16) -> Result<()> {
+fn unchanged<T: PartialEq>(
+    table: TableKind,
+    field: &'static str,
+    value: T,
+    original: T,
+) -> Result<()> {
     if value != original {
         return Err(Error::InvalidModelField {
             table,
@@ -270,7 +277,7 @@ fn settings_handle<R: Read + Seek>(
 #[derive(Clone, PartialEq, Eq)]
 pub struct BrowseCategory {
     /// Column/menu-label ID.
-    pub column_id: u16,
+    pub column_id: i64,
     /// Content/menu selector, not a PDB table ID.
     pub selector: u16,
     /// Raw attribute byte; its meaning is not inferred.
@@ -318,8 +325,9 @@ impl BrowseCategory {
     /// Referenced rows are not loaded or validated.
     pub fn by_column<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        column_id: &u16,
+        column_id: &i64,
     ) -> Result<Vec<Self>> {
+        let _: u16 = checked_number(*column_id, "column_id")?;
         let mut rows = Vec::new();
         for row in Self::iter(conn)? {
             let row = row?;
@@ -376,7 +384,7 @@ impl TryFrom<RowRecord> for BrowseCategory {
             return Err(unsupported(&record));
         };
         Ok(Self {
-            column_id: row.column_id,
+            column_id: i64::from(row.column_id),
             selector: row.selector,
             unknown_04: row.unknown_04,
             state: row.state,
@@ -399,7 +407,7 @@ impl TryFrom<RowRecord> for BrowseCategory {
 #[derive(Clone, PartialEq, Eq)]
 pub struct BrowseSort {
     /// Column/menu-label ID.
-    pub column_id: u16,
+    pub column_id: i64,
     /// Sort-item selector; zero is retained.
     pub selector: u16,
     /// Complete little-endian tail word, preserving all four bytes.
@@ -440,8 +448,9 @@ impl BrowseSort {
     /// Referenced rows are not loaded or validated.
     pub fn by_column<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        column_id: &u16,
+        column_id: &i64,
     ) -> Result<Vec<Self>> {
+        let _: u16 = checked_number(*column_id, "column_id")?;
         let mut rows = Vec::new();
         for row in Self::iter(conn)? {
             let row = row?;
@@ -496,7 +505,7 @@ impl TryFrom<RowRecord> for BrowseSort {
             return Err(unsupported(&record));
         };
         Ok(Self {
-            column_id: row.column_id,
+            column_id: i64::from(row.column_id),
             selector: row.selector,
             raw_tail: row.raw_tail,
             raw: record,

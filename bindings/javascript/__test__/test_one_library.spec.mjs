@@ -202,3 +202,27 @@ test('shared tracks expose numeric identities and album artists', t => {
     db.updateContent(row)
     t.throws(() => db.getTrackById(row.id), {instanceOf: Error})
 })
+
+
+test('wide metadata uses exact numbers and preserves nulls', t => {
+    const db = t.context.db
+    const row = db.getContents()[0]
+    const fields = ['bitrate', 'samplingRate', 'trackNo', 'bpmx100']
+    const wide = 2 ** 32 - 1
+    for (const field of fields) row[field] = wide
+    db.updateContent(row)
+    const stored = db.getContentById(row.id)
+    for (const field of fields) t.is(stored[field], wide)
+    const track = db.getTrackById(row.id)
+    t.is(track.bitRate, wide)
+    t.is(track.sampleRate, wide)
+    t.is(track.trackNo, wide)
+    t.is(track.bpm, wide / 100)
+    for (const field of fields) row[field] = 2 ** 40
+    db.updateContent(row)
+    for (const field of fields) t.is(db.getContentById(row.id)[field], 2 ** 40)
+    t.throws(() => db.getTrackById(row.id))
+    for (const field of fields) delete row[field]
+    db.updateContent(row)
+    for (const field of fields) t.true(db.getContentById(row.id)[field] == null)
+})

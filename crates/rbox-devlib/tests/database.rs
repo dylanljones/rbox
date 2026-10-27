@@ -617,7 +617,7 @@ fn property_methods_update_each_file_and_save_explicitly() -> Result<()> {
             };
             row.header.my_tag_master_db_id = u32::MAX;
             expected = Row::Extended(ExtendedRow::DatabaseProperty(row));
-            property.my_tag_master_db_id = u32::MAX;
+            property.my_tag_master_db_id = i64::from(u32::MAX);
             let updated = library.update_database_property(property)?;
             assert_eq!(updated.raw_record().decode()?, expected);
         } else {
@@ -651,7 +651,7 @@ fn property_methods_update_each_file_and_save_explicitly() -> Result<()> {
                     .get_first_database_property()?
                     .unwrap()
                     .my_tag_master_db_id,
-                u32::MAX
+                i64::from(u32::MAX)
             );
         } else {
             assert_eq!(fs::read(&extended)?, extended_before);
@@ -836,11 +836,11 @@ fn key_methods_preserve_secondary_ids_references_and_explicit_saving() -> Result
         assert_eq!(updated.secondary_id, 23);
         assert!(library.get_key_by_name("Am")?.is_none());
         let mut edited = updated;
-        edited.secondary_id = u32::MAX;
+        edited.secondary_id = i64::from(u32::MAX);
         let updated = library.update_key(edited)?;
         assert_eq!(
             (updated.name.as_str(), updated.secondary_id),
-            ("A minor", u32::MAX)
+            ("A minor", i64::from(u32::MAX))
         );
         assert_eq!(library.get_key_by_name("A minor")?.unwrap().id, updated.id);
 
@@ -862,7 +862,7 @@ fn key_methods_preserve_secondary_ids_references_and_explicit_saving() -> Result
         let saved = library.get_key_by_id(updated.id)?.unwrap();
         assert_eq!(
             (saved.name.as_str(), saved.secondary_id),
-            ("A minor", u32::MAX)
+            ("A minor", i64::from(u32::MAX))
         );
         let before_delete = fs::read(&path)?;
         assert_eq!(library.delete_key(99)?, 0);
@@ -1365,7 +1365,7 @@ fn content_queries_updates_and_tracks_resolve_metadata_and_save_explicitly() -> 
         input.album_id = album.id;
         input.artwork_id = artwork.id;
         input.genre_id = 999; // Missing metadata remains unresolved.
-        input.master_content_id = u32::MAX;
+        input.master_content_id = i64::from(u32::MAX);
         input.master_db_id = 3_499_321_917;
         input.title = "First".into();
         input.bpmx100 = 12835;
@@ -1399,31 +1399,31 @@ fn content_queries_updates_and_tracks_resolve_metadata_and_save_explicitly() -> 
         );
         assert_eq!(
             library
-                .get_content_by_master_content_id(u32::MAX, first.master_db_id)?
+                .get_content_by_master_content_id(i64::from(u32::MAX), first.master_db_id)?
                 .unwrap()
                 .id,
             first.id
         );
         assert_eq!(
             library
-                .get_content_by_master_content_id(u32::MAX, 42)?
+                .get_content_by_master_content_id(i64::from(u32::MAX), 42)?
                 .unwrap()
                 .id,
             other_library.id
         );
         assert!(library
-            .get_content_by_master_content_id(u32::MAX, 43)?
+            .get_content_by_master_content_id(i64::from(u32::MAX), 43)?
             .is_none());
         assert!(library
             .get_content_by_master_content_id(0, first.master_db_id)?
             .is_none());
         assert!(library
-            .get_content_by_master_content_id(u32::MAX, 0)?
+            .get_content_by_master_content_id(i64::from(u32::MAX), 0)?
             .is_none());
         assert_eq!(
             library
                 .get_contents_by_master_content_ids(
-                    &[u32::MAX, 0, 123, u32::MAX],
+                    &[i64::from(u32::MAX), 0, 123, i64::from(u32::MAX)],
                     first.master_db_id
                 )?
                 .iter()
@@ -1432,7 +1432,7 @@ fn content_queries_updates_and_tracks_resolve_metadata_and_save_explicitly() -> 
             vec![first.id, duplicate.id]
         );
         assert!(library
-            .get_contents_by_master_content_ids(&[u32::MAX], 0)?
+            .get_contents_by_master_content_ids(&[i64::from(u32::MAX)], 0)?
             .is_empty());
 
         let view = library.get_content_with_relations(first.id)?.unwrap();
@@ -1453,7 +1453,7 @@ fn content_queries_updates_and_tracks_resolve_metadata_and_save_explicitly() -> 
         );
         assert_eq!(
             (track.master_content_id, track.master_db_id),
-            (Some(u32::MAX), Some(first.master_db_id))
+            (Some(u32::MAX), Some(first.master_db_id.try_into().unwrap()))
         );
         assert_eq!(
             (track.bpm, track.length, track.file_size),
@@ -1466,7 +1466,7 @@ fn content_queries_updates_and_tracks_resolve_metadata_and_save_explicitly() -> 
                 .get_track_by_path(r"\Contents\first.wav")?
                 .unwrap()
                 .id,
-            Some(first.id)
+            Some(first.id.try_into().unwrap())
         );
         assert!(library.get_track_by_path("/contents/first.wav")?.is_none());
         assert_eq!(library.get_tracks()?.len(), 4);
@@ -1476,7 +1476,10 @@ fn content_queries_updates_and_tracks_resolve_metadata_and_save_explicitly() -> 
                 .iter()
                 .map(|row| row.id)
                 .collect::<Vec<_>>(),
-            vec![Some(first.id), Some(duplicate.id)]
+            vec![
+                Some(first.id.try_into().unwrap()),
+                Some(duplicate.id.try_into().unwrap())
+            ]
         );
 
         let mut invalid = first.clone();
@@ -1562,7 +1565,8 @@ fn content_deletion_cleans_available_files_and_preserves_resources() -> Result<(
         let history = NewHistory::new("History").insert(library.standard_mut())?;
         for id in [removed.id, keep.id] {
             NewPlaylistContent::new(playlist.id, id, None).insert(library.standard_mut())?;
-            NewHistoryContent::new(history.id, id, id).insert(library.standard_mut())?;
+            NewHistoryContent::new(history.id, id, id.try_into().unwrap())
+                .insert(library.standard_mut())?;
         }
         if with_extended {
             NewMyTag::tag(100, "Tag").insert(library.extended_mut()?)?;
@@ -1652,14 +1656,14 @@ fn color_methods_preserve_fixed_ids_and_save_explicitly() -> Result<()> {
         let extended_before = fs::read(&extended)?;
         let colors = library.get_colors()?;
         assert_eq!(colors.len(), 8);
-        assert!(library.get_color_by_id(u16::MAX)?.is_none());
+        assert!(library.get_color_by_id(i64::from(u16::MAX))?.is_none());
         assert!(library.get_color_by_name("Missing color")?.is_none());
         let color = colors[0].clone();
         assert_eq!(library.get_color_by_id(color.id)?, Some(color.clone()));
         assert_eq!(library.get_color_by_name(&color.name)?, Some(color.clone()));
 
         let mut invalid = color.clone();
-        invalid.id = u16::MAX;
+        invalid.id = i64::from(u16::MAX);
         assert!(matches!(
             library.update_color(invalid),
             Err(Error::InvalidModelField { field: "id", .. })
@@ -1719,14 +1723,18 @@ fn browse_methods_update_initialized_settings_and_save_explicitly() -> Result<()
         let categories = library.get_browse_categories()?;
         let sorts = library.get_browse_sorts()?;
         assert!(!columns.is_empty() && !categories.is_empty() && !sorts.is_empty());
-        assert!(library.get_browse_column_by_id(u16::MAX)?.is_none());
+        assert!(library
+            .get_browse_column_by_id(i64::from(u16::MAX))?
+            .is_none());
         assert!(library
             .get_browse_column_by_name("Missing label")?
             .is_none());
         assert!(library
-            .get_browse_categories_by_column(u16::MAX)?
+            .get_browse_categories_by_column(i64::from(u16::MAX))?
             .is_empty());
-        assert!(library.get_browse_sorts_by_column(u16::MAX)?.is_empty());
+        assert!(library
+            .get_browse_sorts_by_column(i64::from(u16::MAX))?
+            .is_empty());
 
         let column = columns[0].clone();
         assert_eq!(
@@ -1766,7 +1774,7 @@ fn browse_methods_update_initialized_settings_and_save_explicitly() -> Result<()
                 .count()
         );
         let mut invalid = category.clone();
-        invalid.column_id = u16::MAX;
+        invalid.column_id = i64::from(u16::MAX);
         assert!(matches!(
             library.update_browse_category(invalid),
             Err(Error::InvalidModelField {

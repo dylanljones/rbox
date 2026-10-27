@@ -5,7 +5,7 @@
 
 use std::io::{Read, Seek};
 
-use super::{unsupported, validate_nonzero_id};
+use super::{checked_number, unsupported, validate_nonzero_id};
 use crate::binary::{ExtPageType, ExtendedRow, RecommendLikeRow, Row, RowRecord, TableKind};
 use crate::devicesql::DeviceSqlConnection;
 use crate::{Error, Result};
@@ -21,9 +21,9 @@ pub struct RecommendedLike {
     /// Raw eight-byte value at 0x00; not interpreted as a timestamp.
     pub unknown_00: u64,
     /// First standard export track ID; no source/target direction is inferred.
-    pub content_id_1: u32,
+    pub content_id_1: i64,
     /// Second standard export track ID.
-    pub content_id_2: u32,
+    pub content_id_2: i64,
     /// Raw word at 0x10.
     pub unknown_10: u32,
     /// Raw word at 0x14; flag semantics are unknown.
@@ -65,8 +65,9 @@ impl RecommendedLike {
     /// Referenced rows are not loaded or validated.
     pub fn by_content_id<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        content_id: &u32,
+        content_id: &i64,
     ) -> Result<Vec<Self>> {
+        let _: u32 = checked_number(*content_id, "content_id")?;
         let mut rows = Vec::new();
         for row in Self::iter(conn)? {
             let row = row?;
@@ -123,8 +124,8 @@ impl TryFrom<RowRecord> for RecommendedLike {
         };
         Ok(Self {
             unknown_00: row.unknown_00,
-            content_id_1: row.track_id_1,
-            content_id_2: row.track_id_2,
+            content_id_1: i64::from(row.track_id_1),
+            content_id_2: i64::from(row.track_id_2),
             unknown_10: row.unknown_10,
             unknown_14: row.unknown_14,
             raw: record,
@@ -144,9 +145,9 @@ pub struct NewRecommendedLike {
     /// Raw eight-byte value at 0x00; not interpreted as a timestamp.
     pub unknown_00: u64,
     /// First standard export track ID; no source/target direction is inferred.
-    pub content_id_1: u32,
+    pub content_id_1: i64,
     /// Second standard export track ID.
-    pub content_id_2: u32,
+    pub content_id_2: i64,
     /// Raw word at 0x10.
     pub unknown_10: u32,
     /// Raw word at 0x14; flag semantics are unknown.
@@ -156,8 +157,8 @@ pub struct NewRecommendedLike {
 impl NewRecommendedLike {
     /// Prepare an insertion with explicit inputs.
     pub fn new(
-        content_id_1: u32,
-        content_id_2: u32,
+        content_id_1: i64,
+        content_id_2: i64,
         unknown_00: u64,
         unknown_10: u32,
         unknown_14: u32,
@@ -186,7 +187,8 @@ impl NewRecommendedLike {
             let Row::Extended(ExtendedRow::RecommendLike(existing)) = record.decode()? else {
                 return Err(unsupported(&record));
             };
-            if existing.track_id_1 == self.content_id_1 && existing.track_id_2 == self.content_id_2
+            if i64::from(existing.track_id_1) == self.content_id_1
+                && i64::from(existing.track_id_2) == self.content_id_2
             {
                 return Err(Error::UniqueConstraintViolation {
                     table: RecommendedLike::TABLE,
@@ -209,8 +211,8 @@ impl NewRecommendedLike {
         validate_nonzero_id(RecommendedLike::TABLE, "content_id_2", self.content_id_2)?;
         Ok(RecommendLikeRow {
             unknown_00: self.unknown_00,
-            track_id_1: self.content_id_1,
-            track_id_2: self.content_id_2,
+            track_id_1: checked_number(self.content_id_1, "track_id_1")?,
+            track_id_2: checked_number(self.content_id_2, "track_id_2")?,
             unknown_10: self.unknown_10,
             unknown_14: self.unknown_14,
         })

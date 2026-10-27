@@ -248,3 +248,29 @@ def test_shared_track_getters_and_album_artist(one_library):
     db.update_content(row)
     with pytest.raises(OneLibraryError):
         db.get_track_by_id(row.id)
+
+
+def test_wide_metadata(one_library):
+    db = one_library
+    row = db.get_contents()[0]
+    fields = ["bitrate", "sampling_rate", "track_no", "bpmx100"]
+    wide = 2**32 - 1
+    for field in fields:
+        setattr(row, field, wide)
+    db.update_content(row)
+    stored = db.get_content_by_id(row.id)
+    assert all(getattr(stored, field) == wide for field in fields)
+    track = db.get_track_by_id(row.id)
+    assert track.bit_rate == wide
+    assert track.sample_rate == wide
+    assert track.track_no == wide
+    assert track.bpm == wide / 100
+    for value in [2**63 - 1, None]:
+        for field in fields:
+            setattr(row, field, value)
+        db.update_content(row)
+        stored = db.get_content_by_id(row.id)
+        assert all(getattr(stored, field) == value for field in fields)
+    for field in fields:
+        with pytest.raises(OverflowError):
+            setattr(row, field, 2**63)

@@ -23,7 +23,7 @@
 use std::collections::HashSet;
 use std::io::{Read, Seek};
 
-use super::{text, text_error, unsupported, update_export_count, Content};
+use super::{checked_number, text, text_error, unsupported, update_export_count, Content};
 use crate::binary::{ExtPageType, ExtendedRow, PageType, Row, RowRecord, StandardRow, TableKind};
 use crate::devicesql::{DeviceSqlConnection, RowHandle, Transaction};
 use crate::{Error, Result};
@@ -287,7 +287,7 @@ impl TryFrom<RowRecord> for ExportProperty {
 #[derive(Clone, PartialEq, Eq)]
 pub struct DatabaseProperty {
     /// Source/master My Tag library identity, not a row ID; zero is valid.
-    pub my_tag_master_db_id: u32,
+    pub my_tag_master_db_id: i64,
     raw: RowRecord,
 }
 
@@ -338,7 +338,8 @@ impl DatabaseProperty {
         else {
             return Err(unsupported(&self.raw));
         };
-        row.header.my_tag_master_db_id = self.my_tag_master_db_id;
+        row.header.my_tag_master_db_id =
+            checked_number(self.my_tag_master_db_id, "my_tag_master_db_id")?;
         let handle = tx.update(&handle, &Row::Extended(ExtendedRow::DatabaseProperty(row)))?;
         let model = Self::try_from(tx.read(&handle)?)?;
         tx.commit()?;
@@ -436,7 +437,7 @@ impl TryFrom<RowRecord> for DatabaseProperty {
             return Err(unsupported(&record));
         };
         Ok(Self {
-            my_tag_master_db_id: row.header.my_tag_master_db_id,
+            my_tag_master_db_id: i64::from(row.header.my_tag_master_db_id),
             raw: record,
         })
     }

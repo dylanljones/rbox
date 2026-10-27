@@ -62,10 +62,10 @@ diesel::table! {
         #[sql_name = "titleForSearch"]
         title_for_search -> Nullable<Text>,
         subtitle -> Nullable<Text>,
-        bpmx100 -> Nullable<Integer>,
+        bpmx100 -> Nullable<BigInt>,
         length -> Nullable<Integer>,
         #[sql_name = "trackNo"]
-        track_no -> Nullable<Integer>,
+        track_no -> Nullable<BigInt>,
         #[sql_name = "discNo"]
         disc_no -> Nullable<Integer>,
         #[sql_name = "artist_id_artist"]
@@ -102,11 +102,11 @@ diesel::table! {
         file_size -> Nullable<BigInt>,
         #[sql_name = "fileType"]
         file_type -> Integer,
-        bitrate -> Nullable<Integer>,
+        bitrate -> Nullable<BigInt>,
         #[sql_name = "bitDepth"]
         bit_depth -> Nullable<Integer>,
         #[sql_name = "samplingRate"]
-        sampling_rate -> Nullable<Integer>,
+        sampling_rate -> Nullable<BigInt>,
         isrc -> Nullable<Text>,
         #[sql_name = "isHotCueAutoLoadOn"]
         is_hot_cue_auto_load_on -> Nullable<Integer>,

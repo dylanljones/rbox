@@ -155,11 +155,19 @@ pub enum Error {
 
     /// A model update could not find its original ID in the current database.
     #[error("no model with ID {id} in {table:?}")]
-    ModelNotFound { table: TableKind, id: u32 },
+    ModelNotFound { table: TableKind, id: i64 },
 
     /// A composite-key lookup could not find the requested association.
     #[error("no model with pair {id:?} in {table:?}")]
-    ModelPairNotFound { table: TableKind, id: (u32, u32) },
+    ModelPairNotFound { table: TableKind, id: (i64, i64) },
+
+    /// A public model value cannot be represented by its destination type.
+    #[error("{field} value {value} is outside the {target} range")]
+    ModelIntegerOutOfRange {
+        field: &'static str,
+        value: i128,
+        target: &'static str,
+    },
 
     /// A model without a unique ID no longer matches its original row location.
     #[error("model row {slot} on page {page:?} in {table:?} changed since it was read")]

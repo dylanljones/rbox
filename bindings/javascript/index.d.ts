@@ -5952,13 +5952,13 @@ export interface DjmdContent {
   albumId?: string
   /** An optional string representing the ID of the associated genre in [`DjmdGenre`]. */
   genreId?: string
-  /** An optional integer representing the BPM of the track. */
+  /** Track tempo in BPM multiplied by 100. */
   bpm?: number
   /** An optional integer representing the length of the track in rounded seconds. */
   length?: number
   /** An optional integer representing the track number in the album. */
   trackNo?: number
-  /** An optional integer representing the bit rate of the track. */
+  /** Stored bitrate, normally kb/s. */
   bitRate?: number
   /** An optional integer representing the bit depth of the track. */
   bitDepth?: number
@@ -6002,7 +6002,7 @@ export interface DjmdContent {
   composerId?: string
   /** An optional string representing the subtitle of the track. */
   subtitle?: string
-  /** An optional integer representing the sample rate of the track. */
+  /** Sample rate in Hz. */
   sampleRate?: number
   /** An optional integer indicating whether quantization is disabled for the track. */
   disableQuantize?: number
@@ -7349,13 +7349,13 @@ export interface NewDjmdContent {
   albumId?: string
   /** An optional string representing the ID of the associated genre in [`DjmdGenre`]. */
   genreId?: string
-  /** An optional integer representing the BPM of the track. */
+  /** Track tempo in BPM multiplied by 100. */
   bpm?: number
-  /** An optional integer representing the length of the track in milliseconds. */
+  /** Track length in rounded seconds. */
   length?: number
   /** An optional integer representing the track number in the album. */
   trackNo?: number
-  /** An optional integer representing the bit rate of the track. */
+  /** Stored bitrate, normally kb/s. */
   bitRate?: number
   /** An optional integer representing the bit depth of the track. */
   bitDepth?: number
@@ -7393,7 +7393,7 @@ export interface NewDjmdContent {
   composerId?: string
   /** An optional string representing the subtitle of the track. */
   subtitle?: string
-  /** An optional integer representing the sample rate of the track. */
+  /** Sample rate in Hz. */
   sampleRate?: number
   /** An optional string representing the release date of the track. */
   releaseDate?: string
@@ -8020,11 +8020,11 @@ export interface Content {
   fileSize?: number
   /** The file type of the track */
   fileType: number
-  /** The bitrate of the trackk */
+  /** Stored bitrate, normally kb/s. */
   bitrate?: number
   /** The bit depth of the track */
   bitDepth?: number
-  /** The sample rate of the track. */
+  /** Sample rate in Hz. */
   samplingRate?: number
   /** The ISRC of the track */
   isrc?: string
@@ -8552,11 +8552,11 @@ export interface NewContent {
   fileSize?: number
   /** The file typo of the track */
   fileType?: number
-  /** The bitrate of the trackk */
+  /** Stored bitrate, normally kb/s. */
   bitrate?: number
   /** The bit depth of the track */
   bitDepth?: number
-  /** The sample rate of the track. */
+  /** Sample rate in Hz. */
   samplingRate?: number
   /** The ISRC of the track */
   isrc?: string

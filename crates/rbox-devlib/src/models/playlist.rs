@@ -38,7 +38,7 @@ use rbox_core::PlaylistType;
 
 use super::ordering::{Change, Position};
 use super::{
-    next_id, ordering, read_fields, text, text_error, unsupported, validate_id,
+    checked_number, next_id, ordering, read_fields, text, text_error, unsupported, validate_id,
     validate_nonzero_id, Content,
 };
 use crate::binary::{
@@ -65,9 +65,9 @@ pub struct PlaylistTreeNode {
 #[derive(Clone, PartialEq, Eq)]
 pub struct Playlist {
     /// Export playlist/folder ID.
-    pub id: u32,
+    pub id: i64,
     /// Parent folder ID; zero denotes the root.
-    pub parent_id: u32,
+    pub parent_id: i64,
     /// Stored sibling position; gaps and ties are retained.
     pub seq: u32,
     /// Regular playlist or folder; other binary flags are rejected by this model.
@@ -114,11 +114,12 @@ impl Playlist {
     /// Missing IDs return `None`; duplicate IDs are an error.
     pub fn find<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &u32,
+        id: &i64,
     ) -> Result<Option<Self>> {
+        let id: u32 = checked_number(*id, "id")?;
         let location = conn
             .index_rows(Self::TABLE, Self::read_id)?
-            .get(id)
+            .get(&id)
             .copied();
         location
             .map(|location| Self::try_from(conn.read_indexed_row(Self::TABLE, location)?))
@@ -126,10 +127,11 @@ impl Playlist {
     }
 
     /// Check an ID without converting name frames to text.
-    pub fn id_exists<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<bool> {
+    pub fn id_exists<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &i64) -> Result<bool> {
+        let id: u32 = checked_number(*id, "id")?;
         Ok(conn
             .index_rows(Self::TABLE, Self::read_id)?
-            .contains_key(id))
+            .contains_key(&id))
     }
 
     /// Read immediate children sorted by stored sibling position; use zero for root.
@@ -137,8 +139,9 @@ impl Playlist {
     /// verify the parent exists, recurse, renumber positions or repair cycles.
     pub fn by_parent_id<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        parent_id: &u32,
+        parent_id: &i64,
     ) -> Result<Vec<Self>> {
+        let _: u32 = checked_number(*parent_id, "parent_id")?;
         let mut children = Vec::new();
         for row in Self::iter(conn)? {
             let row = row?;
@@ -153,8 +156,9 @@ impl Playlist {
     /// Return the node type; the root sentinel is treated as a folder.
     pub fn get_attribute<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &u32,
+        id: &i64,
     ) -> Result<Option<PlaylistType>> {
+        let _: u32 = checked_number(*id, "id")?;
         conn.check_kind(Self::TABLE)?;
         if *id == 0 {
             return Ok(Some(PlaylistType::Folder));
@@ -165,8 +169,9 @@ impl Playlist {
     /// Check whether an existing node is a regular playlist.
     pub fn is_playlist<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &u32,
+        id: &i64,
     ) -> Result<bool> {
+        let _: u32 = checked_number(*id, "id")?;
         Ok(Self::get_attribute(conn, id)? == Some(PlaylistType::List))
     }
 
@@ -174,8 +179,9 @@ impl Playlist {
     /// repeated occurrences in imported binary data remain repeated in the result.
     pub fn get_contents<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &u32,
+        id: &i64,
     ) -> Result<Vec<Content>> {
+        let _: u32 = checked_number(*id, "id")?;
         let entries = PlaylistContent::by_playlist_id(conn, id)?;
         let mut ids: Vec<_> = entries.iter().map(|e| e.content_id).collect();
         ids.sort_unstable();
@@ -250,10 +256,12 @@ impl Playlist {
         rows.sort_by_key(|r| std::cmp::Reverse(depths[&r.id]));
         let mut groups: HashMap<u32, Vec<PlaylistTreeNode>> = HashMap::new();
         for row in rows {
-            let mut children = groups.remove(&row.id).unwrap_or_default();
+            let mut children = groups
+                .remove(&checked_number(row.id, "id")?)
+                .unwrap_or_default();
             children.sort_by_key(|n| n.playlist.seq);
             groups
-                .entry(row.parent_id)
+                .entry(checked_number(row.parent_id, "parent_id")?)
                 .or_default()
                 .push(PlaylistTreeNode {
                     playlist: row,
@@ -268,9 +276,10 @@ impl Playlist {
     /// Rename an existing node, preserving its hierarchy, sequence and reserved data.
     pub fn rename<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &u32,
+        id: &i64,
         name: &str,
     ) -> Result<usize> {
+        let _: u32 = checked_number(*id, "id")?;
         let mut row = Self::find(conn, id)?.ok_or(Error::ModelNotFound {
             table: Self::TABLE,
             id: *id,
@@ -283,20 +292,22 @@ impl Playlist {
     /// Count immediate children without decoding names.
     pub fn count_children<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        parent: &u32,
+        parent: &i64,
     ) -> Result<usize> {
+        let _: u32 = checked_number(*parent, "parent")?;
         Ok(Self::get_seq_numbers(conn, parent)?.len())
     }
 
     /// Read stored sibling positions in ascending order without decoding names.
     pub fn get_seq_numbers<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        parent: &u32,
+        parent: &i64,
     ) -> Result<Vec<u32>> {
+        let _: u32 = checked_number(*parent, "parent")?;
         let mut positions = Vec::new();
         for record in conn.iter_raw(Self::TABLE)? {
             let row = read_fields::<PlaylistTreeRow>(&record?)?;
-            if row.parent_id == *parent {
+            if i64::from(row.parent_id) == *parent {
                 positions.push(row.position);
             }
         }
@@ -307,8 +318,9 @@ impl Playlist {
     /// Check contiguous zero-based sibling positions without changing the database.
     pub fn validate_seq_numbers<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        parent: &u32,
+        parent: &i64,
     ) -> Result<bool> {
+        let _: u32 = checked_number(*parent, "parent")?;
         Ok(ordering::valid(
             &Self::get_seq_numbers(conn, parent)?,
             Self::START_SEQ,
@@ -318,8 +330,9 @@ impl Playlist {
     /// Normalize one sibling list in stable sequence/physical order. Returns changed rows.
     pub fn reset_seq<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        parent: &u32,
+        parent: &i64,
     ) -> Result<usize> {
+        let _: u32 = checked_number(*parent, "parent")?;
         let mut tx = conn.transaction();
         let rows = node_rows(&mut tx)?;
         validate_parent(&rows, *parent, &[])?;
@@ -334,10 +347,14 @@ impl Playlist {
     /// Returns one if the selected node changed parent/position, otherwise zero.
     pub fn move_to<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &u32,
-        parent: Option<&u32>,
+        id: &i64,
+        parent: Option<&i64>,
         seq: Option<u32>,
     ) -> Result<usize> {
+        let _: u32 = checked_number(*id, "id")?;
+        if let Some(&value) = parent {
+            let _: u32 = checked_number(value, "parent")?;
+        }
         let mut tx = conn.transaction();
         let rows = node_rows(&mut tx)?;
         let index = node_index(&rows, *id)?;
@@ -345,7 +362,9 @@ impl Playlist {
             &mut tx,
             &rows,
             &[*id],
-            parent.copied().unwrap_or(rows[index].1.parent_id),
+            parent
+                .copied()
+                .unwrap_or(i64::from(rows[index].1.parent_id)),
             seq,
         )?;
         tx.commit()?;
@@ -357,10 +376,14 @@ impl Playlist {
     /// Returns changed selected nodes, excluding shifts of unselected siblings.
     pub fn move_all_to<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        ids: &[u32],
-        parent: &u32,
+        ids: &[i64],
+        parent: &i64,
         seq: Option<u32>,
     ) -> Result<usize> {
+        for &value in ids {
+            let _: u32 = checked_number(value, "ids")?;
+        }
+        let _: u32 = checked_number(*parent, "parent")?;
         let mut tx = conn.transaction();
         let rows = node_rows(&mut tx)?;
         let count = move_nodes(&mut tx, &rows, ids, *parent, seq)?;
@@ -406,7 +429,7 @@ impl Playlist {
             let parent = if self.parent_id != original.parent_id {
                 self.parent_id
             } else {
-                rows[index].1.parent_id
+                i64::from(rows[index].1.parent_id)
             };
             move_nodes(
                 &mut tx,
@@ -418,7 +441,7 @@ impl Playlist {
         }
         let location = tx
             .index_rows(Self::TABLE, Self::read_id)?
-            .get(&original.id)
+            .get(&checked_number(original.id, "id")?)
             .copied()
             .ok_or(Error::ModelNotFound {
                 table: Self::TABLE,
@@ -445,7 +468,8 @@ impl Playlist {
     /// Returns the total deleted row count. Missing IDs return zero without cleaning
     /// dangling associations; zero is rejected. One transaction covers both standard
     /// tables. Errors roll back; saving remains explicit.
-    pub fn delete<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<usize> {
+    pub fn delete<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &i64) -> Result<usize> {
+        let _: u32 = checked_number(*id, "id")?;
         Self::delete_nodes(conn, &[*id], false)
     }
 
@@ -454,14 +478,17 @@ impl Playlist {
     /// including content associations, but excluding sibling sequence updates.
     pub fn delete_all<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        ids: &[u32],
+        ids: &[i64],
     ) -> Result<usize> {
+        for &value in ids {
+            let _: u32 = checked_number(value, "ids")?;
+        }
         Self::delete_nodes(conn, ids, true)
     }
 
     fn delete_nodes<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        ids: &[u32],
+        ids: &[i64],
         strict: bool,
     ) -> Result<usize> {
         conn.check_kind(Self::TABLE)?;
@@ -479,7 +506,7 @@ impl Playlist {
         let mut tx = conn.transaction();
         let index = tx.index_rows(Self::TABLE, Self::read_id)?.clone();
         for id in ids {
-            if !index.contains_key(id) {
+            if !index.contains_key(&checked_number(*id, "id")?) {
                 if strict {
                     return Err(Error::ModelNotFound {
                         table: Self::TABLE,
@@ -501,22 +528,27 @@ impl Playlist {
         let mut pending = ids.to_vec();
         while let Some(id) = pending.pop() {
             if removed.insert(id) {
-                if let Some(ids) = children.get(&id) {
-                    pending.extend(ids);
+                if let Some(ids) = children.get(&checked_number(id, "id")?) {
+                    pending.extend(ids.iter().copied().map(i64::from));
                 }
             }
         }
         let parents: BTreeSet<_> = removed
             .iter()
-            .map(|id| headers[id].parent_id)
+            .map(|id| Ok(i64::from(headers[&checked_number(*id, "id")?].parent_id)))
+            .collect::<Result<BTreeSet<_>>>()?
+            .into_iter()
             .filter(|parent| !removed.contains(parent))
             .collect();
-        let mut count = remove_associations(&mut tx, |row| removed.contains(&row.playlist_id))?;
+        let mut count =
+            remove_associations(&mut tx, |row| removed.contains(&i64::from(row.playlist_id)))?;
         for id in removed {
-            let location = index.get(&id).ok_or(Error::ModelNotFound {
-                table: Self::TABLE,
-                id,
-            })?;
+            let location = index
+                .get(&checked_number(id, "id")?)
+                .ok_or(Error::ModelNotFound {
+                    table: Self::TABLE,
+                    id,
+                })?;
             let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
             tx.delete(&handle)?;
             count = count.checked_add(1).ok_or(Error::MutationOverflow)?;
@@ -527,7 +559,7 @@ impl Playlist {
             write_nodes(
                 &mut tx,
                 &rows,
-                &ordering::renumber(&positions, parent, Self::START_SEQ)?,
+                &ordering::renumber(&positions, i64::from(parent), Self::START_SEQ)?,
             )?;
         }
         tx.commit()?;
@@ -549,7 +581,7 @@ impl Playlist {
     }
 
     /// Generate the next export ID: the highest live ID plus one, or 1 when empty.
-    fn generate_id<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<u32> {
+    fn generate_id<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<i64> {
         next_id(conn, Self::TABLE, Self::read_id)
     }
 }
@@ -592,7 +624,7 @@ pub(super) fn remove_associations<R: Read + Seek>(
         };
         if matches(&row) {
             locations.push((record.page(), record.slot().slot));
-            parents.insert(row.playlist_id);
+            parents.insert(i64::from(row.playlist_id));
         }
     }
     let count = locations.len();
@@ -613,7 +645,7 @@ fn node_rows<R: Read + Seek>(tx: &mut Transaction<'_, R>) -> Result<NodeRows> {
         .map(|record| {
             let record = record?;
             let row = read_fields::<PlaylistTreeRow>(&record)?;
-            validate_id(Playlist::TABLE, row.id)?;
+            validate_id(Playlist::TABLE, i64::from(row.id))?;
             if !ids.insert(row.id) {
                 return Err(Error::DuplicateId {
                     table: Playlist::TABLE,
@@ -638,7 +670,7 @@ fn entry_rows<R: Read + Seek>(tx: &mut Transaction<'_, R>) -> Result<EntryRows> 
 fn node_positions(rows: &NodeRows) -> Vec<Position> {
     rows.iter()
         .map(|(_, r)| Position {
-            parent: r.parent_id,
+            parent: i64::from(r.parent_id),
             seq: r.position,
         })
         .collect()
@@ -647,15 +679,15 @@ fn node_positions(rows: &NodeRows) -> Vec<Position> {
 fn entry_positions(rows: &EntryRows) -> Vec<Position> {
     rows.iter()
         .map(|(_, r)| Position {
-            parent: r.playlist_id,
+            parent: i64::from(r.playlist_id),
             seq: r.position,
         })
         .collect()
 }
 
-fn node_index(rows: &NodeRows, id: u32) -> Result<usize> {
+fn node_index(rows: &NodeRows, id: i64) -> Result<usize> {
     rows.iter()
-        .position(|(_, r)| r.id == id)
+        .position(|(_, r)| i64::from(r.id) == id)
         .ok_or(Error::ModelNotFound {
             table: Playlist::TABLE,
             id,
@@ -669,10 +701,10 @@ fn pair_conflict() -> Error {
     }
 }
 
-fn entry_index(rows: &EntryRows, id: (u32, u32)) -> Result<usize> {
+fn entry_index(rows: &EntryRows, id: (i64, i64)) -> Result<usize> {
     let mut found = None;
     for (index, (_, row)) in rows.iter().enumerate() {
-        if (row.playlist_id, row.track_id) == id {
+        if (i64::from(row.playlist_id), i64::from(row.track_id)) == id {
             if found.replace(index).is_some() {
                 return Err(pair_conflict());
             }
@@ -684,9 +716,12 @@ fn entry_index(rows: &EntryRows, id: (u32, u32)) -> Result<usize> {
     })
 }
 
-fn unique_entries(rows: &EntryRows, parent: u32) -> Result<()> {
+fn unique_entries(rows: &EntryRows, parent: i64) -> Result<()> {
     let mut ids = HashSet::new();
-    for (_, row) in rows.iter().filter(|(_, r)| r.playlist_id == parent) {
+    for (_, row) in rows
+        .iter()
+        .filter(|(_, r)| i64::from(r.playlist_id) == parent)
+    {
         if !ids.insert(row.track_id) {
             return Err(pair_conflict());
         }
@@ -694,7 +729,7 @@ fn unique_entries(rows: &EntryRows, parent: u32) -> Result<()> {
     Ok(())
 }
 
-fn validate_parent(rows: &NodeRows, mut parent: u32, forbidden: &[u32]) -> Result<()> {
+fn validate_parent(rows: &NodeRows, mut parent: i64, forbidden: &[i64]) -> Result<()> {
     let lookup: HashMap<_, _> = rows.iter().map(|(_, r)| (r.id, r)).collect();
     let mut visited: HashSet<_> = forbidden.iter().copied().collect();
     while parent != 0 {
@@ -702,12 +737,12 @@ fn validate_parent(rows: &NodeRows, mut parent: u32, forbidden: &[u32]) -> Resul
             return Err(invalid_parent("parent ancestry must not contain a cycle"));
         }
         let node = lookup
-            .get(&parent)
+            .get(&checked_number(parent, "parent")?)
             .ok_or_else(|| invalid_parent("parent folder does not exist"))?;
         if playlist_type(node.folder_flag)? != PlaylistType::Folder {
             return Err(invalid_parent("parent must be a folder"));
         }
-        parent = node.parent_id;
+        parent = i64::from(node.parent_id);
     }
     Ok(())
 }
@@ -719,7 +754,7 @@ fn validate_nodes(rows: &[Playlist]) -> Result<()> {
         if nodes.insert(row.id, row).is_some() {
             return Err(Error::DuplicateId {
                 table: Playlist::TABLE,
-                id: row.id,
+                id: checked_number(row.id, "id")?,
             });
         }
     }
@@ -747,7 +782,7 @@ fn validate_nodes(rows: &[Playlist]) -> Result<()> {
     Ok(())
 }
 
-fn validate_playlist<R: Read + Seek>(tx: &mut Transaction<'_, R>, id: u32) -> Result<()> {
+fn validate_playlist<R: Read + Seek>(tx: &mut Transaction<'_, R>, id: i64) -> Result<()> {
     let rows = node_rows(tx)?;
     let index = node_index(&rows, id)?;
     if playlist_type(rows[index].1.folder_flag)? != PlaylistType::List {
@@ -757,7 +792,7 @@ fn validate_playlist<R: Read + Seek>(tx: &mut Transaction<'_, R>, id: u32) -> Re
             "contents require a regular playlist",
         ));
     }
-    validate_parent(&rows, rows[index].1.parent_id, &[id])
+    validate_parent(&rows, i64::from(rows[index].1.parent_id), &[id])
 }
 
 fn write_nodes<R: Read + Seek>(
@@ -768,7 +803,7 @@ fn write_nodes<R: Read + Seek>(
     for change in changes {
         let (record, original) = &rows[change.index];
         let mut row = original.clone();
-        row.parent_id = change.parent;
+        row.parent_id = checked_number(change.parent, "parent_id")?;
         row.position = change.seq;
         let handle = tx.locate(Playlist::TABLE, record.page(), record.slot().slot)?;
         tx.update(&handle, &Row::Standard(StandardRow::PlaylistTree(row)))?;
@@ -794,8 +829,8 @@ fn write_entries<R: Read + Seek>(
 fn move_nodes<R: Read + Seek>(
     tx: &mut Transaction<'_, R>,
     rows: &NodeRows,
-    ids: &[u32],
-    parent: u32,
+    ids: &[i64],
+    parent: i64,
     seq: Option<u32>,
 ) -> Result<usize> {
     if ids.is_empty() {
@@ -824,7 +859,7 @@ fn move_nodes<R: Read + Seek>(
 
 fn reset_entries<R: Read + Seek>(
     tx: &mut Transaction<'_, R>,
-    parents: &BTreeSet<u32>,
+    parents: &BTreeSet<i64>,
 ) -> Result<usize> {
     if parents.is_empty() {
         return Ok(0);
@@ -864,8 +899,8 @@ impl TryFrom<RowRecord> for Playlist {
             return Err(unsupported(&record));
         };
         Ok(Self {
-            id: row.id,
-            parent_id: row.parent_id,
+            id: i64::from(row.id),
+            parent_id: i64::from(row.parent_id),
             seq: row.position,
             attribute: playlist_type(row.folder_flag)?,
             name: row
@@ -889,7 +924,7 @@ impl TryFrom<RowRecord> for Playlist {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewPlaylist {
     /// Parent folder ID; zero denotes the root.
-    pub parent_id: u32,
+    pub parent_id: i64,
     /// Zero-based insertion position; `None` appends after the last sibling.
     pub seq: Option<u32>,
     /// Node type; only List and Folder can be encoded for DeviceSQL.
@@ -937,7 +972,7 @@ impl NewPlaylist {
     }
 
     /// Builder for `parent_id`.
-    pub fn parent_id(mut self, id: u32) -> Self {
+    pub fn parent_id(mut self, id: i64) -> Self {
         self.parent_id = id;
         self
     }
@@ -951,11 +986,11 @@ impl NewPlaylist {
         let mut tx = conn.transaction();
         if tx
             .index_rows(Playlist::TABLE, Playlist::read_id)?
-            .contains_key(&id)
+            .contains_key(&checked_number(id, "id")?)
         {
             return Err(Error::DuplicateId {
                 table: Playlist::TABLE,
-                id,
+                id: checked_number(id, "id")?,
             });
         }
         let rows = node_rows(&mut tx)?;
@@ -981,13 +1016,13 @@ impl NewPlaylist {
     /// Encode fields with the allocated ID; the engine assigns placement.
     /// Direct binary insertions bypass uniqueness, parent and ordering checks.
     /// An omitted position encodes zero; append requires model insertion.
-    fn to_binary(&self, id: u32) -> Result<PlaylistTreeRow> {
+    fn to_binary(&self, id: i64) -> Result<PlaylistTreeRow> {
         validate_id(Playlist::TABLE, id)?;
         Ok(PlaylistTreeRow {
-            parent_id: self.parent_id,
+            parent_id: checked_number(self.parent_id, "parent_id")?,
             unknown_04: self.unknown_04,
             position: self.seq.unwrap_or(Playlist::START_SEQ),
-            id,
+            id: checked_number(id, "id")?,
             folder_flag: match self.attribute {
                 PlaylistType::List => 0,
                 PlaylistType::Folder => 1,
@@ -1012,9 +1047,9 @@ impl NewPlaylist {
 #[derive(Clone, PartialEq, Eq)]
 pub struct PlaylistContent {
     /// Export playlist ID.
-    pub playlist_id: u32,
+    pub playlist_id: i64,
     /// Export track ID, distinct from the source/master content ID.
-    pub content_id: u32,
+    pub content_id: i64,
     /// Stored position, commonly one-based; zero and gaps remain unmodified on reads.
     pub seq: u32,
     raw: RowRecord,
@@ -1056,8 +1091,9 @@ impl PlaylistContent {
     /// This scans the entry table and does not load the playlist or referenced tracks.
     pub fn by_playlist_id<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        playlist_id: &u32,
+        playlist_id: &i64,
     ) -> Result<Vec<Self>> {
+        let _: u32 = checked_number(*playlist_id, "playlist_id")?;
         let mut entries = Vec::new();
         for row in Self::iter(conn)? {
             let row = row?;
@@ -1072,8 +1108,9 @@ impl PlaylistContent {
     /// Read every association for a content ID, ordered by playlist then sequence.
     pub fn by_content_id<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &u32,
+        id: &i64,
     ) -> Result<Vec<Self>> {
+        let _: u32 = checked_number(*id, "id")?;
         let mut rows = Self::all(conn)?;
         rows.retain(|r| r.content_id == *id);
         rows.sort_by_key(|r| (r.playlist_id, r.seq));
@@ -1083,8 +1120,10 @@ impl PlaylistContent {
     /// Find a unique `(playlist_id, content_id)` pair. Imported duplicates are errors.
     pub fn find<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &(u32, u32),
+        id: &(i64, i64),
     ) -> Result<Option<Self>> {
+        let _: u32 = checked_number(id.0, "id.0")?;
+        let _: u32 = checked_number(id.1, "id.1")?;
         let mut found = None;
         for row in Self::iter(conn)? {
             let row = row?;
@@ -1101,21 +1140,25 @@ impl PlaylistContent {
     /// Check whether the unique playlist/content pair exists.
     pub fn id_exists<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &(u32, u32),
+        id: &(i64, i64),
     ) -> Result<bool> {
+        let _: u32 = checked_number(id.0, "id.0")?;
+        let _: u32 = checked_number(id.1, "id.1")?;
         Ok(Self::find(conn, id)?.is_some())
     }
 
     /// Count live entries for a playlist without loading contents.
-    pub fn count<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<usize> {
+    pub fn count<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &i64) -> Result<usize> {
+        let _: u32 = checked_number(*id, "id")?;
         Ok(Self::get_seq_numbers(conn, id)?.len())
     }
 
     /// Read the stored entry positions in ascending order.
     pub fn get_seq_numbers<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &u32,
+        id: &i64,
     ) -> Result<Vec<u32>> {
+        let _: u32 = checked_number(*id, "id")?;
         Ok(Self::by_playlist_id(conn, id)?
             .iter()
             .map(|r| r.seq)
@@ -1125,8 +1168,9 @@ impl PlaylistContent {
     /// Check contiguous one-based positions without changing imported values.
     pub fn validate_seq_numbers<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &u32,
+        id: &i64,
     ) -> Result<bool> {
+        let _: u32 = checked_number(*id, "id")?;
         Ok(ordering::valid(
             &Self::get_seq_numbers(conn, id)?,
             Self::START_SEQ,
@@ -1135,7 +1179,8 @@ impl PlaylistContent {
 
     /// Normalize positions in sequence/physical order, preserving all occurrences.
     /// Returns the number of changed rows. Duplicate pairs remain readable/repairable.
-    pub fn reset_seq<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<usize> {
+    pub fn reset_seq<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &i64) -> Result<usize> {
+        let _: u32 = checked_number(*id, "id")?;
         let mut tx = conn.transaction();
         validate_playlist(&mut tx, *id)?;
         let count = reset_entries(&mut tx, &BTreeSet::from([*id]))?;
@@ -1147,9 +1192,11 @@ impl PlaylistContent {
     /// Returns one if its position changed, otherwise zero.
     pub fn move_to<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &(u32, u32),
+        id: &(i64, i64),
         seq: Option<u32>,
     ) -> Result<usize> {
+        let _: u32 = checked_number(id.0, "id.0")?;
+        let _: u32 = checked_number(id.1, "id.1")?;
         Self::move_all_to(conn, &[*id], seq)
     }
 
@@ -1158,9 +1205,13 @@ impl PlaylistContent {
     /// Returns changed selected entries, excluding shifts of unselected entries.
     pub fn move_all_to<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        ids: &[(u32, u32)],
+        ids: &[(i64, i64)],
         seq: Option<u32>,
     ) -> Result<usize> {
+        for &(first, second) in ids {
+            let _: u32 = checked_number(first, "ids.0")?;
+            let _: u32 = checked_number(second, "ids.1")?;
+        }
         conn.check_kind(Self::TABLE)?;
         if ids.is_empty() {
             return Ok(0);
@@ -1201,8 +1252,10 @@ impl PlaylistContent {
     /// Delete a unique pair, then close the gap. Missing pairs return zero.
     pub fn delete_by_id<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &(u32, u32),
+        id: &(i64, i64),
     ) -> Result<usize> {
+        let _: u32 = checked_number(id.0, "id.0")?;
+        let _: u32 = checked_number(id.1, "id.1")?;
         match Self::find(conn, id)? {
             Some(row) => row.delete(conn),
             None => Ok(0),
@@ -1212,8 +1265,12 @@ impl PlaylistContent {
     /// Delete distinct pairs atomically; missing or ambiguous pairs reject the batch.
     pub fn delete_all<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        ids: &[(u32, u32)],
+        ids: &[(i64, i64)],
     ) -> Result<usize> {
+        for &(first, second) in ids {
+            let _: u32 = checked_number(first, "ids.0")?;
+            let _: u32 = checked_number(second, "ids.1")?;
+        }
         let mut tx = conn.transaction();
         let rows = entry_rows(&mut tx)?;
         let mut selected = HashSet::new();
@@ -1226,7 +1283,10 @@ impl PlaylistContent {
                 ));
             }
         }
-        let parents = selected.iter().map(|&i| rows[i].1.playlist_id).collect();
+        let parents = selected
+            .iter()
+            .map(|&i| i64::from(rows[i].1.playlist_id))
+            .collect();
         for &i in &selected {
             let record = &rows[i].0;
             let handle = tx.locate(Self::TABLE, record.page(), record.slot().slot)?;
@@ -1240,19 +1300,23 @@ impl PlaylistContent {
     /// Remove all entries of a playlist, retaining the playlist and contents.
     pub fn delete_by_playlist_id<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &u32,
+        id: &i64,
     ) -> Result<usize> {
+        let _: u32 = checked_number(*id, "id")?;
         Self::delete_by_playlist_ids(conn, &[*id])
     }
 
     /// Remove all entries of the given playlists atomically; missing IDs are ignored.
     pub fn delete_by_playlist_ids<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        ids: &[u32],
+        ids: &[i64],
     ) -> Result<usize> {
+        for &value in ids {
+            let _: u32 = checked_number(value, "ids")?;
+        }
         let ids: HashSet<_> = ids.iter().copied().collect();
         let mut tx = conn.transaction();
-        let count = remove_associations(&mut tx, |r| ids.contains(&r.playlist_id))?;
+        let count = remove_associations(&mut tx, |r| ids.contains(&i64::from(r.playlist_id)))?;
         tx.commit()?;
         Ok(count)
     }
@@ -1260,19 +1324,23 @@ impl PlaylistContent {
     /// Remove every occurrence of a content ID and compact affected playlists.
     pub fn delete_by_content_id<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &u32,
+        id: &i64,
     ) -> Result<usize> {
+        let _: u32 = checked_number(*id, "id")?;
         Self::delete_by_content_ids(conn, &[*id])
     }
 
     /// Remove all occurrences of these content IDs atomically and compact affected lists.
     pub fn delete_by_content_ids<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        ids: &[u32],
+        ids: &[i64],
     ) -> Result<usize> {
+        for &value in ids {
+            let _: u32 = checked_number(value, "ids")?;
+        }
         let ids: HashSet<_> = ids.iter().copied().collect();
         let mut tx = conn.transaction();
-        let count = remove_associations(&mut tx, |r| ids.contains(&r.track_id))?;
+        let count = remove_associations(&mut tx, |r| ids.contains(&i64::from(r.track_id)))?;
         tx.commit()?;
         Ok(count)
     }
@@ -1312,15 +1380,17 @@ impl PlaylistContent {
     /// are retained. Errors roll back; changes remain in memory until saved.
     pub fn remove<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        content_id: &u32,
-        playlist_id: &u32,
+        content_id: &i64,
+        playlist_id: &i64,
     ) -> Result<usize> {
+        let _: u32 = checked_number(*content_id, "content_id")?;
+        let _: u32 = checked_number(*playlist_id, "playlist_id")?;
         conn.check_kind(Self::TABLE)?;
         validate_nonzero_id(Self::TABLE, "content_id", *content_id)?;
         validate_nonzero_id(Self::TABLE, "playlist_id", *playlist_id)?;
         let mut tx = conn.transaction();
         let count = remove_associations(&mut tx, |row| {
-            row.track_id == *content_id && row.playlist_id == *playlist_id
+            i64::from(row.track_id) == *content_id && i64::from(row.playlist_id) == *playlist_id
         })?;
         tx.commit()?;
         Ok(count)
@@ -1346,8 +1416,8 @@ impl TryFrom<RowRecord> for PlaylistContent {
             return Err(unsupported(&record));
         };
         Ok(Self {
-            playlist_id: row.playlist_id,
-            content_id: row.track_id,
+            playlist_id: i64::from(row.playlist_id),
+            content_id: i64::from(row.track_id),
             seq: row.position,
             raw: record,
         })
@@ -1361,16 +1431,16 @@ impl TryFrom<RowRecord> for PlaylistContent {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewPlaylistContent {
     /// Existing regular playlist ID.
-    pub playlist_id: u32,
+    pub playlist_id: i64,
     /// Nonzero export track ID.
-    pub content_id: u32,
+    pub content_id: i64,
     /// One-based insertion position; `None` appends.
     pub seq: Option<u32>,
 }
 
 impl NewPlaylistContent {
     /// Prepare an occurrence with explicit playlist/track IDs; `None` appends.
-    pub fn new(playlist_id: u32, content_id: u32, seq: impl Into<Option<u32>>) -> Self {
+    pub fn new(playlist_id: i64, content_id: i64, seq: impl Into<Option<u32>>) -> Self {
         Self {
             playlist_id,
             content_id,
@@ -1391,7 +1461,9 @@ impl NewPlaylistContent {
         for record in tx.iter_raw(PlaylistContent::TABLE)? {
             let record = record?;
             let existing = read_fields::<PlaylistEntryRow>(&record)?;
-            if existing.playlist_id == self.playlist_id && existing.track_id == self.content_id {
+            if i64::from(existing.playlist_id) == self.playlist_id
+                && i64::from(existing.track_id) == self.content_id
+            {
                 return Err(Error::UniqueConstraintViolation {
                     table: PlaylistContent::TABLE,
                     fields: &["playlist_id", "content_id"],
@@ -1403,7 +1475,7 @@ impl NewPlaylistContent {
             .index_rows(Content::TABLE, |record| {
                 Ok(read_fields::<TrackHeader>(record)?.id)
             })?
-            .contains_key(&self.content_id)
+            .contains_key(&checked_number(self.content_id, "content_id")?)
         {
             return Err(Error::ModelNotFound {
                 table: Content::TABLE,
@@ -1436,8 +1508,8 @@ impl NewPlaylistContent {
         validate_nonzero_id(PlaylistContent::TABLE, "content_id", self.content_id)?;
         Ok(PlaylistEntryRow {
             position: self.seq.unwrap_or(PlaylistContent::START_SEQ),
-            track_id: self.content_id,
-            playlist_id: self.playlist_id,
+            track_id: checked_number(self.content_id, "track_id")?,
+            playlist_id: checked_number(self.playlist_id, "playlist_id")?,
         })
     }
 }

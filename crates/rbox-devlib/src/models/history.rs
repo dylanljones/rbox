@@ -15,7 +15,8 @@ use std::collections::HashMap;
 use std::io::{Read, Seek};
 
 use super::{
-    next_id, read_fields, text, text_error, unsupported, validate_id, validate_nonzero_id, Content,
+    checked_number, next_id, read_fields, text, text_error, unsupported, validate_id,
+    validate_nonzero_id, Content,
 };
 use crate::binary::{HistoryEntryRow, NamedRow, PageType, Row, RowRecord, StandardRow, TableKind};
 use crate::devicesql::DeviceSqlConnection;
@@ -30,7 +31,7 @@ use crate::{Error, Result};
 #[derive(Clone, PartialEq, Eq)]
 pub struct History {
     /// History-playlist ID, in a separate namespace from regular playlists.
-    pub id: u32,
+    pub id: i64,
 
     /// Decoded display name, preserving empty text.
     pub name: String,
@@ -69,11 +70,12 @@ impl History {
     /// Only the selected model's text is converted. Duplicate IDs are an error.
     pub fn find<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &u32,
+        id: &i64,
     ) -> Result<Option<Self>> {
+        let id: u32 = checked_number(*id, "id")?;
         let location = conn
             .index_rows(Self::TABLE, Self::read_id)?
-            .get(id)
+            .get(&id)
             .copied();
         location
             .map(|location| Self::try_from(conn.read_indexed_row(Self::TABLE, location)?))
@@ -81,10 +83,11 @@ impl History {
     }
 
     /// Check an ID using the engine index without converting string frames to text.
-    pub fn id_exists<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<bool> {
+    pub fn id_exists<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &i64) -> Result<bool> {
+        let id: u32 = checked_number(*id, "id")?;
         Ok(conn
             .index_rows(Self::TABLE, Self::read_id)?
-            .contains_key(id))
+            .contains_key(&id))
     }
 
     /// Load contents in stored sequence order, preserving repeated plays and ties.
@@ -94,8 +97,9 @@ impl History {
     /// The parent history is not loaded; a history with no entries returns an empty list.
     pub fn get_contents<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &u32,
+        id: &i64,
     ) -> Result<Vec<Content>> {
+        let _: u32 = checked_number(*id, "id")?;
         let entries = HistoryContent::by_history_id(conn, id)?;
         let ids: Vec<_> = entries.iter().map(|entry| entry.content_id).collect();
         let contents: HashMap<_, _> = Content::by_ids(conn, &ids)?
@@ -137,7 +141,7 @@ impl History {
         let mut tx = conn.transaction();
         let location = tx
             .index_rows(Self::TABLE, Self::read_id)?
-            .get(&original.id)
+            .get(&checked_number(original.id, "id")?)
             .copied()
             .ok_or(Error::ModelNotFound {
                 table: Self::TABLE,
@@ -163,11 +167,16 @@ impl History {
     /// returns zero and leaves dangling entries untouched; zero is rejected.
     /// Contents, regular playlists, and other histories are unchanged. Any error
     /// rolls back the whole operation. Saving remains explicit.
-    pub fn delete<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<usize> {
+    pub fn delete<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &i64) -> Result<usize> {
+        let _: u32 = checked_number(*id, "id")?;
         conn.check_kind(Self::TABLE)?;
         validate_id(Self::TABLE, *id)?;
         let mut tx = conn.transaction();
-        let Some(location) = tx.index_rows(Self::TABLE, Self::read_id)?.get(id).copied() else {
+        let Some(location) = tx
+            .index_rows(Self::TABLE, Self::read_id)?
+            .get(&checked_number(*id, "id")?)
+            .copied()
+        else {
             return Ok(0);
         };
         let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
@@ -178,7 +187,7 @@ impl History {
             let Row::Standard(StandardRow::HistoryEntry(row)) = record.decode()? else {
                 return Err(unsupported(&record));
             };
-            if row.playlist_id == *id {
+            if i64::from(row.playlist_id) == *id {
                 locations.push((record.page(), record.slot().slot));
             }
         }
@@ -208,7 +217,7 @@ impl History {
     }
 
     /// Generate the next export ID: the highest live ID plus one, or 1 when empty.
-    fn generate_id<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<u32> {
+    fn generate_id<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<i64> {
         next_id(conn, Self::TABLE, Self::read_id)
     }
 }
@@ -225,7 +234,7 @@ impl TryFrom<RowRecord> for History {
             return Err(unsupported(&record));
         };
         Ok(Self {
-            id: row.id,
+            id: i64::from(row.id),
 
             name: row
                 .name
@@ -266,11 +275,11 @@ impl NewHistory {
         let mut tx = conn.transaction();
         if tx
             .index_rows(History::TABLE, History::read_id)?
-            .contains_key(&id)
+            .contains_key(&checked_number(id, "id")?)
         {
             return Err(Error::DuplicateId {
                 table: History::TABLE,
-                id,
+                id: checked_number(id, "id")?,
             });
         }
         let handle = tx.insert(
@@ -283,10 +292,10 @@ impl NewHistory {
     }
 
     /// Encode fields with the allocated ID; the engine assigns placement.
-    fn to_binary(&self, id: u32) -> Result<NamedRow> {
+    fn to_binary(&self, id: i64) -> Result<NamedRow> {
         validate_id(History::TABLE, id)?;
         Ok(NamedRow {
-            id,
+            id: checked_number(id, "id")?,
             name: text(&self.name)?,
         })
     }
@@ -300,9 +309,9 @@ impl NewHistory {
 #[derive(Clone, PartialEq, Eq)]
 pub struct HistoryContent {
     /// History-playlist ID; this does not reference the regular playlist table.
-    pub history_id: u32,
+    pub history_id: i64,
     /// Export track ID, distinct from the source/master content ID.
-    pub content_id: u32,
+    pub content_id: i64,
     /// Stored occurrence position; zero and gaps remain unmodified on reads.
     pub seq: u32,
     raw: RowRecord,
@@ -342,8 +351,9 @@ impl HistoryContent {
     /// This scans the entry table and does not load the playlist or referenced tracks.
     pub fn by_history_id<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        history_id: &u32,
+        history_id: &i64,
     ) -> Result<Vec<Self>> {
+        let _: u32 = checked_number(*history_id, "history_id")?;
         let mut entries = Vec::new();
         for row in Self::iter(conn)? {
             let row = row?;
@@ -402,8 +412,8 @@ impl TryFrom<RowRecord> for HistoryContent {
             return Err(unsupported(&record));
         };
         Ok(Self {
-            history_id: row.playlist_id,
-            content_id: row.track_id,
+            history_id: i64::from(row.playlist_id),
+            content_id: i64::from(row.track_id),
             seq: row.position,
             raw: record,
         })
@@ -419,16 +429,16 @@ impl TryFrom<RowRecord> for HistoryContent {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewHistoryContent {
     /// Nonzero history-playlist ID; existence is not checked.
-    pub history_id: u32,
+    pub history_id: i64,
     /// Nonzero export track ID.
-    pub content_id: u32,
+    pub content_id: i64,
     /// Explicit occurrence position; other positions are untouched.
     pub seq: u32,
 }
 
 impl NewHistoryContent {
     /// Prepare an occurrence with an explicit playlist, track and position.
-    pub fn new(history_id: u32, content_id: u32, seq: u32) -> Self {
+    pub fn new(history_id: i64, content_id: i64, seq: u32) -> Self {
         Self {
             history_id,
             content_id,
@@ -460,8 +470,8 @@ impl NewHistoryContent {
         validate_nonzero_id(HistoryContent::TABLE, "content_id", self.content_id)?;
         Ok(HistoryEntryRow {
             position: self.seq,
-            track_id: self.content_id,
-            playlist_id: self.history_id,
+            track_id: checked_number(self.content_id, "track_id")?,
+            playlist_id: checked_number(self.history_id, "playlist_id")?,
         })
     }
 }

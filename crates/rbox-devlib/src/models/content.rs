@@ -15,9 +15,9 @@ use std::path::PathBuf;
 
 use super::playlist::remove_associations;
 use super::{
-    load_related, next_id, text, text_error, unsupported, update_export_count, validate_id, Album,
-    Artist, Artwork, Color, Genre, HistoryContent, Key, Label, MyTagContent, PlaylistContent,
-    RecommendedLike,
+    checked_number, load_related, next_id, text, text_error, unsupported, update_export_count,
+    validate_id, Album, Artist, Artwork, Color, Genre, HistoryContent, Key, Label, MyTagContent,
+    PlaylistContent, RecommendedLike,
 };
 use crate::binary::{
     DeviceSqlString, ExtendedRow, PageType, Row, RowRecord, StandardRow, StringOffsets, TableKind,
@@ -46,55 +46,55 @@ use crate::{Error, Result};
 #[derive(Clone, PartialEq, Eq)]
 pub struct Content {
     /// Export track ID, used by playlists and tag associations.
-    pub id: u32,
+    pub id: i64,
     /// Main artist ID.
-    pub artist_id: u32,
+    pub artist_id: i64,
     /// Album ID.
-    pub album_id: u32,
+    pub album_id: i64,
     /// Genre ID.
-    pub genre_id: u32,
+    pub genre_id: i64,
     /// Label ID.
-    pub label_id: u32,
+    pub label_id: i64,
     /// Musical-key ID.
-    pub key_id: u32,
+    pub key_id: i64,
     /// Artwork-reference ID.
-    pub artwork_id: u32,
+    pub artwork_id: i64,
     /// Composer artist ID.
-    pub composer_id: u32,
+    pub composer_id: i64,
     /// Original artist ID.
-    pub original_artist_id: u32,
+    pub original_artist_id: i64,
     /// Remixer artist ID.
-    pub remixer_id: u32,
+    pub remixer_id: i64,
     /// Content identity in the source library, separate from the export ID.
-    pub master_content_id: u32,
+    pub master_content_id: i64,
     /// Source library identity.
-    pub master_db_id: u32,
+    pub master_db_id: i64,
     /// Sample rate in Hz.
-    pub sample_rate: u32,
+    pub sample_rate: i64,
     /// Audio file size in bytes.
-    pub file_size: u32,
+    pub file_size: i64,
     /// Stored bitrate, normally kb/s.
-    pub bitrate: u32,
+    pub bitrate: i64,
     /// Tempo in BPM multiplied by 100.
-    pub bpmx100: u32,
+    pub bpmx100: i64,
     /// Track duration in seconds.
-    pub length: u16,
+    pub length: i32,
     /// Track number within the release.
-    pub track_no: u32,
+    pub track_no: i64,
     /// Disc number.
-    pub disc_no: u16,
+    pub disc_no: i32,
     /// Stored play count.
-    pub play_count: u16,
+    pub play_count: i32,
     /// Release year.
-    pub release_year: u16,
+    pub release_year: i32,
     /// Sample depth in bits per sample.
-    pub bit_depth: u16,
+    pub bit_depth: i32,
     /// Raw color ID, including zero.
-    pub color_id: u8,
+    pub color_id: i64,
     /// Raw star rating; unrecognized values are retained.
-    pub rating: u8,
+    pub rating: i32,
     /// Raw audio format code; unrecognized codes are retained.
-    pub file_type: u16,
+    pub file_type: i32,
     /// Display title.
     pub title: String,
     /// DJ comment.
@@ -186,13 +186,13 @@ impl std::ops::Deref for ContentView {
 
 /// Targets decoded once per resolution batch; not retained across mutations.
 struct ContentRelations {
-    artists: HashMap<u32, Artist>,
-    albums: HashMap<u32, Album>,
-    genres: HashMap<u32, Genre>,
-    labels: HashMap<u32, Label>,
-    keys: HashMap<u32, Key>,
-    artworks: HashMap<u32, Artwork>,
-    colors: HashMap<u16, Color>,
+    artists: HashMap<i64, Artist>,
+    albums: HashMap<i64, Album>,
+    genres: HashMap<i64, Genre>,
+    labels: HashMap<i64, Label>,
+    keys: HashMap<i64, Key>,
+    artworks: HashMap<i64, Artwork>,
+    colors: HashMap<i64, Color>,
 }
 
 impl ContentRelations {
@@ -228,11 +228,7 @@ impl ContentRelations {
                 contents.iter().map(|row| row.artwork_id),
                 Artwork::find,
             )?,
-            colors: load_related(
-                conn,
-                contents.iter().map(|row| u16::from(row.color_id)),
-                Color::find,
-            )?,
+            colors: load_related(conn, contents.iter().map(|row| row.color_id), Color::find)?,
         })
     }
 
@@ -253,7 +249,7 @@ impl ContentRelations {
             label: self.labels.get(&content.label_id).cloned(),
             key: self.keys.get(&content.key_id).cloned(),
             artwork: self.artworks.get(&content.artwork_id).cloned(),
-            color: self.colors.get(&u16::from(content.color_id)).cloned(),
+            color: self.colors.get(&content.color_id).cloned(),
             content,
         }
     }
@@ -332,11 +328,12 @@ impl Content {
     /// Only the selected row's strings are decoded. Duplicate IDs are an error.
     pub fn find<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &u32,
+        id: &i64,
     ) -> Result<Option<Self>> {
+        let id: u32 = checked_number(*id, "id")?;
         let location = conn
             .index_rows(Self::TABLE, Self::read_id)?
-            .get(id)
+            .get(&id)
             .copied();
         location
             .map(|location| Self::try_from(conn.read_indexed_row(Self::TABLE, location)?))
@@ -344,10 +341,11 @@ impl Content {
     }
 
     /// Check an export ID using the engine's index, without decoding strings.
-    pub fn id_exists<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<bool> {
+    pub fn id_exists<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &i64) -> Result<bool> {
+        let id: u32 = checked_number(*id, "id")?;
         Ok(conn
             .index_rows(Self::TABLE, Self::read_id)?
-            .contains_key(id))
+            .contains_key(&id))
     }
 
     /// Load matching export IDs in ascending order, omitting missing and repeated IDs.
@@ -355,13 +353,19 @@ impl Content {
     /// Only matching rows have their strings decoded. Empty input reads no pages.
     pub fn by_ids<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        ids: &[u32],
+        ids: &[i64],
     ) -> Result<Vec<Self>> {
+        for &value in ids {
+            let _: u32 = checked_number(value, "ids")?;
+        }
         conn.check_kind(Self::TABLE)?;
         if ids.is_empty() {
             return Ok(Vec::new());
         }
-        let mut ids = ids.to_vec();
+        let mut ids: Vec<u32> = ids
+            .iter()
+            .map(|&id| checked_number(id, "id"))
+            .collect::<Result<_>>()?;
         ids.sort_unstable();
         ids.dedup();
         let index = conn.index_rows(Self::TABLE, Self::read_id)?;
@@ -399,15 +403,17 @@ impl Content {
 
     /// Find content by its source-library identity, not its local export ID.
     ///
-    /// Both IDs use their unsigned representation, as in `rbox_core::Track`.
+    /// Both IDs are nonnegative `i64` values within the binary `u32` range.
     /// Zero means an absent source identity and returns `None`. If the pair occurs
     /// more than once, return the row with the lowest export ID. Scans scalar
     /// headers and decodes strings only for the selected row.
     pub fn find_by_master_content_id<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        master_content_id: u32,
-        master_db_id: u32,
+        master_content_id: i64,
+        master_db_id: i64,
     ) -> Result<Option<Self>> {
+        let _: u32 = checked_number(master_content_id, "master_content_id")?;
+        let _: u32 = checked_number(master_db_id, "master_db_id")?;
         conn.check_kind(Self::TABLE)?;
         if master_content_id == 0 || master_db_id == 0 {
             return Ok(None);
@@ -416,8 +422,8 @@ impl Content {
         for record in conn.iter_raw(Self::TABLE)? {
             let record = record?;
             let header = Self::read_header(&record)?;
-            if header.master_content_id == master_content_id
-                && header.master_db_id == master_db_id
+            if i64::from(header.master_content_id) == master_content_id
+                && i64::from(header.master_db_id) == master_db_id
                 && selected.as_ref().is_none_or(|(id, _)| header.id < *id)
             {
                 selected = Some((header.id, record));
@@ -430,7 +436,7 @@ impl Content {
 
     /// Load all contents matching source-content IDs within one source library.
 
-    /// IDs use DeviceLibrary's unsigned representation. Missing and zero IDs are
+    /// IDs must fit the binary `u32` range. Missing and zero IDs are
     /// omitted; repeated input IDs do not repeat rows. A zero library ID or empty
     /// input returns an empty vector without reading pages. Results are ordered by
     /// local export ID, including all exported rows when a source identity repeats.
@@ -438,9 +444,13 @@ impl Content {
     /// Extended connections are rejected, including for empty input.
     pub fn by_master_content_ids<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        master_content_ids: &[u32],
-        master_db_id: u32,
+        master_content_ids: &[i64],
+        master_db_id: i64,
     ) -> Result<Vec<Self>> {
+        for &value in master_content_ids {
+            let _: u32 = checked_number(value, "master_content_ids")?;
+        }
+        let _: u32 = checked_number(master_db_id, "master_db_id")?;
         conn.check_kind(Self::TABLE)?;
         if master_db_id == 0 || master_content_ids.is_empty() {
             return Ok(Vec::new());
@@ -457,7 +467,9 @@ impl Content {
         for record in conn.iter_raw(Self::TABLE)? {
             let record = record?;
             let header = Self::read_header(&record)?;
-            if header.master_db_id == master_db_id && ids.contains(&header.master_content_id) {
+            if i64::from(header.master_db_id) == master_db_id
+                && ids.contains(&i64::from(header.master_content_id))
+            {
                 rows.push(Self::try_from(record)?);
             }
         }
@@ -496,7 +508,7 @@ impl Content {
         let mut tx = conn.transaction();
         let location = tx
             .index_rows(Self::TABLE, Self::read_id)?
-            .get(&original.id)
+            .get(&checked_number(original.id, "id")?)
             .copied()
             .ok_or(Error::ModelNotFound {
                 table: Self::TABLE,
@@ -508,76 +520,78 @@ impl Content {
             return Err(unsupported(&record));
         };
         if self.artist_id != original.artist_id {
-            row.header.artist_id = self.artist_id;
+            row.header.artist_id = checked_number(self.artist_id, "artist_id")?;
         }
         if self.album_id != original.album_id {
-            row.header.album_id = self.album_id;
+            row.header.album_id = checked_number(self.album_id, "album_id")?;
         }
         if self.genre_id != original.genre_id {
-            row.header.genre_id = self.genre_id;
+            row.header.genre_id = checked_number(self.genre_id, "genre_id")?;
         }
         if self.label_id != original.label_id {
-            row.header.label_id = self.label_id;
+            row.header.label_id = checked_number(self.label_id, "label_id")?;
         }
         if self.key_id != original.key_id {
-            row.header.key_id = self.key_id;
+            row.header.key_id = checked_number(self.key_id, "key_id")?;
         }
         if self.artwork_id != original.artwork_id {
-            row.header.artwork_id = self.artwork_id;
+            row.header.artwork_id = checked_number(self.artwork_id, "artwork_id")?;
         }
         if self.composer_id != original.composer_id {
-            row.header.composer_id = self.composer_id;
+            row.header.composer_id = checked_number(self.composer_id, "composer_id")?;
         }
         if self.original_artist_id != original.original_artist_id {
-            row.header.original_artist_id = self.original_artist_id;
+            row.header.original_artist_id =
+                checked_number(self.original_artist_id, "original_artist_id")?;
         }
         if self.remixer_id != original.remixer_id {
-            row.header.remixer_id = self.remixer_id;
+            row.header.remixer_id = checked_number(self.remixer_id, "remixer_id")?;
         }
         if self.master_content_id != original.master_content_id {
-            row.header.master_content_id = self.master_content_id;
+            row.header.master_content_id =
+                checked_number(self.master_content_id, "master_content_id")?;
         }
         if self.master_db_id != original.master_db_id {
-            row.header.master_db_id = self.master_db_id;
+            row.header.master_db_id = checked_number(self.master_db_id, "master_db_id")?;
         }
         if self.sample_rate != original.sample_rate {
-            row.header.sample_rate = self.sample_rate;
+            row.header.sample_rate = checked_number(self.sample_rate, "sample_rate")?;
         }
         if self.file_size != original.file_size {
-            row.header.file_size = self.file_size;
+            row.header.file_size = checked_number(self.file_size, "file_size")?;
         }
         if self.bitrate != original.bitrate {
-            row.header.bitrate = self.bitrate;
+            row.header.bitrate = checked_number(self.bitrate, "bitrate")?;
         }
         if self.bpmx100 != original.bpmx100 {
-            row.header.tempo = self.bpmx100;
+            row.header.tempo = checked_number(self.bpmx100, "bpmx100")?;
         }
         if self.length != original.length {
-            row.header.duration = self.length;
+            row.header.duration = checked_number(self.length, "length")?;
         }
         if self.track_no != original.track_no {
-            row.header.track_number = self.track_no;
+            row.header.track_number = checked_number(self.track_no, "track_no")?;
         }
         if self.disc_no != original.disc_no {
-            row.header.disc_number = self.disc_no;
+            row.header.disc_number = checked_number(self.disc_no, "disc_no")?;
         }
         if self.play_count != original.play_count {
-            row.header.play_count = self.play_count;
+            row.header.play_count = checked_number(self.play_count, "play_count")?;
         }
         if self.release_year != original.release_year {
-            row.header.year = self.release_year;
+            row.header.year = checked_number(self.release_year, "release_year")?;
         }
         if self.bit_depth != original.bit_depth {
-            row.header.sample_depth = self.bit_depth;
+            row.header.sample_depth = checked_number(self.bit_depth, "bit_depth")?;
         }
         if self.color_id != original.color_id {
-            row.header.color_id = self.color_id;
+            row.header.color_id = checked_number(self.color_id, "color_id")?;
         }
         if self.rating != original.rating {
-            row.header.rating = self.rating;
+            row.header.rating = checked_number(self.rating, "rating")?;
         }
         if self.file_type != original.file_type {
-            row.header.audio_format = self.file_type;
+            row.header.audio_format = checked_number(self.file_type, "file_type")?;
         }
         if self.title != original.title {
             row.text.title = text(&self.title)?;
@@ -639,7 +653,8 @@ impl Content {
     /// Returns deleted row count, excluding property-count updates; a missing ID
     /// returns zero without cleaning dangling links. ID zero is rejected.
     /// The operation commits atomically in memory; saving remains explicit.
-    pub fn delete<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<usize> {
+    pub fn delete<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &i64) -> Result<usize> {
+        let _: u32 = checked_number(*id, "id")?;
         conn.check_kind(Self::TABLE)?;
         validate_id(Self::TABLE, *id)?;
         let mut tx = conn.transaction();
@@ -658,8 +673,9 @@ impl Content {
     pub fn delete_with_extended<R: Read + Seek, E: Read + Seek>(
         standard: &mut DeviceSqlConnection<R>,
         extended: &mut DeviceSqlConnection<E>,
-        id: &u32,
+        id: &i64,
     ) -> Result<usize> {
+        let _: u32 = checked_number(*id, "id")?;
         standard.check_kind(Self::TABLE)?;
         extended.check_kind(MyTagContent::TABLE)?;
         validate_id(Self::TABLE, *id)?;
@@ -679,9 +695,9 @@ impl Content {
         Ok(total)
     }
 
-    fn delete_standard<R: Read + Seek>(tx: &mut Transaction<'_, R>, id: u32) -> Result<usize> {
+    fn delete_standard<R: Read + Seek>(tx: &mut Transaction<'_, R>, id: i64) -> Result<usize> {
         let index = tx.index_rows(Self::TABLE, Self::read_id)?;
-        let Some(location) = index.get(&id).copied() else {
+        let Some(location) = index.get(&checked_number(id, "id")?).copied() else {
             return Ok(0);
         };
         let remaining = u32::try_from(index.len() - 1).map_err(|_| Error::MutationOverflow)?;
@@ -723,8 +739,9 @@ impl Content {
     /// A missing content ID returns `None` without reading related tables.
     pub fn find_with_relations<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &u32,
+        id: &i64,
     ) -> Result<Option<ContentView>> {
+        let _: u32 = checked_number(*id, "id")?;
         Self::find(conn, id)?
             .map(|content| content.resolve(conn))
             .transpose()
@@ -798,7 +815,7 @@ impl Content {
     }
 
     /// Generate the next export ID: the highest live ID plus one, or 1 when empty.
-    fn generate_id<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<u32> {
+    fn generate_id<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<i64> {
         next_id(conn, Self::TABLE, Self::read_id)
     }
 }
@@ -808,20 +825,20 @@ impl Content {
 fn delete_content_links<R: Read + Seek>(
     tx: &mut Transaction<'_, R>,
     table: TableKind,
-    id: u32,
+    id: i64,
 ) -> Result<usize> {
     if table == PlaylistContent::TABLE {
-        return remove_associations(tx, |row| row.track_id == id);
+        return remove_associations(tx, |row| i64::from(row.track_id) == id);
     }
     let mut locations = Vec::new();
     for record in tx.iter_raw(table)? {
         let record = record?;
         let matches = match record.decode()? {
-            Row::Standard(StandardRow::PlaylistEntry(row)) => row.track_id == id,
-            Row::Standard(StandardRow::HistoryEntry(row)) => row.track_id == id,
-            Row::Extended(ExtendedRow::TrackMyTag(row)) => row.track_id == id,
+            Row::Standard(StandardRow::PlaylistEntry(row)) => i64::from(row.track_id) == id,
+            Row::Standard(StandardRow::HistoryEntry(row)) => i64::from(row.track_id) == id,
+            Row::Extended(ExtendedRow::TrackMyTag(row)) => i64::from(row.track_id) == id,
             Row::Extended(ExtendedRow::RecommendLike(row)) => {
-                row.track_id_1 == id || row.track_id_2 == id
+                i64::from(row.track_id_1) == id || i64::from(row.track_id_2) == id
             }
             _ => return Err(unsupported(&record)),
         };
@@ -854,31 +871,31 @@ impl TryFrom<RowRecord> for Content {
                 .map_err(|source| text_error(&record, field, source))
         };
         Ok(Self {
-            id: row.header.id,
-            artist_id: row.header.artist_id,
-            album_id: row.header.album_id,
-            genre_id: row.header.genre_id,
-            label_id: row.header.label_id,
-            key_id: row.header.key_id,
-            artwork_id: row.header.artwork_id,
-            composer_id: row.header.composer_id,
-            original_artist_id: row.header.original_artist_id,
-            remixer_id: row.header.remixer_id,
-            master_content_id: row.header.master_content_id,
-            master_db_id: row.header.master_db_id,
-            sample_rate: row.header.sample_rate,
-            file_size: row.header.file_size,
-            bitrate: row.header.bitrate,
-            bpmx100: row.header.tempo,
-            length: row.header.duration,
-            track_no: row.header.track_number,
-            disc_no: row.header.disc_number,
-            play_count: row.header.play_count,
-            release_year: row.header.year,
-            bit_depth: row.header.sample_depth,
-            color_id: row.header.color_id,
-            rating: row.header.rating,
-            file_type: row.header.audio_format,
+            id: i64::from(row.header.id),
+            artist_id: i64::from(row.header.artist_id),
+            album_id: i64::from(row.header.album_id),
+            genre_id: i64::from(row.header.genre_id),
+            label_id: i64::from(row.header.label_id),
+            key_id: i64::from(row.header.key_id),
+            artwork_id: i64::from(row.header.artwork_id),
+            composer_id: i64::from(row.header.composer_id),
+            original_artist_id: i64::from(row.header.original_artist_id),
+            remixer_id: i64::from(row.header.remixer_id),
+            master_content_id: i64::from(row.header.master_content_id),
+            master_db_id: i64::from(row.header.master_db_id),
+            sample_rate: i64::from(row.header.sample_rate),
+            file_size: i64::from(row.header.file_size),
+            bitrate: i64::from(row.header.bitrate),
+            bpmx100: i64::from(row.header.tempo),
+            length: i32::from(row.header.duration),
+            track_no: i64::from(row.header.track_number),
+            disc_no: i32::from(row.header.disc_number),
+            play_count: i32::from(row.header.play_count),
+            release_year: i32::from(row.header.year),
+            bit_depth: i32::from(row.header.sample_depth),
+            color_id: i64::from(row.header.color_id),
+            rating: i32::from(row.header.rating),
+            file_type: i32::from(row.header.audio_format),
             title: text("title", &row.text.title)?,
             comment: text("comment", &row.text.comment)?,
             mix_name: text("mix_name", &row.text.mix_name)?,
@@ -931,53 +948,53 @@ impl TryFrom<RowRecord> for Content {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct NewContent {
     /// Main artist ID.
-    pub artist_id: u32,
+    pub artist_id: i64,
     /// Album ID.
-    pub album_id: u32,
+    pub album_id: i64,
     /// Genre ID.
-    pub genre_id: u32,
+    pub genre_id: i64,
     /// Label ID.
-    pub label_id: u32,
+    pub label_id: i64,
     /// Musical-key ID.
-    pub key_id: u32,
+    pub key_id: i64,
     /// Artwork-reference ID.
-    pub artwork_id: u32,
+    pub artwork_id: i64,
     /// Composer artist ID.
-    pub composer_id: u32,
+    pub composer_id: i64,
     /// Original artist ID.
-    pub original_artist_id: u32,
+    pub original_artist_id: i64,
     /// Remixer artist ID.
-    pub remixer_id: u32,
+    pub remixer_id: i64,
     /// Content identity in the source library, separate from the export ID.
-    pub master_content_id: u32,
+    pub master_content_id: i64,
     /// Source library identity.
-    pub master_db_id: u32,
+    pub master_db_id: i64,
     /// Sample rate in Hz.
-    pub sample_rate: u32,
+    pub sample_rate: i64,
     /// Audio file size in bytes.
-    pub file_size: u32,
+    pub file_size: i64,
     /// Stored bitrate, normally kb/s.
-    pub bitrate: u32,
+    pub bitrate: i64,
     /// Tempo in BPM multiplied by 100.
-    pub bpmx100: u32,
+    pub bpmx100: i64,
     /// Track duration in seconds.
-    pub length: u16,
+    pub length: i32,
     /// Track number within the release.
-    pub track_no: u32,
+    pub track_no: i64,
     /// Disc number.
-    pub disc_no: u16,
+    pub disc_no: i32,
     /// Stored play count.
-    pub play_count: u16,
+    pub play_count: i32,
     /// Release year.
-    pub release_year: u16,
+    pub release_year: i32,
     /// Sample depth in bits per sample.
-    pub bit_depth: u16,
+    pub bit_depth: i32,
     /// Raw color ID, including zero.
-    pub color_id: u8,
+    pub color_id: i64,
     /// Raw star rating; unrecognized values are retained.
-    pub rating: u8,
+    pub rating: i32,
     /// Raw audio format code; unrecognized codes are retained.
-    pub file_type: u16,
+    pub file_type: i32,
     /// Display title.
     pub title: String,
     /// DJ comment.
@@ -1037,10 +1054,10 @@ impl NewContent {
         let row = self.to_binary(id)?;
         let mut tx = conn.transaction();
         let index = tx.index_rows(Content::TABLE, Content::read_id)?;
-        if index.contains_key(&id) {
+        if index.contains_key(&checked_number(id, "id")?) {
             return Err(Error::DuplicateId {
                 table: Content::TABLE,
-                id,
+                id: checked_number(id, "id")?,
             });
         }
         let count = u32::try_from(index.len())
@@ -1056,7 +1073,7 @@ impl NewContent {
     }
 
     /// Build a binary row without assigning a page, slot, or string offsets.
-    fn to_binary(&self, id: u32) -> Result<TrackRow> {
+    fn to_binary(&self, id: i64) -> Result<TrackRow> {
         if id == 0 {
             return Err(Error::InvalidModelField {
                 table: Content::TABLE,
@@ -1077,31 +1094,31 @@ impl NewContent {
                 index_shift: 0,
                 content_link: self.creation.content_link,
                 raw_analysis: self.creation.raw_analysis,
-                id,
-                artist_id: self.artist_id,
-                album_id: self.album_id,
-                genre_id: self.genre_id,
-                label_id: self.label_id,
-                key_id: self.key_id,
-                artwork_id: self.artwork_id,
-                composer_id: self.composer_id,
-                original_artist_id: self.original_artist_id,
-                remixer_id: self.remixer_id,
-                master_content_id: self.master_content_id,
-                master_db_id: self.master_db_id,
-                sample_rate: self.sample_rate,
-                file_size: self.file_size,
-                bitrate: self.bitrate,
-                tempo: self.bpmx100,
-                duration: self.length,
-                track_number: self.track_no,
-                disc_number: self.disc_no,
-                play_count: self.play_count,
-                year: self.release_year,
-                sample_depth: self.bit_depth,
-                color_id: self.color_id,
-                rating: self.rating,
-                audio_format: self.file_type,
+                id: checked_number(id, "id")?,
+                artist_id: checked_number(self.artist_id, "artist_id")?,
+                album_id: checked_number(self.album_id, "album_id")?,
+                genre_id: checked_number(self.genre_id, "genre_id")?,
+                label_id: checked_number(self.label_id, "label_id")?,
+                key_id: checked_number(self.key_id, "key_id")?,
+                artwork_id: checked_number(self.artwork_id, "artwork_id")?,
+                composer_id: checked_number(self.composer_id, "composer_id")?,
+                original_artist_id: checked_number(self.original_artist_id, "original_artist_id")?,
+                remixer_id: checked_number(self.remixer_id, "remixer_id")?,
+                master_content_id: checked_number(self.master_content_id, "master_content_id")?,
+                master_db_id: checked_number(self.master_db_id, "master_db_id")?,
+                sample_rate: checked_number(self.sample_rate, "sample_rate")?,
+                file_size: checked_number(self.file_size, "file_size")?,
+                bitrate: checked_number(self.bitrate, "bitrate")?,
+                tempo: checked_number(self.bpmx100, "bpmx100")?,
+                duration: checked_number(self.length, "length")?,
+                track_number: checked_number(self.track_no, "track_no")?,
+                disc_number: checked_number(self.disc_no, "disc_no")?,
+                play_count: checked_number(self.play_count, "play_count")?,
+                year: checked_number(self.release_year, "release_year")?,
+                sample_depth: checked_number(self.bit_depth, "bit_depth")?,
+                color_id: checked_number(self.color_id, "color_id")?,
+                rating: checked_number(self.rating, "rating")?,
+                audio_format: checked_number(self.file_type, "file_type")?,
             },
             strings: StringOffsets::Far {
                 marker: self.creation.string_marker,
@@ -1150,19 +1167,21 @@ impl TryFrom<&ContentView> for Track {
             ));
         }
         Ok(Self {
-            id: Some(row.id),
+            id: Some(checked_number(row.id, "id")?),
             source: TrackSource::DeviceLib,
-            master_content_id: (row.master_content_id != 0).then_some(row.master_content_id),
-            master_db_id: (row.master_db_id != 0).then_some(row.master_db_id),
+            master_content_id: (row.master_content_id != 0)
+                .then_some(checked_number(row.master_content_id, "master_content_id")?),
+            master_db_id: (row.master_db_id != 0)
+                .then_some(checked_number(row.master_db_id, "master_db_id")?),
             path: PathBuf::from(&row.path),
-            file_type: Some(i32::from(row.file_type)),
+            file_type: Some(row.file_type),
             artwork_path: view
                 .artwork
                 .as_ref()
                 .map(|value| PathBuf::from(&value.path)),
             analysis_data_path: Some(PathBuf::from(&row.analysis_path)),
-            color: Some(row.color_id),
-            play_count: Some(u32::from(row.play_count)),
+            color: Some(checked_number(row.color_id, "color_id")?),
+            play_count: Some(checked_number(row.play_count, "play_count")?),
             hot_cue_auto_load: Some(row.hot_cue_auto_load.clone()),
             delivery_control: Some(row.publish_track_info.clone()),
             delivery_comment: Some(row.message.clone()),
@@ -1173,16 +1192,16 @@ impl TryFrom<&ContentView> for Track {
             stock_date: Some(row.date_added.clone()),
             release_date: Some(row.release_date.clone()),
             isrc: Some(row.isrc()?),
-            rating: Some(row.rating),
-            bpm: Some(f64::from(row.bpmx100) / 100.0),
-            length: Some(f64::from(row.length)),
-            track_no: Some(row.track_no),
-            disc_no: Some(u32::from(row.disc_no)),
-            bit_rate: Some(row.bitrate),
-            bit_depth: Some(row.bit_depth),
-            sample_rate: Some(row.sample_rate),
-            release_year: Some(row.release_year),
-            file_size: Some(u64::from(row.file_size)),
+            rating: Some(checked_number(row.rating, "rating")?),
+            bpm: Some(f64::from(checked_number::<u32, _>(row.bpmx100, "bpmx100")?) / 100.0),
+            length: Some(f64::from(checked_number::<u32, _>(row.length, "length")?)),
+            track_no: Some(checked_number(row.track_no, "track_no")?),
+            disc_no: Some(checked_number(row.disc_no, "disc_no")?),
+            bit_rate: Some(checked_number(row.bitrate, "bitrate")?),
+            bit_depth: Some(checked_number(row.bit_depth, "bit_depth")?),
+            sample_rate: Some(checked_number(row.sample_rate, "sample_rate")?),
+            release_year: Some(checked_number(row.release_year, "release_year")?),
+            file_size: Some(checked_number(row.file_size, "file_size")?),
             artist: view.artist.as_ref().map(|value| value.name.clone()),
             album: view.album.as_ref().map(|value| value.name.clone()),
             album_artist: view.album_artist.as_ref().map(|value| value.name.clone()),
@@ -1254,35 +1273,43 @@ impl TryFrom<&Track> for NewContent {
             ));
         }
         let mut row = Self::new(path);
-        row.master_content_id = input.master_content_id.unwrap_or_default();
-        row.master_db_id = input.master_db_id.unwrap_or_default();
-        row.file_type = u16::try_from(input.file_type.unwrap_or_default())
-            .map_err(|_| track_mapping_error("file_type", "value exceeds u16 range"))?;
-        row.file_size = u32::try_from(input.file_size.unwrap_or_default())
-            .map_err(|_| track_mapping_error("file_size", "value exceeds u32 range"))?;
-        row.disc_no = u16::try_from(input.disc_no.unwrap_or_default())
-            .map_err(|_| track_mapping_error("disc_no", "value exceeds u16 range"))?;
-        row.play_count = u16::try_from(input.play_count.unwrap_or_default())
-            .map_err(|_| track_mapping_error("play_count", "value exceeds u16 range"))?;
-        row.bpmx100 = rounded(
+        row.master_content_id = i64::from(input.master_content_id.unwrap_or_default());
+        row.master_db_id = i64::from(input.master_db_id.unwrap_or_default());
+        row.file_type = i32::from(
+            u16::try_from(input.file_type.unwrap_or_default())
+                .map_err(|_| track_mapping_error("file_type", "value exceeds u16 range"))?,
+        );
+        row.file_size = i64::from(
+            u32::try_from(input.file_size.unwrap_or_default())
+                .map_err(|_| track_mapping_error("file_size", "value exceeds u32 range"))?,
+        );
+        row.disc_no = i32::from(
+            u16::try_from(input.disc_no.unwrap_or_default())
+                .map_err(|_| track_mapping_error("disc_no", "value exceeds u16 range"))?,
+        );
+        row.play_count = i32::from(
+            u16::try_from(input.play_count.unwrap_or_default())
+                .map_err(|_| track_mapping_error("play_count", "value exceeds u16 range"))?,
+        );
+        row.bpmx100 = i64::from(rounded(
             "bpm",
             input.bpm.unwrap_or_default(),
             100.0,
             f64::from(u32::MAX),
-        )?;
-        row.length = rounded(
+        )?);
+        row.length = i32::from(rounded(
             "length",
             input.length.unwrap_or_default(),
             1.0,
             f64::from(u16::MAX),
-        )? as u16;
-        row.rating = input.rating.unwrap_or_default();
-        row.color_id = input.color.unwrap_or_default();
-        row.track_no = input.track_no.unwrap_or_default();
-        row.bitrate = input.bit_rate.unwrap_or_default();
-        row.bit_depth = input.bit_depth.unwrap_or_default();
-        row.sample_rate = input.sample_rate.unwrap_or_default();
-        row.release_year = input.release_year.unwrap_or_default();
+        )? as u16);
+        row.rating = i32::from(input.rating.unwrap_or_default());
+        row.color_id = i64::from(input.color.unwrap_or_default());
+        row.track_no = i64::from(input.track_no.unwrap_or_default());
+        row.bitrate = i64::from(input.bit_rate.unwrap_or_default());
+        row.bit_depth = i32::from(input.bit_depth.unwrap_or_default());
+        row.sample_rate = i64::from(input.sample_rate.unwrap_or_default());
+        row.release_year = i32::from(input.release_year.unwrap_or_default());
         row.title = input.title.clone().unwrap_or_default();
         row.comment = input.commnt.clone().unwrap_or_default();
         row.mix_name = input.subtitle.clone().unwrap_or_default();

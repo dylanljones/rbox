@@ -9,13 +9,13 @@ use crate::binary::TableKind;
 use crate::{Error, Result};
 
 pub(super) struct Position {
-    pub parent: u32,
+    pub parent: i64,
     pub seq: u32,
 }
 
 pub(super) struct Change {
     pub index: usize,
-    pub parent: u32,
+    pub parent: i64,
     pub seq: u32,
 }
 
@@ -37,7 +37,7 @@ fn offset(table: TableKind, seq: Option<u32>, start: u32, len: usize) -> Result<
     Ok((seq - start) as usize)
 }
 
-pub(super) fn ordered(rows: &[Position], parent: u32) -> Vec<usize> {
+pub(super) fn ordered(rows: &[Position], parent: i64) -> Vec<usize> {
     let mut indices: Vec<_> = (0..rows.len())
         .filter(|&i| rows[i].parent == parent)
         .collect();
@@ -46,7 +46,7 @@ pub(super) fn ordered(rows: &[Position], parent: u32) -> Vec<usize> {
     indices
 }
 
-fn changes(rows: &[Position], indices: &[usize], parent: u32, start: u32) -> Result<Vec<Change>> {
+fn changes(rows: &[Position], indices: &[usize], parent: i64, start: u32) -> Result<Vec<Change>> {
     let mut result = Vec::new();
     for (i, &index) in indices.iter().enumerate() {
         let seq = start
@@ -59,14 +59,14 @@ fn changes(rows: &[Position], indices: &[usize], parent: u32, start: u32) -> Res
     Ok(result)
 }
 
-pub(super) fn renumber(rows: &[Position], parent: u32, start: u32) -> Result<Vec<Change>> {
+pub(super) fn renumber(rows: &[Position], parent: i64, start: u32) -> Result<Vec<Change>> {
     changes(rows, &ordered(rows, parent), parent, start)
 }
 
 pub(super) fn insert(
     table: TableKind,
     rows: &[Position],
-    parent: u32,
+    parent: i64,
     seq: Option<u32>,
     start: u32,
 ) -> Result<(u32, Vec<Change>)> {
@@ -94,7 +94,7 @@ pub(super) fn move_rows(
     table: TableKind,
     rows: &[Position],
     selected: &[usize],
-    parent: u32,
+    parent: i64,
     seq: Option<u32>,
     start: u32,
 ) -> Result<Vec<Change>> {

@@ -9,7 +9,7 @@
 
 use std::io::{Read, Seek};
 
-use super::{read_fields, text, text_error, unique_name, unsupported, validate_id};
+use super::{checked_number, read_fields, text, text_error, unique_name, unsupported, validate_id};
 use crate::binary::{ColorRow, PageType, Row, RowRecord, StandardRow, TableKind};
 use crate::devicesql::DeviceSqlConnection;
 use crate::{Error, Result};
@@ -23,7 +23,7 @@ use crate::{Error, Result};
 #[derive(Clone, PartialEq, Eq)]
 pub struct Color {
     /// Export color ID, retaining both bytes of the binary field.
-    pub id: u16,
+    pub id: i64,
 
     /// Decoded display name, preserving empty text.
     pub name: String,
@@ -62,11 +62,12 @@ impl Color {
     /// Only the selected model's text is converted. Duplicate IDs are an error.
     pub fn find<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &u16,
+        id: &i64,
     ) -> Result<Option<Self>> {
+        let id = u32::from(checked_number::<u16, _>(*id, "id")?);
         let location = conn
             .index_rows(Self::TABLE, Self::read_id)?
-            .get(&u32::from(*id))
+            .get(&id)
             .copied();
         location
             .map(|location| Self::try_from(conn.read_indexed_row(Self::TABLE, location)?))
@@ -99,10 +100,11 @@ impl Color {
         Ok(Self::find_by_name(conn, name)?.is_some())
     }
     /// Check an ID using the engine index without converting string frames to text.
-    pub fn id_exists<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u16) -> Result<bool> {
+    pub fn id_exists<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &i64) -> Result<bool> {
+        let id = u32::from(checked_number::<u16, _>(*id, "id")?);
         Ok(conn
             .index_rows(Self::TABLE, Self::read_id)?
-            .contains_key(&u32::from(*id)))
+            .contains_key(&id))
     }
 
     /// Edited names must be unique within this table (exact, case-sensitive equality).
@@ -116,7 +118,7 @@ impl Color {
     pub fn update<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Self> {
         conn.check_kind(Self::TABLE)?;
         let original = Self::try_from(self.raw)?;
-        validate_id(Self::TABLE, u32::from(self.id))?;
+        validate_id(Self::TABLE, self.id)?;
         if self.id != original.id {
             return Err(Error::InvalidModelField {
                 table: Self::TABLE,
@@ -127,11 +129,11 @@ impl Color {
         let mut tx = conn.transaction();
         let location = tx
             .index_rows(Self::TABLE, Self::read_id)?
-            .get(&u32::from(original.id))
+            .get(&u32::from(checked_number::<u16, _>(original.id, "id")?))
             .copied()
             .ok_or(Error::ModelNotFound {
                 table: Self::TABLE,
-                id: u32::from(original.id),
+                id: i64::from(original.id),
             })?;
         let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
         let record = tx.read(&handle)?;
@@ -139,12 +141,7 @@ impl Color {
             return Err(unsupported(&record));
         };
         if self.name != original.name {
-            unique_name(
-                &mut tx,
-                Self::TABLE,
-                &self.name,
-                Some(u32::from(original.id)),
-            )?;
+            unique_name(&mut tx, Self::TABLE, &self.name, Some(original.id))?;
             row.name = text(&self.name)?;
         }
         let handle = tx.update(&handle, &Row::Standard(StandardRow::Color(row)))?;
@@ -179,7 +176,7 @@ impl TryFrom<RowRecord> for Color {
             return Err(unsupported(&record));
         };
         Ok(Self {
-            id: row.id,
+            id: i64::from(row.id),
 
             name: row
                 .name

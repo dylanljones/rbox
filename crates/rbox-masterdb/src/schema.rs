@@ -291,13 +291,13 @@ diesel::table! {
         #[sql_name = "GenreID"]
         genre_id -> Nullable<Text>,
         #[sql_name = "BPM"]
-        bpm -> Nullable<Integer>,
+        bpm -> Nullable<BigInt>,
         #[sql_name = "Length"]
         length -> Nullable<Integer>,
         #[sql_name = "TrackNo"]
-        track_no -> Nullable<Integer>,
+        track_no -> Nullable<BigInt>,
         #[sql_name = "BitRate"]
-        bit_rate -> Nullable<Integer>,
+        bit_rate -> Nullable<BigInt>,
         #[sql_name = "BitDepth"]
         bit_depth -> Nullable<Integer>,
         #[sql_name = "Commnt"]
@@ -341,7 +341,7 @@ diesel::table! {
         #[sql_name = "Subtitle"]
         subtitle -> Nullable<Text>,
         #[sql_name = "SampleRate"]
-        sample_rate -> Nullable<Integer>,
+        sample_rate -> Nullable<BigInt>,
         #[sql_name = "DisableQuantize"]
         disable_quantize -> Nullable<Integer>,
         #[sql_name = "Analysed"]

@@ -83,11 +83,11 @@ pub struct Content {
     /// The subtitle of the track
     pub subtitle: Option<String>,
     /// The beats per minute multiplied by 100.
-    pub bpmx100: Option<i32>,
+    pub bpmx100: Option<i64>,
     /// The length of the track in seconds.
     pub length: Option<i32>,
     /// The track number of the track
-    pub track_no: Option<i32>,
+    pub track_no: Option<i64>,
     /// The disc number of the track
     pub disc_no: Option<i32>,
     /// Optional foreign key referencing the artist [`Artist`].
@@ -136,12 +136,12 @@ pub struct Content {
     pub file_size: Option<i64>,
     /// The file type of the track
     pub file_type: i32,
-    /// The bitrate of the trackk
-    pub bitrate: Option<i32>,
+    /// Stored bitrate, normally kb/s.
+    pub bitrate: Option<i64>,
     /// The bit depth of the track
     pub bit_depth: Option<i32>,
-    /// The sample rate of the track.
-    pub sampling_rate: Option<i32>,
+    /// Sample rate in Hz.
+    pub sampling_rate: Option<i64>,
     /// The ISRC of the track
     pub isrc: Option<String>,
     /// A flag if hot-cue auto load is enabled
@@ -675,11 +675,11 @@ pub struct NewContent {
     /// The subtitle of the track
     pub subtitle: Option<String>,
     /// The beats per minute multiplied by 100.
-    pub bpmx100: Option<i32>,
+    pub bpmx100: Option<i64>,
     /// The length of the track in seconds.
     pub length: Option<i32>,
     /// The track number of the track
-    pub track_no: Option<i32>,
+    pub track_no: Option<i64>,
     /// The disc number of the track
     pub disc_no: Option<i32>,
     /// Optional foreign key referencing the artist [`Artist`].
@@ -718,12 +718,12 @@ pub struct NewContent {
     pub file_size: Option<i64>,
     /// The file typo of the track
     pub file_type: Option<i32>,
-    /// The bitrate of the trackk
-    pub bitrate: Option<i32>,
+    /// Stored bitrate, normally kb/s.
+    pub bitrate: Option<i64>,
     /// The bit depth of the track
     pub bit_depth: Option<i32>,
-    /// The sample rate of the track.
-    pub sampling_rate: Option<i32>,
+    /// Sample rate in Hz.
+    pub sampling_rate: Option<i64>,
     /// The ISRC of the track
     pub isrc: Option<String>,
     /// A flag if hot-cue auto load is enabled
@@ -863,7 +863,7 @@ impl TryFrom<&ContentView> for Track {
             date_created: Some(format_datetime(&row.date_created)),
             release_date: row.release_date.clone(),
             isrc: row.isrc.clone(),
-            bpm: row.bpmx100.map(|value| f64::from(value) / 100.0),
+            bpm: row.bpmx100.map(|value| value as f64 / 100.0),
             length: row.length.map(f64::from),
             rating: track_number(row.rating, "rating")?,
             track_no: track_number(row.track_no, "track_no")?,
@@ -929,13 +929,13 @@ impl TryFrom<&Track> for NewContent {
         };
         let rounded = |value: f64, scale: f64, field| {
             let rounded = (value * scale).round();
-            if !value.is_finite() || value < 0.0 || rounded > f64::from(i32::MAX) {
+            if !value.is_finite() || value < 0.0 || rounded >= i64::MAX as f64 {
                 return Err(track_field_error(
                     field,
-                    "value must be finite, nonnegative and fit i32",
+                    "value must be finite, nonnegative and fit i64",
                 ));
             }
-            Ok(rounded as i32)
+            Ok(rounded as i64)
         };
         if input.rating.is_some_and(|value| value > 5) {
             return Err(track_field_error(
@@ -963,7 +963,11 @@ impl TryFrom<&Track> for NewContent {
         row.bpmx100 = input.bpm.map(|v| rounded(v, 100.0, "bpm")).transpose()?;
         row.length = input
             .length
-            .map(|v| rounded(v, 1.0, "length"))
+            .map(|v| {
+                rounded(v, 1.0, "length").and_then(|v| {
+                    i32::try_from(v).map_err(|_| track_field_error("length", "value must fit i32"))
+                })
+            })
             .transpose()?;
         row.rating = input.rating.map(i32::from);
         row.color_id = input.color.map(i64::from);

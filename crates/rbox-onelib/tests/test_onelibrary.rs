@@ -1012,7 +1012,7 @@ fn shared_track_conversions_preserve_metadata_and_resolved_names() -> anyhow::Re
 fn shared_track_conversions_reject_invalid_values() -> anyhow::Result<()> {
     use rbox_core::Track;
     let track = Track::new("/Contents/track.wav");
-    for value in [f64::NAN, f64::INFINITY, -1.0, f64::from(i32::MAX)] {
+    for value in [f64::NAN, f64::INFINITY, -1.0, i64::MAX as f64 / 100.0] {
         let mut input = track.clone();
         input.bpm = Some(value);
         assert!(NewContent::try_from(input).is_err());

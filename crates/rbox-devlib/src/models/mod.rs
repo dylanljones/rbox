@@ -13,6 +13,13 @@
 //! [`Content`] represents a DeviceSQL track row. The model uses the name "content"
 //! to match masterdb and OneLibrary; binary types and tables retain their track names.
 //!
+//! IDs and references use `i64`; track metadata uses signed integers compatible
+//! with the SQL models. Binary rows keep their exact unsigned widths. Queries and
+//! writes reject negative or out-of-range values with
+//! [`Error::ModelIntegerOutOfRange`]; zero reference sentinels are preserved.
+//! Sequence positions, counters outside track metadata, and raw flags retain their
+//! original types.
+//!
 //! Models with insertion inputs keep them in the same file. The [`browse`] module
 //! groups the three browse models; [`property`] groups the two property models. These
 //! models have no insertion inputs; creation profiles initialize their rows.
@@ -82,18 +89,32 @@ use crate::binary::{DeviceSqlString, Row, RowRecord, StandardRow, StringEncoding
 use crate::devicesql::{DeviceSqlConnection, Transaction};
 use crate::{Error, Result};
 
+/// Convert at a model/binary boundary without truncation or signed wrapping.
+pub(crate) fn checked_number<T, U>(value: U, field: &'static str) -> Result<T>
+where
+    T: TryFrom<U>,
+    U: Copy + Into<i128>,
+{
+    T::try_from(value).map_err(|_| Error::ModelIntegerOutOfRange {
+        field,
+        value: value.into(),
+        target: std::any::type_name::<T>(),
+    })
+}
+
 /// Generate a table-local ID from the engine's cached index of live rows.
 fn next_id<R: Read + Seek>(
     conn: &mut DeviceSqlConnection<R>,
     table: TableKind,
     read_id: fn(&RowRecord) -> Result<u32>,
-) -> Result<u32> {
+) -> Result<i64> {
     conn.index_rows(table, read_id)?
         .keys()
         .copied()
         .max()
         .unwrap_or(0)
         .checked_add(1)
+        .map(i64::from)
         .ok_or(Error::InvalidModelField {
             table,
             field: "id",
@@ -107,7 +128,7 @@ fn unique_name<R: Read + Seek>(
     tx: &mut Transaction<'_, R>,
     table: TableKind,
     name: &str,
-    exclude_id: Option<u32>,
+    exclude_id: Option<i64>,
 ) -> Result<()> {
     for record in tx.iter_raw(table)? {
         let record = record?;
@@ -118,7 +139,7 @@ fn unique_name<R: Read + Seek>(
             Row::Standard(StandardRow::Color(row)) => (u32::from(row.id), row.name),
             _ => return Err(unsupported(&record)),
         };
-        if Some(id) != exclude_id
+        if Some(i64::from(id)) != exclude_id
             && stored
                 .text()
                 .map_err(|source| text_error(&record, "name", source))?
@@ -167,12 +188,13 @@ fn read_fields<T: for<'a> BinRead<Args<'a> = ()>>(record: &RowRecord) -> Result<
 }
 
 /// Zero denotes an absent reference rather than an authored catalog record.
-fn validate_id(table: TableKind, id: u32) -> Result<()> {
+fn validate_id(table: TableKind, id: i64) -> Result<()> {
     validate_nonzero_id(table, "id", id)
 }
 
 /// Validate a named identity/reference without resolving related rows.
-fn validate_nonzero_id(table: TableKind, field: &'static str, id: u32) -> Result<()> {
+fn validate_nonzero_id(table: TableKind, field: &'static str, id: i64) -> Result<()> {
+    let _: u32 = checked_number(id, field)?;
     if id == 0 {
         return Err(Error::InvalidModelField {
             table,

@@ -6,7 +6,8 @@
 use std::io::{Read, Seek};
 
 use super::{
-    load_related, next_id, read_fields, text, text_error, unsupported, validate_id, Artist, Content,
+    checked_number, load_related, next_id, read_fields, text, text_error, unsupported, validate_id,
+    Artist, Content,
 };
 use crate::binary::{
     AlbumHeader, AlbumRow, PageType, Row, RowRecord, StandardRow, StringOffsets, TableKind,
@@ -24,9 +25,9 @@ use crate::{Error, Result};
 #[derive(Clone, PartialEq, Eq)]
 pub struct Album {
     /// Export album ID.
-    pub id: u32,
+    pub id: i64,
     /// Album artist ID, independent of the track artist; zero means unassigned.
-    pub artist_id: u32,
+    pub artist_id: i64,
     /// Decoded display name, preserving empty text.
     pub name: String,
     raw: RowRecord,
@@ -114,8 +115,9 @@ impl Album {
     /// A missing album ID returns `None` without reading the artist table.
     pub fn find_with_relations<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &u32,
+        id: &i64,
     ) -> Result<Option<AlbumView>> {
+        let _: u32 = checked_number(*id, "id")?;
         Self::find(conn, id)?
             .map(|album| album.resolve(conn))
             .transpose()
@@ -148,11 +150,12 @@ impl Album {
     /// Only the selected model's text is converted. Duplicate IDs are an error.
     pub fn find<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &u32,
+        id: &i64,
     ) -> Result<Option<Self>> {
+        let id: u32 = checked_number(*id, "id")?;
         let location = conn
             .index_rows(Self::TABLE, Self::read_id)?
-            .get(id)
+            .get(&id)
             .copied();
         location
             .map(|location| Self::try_from(conn.read_indexed_row(Self::TABLE, location)?))
@@ -187,10 +190,11 @@ impl Album {
         Ok(Self::find_by_name(conn, name)?.is_some())
     }
     /// Check an ID using the engine index without converting string frames to text.
-    pub fn id_exists<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<bool> {
+    pub fn id_exists<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &i64) -> Result<bool> {
+        let id: u32 = checked_number(*id, "id")?;
         Ok(conn
             .index_rows(Self::TABLE, Self::read_id)?
-            .contains_key(id))
+            .contains_key(&id))
     }
 
     /// Persist fields edited since this snapshot was read, returning a refreshed album.
@@ -220,7 +224,7 @@ impl Album {
         let mut tx = conn.transaction();
         let location = tx
             .index_rows(Self::TABLE, Self::read_id)?
-            .get(&original.id)
+            .get(&checked_number(original.id, "id")?)
             .copied()
             .ok_or(Error::ModelNotFound {
                 table: Self::TABLE,
@@ -232,7 +236,7 @@ impl Album {
             return Err(unsupported(&record));
         };
         if self.artist_id != original.artist_id {
-            row.header.artist_id = self.artist_id;
+            row.header.artist_id = checked_number(self.artist_id, "artist_id")?;
         }
         if self.name != original.name {
             row.name = text(&self.name)?;
@@ -257,11 +261,16 @@ impl Album {
     /// without modifying dangling references; ID zero is rejected.
     /// Changes remain in memory until explicitly saved. Any error rolls back both
     /// the album deletion and all reference updates.
-    pub fn delete<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<usize> {
+    pub fn delete<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &i64) -> Result<usize> {
+        let _: u32 = checked_number(*id, "id")?;
         conn.check_kind(Self::TABLE)?;
         validate_id(Self::TABLE, *id)?;
         let mut tx = conn.transaction();
-        let Some(location) = tx.index_rows(Self::TABLE, Self::read_id)?.get(id).copied() else {
+        let Some(location) = tx
+            .index_rows(Self::TABLE, Self::read_id)?
+            .get(&checked_number(*id, "id")?)
+            .copied()
+        else {
             return Ok(0);
         };
         let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
@@ -276,7 +285,7 @@ impl Album {
             if header.subtype != TrackHeader::SUBTYPE {
                 return Err(unsupported(&record));
             }
-            if header.album_id == *id {
+            if i64::from(header.album_id) == *id {
                 locations.push((record.page(), record.slot().slot));
             }
         }
@@ -316,7 +325,7 @@ impl Album {
     }
 
     /// Generate the next export ID: the highest live ID plus one, or 1 when empty.
-    fn generate_id<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<u32> {
+    fn generate_id<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<i64> {
         next_id(conn, Self::TABLE, Self::read_id)
     }
 }
@@ -325,7 +334,7 @@ impl Album {
 fn unique_album<R: Read + Seek>(
     tx: &mut Transaction<'_, R>,
     candidate: &AlbumRow,
-    exclude_id: Option<u32>,
+    exclude_id: Option<i64>,
 ) -> Result<()> {
     let name = candidate.name.text()?;
     for record in tx.iter_raw(Album::TABLE)? {
@@ -333,7 +342,7 @@ fn unique_album<R: Read + Seek>(
         let Row::Standard(StandardRow::Album(row)) = record.decode()? else {
             return Err(unsupported(&record));
         };
-        if Some(row.header.id) != exclude_id
+        if Some(i64::from(row.header.id)) != exclude_id
             && row.header.artist_id == candidate.header.artist_id
             && row
                 .name
@@ -362,8 +371,8 @@ impl TryFrom<RowRecord> for Album {
             return Err(unsupported(&record));
         };
         Ok(Self {
-            id: row.header.id,
-            artist_id: row.header.artist_id,
+            id: i64::from(row.header.id),
+            artist_id: i64::from(row.header.artist_id),
             name: row
                 .name
                 .text()
@@ -386,7 +395,7 @@ impl TryFrom<RowRecord> for Album {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewAlbum {
     /// Album artist ID, independent of the track artist; zero means unassigned.
-    pub artist_id: u32,
+    pub artist_id: i64,
     /// Decoded display name, preserving empty text.
     pub name: String,
     /// Reserved word at 0x04; defaults to the observed zero authoring value.
@@ -407,7 +416,7 @@ impl NewAlbum {
     }
 
     /// Builder for `artist_id`.
-    pub fn artist_id(mut self, id: u32) -> Self {
+    pub fn artist_id(mut self, id: i64) -> Self {
         self.artist_id = id;
         self
     }
@@ -422,11 +431,11 @@ impl NewAlbum {
         let mut tx = conn.transaction();
         if tx
             .index_rows(Album::TABLE, Album::read_id)?
-            .contains_key(&id)
+            .contains_key(&checked_number(id, "id")?)
         {
             return Err(Error::DuplicateId {
                 table: Album::TABLE,
-                id,
+                id: checked_number(id, "id")?,
             });
         }
         unique_album(&mut tx, &row, None)?;
@@ -437,15 +446,15 @@ impl NewAlbum {
     }
 
     /// Encode fields with the allocated ID; the engine assigns placement.
-    fn to_binary(&self, id: u32) -> Result<AlbumRow> {
+    fn to_binary(&self, id: i64) -> Result<AlbumRow> {
         validate_id(Album::TABLE, id)?;
         Ok(AlbumRow {
             header: AlbumHeader {
                 subtype: AlbumHeader::NEAR_SUBTYPE,
                 index_shift: 0,
                 unknown_04: self.unknown_04,
-                artist_id: self.artist_id,
-                id,
+                artist_id: checked_number(self.artist_id, "artist_id")?,
+                id: checked_number(id, "id")?,
                 unknown_10: self.unknown_10,
             },
             strings: StringOffsets::Near {

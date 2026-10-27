@@ -67,18 +67,15 @@ fn demo_content_identities_and_references_match() -> anyhow::Result<()> {
     for (one, device) in one.iter().zip(&device) {
         assert_eq!(one.path, device.path);
         assert_eq!(one.title.as_deref(), Some(device.title.as_str()));
-        assert_eq!(one.id, i64::from(device.id), "local ID for {}", one.path);
+        assert_eq!(one.id, device.id, "local ID for {}", one.path);
         assert_ne!(device.id, device.master_content_id);
         assert_ne!(device.master_content_id, 0);
-        assert_eq!(
-            one.master_content_id,
-            Some(i64::from(device.master_content_id))
-        );
+        assert_eq!(one.master_content_id, Some(device.master_content_id));
 
         // Both native files contain the positive value. Casting through i32
         // would hide the old SQL mapping bug by turning it into -795645379.
         assert_eq!(device.master_db_id, 3_499_321_917);
-        assert_eq!(one.master_db_id, Some(i64::from(device.master_db_id)));
+        assert_eq!(one.master_db_id, Some(device.master_db_id));
         assert!(one.master_db_id.unwrap() > i64::from(i32::MAX));
 
         // Absent metadata references are SQL NULL or zero in OneLibrary, and
@@ -97,7 +94,7 @@ fn demo_content_identities_and_references_match() -> anyhow::Result<()> {
                 device.original_artist_id,
             ),
             ("remixer", one.remixer_id, device.remixer_id),
-            ("color", one.color_id, u32::from(device.color_id)),
+            ("color", one.color_id, device.color_id),
         ] {
             assert_eq!(
                 sql_id.unwrap_or(0),
@@ -108,10 +105,7 @@ fn demo_content_identities_and_references_match() -> anyhow::Result<()> {
         }
 
         let sql_match = onelib
-            .get_content_by_master_content_id(
-                i64::from(device.master_content_id),
-                i64::from(device.master_db_id),
-            )?
+            .get_content_by_master_content_id(device.master_content_id, device.master_db_id)?
             .context("OneLibrary source identity lookup failed")?;
         let binary_match = devlib
             .get_content_by_master_content_id(device.master_content_id, device.master_db_id)?
@@ -125,7 +119,10 @@ fn demo_content_identities_and_references_match() -> anyhow::Result<()> {
         let binary_track = devlib
             .get_track_by_id(device.id)?
             .context("Device Library track missing")?;
-        assert_eq!(sql_track.master_db_id, Some(device.master_db_id));
+        assert_eq!(
+            sql_track.master_db_id,
+            Some(u32::try_from(device.master_db_id)?)
+        );
         assert_eq!(sql_track.master_db_id, binary_track.master_db_id);
         assert_eq!(sql_track.master_content_id, binary_track.master_content_id);
         assert_eq!(sql_track.artist.as_deref(), Some("Loopmasters"));

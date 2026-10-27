@@ -13,10 +13,10 @@ use crate::models::playlist::PlaylistTreeNode;
 
 use crate::devicesql::{CreateOptions, DeviceSqlConnection, PageSaveStats, SaveStats};
 use crate::models::{
-    Album, AlbumView, Artist, Artwork, BrowseCategory, BrowseColumn, BrowseSort, Color, Content,
-    ContentView, DatabaseProperty, ExportProperty, Genre, History, HistoryContent, Key, Label,
-    MyTag, MyTagContent, NewAlbum, NewArtist, NewArtwork, NewContent, NewGenre, NewHistory,
-    NewHistoryContent, NewKey, NewLabel, NewMyTag, NewMyTagContent, NewPlaylist,
+    checked_number, Album, AlbumView, Artist, Artwork, BrowseCategory, BrowseColumn, BrowseSort,
+    Color, Content, ContentView, DatabaseProperty, ExportProperty, Genre, History, HistoryContent,
+    Key, Label, MyTag, MyTagContent, NewAlbum, NewArtist, NewArtwork, NewContent, NewGenre,
+    NewHistory, NewHistoryContent, NewKey, NewLabel, NewMyTag, NewMyTagContent, NewPlaylist,
     NewPlaylistContent, NewRecommendedLike, Playlist, PlaylistContent, RecommendedLike,
 };
 use crate::{DatabaseKind, Error, Result};
@@ -83,7 +83,7 @@ pub struct LibraryCreateOptions {
     /// Device name stored in the standard database's export properties.
     pub device_name: String,
     /// Source library identifier stored in the extended database's My Tag properties.
-    pub my_tag_master_db_id: u32,
+    pub my_tag_master_db_id: i64,
 }
 
 impl LibraryCreateOptions {
@@ -91,7 +91,7 @@ impl LibraryCreateOptions {
     pub fn new(
         date: impl Into<String>,
         device_name: impl Into<String>,
-        my_tag_master_db_id: u32,
+        my_tag_master_db_id: i64,
     ) -> Self {
         Self {
             date: date.into(),
@@ -107,7 +107,10 @@ impl LibraryCreateOptions {
 
     /// Generate engine creation options for the extended file.
     pub fn extended_options(&self) -> Result<CreateOptions> {
-        CreateOptions::extended(self.my_tag_master_db_id)
+        CreateOptions::extended(checked_number(
+            self.my_tag_master_db_id,
+            "my_tag_master_db_id",
+        )?)
     }
 }
 
@@ -294,7 +297,7 @@ impl DeviceLibrary {
     }
 
     /// Find an album by export ID; returns `None` when absent.
-    pub fn get_album_by_id(&mut self, id: u32) -> Result<Option<Album>> {
+    pub fn get_album_by_id(&mut self, id: i64) -> Result<Option<Album>> {
         Album::find(&mut self.standard, &id)
     }
 
@@ -308,7 +311,7 @@ impl DeviceLibrary {
     /// Load an album and its album artist. Missing albums return `None`.
     ///
     /// Missing or unassigned artists remain `None` in the detached view.
-    pub fn get_album_with_relations(&mut self, id: u32) -> Result<Option<AlbumView>> {
+    pub fn get_album_with_relations(&mut self, id: i64) -> Result<Option<AlbumView>> {
         Album::find_with_relations(&mut self.standard, &id)
     }
 
@@ -330,7 +333,7 @@ impl DeviceLibrary {
     pub fn create_album(
         &mut self,
         name: impl Into<String>,
-        artist_id: Option<u32>,
+        artist_id: Option<i64>,
     ) -> Result<Album> {
         let artist_id = artist_id.unwrap_or(0);
         self.insert_album(NewAlbum::new(name).artist_id(artist_id))
@@ -344,7 +347,7 @@ impl DeviceLibrary {
 
     /// Delete an album and clear referencing contents' album IDs atomically in memory.
     /// Returns the total affected rows, or zero for a missing album. Saving is explicit.
-    pub fn delete_album(&mut self, id: u32) -> Result<usize> {
+    pub fn delete_album(&mut self, id: i64) -> Result<usize> {
         Album::delete(&mut self.standard, &id)
     }
 
@@ -356,7 +359,7 @@ impl DeviceLibrary {
     }
 
     /// Find an artist by export ID; returns `None` when absent.
-    pub fn get_artist_by_id(&mut self, id: u32) -> Result<Option<Artist>> {
+    pub fn get_artist_by_id(&mut self, id: i64) -> Result<Option<Artist>> {
         Artist::find(&mut self.standard, &id)
     }
 
@@ -388,7 +391,7 @@ impl DeviceLibrary {
     ///
     /// Clears album artist, main artist, composer, original artist, and remixer IDs.
     /// Returns the total affected rows, or zero for a missing artist. Saving is explicit.
-    pub fn delete_artist(&mut self, id: u32) -> Result<usize> {
+    pub fn delete_artist(&mut self, id: i64) -> Result<usize> {
         Artist::delete(&mut self.standard, &id)
     }
 
@@ -400,7 +403,7 @@ impl DeviceLibrary {
     }
 
     /// Find an artwork reference by export ID; returns `None` when absent.
-    pub fn get_artwork_by_id(&mut self, id: u32) -> Result<Option<Artwork>> {
+    pub fn get_artwork_by_id(&mut self, id: i64) -> Result<Option<Artwork>> {
         Artwork::find(&mut self.standard, &id)
     }
 
@@ -434,7 +437,7 @@ impl DeviceLibrary {
     ///
     /// Returns the total affected rows, or zero when absent. Image files are retained;
     /// saving database changes remains explicit.
-    pub fn delete_artwork(&mut self, id: u32) -> Result<usize> {
+    pub fn delete_artwork(&mut self, id: i64) -> Result<usize> {
         Artwork::delete(&mut self.standard, &id)
     }
 
@@ -446,7 +449,7 @@ impl DeviceLibrary {
     }
 
     /// Find a browse label by its 16-bit catalog ID; returns `None` when absent.
-    pub fn get_browse_column_by_id(&mut self, id: u16) -> Result<Option<BrowseColumn>> {
+    pub fn get_browse_column_by_id(&mut self, id: i64) -> Result<Option<BrowseColumn>> {
         BrowseColumn::find(&mut self.standard, &id)
     }
 
@@ -474,7 +477,7 @@ impl DeviceLibrary {
     /// Returns an empty list when absent; referenced labels are not loaded.
     pub fn get_browse_categories_by_column(
         &mut self,
-        column_id: u16,
+        column_id: i64,
     ) -> Result<Vec<BrowseCategory>> {
         BrowseCategory::by_column(&mut self.standard, &column_id)
     }
@@ -495,7 +498,7 @@ impl DeviceLibrary {
     /// Load all sort settings for a column ID, retaining physical order and repetitions.
     ///
     /// Returns an empty list when absent; referenced labels are not loaded.
-    pub fn get_browse_sorts_by_column(&mut self, column_id: u16) -> Result<Vec<BrowseSort>> {
+    pub fn get_browse_sorts_by_column(&mut self, column_id: i64) -> Result<Vec<BrowseSort>> {
         BrowseSort::by_column(&mut self.standard, &column_id)
     }
 
@@ -515,7 +518,7 @@ impl DeviceLibrary {
     }
 
     /// Find a color label by its 16-bit export ID; returns `None` when absent.
-    pub fn get_color_by_id(&mut self, id: u16) -> Result<Option<Color>> {
+    pub fn get_color_by_id(&mut self, id: i64) -> Result<Option<Color>> {
         Color::find(&mut self.standard, &id)
     }
 
@@ -547,7 +550,7 @@ impl DeviceLibrary {
     /// Load a shared track by its local export ID, or `None` if absent.
     ///
     /// See [`Self::get_tracks`] for relationship resolution, units and errors.
-    pub fn get_track_by_id(&mut self, id: u32) -> Result<Option<Track>> {
+    pub fn get_track_by_id(&mut self, id: i64) -> Result<Option<Track>> {
         Ok(self
             .read_tracks(|conn| Ok(Content::find(conn, &id)?.into_iter().collect()))?
             .pop())
@@ -557,7 +560,7 @@ impl DeviceLibrary {
     ///
     /// Missing IDs are omitted, repeated IDs occur once, and empty input reads no pages.
     /// See [`Self::get_tracks`] for relationship resolution, units and errors.
-    pub fn get_tracks_by_ids(&mut self, ids: &[u32]) -> Result<Vec<Track>> {
+    pub fn get_tracks_by_ids(&mut self, ids: &[i64]) -> Result<Vec<Track>> {
         self.read_tracks(|conn| Content::by_ids(conn, ids))
     }
 
@@ -594,30 +597,30 @@ impl DeviceLibrary {
     }
 
     /// Find content by its local export ID; returns `None` when absent.
-    pub fn get_content_by_id(&mut self, id: u32) -> Result<Option<Content>> {
+    pub fn get_content_by_id(&mut self, id: i64) -> Result<Option<Content>> {
         Content::find(&mut self.standard, &id)
     }
 
-    /// Find content by both unsigned source-library IDs, rather than its local export ID.
+    /// Find content by both source-library IDs, rather than its local export ID.
     ///
     /// Missing or zero identities return `None`. Repeated pairs return the row
     /// with the lowest local export ID.
     pub fn get_content_by_master_content_id(
         &mut self,
-        master_content_id: u32,
-        master_db_id: u32,
+        master_content_id: i64,
+        master_db_id: i64,
     ) -> Result<Option<Content>> {
         Content::find_by_master_content_id(&mut self.standard, master_content_id, master_db_id)
     }
 
-    /// Load contents by unsigned source-content IDs within one source library.
+    /// Load contents by source-content IDs within one source library.
     ///
     /// Returns all matches in local export-ID order, omitting missing/zero IDs and
     /// repeated input IDs. Repeated source identities retain all matching content rows.
     pub fn get_contents_by_master_content_ids(
         &mut self,
-        master_content_ids: &[u32],
-        master_db_id: u32,
+        master_content_ids: &[i64],
+        master_db_id: i64,
     ) -> Result<Vec<Content>> {
         Content::by_master_content_ids(&mut self.standard, master_content_ids, master_db_id)
     }
@@ -625,7 +628,7 @@ impl DeviceLibrary {
     /// Load content and its metadata relationships, including its album artist.
     ///
     /// Missing content returns `None`; missing relationship targets remain `None`.
-    pub fn get_content_with_relations(&mut self, id: u32) -> Result<Option<ContentView>> {
+    pub fn get_content_with_relations(&mut self, id: i64) -> Result<Option<ContentView>> {
         Content::find_with_relations(&mut self.standard, &id)
     }
 
@@ -666,7 +669,7 @@ impl DeviceLibrary {
     /// Returns deleted row count, including associations but excluding property updates;
     /// a missing ID returns zero. ID zero is rejected. Changes commit atomically in memory;
     /// saving the file pair remains explicit and is not atomic. Resource files are retained.
-    pub fn delete_content(&mut self, id: u32) -> Result<usize> {
+    pub fn delete_content(&mut self, id: i64) -> Result<usize> {
         match self.extended.as_mut() {
             Some(extended) => Content::delete_with_extended(&mut self.standard, extended, &id),
             None => Content::delete(&mut self.standard, &id),
@@ -681,7 +684,7 @@ impl DeviceLibrary {
     }
 
     /// Find a genre by export ID; returns `None` when absent.
-    pub fn get_genre_by_id(&mut self, id: u32) -> Result<Option<Genre>> {
+    pub fn get_genre_by_id(&mut self, id: i64) -> Result<Option<Genre>> {
         Genre::find(&mut self.standard, &id)
     }
 
@@ -713,7 +716,7 @@ impl DeviceLibrary {
     ///
     /// Returns the total affected rows, or zero for a missing genre. ID zero is rejected.
     /// Contents and export track counts are retained; saving remains explicit.
-    pub fn delete_genre(&mut self, id: u32) -> Result<usize> {
+    pub fn delete_genre(&mut self, id: i64) -> Result<usize> {
         Genre::delete(&mut self.standard, &id)
     }
 
@@ -727,7 +730,7 @@ impl DeviceLibrary {
     }
 
     /// Find a history by export ID; returns `None` when absent.
-    pub fn get_history_by_id(&mut self, id: u32) -> Result<Option<History>> {
+    pub fn get_history_by_id(&mut self, id: i64) -> Result<Option<History>> {
         History::find(&mut self.standard, &id)
     }
 
@@ -735,7 +738,7 @@ impl DeviceLibrary {
     ///
     /// Ties retain physical occurrence order; missing content references return errors.
     /// No entries returns an empty list. Content metadata relationships are not resolved.
-    pub fn get_history_contents(&mut self, id: u32) -> Result<Vec<Content>> {
+    pub fn get_history_contents(&mut self, id: i64) -> Result<Vec<Content>> {
         History::get_contents(&mut self.standard, &id)
     }
 
@@ -743,7 +746,7 @@ impl DeviceLibrary {
     ///
     /// Repeated plays, sequence gaps and ties are retained. These snapshots can be
     /// passed to [`Self::delete_history_content`] to delete individual occurrences.
-    pub fn get_history_entries(&mut self, id: u32) -> Result<Vec<HistoryContent>> {
+    pub fn get_history_entries(&mut self, id: i64) -> Result<Vec<HistoryContent>> {
         HistoryContent::by_history_id(&mut self.standard, &id)
     }
 
@@ -769,7 +772,7 @@ impl DeviceLibrary {
     ///
     /// Returns the total deleted rows, or zero for a missing history. ID zero is rejected.
     /// Other histories and playlists are unchanged; saving remains explicit.
-    pub fn delete_history(&mut self, id: u32) -> Result<usize> {
+    pub fn delete_history(&mut self, id: i64) -> Result<usize> {
         History::delete(&mut self.standard, &id)
     }
 
@@ -786,8 +789,8 @@ impl DeviceLibrary {
     /// See [`Self::insert_history_content`] for validation and persistence semantics.
     pub fn create_history_content(
         &mut self,
-        history_id: u32,
-        content_id: u32,
+        history_id: i64,
+        content_id: i64,
         seq: u32,
     ) -> Result<HistoryContent> {
         self.insert_history_content(NewHistoryContent::new(history_id, content_id, seq))
@@ -809,7 +812,7 @@ impl DeviceLibrary {
     }
 
     /// Find a key by export ID; returns `None` when absent.
-    pub fn get_key_by_id(&mut self, id: u32) -> Result<Option<Key>> {
+    pub fn get_key_by_id(&mut self, id: i64) -> Result<Option<Key>> {
         Key::find(&mut self.standard, &id)
     }
 
@@ -829,7 +832,7 @@ impl DeviceLibrary {
     ///
     /// The secondary ID's role remains unknown; no musical-key numbering is inferred.
     /// Changes remain in memory until explicitly saved.
-    pub fn create_key(&mut self, name: impl Into<String>, secondary_id: u32) -> Result<Key> {
+    pub fn create_key(&mut self, name: impl Into<String>, secondary_id: i64) -> Result<Key> {
         self.insert_key(NewKey::new(name, secondary_id))
     }
 
@@ -844,7 +847,7 @@ impl DeviceLibrary {
     ///
     /// Returns the total affected rows, or zero for a missing key. ID zero is rejected.
     /// Contents and export track counts are retained; saving remains explicit.
-    pub fn delete_key(&mut self, id: u32) -> Result<usize> {
+    pub fn delete_key(&mut self, id: i64) -> Result<usize> {
         Key::delete(&mut self.standard, &id)
     }
 
@@ -856,7 +859,7 @@ impl DeviceLibrary {
     }
 
     /// Find a label by export ID; returns `None` when absent.
-    pub fn get_label_by_id(&mut self, id: u32) -> Result<Option<Label>> {
+    pub fn get_label_by_id(&mut self, id: i64) -> Result<Option<Label>> {
         Label::find(&mut self.standard, &id)
     }
 
@@ -887,7 +890,7 @@ impl DeviceLibrary {
     ///
     /// Returns the total affected rows, or zero for a missing label. ID zero is rejected.
     /// Contents and export track counts are retained; saving remains explicit.
-    pub fn delete_label(&mut self, id: u32) -> Result<usize> {
+    pub fn delete_label(&mut self, id: i64) -> Result<usize> {
         Label::delete(&mut self.standard, &id)
     }
 
@@ -902,26 +905,26 @@ impl DeviceLibrary {
     }
 
     /// Find a tag/category by its source-library ID; missing IDs return `None`.
-    pub fn get_my_tag_by_id(&mut self, id: u32) -> Result<Option<MyTag>> {
+    pub fn get_my_tag_by_id(&mut self, id: i64) -> Result<Option<MyTag>> {
         MyTag::find(self.extended_mut()?, &id)
     }
 
     /// Load immediate children in stored sequence order; zero selects roots.
-    pub fn get_my_tag_children(&mut self, id: u32) -> Result<Vec<MyTag>> {
+    pub fn get_my_tag_children(&mut self, id: i64) -> Result<Vec<MyTag>> {
         MyTag::by_parent_id(self.extended_mut()?, &id)
     }
 
     /// Load tags for a local content ID, retaining physical association order and repetitions.
     ///
     /// Missing tag targets return errors. The standard content row is not loaded.
-    pub fn get_my_tag_by_content_id(&mut self, content_id: u32) -> Result<Vec<MyTag>> {
+    pub fn get_my_tag_by_content_id(&mut self, content_id: i64) -> Result<Vec<MyTag>> {
         MyTag::by_content_id(self.extended_mut()?, &content_id)
     }
 
     /// Load a tag's contents across both files in physical association order, retaining repeats.
     ///
     /// Missing content targets return errors. Metadata relationships are not resolved.
-    pub fn get_my_tag_contents(&mut self, id: u32) -> Result<Vec<Content>> {
+    pub fn get_my_tag_contents(&mut self, id: i64) -> Result<Vec<Content>> {
         let extended = self
             .extended
             .as_mut()
@@ -941,9 +944,9 @@ impl DeviceLibrary {
     /// Explicit positions start at [`MyTag::START_SEQ`]. Saving remains explicit.
     pub fn create_my_tag(
         &mut self,
-        id: u32,
+        id: i64,
         name: impl Into<String>,
-        parent_id: Option<u32>,
+        parent_id: Option<i64>,
         seq: Option<u32>,
     ) -> Result<MyTag> {
         let mut input = NewMyTag::tag(id, name).parent_id(parent_id.unwrap_or_default());
@@ -956,9 +959,9 @@ impl DeviceLibrary {
     /// Explicit positions start at [`MyTag::START_SEQ`]. Saving remains explicit.
     pub fn create_my_tag_folder(
         &mut self,
-        id: u32,
+        id: i64,
         name: impl Into<String>,
-        parent_id: Option<u32>,
+        parent_id: Option<i64>,
         seq: Option<u32>,
     ) -> Result<MyTag> {
         let mut input = NewMyTag::folder(id, name).parent_id(parent_id.unwrap_or_default());
@@ -974,7 +977,7 @@ impl DeviceLibrary {
     }
 
     /// Rename a tag/category, returning one on success or zero for a missing ID.
-    pub fn rename_my_tag(&mut self, id: u32, name: &str) -> Result<usize> {
+    pub fn rename_my_tag(&mut self, id: i64, name: &str) -> Result<usize> {
         let conn = self.extended_mut()?;
         let Some(mut tag) = MyTag::find(conn, &id)? else {
             return Ok(0);
@@ -985,24 +988,24 @@ impl DeviceLibrary {
     }
 
     /// Count immediate children without decoding names; zero selects the root.
-    pub fn count_my_tag_children(&mut self, parent_id: u32) -> Result<usize> {
+    pub fn count_my_tag_children(&mut self, parent_id: i64) -> Result<usize> {
         MyTag::count_children(self.extended_mut()?, &parent_id)
     }
 
     /// Read sibling positions in ascending order, retaining imported gaps and ties.
-    pub fn get_my_tag_seq_numbers(&mut self, parent_id: u32) -> Result<Vec<u32>> {
+    pub fn get_my_tag_seq_numbers(&mut self, parent_id: i64) -> Result<Vec<u32>> {
         MyTag::get_seq_numbers(self.extended_mut()?, &parent_id)
     }
 
     /// Check contiguous sibling positions starting at [`MyTag::START_SEQ`].
-    pub fn validate_my_tag_seq_numbers(&mut self, parent_id: u32) -> Result<bool> {
+    pub fn validate_my_tag_seq_numbers(&mut self, parent_id: i64) -> Result<bool> {
         MyTag::validate_seq_numbers(self.extended_mut()?, &parent_id)
     }
 
     /// Normalize sibling positions in stable sequence order, returning changed rows.
     ///
     /// The parent must be a category with valid ancestry, or zero for the root.
-    pub fn reset_my_tag_seq(&mut self, parent_id: u32) -> Result<usize> {
+    pub fn reset_my_tag_seq(&mut self, parent_id: i64) -> Result<usize> {
         MyTag::reset_seq(self.extended_mut()?, &parent_id)
     }
 
@@ -1011,8 +1014,8 @@ impl DeviceLibrary {
     /// `None` keeps the parent or appends. Returns one if the selected node moved, else zero.
     pub fn move_my_tag(
         &mut self,
-        id: u32,
-        parent_id: Option<&u32>,
+        id: i64,
+        parent_id: Option<&i64>,
         seq: Option<u32>,
     ) -> Result<usize> {
         MyTag::move_to(self.extended_mut()?, &id, parent_id, seq)
@@ -1023,8 +1026,8 @@ impl DeviceLibrary {
     /// Returns changed selected nodes, excluding shifts of other siblings.
     pub fn move_my_tags(
         &mut self,
-        ids: &[u32],
-        parent_id: u32,
+        ids: &[i64],
+        parent_id: i64,
         start_seq: Option<u32>,
     ) -> Result<usize> {
         MyTag::move_all_to(self.extended_mut()?, ids, &parent_id, start_seq)
@@ -1033,14 +1036,14 @@ impl DeviceLibrary {
     /// Delete a tag/category subtree and its associations, normalizing surviving siblings.
     ///
     /// Returns deleted rows; missing IDs return zero. Contents remain intact.
-    pub fn delete_my_tag(&mut self, id: u32) -> Result<usize> {
+    pub fn delete_my_tag(&mut self, id: i64) -> Result<usize> {
         MyTag::delete(self.extended_mut()?, &id)
     }
 
     /// Delete selected subtrees atomically, counting overlapping descendants once.
     ///
     /// Duplicate or missing input IDs reject the batch. Returns deleted nodes and associations.
-    pub fn delete_my_tags(&mut self, ids: &[u32]) -> Result<usize> {
+    pub fn delete_my_tags(&mut self, ids: &[i64]) -> Result<usize> {
         MyTag::delete_all(self.extended_mut()?, ids)
     }
 
@@ -1050,14 +1053,14 @@ impl DeviceLibrary {
     }
 
     /// Load a tag's association snapshots without resolving contents or deduplicating pairs.
-    pub fn get_my_tag_entries(&mut self, id: u32) -> Result<Vec<MyTagContent>> {
+    pub fn get_my_tag_entries(&mut self, id: i64) -> Result<Vec<MyTagContent>> {
         MyTagContent::by_my_tag_id(self.extended_mut()?, &id)
     }
 
     /// Load a content's association snapshots without resolving tags or deduplicating pairs.
     pub fn get_my_tag_associations_by_content_id(
         &mut self,
-        content_id: u32,
+        content_id: i64,
     ) -> Result<Vec<MyTagContent>> {
         MyTagContent::by_content_id(self.extended_mut()?, &content_id)
     }
@@ -1074,15 +1077,15 @@ impl DeviceLibrary {
     /// Repeated pairs are allowed; referenced rows are not loaded or validated.
     pub fn create_my_tag_content(
         &mut self,
-        my_tag_id: u32,
-        content_id: u32,
+        my_tag_id: i64,
+        content_id: i64,
     ) -> Result<MyTagContent> {
         self.insert_my_tag_content(NewMyTagContent::new(content_id, my_tag_id))
     }
 
     /// Delete all occurrences of a tag/content pair, returning the deleted count.
     /// Both IDs must be nonzero. Tags and contents remain intact.
-    pub fn delete_my_tag_content(&mut self, my_tag_id: u32, content_id: u32) -> Result<usize> {
+    pub fn delete_my_tag_content(&mut self, my_tag_id: i64, content_id: i64) -> Result<usize> {
         MyTagContent::remove(self.extended_mut()?, &content_id, &my_tag_id)
     }
 
@@ -1103,19 +1106,19 @@ impl DeviceLibrary {
     }
 
     /// Find a playlist or folder by export ID; missing IDs return `None`.
-    pub fn get_playlist_by_id(&mut self, id: u32) -> Result<Option<Playlist>> {
+    pub fn get_playlist_by_id(&mut self, id: i64) -> Result<Option<Playlist>> {
         Playlist::find(&mut self.standard, &id)
     }
 
     /// Load immediate children in sibling order; zero selects roots.
-    pub fn get_playlist_children(&mut self, id: u32) -> Result<Vec<Playlist>> {
+    pub fn get_playlist_children(&mut self, id: i64) -> Result<Vec<Playlist>> {
         Playlist::by_parent_id(&mut self.standard, &id)
     }
 
     /// Load contents in playlist sequence order, retaining imported duplicate occurrences.
     ///
     /// Missing content references return errors; metadata relationships are not resolved.
-    pub fn get_playlist_contents(&mut self, id: u32) -> Result<Vec<Content>> {
+    pub fn get_playlist_contents(&mut self, id: i64) -> Result<Vec<Content>> {
         Playlist::get_contents(&mut self.standard, &id)
     }
 
@@ -1134,12 +1137,12 @@ impl DeviceLibrary {
     }
 
     /// Read the node type; the root sentinel (zero) is treated as a folder.
-    pub fn get_playlist_attribute(&mut self, id: u32) -> Result<Option<PlaylistType>> {
+    pub fn get_playlist_attribute(&mut self, id: i64) -> Result<Option<PlaylistType>> {
         Playlist::get_attribute(&mut self.standard, &id)
     }
 
     /// Check whether an existing node is a regular playlist.
-    pub fn is_playlist(&mut self, id: u32) -> Result<bool> {
+    pub fn is_playlist(&mut self, id: i64) -> Result<bool> {
         Playlist::is_playlist(&mut self.standard, &id)
     }
 
@@ -1154,7 +1157,7 @@ impl DeviceLibrary {
     pub fn create_playlist(
         &mut self,
         name: impl Into<String>,
-        parent_id: Option<u32>,
+        parent_id: Option<i64>,
         seq: Option<u32>,
     ) -> Result<Playlist> {
         let mut input = NewPlaylist::playlist(name).parent_id(parent_id.unwrap_or_default());
@@ -1168,7 +1171,7 @@ impl DeviceLibrary {
     pub fn create_playlist_folder(
         &mut self,
         name: impl Into<String>,
-        parent_id: Option<u32>,
+        parent_id: Option<i64>,
         seq: Option<u32>,
     ) -> Result<Playlist> {
         let mut input = NewPlaylist::folder(name).parent_id(parent_id.unwrap_or_default());
@@ -1186,29 +1189,29 @@ impl DeviceLibrary {
     /// Rename a node while preserving hierarchy, position and reserved data.
     ///
     /// Returns one on success; missing IDs return [`Error::ModelNotFound`].
-    pub fn rename_playlist(&mut self, id: u32, name: &str) -> Result<usize> {
+    pub fn rename_playlist(&mut self, id: i64, name: &str) -> Result<usize> {
         Playlist::rename(&mut self.standard, &id, name)
     }
 
     /// Count immediate children without decoding names; zero selects roots.
-    pub fn count_playlist_children(&mut self, parent_id: u32) -> Result<usize> {
+    pub fn count_playlist_children(&mut self, parent_id: i64) -> Result<usize> {
         Playlist::count_children(&mut self.standard, &parent_id)
     }
 
     /// Read sibling positions in ascending order, retaining imported gaps and ties.
-    pub fn get_playlist_seq_numbers(&mut self, parent_id: u32) -> Result<Vec<u32>> {
+    pub fn get_playlist_seq_numbers(&mut self, parent_id: i64) -> Result<Vec<u32>> {
         Playlist::get_seq_numbers(&mut self.standard, &parent_id)
     }
 
     /// Check contiguous sibling positions starting at [`Playlist::START_SEQ`].
-    pub fn validate_playlist_seq_numbers(&mut self, parent_id: u32) -> Result<bool> {
+    pub fn validate_playlist_seq_numbers(&mut self, parent_id: i64) -> Result<bool> {
         Playlist::validate_seq_numbers(&mut self.standard, &parent_id)
     }
 
     /// Normalize siblings in stable sequence order, returning changed rows.
     ///
     /// The parent must be a folder with valid ancestry, or zero for the root.
-    pub fn reset_playlist_seq(&mut self, parent_id: u32) -> Result<usize> {
+    pub fn reset_playlist_seq(&mut self, parent_id: i64) -> Result<usize> {
         Playlist::reset_seq(&mut self.standard, &parent_id)
     }
 
@@ -1217,8 +1220,8 @@ impl DeviceLibrary {
     /// Positions start at [`Playlist::START_SEQ`]. Returns one if the selected node moved, else zero.
     pub fn move_playlist(
         &mut self,
-        id: u32,
-        parent_id: Option<&u32>,
+        id: i64,
+        parent_id: Option<&i64>,
         seq: Option<u32>,
     ) -> Result<usize> {
         Playlist::move_to(&mut self.standard, &id, parent_id, seq)
@@ -1229,8 +1232,8 @@ impl DeviceLibrary {
     /// The destination is measured after removing the selection. Returns changed selected nodes.
     pub fn move_playlists(
         &mut self,
-        ids: &[u32],
-        parent_id: u32,
+        ids: &[i64],
+        parent_id: i64,
         start_seq: Option<u32>,
     ) -> Result<usize> {
         Playlist::move_all_to(&mut self.standard, ids, &parent_id, start_seq)
@@ -1239,14 +1242,14 @@ impl DeviceLibrary {
     /// Delete a playlist/folder subtree and its entries, normalizing surviving siblings.
     ///
     /// Returns deleted rows; missing IDs return zero. Contents remain intact.
-    pub fn delete_playlist(&mut self, id: u32) -> Result<usize> {
+    pub fn delete_playlist(&mut self, id: i64) -> Result<usize> {
         Playlist::delete(&mut self.standard, &id)
     }
 
     /// Delete selected subtrees atomically, counting overlapping descendants once.
     ///
     /// Duplicate or missing input IDs reject the batch. Returns deleted nodes and entries.
-    pub fn delete_playlists(&mut self, ids: &[u32]) -> Result<usize> {
+    pub fn delete_playlists(&mut self, ids: &[i64]) -> Result<usize> {
         Playlist::delete_all(&mut self.standard, ids)
     }
 
@@ -1256,14 +1259,14 @@ impl DeviceLibrary {
     }
 
     /// Load a playlist's entry snapshots in stored sequence order without resolving contents.
-    pub fn get_playlist_entries(&mut self, id: u32) -> Result<Vec<PlaylistContent>> {
+    pub fn get_playlist_entries(&mut self, id: i64) -> Result<Vec<PlaylistContent>> {
         PlaylistContent::by_playlist_id(&mut self.standard, &id)
     }
 
     /// Load a content's entry snapshots ordered by playlist ID and sequence.
     pub fn get_playlist_associations_by_content_id(
         &mut self,
-        content_id: u32,
+        content_id: i64,
     ) -> Result<Vec<PlaylistContent>> {
         PlaylistContent::by_content_id(&mut self.standard, &content_id)
     }
@@ -1271,8 +1274,8 @@ impl DeviceLibrary {
     /// Find a unique playlist/content pair; missing pairs return `None`, duplicates return errors.
     pub fn get_playlist_content_by_id(
         &mut self,
-        playlist_id: u32,
-        content_id: u32,
+        playlist_id: i64,
+        content_id: i64,
     ) -> Result<Option<PlaylistContent>> {
         PlaylistContent::find(&mut self.standard, &(playlist_id, content_id))
     }
@@ -1292,32 +1295,32 @@ impl DeviceLibrary {
     /// Explicit positions start at [`PlaylistContent::START_SEQ`].
     pub fn create_playlist_content(
         &mut self,
-        playlist_id: u32,
-        content_id: u32,
+        playlist_id: i64,
+        content_id: i64,
         seq: Option<u32>,
     ) -> Result<PlaylistContent> {
         self.insert_playlist_content(NewPlaylistContent::new(playlist_id, content_id, seq))
     }
 
     /// Count live entries without resolving contents.
-    pub fn count_playlist_contents(&mut self, playlist_id: u32) -> Result<usize> {
+    pub fn count_playlist_contents(&mut self, playlist_id: i64) -> Result<usize> {
         PlaylistContent::count(&mut self.standard, &playlist_id)
     }
 
     /// Read stored entry positions in ascending order.
-    pub fn get_playlist_content_seq_numbers(&mut self, playlist_id: u32) -> Result<Vec<u32>> {
+    pub fn get_playlist_content_seq_numbers(&mut self, playlist_id: i64) -> Result<Vec<u32>> {
         PlaylistContent::get_seq_numbers(&mut self.standard, &playlist_id)
     }
 
     /// Check contiguous entry positions starting at [`PlaylistContent::START_SEQ`].
-    pub fn validate_playlist_content_seq_numbers(&mut self, playlist_id: u32) -> Result<bool> {
+    pub fn validate_playlist_content_seq_numbers(&mut self, playlist_id: i64) -> Result<bool> {
         PlaylistContent::validate_seq_numbers(&mut self.standard, &playlist_id)
     }
 
     /// Normalize entry positions in stable sequence order, retaining imported duplicates.
     ///
     /// Returns changed rows; the destination must be a regular playlist.
-    pub fn reset_playlist_content_seq(&mut self, playlist_id: u32) -> Result<usize> {
+    pub fn reset_playlist_content_seq(&mut self, playlist_id: i64) -> Result<usize> {
         PlaylistContent::reset_seq(&mut self.standard, &playlist_id)
     }
 
@@ -1326,8 +1329,8 @@ impl DeviceLibrary {
     /// Positions start at [`PlaylistContent::START_SEQ`]. Returns one if moved, else zero.
     pub fn move_playlist_content(
         &mut self,
-        playlist_id: u32,
-        content_id: u32,
+        playlist_id: i64,
+        content_id: i64,
         seq: Option<u32>,
     ) -> Result<usize> {
         PlaylistContent::move_to(&mut self.standard, &(playlist_id, content_id), seq)
@@ -1338,7 +1341,7 @@ impl DeviceLibrary {
     /// The destination follows removal of the selection; `None` appends. Returns changed selected entries.
     pub fn move_playlist_contents(
         &mut self,
-        ids: &[(u32, u32)],
+        ids: &[(i64, i64)],
         start_seq: Option<u32>,
     ) -> Result<usize> {
         PlaylistContent::move_all_to(&mut self.standard, ids, start_seq)
@@ -1347,14 +1350,14 @@ impl DeviceLibrary {
     /// Delete a unique pair and close the sequence gap. Missing pairs return zero.
     ///
     /// imported duplicates return errors. The playlist and content remain intact.
-    pub fn delete_playlist_content(&mut self, playlist_id: u32, content_id: u32) -> Result<usize> {
+    pub fn delete_playlist_content(&mut self, playlist_id: i64, content_id: i64) -> Result<usize> {
         PlaylistContent::delete_by_id(&mut self.standard, &(playlist_id, content_id))
     }
 
     /// Delete distinct pairs atomically and compact affected lists, retaining playlists and contents.
     ///
     /// Missing, repeated or ambiguous pairs reject the batch.
-    pub fn delete_playlist_contents(&mut self, ids: &[(u32, u32)]) -> Result<usize> {
+    pub fn delete_playlist_contents(&mut self, ids: &[(i64, i64)]) -> Result<usize> {
         PlaylistContent::delete_all(&mut self.standard, ids)
     }
 
@@ -1368,33 +1371,33 @@ impl DeviceLibrary {
     /// Remove every occurrence of a playlist/content pair, including imported duplicates.
     ///
     /// Both IDs must be nonzero. Returns deleted rows, retaining the playlist and content.
-    pub fn remove_playlist_content(&mut self, playlist_id: u32, content_id: u32) -> Result<usize> {
+    pub fn remove_playlist_content(&mut self, playlist_id: i64, content_id: i64) -> Result<usize> {
         PlaylistContent::remove(&mut self.standard, &content_id, &playlist_id)
     }
 
     /// Remove all entries of a playlist, retaining the playlist and contents.
-    pub fn delete_playlist_contents_by_playlist_id(&mut self, playlist_id: u32) -> Result<usize> {
+    pub fn delete_playlist_contents_by_playlist_id(&mut self, playlist_id: i64) -> Result<usize> {
         PlaylistContent::delete_by_playlist_id(&mut self.standard, &playlist_id)
     }
 
     /// Remove all entries of selected playlists atomically; missing IDs are ignored.
     ///
     /// Playlists and contents remain intact.
-    pub fn delete_playlist_contents_by_playlist_ids(&mut self, ids: &[u32]) -> Result<usize> {
+    pub fn delete_playlist_contents_by_playlist_ids(&mut self, ids: &[i64]) -> Result<usize> {
         PlaylistContent::delete_by_playlist_ids(&mut self.standard, ids)
     }
 
     /// Remove every playlist occurrence of a content ID and compact affected lists.
     ///
     /// The content itself and playlists remain intact.
-    pub fn delete_playlist_contents_by_content_id(&mut self, content_id: u32) -> Result<usize> {
+    pub fn delete_playlist_contents_by_content_id(&mut self, content_id: i64) -> Result<usize> {
         PlaylistContent::delete_by_content_id(&mut self.standard, &content_id)
     }
 
     /// Remove every playlist occurrence of selected content IDs atomically and compact affected lists.
     ///
     /// Contents and playlists remain intact.
-    pub fn delete_playlist_contents_by_content_ids(&mut self, ids: &[u32]) -> Result<usize> {
+    pub fn delete_playlist_contents_by_content_ids(&mut self, ids: &[i64]) -> Result<usize> {
         PlaylistContent::delete_by_content_ids(&mut self.standard, ids)
     }
 
@@ -1465,7 +1468,7 @@ impl DeviceLibrary {
     /// Referenced contents are not loaded. Requires an open extended database.
     pub fn get_recommend_like_by_content_id(
         &mut self,
-        content_id: u32,
+        content_id: i64,
     ) -> Result<Vec<RecommendedLike>> {
         RecommendedLike::by_content_id(self.extended_mut()?, &content_id)
     }
@@ -1486,8 +1489,8 @@ impl DeviceLibrary {
     /// See [`Self::insert_recommend_like`] for constraints and persistence semantics.
     pub fn create_recommend_like(
         &mut self,
-        content_id_1: u32,
-        content_id_2: u32,
+        content_id_1: i64,
+        content_id_2: i64,
         unknown_00: u64,
         unknown_10: u32,
         unknown_14: u32,

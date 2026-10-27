@@ -156,3 +156,29 @@ def test_album_view(master_db):
     assert db.get_album_with_relations("missing-id") is None
     with pytest.raises(AttributeError):
         view.album = row
+
+
+def test_wide_metadata(master_db):
+    db = master_db
+    row = db.get_contents()[0]
+    fields = ["bit_rate", "sample_rate", "track_no", "bpm"]
+    wide = 2**32 - 1
+    for field in fields:
+        setattr(row, field, wide)
+    db.update_content(row)
+    stored = db.get_content_by_id(row.id)
+    assert all(getattr(stored, field) == wide for field in fields)
+    track = db.get_track_by_id(row.id)
+    assert track.bit_rate == wide
+    assert track.sample_rate == wide
+    assert track.track_no == wide
+    assert track.bpm == wide / 100
+    for value in [2**63 - 1, None]:
+        for field in fields:
+            setattr(row, field, value)
+        db.update_content(row)
+        stored = db.get_content_by_id(row.id)
+        assert all(getattr(stored, field) == value for field in fields)
+    for field in fields:
+        with pytest.raises(OverflowError):
+            setattr(row, field, 2**63)

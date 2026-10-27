@@ -117,14 +117,14 @@ pub struct DjmdContent {
     pub album_id: Option<String>,
     /// An optional string representing the ID of the associated genre in [`DjmdGenre`].
     pub genre_id: Option<String>,
-    /// An optional integer representing the BPM of the track.
-    pub bpm: Option<i32>,
+    /// Track tempo in BPM multiplied by 100.
+    pub bpm: Option<i64>,
     /// An optional integer representing the length of the track in rounded seconds.
     pub length: Option<i32>,
     /// An optional integer representing the track number in the album.
-    pub track_no: Option<i32>,
-    /// An optional integer representing the bit rate of the track.
-    pub bit_rate: Option<i32>,
+    pub track_no: Option<i64>,
+    /// Stored bitrate, normally kb/s.
+    pub bit_rate: Option<i64>,
     /// An optional integer representing the bit depth of the track.
     pub bit_depth: Option<i32>,
     /// An optional string representing comments about the track.
@@ -167,8 +167,8 @@ pub struct DjmdContent {
     pub composer_id: Option<String>,
     /// An optional string representing the subtitle of the track.
     pub subtitle: Option<String>,
-    /// An optional integer representing the sample rate of the track.
-    pub sample_rate: Option<i32>,
+    /// Sample rate in Hz.
+    pub sample_rate: Option<i64>,
     /// An optional integer indicating whether quantization is disabled for the track.
     pub disable_quantize: Option<i32>,
     /// An optional integer indicating whether the track has been analyzed.
@@ -693,14 +693,14 @@ pub struct NewDjmdContent {
     pub album_id: Option<String>,
     /// An optional string representing the ID of the associated genre in [`DjmdGenre`].
     pub genre_id: Option<String>,
-    /// An optional integer representing the BPM of the track.
-    pub bpm: Option<i32>,
-    /// An optional integer representing the length of the track in milliseconds.
+    /// Track tempo in BPM multiplied by 100.
+    pub bpm: Option<i64>,
+    /// Track length in rounded seconds.
     pub length: Option<i32>,
     /// An optional integer representing the track number in the album.
-    pub track_no: Option<i32>,
-    /// An optional integer representing the bit rate of the track.
-    pub bit_rate: Option<i32>,
+    pub track_no: Option<i64>,
+    /// Stored bitrate, normally kb/s.
+    pub bit_rate: Option<i64>,
     /// An optional integer representing the bit depth of the track.
     pub bit_depth: Option<i32>,
     /// An optional string representing comments about the track.
@@ -737,8 +737,8 @@ pub struct NewDjmdContent {
     pub composer_id: Option<String>,
     /// An optional string representing the subtitle of the track.
     pub subtitle: Option<String>,
-    /// An optional integer representing the sample rate of the track.
-    pub sample_rate: Option<i32>,
+    /// Sample rate in Hz.
+    pub sample_rate: Option<i64>,
     /// An optional string representing the release date of the track.
     pub release_date: Option<String>,
     /// An optional string representing the creation date of the track.
@@ -995,7 +995,7 @@ impl NewDjmdContent {
     }
 
     /// Builder for `bpm`.
-    pub fn bpm(mut self, bpm: i32) -> Self {
+    pub fn bpm(mut self, bpm: i64) -> Self {
         self.bpm = Some(bpm);
         self
     }
@@ -1007,13 +1007,13 @@ impl NewDjmdContent {
     }
 
     /// Builder for `track_no`.
-    pub fn track_no(mut self, track_no: i32) -> Self {
+    pub fn track_no(mut self, track_no: i64) -> Self {
         self.track_no = Some(track_no);
         self
     }
 
     /// Builder for `bit_rate`.
-    pub fn bit_rate(mut self, bit_rate: i32) -> Self {
+    pub fn bit_rate(mut self, bit_rate: i64) -> Self {
         self.bit_rate = Some(bit_rate);
         self
     }
@@ -1097,7 +1097,7 @@ impl NewDjmdContent {
     }
 
     /// Builder for `sample_rate`.
-    pub fn sample_rate(mut self, sample_rate: i32) -> Self {
+    pub fn sample_rate(mut self, sample_rate: i64) -> Self {
         self.sample_rate = Some(sample_rate);
         self
     }
@@ -1192,7 +1192,7 @@ impl TryFrom<&DjmdContentView> for Track {
                 .map(PathBuf::from)
                 .unwrap_or_default(),
             file_type: Some(input.file_type),
-            bpm: input.bpm.map(|value| f64::from(value) / 100.0),
+            bpm: input.bpm.map(|value| value as f64 / 100.0),
             length: input.length.map(f64::from),
             title: input.title.clone(),
             search_str: input.search_str.clone(),
@@ -1297,13 +1297,13 @@ impl TryFrom<&TrackMetadata> for NewDjmdContent {
                 .bpm
                 .map(|value| {
                     let rounded = (value * 100.0).round();
-                    if !value.is_finite() || value < 0.0 || rounded > f64::from(i32::MAX) {
+                    if !value.is_finite() || value < 0.0 || rounded >= i64::MAX as f64 {
                         return Err(MasterDbError::InvalidOperation(
-                            "bpm must be finite, nonnegative, and fit the database's i32 range"
+                            "bpm must be finite, nonnegative, and fit the database's i64 range"
                                 .into(),
                         ));
                     }
-                    Ok(rounded as i32)
+                    Ok(rounded as i64)
                 })
                 .transpose()?,
             length: input
@@ -1322,24 +1322,12 @@ impl TryFrom<&TrackMetadata> for NewDjmdContent {
             rating: input.rating.map(i32::from),
             bit_depth: input.bit_depth.map(i32::from),
             release_year: input.release_year.map(i32::from),
-            track_no: input.track_no.map(i32::try_from).transpose().map_err(|_| {
-                MasterDbError::InvalidOperation("track_no exceeds the database i32 range".into())
-            })?,
-            bit_rate: input.bit_rate.map(i32::try_from).transpose().map_err(|_| {
-                MasterDbError::InvalidOperation("bit_rate exceeds the database i32 range".into())
-            })?,
+            track_no: input.track_no.map(i64::from),
+            bit_rate: input.bit_rate.map(i64::from),
             disc_no: input.disc_no.map(i32::try_from).transpose().map_err(|_| {
                 MasterDbError::InvalidOperation("disc_no exceeds the database i32 range".into())
             })?,
-            sample_rate: input
-                .sample_rate
-                .map(i32::try_from)
-                .transpose()
-                .map_err(|_| {
-                    MasterDbError::InvalidOperation(
-                        "sample_rate exceeds the database i32 range".into(),
-                    )
-                })?,
+            sample_rate: input.sample_rate.map(i64::from),
             ..Default::default()
         })
     }

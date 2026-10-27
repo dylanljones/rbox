@@ -44,7 +44,7 @@ fn insertions_allocate_table_local_ids() -> Result<()> {
             let mut tx = conn.transaction();
             tx.insert($model::TABLE, &imported)?;
             tx.commit()?;
-            assert_eq!(new(5).insert(&mut conn)?.id, u32::MAX);
+            assert_eq!(new(5).insert(&mut conn)?.id, i64::from(u32::MAX));
             let mut saved = Vec::new();
             conn.write_to(&mut saved)?;
             assert!(matches!(
@@ -135,7 +135,7 @@ fn playlist_row(
 ) -> Result<rbox_devlib::binary::PlaylistTreeRow> {
     Ok(rbox_devlib::binary::PlaylistTreeRow {
         id,
-        parent_id: input.parent_id,
+        parent_id: input.parent_id.try_into().unwrap(),
         unknown_04: input.unknown_04,
         position: input.seq.unwrap_or(0),
         folder_flag: input.attribute as u32,
@@ -171,9 +171,9 @@ fn my_tag_row(input: &rbox_devlib::models::NewMyTag) -> Result<rbox_devlib::bina
             index_shift: 0,
             unknown_04: input.unknown_04,
             unknown_08: input.unknown_08,
-            parent_id: input.parent_id,
+            parent_id: input.parent_id.try_into().unwrap(),
             position: input.seq.unwrap_or(0),
-            id: input.id,
+            id: input.id.try_into().unwrap(),
             unknown_18: input.unknown_18,
             unknown_1a: input.unknown_1a,
             attribute: input.attribute as u8,
@@ -182,7 +182,7 @@ fn my_tag_row(input: &rbox_devlib::models::NewMyTag) -> Result<rbox_devlib::bina
             marker: 3,
             offsets: [0; 2],
         },
-        name: named_row(input.id, &input.name)?.name,
+        name: named_row(input.id.try_into().unwrap(), &input.name)?.name,
         unknown_string: DeviceSqlString::encode("", StringEncoding::ShortAscii)?,
     })
 }
@@ -192,8 +192,8 @@ fn tag_content_row(
 ) -> rbox_devlib::binary::TrackMyTagRow {
     rbox_devlib::binary::TrackMyTagRow {
         unknown_00: input.unknown_00,
-        track_id: input.content_id,
-        tag_id: input.my_tag_id,
+        track_id: input.content_id.try_into().unwrap(),
+        tag_id: input.my_tag_id.try_into().unwrap(),
         reserved_string_marker: input.reserved_string_marker,
         reserved_tail: input.reserved_tail,
     }
@@ -204,8 +204,8 @@ fn playlist_entry_row(
 ) -> rbox_devlib::binary::PlaylistEntryRow {
     rbox_devlib::binary::PlaylistEntryRow {
         position: input.seq.unwrap_or(1),
-        track_id: input.content_id,
-        playlist_id: input.playlist_id,
+        track_id: input.content_id.try_into().unwrap(),
+        playlist_id: input.playlist_id.try_into().unwrap(),
     }
 }
 
@@ -214,8 +214,8 @@ fn history_entry_row(
 ) -> rbox_devlib::binary::HistoryEntryRow {
     rbox_devlib::binary::HistoryEntryRow {
         position: input.seq,
-        track_id: input.content_id,
-        playlist_id: input.history_id,
+        track_id: input.content_id.try_into().unwrap(),
+        playlist_id: input.history_id.try_into().unwrap(),
     }
 }
 
@@ -224,8 +224,8 @@ fn recommendation_row(
 ) -> rbox_devlib::binary::RecommendLikeRow {
     rbox_devlib::binary::RecommendLikeRow {
         unknown_00: input.unknown_00,
-        track_id_1: input.content_id_1,
-        track_id_2: input.content_id_2,
+        track_id_1: input.content_id_1.try_into().unwrap(),
+        track_id_2: input.content_id_2.try_into().unwrap(),
         unknown_10: input.unknown_10,
         unknown_14: input.unknown_14,
     }
@@ -298,7 +298,10 @@ fn album_builder_allocates_ids_and_failed_insertions_do_not_consume_them() -> Re
         &Row::Standard(StandardRow::Album(album_row(u32::MAX - 1, 0, "High ID")?)),
     )?;
     tx.commit()?;
-    assert_eq!(NewAlbum::new("Last ID").insert(&mut conn)?.id, u32::MAX);
+    assert_eq!(
+        NewAlbum::new("Last ID").insert(&mut conn)?.id,
+        i64::from(u32::MAX)
+    );
     let dirty = conn.modified_page_count();
     assert!(matches!(
         NewAlbum::new("Overflow").insert(&mut conn),
@@ -476,7 +479,7 @@ fn content_master_identity_lookup_is_scoped_to_source_library() -> Result<()> {
         (20, 123, 42),
         (40, 124, library),
         (50, 0, 0),
-        (60, u32::MAX, library),
+        (60, i64::from(u32::MAX), library),
     ] {
         let mut row = NewContent::new(format!("/Contents/{id}.wav"));
         row.master_content_id = source_content;
@@ -505,7 +508,7 @@ fn content_master_identity_lookup_is_scoped_to_source_library() -> Result<()> {
         40
     );
     assert_eq!(
-        Content::find_by_master_content_id(&mut conn, u32::MAX, library)?
+        Content::find_by_master_content_id(&mut conn, i64::from(u32::MAX), library)?
             .unwrap()
             .id,
         60
@@ -513,7 +516,7 @@ fn content_master_identity_lookup_is_scoped_to_source_library() -> Result<()> {
     assert!(Content::find_by_master_content_id(&mut conn, 123, 999)?.is_none());
     assert!(Content::find_by_master_content_id(&mut conn, 999, library)?.is_none());
     assert!(Content::find_by_master_content_id(&mut conn, 0, 0)?.is_none());
-    let mut ids = vec![u32::MAX, 124, 123, 0, 123];
+    let mut ids = vec![i64::from(u32::MAX), 124, 123, 0, 123];
     ids.extend(1000..2200);
     assert_eq!(
         Content::by_master_content_ids(&mut conn, &ids, library)?
@@ -862,7 +865,7 @@ mod content_mutations {
         let Row::Standard(StandardRow::Track(actual)) = updated.raw_record().decode()? else {
             panic!()
         };
-        let mut expected = content_row(original.id, &desired)?;
+        let mut expected = content_row(original.id.try_into().unwrap(), &desired)?;
         expected.header.index_shift = actual.header.index_shift; // Placement is engine-owned.
         assert_eq!(actual.header, expected.header);
         assert_eq!(actual.text, expected.text);
@@ -1876,7 +1879,7 @@ mod my_tag_mutations {
         Ok(bytes)
     }
 
-    fn children(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>, parent: u32) -> Result<Vec<u32>> {
+    fn children(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>, parent: i64) -> Result<Vec<i64>> {
         Ok(MyTag::by_parent_id(conn, &parent)?
             .iter()
             .map(|tag| tag.id)
@@ -2040,7 +2043,7 @@ mod my_tag_mutations {
             tx.insert(
                 MyTag::TABLE,
                 &Row::Extended(ExtendedRow::MyTag(my_tag_row(
-                    &NewMyTag::tag(id, "Tag").seq(id - 1),
+                    &NewMyTag::tag(id, "Tag").seq((id - 1).try_into().unwrap()),
                 )?)),
             )?;
         }
@@ -2417,7 +2420,7 @@ mod key_mutations {
         let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
         let mut row = Ok::<_, Error>(rbox_devlib::binary::KeyRow {
             id: 1,
-            secondary_id: (NewKey::new("House", 17)).secondary_id,
+            secondary_id: (NewKey::new("House", 17)).secondary_id.try_into().unwrap(),
             name: named_row(1, &(NewKey::new("House", 17)).name)?.name,
         })?;
         row.name = DeviceSqlString::encode("House", StringEncoding::Utf16Le)?;
@@ -4339,14 +4342,16 @@ mod configuration {
                 name: DeviceSqlString::encode("Ã©Å¸Â³Ã¦Â¥Â½", StringEncoding::Utf16Le)?,
             }),
         )?)?;
-        assert_eq!((column.id, column.code), (u16::MAX, 0xabcd));
+        assert_eq!((column.id, column.code), (i64::from(u16::MAX), 0xabcd));
         column.name = "Local edit".into();
         assert_eq!(
-            BrowseColumn::find(&mut conn, &u16::MAX)?.unwrap().name,
+            BrowseColumn::find(&mut conn, &i64::from(u16::MAX))?
+                .unwrap()
+                .name,
             "Ã©Å¸Â³Ã¦Â¥Â½"
         );
         let reads = conn.read_stats();
-        assert!(BrowseColumn::id_exists(&mut conn, &u16::MAX)?);
+        assert!(BrowseColumn::id_exists(&mut conn, &i64::from(u16::MAX))?);
         assert!(!BrowseColumn::id_exists(&mut conn, &1)?);
         assert_eq!(conn.read_stats(), reads);
         BrowseColumn::try_from(seed_browse(
@@ -4378,7 +4383,7 @@ mod configuration {
                 }),
             )?)?;
         }
-        let categories = BrowseCategory::by_column(&mut conn, &u16::MAX)?;
+        let categories = BrowseCategory::by_column(&mut conn, &i64::from(u16::MAX))?;
         assert_eq!(
             categories
                 .iter()
@@ -4386,7 +4391,7 @@ mod configuration {
                 .collect::<Vec<_>>(),
             vec![(0xee, 0x80, 9), (0xee, 0x80, 1), (0xee, 0x80, 1)]
         );
-        let sorts = BrowseSort::by_column(&mut conn, &u16::MAX)?;
+        let sorts = BrowseSort::by_column(&mut conn, &i64::from(u16::MAX))?;
         assert_eq!(
             sorts
                 .iter()
@@ -4570,7 +4575,7 @@ mod configuration {
         // Match namespace enum names separately from Row's Standard/Extended variants.
         use rbox_devlib::binary::{ExtendedRow as Extended, StandardRow as Standard};
         check!(standard, BrowseColumn, Standard, BrowseColumn, |m, r| {
-            assert_eq!((m.id, m.code), (r.id, r.code));
+            assert_eq!((m.id, m.code), (i64::from(r.id), r.code));
             assert_eq!(r.name.text()?, format!("\u{fffa}{}\u{fffb}", m.name));
             assert!(!m.name.contains(['\u{fffa}', '\u{fffb}']));
             assert_eq!(BrowseColumn::find(&mut standard, &m.id)?, Some(m));
@@ -4583,14 +4588,20 @@ mod configuration {
             |m, r| {
                 assert_eq!(
                     (m.column_id, m.selector, m.unknown_04, m.state, m.position),
-                    (r.column_id, r.selector, r.unknown_04, r.state, r.position)
+                    (
+                        i64::from(r.column_id),
+                        r.selector,
+                        r.unknown_04,
+                        r.state,
+                        r.position
+                    )
                 );
             }
         );
         check!(standard, BrowseSort, Standard, BrowseSort, |m, r| {
             assert_eq!(
                 (m.column_id, m.selector, m.raw_tail),
-                (r.column_id, r.selector, r.raw_tail)
+                (i64::from(r.column_id), r.selector, r.raw_tail)
             );
         });
         check!(
@@ -4615,7 +4626,10 @@ mod configuration {
             Extended,
             DatabaseProperty,
             |m, r| {
-                assert_eq!(m.my_tag_master_db_id, r.header.my_tag_master_db_id);
+                assert_eq!(
+                    m.my_tag_master_db_id,
+                    i64::from(r.header.my_tag_master_db_id)
+                );
             }
         );
         check!(
@@ -4634,8 +4648,8 @@ mod configuration {
                     ),
                     (
                         r.unknown_00,
-                        r.track_id_1,
-                        r.track_id_2,
+                        i64::from(r.track_id_1),
+                        i64::from(r.track_id_2),
                         r.unknown_10,
                         r.unknown_14
                     )
@@ -5091,7 +5105,7 @@ mod history {
             let Row::Standard(StandardRow::HistoryPlaylist(row)) = record.decode()? else {
                 panic!()
             };
-            assert_eq!(model.id, row.id);
+            assert_eq!(model.id, i64::from(row.id));
             assert_eq!(model.name, row.name.text()?);
             assert_eq!(model.raw_record(), &record);
             assert_eq!(History::find(&mut conn, &model.id)?, Some(model));
@@ -5107,7 +5121,11 @@ mod history {
             };
             assert_eq!(
                 (model.content_id, model.history_id, model.seq),
-                (row.track_id, row.playlist_id, row.position)
+                (
+                    i64::from(row.track_id),
+                    i64::from(row.playlist_id),
+                    row.position
+                )
             );
             assert_eq!(model.raw_record(), &record);
         }
@@ -5243,8 +5261,8 @@ mod tags {
             assert_eq!(
                 (model.id, model.parent_id, model.seq, model.attribute as u8),
                 (
-                    row.header.id,
-                    row.header.parent_id,
+                    i64::from(row.header.id),
+                    i64::from(row.header.parent_id),
                     row.header.position,
                     row.header.attribute
                 )
@@ -5438,14 +5456,14 @@ mod playlists {
         Ok(bytes)
     }
 
-    fn children(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>, parent: u32) -> Result<Vec<u32>> {
+    fn children(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>, parent: i64) -> Result<Vec<i64>> {
         Ok(Playlist::by_parent_id(conn, &parent)?
             .iter()
             .map(|p| p.id)
             .collect())
     }
 
-    fn contents(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>, parent: u32) -> Result<Vec<u32>> {
+    fn contents(conn: &mut DeviceSqlConnection<Cursor<Vec<u8>>>, parent: i64) -> Result<Vec<i64>> {
         Ok(PlaylistContent::by_playlist_id(conn, &parent)?
             .iter()
             .map(|p| p.content_id)
@@ -5705,7 +5723,7 @@ mod playlists {
             tx.insert(
                 PlaylistContent::TABLE,
                 &Row::Standard(StandardRow::PlaylistEntry(playlist_entry_row(
-                    &NewPlaylistContent::new(1, id, id),
+                    &NewPlaylistContent::new(1, id, u32::try_from(id).unwrap()),
                 ))),
             )?;
         }
@@ -6114,8 +6132,8 @@ mod playlists {
             assert_eq!(
                 (model.id, model.parent_id, model.seq, model.attribute as u32),
                 (
-                    binary.id,
-                    binary.parent_id,
+                    i64::from(binary.id),
+                    i64::from(binary.parent_id),
                     binary.position,
                     binary.folder_flag
                 )
@@ -6132,7 +6150,11 @@ mod playlists {
             };
             assert_eq!(
                 (model.playlist_id, model.content_id, model.seq),
-                (binary.playlist_id, binary.track_id, binary.position)
+                (
+                    i64::from(binary.playlist_id),
+                    i64::from(binary.track_id),
+                    binary.position
+                )
             );
             assert_eq!(model.raw_record(), &record);
         }
@@ -6247,9 +6269,9 @@ mod catalog {
     struct Case {
         table: TableKind,
         insert: fn(&mut MemoryConnection, &str) -> Result<RowRecord>,
-        find: fn(&mut MemoryConnection, u32) -> Result<Option<RowRecord>>,
+        find: fn(&mut MemoryConnection, i64) -> Result<Option<RowRecord>>,
         all: fn(&mut MemoryConnection) -> Result<Vec<RowRecord>>,
-        exists: fn(&mut MemoryConnection, u32) -> Result<bool>,
+        exists: fn(&mut MemoryConnection, i64) -> Result<bool>,
         lazy: fn(&mut MemoryConnection) -> Result<()>,
         decode: fn(RowRecord) -> Result<String>,
     }
@@ -6506,7 +6528,7 @@ mod catalog {
                     Row::Standard(StandardRow::Color(row)) => u32::from(row.id),
                     _ => panic!("unexpected catalog table"),
                 };
-                assert_eq!((case.find)(&mut conn, id)?, Some(record));
+                assert_eq!((case.find)(&mut conn, i64::from(id))?, Some(record));
             }
         }
         assert_eq!(Artist::all(&mut conn)?.len(), 1);
@@ -6631,7 +6653,7 @@ mod catalog {
         track.genre_id = genre.id;
         track.label_id = label.id;
         track.key_id = key.id;
-        track.color_id = color.id as u8;
+        track.color_id = color.id;
         track.artwork_id = artwork.id;
         let model = track.insert(&mut conn)?;
         assert_eq!(Artist::find(&mut conn, &model.artist_id)?, Some(artist));
@@ -6639,10 +6661,7 @@ mod catalog {
         assert_eq!(Genre::find(&mut conn, &model.genre_id)?, Some(genre));
         assert_eq!(Label::find(&mut conn, &model.label_id)?, Some(label));
         assert_eq!(Key::find(&mut conn, &model.key_id)?, Some(key));
-        assert_eq!(
-            Color::find(&mut conn, &u16::from(model.color_id))?,
-            Some(color)
-        );
+        assert_eq!(Color::find(&mut conn, &model.color_id)?, Some(color));
         assert_eq!(Artwork::find(&mut conn, &model.artwork_id)?, Some(artwork));
         Ok(())
     }
@@ -6677,12 +6696,12 @@ fn native_tracks_are_lazy_detached_snapshots_with_original_bytes() -> Result<()>
     assert_eq!(tracks.len(), 2);
     for (mut model, record) in tracks.into_iter().zip(records) {
         let row = track_row(&record)?;
-        assert_eq!(model.id, row.header.id);
+        assert_eq!(model.id, i64::from(row.header.id));
         assert_eq!(model.title, row.text.title.text()?);
         assert_eq!(model.path, row.text.file_path.text()?);
         assert_eq!(model.analysis_path, row.text.analysis_path.text()?);
-        assert_eq!(model.bpmx100, row.header.tempo);
-        assert_eq!(model.length, row.header.duration);
+        assert_eq!(model.bpmx100, i64::from(row.header.tempo));
+        assert_eq!(model.length, i32::from(row.header.duration));
         assert_eq!(model.raw_record(), &record);
         assert_eq!(model.isrc()?, row.text.isrc.isrc_text()?);
         model.title = "detached edit".into();
@@ -6693,8 +6712,8 @@ fn native_tracks_are_lazy_detached_snapshots_with_original_bytes() -> Result<()>
         );
     }
     assert_eq!(conn.modified_page_count(), 0);
-    assert!(Content::find(&mut conn, &u32::MAX)?.is_none());
-    assert!(!Content::id_exists(&mut conn, &u32::MAX)?);
+    assert!(Content::find(&mut conn, &i64::from(u32::MAX))?.is_none());
+    assert!(!Content::id_exists(&mut conn, &i64::from(u32::MAX))?);
     Ok(())
 }
 
@@ -6835,8 +6854,8 @@ fn malformed_text_is_contextual_but_id_queries_do_not_decode_it() -> Result<()> 
     // A valid frame containing an unpaired UTF-16 high surrogate.
     bytes[title_start..title_start + 6].copy_from_slice(&[0x90, 6, 0, 0, 0, 0xd8]);
     let mut corrupt = DeviceSqlConnection::from_reader(Cursor::new(bytes), DatabaseKind::Standard)?;
-    assert!(Content::id_exists(&mut corrupt, &row.header.id)?);
-    match Content::find(&mut corrupt, &row.header.id) {
+    assert!(Content::id_exists(&mut corrupt, &i64::from(row.header.id))?);
+    match Content::find(&mut corrupt, &i64::from(row.header.id)) {
         Err(Error::ModelText {
             field,
             page,
@@ -7101,7 +7120,7 @@ fn shared_track_conversion_resolves_names_and_preserves_metadata() -> Result<()>
     input.master_content_id = 123;
     input.title = "Track".into();
     input.file_type = 11;
-    input.file_size = u32::MAX;
+    input.file_size = i64::from(u32::MAX);
     input.bpmx100 = 12835;
     input.length = 241;
     input.rating = 5;

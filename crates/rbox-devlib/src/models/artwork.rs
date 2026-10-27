@@ -5,7 +5,9 @@
 
 use std::io::{Read, Seek};
 
-use super::{next_id, read_fields, text, text_error, unsupported, validate_id, Content};
+use super::{
+    checked_number, next_id, read_fields, text, text_error, unsupported, validate_id, Content,
+};
 use crate::binary::{NamedRow, PageType, Row, RowRecord, StandardRow, TableKind, TrackHeader};
 use crate::devicesql::DeviceSqlConnection;
 use crate::{Error, Result};
@@ -18,7 +20,7 @@ use crate::{Error, Result};
 #[derive(Clone, PartialEq, Eq)]
 pub struct Artwork {
     /// Export artwork ID.
-    pub id: u32,
+    pub id: i64,
 
     /// Original artwork path, preserving stored separators.
     pub path: String,
@@ -57,11 +59,12 @@ impl Artwork {
     /// Only the selected model's text is converted. Duplicate IDs are an error.
     pub fn find<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        id: &u32,
+        id: &i64,
     ) -> Result<Option<Self>> {
+        let id: u32 = checked_number(*id, "id")?;
         let location = conn
             .index_rows(Self::TABLE, Self::read_id)?
-            .get(id)
+            .get(&id)
             .copied();
         location
             .map(|location| Self::try_from(conn.read_indexed_row(Self::TABLE, location)?))
@@ -87,10 +90,11 @@ impl Artwork {
     }
 
     /// Check an ID using the engine index without converting string frames to text.
-    pub fn id_exists<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<bool> {
+    pub fn id_exists<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &i64) -> Result<bool> {
+        let id: u32 = checked_number(*id, "id")?;
         Ok(conn
             .index_rows(Self::TABLE, Self::read_id)?
-            .contains_key(id))
+            .contains_key(&id))
     }
 
     /// Persist an edited image path and return a refreshed artwork snapshot.
@@ -117,7 +121,7 @@ impl Artwork {
         let mut tx = conn.transaction();
         let location = tx
             .index_rows(Self::TABLE, Self::read_id)?
-            .get(&original.id)
+            .get(&checked_number(original.id, "id")?)
             .copied()
             .ok_or(Error::ModelNotFound {
                 table: Self::TABLE,
@@ -153,11 +157,16 @@ impl Artwork {
     /// references; ID zero is rejected.
     /// Changes remain in memory until explicitly saved. Any error rolls back the
     /// artwork deletion and all content-reference updates.
-    pub fn delete<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &u32) -> Result<usize> {
+    pub fn delete<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>, id: &i64) -> Result<usize> {
+        let _: u32 = checked_number(*id, "id")?;
         conn.check_kind(Self::TABLE)?;
         validate_id(Self::TABLE, *id)?;
         let mut tx = conn.transaction();
-        let Some(location) = tx.index_rows(Self::TABLE, Self::read_id)?.get(id).copied() else {
+        let Some(location) = tx
+            .index_rows(Self::TABLE, Self::read_id)?
+            .get(&checked_number(*id, "id")?)
+            .copied()
+        else {
             return Ok(0);
         };
         let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
@@ -170,7 +179,7 @@ impl Artwork {
             if header.subtype != TrackHeader::SUBTYPE {
                 return Err(unsupported(&record));
             }
-            if header.artwork_id == *id {
+            if i64::from(header.artwork_id) == *id {
                 locations.push((record.page(), record.slot().slot));
             }
         }
@@ -203,7 +212,7 @@ impl Artwork {
     }
 
     /// Generate the next export ID: the highest live ID plus one, or 1 when empty.
-    fn generate_id<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<u32> {
+    fn generate_id<R: Read + Seek>(conn: &mut DeviceSqlConnection<R>) -> Result<i64> {
         next_id(conn, Self::TABLE, Self::read_id)
     }
 }
@@ -220,7 +229,7 @@ impl TryFrom<RowRecord> for Artwork {
             return Err(unsupported(&record));
         };
         Ok(Self {
-            id: row.id,
+            id: i64::from(row.id),
 
             path: row
                 .name
@@ -262,11 +271,11 @@ impl NewArtwork {
         let mut tx = conn.transaction();
         if tx
             .index_rows(Artwork::TABLE, Artwork::read_id)?
-            .contains_key(&id)
+            .contains_key(&checked_number(id, "id")?)
         {
             return Err(Error::DuplicateId {
                 table: Artwork::TABLE,
-                id,
+                id: checked_number(id, "id")?,
             });
         }
         let handle = tx.insert(Artwork::TABLE, &Row::Standard(StandardRow::Artwork(row)))?;
@@ -276,7 +285,7 @@ impl NewArtwork {
     }
 
     /// Encode fields with the allocated ID; the engine assigns placement.
-    fn to_binary(&self, id: u32) -> Result<NamedRow> {
+    fn to_binary(&self, id: i64) -> Result<NamedRow> {
         validate_id(Artwork::TABLE, id)?;
         if self.path.is_empty() {
             return Err(Error::InvalidModelField {
@@ -286,7 +295,7 @@ impl NewArtwork {
             });
         }
         Ok(NamedRow {
-            id,
+            id: checked_number(id, "id")?,
             name: text(&self.path)?,
         })
     }

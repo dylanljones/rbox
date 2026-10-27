@@ -20,7 +20,7 @@ fn converts_units_and_unsigned_fields() {
         rating: Some(5),
         bit_depth: Some(24),
         sample_rate: Some(192000),
-        track_no: Some(i32::MAX as u32),
+        track_no: Some(u32::MAX),
         disc_no: Some(2),
         release_year: Some(2026),
         bit_rate: Some(320),
@@ -32,7 +32,7 @@ fn converts_units_and_unsigned_fields() {
     assert_eq!(row.rating, Some(5));
     assert_eq!(row.bit_depth, Some(24));
     assert_eq!(row.sample_rate, Some(192000));
-    assert_eq!(row.track_no, Some(i32::MAX));
+    assert_eq!(row.track_no, Some(i64::from(u32::MAX)));
     assert_eq!(row.disc_no, Some(2));
     assert_eq!(row.release_year, Some(2026));
     assert_eq!(row.bit_rate, Some(320));
@@ -49,12 +49,6 @@ fn rejects_invalid_floats_and_integer_overflow() {
         assert!(NewDjmdContent::try_from(&metadata).is_err());
     }
     let mut metadata = TrackMetadata::new("track.wav");
-    metadata.track_no = Some(i32::MAX as u32 + 1);
-    assert!(NewDjmdContent::try_from(&metadata).is_err());
-    metadata.track_no = None;
-    metadata.sample_rate = Some(u32::MAX);
-    assert!(NewDjmdContent::try_from(&metadata).is_err());
-    metadata.sample_rate = None;
     metadata.rating = Some(6);
     assert!(NewDjmdContent::try_from(&metadata).is_err());
     assert!(NewDjmdContent::try_from(&TrackMetadata::new("track.wav")).is_ok());
