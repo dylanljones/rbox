@@ -41,8 +41,13 @@ yarn add rbox-js
 ## Quick-Start
 
 > **❗ Caution**:
-> Please make sure to back up your Rekordbox collection before making changes to rekordbox data.
-> The backup dialog can be found under "File" > "Library" > "Backup Library"
+> Please make sure to back up your Rekordbox collection before making changes to local rekordbox data.
+> The backup dialog can be found under "File" > "Library" > "Backup Library".
+>
+> DeviceSQL and One Library support is experimental and may contain bugs.
+> Exports are not backed up by Rekordbox, so make sure to back up your USB device or SD card
+> before making changes. Test generated exports on your hardware before relying on them.
+
 
 ### Rekordbox 6/7 database
 
@@ -61,10 +66,6 @@ for (const content of db.getContents()) {
 ```
 
 ### One Library (Device Library Plus)
-
-> **⚠️ Warning**: One Library support is experimental and may contain bugs. Back up existing databases
-> and test generated exports on your hardware before relying on them.
-> See [rbox-onelib](https://github.com/dylanljones/rbox/tree/main/crates/rbox-onelib) for more information.
 
 For newer generation Pioneer DJ devices, Rekordbox exports a new library format to the USB storage
 device (or SD card), called ``One Library`` (formerly known as ``Device Library Plus``).
@@ -88,10 +89,6 @@ for (const content of db.getContents()) {
 
 ### Device Library (DeviceSQL)
 
-> **⚠️ Warning**: DeviceSQL support is experimental and may contain bugs. Back up existing databases
-> and test generated exports on your hardware before relying on them.
-> See [rbox-devlib](https://github.com/dylanljones/rbox/tree/main/crates/rbox-devlib) for more information.
-
 Rekordbox stores Device Library exports in the binary `export.pdb` database and
 an optional `exportExt.pdb` file under `PIONEER/rekordbox` on the export device.
 Pass the database directory to `DeviceLibrary`. Pages are loaded on demand,
@@ -104,19 +101,6 @@ const db = new DeviceLibrary('PIONEER/rekordbox')
 for (const content of db.getContents()) {
     console.log(content)
 }
-```
-
-Content reads return plain objects, including the `content` field of resolved views.
-Insert with an object containing a required `path`; other metadata is optional.
-Update by ID with only the fields to change. Omitted fields retain their current
-values, and private binary data is preserved. Changes stay in memory until saved.
-`DevContent` and `NewDevContent` are TypeScript interfaces, not constructors.
-
-```javascript
-const content = db.insertContent({ path: '/Contents/track.wav', title: 'Track' })
-const updated = db.updateContent(content.id, { title: 'Renamed', rating: 4 })
-console.log({ ...updated })
-db.save()
 ```
 
 ### Rekordbox ANLZ files

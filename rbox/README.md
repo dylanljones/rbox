@@ -93,8 +93,13 @@ These features are used in the bindings and *should not be enabled manually*:
 ## Quick-Start
 
 > **❗ Caution**:
-> Please make sure to back up your Rekordbox collection before making changes to rekordbox data.
-> The backup dialog can be found under "File" > "Library" > "Backup Library"
+> Please make sure to back up your Rekordbox collection before making changes to local rekordbox data.
+> The backup dialog can be found under "File" > "Library" > "Backup Library".
+>
+> DeviceSQL and One Library support is experimental and may contain bugs.
+> Exports are not backed up by Rekordbox, so make sure to back up your USB device or SD card
+> before making changes. Test generated exports on your hardware before relying on them.
+
 
 ### Rekordbox 6/7 database
 
@@ -117,10 +122,6 @@ fn main() -> anyhow::Result<()> {
 ```
 
 ### One Library (Device Library Plus)
-
-> **⚠️ Warning**: One Library support is experimental and may contain bugs. Back up existing databases
-> and test generated exports on your hardware before relying on them.
-> See the `rbox-onelib` crate for more information.
 
 For newer generation Pioneer DJ devices, Rekordbox exports a new library format to the USB storage
 device (or SD card), called ``One Library`` (formerly known as ``Device Library Plus``).
@@ -146,10 +147,6 @@ fn main() -> anyhow::Result<()> {
 ```
 
 ### Device Library (DeviceSQL)
-
-> **⚠️ Warning**: DeviceSQL support is experimental and may contain bugs. Back up existing databases
-> and test generated exports on your hardware before relying on them.
-> See the `rbox-devlib` crate for more information.
 
 Rekordbox stores Device Library exports in the binary `export.pdb` database and
 an optional `exportExt.pdb` file under `PIONEER/rekordbox` on the export device.
