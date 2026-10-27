@@ -177,7 +177,7 @@ the databases to a new destination.
 ### Rekordbox ANLZ files
 
 Rekordbox stores analysis information of the tracks in the collection in specific files,
-which also get exported to decives used by Pioneer professional DJ equipment. The files
+which also get exported to devices used by Pioneer professional DJ equipment. The files
 have names like `ANLZ0000` and come with the extensions `.DAT`, `.EXT` or `.2EX`.
 They include waveforms, beat grids (information about the precise time at which
 each beat occurs), time indices to allow efficient seeking to specific positions
@@ -209,8 +209,8 @@ fn main() -> anyhow::Result<()> {
 ### Rekordbox My-Settings
 
 Rekordbox stores the user settings in `*SETTING.DAT` files, which get exported to USB
-devices. These files are either in the `PIONEER`directory of a USB drive
-(device exports), but are also present for on local installations of Rekordbox 6.
+devices. These files are either in the `PIONEER` directory of a USB drive
+(device exports), but are also present for on local installations of Rekordbox.
 The setting files store the settings found on the "DJ System" > "My Settings" page of
 the Rekordbox preferences. These include language, LCD brightness, tempo fader range,
 crossfader curve and other settings for Pioneer professional DJ equipment.
@@ -270,7 +270,6 @@ If rbox has helped you or saved you time, consider supporting its development - 
 
 [![BuyMeACoffee](https://raw.githubusercontent.com/pachadotdev/buymeacoffee-badges/main/bmc-white.svg)](https://www.buymeacoffee.com/dylanljones)
 
-[sqlcipher]: https://www.zetetic.net/sqlcipher/open-source/
 [LICENSE]: https://github.com/dylanljones/rbox/blob/main/LICENSE
 
 [OPUS-QUAD]: https://www.pioneerdj.com/en/product/all-in-one-system/opus-quad/black/overview/
