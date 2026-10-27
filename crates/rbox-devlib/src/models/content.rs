@@ -18,7 +18,7 @@ use napi_derive::napi;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 #[cfg(feature = "pyo3")]
-use rbox_derives::{pyclass_public, PyMutableMapping};
+use rbox_derives::{pyclass_public, PyConstructor, PyMutableMapping};
 
 use super::playlist::remove_associations;
 use super::{
@@ -979,9 +979,10 @@ impl TryFrom<RowRecord> for DevContent {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "pyo3", pyclass_public(from_py_object, mapping))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", derive(rbox_derives::NapiPublic))]
 #[cfg_attr(feature = "napi", napi_public(input = NewDevContentInput, required(path), constructor = new))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(path)))]
 pub struct NewDevContent {
     /// Main artist ID.
     pub artist_id: i64,
@@ -1062,15 +1063,6 @@ pub struct NewDevContent {
 
     /// Optional reserved authoring overrides; absent values use the writer defaults at insertion.
     creation: Option<TrackCreationOptions>,
-}
-
-#[cfg(feature = "pyo3")]
-#[pymethods]
-impl NewDevContent {
-    #[new]
-    fn py_new(path: String) -> Self {
-        Self::new(path)
-    }
 }
 
 impl NewDevContent {

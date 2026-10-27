@@ -12,7 +12,7 @@ use napi_derive::napi;
 use pyo3::prelude::*;
 use rbox_core::{PathExt, Track, TrackSource};
 #[cfg(feature = "pyo3")]
-use rbox_derives::PyMutableMapping;
+use rbox_derives::{PyConstructor, PyMutableMapping};
 use std::path::PathBuf;
 
 use super::album::Album;
@@ -655,8 +655,9 @@ impl Content {
 #[diesel(table_name = content)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(path)))]
 pub struct NewContent {
     /// The date the record was created
     #[diesel(serialize_as = DateString)]

@@ -11,7 +11,7 @@ use napi_derive::napi;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 #[cfg(feature = "pyo3")]
-use rbox_derives::PyMutableMapping;
+use rbox_derives::{PyConstructor, PyMutableMapping};
 use std::path::PathBuf;
 use uuid::Uuid;
 
@@ -680,8 +680,9 @@ impl DjmdContent {
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(folder_path)))]
 pub struct NewDjmdContent {
     /// The path of the track file.
     pub folder_path: String,

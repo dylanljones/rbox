@@ -518,6 +518,16 @@ class DjmdAlbum(_RustMutableMapping):
 class NewDjmdAlbum(_RustMutableMapping):
     """Represents a new record insertale to the `djmdAlbum` table."""
 
+    def __init__(
+        self,
+        name: str,
+        *,
+        album_artist_id: Optional[str] = ...,
+        image_path: Optional[str] = ...,
+        compilation: Optional[int] = ...,
+        search_str: Optional[str] = ...,
+    ) -> None: ...
+
     name: str
     """The name of the album."""
     album_artist_id: Optional[str]
@@ -559,6 +569,13 @@ class DjmdArtist(_RustMutableMapping):
 
 class NewDjmdArtist(_RustMutableMapping):
     """Represents a new record insertale to the `djmdArtist` table."""
+
+    def __init__(
+        self,
+        name: str,
+        *,
+        search_str: Optional[str] = ...,
+    ) -> None: ...
 
     name: str
     """The name of the artist."""
@@ -819,6 +836,64 @@ class DjmdContent(_RustMutableMapping):
 class NewDjmdContent(_RustMutableMapping):
     """Represents a new record insertale to the `djmdContent` table."""
 
+    def __init__(
+        self,
+        folder_path: str,
+        *,
+        title: Optional[str] = ...,
+        artist_id: Optional[str] = ...,
+        album_id: Optional[str] = ...,
+        genre_id: Optional[str] = ...,
+        bpm: Optional[int] = ...,
+        length: Optional[int] = ...,
+        track_no: Optional[int] = ...,
+        bit_rate: Optional[int] = ...,
+        bit_depth: Optional[int] = ...,
+        commnt: Optional[str] = ...,
+        file_type: Optional[int] = ...,
+        rating: Optional[int] = ...,
+        release_year: Optional[int] = ...,
+        remixer_id: Optional[str] = ...,
+        label_id: Optional[str] = ...,
+        org_artist_id: Optional[str] = ...,
+        key_id: Optional[str] = ...,
+        stock_date: Optional[str] = ...,
+        color_id: Optional[str] = ...,
+        dj_play_count: Optional[int] = ...,
+        image_path: Optional[str] = ...,
+        analysis_data_path: Optional[str] = ...,
+        search_str: Optional[str] = ...,
+        disc_no: Optional[int] = ...,
+        composer_id: Optional[str] = ...,
+        subtitle: Optional[str] = ...,
+        sample_rate: Optional[int] = ...,
+        release_date: Optional[str] = ...,
+        date_created: Optional[str] = ...,
+        content_link: Optional[int] = ...,
+        tag: Optional[str] = ...,
+        delivery_comment: Optional[str] = ...,
+        lyricist: Optional[str] = ...,
+        isrc: Optional[str] = ...,
+        sampler_track_info: Optional[int] = ...,
+        sampler_play_offset: Optional[int] = ...,
+        sampler_gain: Optional[float] = ...,
+        video_associate: Optional[str] = ...,
+        lyric_status: Optional[int] = ...,
+        org_folder_path: Optional[str] = ...,
+        reserved1: Optional[str] = ...,
+        reserved2: Optional[str] = ...,
+        reserved3: Optional[str] = ...,
+        reserved4: Optional[str] = ...,
+        ext_info: Optional[str] = ...,
+        device_id: Optional[str] = ...,
+        rb_local_folder_path: Optional[str] = ...,
+        src_id: Optional[str] = ...,
+        src_title: Optional[str] = ...,
+        src_artist_name: Optional[str] = ...,
+        src_album_name: Optional[str] = ...,
+        src_length: Optional[int] = ...,
+    ) -> None: ...
+
     folder_path: str
     """An optional string representing the folder path of the track."""
     title: Optional[str]
@@ -995,6 +1070,11 @@ class DjmdGenre(_RustMutableMapping):
 class NewDjmdGenre(_RustMutableMapping):
     """Represents a new record insertale to the `djmdGenre` table."""
 
+    def __init__(
+        self,
+        name: str,
+    ) -> None: ...
+
     name: str
     """The name of the genre."""
 
@@ -1034,6 +1114,16 @@ class DjmdHistory(_RustMutableMapping):
 
 class NewDjmdHistory(_RustMutableMapping):
     """Represents a new record insertale to the `djmdHistory` table."""
+
+    def __init__(
+        self,
+        name: str,
+        attribute: HistoryType,
+        *,
+        seq: Optional[int] = ...,
+        parent_id: Optional[str] = ...,
+        date_created: Optional[str] = ...,
+    ) -> None: ...
 
     name: str
     """The name of the history."""
@@ -1078,6 +1168,14 @@ class DjmdSongHistory(_RustMutableMapping):
 
 class NewDjmdSongHistory(_RustMutableMapping):
     """Represents a new record insertale to the `djmdSongHistory` table."""
+
+    def __init__(
+        self,
+        history_id: str,
+        content_id: str,
+        *,
+        track_no: Optional[int] = ...,
+    ) -> None: ...
 
     history_id: str
     """The ID of the associated history entry in [`DjmdHistory`]."""
@@ -1247,6 +1345,13 @@ class DjmdKey(_RustMutableMapping):
 class NewDjmdKey(_RustMutableMapping):
     """Represents a new record insertale to the `djmdKey` table."""
 
+    def __init__(
+        self,
+        name: str,
+        *,
+        seq: Optional[int] = ...,
+    ) -> None: ...
+
     name: str
     """The name of the musical key."""
     seq: Optional[int]
@@ -1280,6 +1385,11 @@ class DjmdLabel(_RustMutableMapping):
 
 class NewDjmdLabel(_RustMutableMapping):
     """Represents a new record insertale to the `djmdLabel` table."""
+
+    def __init__(
+        self,
+        name: str,
+    ) -> None: ...
 
     name: str
     """The name of the label."""
@@ -1381,6 +1491,15 @@ class DjmdMyTag(_RustMutableMapping):
 class NewDjmdMyTag(_RustMutableMapping):
     """Represents a new record insertale to the `djmdMyTag` table."""
 
+    def __init__(
+        self,
+        name: str,
+        attribute: MyTagType,
+        *,
+        seq: Optional[int] = ...,
+        parent_id: Optional[str] = ...,
+    ) -> None: ...
+
     name: str
     """The name of the tag"""
     attribute: MyTagType
@@ -1422,6 +1541,14 @@ class DjmdSongMyTag(_RustMutableMapping):
 
 class NewDjmdSongMyTag(_RustMutableMapping):
     """Represents a new record insertale to the `djmdSongMyTag` table."""
+
+    def __init__(
+        self,
+        my_tag_id: str,
+        content_id: str,
+        *,
+        track_no: Optional[int] = ...,
+    ) -> None: ...
 
     my_tag_id: str
     """The ID of the associated [`DjmdMyTag`]."""
@@ -1469,6 +1596,17 @@ class DjmdPlaylist(_RustMutableMapping):
 class NewDjmdPlaylist(_RustMutableMapping):
     """Represents a new record insertale to the `djmdPlaylist` table."""
 
+    def __init__(
+        self,
+        name: str,
+        attribute: PlaylistType,
+        *,
+        seq: Optional[int] = ...,
+        parent_id: Optional[str] = ...,
+        image_path: Optional[str] = ...,
+        smart_list: Optional[str] = ...,
+    ) -> None: ...
+
     name: str
     """The name of the playlist."""
     attribute: PlaylistType
@@ -1514,6 +1652,14 @@ class DjmdSongPlaylist(_RustMutableMapping):
 
 class NewDjmdSongPlaylist(_RustMutableMapping):
     """Represents a new record insertale to the `djmdSongPlaylist` table."""
+
+    def __init__(
+        self,
+        playlist_id: str,
+        content_id: str,
+        *,
+        track_no: Optional[int] = ...,
+    ) -> None: ...
 
     playlist_id: str
     """The ID of the associated playlist in [`DjmdPlaylist`]."""
@@ -1655,6 +1801,16 @@ class DjmdRelatedTracks(_RustMutableMapping):
 class NewDjmdRelatedTracks(_RustMutableMapping):
     """Represents a new record insertale to the `djmdRelatedTracks` table."""
 
+    def __init__(
+        self,
+        name: str,
+        attribute: RelatedTracksType,
+        *,
+        seq: Optional[int] = ...,
+        parent_id: Optional[str] = ...,
+        criteria: Optional[str] = ...,
+    ) -> None: ...
+
     name: str
     """The name of the related track."""
     attribute: RelatedTracksType
@@ -1699,6 +1855,14 @@ class DjmdSongRelatedTracks(_RustMutableMapping):
 class NewDjmdSongRelatedTracks(_RustMutableMapping):
     """Represents a new record insertale to the `djmdSongRelatedTracks` table."""
 
+    def __init__(
+        self,
+        related_tracks_id: str,
+        content_id: str,
+        *,
+        track_no: Optional[int] = ...,
+    ) -> None: ...
+
     related_tracks_id: str
     """The ID of the associated playlist in [`DjmdPlaylist`]."""
     content_id: str
@@ -1741,6 +1905,15 @@ class DjmdSampler(_RustMutableMapping):
 class NewDjmdSampler(_RustMutableMapping):
     """Represents a new record insertale to the `djmdSampler` table."""
 
+    def __init__(
+        self,
+        name: str,
+        attribute: SamplerType,
+        *,
+        seq: Optional[int] = ...,
+        parent_id: Optional[str] = ...,
+    ) -> None: ...
+
     name: str
     """The name of the sampler."""
     attribute: SamplerType
@@ -1782,6 +1955,14 @@ class DjmdSongSampler(_RustMutableMapping):
 
 class NewDjmdSongSampler(_RustMutableMapping):
     """Represents a new record insertale to the `djmdSongSampler` table."""
+
+    def __init__(
+        self,
+        sampler_id: str,
+        content_id: str,
+        *,
+        track_no: Optional[int] = ...,
+    ) -> None: ...
 
     sampler_id: str
     """The ID of the associated sampler in [`DjmdSampler`]."""
@@ -2673,6 +2854,16 @@ class Album(_RustMutableMapping):
 class NewAlbum(_RustMutableMapping):
     """Represents a new record insertale to the `album` table."""
 
+    def __init__(
+        self,
+        name: str,
+        *,
+        artist_id: Optional[int] = ...,
+        image_id: Optional[int] = ...,
+        is_compilation: int = ...,
+        name_for_search: Optional[str] = ...,
+    ) -> None: ...
+
     name: str
     """The name of the album."""
     artist_id: Optional[int]
@@ -2696,6 +2887,13 @@ class Artist(_RustMutableMapping):
 
 class NewArtist(_RustMutableMapping):
     """Represents a new record insertale to the `artist` table."""
+
+    def __init__(
+        self,
+        name: str,
+        *,
+        name_for_search: Optional[str] = ...,
+    ) -> None: ...
 
     name: str
     """The name of the artist."""
@@ -2748,6 +2946,14 @@ class Category(_RustMutableMapping):
 class NewCategory(_RustMutableMapping):
     """Represents a new record insertale to the `category` table."""
 
+    def __init__(
+        self,
+        menu_item_id: int,
+        *,
+        seq: int = ...,
+        is_visible: int = ...,
+    ) -> None: ...
+
     menu_item_id: int
     """A foreign key referencing the [`MenuItem`]."""
     seq: int
@@ -2765,6 +2971,11 @@ class Color(_RustMutableMapping):
 
 class NewColor(_RustMutableMapping):
     """Represents a new record insertale to the `color` table."""
+
+    def __init__(
+        self,
+        name: str,
+    ) -> None: ...
 
     name: str
     """The name of the color"""
@@ -2898,6 +3109,55 @@ class Content(_RustMutableMapping):
 
 class NewContent(_RustMutableMapping):
     """Represents a new record insertale to the `content` table."""
+
+    def __init__(
+        self,
+        path: str,
+        *,
+        date_created: datetime = ...,
+        date_added: datetime = ...,
+        title: Optional[str] = ...,
+        title_for_search: Optional[str] = ...,
+        subtitle: Optional[str] = ...,
+        bpmx100: Optional[int] = ...,
+        length: Optional[int] = ...,
+        track_no: Optional[int] = ...,
+        disc_no: Optional[int] = ...,
+        artist_id: Optional[int] = ...,
+        remixer_id: Optional[int] = ...,
+        original_artist_id: Optional[int] = ...,
+        composer_id: Optional[int] = ...,
+        lyricist_id: Optional[int] = ...,
+        album_id: Optional[int] = ...,
+        genre_id: Optional[int] = ...,
+        label_id: Optional[int] = ...,
+        key_id: Optional[int] = ...,
+        color_id: Optional[int] = ...,
+        image_id: Optional[int] = ...,
+        dj_comment: Optional[str] = ...,
+        rating: Optional[int] = ...,
+        release_year: Optional[int] = ...,
+        release_date: Optional[str] = ...,
+        file_name: Optional[str] = ...,
+        file_size: Optional[int] = ...,
+        file_type: Optional[int] = ...,
+        bitrate: Optional[int] = ...,
+        bit_depth: Optional[int] = ...,
+        sampling_rate: Optional[int] = ...,
+        isrc: Optional[str] = ...,
+        is_hot_cue_auto_load_on: Optional[int] = ...,
+        is_kuvo_deliver_status_on: Optional[int] = ...,
+        kuvo_delivery_comment: Optional[str] = ...,
+        master_db_id: Optional[int] = ...,
+        master_content_id: Optional[int] = ...,
+        analysis_data_file_path: Optional[str] = ...,
+        analysed_bits: Optional[int] = ...,
+        content_link: Optional[int] = ...,
+        has_modified: Optional[int] = ...,
+        cue_update_count: Optional[int] = ...,
+        analysis_data_update_count: Optional[int] = ...,
+        information_update_count: Optional[int] = ...,
+    ) -> None: ...
 
     date_created: datetime
     """The date the record was created"""
@@ -3047,6 +3307,11 @@ class Genre(_RustMutableMapping):
 class NewGenre(_RustMutableMapping):
     """Represents a new record insertale to the `genre` table."""
 
+    def __init__(
+        self,
+        name: str,
+    ) -> None: ...
+
     name: str
     """The name of the genre."""
 
@@ -3067,7 +3332,16 @@ class History(_RustMutableMapping):
 class NewHistory(_RustMutableMapping):
     """Represents a new record insertale to the `history` table."""
 
-    seq: int
+    def __init__(
+        self,
+        name: str,
+        attribute: HistoryType,
+        *,
+        seq: Optional[int] = ...,
+        parent_id: int = ...,
+    ) -> None: ...
+
+    seq: Optional[int]
     """The sequence/order number of the history (1-based index)"""
     name: str
     """The name of the history."""
@@ -3123,6 +3397,11 @@ class Image(_RustMutableMapping):
 class NewImage(_RustMutableMapping):
     """Represents a new record insertale to the `image` table."""
 
+    def __init__(
+        self,
+        path: str,
+    ) -> None: ...
+
     path: str
     """The relative file path of the image."""
 
@@ -3137,6 +3416,11 @@ class Key(_RustMutableMapping):
 class NewKey(_RustMutableMapping):
     """Represents a new record insertale to the `key` table."""
 
+    def __init__(
+        self,
+        name: str,
+    ) -> None: ...
+
     name: str
     """The name of the key."""
 
@@ -3150,6 +3434,11 @@ class Label(_RustMutableMapping):
 
 class NewLabel(_RustMutableMapping):
     """Represents a new record insertale to the `label` table."""
+
+    def __init__(
+        self,
+        name: str,
+    ) -> None: ...
 
     name: str
     """The name of the label."""
@@ -3166,6 +3455,12 @@ class MenuItem(_RustMutableMapping):
 
 class NewMenuItem(_RustMutableMapping):
     """Represents a new record insertale to the `menuItem` table."""
+
+    def __init__(
+        self,
+        name: str,
+        kind: int,
+    ) -> None: ...
 
     kind: int
     """The kind of menu item (similar to `class` in the main DB)."""
@@ -3189,7 +3484,16 @@ class MyTag(_RustMutableMapping):
 class NewMyTag(_RustMutableMapping):
     """Represents a new record insertale to the `myTag` table."""
 
-    seq: int
+    def __init__(
+        self,
+        name: str,
+        attribute: MyTagType,
+        *,
+        seq: Optional[int] = ...,
+        parent_id: int = ...,
+    ) -> None: ...
+
+    seq: Optional[int]
     """The sequence/order number of the tag (1-based index)."""
     name: str
     """The name of the tag."""
@@ -3225,7 +3529,17 @@ class Playlist(_RustMutableMapping):
 class NewPlaylist(_RustMutableMapping):
     """Represents a new record insertale to the `playlist` table."""
 
-    seq: int
+    def __init__(
+        self,
+        name: str,
+        attribute: PlaylistType,
+        *,
+        seq: Optional[int] = ...,
+        image_id: Optional[int] = ...,
+        parent_id: int = ...,
+    ) -> None: ...
+
+    seq: Optional[int]
     """The sequence/order number of the playlist (1-based index)."""
     name: str
     """The name of the playlist."""
@@ -3290,6 +3604,15 @@ class Sort(_RustMutableMapping):
 
 class NewSort(_RustMutableMapping):
     """Represents a new record insertale to the `sort` table."""
+
+    def __init__(
+        self,
+        menu_item_id: int,
+        *,
+        seq: int = ...,
+        is_visible: int = ...,
+        is_selected_as_sub_column: int = ...,
+    ) -> None: ...
 
     menu_item_id: int
     """An optional foreign key referencing the [`MenuItem`]."""
@@ -4154,6 +4477,15 @@ class DevAlbumView:
 class NewDevAlbum(_RustMutableMapping):
     """Input for a fresh album, without an existing raw row."""
 
+    def __init__(
+        self,
+        name: str,
+        *,
+        artist_id: int = ...,
+        unknown_04: int = ...,
+        unknown_10: int = ...,
+    ) -> None: ...
+
     artist_id: int
     """Album artist ID, independent of the track artist; zero means unassigned."""
     name: str
@@ -4174,6 +4506,11 @@ class DevArtist(_RustMutableMapping):
 class NewDevArtist(_RustMutableMapping):
     """Input for a fresh artist, without an existing raw row."""
 
+    def __init__(
+        self,
+        name: str,
+    ) -> None: ...
+
     name: str
     """Decoded display name, preserving empty text."""
 
@@ -4187,6 +4524,11 @@ class DevArtwork(_RustMutableMapping):
 
 class NewDevArtwork(_RustMutableMapping):
     """Input for a fresh artwork, without an existing raw row."""
+
+    def __init__(
+        self,
+        path: str,
+    ) -> None: ...
 
     path: str
     """Original artwork path, preserving stored separators."""
@@ -4344,7 +4686,48 @@ class DevContentView:
 class NewDevContent(_RustMutableMapping):
     """Input for a fresh track; no source row or existing PDB is required."""
 
-    def __init__(self, path: str) -> None: ...
+    def __init__(
+        self,
+        path: str,
+        *,
+        artist_id: int = ...,
+        album_id: int = ...,
+        genre_id: int = ...,
+        label_id: int = ...,
+        key_id: int = ...,
+        artwork_id: int = ...,
+        composer_id: int = ...,
+        original_artist_id: int = ...,
+        remixer_id: int = ...,
+        master_content_id: int = ...,
+        master_db_id: int = ...,
+        sample_rate: int = ...,
+        file_size: int = ...,
+        bitrate: int = ...,
+        bpmx100: int = ...,
+        length: int = ...,
+        track_no: int = ...,
+        disc_no: int = ...,
+        play_count: int = ...,
+        release_year: int = ...,
+        bit_depth: int = ...,
+        color_id: int = ...,
+        rating: int = ...,
+        file_type: int = ...,
+        title: str = ...,
+        comment: str = ...,
+        mix_name: str = ...,
+        lyricist: str = ...,
+        message: str = ...,
+        publish_track_info: str = ...,
+        hot_cue_auto_load: str = ...,
+        date_added: str = ...,
+        release_date: str = ...,
+        analysis_date: str = ...,
+        analysis_path: str = ...,
+        file_name: str = ...,
+        isrc: str = ...,
+    ) -> None: ...
 
     artist_id: int
     """Main artist ID."""
@@ -4434,6 +4817,11 @@ class DevGenre(_RustMutableMapping):
 class NewDevGenre(_RustMutableMapping):
     """Input for a fresh genre, without an existing raw row."""
 
+    def __init__(
+        self,
+        name: str,
+    ) -> None: ...
+
     name: str
     """Decoded display name, preserving empty text."""
 
@@ -4447,6 +4835,11 @@ class DevHistory(_RustMutableMapping):
 
 class NewDevHistory(_RustMutableMapping):
     """Input for a fresh history playlist, without an existing raw row."""
+
+    def __init__(
+        self,
+        name: str,
+    ) -> None: ...
 
     name: str
     """Decoded display name, preserving empty text."""
@@ -4463,6 +4856,13 @@ class DevHistoryContent(_RustMutableMapping):
 
 class NewDevHistoryContent(_RustMutableMapping):
     """Input for a fresh history occurrence, without a synthetic ID or source row."""
+
+    def __init__(
+        self,
+        history_id: int,
+        content_id: int,
+        seq: int,
+    ) -> None: ...
 
     history_id: int
     """Nonzero history-playlist ID; existence is not checked."""
@@ -4484,6 +4884,12 @@ class DevKey(_RustMutableMapping):
 class NewDevKey(_RustMutableMapping):
     """Input for a fresh key, without an existing raw row."""
 
+    def __init__(
+        self,
+        name: str,
+        secondary_id: int,
+    ) -> None: ...
+
     secondary_id: int
     """Second stored ID, supplied independently; its role remains unknown."""
     name: str
@@ -4499,6 +4905,11 @@ class DevLabel(_RustMutableMapping):
 
 class NewDevLabel(_RustMutableMapping):
     """Input for a fresh label, without an existing raw row."""
+
+    def __init__(
+        self,
+        name: str,
+    ) -> None: ...
 
     name: str
     """Decoded display name, preserving empty text."""
@@ -4519,6 +4930,20 @@ class DevMyTag(_RustMutableMapping):
 
 class NewDevMyTag(_RustMutableMapping):
     """Input for a fresh My Tag/category, with an explicit ID and optional position."""
+
+    def __init__(
+        self,
+        id: int,
+        name: str,
+        attribute: MyTagType,
+        *,
+        parent_id: int = ...,
+        seq: Optional[int] = ...,
+        unknown_04: int = ...,
+        unknown_08: int = ...,
+        unknown_18: int = ...,
+        unknown_1a: int = ...,
+    ) -> None: ...
 
     id: int
     """Nonzero source main-database tag/category ID, unused in this export."""
@@ -4549,6 +4974,16 @@ class DevMyTagContent(_RustMutableMapping):
 
 class NewDevMyTagContent(_RustMutableMapping):
     """Input for a fresh track/tag association, without a synthetic row ID."""
+
+    def __init__(
+        self,
+        content_id: int,
+        my_tag_id: int,
+        *,
+        unknown_00: int = ...,
+        reserved_string_marker: int = ...,
+        reserved_tail: Sequence[int] = ...,
+    ) -> None: ...
 
     content_id: int
     """Nonzero export track ID in the standard database."""
@@ -4590,6 +5025,16 @@ class DevPlaylist(_RustMutableMapping):
 class NewDevPlaylist(_RustMutableMapping):
     """Input for a fresh playlist or folder; no existing raw row is needed."""
 
+    def __init__(
+        self,
+        name: str,
+        attribute: PlaylistType,
+        *,
+        parent_id: int = ...,
+        seq: Optional[int] = ...,
+        unknown_04: int = ...,
+    ) -> None: ...
+
     parent_id: int
     """Parent folder ID; zero denotes the root."""
     seq: Optional[int]
@@ -4613,6 +5058,14 @@ class DevPlaylistContent(_RustMutableMapping):
 
 class NewDevPlaylistContent(_RustMutableMapping):
     """Input for a fresh playlist occurrence, without a synthetic ID or source row."""
+
+    def __init__(
+        self,
+        playlist_id: int,
+        content_id: int,
+        *,
+        seq: Optional[int] = ...,
+    ) -> None: ...
 
     playlist_id: int
     """Existing regular playlist ID."""
@@ -4657,6 +5110,15 @@ class DevRecommendedLike(_RustMutableMapping):
 
 class NewDevRecommendedLike(_RustMutableMapping):
     """Insertion input for a fresh RecommendedLike row."""
+
+    def __init__(
+        self,
+        content_id_1: int,
+        content_id_2: int,
+        unknown_00: int,
+        unknown_10: int,
+        unknown_14: int,
+    ) -> None: ...
 
     unknown_00: int
     """Raw eight-byte value at 0x00; not interpreted as a timestamp."""

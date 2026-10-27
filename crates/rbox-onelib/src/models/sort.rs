@@ -9,7 +9,7 @@ use napi_derive::napi;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 #[cfg(feature = "pyo3")]
-use rbox_derives::PyMutableMapping;
+use rbox_derives::{PyConstructor, PyMutableMapping};
 
 use crate::schema::sort;
 use rbox_db::ordering::{SequenceStore, SequenceVisible};
@@ -213,8 +213,9 @@ impl SequenceVisible for Sort {}
 #[diesel(table_name = sort)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(menu_item_id)))]
 pub struct NewSort {
     /// An optional foreign key referencing the [`MenuItem`].
     pub menu_item_id: i64,

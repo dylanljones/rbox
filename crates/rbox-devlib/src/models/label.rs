@@ -10,7 +10,7 @@ use napi_derive::napi;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 #[cfg(feature = "pyo3")]
-use rbox_derives::{pyclass_public, PyMutableMapping};
+use rbox_derives::{pyclass_public, PyConstructor, PyMutableMapping};
 
 use super::{
     checked_number, next_id, read_fields, text, text_error, unique_name, unsupported, validate_id,
@@ -261,8 +261,9 @@ impl TryFrom<RowRecord> for DevLabel {
 /// Other tables are not modified.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(name)))]
 pub struct NewDevLabel {
     /// Decoded display name, preserving empty text.
     pub name: String,

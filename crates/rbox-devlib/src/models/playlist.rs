@@ -39,7 +39,7 @@ use napi_derive::napi;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 #[cfg(feature = "pyo3")]
-use rbox_derives::{pyclass_public, PyMutableMapping};
+use rbox_derives::{pyclass_public, PyConstructor, PyMutableMapping};
 
 use rbox_core::PlaylistType;
 
@@ -935,8 +935,9 @@ impl TryFrom<RowRecord> for DevPlaylist {
 /// Insertion commits in memory only and does not create entries or save to disk.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(name, attribute), constructor = Self::new_python(name, attribute)?))]
 pub struct NewDevPlaylist {
     /// Parent folder ID; zero denotes the root.
     pub parent_id: i64,
@@ -951,6 +952,17 @@ pub struct NewDevPlaylist {
 }
 
 impl NewDevPlaylist {
+    /// Validate Python input before calling the infallible Rust constructor.
+    #[cfg(feature = "pyo3")]
+    fn new_python(name: String, attribute: PlaylistType) -> PyResult<Self> {
+        if !matches!(attribute, PlaylistType::List | PlaylistType::Folder) {
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "only List and Folder playlist types are supported",
+            ));
+        }
+        Ok(Self::new(name, attribute))
+    }
+
     /// Prepare a root node; insertion appends by default.
     ///
     /// # Panics
@@ -1448,8 +1460,9 @@ impl TryFrom<RowRecord> for DevPlaylistContent {
 /// maintains one-based positions. `None` appends. Saving remains explicit.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(playlist_id, content_id), constructor = Self::new(playlist_id, content_id, None)))]
 pub struct NewDevPlaylistContent {
     /// Existing regular playlist ID.
     pub playlist_id: i64,

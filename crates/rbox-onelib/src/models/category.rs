@@ -10,7 +10,7 @@ use napi_derive::napi;
 use pyo3::prelude::*;
 use rbox_db::ordering::{SequenceStore, SequenceVisible};
 #[cfg(feature = "pyo3")]
-use rbox_derives::PyMutableMapping;
+use rbox_derives::{PyConstructor, PyMutableMapping};
 
 use super::menu_item::MenuItem;
 use crate::schema::{category, menuItem};
@@ -276,8 +276,9 @@ impl SequenceVisible for Category {}
 #[diesel(table_name = category)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(menu_item_id)))]
 pub struct NewCategory {
     /// A foreign key referencing the [`MenuItem`].
     pub menu_item_id: i64,

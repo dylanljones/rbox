@@ -10,7 +10,7 @@ use napi_derive::napi;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 #[cfg(feature = "pyo3")]
-use rbox_derives::PyMutableMapping;
+use rbox_derives::{PyConstructor, PyMutableMapping};
 use std::cell::RefCell;
 use std::collections::{HashSet, VecDeque};
 use std::rc::Rc;
@@ -351,8 +351,9 @@ impl OrderedModel for Playlist {
 #[diesel(table_name = playlist)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all, mapping))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(name, attribute), constructor = Self::new_python(name, attribute)?))]
 pub struct NewPlaylist {
     /// Insertion position in the collection; `None` appends.
     pub seq: Option<i32>,
@@ -388,6 +389,17 @@ impl ModelInsert for NewPlaylist {
 }
 
 impl NewPlaylist {
+    /// Validate Python input before calling the infallible Rust constructor.
+    #[cfg(feature = "pyo3")]
+    fn new_python(name: String, attribute: PlaylistType) -> PyResult<Self> {
+        if !matches!(attribute, PlaylistType::List | PlaylistType::Folder) {
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "only List and Folder playlist types are supported",
+            ));
+        }
+        Ok(Self::new(name, attribute))
+    }
+
     /// Creates a new playlist record with the required fields.
     ///
     /// # Panics

@@ -14,7 +14,7 @@ use napi_derive::napi;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 #[cfg(feature = "pyo3")]
-use rbox_derives::{pyclass_public, PyMutableMapping};
+use rbox_derives::{pyclass_public, PyConstructor, PyMutableMapping};
 
 use super::{checked_number, unsupported, validate_nonzero_id};
 use crate::binary::{ExtPageType, ExtendedRow, RecommendLikeRow, Row, RowRecord, TableKind};
@@ -157,8 +157,12 @@ impl TryFrom<RowRecord> for DevRecommendedLike {
 /// Saving is explicit; insertion commits only to the in-memory connection.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object, object_from_js = false))]
+#[cfg_attr(
+    feature = "pyo3",
+    py_constructor(required(content_id_1, content_id_2, unknown_00, unknown_10, unknown_14))
+)]
 pub struct NewDevRecommendedLike {
     /// Raw eight-byte value at 0x00; not interpreted as a timestamp.
     pub unknown_00: u64,

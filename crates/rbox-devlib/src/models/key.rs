@@ -8,7 +8,7 @@ use napi_derive::napi;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 #[cfg(feature = "pyo3")]
-use rbox_derives::{pyclass_public, PyMutableMapping};
+use rbox_derives::{pyclass_public, PyConstructor, PyMutableMapping};
 
 use std::io::{Read, Seek};
 
@@ -269,8 +269,9 @@ impl TryFrom<RowRecord> for DevKey {
 /// Other tables are not modified.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(name, secondary_id)))]
 pub struct NewDevKey {
     /// Second stored ID, supplied independently; its role remains unknown.
     pub secondary_id: i64,

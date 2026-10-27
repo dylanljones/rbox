@@ -28,7 +28,7 @@ use napi_derive::napi;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 #[cfg(feature = "pyo3")]
-use rbox_derives::{pyclass_public, PyMutableMapping};
+use rbox_derives::{pyclass_public, PyConstructor, PyMutableMapping};
 
 use rbox_core::MyTagType;
 
@@ -694,8 +694,9 @@ impl TryFrom<RowRecord> for DevMyTag {
 /// maintains sibling ordering. Saving remains explicit.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(id, name, attribute)))]
 pub struct NewDevMyTag {
     /// Nonzero source main-database tag/category ID, unused in this export.
     pub id: i64,
@@ -971,8 +972,9 @@ impl TryFrom<RowRecord> for DevMyTagContent {
 /// Insertion commits in memory only; saving is explicit.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all))]
-#[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
+#[cfg_attr(feature = "pyo3", derive(PyMutableMapping, PyConstructor))]
 #[cfg_attr(feature = "napi", napi(object, object_from_js = false))]
+#[cfg_attr(feature = "pyo3", py_constructor(required(content_id, my_tag_id)))]
 pub struct NewDevMyTagContent {
     /// Nonzero export track ID in the standard database.
     pub content_id: i64,

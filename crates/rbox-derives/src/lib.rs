@@ -8,6 +8,7 @@
 //! by the consuming crate.
 
 mod napi;
+mod py_constructor;
 
 use proc_macro::TokenStream;
 use quote::quote;
@@ -16,6 +17,27 @@ use syn::{
     parse_macro_input, parse_quote, Data, DeriveInput, Fields, ItemStruct, Meta, Token, Type,
     Visibility,
 };
+
+/// Generate a Python constructor using the model's Rust constructor and public fields.
+///
+/// `#[py_constructor(required(path))]` calls `Self::new(path)`. Required fields
+/// accept positional or keyword arguments in the listed order. Other public
+/// fields accept keyword arguments; omitted fields retain the constructor's
+/// defaults. Explicit `None` is accepted only when the field type accepts it.
+/// Private and restricted fields cannot be supplied.
+///
+/// Override initialization with an expression, for example
+/// `#[py_constructor(required(playlist_id, content_id), constructor = Self::new(playlist_id, content_id, None))]`.
+/// The expression may use `?` to propagate a Python error. Nongeneric named
+/// structs are supported. Requires `pyo3` and a separate `#[pyclass]` declaration.
+#[proc_macro_derive(PyConstructor, attributes(py_constructor))]
+pub fn derive_py_constructor(input: TokenStream) -> TokenStream {
+    let item = parse_macro_input!(input as ItemStruct);
+    match py_constructor::expand(&item) {
+        Ok(generated) => quote!(#generated).into(),
+        Err(error) => error.into_compile_error().into(),
+    }
+}
 
 /// Generate JavaScript object shapes from unrestricted public fields.
 ///
