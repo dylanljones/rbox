@@ -22,7 +22,7 @@
 > The maintainers and contributors assume no liability for any data loss or damage to your Rekordbox library.
 > "Rekordbox" is a registered trademark of AlphaTheta Corporation.
 
-**rbox** is a high-performance Rust library for seamlessly interacting with Pioneer DJ's Rekordbox software data.
+**rbox** is a Rust library for seamlessly interacting with Pioneer DJ's Rekordbox local and export data.
 Its goal is one comprehensive, general-purpose package that other projects can
 build on. It currently supports the following Rekordbox files:
 
