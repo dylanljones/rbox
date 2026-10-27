@@ -32,13 +32,13 @@ use rbox_db::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Image {
     /// The unique identifier of the image.
-    pub id: i32,
+    pub id: i64,
     /// The relative file path of the image.
     pub path: String,
 }
 
 impl Model for Image {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
@@ -66,11 +66,11 @@ impl ModelDelete for Image {
         let result = diesel::delete(image::table.find(id)).execute(conn)?;
         // Remove any references to the image in the album table
         diesel::update(album::table.filter(album::image_id.eq(id)))
-            .set(album::image_id.eq(None::<i32>))
+            .set(album::image_id.eq(None::<i64>))
             .execute(conn)?;
         // Remove any references to the image in the content table
         diesel::update(content::table.filter(content::image_id.eq(id)))
-            .set(content::image_id.eq(None::<i32>))
+            .set(content::image_id.eq(None::<i64>))
             .execute(conn)?;
         Ok(result)
     }
@@ -79,11 +79,11 @@ impl ModelDelete for Image {
         let result = diesel::delete(image::table.filter(image::id.eq_any(&ids))).execute(conn)?;
         // Remove any references to the image in the album table
         diesel::update(album::table.filter(album::image_id.eq_any(&ids)))
-            .set(album::image_id.eq(None::<i32>))
+            .set(album::image_id.eq(None::<i64>))
             .execute(conn)?;
         // Remove any references to the image in the content table
         diesel::update(content::table.filter(content::image_id.eq_any(&ids)))
-            .set(content::image_id.eq(None::<i32>))
+            .set(content::image_id.eq(None::<i64>))
             .execute(conn)?;
         Ok(result)
     }

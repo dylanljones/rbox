@@ -16,7 +16,7 @@ macro_rules! one_tree_updates {
                 $new::folder("valid")
                     .parent_id(parent.id)
                     .seq($model::START_SEQ),
-                $new::folder("invalid").parent_id(i32::MAX),
+                $new::folder("invalid").parent_id(i64::MAX),
             ]
         )
         .is_err());

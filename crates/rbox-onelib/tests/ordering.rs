@@ -45,11 +45,11 @@ fn native_export_uses_model_specific_sequence_starts() -> anyhow::Result<()> {
         original
     );
 
-    // Read only the parent IDs: native tag identities can exceed the signed model range.
+    // Native tag identities exceed i32; preserve parent IDs when checking each scope.
     let parents = myTag::table
         .select(myTag::parent_id)
         .distinct()
-        .load::<i32>(&mut conn)?;
+        .load::<i64>(&mut conn)?;
     assert!(!parents.is_empty());
     for parent in parents {
         let positions = MyTag::get_seq_numbers(&mut conn, &parent)?;
@@ -340,7 +340,7 @@ fn history_ordering() {
     ordering::tree_matrix::<rbox_onelib::models::History>(
         &mut conn,
         &0,
-        &i32::MAX,
+        &i64::MAX,
         |conn, parent, seq| {
             let mut item = NewHistory::folder("ordering test");
             item.parent_id = *parent;
@@ -358,7 +358,7 @@ fn playlist_ordering() {
     ordering::tree_matrix::<rbox_onelib::models::Playlist>(
         &mut conn,
         &0,
-        &i32::MAX,
+        &i64::MAX,
         |conn, parent, seq| {
             let mut item = NewPlaylist::folder("ordering test");
             item.parent_id = *parent;
@@ -376,7 +376,7 @@ fn my_tag_ordering() {
     ordering::tree_matrix::<rbox_onelib::models::MyTag>(
         &mut conn,
         &0,
-        &i32::MAX,
+        &i64::MAX,
         |conn, parent, seq| {
             let mut item = NewMyTag::folder("ordering test");
             item.parent_id = *parent;

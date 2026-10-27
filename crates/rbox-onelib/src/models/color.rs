@@ -29,13 +29,13 @@ use rbox_db::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Color {
     /// The unique identifier of the color.
-    pub id: i32,
+    pub id: i64,
     /// The name of the color
     pub name: String,
 }
 
 impl Model for Color {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)

@@ -37,9 +37,9 @@ use rbox_db::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct RecommendedLike {
     /// The ID of the first associated [`Content`].
-    pub content_id_1: i32,
+    pub content_id_1: i64,
     /// The ID of the second associated [`Content`].
-    pub content_id_2: i32,
+    pub content_id_2: i64,
     /// The rating of the relationship, between 1-5.
     pub rating: i32,
     /// The timestamp when the entry was created, serialized/deserialized as `Datetime<Utc>`.
@@ -49,7 +49,7 @@ pub struct RecommendedLike {
 }
 
 impl Model for RecommendedLike {
-    type Id = (i32, i32);
+    type Id = (i64, i64);
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
@@ -90,7 +90,7 @@ impl ModelInsert for RecommendedLike {
 
 impl RecommendedLike {
     /// Creates a new `recommendedLike` record with the required fields.
-    pub fn new(content_id_1: i32, content_id_2: i32, rating: i32) -> Self {
+    pub fn new(content_id_1: i64, content_id_2: i64, rating: i32) -> Self {
         let created_date = Utc::now();
         Self {
             content_id_1,
@@ -101,7 +101,7 @@ impl RecommendedLike {
     }
 
     /// Queries all records from the `recommendedLike` table that are linked to the given `content`.
-    pub fn by_content_id(conn: &mut SqliteConnection, content_id: i32) -> QueryResult<Vec<Self>> {
+    pub fn by_content_id(conn: &mut SqliteConnection, content_id: i64) -> QueryResult<Vec<Self>> {
         Self::query()
             .filter(
                 recommendedLike::content_id_1
@@ -116,8 +116,8 @@ impl RecommendedLike {
     /// Returns the other content ID for a specific ID. The order of content IDs does not matter.
     pub fn related_content_ids(
         conn: &mut SqliteConnection,
-        content_id: i32,
-    ) -> QueryResult<Vec<i32>> {
+        content_id: i64,
+    ) -> QueryResult<Vec<i64>> {
         let items = Self::query()
             .filter(
                 recommendedLike::content_id_1
@@ -137,7 +137,7 @@ impl RecommendedLike {
     }
 
     /// Deletes all record from the `recommendedLike` table referencing a `content` record.
-    pub fn delete_by_content_id(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
+    pub fn delete_by_content_id(conn: &mut SqliteConnection, id: i64) -> QueryResult<usize> {
         diesel::delete(
             recommendedLike::table.filter(
                 recommendedLike::content_id_1
@@ -149,7 +149,7 @@ impl RecommendedLike {
     }
 
     /// Deletes all record from the `history_content` table referencing multiple `content` records.
-    pub fn delete_by_content_ids(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<usize> {
+    pub fn delete_by_content_ids(conn: &mut SqliteConnection, ids: &[i64]) -> QueryResult<usize> {
         diesel::delete(
             recommendedLike::table.filter(
                 recommendedLike::content_id_1

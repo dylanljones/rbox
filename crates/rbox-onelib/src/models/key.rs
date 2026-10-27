@@ -33,13 +33,13 @@ use rbox_masterdb::models::DjmdKey;
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Key {
     /// The unique identifier of the key.
-    pub id: i32,
+    pub id: i64,
     /// The name of the key.
     pub name: String,
 }
 
 impl Model for Key {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
@@ -67,7 +67,7 @@ impl ModelDelete for Key {
         let result = diesel::delete(key::table.find(id)).execute(conn)?;
         // Remove any references to the key in the content table
         diesel::update(content::table.filter(content::key_id.eq(id)))
-            .set(content::key_id.eq(None::<i32>))
+            .set(content::key_id.eq(None::<i64>))
             .execute(conn)?;
         Ok(result)
     }
@@ -76,7 +76,7 @@ impl ModelDelete for Key {
         let result = diesel::delete(key::table.filter(key::id.eq_any(&ids))).execute(conn)?;
         // Remove any references to the key in the content table
         diesel::update(content::table.filter(content::key_id.eq_any(&ids)))
-            .set(content::key_id.eq(None::<i32>))
+            .set(content::key_id.eq(None::<i64>))
             .execute(conn)?;
         Ok(result)
     }

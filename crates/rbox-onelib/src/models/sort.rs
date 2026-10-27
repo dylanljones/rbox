@@ -32,9 +32,9 @@ use rbox_db::{ordering_error, Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Sort {
     /// The unique identifier of the record.
-    pub id: i32,
+    pub id: i64,
     /// An optional foreign key referencing the [`MenuItem`].
-    pub menu_item_id: i32,
+    pub menu_item_id: i64,
     /// One-based order among visible sort options. Hidden rows may retain an old
     /// position and are excluded from active sequence maintenance.
     pub seq: i32,
@@ -45,7 +45,7 @@ pub struct Sort {
 }
 
 impl Model for Sort {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().order((sort::seq, sort::id)).load(conn)
@@ -160,7 +160,7 @@ impl SequenceStore for Sort {
 
     fn reset_seq(conn: &mut SqliteConnection, _: &()) -> QueryResult<usize> {
         conn.transaction(|conn| {
-            let rows: Vec<(i32, i32)> = Self::filter_is_visible(1)
+            let rows: Vec<(i64, i32)> = Self::filter_is_visible(1)
                 .order((sort::seq, sort::id))
                 .select((sort::id, sort::seq))
                 .load(conn)?;
@@ -217,7 +217,7 @@ impl SequenceVisible for Sort {}
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct NewSort {
     /// An optional foreign key referencing the [`MenuItem`].
-    pub menu_item_id: i32,
+    pub menu_item_id: i64,
     /// The sequence/order number of the item (1-based index)
     pub seq: i32,
     /// A flag if the item is visible in the menu
@@ -248,7 +248,7 @@ impl ModelInsert for NewSort {
 
 impl NewSort {
     /// Creates a new `sort` record with the required fields.
-    pub fn new(menu_item_id: i32) -> Self {
+    pub fn new(menu_item_id: i64) -> Self {
         Self {
             menu_item_id,
             ..Default::default()

@@ -32,7 +32,7 @@ use rbox_db::{Model, ModelDelete, ModelInsert, ModelUpdate};
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct MenuItem {
     /// The unique identifier of the record.
-    pub id: i32,
+    pub id: i64,
     /// The kind of menu item (similar to `class` in the main DB).
     pub kind: i32,
     /// The name of the menu item.
@@ -40,7 +40,7 @@ pub struct MenuItem {
 }
 
 impl Model for MenuItem {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)

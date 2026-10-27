@@ -75,7 +75,7 @@ use rbox_db::{load_related, Model, ModelDelete, ModelInsert, ModelRelations, Mod
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Content {
     /// The unique identifier of the content.
-    pub id: i32,
+    pub id: i64,
     /// The title of the track.
     pub title: Option<String>,
     /// An optional title used for searching.
@@ -91,27 +91,27 @@ pub struct Content {
     /// The disc number of the track
     pub disc_no: Option<i32>,
     /// Optional foreign key referencing the artist [`Artist`].
-    pub artist_id: Option<i32>,
+    pub artist_id: Option<i64>,
     /// Optional foreign key referencing the remixer [`Artist`].
-    pub remixer_id: Option<i32>,
+    pub remixer_id: Option<i64>,
     /// Optional foreign key referencing the original artist [`Artist`].
-    pub original_artist_id: Option<i32>,
+    pub original_artist_id: Option<i64>,
     /// Optional foreign key referencing the composer [`Artist`].
-    pub composer_id: Option<i32>,
+    pub composer_id: Option<i64>,
     /// Optional foreign key referencing the lyricist [`Artist`].
-    pub lyricist_id: Option<i32>,
+    pub lyricist_id: Option<i64>,
     /// Optional foreign key referencing the [`Album`].
-    pub album_id: Option<i32>,
+    pub album_id: Option<i64>,
     /// Optional foreign key referencing the [`Genre`].
-    pub genre_id: Option<i32>,
+    pub genre_id: Option<i64>,
     /// Optional foreign key referencing the [`Label`].
-    pub label_id: Option<i32>,
+    pub label_id: Option<i64>,
     /// Optional foreign key referencing the [`Key`].
-    pub key_id: Option<i32>,
+    pub key_id: Option<i64>,
     /// Optional foreign key referencing the [`Color`].
-    pub color_id: Option<i32>,
+    pub color_id: Option<i64>,
     /// Optional foreign key referencing the artwork [`Image`].
-    pub image_id: Option<i32>,
+    pub image_id: Option<i64>,
     /// The ccomment of the track.
     pub dj_comment: Option<String>,
     /// The rating of the track.
@@ -151,15 +151,15 @@ pub struct Content {
     /// A kuvo delivery comment
     pub kuvo_delivery_comment: Option<String>,
     /// Master-library ID in signed storage form; see the struct's identity note.
-    pub master_db_id: Option<i32>,
+    pub master_db_id: Option<i64>,
     /// The ID of the contnent in the masterdb
-    pub master_content_id: Option<i32>,
+    pub master_content_id: Option<i64>,
     /// The relative path to the analysis data
     pub analysis_data_file_path: Option<String>,
     /// The number of bits analysed (?)
     pub analysed_bits: Option<i32>,
     /// The ID of the content in the content link database (seems to always be 788224)
-    pub content_link: Option<i32>,
+    pub content_link: Option<i64>,
     /// A flag if the content has been modified
     pub has_modified: Option<i32>,
     /// The number of updates to the associated cues
@@ -351,7 +351,7 @@ impl ModelRelations for Content {
 }
 
 impl Model for Content {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
@@ -388,7 +388,7 @@ impl ModelDelete for Content {
         conn.transaction(|conn| {
             let mut result =
                 diesel::delete(content::table.filter(content::id.eq_any(&ids))).execute(conn)?;
-            let ids: Vec<i32> = ids.iter().map(|id| *(*id)).collect();
+            let ids: Vec<i64> = ids.iter().map(|id| *(*id)).collect();
             result += Self::cascade_deletes(conn, &ids)?;
             Self::update_property(conn)?;
             Ok(result)
@@ -410,7 +410,7 @@ impl Content {
     /// Returns a detached snapshot; missing relationship targets remain `None`.
     pub fn find_with_relations(
         conn: &mut SqliteConnection,
-        id: i32,
+        id: i64,
     ) -> QueryResult<Option<ContentView>> {
         conn.transaction(|conn| {
             Self::find(conn, &id)?
@@ -420,7 +420,7 @@ impl Content {
     }
 
     /// Queries all records from the `content` table matching the given `ids`.
-    pub fn by_ids(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<Vec<Self>> {
+    pub fn by_ids(conn: &mut SqliteConnection, ids: &[i64]) -> QueryResult<Vec<Self>> {
         Self::query().filter(content::id.eq_any(ids)).load(conn)
     }
 
@@ -440,13 +440,13 @@ impl Content {
 
     /// Find content by its source-library identity, not its local export ID.
     ///
-    /// Both IDs use OneLibrary's stored `i32` representation, including negative
+    /// Both IDs use OneLibrary's stored `i64` representation, including negative
     /// master-library IDs. Zero IDs return `None`.
     /// If the pair occurs more than once, return the row with the lowest export ID.
     pub fn find_by_master_content_id(
         conn: &mut SqliteConnection,
-        master_content_id: i32,
-        master_db_id: i32,
+        master_content_id: i64,
+        master_db_id: i64,
     ) -> QueryResult<Option<Self>> {
         if master_content_id == 0 || master_db_id == 0 {
             return Ok(None);
@@ -468,8 +468,8 @@ impl Content {
     /// Queries run in bounded batches within one read transaction.
     pub fn by_master_content_ids(
         conn: &mut SqliteConnection,
-        master_content_ids: &[i32],
-        master_db_id: i32,
+        master_content_ids: &[i64],
+        master_db_id: i64,
     ) -> QueryResult<Vec<Self>> {
         if master_db_id == 0 || master_content_ids.is_empty() {
             return Ok(Vec::new());
@@ -502,8 +502,8 @@ impl Content {
     /// Sets the `artist_id` field of a record in the `content` table matching the given `id`.
     pub fn set_artist_id(
         conn: &mut SqliteConnection,
-        id: i32,
-        artist_id: i32,
+        id: i64,
+        artist_id: i64,
     ) -> QueryResult<usize> {
         diesel::update(content::table.find(id))
             .set(content::artist_id.eq(artist_id))
@@ -513,8 +513,8 @@ impl Content {
     /// Sets the `artist_id` field of a record in the `content` table matching the given `id`.
     pub fn set_remixer_id(
         conn: &mut SqliteConnection,
-        id: i32,
-        artist_id: i32,
+        id: i64,
+        artist_id: i64,
     ) -> QueryResult<usize> {
         diesel::update(content::table.find(id))
             .set(content::remixer_id.eq(artist_id))
@@ -524,8 +524,8 @@ impl Content {
     /// Sets the `original_artist_id` field of a record in the `content` table matching the given `id`.
     pub fn set_original_artist_id(
         conn: &mut SqliteConnection,
-        id: i32,
-        artist_id: i32,
+        id: i64,
+        artist_id: i64,
     ) -> QueryResult<usize> {
         diesel::update(content::table.find(id))
             .set(content::original_artist_id.eq(artist_id))
@@ -535,8 +535,8 @@ impl Content {
     /// Sets the `original_artist_id` field of a record in the `content` table matching the given `id`.
     pub fn set_composer_id(
         conn: &mut SqliteConnection,
-        id: i32,
-        artist_id: i32,
+        id: i64,
+        artist_id: i64,
     ) -> QueryResult<usize> {
         diesel::update(content::table.find(id))
             .set(content::composer_id.eq(artist_id))
@@ -546,8 +546,8 @@ impl Content {
     /// Sets the `lyricist_id` field of a record in the `content` table matching the given `id`.
     pub fn set_lyricist_id(
         conn: &mut SqliteConnection,
-        id: i32,
-        artist_id: i32,
+        id: i64,
+        artist_id: i64,
     ) -> QueryResult<usize> {
         diesel::update(content::table.find(id))
             .set(content::lyricist_id.eq(artist_id))
@@ -555,49 +555,49 @@ impl Content {
     }
 
     /// Sets the `album_id` field of a record in the `content` table matching the given `id`.
-    pub fn set_album_id(conn: &mut SqliteConnection, id: i32, album_id: i32) -> QueryResult<usize> {
+    pub fn set_album_id(conn: &mut SqliteConnection, id: i64, album_id: i64) -> QueryResult<usize> {
         diesel::update(content::table.find(id))
             .set(content::album_id.eq(album_id))
             .execute(conn)
     }
 
     /// Sets the `genre_id` field of a record in the `content` table matching the given `id`.
-    pub fn set_genre_id(conn: &mut SqliteConnection, id: i32, genre_id: i32) -> QueryResult<usize> {
+    pub fn set_genre_id(conn: &mut SqliteConnection, id: i64, genre_id: i64) -> QueryResult<usize> {
         diesel::update(content::table.find(id))
             .set(content::genre_id.eq(genre_id))
             .execute(conn)
     }
 
     /// Sets the `label_id` field of a record in the `content` table matching the given `id`.
-    pub fn set_label_id(conn: &mut SqliteConnection, id: i32, label_id: i32) -> QueryResult<usize> {
+    pub fn set_label_id(conn: &mut SqliteConnection, id: i64, label_id: i64) -> QueryResult<usize> {
         diesel::update(content::table.find(id))
             .set(content::label_id.eq(label_id))
             .execute(conn)
     }
 
     /// Sets the `key_id` field of a record in the `content` table matching the given `id`.
-    pub fn set_key_id(conn: &mut SqliteConnection, id: i32, key_id: i32) -> QueryResult<usize> {
+    pub fn set_key_id(conn: &mut SqliteConnection, id: i64, key_id: i64) -> QueryResult<usize> {
         diesel::update(content::table.find(id))
             .set(content::key_id.eq(key_id))
             .execute(conn)
     }
 
     /// Sets the `color_id` field of a record in the `content` table matching the given `id`.
-    pub fn set_color_id(conn: &mut SqliteConnection, id: i32, color_id: i32) -> QueryResult<usize> {
+    pub fn set_color_id(conn: &mut SqliteConnection, id: i64, color_id: i64) -> QueryResult<usize> {
         diesel::update(content::table.find(id))
             .set(content::color_id.eq(color_id))
             .execute(conn)
     }
 
     /// Sets the `image_id` field of a record in the `content` table matching the given `id`.
-    pub fn set_image_id(conn: &mut SqliteConnection, id: i32, image_id: i32) -> QueryResult<usize> {
+    pub fn set_image_id(conn: &mut SqliteConnection, id: i64, image_id: i64) -> QueryResult<usize> {
         diesel::update(content::table.find(id))
             .set(content::image_id.eq(image_id))
             .execute(conn)
     }
 
     /// Cascade deletion of a single record
-    fn cascade_delete(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
+    fn cascade_delete(conn: &mut SqliteConnection, id: i64) -> QueryResult<usize> {
         let mut result = 0;
         // Remove all cues referencing the content
         result += Cue::delete_by_content_id(conn, id)?;
@@ -613,7 +613,7 @@ impl Content {
     }
 
     /// Cascade deletion of multiple records
-    fn cascade_deletes(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<usize> {
+    fn cascade_deletes(conn: &mut SqliteConnection, ids: &[i64]) -> QueryResult<usize> {
         let mut result = 0;
         // Remove all cues referencing the contents
         result += Cue::delete_by_content_ids(conn, ids)?;
@@ -683,27 +683,27 @@ pub struct NewContent {
     /// The disc number of the track
     pub disc_no: Option<i32>,
     /// Optional foreign key referencing the artist [`Artist`].
-    pub artist_id: Option<i32>,
+    pub artist_id: Option<i64>,
     /// Optional foreign key referencing the remixer [`Artist`].
-    pub remixer_id: Option<i32>,
+    pub remixer_id: Option<i64>,
     /// Optional foreign key referencing the original artist [`Artist`].
-    pub original_artist_id: Option<i32>,
+    pub original_artist_id: Option<i64>,
     /// Optional foreign key referencing the composer [`Artist`].
-    pub composer_id: Option<i32>,
+    pub composer_id: Option<i64>,
     /// Optional foreign key referencing the lyricist [`Artist`].
-    pub lyricist_id: Option<i32>,
+    pub lyricist_id: Option<i64>,
     /// Optional foreign key referencing the [`Album`].
-    pub album_id: Option<i32>,
+    pub album_id: Option<i64>,
     /// Optional foreign key referencing the [`Genre`].
-    pub genre_id: Option<i32>,
+    pub genre_id: Option<i64>,
     /// Optional foreign key referencing the [`Label`].
-    pub label_id: Option<i32>,
+    pub label_id: Option<i64>,
     /// Optional foreign key referencing the [`Key`].
-    pub key_id: Option<i32>,
+    pub key_id: Option<i64>,
     /// Optional foreign key referencing the [`Color`].
-    pub color_id: Option<i32>,
+    pub color_id: Option<i64>,
     /// Optional foreign key referencing the artwork [`Image`].
-    pub image_id: Option<i32>,
+    pub image_id: Option<i64>,
     /// The ccomment of the track.
     pub dj_comment: Option<String>,
     /// The rating of the track.
@@ -733,15 +733,15 @@ pub struct NewContent {
     /// A kuvo delivery comment
     pub kuvo_delivery_comment: Option<String>,
     /// Master-library ID in signed storage form; see the struct's identity note.
-    pub master_db_id: Option<i32>,
+    pub master_db_id: Option<i64>,
     /// The ID of the contnent in the masterdb
-    pub master_content_id: Option<i32>,
+    pub master_content_id: Option<i64>,
     /// The relative path to the analysis data
     pub analysis_data_file_path: Option<String>,
     /// The number of bits analysed (?)
     pub analysed_bits: Option<i32>,
     /// The ID of the content in the content link database (seems to always be 788224)
-    pub content_link: Option<i32>,
+    pub content_link: Option<i64>,
     /// A flag if the content has been modified
     pub has_modified: Option<i32>,
     /// The number of updates to the associated cues
@@ -829,12 +829,24 @@ impl TryFrom<&ContentView> for Track {
         Ok(Self {
             id: Some(
                 u32::try_from(row.id)
-                    .map_err(|_| track_field_error("id", "ID must be nonnegative"))?,
+                    .map_err(|_| track_field_error("id", "ID must be nonnegative and fit u32"))?,
             ),
             source: TrackSource::OneLib,
             master_content_id: track_number(row.master_content_id, "master_content_id")?,
-            // OneLibrary stores this unsigned identity in a signed SQLite field.
-            master_db_id: row.master_db_id.map(|value| value as u32),
+            // Preserve the native signed 32-bit encoding without truncating wider IDs.
+            master_db_id: row
+                .master_db_id
+                .map(|value| {
+                    if value < 0 {
+                        i32::try_from(value).map(|value| value as u32)
+                    } else {
+                        u32::try_from(value)
+                    }
+                    .map_err(|_| {
+                        track_field_error("master_db_id", "value is outside the destination range")
+                    })
+                })
+                .transpose()?,
             path: PathBuf::from(&row.path),
             file_type: Some(row.file_type),
             artwork_path: view.image.as_ref().map(|image| PathBuf::from(&image.path)),
@@ -890,7 +902,7 @@ impl TryFrom<ContentView> for Track {
 /// Build an insertion row without resolving names, writing rows or copying assets.
 /// SQLite assigns a new content ID; the source `Track::id` is not reused. Named
 /// relationship and image IDs remain unset, while the fixed color code is copied.
-/// Master content IDs must fit signed i32. Master library IDs preserve all 32 bits in signed storage.
+/// Master content IDs are stored as i64. Master library IDs preserve all 32 bits in signed storage.
 /// Paths use Unix separators; the basename comes
 /// from the audio path. BPM rounds to hundredths and length to whole seconds.
 /// Dates accept `YYYY-MM-DD`; absent dates use `NewContent::new`'s current UTC date.
@@ -954,7 +966,7 @@ impl TryFrom<&Track> for NewContent {
             .map(|v| rounded(v, 1.0, "length"))
             .transpose()?;
         row.rating = input.rating.map(i32::from);
-        row.color_id = input.color.map(i32::from);
+        row.color_id = input.color.map(i64::from);
         row.bit_depth = input.bit_depth.map(i32::from);
         row.release_year = input.release_year.map(i32::from);
         row.track_no = track_number(input.track_no, "track_no")?;
@@ -963,7 +975,7 @@ impl TryFrom<&Track> for NewContent {
         row.sampling_rate = track_number(input.sample_rate, "sampling_rate")?;
         row.file_size = track_number(input.file_size, "file_size")?;
         row.master_content_id = track_number(input.master_content_id, "master_content_id")?;
-        row.master_db_id = input.master_db_id.map(|value| value as i32);
+        row.master_db_id = input.master_db_id.map(|value| i64::from(value as i32));
         row.is_hot_cue_auto_load_on = input
             .hot_cue_auto_load
             .as_deref()

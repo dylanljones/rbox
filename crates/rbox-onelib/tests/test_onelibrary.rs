@@ -21,7 +21,7 @@ use rbox_testing::data::{get_temp_root_dir, setup_one_library_path};
 fn content_master_identity_lookup_is_scoped_to_source_library() -> anyhow::Result<()> {
     let fixture = setup_one_library_path();
     let mut conn = establish_connection(fixture.path(), &ConnectionOptions::default())?;
-    let library = -795_645_379i32;
+    let library = -795_645_379i64;
     let mut inserted = Vec::new();
     for (index, (source_content, source_library)) in [
         (Some(2_000_000_123), Some(library)),
@@ -30,7 +30,7 @@ fn content_master_identity_lookup_is_scoped_to_source_library() -> anyhow::Resul
         (Some(2_000_000_123), Some(library)),
         (None, None),
         (Some(0), Some(0)),
-        (Some(i32::MIN), Some(library)),
+        (Some(i64::from(i32::MIN)), Some(library)),
     ]
     .into_iter()
     .enumerate()
@@ -63,7 +63,7 @@ fn content_master_identity_lookup_is_scoped_to_source_library() -> anyhow::Resul
     assert!(Content::find_by_master_content_id(&mut conn, 2_000_000_123, 999)?.is_none());
     assert!(Content::find_by_master_content_id(&mut conn, 2_000_000_125, library)?.is_none());
     assert_eq!(
-        Content::find_by_master_content_id(&mut conn, i32::MIN, library)?
+        Content::find_by_master_content_id(&mut conn, i64::from(i32::MIN), library)?
             .unwrap()
             .id,
         inserted[6].id
@@ -74,7 +74,7 @@ fn content_master_identity_lookup_is_scoped_to_source_library() -> anyhow::Resul
         (2_000_000_123, library),
         (2_000_000_123, 42),
         (2_000_000_124, library),
-        (i32::MIN, library),
+        (i64::from(i32::MIN), library),
         (2_000_000_123, 999),
         (0, 0),
     ] {
@@ -84,7 +84,13 @@ fn content_master_identity_lookup_is_scoped_to_source_library() -> anyhow::Resul
         );
     }
     // More than two batches, with matches at either end of the sorted source IDs.
-    let mut source_ids = vec![2_000_000_124, 2_000_000_123, i32::MIN, 0, 2_000_000_123];
+    let mut source_ids = vec![
+        2_000_000_124,
+        2_000_000_123,
+        i64::from(i32::MIN),
+        0,
+        2_000_000_123,
+    ];
     source_ids.extend(1000..2200);
     let batch = Content::by_master_content_ids(&mut conn, &source_ids, library)?;
     assert_eq!(
@@ -310,8 +316,8 @@ fn test_album_relationships() -> anyhow::Result<()> {
     };
     assert_eq!(absent.clone().resolve(&mut conn)?, absent_view);
     let mut dangling = absent.clone();
-    dangling.artist_id = Some(i32::MAX);
-    dangling.image_id = Some(i32::MAX);
+    dangling.artist_id = Some(i64::MAX);
+    dangling.image_id = Some(i64::MAX);
     let dangling_view = AlbumView {
         album: dangling.clone(),
         artist: None,
@@ -320,7 +326,7 @@ fn test_album_relationships() -> anyhow::Result<()> {
     assert_eq!(dangling.clone().resolve(&mut conn)?, dangling_view);
     // Missing one target must not hide another relationship.
     let mut partial = album.clone();
-    partial.artist_id = Some(i32::MAX);
+    partial.artist_id = Some(i64::MAX);
     let view = partial.resolve(&mut conn)?;
     assert!(view.artist.is_none());
     assert_eq!(view.image, Some(image));
@@ -338,7 +344,7 @@ fn test_album_relationships() -> anyhow::Result<()> {
     assert_eq!(Album::find(&mut conn, &album.id)?, Some(album.clone()));
     assert_eq!(db.get_album_by_id(album.id)?, Some(album.clone()));
     assert_eq!(db.get_album_with_relations(album.id)?, Some(expected));
-    assert!(db.get_album_with_relations(i32::MAX)?.is_none());
+    assert!(db.get_album_with_relations(i64::MAX)?.is_none());
     let raw = db.get_albums()?;
     let views = db.get_albums_with_relations()?;
     assert_eq!(
@@ -419,7 +425,7 @@ fn test_category_relationships() -> anyhow::Result<()> {
     };
     assert_eq!(category.clone().resolve(&mut conn)?, expected);
     let mut dangling = category.clone();
-    dangling.menu_item_id = i32::MAX;
+    dangling.menu_item_id = i64::MAX;
     let missing = CategoryView {
         category: dangling.clone(),
         menu_item: None,
@@ -441,7 +447,7 @@ fn test_category_relationships() -> anyhow::Result<()> {
     );
     assert_eq!(db.get_category_by_id(category.id)?, Some(category.clone()));
     assert_eq!(db.get_category_with_relations(category.id)?, Some(expected));
-    assert!(db.get_category_with_relations(i32::MAX)?.is_none());
+    assert!(db.get_category_with_relations(i64::MAX)?.is_none());
     let raw = db.get_categories()?;
     let views = db.get_categories_with_relations()?;
     assert_eq!(
@@ -462,7 +468,7 @@ fn test_category_relationship_batches() -> anyhow::Result<()> {
         rows.push(Category {
             id: index,
             menu_item_id: item.id,
-            seq: 501 - index,
+            seq: (501 - index) as i32,
             is_visible: 1,
         });
     }
@@ -578,17 +584,17 @@ fn test_content_relationships() -> anyhow::Result<()> {
     absent.image_id = None;
     assert_no_content_relations(&absent.clone().resolve(&mut conn)?);
     let mut dangling = absent.clone();
-    dangling.artist_id = Some(i32::MAX);
-    dangling.remixer_id = Some(i32::MAX);
-    dangling.original_artist_id = Some(i32::MAX);
-    dangling.composer_id = Some(i32::MAX);
-    dangling.lyricist_id = Some(i32::MAX);
-    dangling.album_id = Some(i32::MAX);
-    dangling.genre_id = Some(i32::MAX);
-    dangling.label_id = Some(i32::MAX);
-    dangling.key_id = Some(i32::MAX);
-    dangling.color_id = Some(i32::MAX);
-    dangling.image_id = Some(i32::MAX);
+    dangling.artist_id = Some(i64::MAX);
+    dangling.remixer_id = Some(i64::MAX);
+    dangling.original_artist_id = Some(i64::MAX);
+    dangling.composer_id = Some(i64::MAX);
+    dangling.lyricist_id = Some(i64::MAX);
+    dangling.album_id = Some(i64::MAX);
+    dangling.genre_id = Some(i64::MAX);
+    dangling.label_id = Some(i64::MAX);
+    dangling.key_id = Some(i64::MAX);
+    dangling.color_id = Some(i64::MAX);
+    dangling.image_id = Some(i64::MAX);
     let dangling_view = dangling.clone().resolve(&mut conn)?;
     assert_no_content_relations(&dangling_view);
     assert_eq!(dangling_view.content, dangling);
@@ -608,7 +614,7 @@ fn test_content_relationships() -> anyhow::Result<()> {
     let mut conn = establish_connection(fixture.path(), &ConnectionOptions::default())?;
     assert_eq!(resolved, original.resolve(&mut conn)?);
     drop(conn);
-    assert!(db.get_content_with_relations(i32::MAX)?.is_none());
+    assert!(db.get_content_with_relations(i64::MAX)?.is_none());
     let raw = db.get_contents()?;
     let views = db.get_contents_with_relations()?;
     assert_eq!(
@@ -799,7 +805,7 @@ fn test_create() -> anyhow::Result<()> {
 fn test_create_album() -> anyhow::Result<()> {
     let db_path = setup_one_library_path();
     let db = OneLibrary::from_path(db_path.path())?;
-    let n = db.get_albums()?.len() as i32;
+    let n = db.get_albums()?.len() as i64;
     let model = db.create_album("album1", None, None)?;
     assert_eq!(model.id, n + 1);
     Ok(())
@@ -870,7 +876,7 @@ fn test_delete_album() -> anyhow::Result<()> {
 fn test_create_artist() -> anyhow::Result<()> {
     let db_path = setup_one_library_path();
     let db = OneLibrary::from_path(db_path.path())?;
-    let n = db.get_artists()?.len() as i32;
+    let n = db.get_artists()?.len() as i64;
     let model = db.create_artist("artist1")?;
     assert_eq!(model.id, n + 1);
     Ok(())
@@ -1022,7 +1028,10 @@ fn shared_track_conversions_reject_invalid_values() -> anyhow::Result<()> {
     assert!(NewContent::try_from(input).is_err());
     let mut input = track.clone();
     input.master_content_id = Some(u32::MAX);
-    assert!(NewContent::try_from(input).is_err());
+    assert_eq!(
+        NewContent::try_from(input)?.master_content_id,
+        Some(i64::from(u32::MAX))
+    );
     let mut input = track.clone();
     input.stock_date = Some("not a date".into());
     assert!(NewContent::try_from(input).is_err());
@@ -1035,6 +1044,19 @@ fn shared_track_conversions_reject_invalid_values() -> anyhow::Result<()> {
         .insert(&mut conn)?
         .resolve(&mut conn)?;
     assert!(Track::try_from(&view)?.rating.is_none());
+    for value in [i64::from(i32::MIN) - 1, i64::from(u32::MAX) + 1] {
+        let mut invalid = view.clone();
+        invalid.content.master_db_id = Some(value);
+        assert!(Track::try_from(invalid).is_err());
+    }
+    for value in [i64::from(u32::MAX), i64::from(i32::MAX) + 1] {
+        let mut valid = view.clone();
+        valid.content.master_db_id = Some(value);
+        valid.content.master_content_id = Some(value);
+        let mapped = Track::try_from(valid)?;
+        assert_eq!(mapped.master_db_id, Some(value as u32));
+        assert_eq!(mapped.master_content_id, Some(value as u32));
+    }
     let mut invalid = view.clone();
     invalid.content.file_size = Some(-1);
     assert!(Track::try_from(invalid).is_err());
@@ -1074,7 +1096,7 @@ fn content_album_artist_resolves_independently_and_handles_missing_targets() -> 
         Some("Album artist")
     );
     let mut missing_album = row.clone();
-    missing_album.album_id = Some(i32::MAX);
+    missing_album.album_id = Some(i64::MAX);
     let mut absent_album = row.clone();
     absent_album.album_id = None;
     let mut absent_artist = row.clone();
@@ -1097,7 +1119,7 @@ fn content_album_artist_resolves_independently_and_handles_missing_targets() -> 
     }
     // Simulate a dangling artist reference without modifying a source fixture.
     diesel::sql_query("DELETE FROM artist WHERE artist_id = ?")
-        .bind::<diesel::sql_types::Integer, _>(album_artist.id)
+        .bind::<diesel::sql_types::BigInt, _>(album_artist.id)
         .execute(&mut conn)?;
     let view = row.resolve(&mut conn)?;
     assert!(view.album.is_some());
@@ -1132,7 +1154,7 @@ fn shared_track_handler_queries() -> anyhow::Result<()> {
             .id,
         track.id
     );
-    assert!(db.get_track_by_id(i32::MAX)?.is_none());
+    assert!(db.get_track_by_id(i64::MAX)?.is_none());
     assert!(db.get_track_by_path("/not-present.wav")?.is_none());
     assert!(db.get_tracks_by_ids(&[])?.is_empty());
     let mut ids = vec![content.id; 1001];
@@ -1142,7 +1164,7 @@ fn shared_track_handler_queries() -> anyhow::Result<()> {
     assert_eq!(found[0].id, track.id);
     assert!(db.get_tracks()?.iter().any(|row| row.id == track.id));
     diesel::sql_query("UPDATE content SET rating = 6 WHERE content_id = ?")
-        .bind::<diesel::sql_types::Integer, _>(content.id)
+        .bind::<diesel::sql_types::BigInt, _>(content.id)
         .execute(&mut conn)?;
     assert!(db.get_track_by_id(content.id).is_err());
     assert!(db.get_track_by_path(&content.path).is_err());
@@ -1158,8 +1180,8 @@ fn shared_track_master_library_id_preserves_unsigned_identity() -> anyhow::Resul
     let mut conn = establish_connection(fixture.path(), &ConnectionOptions::default())?;
     for (unsigned, signed) in [
         (0u32, 0),
-        (2147483647u32, i32::MAX),
-        (2147483648u32, i32::MIN),
+        (2147483647u32, i64::from(i32::MAX)),
+        (2147483648u32, i64::from(i32::MIN)),
         (3499321917u32, -795645379),
         (4294967295u32, -1),
     ] {

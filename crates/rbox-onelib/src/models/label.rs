@@ -33,13 +33,13 @@ use rbox_masterdb::models::DjmdLabel;
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Label {
     /// The unique identifier of the label.
-    pub id: i32,
+    pub id: i64,
     /// The name of the label.
     pub name: String,
 }
 
 impl Model for Label {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
@@ -67,7 +67,7 @@ impl ModelDelete for Label {
         let result = diesel::delete(label::table.find(id)).execute(conn)?;
         // Remove any references to the label in the content table
         diesel::update(content::table.filter(content::label_id.eq(id)))
-            .set(content::label_id.eq(None::<i32>))
+            .set(content::label_id.eq(None::<i64>))
             .execute(conn)?;
         Ok(result)
     }
@@ -76,7 +76,7 @@ impl ModelDelete for Label {
         let result = diesel::delete(label::table.filter(label::id.eq_any(&ids))).execute(conn)?;
         // Remove any references to the label in the content table
         diesel::update(content::table.filter(content::label_id.eq_any(&ids)))
-            .set(content::label_id.eq(None::<i32>))
+            .set(content::label_id.eq(None::<i64>))
             .execute(conn)?;
         Ok(result)
     }

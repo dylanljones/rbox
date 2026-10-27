@@ -30,13 +30,13 @@ use rbox_masterdb::models::DjmdGenre;
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Genre {
     /// The unique identifier of the genre.
-    pub id: i32,
+    pub id: i64,
     /// The name of the genre.
     pub name: String,
 }
 
 impl Model for Genre {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
@@ -64,7 +64,7 @@ impl ModelDelete for Genre {
         let result = diesel::delete(genre::table.find(id)).execute(conn)?;
         // Remove any references to the genre in the content table
         diesel::update(content::table.filter(content::genre_id.eq(id)))
-            .set(content::genre_id.eq(None::<i32>))
+            .set(content::genre_id.eq(None::<i64>))
             .execute(conn)?;
         Ok(result)
     }
@@ -73,7 +73,7 @@ impl ModelDelete for Genre {
         let result = diesel::delete(genre::table.filter(genre::id.eq_any(&ids))).execute(conn)?;
         // Remove any references to the genre in the content table
         diesel::update(content::table.filter(content::genre_id.eq_any(&ids)))
-            .set(content::genre_id.eq(None::<i32>))
+            .set(content::genre_id.eq(None::<i64>))
             .execute(conn)?;
         Ok(result)
     }

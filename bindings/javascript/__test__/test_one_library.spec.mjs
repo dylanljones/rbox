@@ -1,8 +1,10 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+// OneLibrary binding contracts, including numeric IDs above the signed 32-bit range.
+
 import test from 'ava'
-import { existsSync } from 'node:fs'
+import { existsSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { OneLibrary, PlaylistType } from '../index.js'
 import { cleanupFixtures, fixtureCopy, temporaryPath } from './helpers/fixtures.mjs'
@@ -53,7 +55,7 @@ test('raw getters and argument conversion', t => {
 test('content lookup accepts signed master identities', t => {
     const db = t.context.db
     const row = db.getContents()[0]
-    row.masterContentId = 2000000123
+    row.masterContentId = 2 ** 40
     row.masterDbId = -795645379
     db.updateContent(row)
     const found = db.getContentByMasterContentId(row.masterContentId, row.masterDbId)
@@ -68,6 +70,40 @@ test('content lookup accepts signed master identities', t => {
     t.deepEqual(db.getContentsByMasterContentIds([row.masterContentId], 42), [])
     t.throws(() => db.getContentsByMasterContentIds(['invalid'], row.masterDbId), { instanceOf: Error })
     t.throws(() => db.getContentByMasterContentId([], row.masterDbId), { instanceOf: Error })
+})
+
+test('large tag IDs and optional references round trip', t => {
+    const db = t.context.db
+    const native = db.getMyTags()
+    t.true(native.some(tag => tag.id > 2147483647))
+    for (const tag of native) {
+        t.is(db.getMyTagById(tag.id).id, tag.id)
+    }
+    const folder = db.createMyTagFolder('wide parent', null, null)
+    t.true(folder.id > Math.max(...native.map(tag => tag.id)))
+    const child = db.createMyTag('wide child', folder.id, null)
+    t.is(child.parentId, folder.id)
+    db.renameMyTag(child.id, 'renamed')
+    t.is(db.getMyTagById(child.id).name, 'renamed')
+    db.moveMyTags([child.id], folder.id, 0)
+    t.is(db.getMyTagChildren(folder.id)[0].id, child.id)
+    db.deleteMyTags([folder.id])
+    t.true(db.getMyTagById(child.id) == null)
+
+    const row = db.getContents()[0]
+    row.contentLink = 2 ** 40
+    row.masterDbId = 2 ** 40 + 1
+    db.updateContent(row)
+    const found = db.getContentById(row.id)
+    t.is(found.contentLink, row.contentLink)
+    t.is(found.masterDbId, row.masterDbId)
+})
+
+test('create accepts a large property ID', t => {
+    const file = temporaryPath(t, 'wide.db')
+    writeFileSync(file, '')
+    const db = OneLibrary.create(file, 2 ** 40)
+    t.is(db.getProperties()[0].myTagMasterDbid, 2 ** 40)
 })
 
 test('album mutation signatures', t => {

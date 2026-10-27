@@ -44,7 +44,7 @@ use rbox_db::{
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct MyTag {
     /// The unique identifier of the tag.
-    pub id: i32,
+    pub id: i64,
     /// Position among siblings, starting at zero.
     pub seq: i32,
     /// The name of the tag.
@@ -52,11 +52,11 @@ pub struct MyTag {
     /// The tag type, either list (`0`) or a folder (`1`).
     pub attribute: MyTagType,
     /// The ID of the parent [`MyTag`], `0` for top-level records.
-    pub parent_id: i32,
+    pub parent_id: i64,
 }
 
 impl Model for MyTag {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query()
@@ -84,7 +84,7 @@ impl ModelDelete for MyTag {
             let mut deleted_ids = vec![*id];
 
             // Delete the record
-            let parent_id: i32 = diesel::delete(myTag::table.find(id))
+            let parent_id: i64 = diesel::delete(myTag::table.find(id))
                 .returning(myTag::parent_id)
                 .get_result(conn)?;
 
@@ -95,7 +95,7 @@ impl ModelDelete for MyTag {
             let mut parent_ids = VecDeque::from(vec![*id]);
             while let Some(parent_id) = parent_ids.pop_front() {
                 // Delete children
-                let deleted: Vec<i32> =
+                let deleted: Vec<i64> =
                     diesel::delete(myTag::table.filter(myTag::parent_id.eq(parent_id)))
                         .returning(myTag::id)
                         .get_results(conn)?;
@@ -145,7 +145,7 @@ impl ModelTree for MyTag {
 
 impl MyTag {
     /// Queries the records from the `myTag` table by their `parent_id`.
-    pub fn by_parent_id(conn: &mut SqliteConnection, parent_id: i32) -> QueryResult<Vec<Self>> {
+    pub fn by_parent_id(conn: &mut SqliteConnection, parent_id: i64) -> QueryResult<Vec<Self>> {
         Self::query()
             .filter(myTag::parent_id.eq(parent_id))
             .order(myTag::seq)
@@ -153,7 +153,7 @@ impl MyTag {
     }
 
     /// Queries the records from the `content` table associated with the given `myTag`.
-    pub fn get_contents(conn: &mut SqliteConnection, id: i32) -> QueryResult<Vec<Content>> {
+    pub fn get_contents(conn: &mut SqliteConnection, id: i64) -> QueryResult<Vec<Content>> {
         content::table
             .inner_join(myTag_content::table.on(content::id.eq(myTag_content::content_id)))
             .filter(myTag_content::my_tag_id.eq(id))
@@ -162,7 +162,7 @@ impl MyTag {
     }
 
     /// Queries all records from the `myTag` table their associated `content_id` via `myTag_content`
-    pub fn by_content_id(conn: &mut SqliteConnection, cid: i32) -> QueryResult<Vec<Self>> {
+    pub fn by_content_id(conn: &mut SqliteConnection, cid: i64) -> QueryResult<Vec<Self>> {
         myTag::table
             .inner_join(myTag_content::table.on(myTag::id.eq(myTag_content::my_tag_id)))
             .filter(myTag_content::content_id.eq(cid))
@@ -174,12 +174,12 @@ impl MyTag {
     ///
     /// Returns `None` if no unique node can be found for the given `path`.
     pub fn find_by_path(conn: &mut SqliteConnection, path: Vec<&str>) -> QueryResult<Option<Self>> {
-        let mut parent_ids: HashSet<i32> = HashSet::new();
+        let mut parent_ids: HashSet<i64> = HashSet::new();
         parent_ids.insert(0);
         for name in path {
-            let mut new_parent_ids: HashSet<i32> = HashSet::new();
+            let mut new_parent_ids: HashSet<i64> = HashSet::new();
             for parent_id in parent_ids.iter() {
-                let result: Option<i32> = myTag::table
+                let result: Option<i64> = myTag::table
                     .filter(myTag::parent_id.eq(parent_id))
                     .filter(myTag::name.eq(name))
                     .select(myTag::id)
@@ -203,7 +203,7 @@ impl MyTag {
     }
 
     /// Returns the myTag type (`attribute`) of a record in the `myTag` table or `None` if not found.
-    pub fn get_attribute(conn: &mut SqliteConnection, id: i32) -> QueryResult<Option<MyTagType>> {
+    pub fn get_attribute(conn: &mut SqliteConnection, id: i64) -> QueryResult<Option<MyTagType>> {
         if id == 0 {
             return Ok(Some(MyTagType::Folder));
         }
@@ -216,7 +216,7 @@ impl MyTag {
     }
 
     /// Returns `true` if the record in the `myTag` table exists and is a myTag, `false` otherwise.
-    pub fn is_tag(conn: &mut SqliteConnection, id: i32) -> QueryResult<bool> {
+    pub fn is_tag(conn: &mut SqliteConnection, id: i64) -> QueryResult<bool> {
         match Self::get_attribute(conn, id)? {
             Some(attr) => Ok(attr == MyTagType::List),
             None => Ok(false),
@@ -224,7 +224,7 @@ impl MyTag {
     }
 
     /// Returns `true` if the record in the `myTag` table exists and is a folder, `false` otherwise.
-    pub fn is_folder(conn: &mut SqliteConnection, id: i32) -> QueryResult<bool> {
+    pub fn is_folder(conn: &mut SqliteConnection, id: i64) -> QueryResult<bool> {
         match Self::get_attribute(conn, id)? {
             Some(attr) => Ok(attr == MyTagType::Folder),
             None => Ok(false),
@@ -232,7 +232,7 @@ impl MyTag {
     }
 
     /// Set the name of a record in the `myTag` table.
-    pub fn rename(conn: &mut SqliteConnection, id: i32, name: &str) -> QueryResult<usize> {
+    pub fn rename(conn: &mut SqliteConnection, id: i64, name: &str) -> QueryResult<usize> {
         diesel::update(myTag::table.find(id))
             .set(myTag::name.eq(name))
             .execute(conn)
@@ -240,7 +240,7 @@ impl MyTag {
 }
 
 impl TreeSeq for MyTag {
-    type ParentId = i32;
+    type ParentId = i64;
     const START_SEQ: i32 = 0;
     fn is_valid_parent(
         conn: &mut SqliteConnection,
@@ -286,7 +286,7 @@ impl TreeSeq for MyTag {
 }
 
 impl OrderedModel for MyTag {
-    fn order_id(&self) -> i32 {
+    fn order_id(&self) -> i64 {
         self.id
     }
     fn order_parent(&self) -> &Self::ParentId {
@@ -345,7 +345,7 @@ pub struct NewMyTag {
     /// The tag type, either list (`0`) or a folder (`1`).
     pub attribute: MyTagType,
     /// The ID of the parent [`MyTag`], `0` for top-level records.
-    pub parent_id: i32,
+    pub parent_id: i64,
 }
 
 impl ModelInsert for NewMyTag {
@@ -398,7 +398,7 @@ impl NewMyTag {
     }
 
     /// Builder for `parent_id`.
-    pub fn parent_id(mut self, id: i32) -> Self {
+    pub fn parent_id(mut self, id: i64) -> Self {
         self.parent_id = id;
         self
     }
@@ -425,13 +425,13 @@ impl NewMyTag {
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct MyTagContent {
     /// The ID of the associated [`MyTag`].
-    pub my_tag_id: i32,
+    pub my_tag_id: i64,
     /// The ID of the associated [`Content`].
-    pub content_id: i32,
+    pub content_id: i64,
 }
 
 impl Model for MyTagContent {
-    type Id = (i32, i32);
+    type Id = (i64, i64);
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
@@ -482,7 +482,7 @@ impl ModelInsert for MyTagContent {
 
 impl MyTagContent {
     /// Creates a new `myTag_content` record with the required fields.
-    pub fn new(my_tag_id: i32, content_id: i32) -> Self {
+    pub fn new(my_tag_id: i64, content_id: i64) -> Self {
         Self {
             my_tag_id,
             content_id,
@@ -490,14 +490,14 @@ impl MyTagContent {
     }
 
     /// Queries all records from the `myTag_content` table by its `my_tag_id`
-    pub fn by_my_tag_id(conn: &mut SqliteConnection, my_tag_id: i32) -> QueryResult<Vec<Self>> {
+    pub fn by_my_tag_id(conn: &mut SqliteConnection, my_tag_id: i64) -> QueryResult<Vec<Self>> {
         Self::query()
             .filter(myTag_content::my_tag_id.eq(my_tag_id))
             .load(conn)
     }
 
     /// Queries all records from the `myTag_content` table by its `content_id`
-    pub fn by_content_id(conn: &mut SqliteConnection, content_id: i32) -> QueryResult<Vec<Self>> {
+    pub fn by_content_id(conn: &mut SqliteConnection, content_id: i64) -> QueryResult<Vec<Self>> {
         Self::query()
             .filter(myTag_content::content_id.eq(content_id))
             .load(conn)
@@ -505,37 +505,37 @@ impl MyTagContent {
 
     /// Creates a filter for records by `my_tag_id`.
     #[diesel::dsl::auto_type(no_type_alias)]
-    fn filter_by_my_tag_id(my_tag_id: i32) -> _ {
+    fn filter_by_my_tag_id(my_tag_id: i64) -> _ {
         myTag_content::table.filter(myTag_content::my_tag_id.eq(my_tag_id))
     }
 
     /// Creates a filter for records by multiple `my_tag_id`s.
     #[diesel::dsl::auto_type(no_type_alias)]
-    fn filter_by_my_tag_ids(my_tag_ids: &[i32]) -> _ {
+    fn filter_by_my_tag_ids(my_tag_ids: &[i64]) -> _ {
         myTag_content::table.filter(myTag_content::my_tag_id.eq_any(my_tag_ids))
     }
 
     /// Creates a filter for records by `content_id`.
     #[diesel::dsl::auto_type(no_type_alias)]
-    fn filter_by_content_id(content_id: i32) -> _ {
+    fn filter_by_content_id(content_id: i64) -> _ {
         myTag_content::table.filter(myTag_content::content_id.eq(content_id))
     }
 
     /// Creates a filter for records by multiple `content_id`s.
     #[diesel::dsl::auto_type(no_type_alias)]
-    fn filter_by_content_ids(content_ids: &[i32]) -> _ {
+    fn filter_by_content_ids(content_ids: &[i64]) -> _ {
         myTag_content::table.filter(myTag_content::content_id.eq_any(content_ids))
     }
 
     /// Deletes all record from the `myTag_content` table referencing a `myTag` record.
-    pub fn delete_by_my_tag_id(conn: &mut SqliteConnection, my_tag_id: i32) -> QueryResult<usize> {
+    pub fn delete_by_my_tag_id(conn: &mut SqliteConnection, my_tag_id: i64) -> QueryResult<usize> {
         conn.transaction(|conn| diesel::delete(Self::filter_by_my_tag_id(my_tag_id)).execute(conn))
     }
 
     /// Deletes all record from the `myTag_content` table referencing multiple `myTag` records.
     pub fn delete_by_my_tag_ids(
         conn: &mut SqliteConnection,
-        my_tag_ids: &[i32],
+        my_tag_ids: &[i64],
     ) -> QueryResult<usize> {
         conn.transaction(|conn| {
             diesel::delete(Self::filter_by_my_tag_ids(my_tag_ids)).execute(conn)
@@ -545,7 +545,7 @@ impl MyTagContent {
     /// Deletes all record from the `myTag_content` table referencing a `content` record.
     pub fn delete_by_content_id(
         conn: &mut SqliteConnection,
-        content_id: i32,
+        content_id: i64,
     ) -> QueryResult<usize> {
         conn.transaction(|conn| {
             diesel::delete(Self::filter_by_content_id(content_id)).execute(conn)
@@ -555,7 +555,7 @@ impl MyTagContent {
     /// Deletes all record from the `myTag_content` table referencing a `content` record.
     pub fn delete_by_content_ids(
         conn: &mut SqliteConnection,
-        content_ids: &[i32],
+        content_ids: &[i64],
     ) -> QueryResult<usize> {
         conn.transaction(|conn| {
             diesel::delete(Self::filter_by_content_ids(content_ids)).execute(conn)

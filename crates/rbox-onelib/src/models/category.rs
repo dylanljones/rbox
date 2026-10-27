@@ -35,9 +35,9 @@ use rbox_db::{
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Category {
     /// The unique identifier of the category.
-    pub id: i32,
+    pub id: i64,
     /// A foreign key referencing the [`MenuItem`].
-    pub menu_item_id: i32,
+    pub menu_item_id: i64,
     /// One-based order among visible categories. Hidden rows may retain an old
     /// position and are excluded from active sequence maintenance.
     pub seq: i32,
@@ -102,7 +102,7 @@ impl ModelRelations for Category {
 }
 
 impl Model for Category {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query()
@@ -191,7 +191,7 @@ impl Category {
     /// Returns a detached snapshot; missing relationship targets remain `None`.
     pub fn find_with_relations(
         conn: &mut SqliteConnection,
-        id: i32,
+        id: i64,
     ) -> QueryResult<Option<CategoryView>> {
         conn.transaction(|conn| {
             Self::find(conn, &id)?
@@ -225,7 +225,7 @@ impl SequenceStore for Category {
     }
     fn reset_seq(conn: &mut SqliteConnection, _: &()) -> QueryResult<usize> {
         conn.transaction(|conn| {
-            let rows: Vec<(i32, i32)> = Self::filter_is_visible(1)
+            let rows: Vec<(i64, i32)> = Self::filter_is_visible(1)
                 .order((category::seq, category::id))
                 .select((category::id, category::seq))
                 .load(conn)?;
@@ -280,7 +280,7 @@ impl SequenceVisible for Category {}
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct NewCategory {
     /// A foreign key referencing the [`MenuItem`].
-    pub menu_item_id: i32,
+    pub menu_item_id: i64,
     /// The sequence/order of the category.
     pub seq: i32,
     /// A flag if the category is visible.
@@ -309,7 +309,7 @@ impl ModelInsert for NewCategory {
 
 impl NewCategory {
     /// Creates a new category record with the required fields.
-    pub fn new(menu_item_id: i32) -> Self {
+    pub fn new(menu_item_id: i64) -> Self {
         Self {
             menu_item_id,
             ..Default::default()

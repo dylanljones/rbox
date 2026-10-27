@@ -47,7 +47,7 @@ pub struct Property {
     /// The background color type (0 by default)
     pub back_ground_color_type: i32,
     /// The master.db database id of the tag data
-    pub my_tag_master_dbid: i32,
+    pub my_tag_master_dbid: i64,
 }
 
 impl Default for Property {
@@ -148,7 +148,7 @@ impl Property {
     }
 
     /// Creates a new property record with the required fields.
-    pub fn new<S: Into<String>>(device_name: S, my_tag_master_dbid: i32) -> Self {
+    pub fn new<S: Into<String>>(device_name: S, my_tag_master_dbid: i64) -> Self {
         Self {
             device_name: device_name.into(),
             created_date: Utc::now(),

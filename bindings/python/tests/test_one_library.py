@@ -60,7 +60,7 @@ def test_raw_getters(one_library):
 def test_content_lookup_by_master_identity(one_library):
     db = one_library
     row = db.get_contents()[0]
-    row.master_content_id = 2_000_000_123
+    row.master_content_id = 2**40
     row.master_db_id = -795_645_379
     db.update_content(row)
     found = db.get_content_by_master_content_id(row.master_content_id, row.master_db_id)
@@ -78,12 +78,48 @@ def test_content_lookup_by_master_identity(one_library):
     assert db.get_contents_by_master_content_ids([row.master_content_id], 42) == []
     with pytest.raises(TypeError):
         db.get_contents_by_master_content_ids(["invalid"], row.master_db_id)
+    assert db.get_contents_by_master_content_ids([row.master_content_id], 3_499_321_917) == []
     with pytest.raises(OverflowError):
-        db.get_contents_by_master_content_ids([row.master_content_id], 3_499_321_917)
+        db.get_contents_by_master_content_ids([2**63], row.master_db_id)
     with pytest.raises(TypeError):
         db.get_content_by_master_content_id([], row.master_db_id)
+    assert db.get_content_by_master_content_id(row.master_content_id, 3_499_321_917) is None
     with pytest.raises(OverflowError):
-        db.get_content_by_master_content_id(row.master_content_id, 3_499_321_917)
+        db.get_content_by_master_content_id(row.master_content_id, 2**63)
+
+
+def test_large_tag_ids_and_optional_references(one_library):
+    db = one_library
+    native = db.get_my_tags()
+    assert any(tag.id > 2**31 - 1 for tag in native)
+    for tag in native:
+        assert db.get_my_tag_by_id(tag.id).id == tag.id
+    folder = db.create_my_tag_folder("wide parent", None, None)
+    assert folder.id > max(tag.id for tag in native)
+    child = db.create_my_tag("wide child", folder.id, None)
+    assert child.parent_id == folder.id
+    assert child["parent_id"] == folder.id
+    db.rename_my_tag(child.id, "renamed")
+    assert db.get_my_tag_by_id(child.id).name == "renamed"
+    db.move_my_tags([child.id], folder.id, 0)
+    assert db.get_my_tag_children(folder.id)[0].id == child.id
+    db.delete_my_tags([folder.id])
+    assert db.get_my_tag_by_id(child.id) is None
+
+    row = db.get_contents()[0]
+    row.content_link = 2**40
+    row.master_db_id = 2**40 + 1
+    db.update_content(row)
+    found = db.get_content_by_id(row.id)
+    assert found.content_link == row.content_link
+    assert found.master_db_id == row.master_db_id
+
+
+def test_create_with_large_property_id(tmp_path):
+    path = tmp_path / "wide.db"
+    path.touch()
+    db = OneLibrary.create(str(path), 2**40)
+    assert db.get_properties()[0].my_tag_master_dbid == 2**40
 
 
 def test_album_mutation_signatures(one_library):

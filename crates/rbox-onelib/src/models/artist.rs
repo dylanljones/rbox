@@ -34,7 +34,7 @@ use rbox_masterdb::models::DjmdArtist;
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Artist {
     /// The unique identifier of the artist.
-    pub id: i32,
+    pub id: i64,
     /// The name of the artist.
     pub name: String,
     /// An optional field for storing a search-optimized version of the artist name.
@@ -42,7 +42,7 @@ pub struct Artist {
 }
 
 impl Model for Artist {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
@@ -82,16 +82,16 @@ impl ModelDelete for Artist {
                 OR artist_id_composer       =?
                 OR artist_id_lyricist       =?"
         )
-            .bind::<diesel::sql_types::Integer, _>(id)
-            .bind::<diesel::sql_types::Integer, _>(id)
-            .bind::<diesel::sql_types::Integer, _>(id)
-            .bind::<diesel::sql_types::Integer, _>(id)
-            .bind::<diesel::sql_types::Integer, _>(id)
-            .bind::<diesel::sql_types::Integer, _>(id)
-            .bind::<diesel::sql_types::Integer, _>(id)
-            .bind::<diesel::sql_types::Integer, _>(id)
-            .bind::<diesel::sql_types::Integer, _>(id)
-            .bind::<diesel::sql_types::Integer, _>(id)
+            .bind::<diesel::sql_types::BigInt, _>(id)
+            .bind::<diesel::sql_types::BigInt, _>(id)
+            .bind::<diesel::sql_types::BigInt, _>(id)
+            .bind::<diesel::sql_types::BigInt, _>(id)
+            .bind::<diesel::sql_types::BigInt, _>(id)
+            .bind::<diesel::sql_types::BigInt, _>(id)
+            .bind::<diesel::sql_types::BigInt, _>(id)
+            .bind::<diesel::sql_types::BigInt, _>(id)
+            .bind::<diesel::sql_types::BigInt, _>(id)
+            .bind::<diesel::sql_types::BigInt, _>(id)
             .execute(conn)?;
         Ok(result)
     }
@@ -214,7 +214,7 @@ impl Into<NewArtist> for DjmdArtist {
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Remixer {
-    pub id: i32,
+    pub id: i64,
     pub name: String,
     pub name_for_search: Option<String>,
 }
@@ -227,7 +227,7 @@ pub struct Remixer {
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct OriginalArtist {
-    pub id: i32,
+    pub id: i64,
     pub name: String,
     pub name_for_search: Option<String>,
 }
@@ -240,7 +240,7 @@ pub struct OriginalArtist {
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Composer {
-    pub id: i32,
+    pub id: i64,
     pub name: String,
     pub name_for_search: Option<String>,
 }
@@ -253,7 +253,7 @@ pub struct Composer {
 #[cfg_attr(feature = "pyo3", derive(PyMutableMapping))]
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Lyricist {
-    pub id: i32,
+    pub id: i64,
     pub name: String,
     pub name_for_search: Option<String>,
 }

@@ -44,9 +44,9 @@ use rbox_db::{Model, ModelDelete, ModelUpdate};
 #[cfg_attr(feature = "napi", napi(object))]
 pub struct Cue {
     /// The unique identifier of the cue.
-    pub id: i32,
+    pub id: i64,
     /// A foreign key referencing the [`Content`].
-    pub content_id: i32,
+    pub content_id: i64,
     /// The type of the cue.
     ///
     /// 0 if a memory cue, otherwise the number of Hot Cue
@@ -96,7 +96,7 @@ pub struct Cue {
 }
 
 impl Model for Cue {
-    type Id = i32;
+    type Id = i64;
 
     fn all(conn: &mut SqliteConnection) -> QueryResult<Vec<Self>> {
         Self::query().load(conn)
@@ -128,7 +128,7 @@ impl ModelDelete for Cue {
 
     fn delete_all(conn: &mut SqliteConnection, ids: Vec<&Self::Id>) -> QueryResult<usize> {
         let mut result = diesel::delete(cue::table.filter(cue::id.eq_any(&ids))).execute(conn)?;
-        let ids: Vec<i32> = ids.iter().map(|&id| *id).collect();
+        let ids: Vec<i64> = ids.iter().map(|&id| *id).collect();
         result += HotCueBankListCue::delete_by_cue_ids(conn, &ids)?;
         Ok(result)
     }
@@ -136,8 +136,8 @@ impl ModelDelete for Cue {
 
 impl Cue {
     /// Deletes all record from the `cue` table referencing a `content` record.
-    pub fn delete_by_content_id(conn: &mut SqliteConnection, id: i32) -> QueryResult<usize> {
-        let deleted_ids: Vec<i32> = diesel::delete(cue::table.filter(cue::content_id.eq(id)))
+    pub fn delete_by_content_id(conn: &mut SqliteConnection, id: i64) -> QueryResult<usize> {
+        let deleted_ids: Vec<i64> = diesel::delete(cue::table.filter(cue::content_id.eq(id)))
             .returning(cue::id)
             .get_results(conn)?;
         let mut result = deleted_ids.len();
@@ -146,8 +146,8 @@ impl Cue {
     }
 
     /// Deletes all record from the `cue` table referencing multiple `content` records.
-    pub fn delete_by_content_ids(conn: &mut SqliteConnection, ids: &[i32]) -> QueryResult<usize> {
-        let deleted_ids: Vec<i32> = diesel::delete(cue::table.filter(cue::content_id.eq_any(ids)))
+    pub fn delete_by_content_ids(conn: &mut SqliteConnection, ids: &[i64]) -> QueryResult<usize> {
+        let deleted_ids: Vec<i64> = diesel::delete(cue::table.filter(cue::content_id.eq_any(ids)))
             .returning(cue::id)
             .get_results(conn)?;
         let mut result = deleted_ids.len();
