@@ -13,6 +13,8 @@ const anlz = path.join(demo, 'rekordbox', 'share', 'PIONEER', 'USBANLZ',
 const fixtures = {
     masterdb: path.join(demo, 'rekordbox', 'master.db'),
     oneLibrary: path.join(root, 'RBv7', 'demo', 'export', 'PIONEER', 'rekordbox', 'exportLibrary.db'),
+    deviceLibrary: path.join(root, 'RBv7', 'demo', 'export', 'PIONEER', 'rekordbox', 'export.pdb'),
+    deviceLibraryExtended: path.join(root, 'RBv7', 'demo', 'export', 'PIONEER', 'rekordbox', 'exportExt.pdb'),
     xml: path.join(demo, 'database.xml'),
     ...Object.fromEntries(['DAT', 'EXT', '2EX'].map(ext => [ext, path.join(anlz, `ANLZ0000.${ext}`)])),
 }
