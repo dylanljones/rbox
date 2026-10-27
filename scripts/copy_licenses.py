@@ -8,10 +8,9 @@ Run with Python before packaging, or use --check to detect missing/stale copies 
 
 import argparse
 import json
-from pathlib import Path
 import sys
 import tomllib
-
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
