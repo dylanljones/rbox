@@ -26,7 +26,7 @@ It supports the following Rekordbox files:
 - **Settings Access**: Read and write My-Setting files
 - **XML database**: Read and write Rekordbox XML database files
 
-## 🔧 Installation
+## Installation
 
 rbox is available on Cargo. Run the following Cargo command in your project directory:
 ```shell
