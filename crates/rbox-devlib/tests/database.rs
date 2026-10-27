@@ -20,7 +20,7 @@ fn options() -> LibraryCreateOptions {
 #[test]
 fn playlist_tree_methods_preserve_hierarchy_order_and_explicit_saving() -> Result<()> {
     use rbox_core::PlaylistType;
-    use rbox_devlib::models::{NewPlaylist, Playlist};
+    use rbox_devlib::models::{DevPlaylist, NewDevPlaylist};
 
     for with_extended in [false, true] {
         let temp = create_temp_dir();
@@ -43,7 +43,7 @@ fn playlist_tree_methods_preserve_hierarchy_order_and_explicit_saving() -> Resul
         let folder = library.create_playlist_folder("Sets", None, None)?;
         let other = library.create_playlist_folder("Other", None, None)?;
         let a = library.create_playlist("A", Some(folder.id), None)?;
-        let b = library.insert_playlist(NewPlaylist::playlist("B").parent_id(folder.id))?;
+        let b = library.insert_playlist(NewDevPlaylist::playlist("B").parent_id(folder.id))?;
         let c = library.create_playlist("C", Some(folder.id), Some(0))?;
         assert_eq!((folder.id, other.id, a.id, b.id, c.id), (1, 2, 3, 4, 5));
         assert!(library.is_playlist(a.id)?);
@@ -84,7 +84,7 @@ fn playlist_tree_methods_preserve_hierarchy_order_and_explicit_saving() -> Resul
         let updated = library.update_playlist(edited)?;
         assert_eq!(
             (updated.parent_id, updated.seq),
-            (folder.id, Playlist::START_SEQ)
+            (folder.id, DevPlaylist::START_SEQ)
         );
         assert_eq!(library.rename_playlist(a.id, "Renamed")?, 1);
         assert!(matches!(
@@ -99,7 +99,7 @@ fn playlist_tree_methods_preserve_hierarchy_order_and_explicit_saving() -> Resul
         row.position = 9;
         let mut tx = library.standard_mut().transaction();
         let handle = tx.locate(
-            Playlist::TABLE,
+            DevPlaylist::TABLE,
             node.raw_record().page(),
             node.raw_record().slot().slot,
         )?;
@@ -128,7 +128,7 @@ fn playlist_tree_methods_preserve_hierarchy_order_and_explicit_saving() -> Resul
         assert!(library.get_playlist_by_id(c.id)?.is_none());
         assert_eq!(
             library.get_playlist_children(0)?[0].seq,
-            Playlist::START_SEQ
+            DevPlaylist::START_SEQ
         );
         assert!(library.delete_playlists(&[other.id, 999]).is_err());
         assert!(library.get_playlist_by_id(other.id)?.is_some());
@@ -152,7 +152,7 @@ fn playlist_tree_methods_preserve_hierarchy_order_and_explicit_saving() -> Resul
 
 #[test]
 fn playlist_content_methods_preserve_order_uniqueness_and_imported_occurrences() -> Result<()> {
-    use rbox_devlib::models::{NewPlaylistContent, PlaylistContent};
+    use rbox_devlib::models::{DevPlaylistContent, NewDevPlaylistContent};
 
     for with_extended in [false, true] {
         let temp = create_temp_dir();
@@ -179,8 +179,8 @@ fn playlist_content_methods_preserve_order_uniqueness_and_imported_occurrences()
             .create_playlist_content(playlist.id, a.id, Some(0))
             .is_err());
         let entry =
-            library.insert_playlist_content(NewPlaylistContent::new(playlist.id, a.id, None))?;
-        assert_eq!(entry.seq, PlaylistContent::START_SEQ);
+            library.insert_playlist_content(NewDevPlaylistContent::new(playlist.id, a.id, None))?;
+        assert_eq!(entry.seq, DevPlaylistContent::START_SEQ);
         library.create_playlist_content(playlist.id, b.id, Some(1))?;
         library.create_playlist_content(playlist.id, c.id, Some(1))?;
         assert!(matches!(
@@ -232,7 +232,7 @@ fn playlist_content_methods_preserve_order_uniqueness_and_imported_occurrences()
         row.position = 9;
         let mut tx = library.standard_mut().transaction();
         let handle = tx.locate(
-            PlaylistContent::TABLE,
+            DevPlaylistContent::TABLE,
             entry.raw_record().page(),
             entry.raw_record().slot().slot,
         )?;
@@ -259,7 +259,7 @@ fn playlist_content_methods_preserve_order_uniqueness_and_imported_occurrences()
             .unwrap();
         let row = entry.raw_record().decode()?;
         let mut tx = library.standard_mut().transaction();
-        tx.insert(PlaylistContent::TABLE, &row)?;
+        tx.insert(DevPlaylistContent::TABLE, &row)?;
         tx.commit()?;
         assert_eq!(library.get_playlist_contents(playlist.id)?.len(), 4);
         assert!(library
@@ -326,7 +326,7 @@ fn playlist_association_cleanup_retains_playlists_and_contents() -> Result<()> {
     let entry = library.create_playlist_content(p, a, None)?;
     let row = entry.raw_record().decode()?;
     let mut tx = library.standard_mut().transaction();
-    tx.insert(rbox_devlib::models::PlaylistContent::TABLE, &row)?;
+    tx.insert(rbox_devlib::models::DevPlaylistContent::TABLE, &row)?;
     tx.commit()?;
     assert_eq!(library.remove_playlist_content(p, a)?, 2);
     assert_eq!(library.remove_playlist_content(p, a)?, 0);
@@ -338,7 +338,7 @@ fn playlist_association_cleanup_retains_playlists_and_contents() -> Result<()> {
 
 #[test]
 fn my_tag_methods_preserve_ids_order_associations_and_explicit_saving() -> Result<()> {
-    use rbox_devlib::models::{MyTag, NewMyTag, NewMyTagContent};
+    use rbox_devlib::models::{DevMyTag, NewDevMyTag, NewDevMyTagContent};
 
     let temp = create_temp_dir();
     let mut library = DeviceLibrary::create(temp.path(), &options())?;
@@ -354,7 +354,7 @@ fn my_tag_methods_preserve_ids_order_associations_and_explicit_saving() -> Resul
     library.create_my_tag_folder(100, "Mood", None, None)?;
     library.create_my_tag_folder(200, "Energy", None, None)?;
     library.create_my_tag(101, "Warm", Some(100), None)?;
-    library.insert_my_tag(NewMyTag::tag(102, "Bright").parent_id(100))?;
+    library.insert_my_tag(NewDevMyTag::tag(102, "Bright").parent_id(100))?;
     library.create_my_tag(103, "Calm", Some(100), Some(0))?;
     assert_eq!(library.count_my_tag_children(100)?, 3);
     assert_eq!(
@@ -408,7 +408,7 @@ fn my_tag_methods_preserve_ids_order_associations_and_explicit_saving() -> Resul
     row.header.position = 9;
     let mut tx = library.extended_mut()?.transaction();
     let handle = tx.locate(
-        MyTag::TABLE,
+        DevMyTag::TABLE,
         tag.raw_record().page(),
         tag.raw_record().slot().slot,
     )?;
@@ -419,7 +419,7 @@ fn my_tag_methods_preserve_ids_order_associations_and_explicit_saving() -> Resul
     assert_eq!(library.get_my_tag_seq_numbers(200)?, vec![0, 1]);
     assert!(library.validate_my_tag_seq_numbers(200)?);
     library.create_my_tag_content(101, first.id)?;
-    library.insert_my_tag_content(NewMyTagContent::new(first.id, 101))?;
+    library.insert_my_tag_content(NewDevMyTagContent::new(first.id, 101))?;
     library.create_my_tag_content(102, second.id)?;
     library.create_my_tag_content(103, second.id)?;
     assert_eq!(library.get_my_tag_associations()?.len(), 4);
@@ -483,7 +483,7 @@ fn my_tag_methods_preserve_ids_order_associations_and_explicit_saving() -> Resul
     assert_eq!(library.delete_my_tag(999)?, 0);
     assert_eq!(library.delete_my_tag(100)?, 3); // Category, child and association.
     assert!(library.get_my_tag_by_id(103)?.is_none());
-    assert_eq!(library.get_my_tag_children(0)?[0].seq, MyTag::START_SEQ);
+    assert_eq!(library.get_my_tag_children(0)?[0].seq, DevMyTag::START_SEQ);
     assert!(library.delete_my_tags(&[200, 999]).is_err());
     assert!(library.get_my_tag_by_id(200)?.is_some());
     assert_eq!(library.delete_my_tags(&[200, 101])?, 5); // Overlapping subtree counted once.
@@ -502,7 +502,7 @@ fn my_tag_methods_preserve_ids_order_associations_and_explicit_saving() -> Resul
 
 #[test]
 fn my_tag_relationship_queries_report_missing_targets() -> Result<()> {
-    use rbox_devlib::models::{Content, MyTag};
+    use rbox_devlib::models::{DevContent, DevMyTag};
 
     let temp = create_temp_dir();
     let mut library = DeviceLibrary::create(temp.path(), &options())?;
@@ -510,14 +510,14 @@ fn my_tag_relationship_queries_report_missing_targets() -> Result<()> {
     assert!(matches!(
         library.get_my_tag_contents(100),
         Err(Error::ModelNotFound {
-            table: Content::TABLE,
+            table: DevContent::TABLE,
             id: 200
         })
     ));
     assert!(matches!(
         library.get_my_tag_by_content_id(200),
         Err(Error::ModelNotFound {
-            table: MyTag::TABLE,
+            table: DevMyTag::TABLE,
             id: 100
         })
     ));
@@ -527,7 +527,7 @@ fn my_tag_relationship_queries_report_missing_targets() -> Result<()> {
 
 #[test]
 fn my_tag_methods_require_an_open_extended_database() -> Result<()> {
-    use rbox_devlib::models::{NewMyTag, NewMyTagContent};
+    use rbox_devlib::models::{NewDevMyTag, NewDevMyTagContent};
 
     let temp = create_temp_dir();
     let mut pair = DeviceLibrary::create(temp.path(), &options())?;
@@ -546,7 +546,7 @@ fn my_tag_methods_require_an_open_extended_database() -> Result<()> {
     missing!(library.get_my_tag_children(0));
     missing!(library.get_my_tag_contents(100));
     missing!(library.get_my_tag_by_content_id(1));
-    missing!(library.insert_my_tag(NewMyTag::tag(101, "Tag")));
+    missing!(library.insert_my_tag(NewDevMyTag::tag(101, "Tag")));
     missing!(library.create_my_tag(101, "Tag", None, None));
     missing!(library.create_my_tag_folder(200, "Category", None, None));
     missing!(library.update_my_tag(tag));
@@ -562,7 +562,7 @@ fn my_tag_methods_require_an_open_extended_database() -> Result<()> {
     missing!(library.get_my_tag_associations());
     missing!(library.get_my_tag_entries(100));
     missing!(library.get_my_tag_associations_by_content_id(1));
-    missing!(library.insert_my_tag_content(NewMyTagContent::new(1, 100)));
+    missing!(library.insert_my_tag_content(NewDevMyTagContent::new(1, 100)));
     missing!(library.create_my_tag_content(100, 1));
     missing!(library.delete_my_tag_content(100, 1));
     missing!(library.delete_my_tag_content_entry(entry));
@@ -662,7 +662,7 @@ fn property_methods_update_each_file_and_save_explicitly() -> Result<()> {
 
 #[test]
 fn recommendation_methods_preserve_raw_values_constraints_and_occurrences() -> Result<()> {
-    use rbox_devlib::models::NewRecommendedLike;
+    use rbox_devlib::models::NewDevRecommendedLike;
 
     let temp = create_temp_dir();
     let mut library = DeviceLibrary::create(temp.path(), &options())?;
@@ -677,7 +677,7 @@ fn recommendation_methods_preserve_raw_values_constraints_and_occurrences() -> R
         library.create_recommend_like(0, second.id, 0, 0, 0),
         Err(Error::InvalidModelField { .. })
     ));
-    let input = NewRecommendedLike::new(first.id, second.id, u64::MAX, 0x12345678, u32::MAX);
+    let input = NewDevRecommendedLike::new(first.id, second.id, u64::MAX, 0x12345678, u32::MAX);
     let inserted = library.insert_recommend_like(input)?;
     assert!(matches!(
         library.create_recommend_like(first.id, second.id, 0, 0, 0),
@@ -692,7 +692,7 @@ fn recommendation_methods_preserve_raw_values_constraints_and_occurrences() -> R
     // Imported binary rows may repeat: reads and snapshot deletion retain occurrence identity.
     let row = inserted.raw_record().decode()?;
     let mut tx = library.extended_mut()?.transaction();
-    tx.insert(rbox_devlib::models::RecommendedLike::TABLE, &row)?;
+    tx.insert(rbox_devlib::models::DevRecommendedLike::TABLE, &row)?;
     tx.commit()?;
     assert_eq!(library.get_recommend_likes()?.len(), 3);
     let occurrence = library.get_recommend_likes()?.remove(0);
@@ -735,7 +735,7 @@ fn recommendation_methods_preserve_raw_values_constraints_and_occurrences() -> R
 
 #[test]
 fn extended_model_methods_require_an_open_extended_database() -> Result<()> {
-    use rbox_devlib::models::NewRecommendedLike;
+    use rbox_devlib::models::NewDevRecommendedLike;
 
     let temp = create_temp_dir();
     let mut pair = DeviceLibrary::create(temp.path(), &options())?;
@@ -766,7 +766,7 @@ fn extended_model_methods_require_an_open_extended_database() -> Result<()> {
         Err(Error::MissingExtendedDatabase)
     ));
     assert!(matches!(
-        library.insert_recommend_like(NewRecommendedLike::new(3, 4, 0, 0, 0)),
+        library.insert_recommend_like(NewDevRecommendedLike::new(3, 4, 0, 0, 0)),
         Err(Error::MissingExtendedDatabase)
     ));
     assert!(matches!(
@@ -787,7 +787,7 @@ fn extended_model_methods_require_an_open_extended_database() -> Result<()> {
 
 #[test]
 fn key_methods_preserve_secondary_ids_references_and_explicit_saving() -> Result<()> {
-    use rbox_devlib::models::{ExportProperty, NewContent, NewKey};
+    use rbox_devlib::models::{DevExportProperty, NewDevContent, NewDevKey};
 
     for with_extended in [false, true] {
         let temp = create_temp_dir();
@@ -800,7 +800,7 @@ fn key_methods_preserve_secondary_ids_references_and_explicit_saving() -> Result
         assert!(library.get_keys()?.is_empty());
         assert!(library.get_key_by_id(99)?.is_none());
         assert!(library.get_key_by_name("Missing")?.is_none());
-        let key = library.insert_key(NewKey::new("Am", 23))?;
+        let key = library.insert_key(NewDevKey::new("Am", 23))?;
         assert!(matches!(
             library.create_key("Am", 42),
             Err(Error::UniqueConstraintViolation { .. })
@@ -844,10 +844,10 @@ fn key_methods_preserve_secondary_ids_references_and_explicit_saving() -> Result
         );
         assert_eq!(library.get_key_by_name("A minor")?.unwrap().id, updated.id);
 
-        let mut input = NewContent::new("/Contents/first.wav");
+        let mut input = NewDevContent::new("/Contents/first.wav");
         input.key_id = updated.id;
         let content = library.insert_content(input)?;
-        let mut input = NewContent::new("/Contents/keep.wav");
+        let mut input = NewDevContent::new("/Contents/keep.wav");
         input.key_id = keep.id;
         let other = library.insert_content(input)?;
         assert_eq!(
@@ -880,7 +880,7 @@ fn key_methods_preserve_secondary_ids_references_and_explicit_saving() -> Result
         );
         assert!(library.get_track_by_id(content.id)?.unwrap().key.is_none());
         assert_eq!(
-            ExportProperty::first(library.standard_mut())?
+            DevExportProperty::first(library.standard_mut())?
                 .unwrap()
                 .track_count,
             2
@@ -905,7 +905,7 @@ fn key_methods_preserve_secondary_ids_references_and_explicit_saving() -> Result
         );
         assert_eq!(reopened.get_contents()?.len(), 2);
         assert_eq!(
-            ExportProperty::first(reopened.standard_mut())?
+            DevExportProperty::first(reopened.standard_mut())?
                 .unwrap()
                 .track_count,
             2
@@ -916,7 +916,7 @@ fn key_methods_preserve_secondary_ids_references_and_explicit_saving() -> Result
 
 #[test]
 fn history_methods_preserve_occurrences_order_and_explicit_saving() -> Result<()> {
-    use rbox_devlib::models::{ExportProperty, NewHistory, NewHistoryContent};
+    use rbox_devlib::models::{DevExportProperty, NewDevHistory, NewDevHistoryContent};
 
     for with_extended in [false, true] {
         let temp = create_temp_dir();
@@ -930,7 +930,7 @@ fn history_methods_preserve_occurrences_order_and_explicit_saving() -> Result<()
         assert!(library.get_history_by_id(99)?.is_none());
         assert!(library.get_history_contents(99)?.is_empty());
         assert!(library.get_history_entries(99)?.is_empty());
-        let history = library.insert_history(NewHistory::new("Set"))?;
+        let history = library.insert_history(NewDevHistory::new("Set"))?;
         let keep = library.create_history("Other set")?;
         assert_eq!((history.id, keep.id), (1, 2));
         assert_eq!(library.get_histories()?.len(), 2);
@@ -964,7 +964,7 @@ fn history_methods_preserve_occurrences_order_and_explicit_saving() -> Result<()
                 ..
             })
         ));
-        library.insert_history_content(NewHistoryContent::new(history.id, first.id, 9))?;
+        library.insert_history_content(NewDevHistoryContent::new(history.id, first.id, 9))?;
         library.create_history_content(history.id, second.id, 1)?;
         library.create_history_content(history.id, first.id, 1)?;
         library.create_history_content(history.id, first.id, 9)?;
@@ -1020,7 +1020,7 @@ fn history_methods_preserve_occurrences_order_and_explicit_saving() -> Result<()
         assert_eq!(library.get_history_contents(keep.id)?[0].id, second.id);
         assert_eq!(library.get_contents()?.len(), 2);
         assert_eq!(
-            ExportProperty::first(library.standard_mut())?
+            DevExportProperty::first(library.standard_mut())?
                 .unwrap()
                 .track_count,
             2
@@ -1046,7 +1046,7 @@ fn history_methods_preserve_occurrences_order_and_explicit_saving() -> Result<()
 
 #[test]
 fn history_contents_report_dangling_references() -> Result<()> {
-    use rbox_devlib::models::Content;
+    use rbox_devlib::models::DevContent;
 
     let temp = create_temp_dir();
     let mut library = DeviceLibrary::create(temp.path(), &options())?;
@@ -1056,7 +1056,7 @@ fn history_contents_report_dangling_references() -> Result<()> {
     assert!(matches!(
         library.get_history_contents(history.id),
         Err(Error::ModelNotFound {
-            table: Content::TABLE,
+            table: DevContent::TABLE,
             id: 999
         })
     ));
@@ -1065,7 +1065,7 @@ fn history_contents_report_dangling_references() -> Result<()> {
 
 #[test]
 fn label_methods_preserve_constraints_references_and_explicit_saving() -> Result<()> {
-    use rbox_devlib::models::{ExportProperty, NewContent, NewLabel};
+    use rbox_devlib::models::{DevExportProperty, NewDevContent, NewDevLabel};
 
     for with_extended in [false, true] {
         let temp = create_temp_dir();
@@ -1078,7 +1078,7 @@ fn label_methods_preserve_constraints_references_and_explicit_saving() -> Result
         assert!(library.get_labels()?.is_empty());
         assert!(library.get_label_by_id(99)?.is_none());
         assert!(library.get_label_by_name("Missing")?.is_none());
-        let label = library.insert_label(NewLabel::new("First Records"))?;
+        let label = library.insert_label(NewDevLabel::new("First Records"))?;
         assert!(matches!(
             library.create_label("First Records"),
             Err(Error::UniqueConstraintViolation { .. })
@@ -1122,10 +1122,10 @@ fn label_methods_preserve_constraints_references_and_explicit_saving() -> Result
         );
         assert!(library.get_label_by_name("First Records")?.is_none());
 
-        let mut input = NewContent::new("/Contents/first records.wav");
+        let mut input = NewDevContent::new("/Contents/first records.wav");
         input.label_id = updated.id;
         let content = library.insert_content(input)?;
-        let mut input = NewContent::new("/Contents/techno.wav");
+        let mut input = NewDevContent::new("/Contents/techno.wav");
         input.label_id = keep.id;
         let other = library.insert_content(input)?;
         assert_eq!(
@@ -1165,7 +1165,7 @@ fn label_methods_preserve_constraints_references_and_explicit_saving() -> Result
             .label
             .is_none());
         assert_eq!(
-            ExportProperty::first(library.standard_mut())?
+            DevExportProperty::first(library.standard_mut())?
                 .unwrap()
                 .track_count,
             2
@@ -1192,7 +1192,7 @@ fn label_methods_preserve_constraints_references_and_explicit_saving() -> Result
         );
         assert_eq!(reopened.get_contents()?.len(), 2);
         assert_eq!(
-            ExportProperty::first(reopened.standard_mut())?
+            DevExportProperty::first(reopened.standard_mut())?
                 .unwrap()
                 .track_count,
             2
@@ -1203,7 +1203,7 @@ fn label_methods_preserve_constraints_references_and_explicit_saving() -> Result
 
 #[test]
 fn genre_methods_preserve_constraints_references_and_explicit_saving() -> Result<()> {
-    use rbox_devlib::models::{ExportProperty, NewContent, NewGenre};
+    use rbox_devlib::models::{DevExportProperty, NewDevContent, NewDevGenre};
 
     for with_extended in [false, true] {
         let temp = create_temp_dir();
@@ -1216,7 +1216,7 @@ fn genre_methods_preserve_constraints_references_and_explicit_saving() -> Result
         assert!(library.get_genres()?.is_empty());
         assert!(library.get_genre_by_id(99)?.is_none());
         assert!(library.get_genre_by_name("Missing")?.is_none());
-        let genre = library.insert_genre(NewGenre::new("House"))?;
+        let genre = library.insert_genre(NewDevGenre::new("House"))?;
         assert!(matches!(
             library.create_genre("House"),
             Err(Error::UniqueConstraintViolation { .. })
@@ -1251,10 +1251,10 @@ fn genre_methods_preserve_constraints_references_and_explicit_saving() -> Result
         );
         assert!(library.get_genre_by_name("House")?.is_none());
 
-        let mut input = NewContent::new("/Contents/house.wav");
+        let mut input = NewDevContent::new("/Contents/house.wav");
         input.genre_id = updated.id;
         let content = library.insert_content(input)?;
-        let mut input = NewContent::new("/Contents/techno.wav");
+        let mut input = NewDevContent::new("/Contents/techno.wav");
         input.genre_id = keep.id;
         let other = library.insert_content(input)?;
         assert_eq!(
@@ -1294,7 +1294,7 @@ fn genre_methods_preserve_constraints_references_and_explicit_saving() -> Result
             .genre
             .is_none());
         assert_eq!(
-            ExportProperty::first(library.standard_mut())?
+            DevExportProperty::first(library.standard_mut())?
                 .unwrap()
                 .track_count,
             2
@@ -1318,7 +1318,7 @@ fn genre_methods_preserve_constraints_references_and_explicit_saving() -> Result
         );
         assert_eq!(reopened.get_contents()?.len(), 2);
         assert_eq!(
-            ExportProperty::first(reopened.standard_mut())?
+            DevExportProperty::first(reopened.standard_mut())?
                 .unwrap()
                 .track_count,
             2
@@ -1330,7 +1330,7 @@ fn genre_methods_preserve_constraints_references_and_explicit_saving() -> Result
 #[test]
 fn content_queries_updates_and_tracks_resolve_metadata_and_save_explicitly() -> Result<()> {
     use rbox_core::TrackSource;
-    use rbox_devlib::models::{ExportProperty, NewContent};
+    use rbox_devlib::models::{DevExportProperty, NewDevContent};
 
     for with_extended in [false, true] {
         let temp = create_temp_dir();
@@ -1360,7 +1360,7 @@ fn content_queries_updates_and_tracks_resolve_metadata_and_save_explicitly() -> 
         let album_artist = library.create_artist("Album artist")?;
         let album = library.create_album("Album", Some(album_artist.id))?;
         let artwork = library.create_artwork("/Artwork/cover.jpg")?;
-        let mut input = NewContent::new("/Contents/first.wav");
+        let mut input = NewDevContent::new("/Contents/first.wav");
         input.artist_id = artist.id;
         input.album_id = album.id;
         input.artwork_id = artwork.id;
@@ -1384,7 +1384,7 @@ fn content_queries_updates_and_tracks_resolve_metadata_and_save_explicitly() -> 
         );
         assert_eq!(library.get_contents()?.len(), 4);
         assert_eq!(
-            ExportProperty::first(library.standard_mut())?
+            DevExportProperty::first(library.standard_mut())?
                 .unwrap()
                 .track_count,
             4
@@ -1508,7 +1508,7 @@ fn content_queries_updates_and_tracks_resolve_metadata_and_save_explicitly() -> 
         assert_eq!(saved.title, updated.title);
         assert_eq!(saved.isrc()?, "GBAYE6700149");
         assert_eq!(
-            ExportProperty::first(reopened.standard_mut())?
+            DevExportProperty::first(reopened.standard_mut())?
                 .unwrap()
                 .track_count,
             4
@@ -1527,11 +1527,11 @@ fn content_queries_updates_and_tracks_resolve_metadata_and_save_explicitly() -> 
 
 #[test]
 fn track_helpers_propagate_conversion_errors_without_hiding_raw_content() -> Result<()> {
-    use rbox_devlib::models::NewContent;
+    use rbox_devlib::models::NewDevContent;
 
     let temp = create_temp_dir();
     let mut library = DeviceLibrary::create(temp.path(), &options())?;
-    let mut input = NewContent::new("/Contents/unknown-rating.wav");
+    let mut input = NewDevContent::new("/Contents/unknown-rating.wav");
     input.rating = 6;
     let row = library.insert_content(input)?;
     assert_eq!(library.get_content_by_id(row.id)?.unwrap().rating, 6);
@@ -1546,9 +1546,9 @@ fn track_helpers_propagate_conversion_errors_without_hiding_raw_content() -> Res
 #[test]
 fn content_deletion_cleans_available_files_and_preserves_resources() -> Result<()> {
     use rbox_devlib::models::{
-        ExportProperty, History, HistoryContent, MyTag, MyTagContent, NewHistory,
-        NewHistoryContent, NewMyTag, NewMyTagContent, NewPlaylist, NewPlaylistContent,
-        NewRecommendedLike, Playlist, PlaylistContent, RecommendedLike,
+        DevExportProperty, DevHistory, DevHistoryContent, DevMyTag, DevMyTagContent, DevPlaylist,
+        DevPlaylistContent, DevRecommendedLike, NewDevHistory, NewDevHistoryContent, NewDevMyTag,
+        NewDevMyTagContent, NewDevPlaylist, NewDevPlaylistContent, NewDevRecommendedLike,
     };
 
     for with_extended in [false, true] {
@@ -1561,24 +1561,24 @@ fn content_deletion_cleans_available_files_and_preserves_resources() -> Result<(
         fs::write(&resource, b"audio resource")?;
         let removed = library.create_content(resource.to_string_lossy().replace('\\', "/"))?;
         let keep = library.create_content("/Contents/keep.wav")?;
-        let playlist = NewPlaylist::playlist("Playlist").insert(library.standard_mut())?;
-        let history = NewHistory::new("History").insert(library.standard_mut())?;
+        let playlist = NewDevPlaylist::playlist("Playlist").insert(library.standard_mut())?;
+        let history = NewDevHistory::new("History").insert(library.standard_mut())?;
         for id in [removed.id, keep.id] {
-            NewPlaylistContent::new(playlist.id, id, None).insert(library.standard_mut())?;
-            NewHistoryContent::new(history.id, id, id.try_into().unwrap())
+            NewDevPlaylistContent::new(playlist.id, id, None).insert(library.standard_mut())?;
+            NewDevHistoryContent::new(history.id, id, id.try_into().unwrap())
                 .insert(library.standard_mut())?;
         }
         if with_extended {
-            NewMyTag::tag(100, "Tag").insert(library.extended_mut()?)?;
+            NewDevMyTag::tag(100, "Tag").insert(library.extended_mut()?)?;
             for id in [removed.id, keep.id] {
-                NewMyTagContent::new(id, 100).insert(library.extended_mut()?)?;
+                NewDevMyTagContent::new(id, 100).insert(library.extended_mut()?)?;
             }
             for (a, b) in [
                 (removed.id, keep.id),
                 (keep.id, removed.id),
                 (keep.id, keep.id),
             ] {
-                NewRecommendedLike::new(a, b, 0, 0, 0).insert(library.extended_mut()?)?;
+                NewDevRecommendedLike::new(a, b, 0, 0, 0).insert(library.extended_mut()?)?;
             }
         }
         library.save()?;
@@ -1597,7 +1597,7 @@ fn content_deletion_cleans_available_files_and_preserves_resources() -> Result<(
         assert!(library.get_content_by_id(removed.id)?.is_none());
         assert_eq!(library.get_content_by_id(keep.id)?.unwrap().path, keep.path);
         assert_eq!(
-            ExportProperty::first(library.standard_mut())?
+            DevExportProperty::first(library.standard_mut())?
                 .unwrap()
                 .track_count,
             1
@@ -1611,25 +1611,25 @@ fn content_deletion_cleans_available_files_and_preserves_resources() -> Result<(
         assert!(reopened.get_content_by_id(removed.id)?.is_none());
         assert_eq!(reopened.get_contents()?.len(), 1);
         assert_eq!(
-            ExportProperty::first(reopened.standard_mut())?
+            DevExportProperty::first(reopened.standard_mut())?
                 .unwrap()
                 .track_count,
             1
         );
-        let entries = PlaylistContent::all(reopened.standard_mut())?;
+        let entries = DevPlaylistContent::all(reopened.standard_mut())?;
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].content_id, keep.id);
-        let entries = HistoryContent::all(reopened.standard_mut())?;
+        let entries = DevHistoryContent::all(reopened.standard_mut())?;
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].content_id, keep.id);
-        assert!(Playlist::find(reopened.standard_mut(), &playlist.id)?.is_some());
-        assert!(History::find(reopened.standard_mut(), &history.id)?.is_some());
+        assert!(DevPlaylist::find(reopened.standard_mut(), &playlist.id)?.is_some());
+        assert!(DevHistory::find(reopened.standard_mut(), &history.id)?.is_some());
         if with_extended {
-            let tags = MyTagContent::all(reopened.extended_mut()?)?;
+            let tags = DevMyTagContent::all(reopened.extended_mut()?)?;
             assert_eq!(tags.len(), 1);
             assert_eq!(tags[0].content_id, keep.id);
-            assert!(MyTag::find(reopened.extended_mut()?, &100)?.is_some());
-            let pairs = RecommendedLike::all(reopened.extended_mut()?)?;
+            assert!(DevMyTag::find(reopened.extended_mut()?, &100)?.is_some());
+            let pairs = DevRecommendedLike::all(reopened.extended_mut()?)?;
             assert_eq!(pairs.len(), 1);
             assert_eq!(
                 (pairs[0].content_id_1, pairs[0].content_id_2),
@@ -1849,7 +1849,7 @@ fn browse_methods_update_initialized_settings_and_save_explicitly() -> Result<()
 
 #[test]
 fn artwork_methods_preserve_references_and_save_explicitly() -> Result<()> {
-    use rbox_devlib::models::{Content, NewArtwork, NewContent};
+    use rbox_devlib::models::{DevContent, NewDevArtwork, NewDevContent};
 
     for with_extended in [false, true] {
         let temp = create_temp_dir();
@@ -1868,7 +1868,7 @@ fn artwork_methods_preserve_references_and_save_explicitly() -> Result<()> {
             Err(Error::InvalidModelField { field: "path", .. })
         ));
 
-        let artwork = library.insert_artwork(NewArtwork::new("/Artwork/cover.jpg"))?;
+        let artwork = library.insert_artwork(NewDevArtwork::new("/Artwork/cover.jpg"))?;
         let keep = library.create_artwork("/Artwork/cover.jpg")?;
         assert_eq!((artwork.id, keep.id), (1, 2));
         assert_eq!(library.get_artworks()?.len(), 2);
@@ -1904,10 +1904,10 @@ fn artwork_methods_preserve_references_and_save_explicitly() -> Result<()> {
             library.get_artwork_by_path(&keep.path)?.unwrap().id,
             keep.id
         );
-        let mut input = NewContent::new("/Contents/track.wav");
+        let mut input = NewDevContent::new("/Contents/track.wav");
         input.artwork_id = artwork_id;
         let content = input.insert(library.standard_mut())?;
-        let mut input = NewContent::new("/Contents/keep.wav");
+        let mut input = NewDevContent::new("/Contents/keep.wav");
         input.artwork_id = keep.id;
         let other = input.insert(library.standard_mut())?;
         assert_eq!(fs::read(&path)?, before);
@@ -1924,13 +1924,13 @@ fn artwork_methods_preserve_references_and_save_explicitly() -> Result<()> {
         assert_eq!(library.delete_artwork(artwork_id)?, 0);
         assert!(library.get_artwork_by_id(artwork_id)?.is_none());
         assert_eq!(
-            Content::find(library.standard_mut(), &content.id)?
+            DevContent::find(library.standard_mut(), &content.id)?
                 .unwrap()
                 .artwork_id,
             0
         );
         assert_eq!(
-            Content::find(library.standard_mut(), &other.id)?
+            DevContent::find(library.standard_mut(), &other.id)?
                 .unwrap()
                 .artwork_id,
             keep.id
@@ -1950,7 +1950,7 @@ fn artwork_methods_preserve_references_and_save_explicitly() -> Result<()> {
             keep.path
         );
         assert_eq!(
-            Content::find(reopened.standard_mut(), &content.id)?
+            DevContent::find(reopened.standard_mut(), &content.id)?
                 .unwrap()
                 .artwork_id,
             0
@@ -1961,7 +1961,7 @@ fn artwork_methods_preserve_references_and_save_explicitly() -> Result<()> {
 
 #[test]
 fn artist_methods_preserve_constraints_references_and_explicit_saving() -> Result<()> {
-    use rbox_devlib::models::{Content, NewArtist, NewContent};
+    use rbox_devlib::models::{DevContent, NewDevArtist, NewDevContent};
 
     for with_extended in [false, true] {
         let temp = create_temp_dir();
@@ -1976,7 +1976,7 @@ fn artist_methods_preserve_constraints_references_and_explicit_saving() -> Resul
         assert!(library.get_artist_by_id(99)?.is_none());
         assert!(library.get_artist_by_name("Missing")?.is_none());
 
-        let artist = library.insert_artist(NewArtist::new("Artist"))?;
+        let artist = library.insert_artist(NewDevArtist::new("Artist"))?;
         let keep = library.create_artist("Other")?;
         assert_eq!((artist.id, keep.id), (1, 2));
         assert_eq!(library.get_artists()?.len(), 2);
@@ -1988,7 +1988,7 @@ fn artist_methods_preserve_constraints_references_and_explicit_saving() -> Resul
             Err(Error::UniqueConstraintViolation { .. })
         ));
         assert!(matches!(
-            library.insert_artist(NewArtist::new("Other")),
+            library.insert_artist(NewDevArtist::new("Other")),
             Err(Error::UniqueConstraintViolation { .. })
         ));
         let mut conflict = artist.clone();
@@ -2005,7 +2005,7 @@ fn artist_methods_preserve_constraints_references_and_explicit_saving() -> Resul
         assert!(library.get_artist_by_name("Artist")?.is_none());
 
         let album = library.create_album("Album", Some(artist_id))?;
-        let mut input = NewContent::new("/Contents/track.wav");
+        let mut input = NewDevContent::new("/Contents/track.wav");
         input.album_id = album.id;
         input.artist_id = artist_id;
         input.composer_id = artist_id;
@@ -2027,7 +2027,7 @@ fn artist_methods_preserve_constraints_references_and_explicit_saving() -> Resul
         assert!(library.get_artist_by_id(artist_id)?.is_none());
         assert_eq!(library.get_artist_by_id(keep.id)?.unwrap().name, "Other");
         assert_eq!(library.get_album_by_id(album.id)?.unwrap().artist_id, 0);
-        let cleared = Content::find(library.standard_mut(), &content.id)?.unwrap();
+        let cleared = DevContent::find(library.standard_mut(), &content.id)?.unwrap();
         assert_eq!(
             [
                 cleared.artist_id,
@@ -2050,7 +2050,7 @@ fn artist_methods_preserve_constraints_references_and_explicit_saving() -> Resul
         assert_eq!(reopened.get_artists()?.len(), 1);
         assert_eq!(reopened.get_album_by_id(album.id)?.unwrap().artist_id, 0);
         assert_eq!(
-            Content::find(reopened.standard_mut(), &content.id)?
+            DevContent::find(reopened.standard_mut(), &content.id)?
                 .unwrap()
                 .artist_id,
             0
@@ -2061,7 +2061,7 @@ fn artist_methods_preserve_constraints_references_and_explicit_saving() -> Resul
 
 #[test]
 fn album_methods_preserve_model_rules_and_save_explicitly() -> Result<()> {
-    use rbox_devlib::models::{Content, NewAlbum, NewArtist, NewContent};
+    use rbox_devlib::models::{DevContent, NewDevAlbum, NewDevArtist, NewDevContent};
 
     for with_extended in [false, true] {
         let temp = create_temp_dir();
@@ -2084,8 +2084,8 @@ fn album_methods_preserve_model_rules_and_save_explicitly() -> Result<()> {
         assert!(library.get_album_with_relations(99)?.is_none());
         assert!(library.get_album_by_name("Missing")?.is_none());
 
-        let artist = NewArtist::new("Album artist").insert(library.standard_mut())?;
-        let album = library.insert_album(NewAlbum::new("Album").artist_id(artist.id))?;
+        let artist = NewDevArtist::new("Album artist").insert(library.standard_mut())?;
+        let album = library.insert_album(NewDevAlbum::new("Album").artist_id(artist.id))?;
         let unassigned = library.create_album("Album", None)?;
         let album_id = album.id;
         let unassigned_id = unassigned.id;
@@ -2137,7 +2137,7 @@ fn album_methods_preserve_model_rules_and_save_explicitly() -> Result<()> {
         edited.name = "Renamed".into();
         let updated = library.update_album(edited)?;
         assert_eq!(library.get_album_by_name("Renamed")?, Some(updated));
-        let mut content = NewContent::new("/Contents/track.wav");
+        let mut content = NewDevContent::new("/Contents/track.wav");
         content.album_id = album_id;
         content.insert(library.standard_mut())?;
         assert_eq!(fs::read(&path)?, before);
@@ -2157,7 +2157,9 @@ fn album_methods_preserve_model_rules_and_save_explicitly() -> Result<()> {
         assert_eq!(library.delete_album(album_id)?, 2);
         assert!(library.get_album_by_id(album_id)?.is_none());
         assert_eq!(
-            Content::find(library.standard_mut(), &1)?.unwrap().album_id,
+            DevContent::find(library.standard_mut(), &1)?
+                .unwrap()
+                .album_id,
             0
         );
         assert_eq!(library.delete_album(album_id)?, 0);
@@ -2172,7 +2174,7 @@ fn album_methods_preserve_model_rules_and_save_explicitly() -> Result<()> {
         assert!(reopened.get_album_by_id(album_id)?.is_none());
         assert_eq!(reopened.get_albums()?.len(), 1);
         assert_eq!(
-            Content::find(reopened.standard_mut(), &1)?
+            DevContent::find(reopened.standard_mut(), &1)?
                 .unwrap()
                 .album_id,
             0
@@ -2183,30 +2185,30 @@ fn album_methods_preserve_model_rules_and_save_explicitly() -> Result<()> {
 
 #[test]
 fn content_count_can_be_set_and_recalculated_without_saving_implicitly() -> Result<()> {
-    use rbox_devlib::models::{ExportProperty, NewContent};
+    use rbox_devlib::models::{DevExportProperty, NewDevContent};
     let temp = create_temp_dir();
     let mut library = DeviceLibrary::create(temp.path(), &options())?;
     let path = temp.path().join("export.pdb");
     let before = fs::read(&path)?;
-    ExportProperty::set_content_count(library.standard_mut(), 99)?;
+    DevExportProperty::set_content_count(library.standard_mut(), 99)?;
     assert_eq!(
-        ExportProperty::first(library.standard_mut())?
+        DevExportProperty::first(library.standard_mut())?
             .unwrap()
             .track_count,
         99
     );
     assert_eq!(
-        ExportProperty::update_content_count(library.standard_mut())?,
+        DevExportProperty::update_content_count(library.standard_mut())?,
         0
     );
-    NewContent::new("/Contents/test.wav").insert(library.standard_mut())?;
-    ExportProperty::set_content_count(library.standard_mut(), 99)?;
+    NewDevContent::new("/Contents/test.wav").insert(library.standard_mut())?;
+    DevExportProperty::set_content_count(library.standard_mut(), 99)?;
     assert_eq!(
-        ExportProperty::update_content_count(library.standard_mut())?,
+        DevExportProperty::update_content_count(library.standard_mut())?,
         1
     );
     assert_eq!(
-        ExportProperty::first(library.standard_mut())?
+        DevExportProperty::first(library.standard_mut())?
             .unwrap()
             .track_count,
         1
@@ -2216,7 +2218,7 @@ fn content_count_can_be_set_and_recalculated_without_saving_implicitly() -> Resu
     drop(library);
     let mut library = DeviceLibrary::new(temp.path())?;
     assert_eq!(
-        ExportProperty::first(library.standard_mut())?
+        DevExportProperty::first(library.standard_mut())?
             .unwrap()
             .track_count,
         1

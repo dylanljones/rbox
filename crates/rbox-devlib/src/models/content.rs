@@ -1,10 +1,10 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
-//! Content snapshots, queries and transactional mutations over DeviceSQL.
+//! Device Library content snapshots, queries and transactional mutations.
 //!
-//! Content is the model name for DeviceSQL tracks, matching masterdb and OneLibrary
-//! terminology. The underlying binary representation remains `TrackRow`.
+//! `DevContent` represents DeviceSQL tracks using the content terminology of the
+//! SQL models. The underlying binary representation remains `TrackRow`.
 
 use std::collections::{HashMap, HashSet};
 use std::io::{Cursor, Read, Seek};
@@ -16,8 +16,8 @@ use std::path::PathBuf;
 use super::playlist::remove_associations;
 use super::{
     checked_number, load_related, next_id, text, text_error, unsupported, update_export_count,
-    validate_id, Album, Artist, Artwork, Color, Genre, HistoryContent, Key, Label, MyTagContent,
-    PlaylistContent, RecommendedLike,
+    validate_id, DevAlbum, DevArtist, DevArtwork, DevColor, DevGenre, DevHistoryContent, DevKey,
+    DevLabel, DevMyTagContent, DevPlaylistContent, DevRecommendedLike,
 };
 use crate::binary::{
     DeviceSqlString, ExtendedRow, PageType, Row, RowRecord, StandardRow, StringOffsets, TableKind,
@@ -30,21 +30,21 @@ use crate::{Error, Result};
 
 /// A detached track from the standard database's track table.
 ///
-/// Named `Content` for consistency with masterdb and OneLibrary models-old; this wraps
-/// the binary [`TrackRow`] and uses [`PageType::Tracks`].
+/// Uses content terminology shared with the SQL models and the `Dev` model prefix.
+/// Wraps the binary [`TrackRow`] and uses [`PageType::Tracks`].
 ///
 /// Public fields contain decoded values, like the masterdb/onelib models-old.
 /// Editing a field only changes this snapshot; call [Self::update] to persist edits.
-/// Use [`NewContent`] to insert a fresh track without an existing raw row.
+/// Use [`NewDevContent`] to insert a fresh track without an existing raw row.
 /// IDs, empty strings, date text and paths retain their stored meaning. Unknown
 /// fields and string encodings remain available through [`Self::raw_record`].
 /// ISRC decoding is explicit because its frame can have an unknown encoding.
 ///
 /// Plain queries never load relationships. Use [`Self::resolve`] or
-/// [`Self::all_with_relations`] to explicitly construct a [`ContentView`].
+/// [`Self::all_with_relations`] to explicitly construct a [`DevContentView`].
 /// The extended database has no track table and returns [`Error::WrongDatabaseKind`].
 #[derive(Clone, PartialEq, Eq)]
-pub struct Content {
+pub struct DevContent {
     /// Export track ID, used by playlists and tag associations.
     pub id: i64,
     /// Main artist ID.
@@ -134,50 +134,50 @@ pub struct Content {
 ///
 /// ```
 /// use rbox_devlib::{binary::DatabaseKind, DeviceSqlConnection};
-/// use rbox_devlib::models::{Content, NewArtist, NewContent};
+/// use rbox_devlib::models::{DevContent, NewDevArtist, NewDevContent};
 /// # fn main() -> rbox_devlib::Result<()> {
 /// let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-/// let artist = NewArtist::new("Artist").insert(&mut conn)?;
-/// let mut input = NewContent::new("/Contents/Track.wav");
+/// let artist = NewDevArtist::new("Artist").insert(&mut conn)?;
+/// let mut input = NewDevContent::new("/Contents/Track.wav");
 /// input.artist_id = artist.id;
 /// let content = input.insert(&mut conn)?;
-/// let view = Content::find_with_relations(&mut conn, &content.id)?.unwrap();
+/// let view = DevContent::find_with_relations(&mut conn, &content.id)?.unwrap();
 /// assert_eq!(view.artist.as_ref().map(|artist| artist.name.as_str()), Some("Artist"));
 /// assert_eq!(view.id, content.id); // Content fields remain accessible through Deref.
 /// # Ok(())
 /// # }
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ContentView {
+pub struct DevContentView {
     /// Original content snapshot, including unresolved foreign keys.
-    pub content: Content,
+    pub content: DevContent,
     /// Main artist.
-    pub artist: Option<Artist>,
+    pub artist: Option<DevArtist>,
     /// Artist credited as remixer.
-    pub remixer: Option<Artist>,
+    pub remixer: Option<DevArtist>,
     /// Artist credited as original artist.
-    pub original_artist: Option<Artist>,
+    pub original_artist: Option<DevArtist>,
     /// Artist credited as composer.
-    pub composer: Option<Artist>,
+    pub composer: Option<DevArtist>,
     /// Referenced album.
-    pub album: Option<Album>,
+    pub album: Option<DevAlbum>,
     /// Artist referenced by the album's artist_id, independently of the content artist.
-    pub album_artist: Option<Artist>,
+    pub album_artist: Option<DevArtist>,
     /// Referenced genre.
-    pub genre: Option<Genre>,
+    pub genre: Option<DevGenre>,
     /// Referenced label.
-    pub label: Option<Label>,
+    pub label: Option<DevLabel>,
     /// Referenced musical key.
-    pub key: Option<Key>,
+    pub key: Option<DevKey>,
     /// Referenced color.
-    pub color: Option<Color>,
+    pub color: Option<DevColor>,
     /// Referenced artwork path record; no image file is loaded.
-    pub artwork: Option<Artwork>,
+    pub artwork: Option<DevArtwork>,
 }
 
 /// Access content fields without performing relationship queries.
-impl std::ops::Deref for ContentView {
-    type Target = Content;
+impl std::ops::Deref for DevContentView {
+    type Target = DevContent;
 
     fn deref(&self) -> &Self::Target {
         &self.content
@@ -186,22 +186,26 @@ impl std::ops::Deref for ContentView {
 
 /// Targets decoded once per resolution batch; not retained across mutations.
 struct ContentRelations {
-    artists: HashMap<i64, Artist>,
-    albums: HashMap<i64, Album>,
-    genres: HashMap<i64, Genre>,
-    labels: HashMap<i64, Label>,
-    keys: HashMap<i64, Key>,
-    artworks: HashMap<i64, Artwork>,
-    colors: HashMap<i64, Color>,
+    artists: HashMap<i64, DevArtist>,
+    albums: HashMap<i64, DevAlbum>,
+    genres: HashMap<i64, DevGenre>,
+    labels: HashMap<i64, DevLabel>,
+    keys: HashMap<i64, DevKey>,
+    artworks: HashMap<i64, DevArtwork>,
+    colors: HashMap<i64, DevColor>,
 }
 
 impl ContentRelations {
     fn load<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-        contents: &[Content],
+        contents: &[DevContent],
     ) -> Result<Self> {
-        conn.check_kind(Content::TABLE)?;
-        let albums = load_related(conn, contents.iter().map(|row| row.album_id), Album::find)?;
+        conn.check_kind(DevContent::TABLE)?;
+        let albums = load_related(
+            conn,
+            contents.iter().map(|row| row.album_id),
+            DevAlbum::find,
+        )?;
         let artists = load_related(
             conn,
             contents
@@ -215,30 +219,42 @@ impl ContentRelations {
                     ]
                 })
                 .chain(albums.values().map(|album| album.artist_id)),
-            Artist::find,
+            DevArtist::find,
         )?;
         Ok(Self {
             albums,
             artists,
-            genres: load_related(conn, contents.iter().map(|row| row.genre_id), Genre::find)?,
-            labels: load_related(conn, contents.iter().map(|row| row.label_id), Label::find)?,
-            keys: load_related(conn, contents.iter().map(|row| row.key_id), Key::find)?,
+            genres: load_related(
+                conn,
+                contents.iter().map(|row| row.genre_id),
+                DevGenre::find,
+            )?,
+            labels: load_related(
+                conn,
+                contents.iter().map(|row| row.label_id),
+                DevLabel::find,
+            )?,
+            keys: load_related(conn, contents.iter().map(|row| row.key_id), DevKey::find)?,
             artworks: load_related(
                 conn,
                 contents.iter().map(|row| row.artwork_id),
-                Artwork::find,
+                DevArtwork::find,
             )?,
-            colors: load_related(conn, contents.iter().map(|row| row.color_id), Color::find)?,
+            colors: load_related(
+                conn,
+                contents.iter().map(|row| row.color_id),
+                DevColor::find,
+            )?,
         })
     }
 
-    fn view(&self, content: Content) -> ContentView {
+    fn view(&self, content: DevContent) -> DevContentView {
         let album = self.albums.get(&content.album_id).cloned();
         let album_artist = album
             .as_ref()
             .and_then(|album| self.artists.get(&album.artist_id))
             .cloned();
-        ContentView {
+        DevContentView {
             artist: self.artists.get(&content.artist_id).cloned(),
             remixer: self.artists.get(&content.remixer_id).cloned(),
             original_artist: self.artists.get(&content.original_artist_id).cloned(),
@@ -255,9 +271,9 @@ impl ContentRelations {
     }
 }
 
-impl std::fmt::Debug for Content {
+impl std::fmt::Debug for DevContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Content")
+        f.debug_struct("DevContent")
             .field("id", &self.id)
             .field("artist_id", &self.artist_id)
             .field("album_id", &self.album_id)
@@ -301,7 +317,7 @@ impl std::fmt::Debug for Content {
     }
 }
 
-impl Content {
+impl DevContent {
     /// Standard database table containing tracks.
     pub const TABLE: TableKind = TableKind::Standard(PageType::Tracks);
 
@@ -677,7 +693,7 @@ impl Content {
     ) -> Result<usize> {
         let _: u32 = checked_number(*id, "id")?;
         standard.check_kind(Self::TABLE)?;
-        extended.check_kind(MyTagContent::TABLE)?;
+        extended.check_kind(DevMyTagContent::TABLE)?;
         validate_id(Self::TABLE, *id)?;
         let mut tx = standard.transaction();
         let mut ext = extended.transaction();
@@ -686,7 +702,7 @@ impl Content {
             return Ok(0);
         }
         let mut total = count;
-        for table in [MyTagContent::TABLE, RecommendedLike::TABLE] {
+        for table in [DevMyTagContent::TABLE, DevRecommendedLike::TABLE] {
             total = total
                 .checked_add(delete_content_links(&mut ext, table, *id)?)
                 .ok_or(Error::MutationOverflow)?;
@@ -704,7 +720,7 @@ impl Content {
         let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
         tx.delete(&handle)?;
         let mut total = 1usize;
-        for table in [PlaylistContent::TABLE, HistoryContent::TABLE] {
+        for table in [DevPlaylistContent::TABLE, DevHistoryContent::TABLE] {
             total = total
                 .checked_add(delete_content_links(tx, table, id)?)
                 .ok_or(Error::MutationOverflow)?;
@@ -716,7 +732,10 @@ impl Content {
     /// Resolve this snapshot's metadata references, including the album artist.
     /// Does not reload the content row; local field edits are retained. Zero and
     /// missing target IDs become `None`, while decoding and index errors propagate.
-    pub fn resolve<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<ContentView> {
+    pub fn resolve<R: Read + Seek>(
+        self,
+        conn: &mut DeviceSqlConnection<R>,
+    ) -> Result<DevContentView> {
         let relations = ContentRelations::load(conn, std::slice::from_ref(&self))?;
         Ok(relations.view(self))
     }
@@ -727,7 +746,7 @@ impl Content {
     pub fn resolve_many<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
         contents: Vec<Self>,
-    ) -> Result<Vec<ContentView>> {
+    ) -> Result<Vec<DevContentView>> {
         let relations = ContentRelations::load(conn, &contents)?;
         Ok(contents
             .into_iter()
@@ -740,7 +759,7 @@ impl Content {
     pub fn find_with_relations<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
         id: &i64,
-    ) -> Result<Option<ContentView>> {
+    ) -> Result<Option<DevContentView>> {
         let _: u32 = checked_number(*id, "id")?;
         Self::find(conn, id)?
             .map(|content| content.resolve(conn))
@@ -752,7 +771,7 @@ impl Content {
     /// are not loaded; the view contains metadata relationships only.
     pub fn all_with_relations<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-    ) -> Result<Vec<ContentView>> {
+    ) -> Result<Vec<DevContentView>> {
         let contents = Self::all(conn)?;
         Self::resolve_many(conn, contents)
     }
@@ -827,7 +846,7 @@ fn delete_content_links<R: Read + Seek>(
     table: TableKind,
     id: i64,
 ) -> Result<usize> {
-    if table == PlaylistContent::TABLE {
+    if table == DevPlaylistContent::TABLE {
         return remove_associations(tx, |row| i64::from(row.track_id) == id);
     }
     let mut locations = Vec::new();
@@ -854,7 +873,7 @@ fn delete_content_links<R: Read + Seek>(
     Ok(count)
 }
 
-impl TryFrom<RowRecord> for Content {
+impl TryFrom<RowRecord> for DevContent {
     type Error = Error;
 
     /// Decode a track row, retaining the original bytes alongside its fields.
@@ -926,17 +945,17 @@ impl TryFrom<RowRecord> for Content {
 /// inferred. `creation` supplies overridable reserved values from the engine's
 /// supported writer profile. Populate metadata and ANLZ references before export.
 ///
-/// Insertion returns a [`Content`] with an engine-created raw row, commits in memory,
+/// Insertion returns a [`DevContent`] with an engine-created raw row, commits in memory,
 /// and updates any existing export-property track counts. Call the connection's
 /// save methods to persist. Related rows and audio/ANLZ assets are not created.
 ///
 /// ```
 /// use rbox_devlib::{binary::DatabaseKind, DeviceSqlConnection};
-/// use rbox_devlib::models::NewContent;
+/// use rbox_devlib::models::NewDevContent;
 ///
 /// # fn main() -> rbox_devlib::Result<()> {
 /// let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-/// let mut new = NewContent::new("/Contents/Artist/Track.flac");
+/// let mut new = NewDevContent::new("/Contents/Artist/Track.flac");
 /// new.title = "Track".into();
 /// new.bpmx100 = 12800;
 /// new.analysis_path = "/PIONEER/USBANLZ/P02F/0000E9C7/ANLZ0000.DAT".into();
@@ -946,7 +965,7 @@ impl TryFrom<RowRecord> for Content {
 /// # }
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct NewContent {
+pub struct NewDevContent {
     /// Main artist ID.
     pub artist_id: i64,
     /// Album ID.
@@ -1027,7 +1046,7 @@ pub struct NewContent {
     pub creation: TrackCreationOptions,
 }
 
-impl NewContent {
+impl NewDevContent {
     /// Start a track with an audio path using forward slashes.
     ///
     /// The file name is the last slash-separated component of the supplied path.
@@ -1048,15 +1067,15 @@ impl NewContent {
     /// unchanged. Existing export-property counts are updated in the same transaction;
     /// a bare database without property rows remains supported. This commits to the
     /// connection's overlay only, not to disk.
-    pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Content> {
-        conn.check_kind(Content::TABLE)?;
-        let id = Content::generate_id(conn)?;
+    pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<DevContent> {
+        conn.check_kind(DevContent::TABLE)?;
+        let id = DevContent::generate_id(conn)?;
         let row = self.to_binary(id)?;
         let mut tx = conn.transaction();
-        let index = tx.index_rows(Content::TABLE, Content::read_id)?;
+        let index = tx.index_rows(DevContent::TABLE, DevContent::read_id)?;
         if index.contains_key(&checked_number(id, "id")?) {
             return Err(Error::DuplicateId {
-                table: Content::TABLE,
+                table: DevContent::TABLE,
                 id: checked_number(id, "id")?,
             });
         }
@@ -1064,10 +1083,10 @@ impl NewContent {
             .map_err(|_| Error::MutationOverflow)?
             .checked_add(1)
             .ok_or(Error::MutationOverflow)?;
-        let handle = tx.insert(Content::TABLE, &Row::Standard(StandardRow::Track(row)))?;
+        let handle = tx.insert(DevContent::TABLE, &Row::Standard(StandardRow::Track(row)))?;
         update_export_count(&mut tx, count)?;
         // Perform every fallible conversion before publishing the transaction.
-        let model = Content::try_from(tx.read(&handle)?)?;
+        let model = DevContent::try_from(tx.read(&handle)?)?;
         tx.commit()?;
         Ok(model)
     }
@@ -1076,14 +1095,14 @@ impl NewContent {
     fn to_binary(&self, id: i64) -> Result<TrackRow> {
         if id == 0 {
             return Err(Error::InvalidModelField {
-                table: Content::TABLE,
+                table: DevContent::TABLE,
                 field: "id",
                 reason: "export track IDs must be nonzero",
             });
         }
         if self.path.is_empty() {
             return Err(Error::InvalidModelField {
-                table: Content::TABLE,
+                table: DevContent::TABLE,
                 field: "path",
                 reason: "audio path must not be empty",
             });
@@ -1155,10 +1174,10 @@ impl NewContent {
 /// Stored zeroes and empty strings are retained; absent relationships stay `None`.
 /// Analysis dates have no equivalent in `Track` and are not mapped to creation dates.
 /// Unknown ISRC encodings and ratings outside 0..=5 return an error.
-impl TryFrom<&ContentView> for Track {
+impl TryFrom<&DevContentView> for Track {
     type Error = Error;
 
-    fn try_from(view: &ContentView) -> Result<Self> {
+    fn try_from(view: &DevContentView) -> Result<Self> {
         let row = &view.content;
         if row.rating > 5 {
             return Err(track_mapping_error(
@@ -1219,17 +1238,17 @@ impl TryFrom<&ContentView> for Track {
     }
 }
 
-impl TryFrom<ContentView> for Track {
+impl TryFrom<DevContentView> for Track {
     type Error = Error;
 
-    fn try_from(view: ContentView) -> Result<Self> {
+    fn try_from(view: DevContentView) -> Result<Self> {
         Self::try_from(&view)
     }
 }
 
 fn track_mapping_error(field: &'static str, reason: &'static str) -> Error {
     Error::InvalidModelField {
-        table: Content::TABLE,
+        table: DevContent::TABLE,
         field,
         reason,
     }
@@ -1242,10 +1261,10 @@ fn track_mapping_error(field: &'static str, reason: &'static str) -> Error {
 /// Relationship and artwork IDs remain zero: resolve names and assign destination
 /// references before inserting. Paths use Unix separators; the basename is derived
 /// from the audio path. BPM is rounded to hundredths and length to whole seconds.
-/// Missing values use the normal `NewContent` defaults. Unsupported metadata
+/// Missing values use the normal `NewDevContent` defaults. Unsupported metadata
 /// (UUID, search text, tags and creation date) is omitted, and analysis dates are
 /// not inferred. Reserved binary values use the engine's creation defaults.
-impl TryFrom<&Track> for NewContent {
+impl TryFrom<&Track> for NewDevContent {
     type Error = Error;
 
     fn try_from(input: &Track) -> Result<Self> {
@@ -1334,7 +1353,7 @@ impl TryFrom<&Track> for NewContent {
     }
 }
 
-impl TryFrom<Track> for NewContent {
+impl TryFrom<Track> for NewDevContent {
     type Error = Error;
 
     fn try_from(input: Track) -> Result<Self> {

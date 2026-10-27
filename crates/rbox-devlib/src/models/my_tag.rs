@@ -3,13 +3,13 @@
 
 //! My Tags, categories and track associations in the extended DeviceSQL database.
 //!
-//! [MyTag] and [NewMyTag] describe tags and categories in table 3.
-//! [MyTagContent] and [NewMyTagContent] describe associations in table 4, linking
+//! [DevMyTag] and [NewDevMyTag] describe tags and categories in table 3.
+//! [DevMyTagContent] and [NewDevMyTagContent] describe associations in table 4, linking
 //! extended tags to tracks in the accompanying standard database. Queries do not
 //! load related rows automatically and retain repeated associations.
 //! Updates and deletions commit in memory; saving is explicit. Deleting a category
 //! also removes descendants and their associations, without deleting contents.
-//! Insertions, moves and deletions maintain sibling positions from [`MyTag::START_SEQ`].
+//! Insertions, moves and deletions maintain sibling positions from [`DevMyTag::START_SEQ`].
 //! Reads retain imported gaps and ties; ordered mutations normalize affected lists.
 //! Only changed rows are written. Content associations have no sequence.
 //! Tag and category IDs should match their IDs in the source Rekordbox main
@@ -24,7 +24,7 @@ use rbox_core::MyTagType;
 use super::ordering::{Change, Position};
 use super::{
     checked_number, load_related, ordering, read_fields, text, text_error, unsupported,
-    validate_id, validate_nonzero_id, Content,
+    validate_id, validate_nonzero_id, DevContent,
 };
 use crate::binary::{
     ExtPageType, ExtendedRow, MyTagHeader, MyTagRow, Row, RowRecord, StringOffsets, TableKind,
@@ -39,7 +39,7 @@ use crate::{Error, Result};
 /// Tag/category IDs should match the source main database (`master.db`).
 /// Public-field edits affect only this snapshot. Parents and tracks are not loaded.
 #[derive(Clone, PartialEq, Eq)]
-pub struct MyTag {
+pub struct DevMyTag {
     /// Tag/category ID matching the source main database (`master.db`).
     pub id: i64,
     /// Parent category ID; zero denotes a root in observed exports.
@@ -53,9 +53,9 @@ pub struct MyTag {
     raw: RowRecord,
 }
 
-impl std::fmt::Debug for MyTag {
+impl std::fmt::Debug for DevMyTag {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("MyTag")
+        f.debug_struct("DevMyTag")
             .field("id", &self.id)
             .field("parent_id", &self.parent_id)
             .field("seq", &self.seq)
@@ -65,7 +65,7 @@ impl std::fmt::Debug for MyTag {
     }
 }
 
-impl MyTag {
+impl DevMyTag {
     /// Extended database table containing tags and categories.
     pub const TABLE: TableKind = TableKind::Extended(ExtPageType::MyTags);
     /// First sibling position within a category or the root.
@@ -135,7 +135,7 @@ impl MyTag {
         content_id: &i64,
     ) -> Result<Vec<Self>> {
         let _: u32 = checked_number(*content_id, "content_id")?;
-        let entries = MyTagContent::by_content_id(conn, content_id)?;
+        let entries = DevMyTagContent::by_content_id(conn, content_id)?;
         let tags = load_related(
             conn,
             entries.iter().map(|entry| entry.my_tag_id),
@@ -163,14 +163,14 @@ impl MyTag {
         standard: &mut DeviceSqlConnection<R>,
         extended: &mut DeviceSqlConnection<E>,
         id: &i64,
-    ) -> Result<Vec<Content>> {
+    ) -> Result<Vec<DevContent>> {
         let _: u32 = checked_number(*id, "id")?;
-        standard.check_kind(Content::TABLE)?;
-        let entries = MyTagContent::by_my_tag_id(extended, id)?;
+        standard.check_kind(DevContent::TABLE)?;
+        let entries = DevMyTagContent::by_my_tag_id(extended, id)?;
         let contents = load_related(
             standard,
             entries.iter().map(|entry| entry.content_id),
-            Content::find,
+            DevContent::find,
         )?;
         entries
             .into_iter()
@@ -179,7 +179,7 @@ impl MyTag {
                     .get(&entry.content_id)
                     .cloned()
                     .ok_or(Error::ModelNotFound {
-                        table: Content::TABLE,
+                        table: DevContent::TABLE,
                         id: entry.content_id,
                     })
             })
@@ -497,14 +497,14 @@ type TagRows = Vec<(RowRecord, MyTagHeader)>;
 
 fn tag_rows<R: Read + Seek>(tx: &mut Transaction<'_, R>) -> Result<TagRows> {
     let mut ids = HashSet::new();
-    tx.iter_raw(MyTag::TABLE)?
+    tx.iter_raw(DevMyTag::TABLE)?
         .map(|record| {
             let record = record?;
-            let id = MyTag::read_id(&record)?;
-            validate_id(MyTag::TABLE, i64::from(id))?;
+            let id = DevMyTag::read_id(&record)?;
+            validate_id(DevMyTag::TABLE, i64::from(id))?;
             if !ids.insert(id) {
                 return Err(Error::DuplicateId {
-                    table: MyTag::TABLE,
+                    table: DevMyTag::TABLE,
                     id,
                 });
             }
@@ -527,7 +527,7 @@ fn tag_index(rows: &TagRows, id: i64) -> Result<usize> {
     rows.iter()
         .position(|(_, h)| i64::from(h.id) == id)
         .ok_or(Error::ModelNotFound {
-            table: MyTag::TABLE,
+            table: DevMyTag::TABLE,
             id,
         })
 }
@@ -557,7 +557,7 @@ fn write_tags<R: Read + Seek>(
 ) -> Result<()> {
     for change in changes {
         let record = &rows[change.index].0;
-        let handle = tx.locate(MyTag::TABLE, record.page(), record.slot().slot)?;
+        let handle = tx.locate(DevMyTag::TABLE, record.page(), record.slot().slot)?;
         let current = tx.read(&handle)?;
         let Row::Extended(ExtendedRow::MyTag(mut row)) = current.decode()? else {
             return Err(unsupported(&current));
@@ -582,12 +582,12 @@ fn move_tags<R: Read + Seek>(
         .collect::<Result<Vec<_>>>()?;
     validate_parent(rows, parent, ids)?;
     let changes = ordering::move_rows(
-        MyTag::TABLE,
+        DevMyTag::TABLE,
         &tag_positions(rows),
         &selected,
         parent,
         seq,
-        MyTag::START_SEQ,
+        DevMyTag::START_SEQ,
     )?;
     let moved = changes
         .iter()
@@ -599,7 +599,7 @@ fn move_tags<R: Read + Seek>(
 
 fn invalid_parent(reason: &'static str) -> Error {
     Error::InvalidModelField {
-        table: MyTag::TABLE,
+        table: DevMyTag::TABLE,
         field: "parent_id",
         reason,
     }
@@ -607,12 +607,12 @@ fn invalid_parent(reason: &'static str) -> Error {
 
 fn tag_headers<R: Read + Seek>(tx: &mut Transaction<'_, R>) -> Result<HashMap<u32, MyTagHeader>> {
     let mut headers = HashMap::new();
-    for record in tx.iter_raw(MyTag::TABLE)? {
+    for record in tx.iter_raw(DevMyTag::TABLE)? {
         let record = record?;
-        let id = MyTag::read_id(&record)?;
+        let id = DevMyTag::read_id(&record)?;
         if headers.insert(id, read_fields(&record)?).is_some() {
             return Err(Error::DuplicateId {
-                table: MyTag::TABLE,
+                table: DevMyTag::TABLE,
                 id,
             });
         }
@@ -625,7 +625,7 @@ fn remove_associations<R: Read + Seek>(
     matches: impl Fn(&TrackMyTagRow) -> bool,
 ) -> Result<usize> {
     let mut locations = Vec::new();
-    for record in tx.iter_raw(MyTagContent::TABLE)? {
+    for record in tx.iter_raw(DevMyTagContent::TABLE)? {
         let record = record?;
         let Row::Extended(ExtendedRow::TrackMyTag(row)) = record.decode()? else {
             return Err(unsupported(&record));
@@ -636,13 +636,13 @@ fn remove_associations<R: Read + Seek>(
     }
     let count = locations.len();
     for (page, slot) in locations {
-        let handle = tx.locate(MyTagContent::TABLE, page, slot)?;
+        let handle = tx.locate(DevMyTagContent::TABLE, page, slot)?;
         tx.delete(&handle)?;
     }
     Ok(count)
 }
 
-impl TryFrom<RowRecord> for MyTag {
+impl TryFrom<RowRecord> for DevMyTag {
     type Error = Error;
 
     /// Decode a tag/category while retaining its original bytes and framing.
@@ -679,12 +679,12 @@ impl TryFrom<RowRecord> for MyTag {
 /// strings that cannot fit that layout. Insertion validates category ancestry and
 /// maintains sibling ordering. Saving remains explicit.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NewMyTag {
+pub struct NewDevMyTag {
     /// Nonzero source main-database tag/category ID, unused in this export.
     pub id: i64,
     /// Parent category ID; zero denotes a root.
     pub parent_id: i64,
-    /// Insertion position starting at [`MyTag::START_SEQ`]; `None` appends.
+    /// Insertion position starting at [`DevMyTag::START_SEQ`]; `None` appends.
     pub seq: Option<u32>,
     /// Display name.
     pub name: String,
@@ -700,7 +700,7 @@ pub struct NewMyTag {
     pub unknown_1a: u8,
 }
 
-impl NewMyTag {
+impl NewDevMyTag {
     /// Prepare a root node with an explicit ID, name and type; defaults to append.
     pub fn new(id: i64, name: impl Into<String>, attribute: MyTagType) -> Self {
         Self {
@@ -726,7 +726,7 @@ impl NewMyTag {
         Self::new(id, name, MyTagType::Folder)
     }
 
-    /// Set the insertion position among siblings, starting at [`MyTag::START_SEQ`].
+    /// Set the insertion position among siblings, starting at [`DevMyTag::START_SEQ`].
     pub fn seq(mut self, seq: u32) -> Self {
         self.seq = Some(seq);
         self
@@ -739,39 +739,39 @@ impl NewMyTag {
     }
 
     /// Insert atomically, rejecting duplicate IDs. Errors leave the connection unchanged.
-    pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<MyTag> {
-        conn.check_kind(MyTag::TABLE)?;
+    pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<DevMyTag> {
+        conn.check_kind(DevMyTag::TABLE)?;
         let mut row = self.to_binary()?;
         let mut tx = conn.transaction();
         if tx
-            .index_rows(MyTag::TABLE, MyTag::read_id)?
+            .index_rows(DevMyTag::TABLE, DevMyTag::read_id)?
             .contains_key(&checked_number(self.id, "id")?)
         {
             return Err(Error::DuplicateId {
-                table: MyTag::TABLE,
+                table: DevMyTag::TABLE,
                 id: checked_number(self.id, "id")?,
             });
         }
         let rows = tag_rows(&mut tx)?;
         validate_parent(&rows, self.parent_id, &[self.id])?;
         let (position, changes) = ordering::insert(
-            MyTag::TABLE,
+            DevMyTag::TABLE,
             &tag_positions(&rows),
             self.parent_id,
             self.seq,
-            MyTag::START_SEQ,
+            DevMyTag::START_SEQ,
         )?;
         write_tags(&mut tx, &rows, &changes)?;
         row.header.position = position;
-        let handle = tx.insert(MyTag::TABLE, &Row::Extended(ExtendedRow::MyTag(row)))?;
-        let model = MyTag::try_from(tx.read(&handle)?)?;
+        let handle = tx.insert(DevMyTag::TABLE, &Row::Extended(ExtendedRow::MyTag(row)))?;
+        let model = DevMyTag::try_from(tx.read(&handle)?)?;
         tx.commit()?;
         Ok(model)
     }
 
     /// Encode fields for insertion; the caller validates ancestry and assigns the final sequence.
     fn to_binary(&self) -> Result<MyTagRow> {
-        validate_id(MyTag::TABLE, self.id)?;
+        validate_id(DevMyTag::TABLE, self.id)?;
         Ok(MyTagRow {
             header: MyTagHeader {
                 subtype: MyTagHeader::NEAR_SUBTYPE,
@@ -779,7 +779,7 @@ impl NewMyTag {
                 unknown_04: self.unknown_04,
                 unknown_08: self.unknown_08,
                 parent_id: checked_number(self.parent_id, "parent_id")?,
-                position: self.seq.unwrap_or(MyTag::START_SEQ),
+                position: self.seq.unwrap_or(DevMyTag::START_SEQ),
                 id: checked_number(self.id, "id")?,
                 unknown_18: self.unknown_18,
                 unknown_1a: self.unknown_1a,
@@ -800,7 +800,7 @@ impl NewMyTag {
 /// There is no assumed unique row ID. Queries preserve repeated associations and
 /// never load related rows. Editing fields changes only this snapshot.
 #[derive(Clone, PartialEq, Eq)]
-pub struct MyTagContent {
+pub struct DevMyTagContent {
     /// Export track ID in the separate standard database.
     pub content_id: i64,
     /// Tag ID in the extended database, matching the source main-database tag ID.
@@ -808,16 +808,16 @@ pub struct MyTagContent {
     raw: RowRecord,
 }
 
-impl std::fmt::Debug for MyTagContent {
+impl std::fmt::Debug for DevMyTagContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("MyTagContent")
+        f.debug_struct("DevMyTagContent")
             .field("content_id", &self.content_id)
             .field("my_tag_id", &self.my_tag_id)
             .finish()
     }
 }
 
-impl MyTagContent {
+impl DevMyTagContent {
     /// Extended database table containing track/tag associations.
     pub const TABLE: TableKind = TableKind::Extended(ExtPageType::TrackMyTags);
 
@@ -924,7 +924,7 @@ impl MyTagContent {
     }
 }
 
-impl TryFrom<RowRecord> for MyTagContent {
+impl TryFrom<RowRecord> for DevMyTagContent {
     type Error = Error;
 
     /// Decode an association while retaining the original row window.
@@ -950,7 +950,7 @@ impl TryFrom<RowRecord> for MyTagContent {
 /// Reserved fields default to zero with the observed empty-string marker 3.
 /// Insertion commits in memory only; saving is explicit.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NewMyTagContent {
+pub struct NewDevMyTagContent {
     /// Nonzero export track ID in the standard database.
     pub content_id: i64,
     /// Nonzero tag ID in the extended database, matching the source main-database tag ID.
@@ -963,7 +963,7 @@ pub struct NewMyTagContent {
     pub reserved_tail: [u8; 3],
 }
 
-impl NewMyTagContent {
+impl NewDevMyTagContent {
     /// Prepare an association with explicit cross-database IDs.
     pub fn new(content_id: i64, my_tag_id: i64) -> Self {
         Self {
@@ -976,23 +976,26 @@ impl NewMyTagContent {
     }
 
     /// Insert one association atomically without deduplicating pairs or loading references.
-    pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<MyTagContent> {
-        conn.check_kind(MyTagContent::TABLE)?;
+    pub fn insert<R: Read + Seek>(
+        self,
+        conn: &mut DeviceSqlConnection<R>,
+    ) -> Result<DevMyTagContent> {
+        conn.check_kind(DevMyTagContent::TABLE)?;
         let row = self.to_binary()?;
         let mut tx = conn.transaction();
         let handle = tx.insert(
-            MyTagContent::TABLE,
+            DevMyTagContent::TABLE,
             &Row::Extended(ExtendedRow::TrackMyTag(row)),
         )?;
-        let model = MyTagContent::try_from(tx.read(&handle)?)?;
+        let model = DevMyTagContent::try_from(tx.read(&handle)?)?;
         tx.commit()?;
         Ok(model)
     }
 
     /// Validate references and encode the row for insertion.
     fn to_binary(&self) -> Result<TrackMyTagRow> {
-        validate_nonzero_id(MyTagContent::TABLE, "content_id", self.content_id)?;
-        validate_nonzero_id(MyTagContent::TABLE, "my_tag_id", self.my_tag_id)?;
+        validate_nonzero_id(DevMyTagContent::TABLE, "content_id", self.content_id)?;
+        validate_nonzero_id(DevMyTagContent::TABLE, "my_tag_id", self.my_tag_id)?;
         Ok(TrackMyTagRow {
             unknown_00: self.unknown_00,
             track_id: checked_number(self.content_id, "track_id")?,

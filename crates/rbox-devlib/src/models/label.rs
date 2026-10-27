@@ -7,7 +7,7 @@ use std::io::{Read, Seek};
 
 use super::{
     checked_number, next_id, read_fields, text, text_error, unique_name, unsupported, validate_id,
-    Content,
+    DevContent,
 };
 use crate::binary::{NamedRow, PageType, Row, RowRecord, StandardRow, TableKind, TrackHeader};
 use crate::devicesql::DeviceSqlConnection;
@@ -20,7 +20,7 @@ use crate::{Error, Result};
 /// tables and reject extended database connections. Call [`Self::update`] to
 /// persist edited fields to the connection's in-memory overlay.
 #[derive(Clone, PartialEq, Eq)]
-pub struct Label {
+pub struct DevLabel {
     /// Export label ID.
     pub id: i64,
 
@@ -29,16 +29,16 @@ pub struct Label {
     raw: RowRecord,
 }
 
-impl std::fmt::Debug for Label {
+impl std::fmt::Debug for DevLabel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Label")
+        f.debug_struct("DevLabel")
             .field("id", &self.id)
             .field("name", &self.name)
             .finish()
     }
 }
 
-impl Label {
+impl DevLabel {
     /// Standard database table containing these rows.
     pub const TABLE: TableKind = TableKind::Standard(PageType::Labels);
 
@@ -173,7 +173,7 @@ impl Label {
         tx.delete(&handle)?;
 
         let mut locations = Vec::new();
-        for record in tx.iter_raw(Content::TABLE)? {
+        for record in tx.iter_raw(DevContent::TABLE)? {
             let record = record?;
             let header: TrackHeader = read_fields(&record)?;
             if header.subtype != TrackHeader::SUBTYPE {
@@ -185,7 +185,7 @@ impl Label {
         }
         let mut affected = 1usize;
         for (page, slot) in locations {
-            let handle = tx.locate(Content::TABLE, page, slot)?;
+            let handle = tx.locate(DevContent::TABLE, page, slot)?;
             let record = tx.read(&handle)?;
             let Row::Standard(StandardRow::Track(mut row)) = record.decode()? else {
                 return Err(unsupported(&record));
@@ -217,7 +217,7 @@ impl Label {
     }
 }
 
-impl TryFrom<RowRecord> for Label {
+impl TryFrom<RowRecord> for DevLabel {
     type Error = Error;
 
     /// Decode a binary row while retaining its complete original read window.
@@ -250,12 +250,12 @@ impl TryFrom<RowRecord> for Label {
 /// Insertion commits to the connection's in-memory overlay; saving is explicit.
 /// Other tables are not modified.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NewLabel {
+pub struct NewDevLabel {
     /// Decoded display name, preserving empty text.
     pub name: String,
 }
 
-impl NewLabel {
+impl NewDevLabel {
     /// Prepare a new label with explicit display name.
     pub fn new(name: impl Into<String>) -> Self {
         Self { name: name.into() }
@@ -264,30 +264,30 @@ impl NewLabel {
     /// Names must be unique within this table (exact, case-sensitive text equality).
     /// Allocate an export ID and insert atomically; errors leave the connection unchanged.
     /// The returned model contains the engine-created row. This does not save to disk.
-    pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Label> {
-        conn.check_kind(Label::TABLE)?;
-        let id = Label::generate_id(conn)?;
+    pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<DevLabel> {
+        conn.check_kind(DevLabel::TABLE)?;
+        let id = DevLabel::generate_id(conn)?;
         let row = self.to_binary(id)?;
         let mut tx = conn.transaction();
         if tx
-            .index_rows(Label::TABLE, Label::read_id)?
+            .index_rows(DevLabel::TABLE, DevLabel::read_id)?
             .contains_key(&checked_number(id, "id")?)
         {
             return Err(Error::DuplicateId {
-                table: Label::TABLE,
+                table: DevLabel::TABLE,
                 id: checked_number(id, "id")?,
             });
         }
-        unique_name(&mut tx, Label::TABLE, &self.name, None)?;
-        let handle = tx.insert(Label::TABLE, &Row::Standard(StandardRow::Label(row)))?;
-        let model = Label::try_from(tx.read(&handle)?)?;
+        unique_name(&mut tx, DevLabel::TABLE, &self.name, None)?;
+        let handle = tx.insert(DevLabel::TABLE, &Row::Standard(StandardRow::Label(row)))?;
+        let model = DevLabel::try_from(tx.read(&handle)?)?;
         tx.commit()?;
         Ok(model)
     }
 
     /// Encode fields with the allocated ID; the engine assigns placement.
     fn to_binary(&self, id: i64) -> Result<NamedRow> {
-        validate_id(Label::TABLE, id)?;
+        validate_id(DevLabel::TABLE, id)?;
         Ok(NamedRow {
             id: checked_number(id, "id")?,
             name: text(&self.name)?,

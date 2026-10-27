@@ -3,8 +3,8 @@
 
 //! History playlists and their track occurrences in the standard DeviceSQL database.
 //!
-//! [History] and [NewHistory] describe named histories in table 11.
-//! [HistoryContent] and [NewHistoryContent] describe their ordered track occurrences
+//! [DevHistory] and [NewDevHistory] describe named histories in table 11.
+//! [DevHistoryContent] and [NewDevHistoryContent] describe their ordered track occurrences
 //! in table 12. History IDs are separate from regular playlist IDs. Queries load
 //! relationships explicitly and retain repeated plays of the same track.
 //! History names can be updated; deleting a history removes its occurrences.
@@ -16,7 +16,7 @@ use std::io::{Read, Seek};
 
 use super::{
     checked_number, next_id, read_fields, text, text_error, unsupported, validate_id,
-    validate_nonzero_id, Content,
+    validate_nonzero_id, DevContent,
 };
 use crate::binary::{HistoryEntryRow, NamedRow, PageType, Row, RowRecord, StandardRow, TableKind};
 use crate::devicesql::DeviceSqlConnection;
@@ -29,7 +29,7 @@ use crate::{Error, Result};
 /// explicitly through [`Self::get_contents`]. Queries reject extended database
 /// connections. Use [`Self::update`] to persist an edited name.
 #[derive(Clone, PartialEq, Eq)]
-pub struct History {
+pub struct DevHistory {
     /// History-playlist ID, in a separate namespace from regular playlists.
     pub id: i64,
 
@@ -38,16 +38,16 @@ pub struct History {
     raw: RowRecord,
 }
 
-impl std::fmt::Debug for History {
+impl std::fmt::Debug for DevHistory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("History")
+        f.debug_struct("DevHistory")
             .field("id", &self.id)
             .field("name", &self.name)
             .finish()
     }
 }
 
-impl History {
+impl DevHistory {
     /// Standard database table containing these rows.
     pub const TABLE: TableKind = TableKind::Standard(PageType::HistoryPlaylists);
 
@@ -98,11 +98,11 @@ impl History {
     pub fn get_contents<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
         id: &i64,
-    ) -> Result<Vec<Content>> {
+    ) -> Result<Vec<DevContent>> {
         let _: u32 = checked_number(*id, "id")?;
-        let entries = HistoryContent::by_history_id(conn, id)?;
+        let entries = DevHistoryContent::by_history_id(conn, id)?;
         let ids: Vec<_> = entries.iter().map(|entry| entry.content_id).collect();
-        let contents: HashMap<_, _> = Content::by_ids(conn, &ids)?
+        let contents: HashMap<_, _> = DevContent::by_ids(conn, &ids)?
             .into_iter()
             .map(|content| (content.id, content))
             .collect();
@@ -113,7 +113,7 @@ impl History {
                     .get(&entry.content_id)
                     .cloned()
                     .ok_or(Error::ModelNotFound {
-                        table: Content::TABLE,
+                        table: DevContent::TABLE,
                         id: entry.content_id,
                     })
             })
@@ -182,7 +182,7 @@ impl History {
         let handle = tx.locate(Self::TABLE, location.page, location.slot)?;
         tx.delete(&handle)?;
         let mut locations = Vec::new();
-        for record in tx.iter_raw(HistoryContent::TABLE)? {
+        for record in tx.iter_raw(DevHistoryContent::TABLE)? {
             let record = record?;
             let Row::Standard(StandardRow::HistoryEntry(row)) = record.decode()? else {
                 return Err(unsupported(&record));
@@ -196,7 +196,7 @@ impl History {
             .checked_add(1)
             .ok_or(Error::MutationOverflow)?;
         for (page, slot) in locations {
-            let handle = tx.locate(HistoryContent::TABLE, page, slot)?;
+            let handle = tx.locate(DevHistoryContent::TABLE, page, slot)?;
             tx.delete(&handle)?;
         }
         tx.commit()?;
@@ -222,7 +222,7 @@ impl History {
     }
 }
 
-impl TryFrom<RowRecord> for History {
+impl TryFrom<RowRecord> for DevHistory {
     type Error = Error;
 
     /// Decode a binary row while retaining its complete original read window.
@@ -255,12 +255,12 @@ impl TryFrom<RowRecord> for History {
 /// Insertion commits to the connection's in-memory overlay; saving is explicit.
 /// Other tables are not modified.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NewHistory {
+pub struct NewDevHistory {
     /// Decoded display name, preserving empty text.
     pub name: String,
 }
 
-impl NewHistory {
+impl NewDevHistory {
     /// Prepare a new history playlist with explicit display name.
     pub fn new(name: impl Into<String>) -> Self {
         Self { name: name.into() }
@@ -268,32 +268,32 @@ impl NewHistory {
 
     /// Allocate an export ID and insert atomically; errors leave the connection unchanged.
     /// The returned model contains the engine-created row. This does not save to disk.
-    pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<History> {
-        conn.check_kind(History::TABLE)?;
-        let id = History::generate_id(conn)?;
+    pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<DevHistory> {
+        conn.check_kind(DevHistory::TABLE)?;
+        let id = DevHistory::generate_id(conn)?;
         let row = self.to_binary(id)?;
         let mut tx = conn.transaction();
         if tx
-            .index_rows(History::TABLE, History::read_id)?
+            .index_rows(DevHistory::TABLE, DevHistory::read_id)?
             .contains_key(&checked_number(id, "id")?)
         {
             return Err(Error::DuplicateId {
-                table: History::TABLE,
+                table: DevHistory::TABLE,
                 id: checked_number(id, "id")?,
             });
         }
         let handle = tx.insert(
-            History::TABLE,
+            DevHistory::TABLE,
             &Row::Standard(StandardRow::HistoryPlaylist(row)),
         )?;
-        let model = History::try_from(tx.read(&handle)?)?;
+        let model = DevHistory::try_from(tx.read(&handle)?)?;
         tx.commit()?;
         Ok(model)
     }
 
     /// Encode fields with the allocated ID; the engine assigns placement.
     fn to_binary(&self, id: i64) -> Result<NamedRow> {
-        validate_id(History::TABLE, id)?;
+        validate_id(DevHistory::TABLE, id)?;
         Ok(NamedRow {
             id: checked_number(id, "id")?,
             name: text(&self.name)?,
@@ -307,7 +307,7 @@ impl NewHistory {
 /// position ties are retained. Editing fields changes only this snapshot; tracks
 /// and history playlists are not loaded automatically. No timestamp is inferred.
 #[derive(Clone, PartialEq, Eq)]
-pub struct HistoryContent {
+pub struct DevHistoryContent {
     /// History-playlist ID; this does not reference the regular playlist table.
     pub history_id: i64,
     /// Export track ID, distinct from the source/master content ID.
@@ -317,9 +317,9 @@ pub struct HistoryContent {
     raw: RowRecord,
 }
 
-impl std::fmt::Debug for HistoryContent {
+impl std::fmt::Debug for DevHistoryContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("HistoryContent")
+        f.debug_struct("DevHistoryContent")
             .field("history_id", &self.history_id)
             .field("content_id", &self.content_id)
             .field("seq", &self.seq)
@@ -327,7 +327,7 @@ impl std::fmt::Debug for HistoryContent {
     }
 }
 
-impl HistoryContent {
+impl DevHistoryContent {
     /// Standard database table containing track occurrences.
     pub const TABLE: TableKind = TableKind::Standard(PageType::HistoryEntries);
 
@@ -400,7 +400,7 @@ impl HistoryContent {
     }
 }
 
-impl TryFrom<RowRecord> for HistoryContent {
+impl TryFrom<RowRecord> for DevHistoryContent {
     type Error = Error;
 
     /// Decode an entry without discarding its original row window.
@@ -427,7 +427,7 @@ impl TryFrom<RowRecord> for HistoryContent {
 /// resolved. The caller supplies valid references to a history playlist and an export track.
 /// Saving, relationship validation and automatic ordering remain separate steps.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NewHistoryContent {
+pub struct NewDevHistoryContent {
     /// Nonzero history-playlist ID; existence is not checked.
     pub history_id: i64,
     /// Nonzero export track ID.
@@ -436,7 +436,7 @@ pub struct NewHistoryContent {
     pub seq: u32,
 }
 
-impl NewHistoryContent {
+impl NewDevHistoryContent {
     /// Prepare an occurrence with an explicit playlist, track and position.
     pub fn new(history_id: i64, content_id: i64, seq: u32) -> Self {
         Self {
@@ -451,23 +451,23 @@ impl NewHistoryContent {
     pub fn insert<R: Read + Seek>(
         self,
         conn: &mut DeviceSqlConnection<R>,
-    ) -> Result<HistoryContent> {
-        conn.check_kind(HistoryContent::TABLE)?;
+    ) -> Result<DevHistoryContent> {
+        conn.check_kind(DevHistoryContent::TABLE)?;
         let row = self.to_binary()?;
         let mut tx = conn.transaction();
         let handle = tx.insert(
-            HistoryContent::TABLE,
+            DevHistoryContent::TABLE,
             &Row::Standard(StandardRow::HistoryEntry(row)),
         )?;
-        let model = HistoryContent::try_from(tx.read(&handle)?)?;
+        let model = DevHistoryContent::try_from(tx.read(&handle)?)?;
         tx.commit()?;
         Ok(model)
     }
 
     /// Validate references and encode fields; placement is assigned by the engine.
     fn to_binary(&self) -> Result<HistoryEntryRow> {
-        validate_nonzero_id(HistoryContent::TABLE, "history_id", self.history_id)?;
-        validate_nonzero_id(HistoryContent::TABLE, "content_id", self.content_id)?;
+        validate_nonzero_id(DevHistoryContent::TABLE, "history_id", self.history_id)?;
+        validate_nonzero_id(DevHistoryContent::TABLE, "content_id", self.content_id)?;
         Ok(HistoryEntryRow {
             position: self.seq,
             track_id: checked_number(self.content_id, "track_id")?,

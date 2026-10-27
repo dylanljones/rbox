@@ -5,13 +5,14 @@
 //!
 //! Models are detached snapshots. Reads and insertions use the binary definitions
 //! and engine directly. Content and album relationships are loaded explicitly into
-//! [`ContentView`] and [`AlbumView`]. Content updates preserve unedited binary data;
+//! [`DevContentView`] and [`DevAlbumView`]. Content updates preserve unedited binary data;
 //! [crate::DeviceLibrary::delete_content] cleans known references across both files.
 //! Debug output includes all public fields but omits the stored raw row; use
 //! `raw_record()` to inspect the original binary data explicitly.
 //!
-//! [`Content`] represents a DeviceSQL track row. The model uses the name "content"
-//! to match masterdb and OneLibrary; binary types and tables retain their track names.
+//! Public models use a `Dev` prefix, with `NewDev*` insertion inputs and `Dev*View`
+//! resolved views. [`DevContent`] represents a DeviceSQL track row; binary types
+//! and tables retain their format-specific names.
 //!
 //! IDs and references use `i64`; track metadata uses signed integers compatible
 //! with the SQL models. Binary rows keep their exact unsigned widths. Queries and
@@ -35,15 +36,15 @@
 //!
 //! ```
 //! use rbox_devlib::{binary::DatabaseKind, DeviceSqlConnection};
-//! use rbox_devlib::models::{Album, NewAlbum, NewArtist, NewKey};
+//! use rbox_devlib::models::{DevAlbum, NewDevAlbum, NewDevArtist, NewDevKey};
 //!
 //! # fn main() -> rbox_devlib::Result<()> {
 //! let mut conn = DeviceSqlConnection::create(DatabaseKind::Standard)?;
-//! let artist = NewArtist::new("Artist").insert(&mut conn)?;
-//! let album = NewAlbum::new("Album").artist_id(artist.id).insert(&mut conn)?;
+//! let artist = NewDevArtist::new("Artist").insert(&mut conn)?;
+//! let album = NewDevAlbum::new("Album").artist_id(artist.id).insert(&mut conn)?;
 //! // Only the secondary key ID is explicit; no musical-key numbering is inferred.
-//! let key = NewKey::new("Am", 23).insert(&mut conn)?;
-//! assert_eq!(Album::find(&mut conn, &album.id)?.unwrap().artist_id, artist.id);
+//! let key = NewDevKey::new("Am", 23).insert(&mut conn)?;
+//! assert_eq!(DevAlbum::find(&mut conn, &album.id)?.unwrap().artist_id, artist.id);
 //! # Ok(())
 //! # }
 //! ```
@@ -64,20 +65,20 @@ pub mod playlist;
 pub mod property;
 pub mod recommend_like;
 
-pub use album::{Album, AlbumView, NewAlbum};
-pub use artist::{Artist, NewArtist};
-pub use artwork::{Artwork, NewArtwork};
-pub use browse::{BrowseCategory, BrowseColumn, BrowseSort};
-pub use color::Color;
-pub use content::{Content, ContentView, NewContent, TrackCreationOptions};
-pub use genre::{Genre, NewGenre};
-pub use history::{History, HistoryContent, NewHistory, NewHistoryContent};
-pub use key::{Key, NewKey};
-pub use label::{Label, NewLabel};
-pub use my_tag::{MyTag, MyTagContent, NewMyTag, NewMyTagContent};
-pub use playlist::{NewPlaylist, NewPlaylistContent, Playlist, PlaylistContent};
-pub use property::{DatabaseProperty, ExportProperty};
-pub use recommend_like::{NewRecommendedLike, RecommendedLike};
+pub use album::{DevAlbum, DevAlbumView, NewDevAlbum};
+pub use artist::{DevArtist, NewDevArtist};
+pub use artwork::{DevArtwork, NewDevArtwork};
+pub use browse::{DevBrowseCategory, DevBrowseColumn, DevBrowseSort};
+pub use color::DevColor;
+pub use content::{DevContent, DevContentView, NewDevContent, TrackCreationOptions};
+pub use genre::{DevGenre, NewDevGenre};
+pub use history::{DevHistory, DevHistoryContent, NewDevHistory, NewDevHistoryContent};
+pub use key::{DevKey, NewDevKey};
+pub use label::{DevLabel, NewDevLabel};
+pub use my_tag::{DevMyTag, DevMyTagContent, NewDevMyTag, NewDevMyTagContent};
+pub use playlist::{DevPlaylist, DevPlaylistContent, NewDevPlaylist, NewDevPlaylistContent};
+pub use property::{DevDatabaseProperty, DevExportProperty};
+pub use recommend_like::{DevRecommendedLike, NewDevRecommendedLike};
 
 use std::collections::HashMap;
 use std::hash::Hash;

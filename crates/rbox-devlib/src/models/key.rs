@@ -7,7 +7,7 @@ use std::io::{Read, Seek};
 
 use super::{
     checked_number, next_id, read_fields, text, text_error, unique_name, unsupported, validate_id,
-    Content,
+    DevContent,
 };
 use crate::binary::{KeyRow, PageType, Row, RowRecord, StandardRow, TableKind, TrackHeader};
 use crate::devicesql::DeviceSqlConnection;
@@ -20,7 +20,7 @@ use crate::{Error, Result};
 /// tables and reject extended database connections. Call [`Self::update`] to
 /// persist edited fields to the connection's in-memory overlay.
 #[derive(Clone, PartialEq, Eq)]
-pub struct Key {
+pub struct DevKey {
     /// Export key ID.
     pub id: i64,
     /// Second stored ID, supplied independently; its role remains unknown.
@@ -30,9 +30,9 @@ pub struct Key {
     raw: RowRecord,
 }
 
-impl std::fmt::Debug for Key {
+impl std::fmt::Debug for DevKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Key")
+        f.debug_struct("DevKey")
             .field("id", &self.id)
             .field("secondary_id", &self.secondary_id)
             .field("name", &self.name)
@@ -40,7 +40,7 @@ impl std::fmt::Debug for Key {
     }
 }
 
-impl Key {
+impl DevKey {
     /// Standard database table containing these rows.
     pub const TABLE: TableKind = TableKind::Standard(PageType::MusicalKeys);
 
@@ -180,7 +180,7 @@ impl Key {
         tx.delete(&handle)?;
 
         let mut locations = Vec::new();
-        for record in tx.iter_raw(Content::TABLE)? {
+        for record in tx.iter_raw(DevContent::TABLE)? {
             let record = record?;
             let header: TrackHeader = read_fields(&record)?;
             if header.subtype != TrackHeader::SUBTYPE {
@@ -192,7 +192,7 @@ impl Key {
         }
         let mut affected = 1usize;
         for (page, slot) in locations {
-            let handle = tx.locate(Content::TABLE, page, slot)?;
+            let handle = tx.locate(DevContent::TABLE, page, slot)?;
             let record = tx.read(&handle)?;
             let Row::Standard(StandardRow::Track(mut row)) = record.decode()? else {
                 return Err(unsupported(&record));
@@ -224,7 +224,7 @@ impl Key {
     }
 }
 
-impl TryFrom<RowRecord> for Key {
+impl TryFrom<RowRecord> for DevKey {
     type Error = Error;
 
     /// Decode a binary row while retaining its complete original read window.
@@ -258,14 +258,14 @@ impl TryFrom<RowRecord> for Key {
 /// Insertion commits to the connection's in-memory overlay; saving is explicit.
 /// Other tables are not modified.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NewKey {
+pub struct NewDevKey {
     /// Second stored ID, supplied independently; its role remains unknown.
     pub secondary_id: i64,
     /// Decoded display name, preserving empty text.
     pub name: String,
 }
 
-impl NewKey {
+impl NewDevKey {
     /// Prepare a key with a display name and an explicit secondary ID.
     pub fn new(name: impl Into<String>, secondary_id: i64) -> Self {
         Self {
@@ -277,30 +277,30 @@ impl NewKey {
     /// Names must be unique within this table (exact, case-sensitive text equality).
     /// Allocate an export ID and insert atomically; errors leave the connection unchanged.
     /// The returned model contains the engine-created row. This does not save to disk.
-    pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Key> {
-        conn.check_kind(Key::TABLE)?;
-        let id = Key::generate_id(conn)?;
+    pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<DevKey> {
+        conn.check_kind(DevKey::TABLE)?;
+        let id = DevKey::generate_id(conn)?;
         let row = self.to_binary(id)?;
         let mut tx = conn.transaction();
         if tx
-            .index_rows(Key::TABLE, Key::read_id)?
+            .index_rows(DevKey::TABLE, DevKey::read_id)?
             .contains_key(&checked_number(id, "id")?)
         {
             return Err(Error::DuplicateId {
-                table: Key::TABLE,
+                table: DevKey::TABLE,
                 id: checked_number(id, "id")?,
             });
         }
-        unique_name(&mut tx, Key::TABLE, &self.name, None)?;
-        let handle = tx.insert(Key::TABLE, &Row::Standard(StandardRow::Key(row)))?;
-        let model = Key::try_from(tx.read(&handle)?)?;
+        unique_name(&mut tx, DevKey::TABLE, &self.name, None)?;
+        let handle = tx.insert(DevKey::TABLE, &Row::Standard(StandardRow::Key(row)))?;
+        let model = DevKey::try_from(tx.read(&handle)?)?;
         tx.commit()?;
         Ok(model)
     }
 
     /// Encode fields with the allocated ID; the engine assigns placement.
     fn to_binary(&self, id: i64) -> Result<KeyRow> {
-        validate_id(Key::TABLE, id)?;
+        validate_id(DevKey::TABLE, id)?;
         Ok(KeyRow {
             id: checked_number(id, "id")?,
             secondary_id: checked_number(self.secondary_id, "secondary_id")?,

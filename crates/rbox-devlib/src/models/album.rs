@@ -7,7 +7,7 @@ use std::io::{Read, Seek};
 
 use super::{
     checked_number, load_related, next_id, read_fields, text, text_error, unsupported, validate_id,
-    Artist, Content,
+    DevArtist, DevContent,
 };
 use crate::binary::{
     AlbumHeader, AlbumRow, PageType, Row, RowRecord, StandardRow, StringOffsets, TableKind,
@@ -20,10 +20,10 @@ use crate::{Error, Result};
 ///
 /// Changing public fields changes only this snapshot. Original bytes, reserved
 /// values and framing remain in [`Self::raw_record`]. Plain queries never load related
-/// tables. Use [`Self::resolve`] or [`Self::all_with_relations`] for an [`AlbumView`].
+/// tables. Use [`Self::resolve`] or [`Self::all_with_relations`] for a [`DevAlbumView`].
 /// All queries reject extended database connections.
 #[derive(Clone, PartialEq, Eq)]
-pub struct Album {
+pub struct DevAlbum {
     /// Export album ID.
     pub id: i64,
     /// Album artist ID, independent of the track artist; zero means unassigned.
@@ -35,34 +35,34 @@ pub struct Album {
 
 /// An album snapshot with its album artist explicitly resolved.
 ///
-/// [`Self::artist`] resolves [`Album::artist_id`], the same relationship exposed
-/// as [`super::ContentView::album_artist`] on a content view. It is independent
+/// [`Self::artist`] resolves [`DevAlbum::artist_id`], the same relationship exposed
+/// as [`super::DevContentView::album_artist`] on a content view. It is independent
 /// of the content's main artist; the album row has only this one artist reference.
 ///
 /// Field access performs no queries. A zero artist ID or missing target resolves
 /// to `None`; the original ID and raw row remain in [`Self::album`]. Editing this
 /// view changes only the snapshot, without saving or refreshing relationships.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AlbumView {
+pub struct DevAlbumView {
     /// Original album snapshot, including its artist ID.
-    pub album: Album,
+    pub album: DevAlbum,
     /// Album artist resolved from `album.artist_id`, without recursive expansion.
-    /// Equivalent to `ContentView::album_artist`, not the content's main artist.
-    pub artist: Option<Artist>,
+    /// Equivalent to `DevContentView::album_artist`, not the content's main artist.
+    pub artist: Option<DevArtist>,
 }
 
 /// Access album fields without performing queries.
-impl std::ops::Deref for AlbumView {
-    type Target = Album;
+impl std::ops::Deref for DevAlbumView {
+    type Target = DevAlbum;
 
     fn deref(&self) -> &Self::Target {
         &self.album
     }
 }
 
-impl std::fmt::Debug for Album {
+impl std::fmt::Debug for DevAlbum {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Album")
+        f.debug_struct("DevAlbum")
             .field("id", &self.id)
             .field("artist_id", &self.artist_id)
             .field("name", &self.name)
@@ -70,20 +70,23 @@ impl std::fmt::Debug for Album {
     }
 }
 
-impl Album {
+impl DevAlbum {
     /// Standard database table containing these rows.
     pub const TABLE: TableKind = TableKind::Standard(PageType::Albums);
 
     /// Resolve this snapshot's album artist without reloading the album.
     /// Zero and missing IDs become `None`; decoding and index errors propagate.
-    pub fn resolve<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<AlbumView> {
+    pub fn resolve<R: Read + Seek>(
+        self,
+        conn: &mut DeviceSqlConnection<R>,
+    ) -> Result<DevAlbumView> {
         conn.check_kind(Self::TABLE)?;
         let artist = if self.artist_id == 0 {
             None
         } else {
-            Artist::find(conn, &self.artist_id)?
+            DevArtist::find(conn, &self.artist_id)?
         };
-        Ok(AlbumView {
+        Ok(DevAlbumView {
             album: self,
             artist,
         })
@@ -95,16 +98,16 @@ impl Album {
     pub fn resolve_many<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
         albums: Vec<Self>,
-    ) -> Result<Vec<AlbumView>> {
+    ) -> Result<Vec<DevAlbumView>> {
         conn.check_kind(Self::TABLE)?;
         let artists = load_related(
             conn,
             albums.iter().map(|album| album.artist_id),
-            Artist::find,
+            DevArtist::find,
         )?;
         Ok(albums
             .into_iter()
-            .map(|album| AlbumView {
+            .map(|album| DevAlbumView {
                 artist: artists.get(&album.artist_id).cloned(),
                 album,
             })
@@ -116,7 +119,7 @@ impl Album {
     pub fn find_with_relations<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
         id: &i64,
-    ) -> Result<Option<AlbumView>> {
+    ) -> Result<Option<DevAlbumView>> {
         let _: u32 = checked_number(*id, "id")?;
         Self::find(conn, id)?
             .map(|album| album.resolve(conn))
@@ -126,7 +129,7 @@ impl Album {
     /// Read all albums in physical order and resolve shared artists in a batch.
     pub fn all_with_relations<R: Read + Seek>(
         conn: &mut DeviceSqlConnection<R>,
-    ) -> Result<Vec<AlbumView>> {
+    ) -> Result<Vec<DevAlbumView>> {
         let albums = Self::all(conn)?;
         Self::resolve_many(conn, albums)
     }
@@ -279,7 +282,7 @@ impl Album {
         // Scan only fixed prefixes to select references, then decode affected
         // rows. Unrelated content text is never converted or rewritten.
         let mut locations = Vec::new();
-        for record in tx.iter_raw(Content::TABLE)? {
+        for record in tx.iter_raw(DevContent::TABLE)? {
             let record = record?;
             let header: TrackHeader = read_fields(&record)?;
             if header.subtype != TrackHeader::SUBTYPE {
@@ -291,7 +294,7 @@ impl Album {
         }
         let mut affected = 1usize;
         for (page, slot) in locations {
-            let handle = tx.locate(Content::TABLE, page, slot)?;
+            let handle = tx.locate(DevContent::TABLE, page, slot)?;
             let record = tx.read(&handle)?;
             let Row::Standard(StandardRow::Track(mut row)) = record.decode()? else {
                 return Err(unsupported(&record));
@@ -337,7 +340,7 @@ fn unique_album<R: Read + Seek>(
     exclude_id: Option<i64>,
 ) -> Result<()> {
     let name = candidate.name.text()?;
-    for record in tx.iter_raw(Album::TABLE)? {
+    for record in tx.iter_raw(DevAlbum::TABLE)? {
         let record = record?;
         let Row::Standard(StandardRow::Album(row)) = record.decode()? else {
             return Err(unsupported(&record));
@@ -351,7 +354,7 @@ fn unique_album<R: Read + Seek>(
                 == name
         {
             return Err(Error::UniqueConstraintViolation {
-                table: Album::TABLE,
+                table: DevAlbum::TABLE,
                 fields: &["name", "artist_id"],
             });
         }
@@ -359,7 +362,7 @@ fn unique_album<R: Read + Seek>(
     Ok(())
 }
 
-impl TryFrom<RowRecord> for Album {
+impl TryFrom<RowRecord> for DevAlbum {
     type Error = Error;
 
     /// Decode a binary row while retaining its complete original read window.
@@ -393,7 +396,7 @@ impl TryFrom<RowRecord> for Album {
 /// Insertion commits to the connection's in-memory overlay; saving is explicit.
 /// Other tables are not modified.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NewAlbum {
+pub struct NewDevAlbum {
     /// Album artist ID, independent of the track artist; zero means unassigned.
     pub artist_id: i64,
     /// Decoded display name, preserving empty text.
@@ -404,7 +407,7 @@ pub struct NewAlbum {
     pub unknown_10: u32,
 }
 
-impl NewAlbum {
+impl NewDevAlbum {
     /// Prepare an album with no artist assigned; set one with [`Self::artist_id`].
     pub fn new(name: impl Into<String>) -> Self {
         Self {
@@ -424,30 +427,30 @@ impl NewAlbum {
     /// Allocate an export ID and insert atomically, rejecting duplicate `(name, artist_id)` pairs.
     /// Names use exact, case-sensitive text equality; failures leave the connection unchanged.
     /// The returned model contains the engine-created row. This does not save to disk.
-    pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Album> {
-        conn.check_kind(Album::TABLE)?;
-        let id = Album::generate_id(conn)?;
+    pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<DevAlbum> {
+        conn.check_kind(DevAlbum::TABLE)?;
+        let id = DevAlbum::generate_id(conn)?;
         let row = self.to_binary(id)?;
         let mut tx = conn.transaction();
         if tx
-            .index_rows(Album::TABLE, Album::read_id)?
+            .index_rows(DevAlbum::TABLE, DevAlbum::read_id)?
             .contains_key(&checked_number(id, "id")?)
         {
             return Err(Error::DuplicateId {
-                table: Album::TABLE,
+                table: DevAlbum::TABLE,
                 id: checked_number(id, "id")?,
             });
         }
         unique_album(&mut tx, &row, None)?;
-        let handle = tx.insert(Album::TABLE, &Row::Standard(StandardRow::Album(row)))?;
-        let model = Album::try_from(tx.read(&handle)?)?;
+        let handle = tx.insert(DevAlbum::TABLE, &Row::Standard(StandardRow::Album(row)))?;
+        let model = DevAlbum::try_from(tx.read(&handle)?)?;
         tx.commit()?;
         Ok(model)
     }
 
     /// Encode fields with the allocated ID; the engine assigns placement.
     fn to_binary(&self, id: i64) -> Result<AlbumRow> {
-        validate_id(Album::TABLE, id)?;
+        validate_id(DevAlbum::TABLE, id)?;
         Ok(AlbumRow {
             header: AlbumHeader {
                 subtype: AlbumHeader::NEAR_SUBTYPE,

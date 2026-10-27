@@ -158,7 +158,6 @@ and typed models provide access to tracks, playlists, artists, and other tables:
 
 ```rust
 use rbox::prelude::*;
-use rbox::devlib::models::Content;
 
 fn main() -> anyhow::Result<()> {
     let mut db = DeviceLibrary::new("PIONEER/rekordbox")?;

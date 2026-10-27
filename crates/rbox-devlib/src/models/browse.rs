@@ -8,12 +8,12 @@
 //!
 //! | Model | Table | Role |
 //! | --- | --- | --- |
-//! | [`BrowseColumn`] | 16 | Label catalog, including ARTIST, BPM and COLOR |
-//! | [`BrowseCategory`] | 17 | Category menu visibility and display order |
-//! | [`BrowseSort`] | 18 | Sort-option configuration |
+//! | [`DevBrowseColumn`] | 16 | Label catalog, including ARTIST, BPM and COLOR |
+//! | [`DevBrowseCategory`] | 17 | Category menu visibility and display order |
+//! | [`DevBrowseSort`] | 18 | Sort-option configuration |
 //!
 //! Category and sort rows refer to catalog entries through `column_id`. Resolve
-//! labels explicitly with [`BrowseColumn::find`].
+//! labels explicitly with [`DevBrowseColumn::find`].
 //! Use each snapshot's `update()` method to commit edits to the in-memory overlay;
 //! saving remains explicit. No model insertion or deletion methods are provided.
 //! Category/sort snapshots have no stable logical ID: reload them after rebuilding
@@ -51,7 +51,7 @@ use crate::{Error, Result};
 /// Public-field edits affect only this snapshot. Unknown data and original framing
 /// remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
 #[derive(Clone, PartialEq, Eq)]
-pub struct BrowseColumn {
+pub struct DevBrowseColumn {
     /// Column/menu-label ID.
     pub id: i64,
     /// Raw column code; unknown values are retained.
@@ -62,9 +62,9 @@ pub struct BrowseColumn {
     raw: RowRecord,
 }
 
-impl std::fmt::Debug for BrowseColumn {
+impl std::fmt::Debug for DevBrowseColumn {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("BrowseColumn")
+        f.debug_struct("DevBrowseColumn")
             .field("id", &self.id)
             .field("code", &self.code)
             .field("name", &self.name)
@@ -72,7 +72,7 @@ impl std::fmt::Debug for BrowseColumn {
     }
 }
 
-impl BrowseColumn {
+impl DevBrowseColumn {
     /// Database namespace and table containing these rows.
     pub const TABLE: TableKind = TableKind::Standard(PageType::BrowseColumns);
 
@@ -197,7 +197,7 @@ impl BrowseColumn {
     }
 }
 
-impl TryFrom<RowRecord> for BrowseColumn {
+impl TryFrom<RowRecord> for DevBrowseColumn {
     type Error = Error;
 
     /// Decode the binary fields while retaining the original row window.
@@ -266,7 +266,7 @@ fn settings_handle<R: Read + Seek>(
 
 /// Category menu visibility and order from standard table 17.
 ///
-/// [`Self::column_id`] references a [`BrowseColumn`] label. Use [`Self::state`]
+/// [`Self::column_id`] references a [`DevBrowseColumn`] label. Use [`Self::state`]
 /// for the stored visibility value and [`Self::position`] for display order;
 /// physical row order and row presence do not determine active menu membership.
 /// See the [module documentation](self) for interpretation and update guidance.
@@ -275,7 +275,7 @@ fn settings_handle<R: Read + Seek>(
 /// remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
 /// No unique row ID or singleton constraint is assumed; repeated rows are retained.
 #[derive(Clone, PartialEq, Eq)]
-pub struct BrowseCategory {
+pub struct DevBrowseCategory {
     /// Column/menu-label ID.
     pub column_id: i64,
     /// Content/menu selector, not a PDB table ID.
@@ -291,9 +291,9 @@ pub struct BrowseCategory {
     raw: RowRecord,
 }
 
-impl std::fmt::Debug for BrowseCategory {
+impl std::fmt::Debug for DevBrowseCategory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("BrowseCategory")
+        f.debug_struct("DevBrowseCategory")
             .field("column_id", &self.column_id)
             .field("selector", &self.selector)
             .field("unknown_04", &self.unknown_04)
@@ -303,7 +303,7 @@ impl std::fmt::Debug for BrowseCategory {
     }
 }
 
-impl BrowseCategory {
+impl DevBrowseCategory {
     /// Database namespace and table containing these rows.
     pub const TABLE: TableKind = TableKind::Standard(PageType::BrowseCategorySettings);
 
@@ -372,7 +372,7 @@ impl BrowseCategory {
     }
 }
 
-impl TryFrom<RowRecord> for BrowseCategory {
+impl TryFrom<RowRecord> for DevBrowseCategory {
     type Error = Error;
 
     /// Decode the binary fields while retaining the original row window.
@@ -396,16 +396,16 @@ impl TryFrom<RowRecord> for BrowseCategory {
 
 /// Sort-option configuration from standard table 18.
 ///
-/// [`Self::column_id`] references a [`BrowseColumn`] label. Enabled state and
+/// [`Self::column_id`] references a [`DevBrowseColumn`] label. Enabled state and
 /// position appear to be packed into [`Self::raw_tail`], but their complete
-/// semantics are not established. The layout differs from [`BrowseCategory`].
+/// semantics are not established. The layout differs from [`DevBrowseCategory`].
 /// See the [module documentation](self) for the inferred mapping and its limits.
 ///
 /// Public-field edits affect only this snapshot. Unknown data and original framing
 /// remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
 /// No unique row ID or singleton constraint is assumed; repeated rows are retained.
 #[derive(Clone, PartialEq, Eq)]
-pub struct BrowseSort {
+pub struct DevBrowseSort {
     /// Column/menu-label ID.
     pub column_id: i64,
     /// Sort-item selector; zero is retained.
@@ -416,9 +416,9 @@ pub struct BrowseSort {
     raw: RowRecord,
 }
 
-impl std::fmt::Debug for BrowseSort {
+impl std::fmt::Debug for DevBrowseSort {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("BrowseSort")
+        f.debug_struct("DevBrowseSort")
             .field("column_id", &self.column_id)
             .field("selector", &self.selector)
             .field("raw_tail", &self.raw_tail)
@@ -426,7 +426,7 @@ impl std::fmt::Debug for BrowseSort {
     }
 }
 
-impl BrowseSort {
+impl DevBrowseSort {
     /// Database namespace and table containing these rows.
     pub const TABLE: TableKind = TableKind::Standard(PageType::BrowseSortSettings);
 
@@ -493,7 +493,7 @@ impl BrowseSort {
     }
 }
 
-impl TryFrom<RowRecord> for BrowseSort {
+impl TryFrom<RowRecord> for DevBrowseSort {
     type Error = Error;
 
     /// Decode the binary fields while retaining the original row window.

@@ -21,7 +21,7 @@ use crate::{Error, Result};
 /// tables and reject extended database connections. Call [`Self::update`] to
 /// persist an edited name; saving remains explicit.
 #[derive(Clone, PartialEq, Eq)]
-pub struct Color {
+pub struct DevColor {
     /// Export color ID, retaining both bytes of the binary field.
     pub id: i64,
 
@@ -30,16 +30,16 @@ pub struct Color {
     raw: RowRecord,
 }
 
-impl std::fmt::Debug for Color {
+impl std::fmt::Debug for DevColor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Color")
+        f.debug_struct("DevColor")
             .field("id", &self.id)
             .field("name", &self.name)
             .finish()
     }
 }
 
-impl Color {
+impl DevColor {
     /// Standard database table containing these rows.
     pub const TABLE: TableKind = TableKind::Standard(PageType::ColorLabels);
 
@@ -164,7 +164,7 @@ impl Color {
     }
 }
 
-impl TryFrom<RowRecord> for Color {
+impl TryFrom<RowRecord> for DevColor {
     type Error = Error;
 
     /// Decode a binary row while retaining its complete original read window.

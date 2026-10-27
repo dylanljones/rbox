@@ -3,9 +3,9 @@
 
 //! Export metadata and source-library properties initialized by creation profiles.
 //!
-//! [`ExportProperty`] represents standard table 19 in `export.pdb`: the stored
+//! [`DevExportProperty`] represents standard table 19 in `export.pdb`: the stored
 //! track count, device name, export date, version text and background color.
-//! [`DatabaseProperty`] represents extended table 7 in `exportExt.pdb`: the source
+//! [`DevDatabaseProperty`] represents extended table 7 in `exportExt.pdb`: the source
 //! My Tag library identity, plus reserved fields retained in the binary row.
 //! Neither model represents an ordinary content item to append during an export.
 //!
@@ -23,7 +23,7 @@
 use std::collections::HashSet;
 use std::io::{Read, Seek};
 
-use super::{checked_number, text, text_error, unsupported, update_export_count, Content};
+use super::{checked_number, text, text_error, unsupported, update_export_count, DevContent};
 use crate::binary::{ExtPageType, ExtendedRow, PageType, Row, RowRecord, StandardRow, TableKind};
 use crate::devicesql::{DeviceSqlConnection, RowHandle, Transaction};
 use crate::{Error, Result};
@@ -39,7 +39,7 @@ use crate::{Error, Result};
 /// Duplicate names in existing binary data are reported as a constraint violation;
 /// the low-level engine remains available to inspect or repair such files.
 #[derive(Clone, PartialEq, Eq)]
-pub struct ExportProperty {
+pub struct DevExportProperty {
     /// Stored track count after the export update.
     pub track_count: u32,
     /// Raw Device Library background-color value.
@@ -53,9 +53,9 @@ pub struct ExportProperty {
     raw: RowRecord,
 }
 
-impl std::fmt::Debug for ExportProperty {
+impl std::fmt::Debug for DevExportProperty {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ExportProperty")
+        f.debug_struct("DevExportProperty")
             .field("track_count", &self.track_count)
             .field("background_color", &self.background_color)
             .field("date", &self.date)
@@ -65,7 +65,7 @@ impl std::fmt::Debug for ExportProperty {
     }
 }
 
-impl ExportProperty {
+impl DevExportProperty {
     /// Find a property by its exact device/export name, including an empty name.
     /// Rejects duplicate names instead of choosing an ambiguous row.
     pub fn find<R: Read + Seek>(
@@ -140,7 +140,7 @@ impl ExportProperty {
         conn.check_kind(Self::TABLE)?;
         let mut tx = conn.transaction();
         let mut count = 0u32;
-        for record in tx.iter_raw(Content::TABLE)? {
+        for record in tx.iter_raw(DevContent::TABLE)? {
             record?;
             count = count.checked_add(1).ok_or(Error::MutationOverflow)?;
         }
@@ -244,7 +244,7 @@ impl ExportProperty {
     }
 }
 
-impl TryFrom<RowRecord> for ExportProperty {
+impl TryFrom<RowRecord> for DevExportProperty {
     type Error = Error;
 
     /// Decode the binary fields while retaining the original row window.
@@ -285,21 +285,21 @@ impl TryFrom<RowRecord> for ExportProperty {
 /// remain available through [`Self::raw_record`]. Related rows are never loaded implicitly.
 /// No unique row ID or singleton constraint is assumed; repeated rows are retained.
 #[derive(Clone, PartialEq, Eq)]
-pub struct DatabaseProperty {
+pub struct DevDatabaseProperty {
     /// Source/master My Tag library identity, not a row ID; zero is valid.
     pub my_tag_master_db_id: i64,
     raw: RowRecord,
 }
 
-impl std::fmt::Debug for DatabaseProperty {
+impl std::fmt::Debug for DevDatabaseProperty {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("DatabaseProperty")
+        f.debug_struct("DevDatabaseProperty")
             .field("my_tag_master_db_id", &self.my_tag_master_db_id)
             .finish()
     }
 }
 
-impl DatabaseProperty {
+impl DevDatabaseProperty {
     /// Database namespace and table containing these rows.
     pub const TABLE: TableKind = TableKind::Extended(ExtPageType::DatabasePropertyOptions);
 
@@ -375,7 +375,7 @@ fn property_handle<R: Read + Seek>(
 
 fn duplicate_name() -> Error {
     Error::UniqueConstraintViolation {
-        table: ExportProperty::TABLE,
+        table: DevExportProperty::TABLE,
         fields: &["name"],
     }
 }
@@ -383,11 +383,11 @@ fn duplicate_name() -> Error {
 /// Validate all export-property keys before a transaction changes any rows.
 pub(super) fn collect_export_properties(
     records: impl Iterator<Item = Result<RowRecord>>,
-) -> Result<Vec<ExportProperty>> {
+) -> Result<Vec<DevExportProperty>> {
     let mut names = HashSet::new();
     records
         .map(|record| {
-            let row = ExportProperty::try_from(record?)?;
+            let row = DevExportProperty::try_from(record?)?;
             if !names.insert(row.name.clone()) {
                 return Err(duplicate_name());
             }
@@ -403,7 +403,7 @@ pub(super) fn set_export_counts<R: Read + Seek>(
     first_only: bool,
     count: u32,
 ) -> Result<usize> {
-    let properties = collect_export_properties(tx.iter_raw(ExportProperty::TABLE)?)?;
+    let properties = collect_export_properties(tx.iter_raw(DevExportProperty::TABLE)?)?;
     let mut updated = 0;
     for property in properties
         .into_iter()
@@ -415,7 +415,7 @@ pub(super) fn set_export_counts<R: Read + Seek>(
         };
         row.track_count = count;
         let handle = tx.locate(
-            ExportProperty::TABLE,
+            DevExportProperty::TABLE,
             property.raw.page(),
             property.raw.slot().slot,
         )?;
@@ -425,7 +425,7 @@ pub(super) fn set_export_counts<R: Read + Seek>(
     Ok(updated)
 }
 
-impl TryFrom<RowRecord> for DatabaseProperty {
+impl TryFrom<RowRecord> for DevDatabaseProperty {
     type Error = Error;
 
     /// Decode the binary fields while retaining the original row window.

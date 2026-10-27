@@ -6,7 +6,7 @@
 use std::io::{Read, Seek};
 
 use super::{
-    checked_number, next_id, read_fields, text, text_error, unsupported, validate_id, Content,
+    checked_number, next_id, read_fields, text, text_error, unsupported, validate_id, DevContent,
 };
 use crate::binary::{NamedRow, PageType, Row, RowRecord, StandardRow, TableKind, TrackHeader};
 use crate::devicesql::DeviceSqlConnection;
@@ -18,7 +18,7 @@ use crate::{Error, Result};
 /// values and framing remain in [`Self::raw_record`]. Queries never load related
 /// tables and reject extended database connections.
 #[derive(Clone, PartialEq, Eq)]
-pub struct Artwork {
+pub struct DevArtwork {
     /// Export artwork ID.
     pub id: i64,
 
@@ -27,16 +27,16 @@ pub struct Artwork {
     raw: RowRecord,
 }
 
-impl std::fmt::Debug for Artwork {
+impl std::fmt::Debug for DevArtwork {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Artwork")
+        f.debug_struct("DevArtwork")
             .field("id", &self.id)
             .field("path", &self.path)
             .finish()
     }
 }
 
-impl Artwork {
+impl DevArtwork {
     /// Standard database table containing these rows.
     pub const TABLE: TableKind = TableKind::Standard(PageType::ArtworkReferences);
 
@@ -173,7 +173,7 @@ impl Artwork {
         tx.delete(&handle)?;
 
         let mut locations = Vec::new();
-        for record in tx.iter_raw(Content::TABLE)? {
+        for record in tx.iter_raw(DevContent::TABLE)? {
             let record = record?;
             let header: TrackHeader = read_fields(&record)?;
             if header.subtype != TrackHeader::SUBTYPE {
@@ -185,7 +185,7 @@ impl Artwork {
         }
         let mut affected = 1usize;
         for (page, slot) in locations {
-            let handle = tx.locate(Content::TABLE, page, slot)?;
+            let handle = tx.locate(DevContent::TABLE, page, slot)?;
             let record = tx.read(&handle)?;
             let Row::Standard(StandardRow::Track(mut row)) = record.decode()? else {
                 return Err(unsupported(&record));
@@ -217,7 +217,7 @@ impl Artwork {
     }
 }
 
-impl TryFrom<RowRecord> for Artwork {
+impl TryFrom<RowRecord> for DevArtwork {
     type Error = Error;
 
     /// Decode a binary row while retaining its complete original read window.
@@ -251,12 +251,12 @@ impl TryFrom<RowRecord> for Artwork {
 /// Insertion commits to the connection's in-memory overlay; saving is explicit.
 /// Other tables are not modified.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NewArtwork {
+pub struct NewDevArtwork {
     /// Original artwork path, preserving stored separators.
     pub path: String,
 }
 
-impl NewArtwork {
+impl NewDevArtwork {
     /// Prepare a new artwork with explicit image path.
     pub fn new(path: impl Into<String>) -> Self {
         Self { path: path.into() }
@@ -264,32 +264,32 @@ impl NewArtwork {
 
     /// Allocate an export ID and insert atomically; errors leave the connection unchanged.
     /// The returned model contains the engine-created row. This does not save to disk.
-    pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Artwork> {
-        conn.check_kind(Artwork::TABLE)?;
-        let id = Artwork::generate_id(conn)?;
+    pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<DevArtwork> {
+        conn.check_kind(DevArtwork::TABLE)?;
+        let id = DevArtwork::generate_id(conn)?;
         let row = self.to_binary(id)?;
         let mut tx = conn.transaction();
         if tx
-            .index_rows(Artwork::TABLE, Artwork::read_id)?
+            .index_rows(DevArtwork::TABLE, DevArtwork::read_id)?
             .contains_key(&checked_number(id, "id")?)
         {
             return Err(Error::DuplicateId {
-                table: Artwork::TABLE,
+                table: DevArtwork::TABLE,
                 id: checked_number(id, "id")?,
             });
         }
-        let handle = tx.insert(Artwork::TABLE, &Row::Standard(StandardRow::Artwork(row)))?;
-        let model = Artwork::try_from(tx.read(&handle)?)?;
+        let handle = tx.insert(DevArtwork::TABLE, &Row::Standard(StandardRow::Artwork(row)))?;
+        let model = DevArtwork::try_from(tx.read(&handle)?)?;
         tx.commit()?;
         Ok(model)
     }
 
     /// Encode fields with the allocated ID; the engine assigns placement.
     fn to_binary(&self, id: i64) -> Result<NamedRow> {
-        validate_id(Artwork::TABLE, id)?;
+        validate_id(DevArtwork::TABLE, id)?;
         if self.path.is_empty() {
             return Err(Error::InvalidModelField {
-                table: Artwork::TABLE,
+                table: DevArtwork::TABLE,
                 field: "path",
                 reason: "artwork path must not be empty",
             });

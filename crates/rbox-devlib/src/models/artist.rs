@@ -7,7 +7,7 @@ use std::io::{Read, Seek};
 
 use super::{
     checked_number, next_id, read_fields, text, text_error, unique_name, unsupported, validate_id,
-    Album, Content,
+    DevAlbum, DevContent,
 };
 use crate::binary::{
     AlbumHeader, ArtistHeader, ArtistRow, PageType, Row, RowRecord, StandardRow, StringOffsets,
@@ -22,7 +22,7 @@ use crate::{Error, Result};
 /// values and framing remain in [`Self::raw_record`]. Queries never load related
 /// tables and reject extended database connections.
 #[derive(Clone, PartialEq, Eq)]
-pub struct Artist {
+pub struct DevArtist {
     /// Export artist ID.
     pub id: i64,
 
@@ -31,16 +31,16 @@ pub struct Artist {
     raw: RowRecord,
 }
 
-impl std::fmt::Debug for Artist {
+impl std::fmt::Debug for DevArtist {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Artist")
+        f.debug_struct("DevArtist")
             .field("id", &self.id)
             .field("name", &self.name)
             .finish()
     }
 }
 
-impl Artist {
+impl DevArtist {
     /// Standard database table containing these rows.
     pub const TABLE: TableKind = TableKind::Standard(PageType::Artists);
 
@@ -181,7 +181,7 @@ impl Artist {
         tx.delete(&handle)?;
 
         let mut locations = Vec::new();
-        for record in tx.iter_raw(Album::TABLE)? {
+        for record in tx.iter_raw(DevAlbum::TABLE)? {
             let record = record?;
             let header: AlbumHeader = read_fields(&record)?;
             if !matches!(
@@ -196,7 +196,7 @@ impl Artist {
         }
         let mut affected = 1usize;
         for (page, slot) in locations {
-            let handle = tx.locate(Album::TABLE, page, slot)?;
+            let handle = tx.locate(DevAlbum::TABLE, page, slot)?;
             let record = tx.read(&handle)?;
             let Row::Standard(StandardRow::Album(mut row)) = record.decode()? else {
                 return Err(unsupported(&record));
@@ -209,7 +209,7 @@ impl Artist {
         // Only fixed prefixes are inspected for unrelated content. Related
         // binary strings are preserved without converting their text.
         let mut locations = Vec::new();
-        for record in tx.iter_raw(Content::TABLE)? {
+        for record in tx.iter_raw(DevContent::TABLE)? {
             let record = record?;
             let header: TrackHeader = read_fields(&record)?;
             if header.subtype != TrackHeader::SUBTYPE {
@@ -227,7 +227,7 @@ impl Artist {
             }
         }
         for (page, slot) in locations {
-            let handle = tx.locate(Content::TABLE, page, slot)?;
+            let handle = tx.locate(DevContent::TABLE, page, slot)?;
             let record = tx.read(&handle)?;
             let Row::Standard(StandardRow::Track(mut row)) = record.decode()? else {
                 return Err(unsupported(&record));
@@ -275,7 +275,7 @@ impl Artist {
     }
 }
 
-impl TryFrom<RowRecord> for Artist {
+impl TryFrom<RowRecord> for DevArtist {
     type Error = Error;
 
     /// Decode a binary row while retaining its complete original read window.
@@ -309,12 +309,12 @@ impl TryFrom<RowRecord> for Artist {
 /// Insertion commits to the connection's in-memory overlay; saving is explicit.
 /// Other tables are not modified.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NewArtist {
+pub struct NewDevArtist {
     /// Decoded display name, preserving empty text.
     pub name: String,
 }
 
-impl NewArtist {
+impl NewDevArtist {
     /// Prepare a new artist with explicit display name.
     pub fn new(name: impl Into<String>) -> Self {
         Self { name: name.into() }
@@ -323,30 +323,30 @@ impl NewArtist {
     /// Names must be unique within this table (exact, case-sensitive text equality).
     /// Allocate an export ID and insert atomically; errors leave the connection unchanged.
     /// The returned model contains the engine-created row. This does not save to disk.
-    pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<Artist> {
-        conn.check_kind(Artist::TABLE)?;
-        let id = Artist::generate_id(conn)?;
+    pub fn insert<R: Read + Seek>(self, conn: &mut DeviceSqlConnection<R>) -> Result<DevArtist> {
+        conn.check_kind(DevArtist::TABLE)?;
+        let id = DevArtist::generate_id(conn)?;
         let row = self.to_binary(id)?;
         let mut tx = conn.transaction();
         if tx
-            .index_rows(Artist::TABLE, Artist::read_id)?
+            .index_rows(DevArtist::TABLE, DevArtist::read_id)?
             .contains_key(&checked_number(id, "id")?)
         {
             return Err(Error::DuplicateId {
-                table: Artist::TABLE,
+                table: DevArtist::TABLE,
                 id: checked_number(id, "id")?,
             });
         }
-        unique_name(&mut tx, Artist::TABLE, &self.name, None)?;
-        let handle = tx.insert(Artist::TABLE, &Row::Standard(StandardRow::Artist(row)))?;
-        let model = Artist::try_from(tx.read(&handle)?)?;
+        unique_name(&mut tx, DevArtist::TABLE, &self.name, None)?;
+        let handle = tx.insert(DevArtist::TABLE, &Row::Standard(StandardRow::Artist(row)))?;
+        let model = DevArtist::try_from(tx.read(&handle)?)?;
         tx.commit()?;
         Ok(model)
     }
 
     /// Encode fields with the allocated ID; the engine assigns placement.
     fn to_binary(&self, id: i64) -> Result<ArtistRow> {
-        validate_id(Artist::TABLE, id)?;
+        validate_id(DevArtist::TABLE, id)?;
         Ok(ArtistRow {
             header: ArtistHeader {
                 subtype: ArtistHeader::NEAR_SUBTYPE,

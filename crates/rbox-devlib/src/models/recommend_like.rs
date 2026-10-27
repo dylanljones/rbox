@@ -17,7 +17,7 @@ use crate::{Error, Result};
 /// Existing repeated rows are retained on reads; model insertion rejects duplicate
 /// ordered content pairs. There is no unique scalar row ID.
 #[derive(Clone, PartialEq, Eq)]
-pub struct RecommendedLike {
+pub struct DevRecommendedLike {
     /// Raw eight-byte value at 0x00; not interpreted as a timestamp.
     pub unknown_00: u64,
     /// First standard export track ID; no source/target direction is inferred.
@@ -31,9 +31,9 @@ pub struct RecommendedLike {
     raw: RowRecord,
 }
 
-impl std::fmt::Debug for RecommendedLike {
+impl std::fmt::Debug for DevRecommendedLike {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("RecommendedLike")
+        f.debug_struct("DevRecommendedLike")
             .field("unknown_00", &self.unknown_00)
             .field("content_id_1", &self.content_id_1)
             .field("content_id_2", &self.content_id_2)
@@ -43,7 +43,7 @@ impl std::fmt::Debug for RecommendedLike {
     }
 }
 
-impl RecommendedLike {
+impl DevRecommendedLike {
     /// Database namespace and table containing these rows.
     pub const TABLE: TableKind = TableKind::Extended(ExtPageType::RecommendLike);
 
@@ -111,7 +111,7 @@ impl RecommendedLike {
     }
 }
 
-impl TryFrom<RowRecord> for RecommendedLike {
+impl TryFrom<RowRecord> for DevRecommendedLike {
     type Error = Error;
 
     /// Decode the binary fields while retaining the original row window.
@@ -141,7 +141,7 @@ impl TryFrom<RowRecord> for RecommendedLike {
 /// inferred. Model insertion requires a unique ordered content pair.
 /// Saving is explicit; insertion commits only to the in-memory connection.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NewRecommendedLike {
+pub struct NewDevRecommendedLike {
     /// Raw eight-byte value at 0x00; not interpreted as a timestamp.
     pub unknown_00: u64,
     /// First standard export track ID; no source/target direction is inferred.
@@ -154,7 +154,7 @@ pub struct NewRecommendedLike {
     pub unknown_14: u32,
 }
 
-impl NewRecommendedLike {
+impl NewDevRecommendedLike {
     /// Prepare an insertion with explicit inputs.
     pub fn new(
         content_id_1: i64,
@@ -178,11 +178,11 @@ impl NewRecommendedLike {
     pub fn insert<R: Read + Seek>(
         self,
         conn: &mut DeviceSqlConnection<R>,
-    ) -> Result<RecommendedLike> {
-        conn.check_kind(RecommendedLike::TABLE)?;
+    ) -> Result<DevRecommendedLike> {
+        conn.check_kind(DevRecommendedLike::TABLE)?;
         let row = self.to_binary()?;
         let mut tx = conn.transaction();
-        for record in tx.iter_raw(RecommendedLike::TABLE)? {
+        for record in tx.iter_raw(DevRecommendedLike::TABLE)? {
             let record = record?;
             let Row::Extended(ExtendedRow::RecommendLike(existing)) = record.decode()? else {
                 return Err(unsupported(&record));
@@ -191,24 +191,24 @@ impl NewRecommendedLike {
                 && i64::from(existing.track_id_2) == self.content_id_2
             {
                 return Err(Error::UniqueConstraintViolation {
-                    table: RecommendedLike::TABLE,
+                    table: DevRecommendedLike::TABLE,
                     fields: &["content_id_1", "content_id_2"],
                 });
             }
         }
         let handle = tx.insert(
-            RecommendedLike::TABLE,
+            DevRecommendedLike::TABLE,
             &Row::Extended(ExtendedRow::RecommendLike(row)),
         )?;
-        let model = RecommendedLike::try_from(tx.read(&handle)?)?;
+        let model = DevRecommendedLike::try_from(tx.read(&handle)?)?;
         tx.commit()?;
         Ok(model)
     }
 
     /// Validate references and encode fields; the caller checks pair uniqueness.
     fn to_binary(&self) -> Result<RecommendLikeRow> {
-        validate_nonzero_id(RecommendedLike::TABLE, "content_id_1", self.content_id_1)?;
-        validate_nonzero_id(RecommendedLike::TABLE, "content_id_2", self.content_id_2)?;
+        validate_nonzero_id(DevRecommendedLike::TABLE, "content_id_1", self.content_id_1)?;
+        validate_nonzero_id(DevRecommendedLike::TABLE, "content_id_2", self.content_id_2)?;
         Ok(RecommendLikeRow {
             unknown_00: self.unknown_00,
             track_id_1: checked_number(self.content_id_1, "track_id_1")?,
