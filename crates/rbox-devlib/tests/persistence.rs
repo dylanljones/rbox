@@ -20,6 +20,26 @@ mod support;
 
 use support::decode_rows;
 
+#[test]
+fn atomic_save_refreshes_the_published_file_metadata() -> Result<()> {
+    use rbox_devlib::models::NewDevArtist;
+
+    let temporary = create_temp_dir();
+    let path = temporary.path().join("export.pdb");
+    DeviceSqlConnection::create(DatabaseKind::Standard)?.save_as(&path)?;
+    let mut connection = DeviceSqlConnection::open(&path, DatabaseKind::Standard)?;
+    let mut artist = NewDevArtist::new("Before").insert(&mut connection)?;
+    // Ensure distinct creation times for the source and its temporary replacement.
+    std::thread::sleep(std::time::Duration::from_millis(20));
+    assert!(connection.save()?.bytes_written > 0);
+    assert_eq!(connection.save()?, SaveStats::default());
+    artist.name = "After".into();
+    artist.update(&mut connection)?;
+    assert!(connection.save()?.bytes_written > 0);
+    assert_eq!(connection.save()?, SaveStats::default());
+    Ok(())
+}
+
 mod copies {
     //! Lossless output, no-clobber publication, and failure recovery for both kinds.
 
