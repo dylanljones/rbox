@@ -8,7 +8,7 @@ please use [GitHub Discussions][discussions] instead of opening an issue.
 rbox is tested on Windows, MacOS and Linux, however some features can't be tested in
 the CI setup since it requires a working Rekordbox installation.
 
-Ppull requests should disclose if generative AI tools were used in preparing the contribution,
+Pull requests should disclose if generative AI tools were used in preparing the contribution,
 including code, tests, documentation, and the PR description.
 If used, name the tools and briefly describe their role and the affected work.
 Contributors remain responsible for reviewing and validating their submissions.
