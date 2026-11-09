@@ -5274,20 +5274,20 @@ class WaveformDetail:
     def __init__(self, data: List[WaveformColumn]) -> None: ...
 
 class WaveformColorPreviewColumn:
-    energy_bottom_half_freq: int
-    energy_bottom_third_freq: int
-    energy_mid_third_freq: int
-    energy_top_third_freq: int
-    u1: int
-    u2: int
+    energy_low_wide: int
+    energy_low: int
+    energy_mid: int
+    energy_high: int
+    mono_max: int
+    mono_min: int
     def __init__(
         self,
-        energy_bottom_half_freq: int,
-        energy_bottom_third_freq: int,
-        energy_mid_third_freq: int,
-        energy_top_third_freq: int,
-        u1: int,
-        u2: int,
+        energy_low_wide: int,
+        energy_low: int,
+        energy_mid: int,
+        energy_high: int,
+        mono_max: int,
+        mono_min: int,
     ) -> None: ...
 
 class WaveformColorPreview:

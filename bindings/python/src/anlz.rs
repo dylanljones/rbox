@@ -826,12 +826,14 @@ impl PyWaveformDetail {
 /// Editable snapshot; changes take effect only through an Anlz setter.
 #[pyclass(name = "WaveformColorPreviewColumn", unsendable, get_all, set_all)]
 pub struct PyWaveformColorPreviewColumn {
-    pub energy_bottom_half_freq: u8,
-    pub energy_bottom_third_freq: u8,
-    pub energy_mid_third_freq: u8,
-    pub energy_top_third_freq: u8,
-    pub u1: u8,
-    pub u2: u8,
+    pub energy_low_wide: u8,
+    pub energy_low: u8,
+    pub energy_mid: u8,
+    pub energy_high: u8,
+    /// Signed upper waveform extent (-128..=127).
+    pub mono_max: i8,
+    /// Signed lower waveform extent (-128..=127).
+    pub mono_min: i8,
 }
 
 #[pymethods]
@@ -839,20 +841,20 @@ impl PyWaveformColorPreviewColumn {
     #[new]
     #[allow(clippy::too_many_arguments)]
     fn new(
-        energy_bottom_half_freq: u8,
-        energy_bottom_third_freq: u8,
-        energy_mid_third_freq: u8,
-        energy_top_third_freq: u8,
-        u1: u8,
-        u2: u8,
+        energy_low_wide: u8,
+        energy_low: u8,
+        energy_mid: u8,
+        energy_high: u8,
+        mono_max: i8,
+        mono_min: i8,
     ) -> Self {
         Self {
-            energy_bottom_half_freq,
-            energy_bottom_third_freq,
-            energy_mid_third_freq,
-            energy_top_third_freq,
-            u1,
-            u2,
+            energy_low_wide,
+            energy_low,
+            energy_mid,
+            energy_high,
+            mono_max,
+            mono_min,
         }
     }
 }
@@ -861,12 +863,12 @@ impl IntoPy<PyWaveformColorPreviewColumn> for &WaveformColorPreviewColumn {
     fn into_py(self, _py: Python) -> PyResult<PyWaveformColorPreviewColumn> {
         let value = self;
         Ok(PyWaveformColorPreviewColumn {
-            energy_bottom_half_freq: value.energy_bottom_half_freq,
-            energy_bottom_third_freq: value.energy_bottom_third_freq,
-            energy_mid_third_freq: value.energy_mid_third_freq,
-            energy_top_third_freq: value.energy_top_third_freq,
-            u1: value.u1,
-            u2: value.u2,
+            energy_low_wide: value.energy_low_wide,
+            energy_low: value.energy_low,
+            energy_mid: value.energy_mid,
+            energy_high: value.energy_high,
+            mono_max: value.mono_max,
+            mono_min: value.mono_min,
         })
     }
 }
@@ -874,12 +876,12 @@ impl IntoPy<PyWaveformColorPreviewColumn> for &WaveformColorPreviewColumn {
 impl PyWaveformColorPreviewColumn {
     fn to_core(&self, _py: Python) -> PyResult<WaveformColorPreviewColumn> {
         Ok(WaveformColorPreviewColumn {
-            energy_bottom_half_freq: self.energy_bottom_half_freq,
-            energy_bottom_third_freq: self.energy_bottom_third_freq,
-            energy_mid_third_freq: self.energy_mid_third_freq,
-            energy_top_third_freq: self.energy_top_third_freq,
-            u1: self.u1,
-            u2: self.u2,
+            energy_low_wide: self.energy_low_wide,
+            energy_low: self.energy_low,
+            energy_mid: self.energy_mid,
+            energy_high: self.energy_high,
+            mono_max: self.mono_max,
+            mono_min: self.mono_min,
         })
     }
 }
@@ -2357,8 +2359,11 @@ impl PySeekIndex {
 /// Editable snapshot; changes take effect only through an Anlz setter.
 #[pyclass(name = "Waveform3BandCalibration", unsendable, get_all, set_all)]
 pub struct PyWaveform3BandCalibration {
+    /// Low-band gain in hundredths; 100 is unity.
     pub low_gain: u16,
+    /// Mid-band gain in hundredths; 100 is unity.
     pub mid_gain: u16,
+    /// High-band gain in hundredths; 100 is unity.
     pub high_gain: u16,
 }
 

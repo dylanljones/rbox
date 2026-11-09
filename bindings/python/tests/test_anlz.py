@@ -1,6 +1,8 @@
 # Copyright (C) 2026 Dylan Jones
 # SPDX-License-Identifier: GPL-3.0-only
 
+"""ANLZ binding snapshots, field conversions, and persistence."""
+
 import pytest
 
 from rbox import Anlz, AnlzError
@@ -14,6 +16,8 @@ from rbox.anlz import (
     SongStructure,
     SongStructureData,
     UnknownSection,
+    WaveformColorPreview,
+    WaveformColorPreviewColumn,
     WaveformColumn,
     WaveformPreview,
 )
@@ -260,3 +264,22 @@ def test_static_beat_grid_helpers():
         BeatGrid.new_static_bpm(120.0, -1, 1000)
     with pytest.raises(TypeError):
         BeatGrid.new_static_bpm(120.0, 0.5, 1000)
+
+
+def test_color_preview_named_fields_round_trip(tmp_path):
+    path = tmp_path / "preview.EXT"
+    anlz = Anlz.new_ext(path)
+    values = dict(mono_max=127, mono_min=-128, energy_low_wide=17, energy_low=34, energy_mid=51, energy_high=255)
+    column = WaveformColorPreviewColumn(**values)
+    anlz.set_waveform_color_preview(WaveformColorPreview([column]))
+    anlz.dump()
+    stored = Anlz(path).get_waveform_color_preview().data[0]
+    for field, value in values.items():
+        assert getattr(stored, field) == value
+    for field in ("mono_max", "mono_min"):
+        for value in (-128, -1, 0, 127):
+            setattr(column, field, value)
+            assert getattr(column, field) == value
+        for value in (-129, 128):
+            with pytest.raises(OverflowError):
+                setattr(column, field, value)

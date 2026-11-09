@@ -1,6 +1,7 @@
 // Copyright (C) 2026 Dylan Jones
 // SPDX-License-Identifier: GPL-3.0-only
 
+// ANLZ binding snapshots, field conversions, and persistence.
 import test from 'ava'
 import fs from 'node:fs'
 import { Anlz, newStaticBeatGrid, setStaticBeatGrid } from '../index.js'
@@ -212,4 +213,22 @@ test('static beat grid helpers validate and preserve snapshot flags', t => {
     }
     t.throws(() => newStaticBeatGrid(120, 1001, 1000))
     t.is(grid.headerFlags, 0xABCDFF83)
+})
+
+
+test('PWV4 signed extents round trip', t => {
+    const anlz = new Anlz(fixtureCopy(t, 'EXT'))
+    const column = {monoMax: 127, monoMin: -128, energyLowWide: 17,
+        energyLow: 34, energyMid: 51, energyHigh: 255}
+    anlz.setWaveformColorPreview({data: [column]})
+    t.deepEqual(anlz.getWaveformColorPreview().data[0], column)
+    for (const field of ['monoMax', 'monoMin']) {
+        for (const value of [-128, -1, 0, 127]) {
+            anlz.setWaveformColorPreview({data: [{...column, [field]: value}]})
+            t.is(anlz.getWaveformColorPreview().data[0][field], value)
+        }
+        for (const value of [-129, 128, 0.5]) {
+            t.throws(() => anlz.setWaveformColorPreview({data: [{...column, [field]: value}]}))
+        }
+    }
 })

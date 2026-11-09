@@ -744,23 +744,25 @@ impl JsWaveformDetail {
 /// Editable snapshot; changes take effect only through an Anlz setter.
 #[napi(object, js_name = "WaveformColorPreviewColumn")]
 pub struct JsWaveformColorPreviewColumn {
-    pub energy_bottom_half_freq: f64,
-    pub energy_bottom_third_freq: f64,
-    pub energy_mid_third_freq: f64,
-    pub energy_top_third_freq: f64,
-    pub u1: f64,
-    pub u2: f64,
+    pub energy_low_wide: f64,
+    pub energy_low: f64,
+    pub energy_mid: f64,
+    pub energy_high: f64,
+    /// Signed upper waveform extent (-128..=127).
+    pub mono_max: f64,
+    /// Signed lower waveform extent (-128..=127).
+    pub mono_min: f64,
 }
 
 impl From<&WaveformColorPreviewColumn> for JsWaveformColorPreviewColumn {
     fn from(value: &WaveformColorPreviewColumn) -> Self {
         Self {
-            energy_bottom_half_freq: f64::from(value.energy_bottom_half_freq),
-            energy_bottom_third_freq: f64::from(value.energy_bottom_third_freq),
-            energy_mid_third_freq: f64::from(value.energy_mid_third_freq),
-            energy_top_third_freq: f64::from(value.energy_top_third_freq),
-            u1: f64::from(value.u1),
-            u2: f64::from(value.u2),
+            energy_low_wide: f64::from(value.energy_low_wide),
+            energy_low: f64::from(value.energy_low),
+            energy_mid: f64::from(value.energy_mid),
+            energy_high: f64::from(value.energy_high),
+            mono_max: f64::from(value.mono_max),
+            mono_min: f64::from(value.mono_min),
         }
     }
 }
@@ -768,42 +770,42 @@ impl From<&WaveformColorPreviewColumn> for JsWaveformColorPreviewColumn {
 impl JsWaveformColorPreviewColumn {
     fn to_core(&self) -> Result<WaveformColorPreviewColumn> {
         Ok(WaveformColorPreviewColumn {
-            energy_bottom_half_freq: read_number(
-                self.energy_bottom_half_freq,
+            energy_low_wide: read_number(
+                self.energy_low_wide,
                 u8::MIN as f64,
                 u8::MAX as f64,
-                "WaveformColorPreviewColumn.energy_bottom_half_freq",
+                "WaveformColorPreviewColumn.energy_low_wide",
             )? as u8,
-            energy_bottom_third_freq: read_number(
-                self.energy_bottom_third_freq,
+            energy_low: read_number(
+                self.energy_low,
                 u8::MIN as f64,
                 u8::MAX as f64,
-                "WaveformColorPreviewColumn.energy_bottom_third_freq",
+                "WaveformColorPreviewColumn.energy_low",
             )? as u8,
-            energy_mid_third_freq: read_number(
-                self.energy_mid_third_freq,
+            energy_mid: read_number(
+                self.energy_mid,
                 u8::MIN as f64,
                 u8::MAX as f64,
-                "WaveformColorPreviewColumn.energy_mid_third_freq",
+                "WaveformColorPreviewColumn.energy_mid",
             )? as u8,
-            energy_top_third_freq: read_number(
-                self.energy_top_third_freq,
+            energy_high: read_number(
+                self.energy_high,
                 u8::MIN as f64,
                 u8::MAX as f64,
-                "WaveformColorPreviewColumn.energy_top_third_freq",
+                "WaveformColorPreviewColumn.energy_high",
             )? as u8,
-            u1: read_number(
-                self.u1,
-                u8::MIN as f64,
-                u8::MAX as f64,
-                "WaveformColorPreviewColumn.u1",
-            )? as u8,
-            u2: read_number(
-                self.u2,
-                u8::MIN as f64,
-                u8::MAX as f64,
-                "WaveformColorPreviewColumn.u2",
-            )? as u8,
+            mono_max: read_number(
+                self.mono_max,
+                i8::MIN as f64,
+                i8::MAX as f64,
+                "WaveformColorPreviewColumn.mono_max",
+            )? as i8,
+            mono_min: read_number(
+                self.mono_min,
+                i8::MIN as f64,
+                i8::MAX as f64,
+                "WaveformColorPreviewColumn.mono_min",
+            )? as i8,
         })
     }
 }
@@ -1382,8 +1384,11 @@ impl JsSeekIndex {
 /// Editable snapshot; changes take effect only through an Anlz setter.
 #[napi(object, js_name = "Waveform3BandCalibration")]
 pub struct JsWaveform3BandCalibration {
+    /// Low-band gain in hundredths; 100 is unity.
     pub low_gain: f64,
+    /// Mid-band gain in hundredths; 100 is unity.
     pub mid_gain: f64,
+    /// High-band gain in hundredths; 100 is unity.
     pub high_gain: f64,
 }
 

@@ -28,7 +28,7 @@
 //! | `PWV5` | [`WaveformColorDetail`](AnlzTag::WaveformColorDetail) | A variable-width detailed color waveform, stored in `.EXT` files. |
 //! | `PWV6` | [`Waveform3BandPreview`](AnlzTag::Waveform3BandPreview) | A fixed-width three-band waveform overview, stored in `.2EX` files. |
 //! | `PWV7` | [`Waveform3BandDetail`](AnlzTag::Waveform3BandDetail) | A variable-width detailed three-band waveform, stored in `.2EX` files. |
-//! | `PWVC` | [`Waveform3BandCalibration`](AnlzTag::Waveform3BandCalibration) | Raw gain values for the low, mid, and high waveform bands in `.2EX` files; numeric scaling is unspecified. |
+//! | `PWVC` | [`Waveform3BandCalibration`](AnlzTag::Waveform3BandCalibration) | Gain values in hundredths for the low, mid, and high waveform bands in `.2EX` files. |
 //! | `PSSI` | [`SongStructure`](AnlzTag::SongStructure) | Song phrases such as intro, verse, and chorus, with classification metadata, stored in `.EXT` files. |
 //! | `PVDI` | [`VocalDetection`](AnlzTag::VocalDetection) | Raw vocal-detection confidence bytes in `.EXT` files; no time scale or normalization is imposed. |
 //!
@@ -1165,26 +1165,26 @@ impl SizedSection for WaveformDetail {
 
 // -- Waveform Color Tag ------------------------------------------------------------------
 
-/// Single Column value in a Waveform Color Preview.
+/// A six-byte column in the fixed-width color waveform preview (PWV4).
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[brw(big)]
 pub struct WaveformColorPreviewColumn {
-    /// Unknown field (somehow encodes the "whiteness").
-    pub u1: u8,
-    /// Unknown field (somehow encodes the "whiteness").
-    pub u2: u8,
-    /// Sound energy in the bottom half of the frequency range (<10 KHz).
-    pub energy_bottom_half_freq: u8,
-    /// Sound energy in the bottom third of the frequency range.
-    pub energy_bottom_third_freq: u8,
-    /// Sound energy in the mid of the frequency range.
-    pub energy_mid_third_freq: u8,
-    /// Sound energy in the top of the frequency range.
-    pub energy_top_third_freq: u8,
+    /// Signed upper extent of the mono waveform (-128..=127), not a PCM sample.
+    pub mono_max: i8,
+    /// Signed lower extent of the mono waveform (-128..=127), not a PCM sample.
+    pub mono_min: i8,
+    /// Peak energy of the wide low band (up to 400 Hz).
+    pub energy_low_wide: u8,
+    /// Low-band energy (up to 200 Hz), weighted by its share of the window.
+    pub energy_low: u8,
+    /// Mid-band energy (200 to 2000 Hz), weighted by its share of the window.
+    pub energy_mid: u8,
+    /// High-band energy (above 2000 Hz), weighted by its share of the window.
+    pub energy_high: u8,
 }
 
-/// Variable-width large monochrome version of the track waveform.
+/// Fixed-width color preview of the track waveform.
 ///
 /// Identifier: PWV4
 /// Used in `.EXT` files.
@@ -1438,7 +1438,8 @@ impl SizedSection for Waveform3BandDetail {
 /// Calibration data accompanying the three-band waveforms.
 ///
 /// The three raw gain values apply to the low, mid, and high bands respectively.
-/// The numeric scaling is not specified.
+/// Values are in hundredths: 100 means unity gain. Stored waveform columns
+/// already include these gains; do not multiply them again for display.
 ///
 /// Identifier: PWVC
 /// Used in `.2EX` files.
@@ -1457,11 +1458,11 @@ pub struct Waveform3BandCalibration {
     #[br(assert(unknown == 0))]
     #[bw(calc = 0)]
     unknown: u16,
-    /// Gain of the low (blue) band.
+    /// Gain of the low (blue) band in hundredths (100 = unity).
     pub low_gain: u16,
-    /// Gain of the mid (yellow) band.
+    /// Gain of the mid (yellow) band in hundredths (100 = unity).
     pub mid_gain: u16,
-    /// Gain of the high (white) band.
+    /// Gain of the high (white) band in hundredths (100 = unity).
     pub high_gain: u16,
 }
 

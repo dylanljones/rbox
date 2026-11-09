@@ -3448,6 +3448,8 @@ export declare const enum FileType {
   WAV = 11,
   AIFF = 12,
   VIDEO = 16,
+  StreamBeatport = 20,
+  StreamTidal = 22,
   StreamApple = 26
 }
 
@@ -6867,8 +6869,8 @@ export interface TinyWaveformPreview {
 
 /** Shared track data. BPM is unscaled, length is seconds, fileSize is bytes as bigint. */
 export interface Track {
-  id?: number
-  masterContentId?: number
+  id?: string
+  masterContentId?: string
   masterDbId?: number
   source: TrackSource
   uuid: string
@@ -6987,8 +6989,11 @@ export declare const enum Waveform {
 
 /** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface Waveform3BandCalibration {
+  /** Low-band gain in hundredths; 100 is unity. */
   lowGain: number
+  /** Mid-band gain in hundredths; 100 is unity. */
   midGain: number
+  /** High-band gain in hundredths; 100 is unity. */
   highGain: number
 }
 
@@ -7040,12 +7045,14 @@ export interface WaveformColorPreview {
 
 /** Editable snapshot; changes take effect only through an Anlz setter. */
 export interface WaveformColorPreviewColumn {
-  energyBottomHalfFreq: number
-  energyBottomThirdFreq: number
-  energyMidThirdFreq: number
-  energyTopThirdFreq: number
-  u1: number
-  u2: number
+  energyLowWide: number
+  energyLow: number
+  energyMid: number
+  energyHigh: number
+  /** Signed upper waveform extent (-128..=127). */
+  monoMax: number
+  /** Signed lower waveform extent (-128..=127). */
+  monoMin: number
 }
 
 /** Editable snapshot; changes take effect only through an Anlz setter. */
