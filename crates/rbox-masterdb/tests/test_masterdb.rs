@@ -2088,6 +2088,8 @@ fn file_type_codes_and_extensions() {
         (11, FileType::WAV),
         (12, FileType::AIFF),
         (16, FileType::VIDEO),
+        (20, FileType::StreamBeatport),
+        (22, FileType::StreamTidal),
         (26, FileType::StreamApple),
     ] {
         assert_eq!(kind as i32, code);
@@ -2096,7 +2098,7 @@ fn file_type_codes_and_extensions() {
     assert_eq!(FileType::AAC, FileType::M4A);
     assert_eq!(FileType::AIF, FileType::AIFF);
     assert_eq!(FileType::default(), FileType::INVALID);
-    for value in [-1, 2, 20, 999] {
+    for value in [-1, 2, 999] {
         assert!(FileType::try_from(value).is_err());
     }
     for (ext, code) in [
