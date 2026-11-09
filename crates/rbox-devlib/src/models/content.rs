@@ -1231,10 +1231,11 @@ impl TryFrom<&DevContentView> for Track {
             ));
         }
         Ok(Self {
-            id: Some(checked_number(row.id, "id")?),
+            id: Some(checked_number::<u32, _>(row.id, "id")?.to_string()),
             source: TrackSource::DeviceLib,
-            master_content_id: (row.master_content_id != 0)
-                .then_some(checked_number(row.master_content_id, "master_content_id")?),
+            master_content_id: (row.master_content_id != 0).then_some(
+                checked_number::<u32, _>(row.master_content_id, "master_content_id")?.to_string(),
+            ),
             master_db_id: (row.master_db_id != 0)
                 .then_some(checked_number(row.master_db_id, "master_db_id")?),
             path: PathBuf::from(&row.path),
@@ -1337,7 +1338,16 @@ impl TryFrom<&Track> for NewDevContent {
             ));
         }
         let mut row = Self::new(path);
-        row.master_content_id = i64::from(input.master_content_id.unwrap_or_default());
+        row.master_content_id = input
+            .master_content_id
+            .as_deref()
+            .map(|id| {
+                id.parse::<u32>().map(i64::from).map_err(|_| {
+                    track_mapping_error("master_content_id", "value must be a decimal u32")
+                })
+            })
+            .transpose()?
+            .unwrap_or_default();
         row.master_db_id = i64::from(input.master_db_id.unwrap_or_default());
         row.file_type = i32::from(
             u16::try_from(input.file_type.unwrap_or_default())

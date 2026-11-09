@@ -88,10 +88,10 @@ impl TrackMetadata {
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "pyo3", pyclass(from_py_object, get_all, set_all))]
 pub struct Track {
-    /// Local content ID in `source`, `None` when no database ID is assigned.
-    pub id: Option<u32>,
-    /// Content ID in the originating master database; independent of the export ID.
-    pub master_content_id: Option<u32>,
+    /// Local content ID in `source`, preserved as text; `None` when unassigned.
+    pub id: Option<String>,
+    /// Content ID in the originating master database, which may be nonnumeric.
+    pub master_content_id: Option<String>,
     /// Originating master library ID, paired with `master_content_id`.
     pub master_db_id: Option<u32>,
     /// Database format that owns `id`.

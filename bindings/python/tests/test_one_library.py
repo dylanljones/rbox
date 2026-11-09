@@ -232,13 +232,13 @@ def test_shared_track_getters_and_album_artist(one_library):
     track = db.get_track_by_id(row.id)
     assert isinstance(track, Track)
     assert track.source == TrackSource.OneLib
-    assert track.id == row.id
+    assert track.id == str(row.id)
     assert track.master_db_id == 3499321917
-    assert track.master_content_id == row.master_content_id
+    assert track.master_content_id == (str(row.master_content_id) if row.master_content_id is not None else None)
     assert track.album_artist == artist.name
-    assert db.get_track_by_path(row.path.replace("/", "\\")).id == row.id
-    assert any(item.id == row.id for item in db.get_tracks())
-    assert [item.id for item in db.get_tracks_by_ids([row.id, row.id, 2147483647])] == [row.id]
+    assert db.get_track_by_path(row.path.replace("/", "\\")).id == str(row.id)
+    assert any(item.id == str(row.id) for item in db.get_tracks())
+    assert [item.id for item in db.get_tracks_by_ids([row.id, row.id, 2147483647])] == [str(row.id)]
     assert db.get_tracks_by_ids([]) == []
     assert db.get_track_by_id(2147483647) is None
     assert db.get_track_by_path("/missing-track.wav") is None

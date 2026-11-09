@@ -7260,7 +7260,7 @@ fn shared_track_conversion_resolves_names_and_preserves_metadata() -> Result<()>
     assert_eq!(track.album_artist.as_deref(), Some("Album artist"));
     assert_eq!(track.album.as_deref(), Some("Album"));
     assert_eq!(track.artwork_path, Some("/art.jpg".into()));
-    assert_eq!(track.master_content_id, Some(123));
+    assert_eq!(track.master_content_id, Some("123".into()));
     assert_eq!(track.bpm, Some(128.35));
     assert_eq!(track.length, Some(241.0));
     assert!(track.date_created.is_none());
@@ -7276,7 +7276,7 @@ fn shared_track_conversion_resolves_names_and_preserves_metadata() -> Result<()>
     assert_eq!(mapped.album_id, 0);
     assert_eq!(mapped.artwork_id, 0);
     assert!(mapped.analysis_date.is_empty());
-    assert_eq!(Track::try_from(view)?.id, Some(1));
+    assert_eq!(Track::try_from(view)?.id, Some("1".into()));
     Ok(())
 }
 
@@ -7284,7 +7284,7 @@ fn shared_track_conversion_resolves_names_and_preserves_metadata() -> Result<()>
 fn shared_track_insertion_checks_ranges_and_normalizes_paths() -> Result<()> {
     use rbox_core::Track;
     let mut track = Track::new(r"/Contents/Artist\track.wav");
-    track.id = Some(1);
+    track.id = Some("1".into());
     track.bpm = Some(120.126);
     track.length = Some(12.6);
     let row = NewDevContent::try_from(&track)?;
@@ -7312,7 +7312,18 @@ fn shared_track_insertion_checks_ranges_and_normalizes_paths() -> Result<()> {
     let mut invalid = track.clone();
     invalid.rating = Some(6);
     assert!(NewDevContent::try_from(invalid).is_err());
-    for id in [None, Some(0), Some(u32::MAX)] {
+    for id in ["not-numeric", "-1", "4294967296", ""] {
+        let mut invalid = track.clone();
+        invalid.master_content_id = Some(id.into());
+        assert!(matches!(
+            NewDevContent::try_from(invalid),
+            Err(Error::InvalidModelField {
+                field: "master_content_id",
+                ..
+            })
+        ));
+    }
+    for id in [None, Some("0".into()), Some("non-numeric".into())] {
         let mut invalid = track.clone();
         invalid.id = id;
         assert_eq!(NewDevContent::try_from(invalid)?, row);

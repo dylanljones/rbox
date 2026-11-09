@@ -158,8 +158,8 @@ fn view_copies_resolved_names_and_preserves_optional_fields() {
     let borrowed = Track::try_from(&view).unwrap();
     let track: Track = view.try_into().unwrap();
     assert_eq!(borrowed.id, track.id);
-    assert_eq!(track.id, Some(42));
-    assert_eq!(track.master_content_id, Some(42));
+    assert_eq!(track.id, Some("42".into()));
+    assert_eq!(track.master_content_id, Some("42".into()));
     assert_eq!(track.source, TrackSource::MasterDb);
     assert!(track.master_db_id.is_none()); // A detached content view has no library context.
     assert_eq!(
@@ -192,7 +192,7 @@ fn view_copies_resolved_names_and_preserves_optional_fields() {
 }
 
 #[test]
-fn shared_track_ids_parse_checked_unsigned_values() {
+fn shared_track_ids_preserve_arbitrary_text() {
     let mut view = DjmdContentView {
         content: DjmdContent::default(),
         artist: None,
@@ -206,14 +206,16 @@ fn shared_track_ids_parse_checked_unsigned_values() {
         key: None,
         color: None,
     };
-    for invalid in ["", "-1", "4294967296", "not-numeric"] {
-        view.content.id = invalid.into();
-        assert!(Track::try_from(&view).is_err());
+    for id in ["", "-1", "4294967296", "not-numeric", "00042"] {
+        view.content.id = id.into();
+        let track = Track::try_from(&view).unwrap();
+        assert_eq!(track.id.as_deref(), Some(id));
+        assert_eq!(track.master_content_id.as_deref(), Some(id));
     }
     view.content.id = u32::MAX.to_string();
     let track = Track::try_from(view).unwrap();
-    assert_eq!(track.id, Some(u32::MAX));
-    assert_eq!(track.master_content_id, Some(u32::MAX));
+    assert_eq!(track.id, Some(u32::MAX.to_string()));
+    assert_eq!(track.master_content_id, Some(u32::MAX.to_string()));
 }
 
 #[rstest::rstest]
@@ -244,8 +246,8 @@ fn reads_resolved_tracks(#[case] version: usize) -> anyhow::Result<()> {
     row = row.update(&mut conn)?;
 
     let track: Track = db.get_track_by_id(&row.id)?.unwrap();
-    assert_eq!(track.id, row.id.parse().ok());
-    assert_eq!(track.master_content_id, Some(row.id.parse()?));
+    assert_eq!(track.id, Some(row.id.clone()));
+    assert_eq!(track.master_content_id, Some(row.id.clone()));
     assert_eq!(track.master_db_id, Some(library_id.parse()?));
     assert_eq!(track.source, TrackSource::MasterDb);
     assert_eq!(track.uuid, row.uuid);
@@ -262,7 +264,7 @@ fn reads_resolved_tracks(#[case] version: usize) -> anyhow::Result<()> {
         r"C:\music\Ã¦â€”Â¥Ã¦Å“Â¬Ã¨ÂªÅ¾.mp3",
     ] {
         let found = db.get_track_by_path(path)?.unwrap();
-        assert_eq!(found.id, Some(row.id.parse()?));
+        assert_eq!(found.id, Some(row.id.clone()));
         assert_eq!(found.master_db_id, Some(library_id.parse()?));
     }
 
@@ -271,7 +273,7 @@ fn reads_resolved_tracks(#[case] version: usize) -> anyhow::Result<()> {
     assert_eq!(all.len(), raw.len());
     let found = all
         .iter()
-        .find(|track| track.id == row.id.parse().ok())
+        .find(|track| track.id == Some(row.id.clone()))
         .unwrap();
     assert_eq!(found.master_db_id, track.master_db_id);
     assert_eq!(found.album_artist, track.album_artist);
@@ -283,11 +285,11 @@ fn reads_resolved_tracks(#[case] version: usize) -> anyhow::Result<()> {
         .all(|t| t.master_db_id == library_id.parse().ok()));
     assert!(selected
         .iter()
-        .any(|track| track.id == other_id.parse().ok()));
+        .any(|track| track.id == Some(other_id.clone())));
     assert_eq!(
         selected
             .iter()
-            .find(|track| track.id == row.id.parse().ok())
+            .find(|track| track.id == Some(row.id.clone()))
             .unwrap()
             .artist,
         track.artist
@@ -351,7 +353,7 @@ fn library_identity_requires_unambiguous_property(#[case] version: usize) -> any
 
     diesel::delete(djmdProperty::table).execute(&mut conn)?;
     let track = db.get_track_by_id(&id)?.unwrap();
-    assert_eq!(track.master_content_id, Some(id.parse()?));
+    assert_eq!(track.master_content_id, Some(id.clone()));
     assert!(track.master_db_id.is_none());
     Ok(())
 }

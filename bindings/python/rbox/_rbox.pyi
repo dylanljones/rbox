@@ -5777,8 +5777,8 @@ class TrackSource:
     OneLib: TrackSource
 
 class Track:
-    id: Optional[int]
-    master_content_id: Optional[int]
+    id: Optional[str]
+    master_content_id: Optional[str]
     master_db_id: Optional[int]
     source: TrackSource
     uuid: str

@@ -60,12 +60,12 @@ def test_resolved_track_helpers(master_db):
     db.update_content(row)
     track = db.get_track_by_id(row.id)
     assert isinstance(track, Track)
-    assert track.id == int(row.id)
+    assert track.id == row.id
     assert track.artist == "Track helper artist"
     assert track.bpm == 128.25
     assert track.composer is None
     assert isinstance(track.path, Path)
-    assert track.master_content_id == int(row.id)
+    assert track.master_content_id == row.id
     assert track.master_db_id == int(db.get_properties()[0].db_id)
     assert track.source == TrackSource.MasterDb
     assert track.artwork_path == Path(row.image_path)
@@ -75,9 +75,9 @@ def test_resolved_track_helpers(master_db):
     assert track.hot_cue_auto_load == "unknown-setting"
     assert track.delivery_control == "on"
     assert track.delivery_comment == "Delivery comment"
-    assert db.get_track_by_path(str(track.path)).id == int(row.id)
+    assert db.get_track_by_path(str(track.path)).id == row.id
     assert all(isinstance(item, Track) for item in db.get_tracks())
-    assert [item.id for item in db.get_tracks_by_ids([row.id, "missing", row.id])] == [int(row.id)]
+    assert [item.id for item in db.get_tracks_by_ids([row.id, "missing", row.id])] == [row.id]
     assert db.get_tracks_by_ids([]) == []
     assert db.get_track_by_id("missing") is None
     assert db.get_track_by_path("/missing/track.mp3") is None

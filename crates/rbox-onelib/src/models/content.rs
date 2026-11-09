@@ -828,12 +828,9 @@ impl TryFrom<&ContentView> for Track {
             ));
         }
         Ok(Self {
-            id: Some(
-                u32::try_from(row.id)
-                    .map_err(|_| track_field_error("id", "ID must be nonnegative and fit u32"))?,
-            ),
+            id: Some(row.id.to_string()),
             source: TrackSource::OneLib,
-            master_content_id: track_number(row.master_content_id, "master_content_id")?,
+            master_content_id: row.master_content_id.map(|id| id.to_string()),
             // Preserve the native signed 32-bit encoding without truncating wider IDs.
             master_db_id: row
                 .master_db_id
@@ -979,7 +976,15 @@ impl TryFrom<&Track> for NewContent {
         row.bitrate = track_number(input.bit_rate, "bitrate")?;
         row.sampling_rate = track_number(input.sample_rate, "sampling_rate")?;
         row.file_size = track_number(input.file_size, "file_size")?;
-        row.master_content_id = track_number(input.master_content_id, "master_content_id")?;
+        row.master_content_id = input
+            .master_content_id
+            .as_deref()
+            .map(|id| {
+                id.parse::<i64>().map_err(|_| {
+                    track_field_error("master_content_id", "value must be a decimal i64")
+                })
+            })
+            .transpose()?;
         row.master_db_id = input.master_db_id.map(|value| i64::from(value as i32));
         row.is_hot_cue_auto_load_on = input
             .hot_cue_auto_load

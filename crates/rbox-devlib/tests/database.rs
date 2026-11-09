@@ -1453,7 +1453,10 @@ fn content_queries_updates_and_tracks_resolve_metadata_and_save_explicitly() -> 
         );
         assert_eq!(
             (track.master_content_id, track.master_db_id),
-            (Some(u32::MAX), Some(first.master_db_id.try_into().unwrap()))
+            (
+                Some(u32::MAX.to_string()),
+                Some(first.master_db_id.try_into().unwrap())
+            )
         );
         assert_eq!(
             (track.bpm, track.length, track.file_size),
@@ -1466,20 +1469,17 @@ fn content_queries_updates_and_tracks_resolve_metadata_and_save_explicitly() -> 
                 .get_track_by_path(r"\Contents\first.wav")?
                 .unwrap()
                 .id,
-            Some(first.id.try_into().unwrap())
+            Some(first.id.to_string())
         );
         assert!(library.get_track_by_path("/contents/first.wav")?.is_none());
         assert_eq!(library.get_tracks()?.len(), 4);
         assert_eq!(
             library
                 .get_tracks_by_ids(&[duplicate.id, first.id, 999, first.id])?
-                .iter()
+                .into_iter()
                 .map(|row| row.id)
                 .collect::<Vec<_>>(),
-            vec![
-                Some(first.id.try_into().unwrap()),
-                Some(duplicate.id.try_into().unwrap())
-            ]
+            vec![Some(first.id.to_string()), Some(duplicate.id.to_string())]
         );
 
         let mut invalid = first.clone();

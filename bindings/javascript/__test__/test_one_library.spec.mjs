@@ -177,7 +177,7 @@ test('category views expose nested rows', t => {
     t.true(db.getCategoryWithRelations(2147483647) == null)
 })
 
-test('shared tracks expose numeric identities and album artists', t => {
+test('shared tracks expose string content identities and album artists', t => {
     const db = t.context.db
     const row = db.getContents()[0]
     const artist = db.createArtist('Shared track album artist')
@@ -187,13 +187,13 @@ test('shared tracks expose numeric identities and album artists', t => {
     db.updateContent(row)
     t.is(db.getContentWithRelations(row.id).albumArtist.id, artist.id)
     const track = db.getTrackById(row.id)
-    t.is(track.id, row.id)
+    t.is(track.id, String(row.id))
     t.is(track.masterDbId, 3499321917)
-    t.is(track.masterContentId, row.masterContentId)
+    t.is(track.masterContentId, row.masterContentId == null ? row.masterContentId : String(row.masterContentId))
     t.is(track.albumArtist, artist.name)
-    t.is(db.getTrackByPath(row.path.replaceAll('/', '\\')).id, row.id)
-    t.true(db.getTracks().some(item => item.id === row.id))
-    t.deepEqual(db.getTracksByIds([row.id, row.id, 2147483647]).map(item => item.id), [row.id])
+    t.is(db.getTrackByPath(row.path.replaceAll('/', '\\')).id, String(row.id))
+    t.true(db.getTracks().some(item => item.id === String(row.id)))
+    t.deepEqual(db.getTracksByIds([row.id, row.id, 2147483647]).map(item => item.id), [String(row.id)])
     t.deepEqual(db.getTracksByIds([]), [])
     t.true(db.getTrackById(2147483647) == null)
     t.true(db.getTrackByPath('/missing-track.wav') == null)

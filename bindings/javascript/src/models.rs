@@ -190,8 +190,8 @@ impl TryFrom<TrackMetadata> for CoreTrackMetadata {
 /// Shared track data. BPM is unscaled, length is seconds, fileSize is bytes as bigint.
 #[napi(object)]
 pub struct Track {
-    pub id: Option<f64>,
-    pub master_content_id: Option<f64>,
+    pub id: Option<String>,
+    pub master_content_id: Option<String>,
     pub master_db_id: Option<f64>,
     pub source: TrackSource,
     pub uuid: String,
@@ -238,8 +238,8 @@ pub struct Track {
 impl From<CoreTrack> for Track {
     fn from(value: CoreTrack) -> Self {
         Self {
-            id: value.id.map(f64::from),
-            master_content_id: value.master_content_id.map(f64::from),
+            id: value.id,
+            master_content_id: value.master_content_id,
             master_db_id: value.master_db_id.map(f64::from),
             source: value.source,
             uuid: value.uuid,
@@ -291,14 +291,8 @@ impl TryFrom<Track> for CoreTrack {
     type Error = Error;
     fn try_from(value: Track) -> Result<Self> {
         Ok(Self {
-            id: value
-                .id
-                .map(|n| unsigned(n, u32::MAX as f64, "id"))
-                .transpose()?,
-            master_content_id: value
-                .master_content_id
-                .map(|n| unsigned(n, u32::MAX as f64, "master_content_id"))
-                .transpose()?,
+            id: value.id,
+            master_content_id: value.master_content_id,
             master_db_id: value
                 .master_db_id
                 .map(|n| unsigned(n, u32::MAX as f64, "master_db_id"))

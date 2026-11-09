@@ -953,7 +953,7 @@ fn shared_track_conversions_preserve_metadata_and_resolved_names() -> anyhow::Re
     let artist = NewArtist::new("Mapping artist").insert(&mut conn)?;
     let image = NewImage::new("/art.jpg").insert(&mut conn)?;
     let mut track = Track::new(r"/Contents/Artist\track.wav");
-    track.id = Some(999);
+    track.id = Some("999".into());
     track.title = Some("Mapping track".into());
     track.search_str = Some("search title".into());
     track.file_type = Some(11);
@@ -961,7 +961,7 @@ fn shared_track_conversions_preserve_metadata_and_resolved_names() -> anyhow::Re
     track.bpm = Some(123.456);
     track.length = Some(123.6);
     track.rating = Some(5);
-    track.master_content_id = Some(123);
+    track.master_content_id = Some("123".into());
     track.master_db_id = Some(456);
     track.date_created = Some("2026-01-02".into());
     track.stock_date = Some("2026-02-03".into());
@@ -1027,7 +1027,18 @@ fn shared_track_conversions_reject_invalid_values() -> anyhow::Result<()> {
     input.rating = Some(6);
     assert!(NewContent::try_from(input).is_err());
     let mut input = track.clone();
-    input.master_content_id = Some(u32::MAX);
+    for id in ["not-numeric", "9223372036854775808", ""] {
+        let mut invalid = track.clone();
+        invalid.master_content_id = Some(id.into());
+        assert!(matches!(
+            NewContent::try_from(invalid),
+            Err(rbox_onelib::Error::InvalidTrackField {
+                field: "master_content_id",
+                ..
+            })
+        ));
+    }
+    input.master_content_id = Some(u32::MAX.to_string());
     assert_eq!(
         NewContent::try_from(input)?.master_content_id,
         Some(i64::from(u32::MAX))
@@ -1055,7 +1066,16 @@ fn shared_track_conversions_reject_invalid_values() -> anyhow::Result<()> {
         valid.content.master_content_id = Some(value);
         let mapped = Track::try_from(valid)?;
         assert_eq!(mapped.master_db_id, Some(value as u32));
-        assert_eq!(mapped.master_content_id, Some(value as u32));
+        assert_eq!(mapped.master_content_id, Some(value.to_string()));
+    }
+    for id in [i64::MIN, i64::MAX] {
+        let mut source = view.clone();
+        source.content.id = id;
+        source.content.master_content_id = Some(id);
+        let mapped = Track::try_from(source)?;
+        assert_eq!(mapped.id, Some(id.to_string()));
+        assert_eq!(mapped.master_content_id, Some(id.to_string()));
+        assert_eq!(NewContent::try_from(mapped)?.master_content_id, Some(id));
     }
     let mut invalid = view.clone();
     invalid.content.file_size = Some(-1);
@@ -1144,7 +1164,7 @@ fn shared_track_handler_queries() -> anyhow::Result<()> {
     new.bpmx100 = Some(12345);
     let content = new.insert(&mut conn)?;
     let track = db.get_track_by_id(content.id)?.unwrap();
-    assert_eq!(track.id, Some(content.id as u32));
+    assert_eq!(track.id, Some(content.id.to_string()));
     assert_eq!(track.source, TrackSource::OneLib);
     assert_eq!(track.album_artist.as_deref(), Some("Handler album artist"));
     assert_eq!(track.bpm, Some(123.45));

@@ -42,7 +42,7 @@ def test_metadata_conversion_copies_values():
     track = Track.from_metadata(metadata)
     assert track.id is None
     assert track.uuid == ""
-    track.id = 42
+    track.id = "track-42"
     track.uuid = "track-uuid"
     track.title = "Edited"
     assert metadata.title is None
@@ -99,8 +99,8 @@ def test_track_export_metadata_and_source():
         "delivery_comment",
     ):
         assert getattr(track, field) is None
-    track.id = 7
-    track.master_content_id = 42
+    track.id = "7"
+    track.master_content_id = "master-42"
     track.master_db_id = 100
     track.source = TrackSource.DeviceLib
     track.artwork_path = "artwork/cover.jpg"
@@ -111,6 +111,12 @@ def test_track_export_metadata_and_source():
     track.delivery_control = "on"
     track.delivery_comment = "Comment"
     assert track.id != track.master_content_id
+    for field in ("id", "master_content_id"):
+        for value in ("non-numeric", "00042", "4294967296"):
+            setattr(track, field, value)
+            assert getattr(track, field) == value
+        with pytest.raises(TypeError):
+            setattr(track, field, 42)
     assert track.master_db_id == 100
     assert track.source == TrackSource.DeviceLib
     assert track.artwork_path == Path("artwork/cover.jpg")
@@ -119,8 +125,6 @@ def test_track_export_metadata_and_source():
     for field, maximum in [
         ("color", 255),
         ("play_count", 2**32 - 1),
-        ("id", 2**32 - 1),
-        ("master_content_id", 2**32 - 1),
         ("master_db_id", 2**32 - 1),
     ]:
         for value in (-1, maximum + 1):

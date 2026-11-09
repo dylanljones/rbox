@@ -1144,9 +1144,6 @@ impl TryFrom<&DjmdContentView> for Track {
 
     fn try_from(view: &DjmdContentView) -> Result<Self, Self::Error> {
         let input = &view.content;
-        let id = input.id.parse::<u32>().map_err(|_| {
-            MasterDbError::InvalidOperation("content ID must be a decimal u32".into())
-        })?;
         if input.rating.is_some_and(|value| !(0..=5).contains(&value)) {
             return Err(MasterDbError::InvalidOperation(
                 "rating must be between 0 and 5".into(),
@@ -1158,8 +1155,8 @@ impl TryFrom<&DjmdContentView> for Track {
             ));
         }
         Ok(Self {
-            id: Some(id),
-            master_content_id: Some(id),
+            id: Some(input.id.clone()),
+            master_content_id: Some(input.id.clone()),
             master_db_id: None,
             source: TrackSource::MasterDb,
             uuid: input.uuid.clone(),
