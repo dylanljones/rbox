@@ -47,13 +47,13 @@ jobs:
         working-directory: ${{ env.working-directory }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Setup node
         if: ${{ !matrix.settings.docker }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: yarn
@@ -73,7 +73,7 @@ jobs:
           targets: ${{ matrix.settings.target }}
 
       - name: Cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry/index/
@@ -82,11 +82,6 @@ jobs:
             .cargo-cache
             target/
           key: ${{ matrix.settings.target }}-cargo-${{ matrix.settings.host }}
-
-      - uses: goto-bus-stop/setup-zig@v2
-        if: ${{ matrix.settings.target == 'armv7-unknown-linux-gnueabihf' || matrix.settings.target == 'armv7-unknown-linux-musleabihf' }}
-        with:
-          version: 0.13.0
 
       - name: Setup toolchain
         run: ${{ matrix.settings.setup }}
@@ -102,7 +97,7 @@ jobs:
         run: yarn install
 
       - name: Setup node x86
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         if: matrix.settings.target == 'i686-pc-windows-msvc'
         with:
           node-version: 20
@@ -126,7 +121,7 @@ jobs:
         shell: bash
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: bindings-${{ matrix.settings.target }}
           path: |
@@ -146,12 +141,12 @@ jobs:
         working-directory: ${{ env.working-directory }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: yarn
@@ -161,13 +156,13 @@ jobs:
         run: yarn install
 
       - name: Download macOS x64 artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: bindings-x86_64-apple-darwin
           path: bindings/javascript/artifacts
 
       - name: Download macOS arm64 artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: bindings-aarch64-apple-darwin
           path: bindings/javascript/artifacts
@@ -182,7 +177,7 @@ jobs:
         run: ls -R artifacts/
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: bindings-universal-apple-darwin
           path: |
@@ -207,15 +202,15 @@ jobs:
       run:
         working-directory: bindings/javascript
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
           architecture: ${{ matrix.platform.architecture }}
           cache: yarn
           cache-dependency-path: bindings/javascript/yarn.lock
       - run: yarn install --immutable
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: bindings-${{ matrix.platform.target }}
           path: bindings/javascript
@@ -237,12 +232,12 @@ jobs:
         working-directory: ${{ env.working-directory }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: yarn
@@ -255,7 +250,7 @@ jobs:
         run: yarn install
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: bindings/javascript/artifacts
 

@@ -20,7 +20,7 @@ jobs:
   cargo-fmt-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Check formatting
         run: cargo fmt --check
 
@@ -31,7 +31,7 @@ jobs:
       matrix:
         features: ['', anlz, xml, settings, 'master-db,bundled-vendored-openssl', 'one-library,bundled-vendored-openssl']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: Swatinem/rust-cache@v2
       - name: Check facade with isolated features
         run: cargo check -p rbox --no-default-features --features '${{ matrix.features }}'
@@ -40,7 +40,7 @@ jobs:
     needs: [check-features]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: Swatinem/rust-cache@v2
       - name: Install system SQLCipher for standalone crate verification
         run: sudo apt-get update && sudo apt-get install -y libsqlcipher-dev pkg-config
